@@ -25,6 +25,7 @@
 #include "Editor/LevelEditor/Public/LevelEditorActions.h"
 #include "Editor/ViewportInteraction/Public/ViewportInteraction.h"
 #include "VREditorInteractor.h"
+#include "MouseCursorInteractor.h"
 
 #include "Interactables/VREditorButton.h"
 
@@ -79,7 +80,11 @@ FVREditorMode::FVREditorMode()
 	  PostProcessComponent( nullptr ),
 	  MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
 	  UISystem( nullptr ),
+	  TeleporterSystem( nullptr ),
 	  WorldInteraction( nullptr ),
+	  MouseCursorInteractor( nullptr ),
+	  LeftHandInteractor( nullptr ),
+	  RightHandInteractor( nullptr ),
 	  bFirstTick( true ),
 	  bWasInWorldSpaceBeforeScaleMode( false )
 {
@@ -327,15 +332,26 @@ void FVREditorMode::Enter()
 		WorldInteraction->SetIsUsingVR( bActuallyUsingVR );
 		WorldInteraction->Init( VREditorLevelViewportWeakPtr.Pin()->GetViewportClient().Get() );
 
-		LeftHandInteractor = NewObject<UVREditorInteractor>( WorldInteraction );
-		LeftHandInteractor->Init( EControllerHand::Left, this );
-		WorldInteraction->AddInteractor( LeftHandInteractor );
+		// Motion controllers
+		{
+			LeftHandInteractor = NewObject<UVREditorInteractor>( WorldInteraction );
+			LeftHandInteractor->Init( EControllerHand::Left, this );
+			WorldInteraction->AddInteractor( LeftHandInteractor );
 
-		RightHandInteractor = NewObject<UVREditorInteractor>( WorldInteraction );
-		RightHandInteractor->Init( EControllerHand::Right, this );
-		WorldInteraction->AddInteractor( RightHandInteractor );
+			RightHandInteractor = NewObject<UVREditorInteractor>( WorldInteraction );
+			RightHandInteractor->Init( EControllerHand::Right, this );
+			WorldInteraction->AddInteractor( RightHandInteractor );
 
-		WorldInteraction->PairInteractors( LeftHandInteractor, RightHandInteractor );
+			WorldInteraction->PairInteractors( LeftHandInteractor, RightHandInteractor );
+		}
+
+		if( !bActuallyUsingVR )
+		{
+			// Register an interactor for the mouse cursor
+			MouseCursorInteractor = NewObject<UMouseCursorInteractor>( WorldInteraction );
+			MouseCursorInteractor->Init();
+			WorldInteraction->AddInteractor( MouseCursorInteractor );
+		}
 
 		// Setup the UI system
 		UISystem = NewObject<UVREditorUISystem>();
@@ -966,6 +982,10 @@ bool FVREditorMode::InputKey(FEditorViewportClient* ViewportClient, FViewport* V
 		// User hit escape, so bail out of VR mode
 		StartExitingVRMode();
 	}
+	else if( Key.IsMouseButton() )	// Input preprocessor cannot handle mouse buttons, so we'll route those the normal way
+	{
+		return WorldInteraction->HandleInputKey( Key, Event );
+	}
 
 	return FEdMode::InputKey(ViewportClient, Viewport, Key, Event);
 }
@@ -1004,6 +1024,7 @@ void FVREditorMode::AddReferencedObjects( FReferenceCollector& Collector )
 	Collector.AddReferencedObject( UISystem );
 	Collector.AddReferencedObject( WorldInteraction );
 	Collector.AddReferencedObject( TeleporterSystem );
+	Collector.AddReferencedObject( MouseCursorInteractor );
 	Collector.AddReferencedObject( LeftHandInteractor );
 	Collector.AddReferencedObject( RightHandInteractor );
 }

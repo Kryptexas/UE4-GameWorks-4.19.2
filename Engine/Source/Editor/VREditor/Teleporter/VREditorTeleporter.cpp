@@ -57,7 +57,7 @@ void UVREditorTeleporter::Tick( const float DeltaTime )
 void UVREditorTeleporter::StartTeleport( UViewportInteractor* Interactor )
 {
 	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
-	if ( VREditorInteractor && !VREditorInteractor->IsHoveringOverUI() )
+	if ( VREditorInteractor == nullptr || !VREditorInteractor->IsHoveringOverUI() )
 	{
 		FVector LaserPointerStart, LaserPointerEnd;
 		if ( Interactor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )

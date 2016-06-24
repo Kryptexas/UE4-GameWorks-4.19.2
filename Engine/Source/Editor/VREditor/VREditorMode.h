@@ -349,6 +349,9 @@ protected:
 	// Interactors
 	//
 
+	/** The mouse cursor interactor (currently only available when not in VR) */
+	class UMouseCursorInteractor* MouseCursorInteractor;
+
 	/** The right motion controller */
 	class UVREditorInteractor* LeftHandInteractor; //@todo vreditor: Hardcoded interactors
 	

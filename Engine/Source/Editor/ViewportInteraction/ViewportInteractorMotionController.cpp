@@ -175,25 +175,20 @@ void UViewportInteractorMotionController::PollInput()
 	InteractorData.LastTransform = InteractorData.Transform;
 	InteractorData.LastRoomSpaceTransform = InteractorData.RoomSpaceTransform;
 
-	//@todo ViewportInteraction: VREditorMode::PollInputFromMotionControllers mouse implementation 
-
 	// Generic motion controllers
-	if ( !bHaveMotionController )
+	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>( IMotionController::GetModularFeatureName() );
+	for ( auto MotionController : MotionControllers )	// @todo viewportinteraction: Needs support for multiple pairs of motion controllers
 	{
-		TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>( IMotionController::GetModularFeatureName() );
-		for ( auto MotionController : MotionControllers )
+		if ( MotionController != nullptr && !bHaveMotionController )
 		{
-			if ( MotionController != nullptr && !bHaveMotionController )
-			{
-				FVector Location = FVector::ZeroVector;
-				FRotator Rotation = FRotator::ZeroRotator;
+			FVector Location = FVector::ZeroVector;
+			FRotator Rotation = FRotator::ZeroRotator;
 
-				if ( MotionController->GetControllerOrientationAndPosition( WorldInteraction->GetMotionControllerID(), ControllerHandSide, /* Out */ Rotation, /* Out */ Location ) )
-				{
-					bHaveMotionController = true;
-					InteractorData.RoomSpaceTransform = FTransform( Rotation.Quaternion(), Location, FVector( 1.0f ) );
-					InteractorData.Transform = InteractorData.RoomSpaceTransform * WorldInteraction->GetRoomTransform();
-				}
+			if ( MotionController->GetControllerOrientationAndPosition( WorldInteraction->GetMotionControllerID(), ControllerHandSide, /* Out */ Rotation, /* Out */ Location ) )
+			{
+				bHaveMotionController = true;
+				InteractorData.RoomSpaceTransform = FTransform( Rotation.Quaternion(), Location, FVector( 1.0f ) );
+				InteractorData.Transform = InteractorData.RoomSpaceTransform * WorldInteraction->GetRoomTransform();
 			}
 		}
 	}

@@ -103,14 +103,13 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 			if ( ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove ||
 				Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) )
 			{
-				FViewportInteractorData& OtherInteractorData = OtherInteractor->GetInteractorData();
-
 				if ( Event == IE_Pressed )
 				{
 					// No clicking while we're dragging the world.  (No laser pointers are visible, anyway.)
 					const bool bIsDraggingWorldWithTwoHands =
-						( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
-						( GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag );
+						OtherInteractor != nullptr &&
+						( ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
+						  ( GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) );
 
 					FHitResult HitResult = GetHitResultFromLaserPointer();
 					if ( !bIsDraggingWorldWithTwoHands && !bHandled && HitResult.Actor.IsValid() )
@@ -145,21 +144,28 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 							{
 								bHandled = true;
 
+								FViewportInteractorData* OtherInteractorData = nullptr;
+								if( OtherInteractor != nullptr )
+								{
+									OtherInteractorData = &OtherInteractor->GetInteractorData();
+								}
+
 								// Is the other hand already dragging this stuff?
-								if ( OtherInteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
-									OtherInteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsFreely )
+								if ( OtherInteractorData != nullptr &&
+									 ( OtherInteractorData->DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo ||
+									   OtherInteractorData->DraggingMode == EViewportInteractionDraggingMode::ActorsFreely ) )
 								{
 									// Only if they clicked on one of the objects we're moving
 									if ( WorldInteraction->IsTransformingActor( Actor ) )
 									{
 										// If we were dragging with a gizmo, we'll need to stop doing that and instead drag freely.
-										if ( OtherInteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo )
+										if ( OtherInteractorData->DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo )
 										{
 											WorldInteraction->StopDragging( this );
 
 											FViewportActionKeyInput OtherInteractorAction( ViewportWorldActionTypes::SelectAndMove );
 											const bool bIsPlacingActors = false;
-											WorldInteraction->StartDraggingActors( OtherInteractor, OtherInteractorAction, HitResult.GetComponent(), OtherInteractorData.HoverLocation, bIsPlacingActors ); //@todo ViewportInteraction
+											WorldInteraction->StartDraggingActors( OtherInteractor, OtherInteractorAction, HitResult.GetComponent(), OtherInteractorData->HoverLocation, bIsPlacingActors ); //@todo ViewportInteraction
 										}
 
 										InteractorData.DraggingMode = InteractorData.LastDraggingMode = EViewportInteractionDraggingMode::AssistingDrag;
@@ -176,8 +182,8 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 										InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
 										InteractorData.bIsDrivingVelocityOfSimulatedTransformables = false;
 
-										InteractorData.GizmoStartTransform = OtherInteractorData.GizmoStartTransform;
-										InteractorData.GizmoStartLocalBounds = OtherInteractorData.GizmoStartLocalBounds;
+										InteractorData.GizmoStartTransform = OtherInteractorData->GizmoStartTransform;
+										InteractorData.GizmoStartLocalBounds = OtherInteractorData->GizmoStartLocalBounds;
 										InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;	// Will be determined on first update
 										InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;	// Set every frame while dragging
 
@@ -194,11 +200,11 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 										// @todo vreditor: We don't currently support selection/dragging separate objects with either hand
 									}
 								}
-								else if ( OtherInteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo )
+								else if ( OtherInteractorData != nullptr && OtherInteractorData->DraggingMode == EViewportInteractionDraggingMode::ActorsWithGizmo )
 								{
 									// We don't support dragging objects with the gizmo using two hands.  Just absorb it.
 								}
-								else if ( OtherInteractorData.DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+								else if ( OtherInteractorData != nullptr && OtherInteractorData->DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
 								{
 									// Doesn't work with two hands.  Just absorb it.
 								}
@@ -215,9 +221,10 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 									// If the other hand is holding down the button after selecting an object, we'll allow this hand to toggle selection
 									// of additional objects (multi select)
 									{
-										if ( OtherInteractorData.ClickingOnComponent.IsValid() &&		// Other hand is clicking on something
+										if( OtherInteractorData != nullptr && 
+											OtherInteractorData->ClickingOnComponent.IsValid() &&		// Other hand is clicking on something
 											Actor != WorldInteraction->GetTransformGizmoActor() &&					// Not clicking on a gizmo
-											OtherInteractorData.ClickingOnComponent.Get()->GetOwner() != Actor )	// Not clicking on same actor
+											OtherInteractorData->ClickingOnComponent.Get()->GetOwner() != Actor )	// Not clicking on same actor
 										{
 											// OK, the other hand is holding down the "select and move" button.
 											SelectionModification = ESelectionModification::Toggle;
@@ -261,9 +268,10 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 
 										// If the user did a full press to select an actor that wasn't selected, allow them to drag it right away
 										const bool bOtherHandTryingToDrag =
-											OtherInteractorData.ClickingOnComponent.IsValid() &&
-											OtherInteractorData.ClickingOnComponent.Get()->GetOwner()->IsSelected() &&
-											OtherInteractorData.ClickingOnComponent.Get()->GetOwner() == HitResult.GetComponent()->GetOwner();	// Trying to drag same actor
+											OtherInteractorData != nullptr &&
+											OtherInteractorData->ClickingOnComponent.IsValid() &&
+											OtherInteractorData->ClickingOnComponent.Get()->GetOwner()->IsSelected() &&
+											OtherInteractorData->ClickingOnComponent.Get()->GetOwner() == HitResult.GetComponent()->GetOwner();	// Trying to drag same actor
 										if ( ( !bWasSelected || bOtherHandTryingToDrag ) &&
 											Actor->IsSelected() &&
 											( Action->ActionType == ViewportWorldActionTypes::SelectAndMove || bOtherHandTryingToDrag ) )
@@ -299,8 +307,9 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 
 					const bool bIsDraggingWorld = InteractorData.DraggingMode == EViewportInteractionDraggingMode::World;
 					const bool bIsDraggingWorldWithTwoHands =
-						( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
-						( GetOtherInteractor()->InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag );
+						OtherInteractor != nullptr &&
+						( ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
+						  ( GetOtherInteractor()->InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) );
 
 					// Don't allow the trigger to cancel our drag on release if we're dragging the world. 
 					if ( InteractorData.DraggingMode != EViewportInteractionDraggingMode::Nothing &&
@@ -309,9 +318,8 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 					{
 						WorldInteraction->StopDragging( this );
 						Action->bIsInputCaptured = false;
+						bHandled = true;
 					}
-
-					bHandled = true;
 				}
 			}
 			// World Movement
@@ -331,11 +339,14 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 						InteractorData.DraggingMode = InteractorData.LastDraggingMode = EViewportInteractionDraggingMode::World;
 						InteractorData.bWasAssistingDrag = false;
 
-						// Starting a new drag, so make sure the other hand doesn't think it's assisting us
-						OtherInteractor->GetInteractorData().bWasAssistingDrag = false;
+						if( OtherInteractor != nullptr )
+						{
+							// Starting a new drag, so make sure the other hand doesn't think it's assisting us
+							OtherInteractor->GetInteractorData().bWasAssistingDrag = false;
 
-						// Stop any interia from the other hand's previous movements -- we've grabbed the world and it needs to stick!
-						OtherInteractor->GetInteractorData().DragTranslationVelocity = FVector::ZeroVector;
+							// Stop any interia from the other hand's previous movements -- we've grabbed the world and it needs to stick!
+							OtherInteractor->GetInteractorData().DragTranslationVelocity = FVector::ZeroVector;
+						}
 					}
 
 					InteractorData.bIsFirstDragUpdate = true;
@@ -442,8 +453,9 @@ bool UViewportInteractor::GetLaserPointer( FVector& LaserPointerStart, FVector& 
 {
 	// If we're currently grabbing the world with both hands, then the laser pointer is not available
 	if ( /*bHaveMotionController &&*/ //@todo ViewportInteraction
-		!( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) &&
-		!( InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World ) )
+		 OtherInteractor == nullptr ||
+		 ( !( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) &&
+		   !( InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World ) ) )
 	{
 		// If we have UI attached to us, don't allow a laser pointer
 		if ( bEvenIfBlocked || !GetIsLaserBlocked() )
@@ -539,7 +551,10 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 
 bool UViewportInteractor::GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector )
 {
-	return false;
+	OutHandTransform = InteractorData.Transform;
+	OutForwardVector = OutHandTransform.GetRotation().Vector();
+
+	return true;
 }
 
 FVector UViewportInteractor::GetHoverLocation() const 

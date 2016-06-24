@@ -650,8 +650,6 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 				OtherInteractor = AssistingDragWithInteractor.GetValue();
 			}
 
-			FViewportInteractorData& OtherInteractorData = OtherInteractor->GetInteractorData();
-
 			UViewportInteractor* OtherInteractorThatWasAssistingDrag = GetOtherInteractorIntertiaContribute( Interactor );
 
 			FVector DraggedTo = InteractorData.Transform.GetLocation();
@@ -754,6 +752,8 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 					FVector OtherHandLaserPointerStart, OtherHandLaserPointerEnd;
 					if( OtherInteractor->GetLaserPointer( /* Out */ OtherHandLaserPointerStart, /* Out */ OtherHandLaserPointerEnd ) )
 					{
+						FViewportInteractorData& OtherInteractorData = OtherInteractor->GetInteractorData();
+
 						const FVector OtherHandLaserPointerDirection = ( OtherHandLaserPointerEnd - OtherHandLaserPointerStart ).GetSafeNormal();
 						OtherHandDraggedTo = OtherHandLaserPointerStart + OtherHandLaserPointerDirection * OtherInteractorData.DragRayLength;
 
@@ -797,6 +797,8 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 				// Two handed?
 				if( OtherInteractor != nullptr )
 				{
+					FViewportInteractorData& OtherInteractorData = OtherInteractor->GetInteractorData();
+
 					const FVector OtherHandRoomSpaceUnscaledLocation = ( OtherInteractorData.RoomSpaceTransform.GetLocation() / WorldToMetersScale ) * LastWorldToMetersScale;
 					const FVector OtherHandRoomSpaceUnscaledHandDelta = ( OtherHandRoomSpaceUnscaledLocation - OtherInteractorData.LastRoomSpaceTransform.GetLocation() );
 
@@ -943,7 +945,6 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 				const FVector DragDeltaFromStart = DraggedTo - InteractorData.LaserPointerImpactAtDragStart;
 
 				UViewportInteractor* OtherInteractorThatWasAssistingDrag = GetOtherInteractorIntertiaContribute( Interactor );
-				FViewportInteractorData& OtherInteractorThatWasAssistingDragData = OtherInteractorThatWasAssistingDrag->GetInteractorData();
 
 				const bool bWithTwoHands = ( OtherInteractorThatWasAssistingDrag != nullptr );
 
@@ -952,6 +953,7 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 				FVector OtherHandDraggedTo = FVector::ZeroVector;
 				if( bWithTwoHands )
 				{
+					FViewportInteractorData& OtherInteractorThatWasAssistingDragData = OtherInteractorThatWasAssistingDrag->GetInteractorData();
 					OtherHandDragDelta = OtherInteractorThatWasAssistingDragData.DragTranslationVelocity;
 					OtherHandDraggedTo = OtherInteractorThatWasAssistingDragData.LastDragToLocation + OtherHandDragDelta;
 					OtherHandDragDeltaFromStart = OtherHandDraggedTo - OtherInteractorThatWasAssistingDragData.LaserPointerImpactAtDragStart;
@@ -990,6 +992,7 @@ void UViewportWorldInteraction::InteractionTick( FEditorViewportClient* Viewport
 
 				if( OtherInteractorThatWasAssistingDrag != nullptr )
 				{
+					FViewportInteractorData& OtherInteractorThatWasAssistingDragData = OtherInteractorThatWasAssistingDrag->GetInteractorData();
 					OtherInteractorThatWasAssistingDragData.LastDragToLocation = OtherHandDraggedTo;
 					ApplyVelocityDamping( OtherInteractorThatWasAssistingDragData.DragTranslationVelocity, bVelocitySensitive );
 				}
@@ -2098,8 +2101,11 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 				( bUsingGizmo ? EViewportInteractionDraggingMode::ActorsWithGizmo : EViewportInteractionDraggingMode::ActorsFreely );
 
 			// Starting a new drag, so make sure the other hand doesn't think it's assisting us
-			FViewportInteractorData& OtherInteractorData = Interactor->GetOtherInteractor()->GetInteractorData();
-			OtherInteractorData.bWasAssistingDrag = false;
+			if( Interactor->GetOtherInteractor() != nullptr )
+			{
+				FViewportInteractorData& OtherInteractorData = Interactor->GetOtherInteractor()->GetInteractorData();
+				OtherInteractorData.bWasAssistingDrag = false;
+			}
 
 			InteractorData.bIsFirstDragUpdate = true;
 			InteractorData.bWasAssistingDrag = false;
@@ -2165,15 +2171,20 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 		// If the other hand started dragging after we started, allow that hand to "take over" the drag, so the user
 		// doesn't have to click again to continue their action.  Inertial effects of the hand that stopped dragging
 		// will still be in effect.
-		FViewportInteractorData& OtherInteractorData = Interactor->GetOtherInteractor()->GetInteractorData();
-		if ( OtherInteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag )
+		FViewportInteractorData* OtherInteractorData = nullptr;
+		if( Interactor->GetOtherInteractor() != nullptr )
+		{
+			OtherInteractorData = &Interactor->GetOtherInteractor()->GetInteractorData();
+		}
+		
+		if ( OtherInteractorData != nullptr && OtherInteractorData->DraggingMode == EViewportInteractionDraggingMode::AssistingDrag )
 		{
 			// The other hand takes over whatever this hand was doing
-			OtherInteractorData.DraggingMode = OtherInteractorData.LastDraggingMode = InteractorData.DraggingMode;
-			OtherInteractorData.bIsDrivingVelocityOfSimulatedTransformables = InteractorData.bIsDrivingVelocityOfSimulatedTransformables;
+			OtherInteractorData->DraggingMode = OtherInteractorData->LastDraggingMode = InteractorData.DraggingMode;
+			OtherInteractorData->bIsDrivingVelocityOfSimulatedTransformables = InteractorData.bIsDrivingVelocityOfSimulatedTransformables;
 
 			// The other hand is no longer assisting, as it's now the primary interacting hand.
-			OtherInteractorData.bWasAssistingDrag = false;
+			OtherInteractorData->bWasAssistingDrag = false;
 
 			// The hand that stopped dragging will be remembered as "assisting" the other hand, so that its
 			// inertia will still influence interactions
@@ -2668,15 +2679,18 @@ UViewportInteractor* UViewportWorldInteraction::GetOtherInteractorIntertiaContri
 	UViewportInteractor* OtherInteractorThatWasAssistingDrag = nullptr;
 	{
 		UViewportInteractor* OtherInteractor = Interactor->GetOtherInteractor();
-		FViewportInteractorData& OtherHandInteractorData = OtherInteractor->GetInteractorData();
-
-		// If the other hand isn't doing anything, but the last thing it was doing was assisting a drag, then allow it
-		// to contribute inertia!
-		if ( OtherHandInteractorData.DraggingMode == EViewportInteractionDraggingMode::Nothing && OtherHandInteractorData.bWasAssistingDrag )
+		if( OtherInteractor != nullptr  )
 		{
-			if ( !OtherHandInteractorData.DragTranslationVelocity.IsNearlyZero( KINDA_SMALL_NUMBER ) )
+			FViewportInteractorData& OtherHandInteractorData = OtherInteractor->GetInteractorData();
+
+			// If the other hand isn't doing anything, but the last thing it was doing was assisting a drag, then allow it
+			// to contribute inertia!
+			if ( OtherHandInteractorData.DraggingMode == EViewportInteractionDraggingMode::Nothing && OtherHandInteractorData.bWasAssistingDrag )
 			{
-				OtherInteractorThatWasAssistingDrag = OtherInteractor;
+				if ( !OtherHandInteractorData.DragTranslationVelocity.IsNearlyZero( KINDA_SMALL_NUMBER ) )
+				{
+					OtherInteractorThatWasAssistingDrag = OtherInteractor;
+				}
 			}
 		}
 	}

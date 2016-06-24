@@ -327,120 +327,88 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled )
 {
 	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
-
-	if( !bWasHandled && Interactor->GetDraggingMode() != EViewportInteractionDraggingMode::Interactable )
+	if( VREditorInteractor != nullptr )
 	{
-		FVector LaserPointerStart, LaserPointerEnd;
-		if( Interactor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )
+		if( !bWasHandled && Interactor->GetDraggingMode() != EViewportInteractionDraggingMode::Interactable )
 		{
-			FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-			if( HitResult.Actor.IsValid() )
+			FVector LaserPointerStart, LaserPointerEnd;
+			if( Interactor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )
 			{
-				// Only allow clicks to our own widget components
-				UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
-				if( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
+				FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
+				if( HitResult.Actor.IsValid() )
 				{
-					FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
-
-					FVector2D LocalHitLocation;
-					WidgetComponent->GetLocalHitLocation( HitResult.ImpactPoint, LocalHitLocation );
-
-					// If we weren't already hovering over this widget, then we'll reset the last hit location
-					if( WidgetComponent != VREditorInteractor->GetHoveringOverWidgetComponent() )
+					// Only allow clicks to our own widget components
+					UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
+					if( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
 					{
-						LastLocalHitLocation = LocalHitLocation;
+						FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
 
-						if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
+						FVector2D LocalHitLocation;
+						WidgetComponent->GetLocalHitLocation( HitResult.ImpactPoint, LocalHitLocation );
+
+						// If we weren't already hovering over this widget, then we'll reset the last hit location
+						if( WidgetComponent != VREditorInteractor->GetHoveringOverWidgetComponent() )
 						{
-							VRWidgetComponent->SetIsHovering(false);
-						}
-					}
+							LastLocalHitLocation = LocalHitLocation;
 
-					// @todo vreditor UI: There is a CursorRadius optional arg that we migth want to make use of wherever we call GetHitWidgetPath()!
-					FWidgetPath WidgetPathUnderFinger = FWidgetPath( WidgetComponent->GetHitWidgetPath( HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false ) );
-					if ( WidgetPathUnderFinger.IsValid() )
-					{
-						TSet<FKey> PressedButtons;
-						FPointerEvent PointerEvent(
-							1 + (uint8)VREditorInteractor->GetControllerSide(),
-							LocalHitLocation,
-							LastLocalHitLocation,
-							LocalHitLocation - LastLocalHitLocation,
-							PressedButtons,
-							FModifierKeysState());
-
-						FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
-
-						bWasHandled = true;
-						HoverImpactPoint = HitResult.ImpactPoint;
-						VREditorInteractor->SetHoveringOverWidgetComponent( WidgetComponent );
-						VREditorInteractor->SetIsHoveringOverUI( true );
-
-						if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(WidgetComponent) )
-						{
-							VRWidgetComponent->SetIsHovering(true);
+							if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
+							{
+								VRWidgetComponent->SetIsHovering(false);
+							}
 						}
 
-						// Route the mouse scrolling
-						if ( VREditorInteractor->IsTrackpadPositionValid( 1 ) )
+						// @todo vreditor UI: There is a CursorRadius optional arg that we migth want to make use of wherever we call GetHitWidgetPath()!
+						FWidgetPath WidgetPathUnderFinger = FWidgetPath( WidgetComponent->GetHitWidgetPath( HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false ) );
+						if ( WidgetPathUnderFinger.IsValid() )
 						{
-							const bool bIsAbsolute = ( GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
+							TSet<FKey> PressedButtons;
+							FPointerEvent PointerEvent(
+								1 + (uint8)VREditorInteractor->GetControllerSide(),
+								LocalHitLocation,
+								LastLocalHitLocation,
+								LocalHitLocation - LastLocalHitLocation,
+								PressedButtons,
+								FModifierKeysState());
 
-							float ScrollDelta = 0.0f;
-							if( VREditorInteractor->IsTouchingTrackpad() || !bIsAbsolute )
+							FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
+
+							bWasHandled = true;
+							HoverImpactPoint = HitResult.ImpactPoint;
+							VREditorInteractor->SetHoveringOverWidgetComponent( WidgetComponent );
+							VREditorInteractor->SetIsHoveringOverUI( true );
+
+							if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(WidgetComponent) )
 							{
-								if( bIsAbsolute )
-								{
-									const float ScrollSpeed = VREd::UIAbsoluteScrollSpeed->GetFloat();
-									ScrollDelta = ( VREditorInteractor->GetTrackpadPosition().Y - VREditorInteractor->GetLastTrackpadPosition().Y ) * ScrollSpeed;
-								}
-								else
-								{
-									const float ScrollSpeed = VREd::UIRelativeScrollSpeed->GetFloat();
-									ScrollDelta = VREditorInteractor->GetTrackpadPosition().Y * ScrollSpeed;
-								}
+								VRWidgetComponent->SetIsHovering(true);
 							}
 
-							// If using a trackpad (Vive), invert scroll direction so that it feels more like scrolling on a mobile device
-							if( GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR )
+							// Route the mouse scrolling
+							if ( VREditorInteractor->IsTrackpadPositionValid( 1 ) )
 							{
-								ScrollDelta *= -1.0f;
-							}
+								const bool bIsAbsolute = ( GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
 
-							if( !FMath::IsNearlyZero( ScrollDelta ) )
-							{
-								FPointerEvent MouseWheelEvent(
-									1 + (uint8)VREditorInteractor->GetControllerSide(),
-									LocalHitLocation,
-									LastLocalHitLocation,
-									PressedButtons,
-									EKeys::MouseWheelAxis,
-									ScrollDelta,
-									FModifierKeysState() );
-
-								FSlateApplication::Get().RouteMouseWheelOrGestureEvent(WidgetPathUnderFinger, MouseWheelEvent, nullptr);
-
-								VREditorInteractor->SetUIScrollVelocity( 0.0f );
-
-								// Don't apply inertia unless the user dragged a decent amount this frame
-								if( bIsAbsolute && FMath::Abs( ScrollDelta ) >= VREd::MinUIScrollDeltaForInertia->GetFloat() )
+								float ScrollDelta = 0.0f;
+								if( VREditorInteractor->IsTouchingTrackpad() || !bIsAbsolute )
 								{
-									// Don't apply inertia if our data is sort of old
-									const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
-									if( CurrentTime - VREditorInteractor->GetLastTrackpadPositionUpdateTime() < FTimespan::FromSeconds( 1.0f / 30.0f ) )
+									if( bIsAbsolute )
 									{
-										//GWarn->Logf( TEXT( "INPUT: UIScrollVelocity=%0.2f" ), ScrollDelta );
-										VREditorInteractor->SetUIScrollVelocity( ScrollDelta );
+										const float ScrollSpeed = VREd::UIAbsoluteScrollSpeed->GetFloat();
+										ScrollDelta = ( VREditorInteractor->GetTrackpadPosition().Y - VREditorInteractor->GetLastTrackpadPosition().Y ) * ScrollSpeed;
+									}
+									else
+									{
+										const float ScrollSpeed = VREd::UIRelativeScrollSpeed->GetFloat();
+										ScrollDelta = VREditorInteractor->GetTrackpadPosition().Y * ScrollSpeed;
 									}
 								}
-							}
-						}
-						else
-						{
-							if( !FMath::IsNearlyZero( VREditorInteractor->GetUIScrollVelocity() ) )
-							{
-								// Apply UI scrolling inertia
-								const float ScrollDelta = VREditorInteractor->GetUIScrollVelocity();
+
+								// If using a trackpad (Vive), invert scroll direction so that it feels more like scrolling on a mobile device
+								if( GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR )
+								{
+									ScrollDelta *= -1.0f;
+								}
+
+								if( !FMath::IsNearlyZero( ScrollDelta ) )
 								{
 									FPointerEvent MouseWheelEvent(
 										1 + (uint8)VREditorInteractor->GetControllerSide(),
@@ -451,47 +419,81 @@ void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 										ScrollDelta,
 										FModifierKeysState() );
 
-									FSlateApplication::Get().RouteMouseWheelOrGestureEvent( WidgetPathUnderFinger, MouseWheelEvent, nullptr );
-								}
+									FSlateApplication::Get().RouteMouseWheelOrGestureEvent(WidgetPathUnderFinger, MouseWheelEvent, nullptr);
 
-								// Apply damping
-								FVector ScrollVelocityVector( VREditorInteractor->GetUIScrollVelocity(), 0.0f, 0.0f );
-								const bool bVelocitySensitive = false;
-								GetOwner().GetWorldInteraction().ApplyVelocityDamping( ScrollVelocityVector, bVelocitySensitive );
-								VREditorInteractor->SetUIScrollVelocity( ScrollVelocityVector.X );
+									VREditorInteractor->SetUIScrollVelocity( 0.0f );
+
+									// Don't apply inertia unless the user dragged a decent amount this frame
+									if( bIsAbsolute && FMath::Abs( ScrollDelta ) >= VREd::MinUIScrollDeltaForInertia->GetFloat() )
+									{
+										// Don't apply inertia if our data is sort of old
+										const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
+										if( CurrentTime - VREditorInteractor->GetLastTrackpadPositionUpdateTime() < FTimespan::FromSeconds( 1.0f / 30.0f ) )
+										{
+											//GWarn->Logf( TEXT( "INPUT: UIScrollVelocity=%0.2f" ), ScrollDelta );
+											VREditorInteractor->SetUIScrollVelocity( ScrollDelta );
+										}
+									}
+								}
 							}
 							else
 							{
-								VREditorInteractor->SetUIScrollVelocity( 0.0f );
+								if( !FMath::IsNearlyZero( VREditorInteractor->GetUIScrollVelocity() ) )
+								{
+									// Apply UI scrolling inertia
+									const float ScrollDelta = VREditorInteractor->GetUIScrollVelocity();
+									{
+										FPointerEvent MouseWheelEvent(
+											1 + (uint8)VREditorInteractor->GetControllerSide(),
+											LocalHitLocation,
+											LastLocalHitLocation,
+											PressedButtons,
+											EKeys::MouseWheelAxis,
+											ScrollDelta,
+											FModifierKeysState() );
+
+										FSlateApplication::Get().RouteMouseWheelOrGestureEvent( WidgetPathUnderFinger, MouseWheelEvent, nullptr );
+									}
+
+									// Apply damping
+									FVector ScrollVelocityVector( VREditorInteractor->GetUIScrollVelocity(), 0.0f, 0.0f );
+									const bool bVelocitySensitive = false;
+									GetOwner().GetWorldInteraction().ApplyVelocityDamping( ScrollVelocityVector, bVelocitySensitive );
+									VREditorInteractor->SetUIScrollVelocity( ScrollVelocityVector.X );
+								}
+								else
+								{
+									VREditorInteractor->SetUIScrollVelocity( 0.0f );
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-	}
 
-	// If nothing was hovered, make sure we tell Slate about that
-	if( !bWasHandled && VREditorInteractor->GetHoveringOverWidgetComponent() != nullptr )
-	{
-		if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
+		// If nothing was hovered, make sure we tell Slate about that
+		if( !bWasHandled && VREditorInteractor->GetHoveringOverWidgetComponent() != nullptr )
 		{
-			VRWidgetComponent->SetIsHovering( false );
+			if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
+			{
+				VRWidgetComponent->SetIsHovering( false );
+			}
+
+			const FVector2D LastLocalHitLocation = VREditorInteractor->GetHoveringOverWidgetComponent()->GetLastLocalHitLocation();
+			VREditorInteractor->SetHoveringOverWidgetComponent( nullptr );
+
+			TSet<FKey> PressedButtons;
+			FPointerEvent PointerEvent(
+				1 + (uint8)VREditorInteractor->GetControllerSide(),
+				LastLocalHitLocation,
+				LastLocalHitLocation,
+				FVector2D::ZeroVector,
+				PressedButtons,
+				FModifierKeysState() );
+
+			FSlateApplication::Get().RoutePointerMoveEvent( FWidgetPath(), PointerEvent, false );
 		}
-
-		const FVector2D LastLocalHitLocation = VREditorInteractor->GetHoveringOverWidgetComponent()->GetLastLocalHitLocation();
-		VREditorInteractor->SetHoveringOverWidgetComponent( nullptr );
-
-		TSet<FKey> PressedButtons;
-		FPointerEvent PointerEvent(
-			1 + (uint8)VREditorInteractor->GetControllerSide(),
-			LastLocalHitLocation,
-			LastLocalHitLocation,
-			FVector2D::ZeroVector,
-			PressedButtons,
-			FModifierKeysState() );
-
-		FSlateApplication::Get().RoutePointerMoveEvent( FWidgetPath(), PointerEvent, false );
 	}
 }
 
@@ -521,24 +523,26 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 			bool bShowQuickMenuOnArm = false;
 
 			UViewportInteractor* OtherInteractor = Interactor->GetOtherInteractor();
-
-			// @todo vreditor tweak: Weird to hard code this here. Probably should be an accessor on the hand itself, and based on the actual device type
-			const FTransform UICapsuleTransform = OtherInteractor->GetTransform();
-			const FVector UICapsuleStart = FVector( -9.0f, 0.0f, 0.0f ) * WorldScaleFactor;
-			const FVector UICapsuleEnd = FVector( -18.0f, 0.0f, 0.0f ) * WorldScaleFactor;
-			const float UICapsuleLocalRadius = 6.0f * WorldScaleFactor;
-			const float MinDistanceToUICapsule = 8.0f * WorldScaleFactor; // @todo vreditor tweak
-			const FVector UIForwardVector = FVector::UpVector;
-			const float MinDotForAimingAtOtherHand = 0.25f;	// @todo vreditor tweak
-
-			if( GetOwner().IsHandAimingTowardsCapsule( Interactor, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
+			if( OtherInteractor != nullptr )
 			{
-				bShowQuickMenuOnArm = true;
-			}
+				// @todo vreditor tweak: Weird to hard code this here. Probably should be an accessor on the hand itself, and based on the actual device type
+				const FTransform UICapsuleTransform = OtherInteractor->GetTransform();
+				const FVector UICapsuleStart = FVector( -9.0f, 0.0f, 0.0f ) * WorldScaleFactor;
+				const FVector UICapsuleEnd = FVector( -18.0f, 0.0f, 0.0f ) * WorldScaleFactor;
+				const float UICapsuleLocalRadius = 6.0f * WorldScaleFactor;
+				const float MinDistanceToUICapsule = 8.0f * WorldScaleFactor; // @todo vreditor tweak
+				const FVector UIForwardVector = FVector::UpVector;
+				const float MinDotForAimingAtOtherHand = 0.25f;	// @todo vreditor tweak
 
-			if( bShowQuickMenuOnArm )
-			{
-				HandInteractorThatNeedsQuickMenu = OtherInteractor;
+				if( GetOwner().IsHandAimingTowardsCapsule( Interactor, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
+				{
+					bShowQuickMenuOnArm = true;
+				}
+
+				if( bShowQuickMenuOnArm )
+				{
+					HandInteractorThatNeedsQuickMenu = OtherInteractor;
+				}
 			}
 		}
 		
@@ -753,7 +757,9 @@ void UVREditorUISystem::CreateUIs()
 
 		// Create the tutorial dockable window
 		{
-			const bool bShowAtStart = !bIsVREditorDemo;
+			const bool bShowAtStart = 
+				!bIsVREditorDemo && 
+				GetOwner().IsActuallyUsingVR();	// Don't show tutorial at startup when in "forced VR" mode, because you can't interact with UI using the mouse currently
 
 			AVREditorFloatingUI* TutorialUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "TutorialUI" ), false );
 			TutorialUI->SetUMGWidget( *this, TutorialWidgetClass, FIntPoint( VREd::TutorialUIResolutionX->GetFloat(), VREd::TutorialUIResolutionY->GetFloat() ), VREd::TutorialUISize->GetFloat(), bShowAtStart ? AVREditorFloatingUI::EDockedTo::Room : AVREditorFloatingUI::EDockedTo::Nothing );

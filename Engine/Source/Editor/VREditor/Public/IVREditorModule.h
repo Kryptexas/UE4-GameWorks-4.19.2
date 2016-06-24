@@ -61,7 +61,8 @@ public:
 	 * the editor UI for VR interaction.
 	 *
 	 * @param	bEnable	True to enable VR, or false to turn it off
+	 * @param	bForceWithoutHMD	If set to true, will enter VR mode without switching to HMD/stereo.  This can be useful for testing.
 	 */
-	virtual void EnableVREditor( const bool bEnable ) = 0;
+	virtual void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD = false ) = 0;
 };
 

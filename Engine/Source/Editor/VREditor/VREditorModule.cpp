@@ -34,7 +34,7 @@ public:
 	}
 	virtual bool IsVREditorEnabled() const override;
 	virtual bool IsVREditorAvailable() const override;
-	virtual void EnableVREditor( const bool bEnable ) override;
+	virtual void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD ) override;
 
 	// FTickableEditorObject overrides
 	virtual void Tick( float DeltaTime ) override;
@@ -52,7 +52,6 @@ public:
 
 private:
 
-	void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD );
 
 	/** Sets the world settings directly and prevents the last GNewWorldToMetersScale from the VREditor to reset it by setting it 0 */
 	void SetDirectWorldToMeters( const float NewWorldToMeters );
@@ -158,13 +157,6 @@ void FVREditorModule::EnableVREditor( const bool bEnable, const bool bForceWitho
 }
 
 
-void FVREditorModule::EnableVREditor( const bool bEnable )
-{
-	const bool bForceWithoutHMD = false;
-	EnableVREditor( bEnable, bForceWithoutHMD );
-}
-
-
 void FVREditorModule::SetDirectWorldToMeters( const float NewWorldToMeters )
 {
 	GWorld->GetWorldSettings()->WorldToMeters = NewWorldToMeters;
@@ -192,7 +184,7 @@ void FVREditorModule::Tick( float DeltaTime )
 			//Store the current WorldToMeters before exiting the mode
 			LastWorldToMeters = GWorld->GetWorldSettings()->WorldToMeters;
 
-			EnableVREditor( false );
+			EnableVREditor( false, false );
 
 			// Start the session if that was the reason to stop the VR Editor mode
 			if ( VREditorMode->GetExitType() == EVREditorExitType::PIE_VR )
@@ -231,7 +223,7 @@ void FVREditorModule::Tick( float DeltaTime )
 		// Start the VR Editor mode
 		if ( bEnableVRRequest )
 		{
-			EnableVREditor( true );
+			EnableVREditor( true, false );
 			bEnableVRRequest = false;
 		}
 	}

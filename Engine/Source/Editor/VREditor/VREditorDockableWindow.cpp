@@ -327,22 +327,24 @@ void AVREditorDockableWindow::OnPressed( UViewportInteractor* Interactor, const 
 {
 	bOutResultedInDrag = false;
 	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
+	if( VRInteractor != nullptr )
+	{
+		if( InHitResult.Component == GetCloseButtonMeshComponent() )
+		{
+			// Close the window
+			const bool bShouldShow = false;
+			const bool bShowOnHand = false;
+			const bool bRefreshQuickMenu = true;
+			GetOwner().ShowEditorUIPanel( this, VRInteractor, bShouldShow, bShowOnHand, bRefreshQuickMenu );
+		}
+		else if( InHitResult.Component == GetSelectionBarMeshComponent() )
+		{
+			bOutResultedInDrag = true;
 
-	if ( InHitResult.Component == GetCloseButtonMeshComponent() )
-	{
-		// Close the window
-		const bool bShouldShow = false;
-		const bool bShowOnHand = false;
-		const bool bRefreshQuickMenu = true;
-		GetOwner().ShowEditorUIPanel( this, VRInteractor, bShouldShow, bShowOnHand, bRefreshQuickMenu );
-	}
-	else if ( InHitResult.Component == GetSelectionBarMeshComponent() )
-	{
-		bOutResultedInDrag = true;
-		
-		FVector LaserPointerStart, LaserPointerEnd;
-		DockSelectDistance = ( InHitResult.TraceStart - InHitResult.Location ).Size();
-		GetOwner().StartDraggingDockUI( this, VRInteractor, DockSelectDistance );
+			FVector LaserPointerStart, LaserPointerEnd;
+			DockSelectDistance = ( InHitResult.TraceStart - InHitResult.Location ).Size();
+			GetOwner().StartDraggingDockUI( this, VRInteractor, DockSelectDistance );
+		}
 	}
 }
 
@@ -366,7 +368,11 @@ void AVREditorDockableWindow::OnHoverEnter( UViewportInteractor* Interactor, con
 
 void AVREditorDockableWindow::OnHoverLeave( UViewportInteractor* Interactor, const UActorComponent* NewComponent )
 {
-	UActorComponent* OtherInteractorHoveredComponent = Interactor->GetOtherInteractor()->GetHoverComponent();
+	UActorComponent* OtherInteractorHoveredComponent = nullptr;
+	if( Interactor->GetOtherInteractor() != nullptr )
+	{
+		OtherInteractorHoveredComponent = Interactor->GetOtherInteractor()->GetHoverComponent();
+	}
 
 	if ( OtherInteractorHoveredComponent != SelectionBarMeshComponent && NewComponent != SelectionBarMeshComponent )
 	{
@@ -382,8 +388,11 @@ void AVREditorDockableWindow::OnHoverLeave( UViewportInteractor* Interactor, con
 void AVREditorDockableWindow::OnDragRelease( UViewportInteractor* Interactor )
 {
 	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
-	UVREditorUISystem& UISystem = GetOwner();
-	UISystem.StopDraggingDockUI( VREditorInteractor );
+	if( VREditorInteractor != nullptr )
+	{
+		UVREditorUISystem& UISystem = GetOwner();
+		UISystem.StopDraggingDockUI( VREditorInteractor );
+	}
 }
 
 UViewportDragOperationComponent* AVREditorDockableWindow::GetDragOperationComponent()
