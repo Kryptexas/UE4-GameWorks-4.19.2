@@ -3795,6 +3795,11 @@ ULocalPlayer* APlayerController::GetLocalPlayer() const
 	return Cast<ULocalPlayer>(Player);
 }
 
+bool APlayerController::IsInViewportClient(UGameViewportClient* ViewportClient) const
+{
+	return ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered();
+}
+
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)
 {
 	SCOPE_CYCLE_COUNTER(STAT_PC_TickInput);
@@ -3813,7 +3818,7 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 			UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
 
 			// Only send mouse hit events if we're directly over the viewport.
-			if ( ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered() )
+			if ( IsInViewportClient(ViewportClient) )
 			{
 				if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
 				{
