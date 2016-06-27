@@ -338,6 +338,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 
 	// Better to saturate(lerp(a,b,t)) than lerp(saturate(a),saturate(b),t)
 	OutColor.rgb = OutDeviceColor / 1.05;
+	OutColor.a = 0;
 }
 
 

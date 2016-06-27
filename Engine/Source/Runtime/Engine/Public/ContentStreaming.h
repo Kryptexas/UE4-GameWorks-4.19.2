@@ -168,7 +168,7 @@ struct IStreamingManager
 	 * @param bOverrideLocation		Whether this is an override location, which forces the streaming system to ignore all other locations
 	 * @param Duration				How long the streaming system should keep checking this location, in seconds. 0 means just for the next Tick.
 	 */
-	void AddViewSlaveLocation( const FVector& SlaveLocation, float BoostFactor=1.0f, bool bOverrideLocation=false, float Duration=0.0f );
+	ENGINE_API void AddViewSlaveLocation( const FVector& SlaveLocation, float BoostFactor=1.0f, bool bOverrideLocation=false, float Duration=0.0f );
 
 	/** Don't stream world resources for the next NumFrames. */
 	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) = 0;

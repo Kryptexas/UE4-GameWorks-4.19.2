@@ -13,7 +13,7 @@
 class FVulkanPendingState
 {
 public:
-	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderRass;
+	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderPass;
 	typedef TMap<FStateKey, TArray<FVulkanFramebuffer*> > FMapFrameBufferArray;
 
 	FVulkanPendingState(FVulkanDevice* InDevice);
@@ -52,9 +52,17 @@ public:
 	FVulkanBoundShaderState& GetBoundShaderState();
 
 	// Retuns constructed render pass
-	FVulkanRenderPass& GetRenderPass();
+	inline FVulkanRenderPass& GetRenderPass()
+	{
+		check(CurrentState.RenderPass);
+		return *CurrentState.RenderPass;
+	}
 
-	FVulkanFramebuffer* GetFrameBuffer();
+	inline FVulkanFramebuffer* GetFrameBuffer()
+	{
+		return CurrentState.FrameBuffer;
+	}
+
 	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
 	inline void UpdateRenderPass(FVulkanCmdBuffer* CmdBuffer)
@@ -158,11 +166,14 @@ private:
 	FRHISetRenderTargetsInfo RTInfo;
 
 	// Resources caching
-	FMapRenderRass RenderPassMap;
+	FMapRenderPass RenderPassMap;
 	FMapFrameBufferArray FrameBufferMap;
 
 	FVertexStream PendingStreams[MaxVertexElementCount];
 
 	// running key of the current pipeline state
 	FVulkanPipelineGraphicsKey CurrentKey;
+
+	// bResetMap true if only reset the map, false to free the map's memory
+	void DestroyFrameBuffers(bool bResetMap);
 };

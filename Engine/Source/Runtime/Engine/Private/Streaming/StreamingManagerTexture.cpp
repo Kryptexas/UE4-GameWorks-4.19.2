@@ -309,38 +309,10 @@ void FStreamingManagerTexture::IncrementalUpdate( float Percentage )
 
 	FRemovedTextureArray RemovedTextures;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// This code is to trigger an update to the a streaming data update when the console variable is changed.
-	static int32 LastMetricsUsed = CVarStreamingUseNewMetrics.GetValueOnGameThread();
-	double Time0 = FPlatformTime::Seconds(), Time1 = 0;
-	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != LastMetricsUsed)
-	{
-		TArray<ULevel*> Levels;
-		for (FLevelTextureManager& LevelManager : LevelTextureManagers)
-		{
-			Levels.Push(LevelManager.GetLevel());
-		}
-		for (ULevel* Level : Levels)
-		{
-			AddLevel(Level);
-		}
-		Time1 = FPlatformTime::Seconds();
-		UE_LOG(LogContentStreaming, Log,  TEXT("Removing levels took %.2f ms."),  (float)(Time1 - Time0) * 1000.f);
-	}
-#endif
-
 	for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 	{
 		LevelManager.IncrementalUpdate(DynamicComponentManager, RemovedTextures, Percentage, bUseDynamicStreaming); // Complete the incremental update.
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != LastMetricsUsed)
-	{
-		LastMetricsUsed = CVarStreamingUseNewMetrics.GetValueOnGameThread();
-		UE_LOG(LogContentStreaming, Log,  TEXT("Adding levels took %.2f ms."),  (float)(FPlatformTime::Seconds() - Time1) * 1000.f);
-	}
-#endif
 
 	DynamicComponentManager.IncrementalUpdate(RemovedTextures, Percentage); // Complete the incremental update.
 
@@ -386,7 +358,6 @@ void FStreamingManagerTexture::ProcessAddedTextures()
 
 void FStreamingManagerTexture::ConditionalUpdateStaticData()
 {
-#if !UE_BUILD_SHIPPING
 	static float PreviousLightmapStreamingFactor = GLightmapStreamingFactor;
 	static float PreviousShadowmapStreamingFactor = GShadowmapStreamingFactor;
 	static int32 PreviousUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread();
@@ -397,17 +368,31 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 		PreviousUseNewMetrics != CVarStreamingUseNewMetrics.GetValueOnAnyThread() ||
 		PreviousMipBias != MipBias)
 	{
+		// Update each texture static data.
 		for (FStreamingTexture& StreamingTexture : StreamingTextures)
 		{
 			StreamingTexture.UpdateStaticData(MipBias);
 		}
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Reinsert all levels to update static instance data.
+		TArray<ULevel*> Levels;
+		for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+		{
+			Levels.Push(LevelManager.GetLevel());
+		}
+		for (ULevel* Level : Levels)
+		{
+			AddLevel(Level);
+		}
+#endif
+
+		// Update the cache variables.
 		PreviousLightmapStreamingFactor = GLightmapStreamingFactor;
 		PreviousShadowmapStreamingFactor = GShadowmapStreamingFactor;
 		PreviousUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread();
 		PreviousMipBias = MipBias;
 	}
-#endif
 }
 
 /**
@@ -733,7 +718,7 @@ void FStreamingManagerTexture::UpdateIndividualTexture( UTexture2D* Texture )
 
 	const bool bOnlyStreamIn = CVarOnlyStreamInTextures.GetValueOnAnyThread() != 0;
 	const int32 HLODStategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
-	StreamingTexture->UpdateDynamicData(NumStreamedMips, bOnlyStreamIn, HLODStategy);
+	StreamingTexture->UpdateDynamicData(NumStreamedMips, bOnlyStreamIn, FMath::FloorToInt(MipBias), HLODStategy);
 
 	if (StreamingTexture->bForceFullyLoad) // Somewhat expected at this point.
 	{
@@ -760,6 +745,7 @@ void FStreamingManagerTexture::UpdateStreamingTextures( int32 StageIndex, int32 
 	}
 
 	const bool bOnlyStreamIn = CVarOnlyStreamInTextures.GetValueOnAnyThread() != 0;
+	const int32 GlobalMipBias = FMath::FloorToInt(MipBias);
 	const int32 HLODStategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
 
 	int32 StartIndex = CurrentUpdateStreamingTextureIndex;
@@ -774,7 +760,7 @@ void FStreamingManagerTexture::UpdateStreamingTextures( int32 StageIndex, int32 
 
 		STAT(int32 PreviousResidentMips = StreamingTexture.ResidentMips;)
 
-		StreamingTexture.UpdateDynamicData(NumStreamedMips, bOnlyStreamIn, HLODStategy);
+		StreamingTexture.UpdateDynamicData(NumStreamedMips, bOnlyStreamIn, GlobalMipBias, HLODStategy);
 
 		// Make a list of each texture that can potentially require additional UpdateStreamingStatus
 		if (StreamingTexture.bInFlight)

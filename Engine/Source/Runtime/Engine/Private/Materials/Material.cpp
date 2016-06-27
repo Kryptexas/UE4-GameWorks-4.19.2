@@ -34,6 +34,7 @@
 #include "Materials/MaterialParameterCollection.h"
 #include "MaterialShaderQualitySettings.h"
 #include "LoadTimeTracker.h"
+#include "RenderingObjectVersion.h"
 #if WITH_EDITOR
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -1133,8 +1134,8 @@ static bool IsPrimitiveTypeUsageFlag(EMaterialUsage Usage)
 bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUsage Usage) const
 {
 	bOutHasUsage = true;
-	// Material usage is only relevant for surface materials.
-	if (MaterialDomain != MD_Surface)
+	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
 	{
 		bOutHasUsage = false;
 		return false;
@@ -1163,8 +1164,8 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 {
 	bNeedsRecompile = false;
 
-	// Material usage is only relevant for surface materials.
-	if (MaterialDomain != MD_Surface)
+	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
 	{
 		return false;
 	}
@@ -2185,6 +2186,8 @@ void UMaterial::Serialize(FArchive& Ar)
 {
 	SCOPED_LOADTIMER(MaterialSerializeTime);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	Super::Serialize(Ar);
 
 	if (FPlatformProperties::RequiresCookedData() && Ar.IsLoading())
@@ -2241,6 +2244,14 @@ void UMaterial::Serialize(FArchive& Ar)
 		else
 		{
 			bCanMaskedBeAssumedOpaque = false;
+		}
+	}
+
+	if(Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::IntroducedMeshDecals)
+	{
+		if(MaterialDomain == MD_DeferredDecal)
+		{
+			BlendMode = BLEND_Translucent;
 		}
 	}
 }
@@ -2745,7 +2756,6 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bFullyRough) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TwoSided) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseLightmapDirectionality) ||
-			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, D3D11TessellationMode) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseHQForwardReflections) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUsePlanarForwardReflections)
 			)
@@ -2753,12 +2763,17 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			return MaterialDomain == MD_Surface;
 		}
 
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, D3D11TessellationMode))
+		{
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface;
+		}
+
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableCrackFreeDisplacement) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, MaxDisplacement) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableAdaptiveTessellation)
 			)
 		{
-			return MaterialDomain == MD_Surface && D3D11TessellationMode != MTM_NoTessellation;
+			return (MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface) && D3D11TessellationMode != MTM_NoTessellation;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendableLocation) ||
@@ -2770,7 +2785,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendMode))
 		{
-			return MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
 		}
 	
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
@@ -2787,7 +2802,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			FCString::Strcmp(*PropertyName, TEXT("bUsesDistortion")) == 0
 			)
 		{
-			return MaterialDomain == MD_Surface;
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface;
 		}
 		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, RefractionDepthBias))
 		{
@@ -2800,7 +2815,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog))
 		{
-			return IsTranslucentBlendMode(BlendMode);
+			return MaterialDomain != MD_DeferredDecal && IsTranslucentBlendMode(BlendMode);
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucencyLightingMode)
@@ -2813,7 +2828,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentMultipleScatteringExtinction)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowStartOffset))
 		{
-			return IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
+			return MaterialDomain != MD_DeferredDecal && IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, SubsurfaceProfile))
@@ -4141,6 +4156,11 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		else if (InProperty == MP_MaterialAttributes)
 		{
 			// todo: MaterialAttruibutes would not return true, should it? Why we don't check for the checkbox in the material
+			return true;
+		}
+		else if( InProperty == MP_WorldPositionOffset )
+		{
+			// Note: DeferredDecals don't support this but MeshDecals do
 			return true;
 		}
 

@@ -220,9 +220,6 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	// Get the index of the next swapchain image we should render to.
 	// We'll wait with an "infinite" timeout, the function will block until an image is ready.
 	// The ImageAcquiredSemaphore[ImageAcquiredSemaphoreIndex] will get signaled when the image is ready (upon function return).
-	// The Fences[CurrentFenceIndex] will also get signaled when the image is ready (upon function return).
-	// Note: Queues can still be filled in on the CPU side, but won't execute until the semaphore is signaled.
-	//CurrentImageIndex = -1;
 	uint32 ImageIndex = 0;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
 	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
@@ -231,27 +228,33 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 		SwapChain,
 		UINT64_MAX,
 		ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle(),
-		VK_NULL_HANDLE,
+		VK_NULL_HANDLE,	// Currently no fence needed
 		&ImageIndex);
 	checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("AcquireNextImageKHR failed Result = %d"), int32(Result));
 	CurrentImageIndex = (int32)ImageIndex;
 	check(CurrentImageIndex == ImageIndex);
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanSwapChain::AcquireImageIndex() => %d\n"), CurrentImageIndex));
 	return CurrentImageIndex;
 }
 
-void FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
+bool FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
 {
 	check(CurrentImageIndex != -1);
 
 	VkPresentInfoKHR Info;
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	Info.waitSemaphoreCount = 1;
-	VkSemaphore Semaphore = BackBufferRenderingDoneSemaphore->GetHandle();
-	Info.pWaitSemaphores = &Semaphore;
+	VkSemaphore Semaphore = VK_NULL_HANDLE;
+	if (BackBufferRenderingDoneSemaphore)
+	{
+		Info.waitSemaphoreCount = 1;
+		Semaphore = BackBufferRenderingDoneSemaphore->GetHandle();
+		Info.pWaitSemaphores = &Semaphore;
+	}
 	Info.swapchainCount = 1;
 	Info.pSwapchains = &SwapChain;
 	Info.pImageIndices = (uint32*)&CurrentImageIndex;
 
 	VERIFYVULKANRESULT(QueuePresentKHR(Queue->GetHandle(), &Info));
+	return true;
 }

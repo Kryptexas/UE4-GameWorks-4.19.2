@@ -4,6 +4,8 @@
 	VulkanConfiguration.h: Vulkan resource RHI definitions.
 =============================================================================*/
 
+// Compiled with 1.0.17.0
+
 #pragma once
 
 #include "RHIDefinitions.h"
@@ -62,7 +64,10 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	return EDescriptorSetStage::Invalid;
 }
 
+// Enables the VK_LAYER_LUNARG_api_dump layer and the report VK_DEBUG_REPORT_INFORMATION_BIT_EXT flag
 #define VULKAN_ENABLE_API_DUMP									0
+// Enables logging wrappers per Vulkan call
+#define VULKAN_ENABLE_DUMP_LAYER								0
 #define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS
 #define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
@@ -92,7 +97,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_IGNORE_EXTENSIONS								(PLATFORM_ANDROID && 1)
 
 //#todo-rco: While validation is not fixed...
-#define VULKAN_REUSE_FENCES										0
+#define VULKAN_REUSE_FENCES										(VK_HEADER_VERSION < 17)
 
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()

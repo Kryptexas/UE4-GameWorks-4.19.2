@@ -481,6 +481,19 @@ bool CheckerFromSceneColorUV(float2 UVSceneColor)
 	return CheckerFromPixelPos(PixelPos);
 }
 
+// SubsurfaceProfile does deferred lighting with a checker board pixel pattern
+// we separate the view from the non view dependent lighting and later recombine the two color constributions in a postprocess
+// We have the option to apply the BaseColor/Specular in the base pass or do it later in the postprocess (has implications to texture detail, fresnel and performance)
+void AdjustBaseColorAndSpecularForCheckerDeferredLighting(inout float3 BaseColor, inout float Specular, bool bChecker)
+{
+	// because we adjust the BaseColor here, we need StoredBaseColor
+
+	// we apply the base color later in SubsurfaceRecombinePS()
+	BaseColor = bChecker;
+	// in SubsurfaceRecombinePS() does not multiply with Specular so we do it here
+	Specular *= !bChecker;
+}
+
 /** Populates FGBufferData */
 // @param bChecker High frequency Checkerboard pattern computed with one of the CheckerFrom.. functions, todo: profile if float 0/1 would be better (need to make sure it's 100% the same)
 FGBufferData DecodeGBufferData(
@@ -504,12 +517,13 @@ FGBufferData DecodeGBufferData(
 		GBuffer.WorldNormal = normalize(GBuffer.WorldNormal);
 	}
 
-	GBuffer.PerObjectGBufferData = InGBufferA.a;
-
+	GBuffer.PerObjectGBufferData = InGBufferA.a;  
 	GBuffer.Metallic	= InGBufferB.r;
 	GBuffer.Specular	= InGBufferB.g;
 	GBuffer.Roughness	= InGBufferB.b;
 	// Note: must match GetShadingModelId standalone function logic
+	// Also Note: SimpleElementPixelShader directly sets SV_Target2 ( GBufferB ) to indicate unlit.
+	// An update there will be required if this layout changes.
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	GBuffer.SelectiveOutputMask = DecodeSelectiveOutputMask(InGBufferB.a);
 
@@ -532,12 +546,10 @@ FGBufferData DecodeGBufferData(
 
 	GBuffer.StoredBaseColor = GBuffer.BaseColor;
 	GBuffer.StoredSpecular = GBuffer.Specular;
-	
+
 	if(GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
-		// we apply the BaseColor and Specular later, this is why we need StoredBaseColor
-		GBuffer.BaseColor = bChecker;
-		GBuffer.Specular *= !bChecker;
+		AdjustBaseColorAndSpecularForCheckerDeferredLighting(GBuffer.BaseColor, GBuffer.Specular, bChecker);
 	}
 
 	// derived from BaseColor, Metalness, Specular

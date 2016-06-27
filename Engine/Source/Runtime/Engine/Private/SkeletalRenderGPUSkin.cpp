@@ -81,7 +81,12 @@ void FMorphVertexBuffer::InitDynamicRHI()
 	bool bSupportsComputeShaders = RHISupportsComputeShaders(GMaxRHIShaderPlatform);
 	bUsesComputeShader = GUseGPUMorphTargets != 0 && bSupportsComputeShaders;
 
+#if PLATFORM_PS4
+	// PS4 requires non-static buffers in order to be updated on the GPU while the CPU is writing into it
+	EBufferUsageFlags Flags = BUF_Dynamic;
+#else
 	EBufferUsageFlags Flags = bUsesComputeShader ? (EBufferUsageFlags)(BUF_Static | BUF_UnorderedAccess) : BUF_Dynamic;
+#endif
 
 	// BUF_ShaderResource is needed for Morph support of the SkinCache
 	Flags = (EBufferUsageFlags)(Flags | BUF_ShaderResource);

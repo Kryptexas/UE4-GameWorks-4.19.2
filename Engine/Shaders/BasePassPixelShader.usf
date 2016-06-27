@@ -89,11 +89,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	float3 RV =  RayDirection;
 	half NoV = saturate(dot(N, V));
 
-	float RoughnessSq = Roughness * Roughness;
-	float AO = 0.0f;
-	float SpecularOcclusion = GetSpecularOcclusion(NoV, RoughnessSq, AO);
-
-	float4 SpecularIBL = float4(0,0,0,SpecularOcclusion);
+	float4 SpecularIBL = float4(0,0,0,0.0);
 	float3 CaptureVector = MaterialParameters.AbsoluteWorldPosition - ReflectionPositionAndRadius.xyz;
 	float CaptureVectorLength = length(CaptureVector);
 	
@@ -123,11 +119,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		float4 Sample = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip);
 #endif
 		Sample *= DistanceAlpha;
-
-		// Under operator (back to front)
-		float IndirectSpecularOcclusion = 1.0f;
-		SpecularIBL.rgb += Sample.rgb * SpecularIBL.a * IndirectSpecularOcclusion;
-		SpecularIBL.a *= 1 - Sample.a;		
+		SpecularIBL.rgb = Sample.rgb;
 	}	
 
 #if ALLOW_STATIC_LIGHTING
@@ -162,7 +154,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	if( View.CameraCut == 0 )
 	{
 		//uint ViewRandom = (uint)(View.TemporalAAParams.r * 1551);
-		uint ViewRandom = (View.FrameNumber & 15) * 1551;
+		uint ViewRandom = View.StateFrameIndexMod8 * 1551;
 
 		uint Morton = MortonCode( (uint)MaterialParameters.SvPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
 		uint PixelIndex = ReverseBits32( Morton ) >> 28;
@@ -210,10 +202,6 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 
 	return SpecularLighting * SpecularColor;
 }
-#endif
-
-#if TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
-	#include "ForEachLight.usf"
 #endif
 
 void GetVolumeLightingNonDirectional(float4 AmbientLightingVector, float3 DiffuseColor, inout float3 InterpolatedLighting, out float4 VolumeLighting)
@@ -278,7 +266,7 @@ float3 GetTranslucencyLighting(
 
 		GetVolumeLightingNonDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
 
-	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
+	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 	
 		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 		float3 DirectionalLightingVector = GetDirectionalLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
@@ -288,10 +276,6 @@ float3 GetTranslucencyLighting(
 
 		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 		GetVolumeLightingNonDirectional(AmbientLightingVector, GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
-
-	#elif TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
-
-		InterpolatedLighting = AccumulateForwardLights(MaterialParameters, PixelMaterialInputs, GBuffer);
 
 	#endif
 
@@ -795,7 +779,7 @@ void FPixelShaderInOut_MainPS(
 	BRANCH if(Primitive.DecalReceiverMask > 0 && View.ShowDecalsMask > 0)
 	{
 		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-
+		
 		float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 		
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
@@ -818,8 +802,7 @@ void FPixelShaderInOut_MainPS(
 	{
 		bool bChecker = CheckerFromPixelPos(MaterialParameters.SvPosition.xy);
 
-		LocalBaseColor = bChecker;
-		LocalSpecular = !bChecker;
+		AdjustBaseColorAndSpecularForCheckerDeferredLighting(LocalBaseColor, LocalSpecular, bChecker);
 	}
 #endif
 

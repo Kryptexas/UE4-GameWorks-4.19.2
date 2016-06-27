@@ -129,31 +129,8 @@ namespace VulkanRHI
 			return bIsCoherent != 0;
 		}
 
-		void FlushMappedMemory()
-		{
-			check(!IsCoherent());
-			check(IsMapped());
-			VkMappedMemoryRange Range;
-			FMemory::Memzero(Range);
-			Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-			Range.memory = Handle;
-			//Range.offset = 0;
-			Range.size = Size;
-			VERIFYVULKANRESULT(vkFlushMappedMemoryRanges(DeviceHandle, 1, &Range));
-		}
-
-		void InvalidateMappedMemory()
-		{
-			check(!IsCoherent());
-			check(IsMapped());
-			VkMappedMemoryRange Range;
-			FMemory::Memzero(Range);
-			Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-			Range.memory = Handle;
-			//Range.offset = 0;
-			Range.size = Size;
-			VERIFYVULKANRESULT(vkInvalidateMappedMemoryRanges(DeviceHandle, 1, &Range));
-		}
+		void FlushMappedMemory();
+		void InvalidateMappedMemory();
 
 		inline VkDeviceMemory GetHandle() const
 		{
@@ -675,11 +652,6 @@ namespace VulkanRHI
 		FImageSuballocation* AllocateImage(uint32 Size, VkImageUsageFlags ImageUsageFlags, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line);
 		void ReleaseImage(FImageAllocation* ImageAllocation);
 #endif
-		inline FOldResourceAllocation* AllocateCPUStagingBuffer(uint32 Size, uint32 Alignment, const char* File, uint32 Line)
-		{
-			return CPUStagingHeap->AllocateResource(Size, Alignment, false, true, File, Line);
-		}
-
 		inline FOldResourceAllocation* AllocateImageMemory(const VkMemoryRequirements& MemoryReqs, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
 		{
 			uint32 TypeIndex = 0;
@@ -731,12 +703,18 @@ namespace VulkanRHI
 		void DestroyResourceAllocations();
 	};
 
-	class FStagingResource : public FRefCount
+	class FStagingBuffer : public FRefCount
 	{
 	public:
-		FStagingResource()
+		FStagingBuffer()
 			: ResourceAllocation(nullptr)
+			, Buffer(VK_NULL_HANDLE)
 		{
+		}
+
+		VkBuffer GetHandle() const
+		{
+			return Buffer;
 		}
 
 		inline void* GetMappedPointer()
@@ -746,35 +724,12 @@ namespace VulkanRHI
 
 	protected:
 		TRefCountPtr<FOldResourceAllocation> ResourceAllocation;
-
-		// Owner maintains lifetime
-		virtual ~FStagingResource();
-
-		virtual void Destroy(VkDevice DeviceHandle) = 0;
-
-		friend class FStagingManager;
-	};
-
-	class FStagingBuffer : public FStagingResource
-	{
-	public:
-		FStagingBuffer() :
-			Buffer(VK_NULL_HANDLE)
-		{
-		}
-
-		VkBuffer GetHandle() const
-		{
-			return Buffer;
-		}
-
-	protected:
 		VkBuffer Buffer;
 
 		// Owner maintains lifetime
-		virtual ~FStagingBuffer() {}
+		virtual ~FStagingBuffer();
 
-		virtual void Destroy(VkDevice DeviceHandle) override;
+		void Destroy(VkDevice DeviceHandle);
 
 		friend class FStagingManager;
 	};
@@ -808,7 +763,7 @@ namespace VulkanRHI
 		{
 			FVulkanCmdBuffer* CmdBuffer;
 			uint64 FenceCounter;
-			FStagingResource* Resource;
+			FStagingBuffer* Resource;
 		};
 
 		TArray<FStagingBuffer*> UsedStagingBuffers;
@@ -962,6 +917,17 @@ namespace VulkanRHI
 			uint32 CurrentOffset;
 
 			FBufferSuballocation* BufferSuballocation;
+
+			// Simple counter used for the SRVs to know a new one is required
+			uint32 LockCounter;
+
+			FTempAllocInfo()
+				: Data(nullptr)
+				, CurrentOffset(0)
+				, BufferSuballocation(nullptr)
+				, LockCounter(0)
+			{
+			}
 
 			inline uint32 GetBindOffset() const
 			{

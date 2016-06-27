@@ -14,7 +14,7 @@ FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, float GlobalMipBias,
 : Texture(InTexture)
 {
 	UpdateStaticData(GlobalMipBias);
-	UpdateDynamicData(NumStreamedMips, bOnlyStreamIn, HLODStrategy);
+	UpdateDynamicData(NumStreamedMips, bOnlyStreamIn, FMath::FloorToInt(GlobalMipBias), HLODStrategy);
 
 	InstanceRemovedTimestamp = -FLT_MAX;
 	LastRenderTimeRefCountTimestamp = -FLT_MAX;
@@ -66,7 +66,7 @@ void FStreamingTexture::UpdateStaticData(float GlobalMipBias)
 	}
 }
 
-void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], bool bOnlyStreamIn, int32 HLODStrategy)
+void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], bool bOnlyStreamIn, int32 GlobalMipBias, int32 HLODStrategy)
 {
 	// Note that those values are read from the async task and must not be assigned temporary values!!
 	if (Texture)
@@ -80,7 +80,15 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (bOnlyStreamIn && LastRenderTime < 300)|| LODGroup == TEXTUREGROUP_Skybox || (LODGroup == TEXTUREGROUP_HierarchicalLOD && HLODStrategy == 2);
 
 		const int32 NumCinematicMipLevels = (bForceFullyLoad && Texture->bUseCinematicMipLevels) ? Texture->NumCinematicMipLevels : 0;
-		const int32 LODBias = FMath::Max<int32>(Texture->GetCachedLODBias() - NumCinematicMipLevels, 0);
+
+
+		int32 LODBias = FMath::Max<int32>(Texture->GetCachedLODBias() - NumCinematicMipLevels, 0);
+
+		// Reduce the max allowed resolution according to LODBias if the texture group allows it.
+		if (LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture)
+		{
+			LODBias += GlobalMipBias;
+		}
 
 		// The max mip count is affected by the texture bias and cinematic bias settings.
 		MaxAllowedMips = FMath::Clamp<int32>(FMath::Min<int32>(MipCount - LODBias, GMaxTextureMipCount), NumNonStreamingMips, MipCount);
@@ -241,7 +249,7 @@ int64 FStreamingTexture::DropOneMip_Async()
 
 int64 FStreamingTexture::KeepOneMip_Async()
 {
-	if (Texture && BudgetedMips < ResidentMips)
+	if (Texture && BudgetedMips < FMath::Min<int32>(ResidentMips, MaxAllowedMips))
 	{
 		++BudgetedMips;
 		return GetSize(BudgetedMips) - GetSize(BudgetedMips - 1);

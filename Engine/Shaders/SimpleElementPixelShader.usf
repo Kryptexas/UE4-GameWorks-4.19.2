@@ -242,7 +242,7 @@ void GammaMaskedMain(
 	,in float4 SvPosition : SV_Position
 #endif
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	,out float4 OutWorldNormal : SV_Target1
+	,out float4 OutWorldNormal : SV_Target2
 #endif
 	)
 {

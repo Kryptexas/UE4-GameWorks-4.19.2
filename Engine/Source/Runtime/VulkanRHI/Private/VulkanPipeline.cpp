@@ -969,7 +969,7 @@ void FVulkanPipelineStateCache::CreateDiskEntryRuntimeObjects(FDiskEntry* DiskEn
 			DescriptorLayoutInfo.bindingCount = DescriptorBindings.Num();
 			DescriptorLayoutInfo.pBindings = DescriptorBindings.GetData();
 
-			VERIFYVULKANRESULT(vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, &DiskEntry->DescriptorSetLayouts[SetIndex]));
+			VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, &DiskEntry->DescriptorSetLayouts[SetIndex]));
 		}
 
 		// Pipeline layout
@@ -996,7 +996,7 @@ void FVulkanPipelineStateCache::CreateDiskEntryRuntimeObjects(FDiskEntry* DiskEn
 				ModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 				ModuleCreateInfo.codeSize = DiskEntry->ShaderMicrocodes[Index].Num();
 				ModuleCreateInfo.pCode = (uint32*)DiskEntry->ShaderMicrocodes[Index].GetData();
-				VERIFYVULKANRESULT(vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &DiskEntry->ShaderModules[Index]));
+				VERIFYVULKANRESULT(VulkanRHI::vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &DiskEntry->ShaderModules[Index]));
 			}
 		}
 	}
@@ -1025,7 +1025,7 @@ void FVulkanPipelineStateCache::DestroyCache()
 		{
 			if (DiskEntry.ShaderModules[Index] != VK_NULL_HANDLE)
 			{
-				vkDestroyShaderModule(DeviceHandle, DiskEntry.ShaderModules[Index], nullptr);
+				VulkanRHI::vkDestroyShaderModule(DeviceHandle, DiskEntry.ShaderModules[Index], nullptr);
 			}
 		}
 
@@ -1033,7 +1033,7 @@ void FVulkanPipelineStateCache::DestroyCache()
 
 		for (int32 Index = 0; Index < DiskEntry.DescriptorSetLayouts.Num(); ++Index)
 		{
-			vkDestroyDescriptorSetLayout(DeviceHandle, DiskEntry.DescriptorSetLayouts[Index], nullptr);
+			VulkanRHI::vkDestroyDescriptorSetLayout(DeviceHandle, DiskEntry.DescriptorSetLayouts[Index], nullptr);
 		}
 
 		delete DiskEntry.RenderPass;

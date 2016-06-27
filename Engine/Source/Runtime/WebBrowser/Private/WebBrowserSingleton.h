@@ -62,7 +62,8 @@ public:
 		bool bThumbMouseButtonNavigation,
 		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
 		bool ShowErrorMessage = true,
-		FColor BackgroundColor = FColor(255, 255, 255, 255)) override;
+		FColor BackgroundColor = FColor(255, 255, 255, 255),
+		int BrowserFrameRate = 24 ) override;
 
 	virtual void DeleteBrowserCookies(FString URL = TEXT(""), FString CookieName = TEXT(""), TFunction<void (int)> Completed = nullptr) override;
 

@@ -164,6 +164,15 @@ struct FMeshBatch
 		return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 
+	// todo: can be optimized with a single function that returns multiple states (Translucent, Decal, Masked) 
+	FORCEINLINE bool IsDecal(ERHIFeatureLevel::Type InFeatureLevel) const
+	{
+		// Note: does not depend on the feature level we are actually rendering in.
+		const FMaterial* Mat = MaterialRenderProxy->GetMaterial(InFeatureLevel);
+
+		return Mat->IsDeferredDecal();
+	}
+
 	FORCEINLINE bool IsMasked(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		// Note: blend mode does not depend on the feature level we are actually rendering in.

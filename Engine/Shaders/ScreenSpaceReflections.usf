@@ -12,6 +12,10 @@
 #include "MonteCarlo.usf"
 #include "ScreenSpaceRayCast.usf"
 
+// 0:old for reference / 1:new optimized (fewer ALU instructions, minor performance difference on NV Titan)
+// define can be removed or used to judge the quality difference or profile on different platforms
+#define RANDOM_OPTIMZATION 1
+
 // .r:Intensity in 0..1 range .g:RoughnessMaskMul, b:EnableDiscard for FPostProcessScreenSpaceReflectionsStencilPS, a:(bTemporalAAIsOn?TemporalAAIndex:StateFrameIndexMod8)*1551
 float4 SSRParams;
 
@@ -87,6 +91,7 @@ void ScreenSpaceReflectionsStencilPS(in float4 UVAndScreenPos : TEXCOORD0, out f
 	OutColor = 0;
 }
 
+
 void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
@@ -144,7 +149,7 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 		float HCBLevel;
 		
 		RayCast(
-			PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size,
+			PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size.xy,
 			PositionTranslatedWorld, R, Roughness, ConeAngleWorld, SceneDepth,
 			NumSteps, StepOffset,
 			HitUVzTime, HCBLevel
@@ -177,7 +182,13 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 	
 	if( NumRays > 1 )
 	{
-		uint2 Random = ScrambleTEA( uint2( PixelPos ) ^ (uint)FrameRandom, 3 );
+#if RANDOM_OPTIMZATION
+		// magic numbers are found by experimentation
+//		uint2 Random = PseudoRandom(SvPosition.xy + View.StateFrameIndexMod8 * float2(97, 71)) * uint2(12, 25);	// SSR_QUALITY=3 instructions=253 but looks bad
+		uint2 Random = PseudoRandom(SvPosition.xy + View.StateFrameIndexMod8 * float2(97, 71)) * uint2(0x3127352, 0x11229256);		// doesn't compile with external HLSL with obscure error message but the line above does
+#else
+		uint2 Random = ScrambleTEA( uint2( PixelPos ) ^ (uint)FrameRandom, 3 );	// reference, SSR_QUALITY=3 instructions=296 
+#endif
 		
 		// Shoot multiple rays
 		LOOP for( int i = 0; i < NumRays; i++ )
@@ -195,7 +206,7 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 			float HCBLevel;
 
 			RayCast(
-				PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size,
+				PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size.xy,
 				PositionTranslatedWorld, R, Roughness, 0.001, SceneDepth,
 				NumSteps, StepOffset,
 				HitUVzTime, HCBLevel
@@ -216,8 +227,17 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 	}
 	else
 	{
-		uint Offset = ( PixelIndex + ReverseUIntBits( FrameRandom ) ) & 15;
+#if RANDOM_OPTIMZATION
+		// random
+//		float StepOffset = PseudoRandom(SvPosition.xy + View.StateFrameIndexMod8 * float2(47, 17));		// SSR_QUALITY=2 instructions=167
+		// high frequency noise for better quality than random
+		float StepOffset = InterleavedGradientNoise(SvPosition.xy, View.StateFrameIndexMod8);		// SSR_QUALITY=2 instructions=165
+#else
+		// reference, more high frequent pattern
+		uint Offset = ( PixelIndex + ReverseUIntBits( FrameRandom ) ) & 15;		// SSR_QUALITY=2 instructions=189
 		float StepOffset = Offset / 15.0;
+#endif
+	
 		StepOffset -= 0.5;
 		
 		float3 R = reflect( -V, N );
@@ -226,7 +246,7 @@ void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0
 		float HCBLevel;
 
 		RayCast(
-			PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size,
+			PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size.xy,
 			PositionTranslatedWorld, R, Roughness, 0.001, SceneDepth,
 			NumSteps, StepOffset,
 			HitUVzTime, HCBLevel

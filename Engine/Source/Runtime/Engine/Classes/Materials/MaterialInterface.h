@@ -28,77 +28,47 @@ enum EMaterialUsage
 	MATUSAGE_MAX,
 };
 
-USTRUCT()
+// the class is only storing bits, initialized to 0 and has an |= operator
+// to provide a combined set of multiple materials (component / mesh)
 struct ENGINE_API FMaterialRelevance
 {
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	uint32 bOpaque : 1;
-
-	UPROPERTY()
-	uint32 bMasked : 1;
-
-	UPROPERTY()
-	uint32 bDistortion : 1;
-
-	UPROPERTY()
-	uint32 bSeparateTranslucency : 1;
-
-	UPROPERTY()
-	uint32 bMobileSeparateTranslucency : 1;
-
-	UPROPERTY()
-	uint32 bNormalTranslucency : 1;
-
-	UPROPERTY()
-	uint32 bDisableDepthTest : 1;
-	
-	UPROPERTY()
-	uint32 bOutputsVelocityInBasePass : 1;
-
-	UPROPERTY()
-	uint32 bUsesGlobalDistanceField : 1;
-
-	UPROPERTY()
+	// bits that express which EMaterialShadingModel are used
 	uint16 ShadingModelMask;
+	uint32 bOpaque : 1;
+	uint32 bMasked : 1;
+	uint32 bDistortion : 1;
+	uint32 bSeparateTranslucency : 1;
+	uint32 bMobileSeparateTranslucency : 1;
+	uint32 bNormalTranslucency : 1;
+	uint32 bDisableDepthTest : 1;
+	uint32 bOutputsVelocityInBasePass : 1;
+	uint32 bUsesGlobalDistanceField : 1;
+	uint32 bUsesWorldPositionOffset : 1;
+	uint32 bDecal : 1;
 
-	/** Default constructor. */
+	/** Default constructor */
 	FMaterialRelevance()
-		: bOpaque(false)
-		, bMasked(false)
-		, bDistortion(false)
-		, bSeparateTranslucency(false)
-		, bMobileSeparateTranslucency(false)
-		, bNormalTranslucency(false)
-		, bDisableDepthTest(false)		
-		, bOutputsVelocityInBasePass(true)
-		, bUsesGlobalDistanceField(false)
-		, ShadingModelMask(0)
-	{}
-
-	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
-	FMaterialRelevance& operator|=(const FMaterialRelevance& B)
 	{
-		bOpaque |= B.bOpaque;
-		bMasked |= B.bMasked;
-		bDistortion |= B.bDistortion;
-		bSeparateTranslucency |= B.bSeparateTranslucency;
-		bMobileSeparateTranslucency |= B.bMobileSeparateTranslucency;
-		bNormalTranslucency |= B.bNormalTranslucency;
-		bDisableDepthTest |= B.bDisableDepthTest;
-		ShadingModelMask |= B.ShadingModelMask;
-		bOutputsVelocityInBasePass |= B.bOutputsVelocityInBasePass;
-		bUsesGlobalDistanceField |= B.bUsesGlobalDistanceField;
-		return *this;
+		// the class is only storing bits initialized to 0, the following avoids code redundancy
+		uint8 * RESTRICT p = (uint8*)this;
+		for(uint32 i = 0; i < sizeof(*this); ++i)
+		{
+			*p++ = 0;
+		}
 	}
 
-	/** Binary bitwise OR operator. */
-	friend FMaterialRelevance operator|(const FMaterialRelevance& A, const FMaterialRelevance& B)
+	/** Bitwise OR operator.  Sets any relevance bits which are present in either. */
+	FMaterialRelevance& operator|=(const FMaterialRelevance& B)
 	{
-		FMaterialRelevance Result(A);
-		Result |= B;
-		return Result;
+		// the class is only storing bits, the following avoids code redundancy
+		const uint8 * RESTRICT s = (const uint8*)&B;
+		uint8 * RESTRICT d = (uint8*)this;
+		for(uint32 i = 0; i < sizeof(*this); ++i)
+		{
+			*d = *d | *s; 
+			++s;++d;
+		}
+		return *this;
 	}
 
 	/** Copies the material's relevance flags to a primitive's view relevance flags. */
@@ -536,6 +506,7 @@ public:
 	ENGINE_API virtual bool IsTwoSided() const;
 	ENGINE_API virtual bool IsDitheredLODTransition() const;
 	ENGINE_API virtual bool IsMasked() const;
+	ENGINE_API virtual bool IsDeferredDecal() const;
 
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
@@ -636,3 +607,4 @@ private:
 extern void SerializeInlineShaderMaps(const TMap<const class ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSave, FArchive& Ar, TArray<FMaterialResource>& OutLoadedResources);
 /** Helper function to process (register) serialized inline shader maps for the given material resources. */
 extern void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num]);
+

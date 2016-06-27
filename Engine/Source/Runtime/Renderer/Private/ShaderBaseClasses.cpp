@@ -185,7 +185,7 @@ void FMaterialShader::SetParameters(
 		{
 			UE_LOG(
 				LogShaders,
-				Fatal,	// TEMP workaround only!!!!
+				Fatal,	
 				TEXT("%s shader uniform expression set mismatch for material %s/%s.\n")
 				TEXT("Shader compilation info:                %s\n")
 				TEXT("Material render proxy compilation info: %s\n")

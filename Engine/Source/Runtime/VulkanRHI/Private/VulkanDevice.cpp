@@ -15,14 +15,14 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, Device(VK_NULL_HANDLE)
 	, ResourceHeapManager(this)
 	, DeferredDeletionQueue(this)
-	, DescriptorPool(nullptr)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, Queue(nullptr)
 	, ImmediateContext(nullptr)
 	, UBRingBuffer(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
-	, VkCmdDbgMarkerBegin(nullptr)
-	, VkCmdDbgMarkerEnd(nullptr)
+	, CmdDbgMarkerBegin(nullptr)
+	, CmdDbgMarkerEnd(nullptr)
+	, DebugMarkerSetObjectName(nullptr)
 #endif
 	, FrameCounter(0)
 #if VULKAN_ENABLE_PIPELINE_CACHE
@@ -145,8 +145,8 @@ void FVulkanDevice::CreateDevice()
 #if VULKAN_ENABLE_DRAW_MARKERS
 	if (bDebugMarkersFound)
 	{
-		VkCmdDbgMarkerBegin = (PFN_vkCmdDbgMarkerBegin)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerBegin");
-		VkCmdDbgMarkerEnd = (PFN_vkCmdDbgMarkerEnd)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerEnd");
+		CmdDbgMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)(void*)vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerBeginEXT");
+		CmdDbgMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)(void*)vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerEndEXT");
 
 		// We're running under RenderDoc or other trace tool, so enable capturing mode
 		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
@@ -396,8 +396,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	ResourceHeapManager.Init();
 
-	DescriptorPool = new FVulkanDescriptorPool(this);
-
 	FenceManager.Init(this);
 
 	StagingManager.Init(this, Queue);
@@ -470,8 +468,6 @@ void FVulkanDevice::Destroy()
 	delete DefaultSampler;
 	DefaultSampler = nullptr;
 
-	delete DescriptorPool;
-
 	StagingManager.Deinit();
 
 	ResourceHeapManager.Deinit();
@@ -498,7 +494,6 @@ bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
 		return (Prop.bufferFeatures != 0) || (Prop.linearTilingFeatures != 0) || (Prop.optimalTilingFeatures != 0);
 	};
 
-	//#todo-rco: Once we get extensions, we'll need to expand this
 	if (Format >= 0 && Format < VK_FORMAT_RANGE_SIZE)
 	{
 		const VkFormatProperties& Prop = FormatProperties[Format];

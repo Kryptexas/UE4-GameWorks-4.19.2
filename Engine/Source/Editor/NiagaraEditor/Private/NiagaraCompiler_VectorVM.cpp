@@ -504,26 +504,23 @@ bool FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	Source = CastChecked<UNiagaraScriptSource>(Script->Source);
 
 	//Clear previous graph errors.
-	if (Script->ByteCode.Num() == 0)
+	bool bHasClearedGraphErrors = false;
+	for (UEdGraphNode* Node : Source->NodeGraph->Nodes)
 	{
-		bool bChanged = false;
-		for (UEdGraphNode* Node : Source->NodeGraph->Nodes)
+		if (Node->bHasCompilerMessage)
 		{
-			if (Node->bHasCompilerMessage)
-			{
-				Node->ErrorMsg.Empty();
-				Node->ErrorType = EMessageSeverity::Info;
-				Node->bHasCompilerMessage = false;
-				Node->Modify(true);
-				bChanged = true;
-			}
-		}
-		if (bChanged)
-		{
-			Source->NodeGraph->NotifyGraphChanged();
+			Node->ErrorMsg.Empty();
+			Node->ErrorType = EMessageSeverity::Info;
+			Node->bHasCompilerMessage = false;
+			Node->Modify(true);
+			bHasClearedGraphErrors = true;
 		}
 	}
-	
+	if (bHasClearedGraphErrors)
+	{
+		Source->NodeGraph->NotifyGraphChanged();
+	}
+
 	//Should we roll our own message/error log and put it in a window somewhere?
 	MessageLog.SetSourcePath(InScript->GetPathName());
 

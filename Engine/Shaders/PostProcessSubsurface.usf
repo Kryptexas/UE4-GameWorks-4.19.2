@@ -229,9 +229,22 @@ struct SDiffuseAndSpecular
 	float3 Specular;
 };
 
+// can be moved/shared
+half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
+{
+#if ES2_PROFILE && COMPILER_GLSL_ES2
+	// slower but always works
+	// to prevent "error: Texture offset not supported on GLSL ES"
+	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + PixelOffset * PostprocessInput0Size.zw).rgb;
+#else
+	// faster
+	return PostprocessInput0.SampleLevel(PostprocessInput0Sampler, SceneUV, 0, PixelOffset).rgb;
+#endif
+}
+
 // @param UVSceneColor for the full res rendertarget (BufferSize) e.g. SceneColor or GBuffers
-// @param ReconstructDiffuseMethod 0/1/2/3 (should be a literal constant to allow compiler optimizations)
-SDiffuseAndSpecular ReconstructDiffuse(float2 UVSceneColor, uint ReconstructDiffuseMethod)
+// @param ReconstructMethod 0/1/2/3 (should be a literal constant to allow compiler optimizations)
+SDiffuseAndSpecular ReconstructLighting(float2 UVSceneColor, uint ReconstructMethod)
 {
 	SDiffuseAndSpecular Ret;
 
@@ -245,34 +258,34 @@ SDiffuseAndSpecular ReconstructDiffuse(float2 UVSceneColor, uint ReconstructDiff
 	// 0:fast but pattern can appear, 1:better, 2: even better, 3: best but expensive
 	float3 Quant1;
 
-	if(ReconstructDiffuseMethod == 0)
+	if(ReconstructMethod == 0)
 	{
 		// cheap, crappy
-		Quant1 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(1, 0) * View.BufferSizeAndInvSize.zw).rgb;
+		Quant1 = LookupSceneColor(UVSceneColor, int2(1, 0));
 	}
-	else if(ReconstructDiffuseMethod == 1)
+	else if(ReconstructMethod == 1)
 	{
 		// acceptable but not perfect
 		Quant1 = 0.5f * (
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb);
+			LookupSceneColor(UVSceneColor, int2( 1, 0)) +
+			LookupSceneColor(UVSceneColor, int2(-1, 0)));
 	}
-	else if(ReconstructDiffuseMethod == 2)
+	else if(ReconstructMethod == 2)
 	{
 		// almost same as 1?
 		Quant1 = 0.25f * (
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * View.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb +
-			Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * View.BufferSizeAndInvSize.zw).rgb);
+			LookupSceneColor(UVSceneColor, int2( 1,  0)) +
+			LookupSceneColor(UVSceneColor, int2( 0,  1)) +
+			LookupSceneColor(UVSceneColor, int2(-1,  0)) +
+			LookupSceneColor(UVSceneColor, int2( 0, -1)));
 	}
-	else if(ReconstructDiffuseMethod == 3)
+	else if(ReconstructMethod == 3)
 	{
 		// very good 
-		float3 A = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb;
-		float3 B = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb;
-		float3 C = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * View.BufferSizeAndInvSize.zw).rgb;
-		float3 D = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * View.BufferSizeAndInvSize.zw).rgb;
+		float3 A = LookupSceneColor(UVSceneColor, int2( 1,  0));
+		float3 B = LookupSceneColor(UVSceneColor, int2(-1,  0));
+		float3 C = LookupSceneColor(UVSceneColor, int2( 0,  1));
+		float3 D = LookupSceneColor(UVSceneColor, int2( 0, -1));
 
 		// Luminance could be green channel only
 		float a = Luminance(A);
@@ -304,7 +317,7 @@ float4 SetupSubsurfaceForOnePixel(float2 UVSceneColor)
 	FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
 		// '1' is lower quality but that is acceptable here
-		SDiffuseAndSpecular DiffuseAndSpecular = ReconstructDiffuse(UVSceneColor, 1);
+		SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(UVSceneColor, 1);
 
 		Ret.rgb = DiffuseAndSpecular.Diffuse;
 
@@ -452,9 +465,9 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 	float3 StoredBaseColor = ScreenSpaceData.GBuffer.StoredBaseColor;
 	float StoredSpecular = ScreenSpaceData.GBuffer.StoredSpecular;
 
-	uint ReconstructDiffuseMethod = RECOMBINE_QUALITY ? 3 : 1;
+	uint ReconstructMethod = RECOMBINE_QUALITY ? 3 : 1;
 
-	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructDiffuse(UVSceneColor, ReconstructDiffuseMethod);
+	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(UVSceneColor, ReconstructMethod);
 	
 	float3 ExtractedNonSubsurface = DiffuseAndSpecular.Specular;
 

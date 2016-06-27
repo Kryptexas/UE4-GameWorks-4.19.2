@@ -36,6 +36,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 #include "VulkanGlobalUniformBuffer.h"
 #include "RHI.h"
 
+#include "VulkanCommandWrappers.h"
+using namespace VulkanRHI;
 
 // Default is 1 (which is aniso off), the number is adjusted after the limits are queried.
 static int32 GMaxVulkanTextureFilterAnisotropic = 1;
@@ -419,4 +421,12 @@ namespace VulkanRHI
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 extern TAutoConsoleVariable<int32> GValidationCvar;
+#endif
+
+
+#if 0
+namespace FRCLog
+{
+	void Printf(const FString& S);
+}
 #endif

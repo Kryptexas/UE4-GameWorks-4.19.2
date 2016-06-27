@@ -240,23 +240,6 @@ struct FDebugPipelineKey
 static FDebugPipelineKey GDebugPipelineKey;
 static_assert(sizeof(GDebugPipelineKey) == 2 * sizeof(uint64), "Debug struct not matching Hash/Sizes!");
 
-#if VULKAN_HAS_DEBUGGING_ENABLED
-inline uint8 LoadOpToChar(ERenderTargetLoadAction InLoadAction)
-{
-	uint8 OutLoadAction = 'E';
-
-	switch (InLoadAction)
-	{
-	case ERenderTargetLoadAction::ELoad:		OutLoadAction = 'L';	break;
-	case ERenderTargetLoadAction::EClear:		OutLoadAction = 'C';	break;
-	case ERenderTargetLoadAction::ENoAction:	OutLoadAction = 'D';	break;
-	default:															break;
-	}
-
-	return OutLoadAction;
-}
-#endif
-
 FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, bBeginRenderPass(false)
@@ -278,17 +261,19 @@ FVulkanPendingState::~FVulkanPendingState()
 
 	//Reset();
 
-	/*
-	if (RenderPass)
-	{
-		RenderPassMap.Remove(RenderPass->GetLayout().GetHash());
-		delete RenderPass;
-		RenderPass = nullptr;
-	}
-	*/
-
 	delete GlobalUniformPool;
 
+	DestroyFrameBuffers(false);
+
+	for (auto& Pair : RenderPassMap)
+	{
+		delete Pair.Value;
+	}
+	RenderPassMap.Empty(0);
+}
+
+void FVulkanPendingState::DestroyFrameBuffers(bool bResetMap)
+{
 	for (auto& Pair : FrameBufferMap)
 	{
 		TArray<FVulkanFramebuffer*>& Entries = Pair.Value;
@@ -299,12 +284,14 @@ FVulkanPendingState::~FVulkanPendingState()
 		}
 	}
 
-	for (auto& Pair : RenderPassMap)
+	if (bResetMap)
 	{
-		delete Pair.Value;
+		FrameBufferMap.Reset();
 	}
-	FrameBufferMap.Empty(0);
-	RenderPassMap.Empty(0);
+	else
+	{
+		FrameBufferMap.Empty(0);
+	}
 }
 
 FVulkanGlobalUniformPool& FVulkanPendingState::GetGlobalUniformPool()
@@ -438,7 +425,6 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 #if VULKAN_HAS_DEBUGGING_ENABLED
 	if (GValidationCvar.GetValueOnAnyThread() != 0)
 	{
-		 //#todo-rco: Make sure this doesn't overflow the validation layers as of 1.0.5.0
 		LimitMaxUniformBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformBuffers);
 		LimitMaxSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxSamplers);
 		LimitMaxCombinedImageSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxCombinedImageSamplers);
@@ -741,12 +727,6 @@ FVulkanFramebuffer* FVulkanPendingState::GetOrCreateFramebuffer(const FRHISetRen
 	return OutFramebuffer;
 }
 
-FVulkanRenderPass& FVulkanPendingState::GetRenderPass()
-{
-	check(CurrentState.RenderPass);
-	return *CurrentState.RenderPass;
-}
-
 void FVulkanPendingState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {
 	VkViewport& vp = CurrentState.Viewport;
@@ -857,11 +837,6 @@ void FVulkanPendingState::SetRasterizerState(FVulkanRasterizerState* NewState)
 	SetKeyBits(CurrentKey, OFFSET_CULL_MODE, NUMBITS_CULL_MODE, NewState->RasterizerState.cullMode);
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_BIAS_ENABLED, NUMBITS_DEPTH_BIAS_ENABLED, NewState->RasterizerState.depthBiasEnable);
 	SetKeyBits(CurrentKey, OFFSET_POLYFILL, NUMBITS_POLYFILL, NewState->RasterizerState.polygonMode == VK_POLYGON_MODE_FILL);
-}
-
-FVulkanFramebuffer* FVulkanPendingState::GetFrameBuffer()
-{
-	return CurrentState.FrameBuffer;
 }
 
 void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)

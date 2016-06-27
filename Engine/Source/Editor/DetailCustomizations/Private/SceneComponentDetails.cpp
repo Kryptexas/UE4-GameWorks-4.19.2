@@ -109,12 +109,7 @@ static bool IsMobilitySettingProhibited(EComponentMobility::Type const MobilityV
 
 	case EComponentMobility::Stationary:
 		{
-			if (!SceneComponent->IsA(ULightComponentBase::StaticClass()))
-			{
-				ProhibitedReasonOut = LOCTEXT("OnlyLightsCanBeStationary", "Only light components can be stationary.");
-				bIsProhibited = true;
-			}
-			else if (GetInheritedMobility(SceneComponent) == EComponentMobility::Movable)
+			if (GetInheritedMobility(SceneComponent) == EComponentMobility::Movable)
 			{
 				ProhibitedReasonOut = LOCTEXT("ParentMoreMobileRestriction", "Selected objects cannot be less mobile than their inherited parents.");
 				// can't be less movable than what we've inherited
@@ -151,6 +146,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	TSharedPtr<IPropertyHandle> MobilityHandle = DetailBuilder.GetProperty("Mobility");
 
 	uint8 RestrictedMobilityBits = 0u;
+	bool bAnySelectedIsLight = false;
 
 	TArray< TWeakObjectPtr<UObject> > SelectedSceneComponents;
 
@@ -168,6 +164,11 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 		if (SceneComponent == NULL)
 		{
 			continue;
+		}
+
+		if (SceneComponent->IsA(ULightComponentBase::StaticClass()))
+		{
+			bAnySelectedIsLight = true;
 		}
 
 		// if we haven't restricted the "Static" option yet
@@ -206,7 +207,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	}
 
 	MobilityCustomization = MakeShareable(new FMobilityCustomization);
-	MobilityCustomization->CreateMobilityCustomization(TransformCategory, MobilityHandle, RestrictedMobilityBits);
+	MobilityCustomization->CreateMobilityCustomization(TransformCategory, MobilityHandle, RestrictedMobilityBits, bAnySelectedIsLight);
 }
 
 void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailBuilder )

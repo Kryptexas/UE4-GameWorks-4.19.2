@@ -105,6 +105,7 @@ void NiagaraEffectRendererSprites::ReleaseRenderThreadResources()
 
 void NiagaraEffectRendererSprites::CreateRenderThreadResources() 
 {
+	VertexFactory->SetNumVertsInInstanceBuffer(4);
 	VertexFactory->InitResource();
 }
 
@@ -191,6 +192,7 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 
 				CollectorResources.UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 
+				CollectorResources.VertexFactory.SetNumVertsInInstanceBuffer(4);
 				CollectorResources.VertexFactory.InitResource();
 				CollectorResources.VertexFactory.SetSpriteUniformBuffer(CollectorResources.UniformBuffer);
 				CollectorResources.VertexFactory.SetInstanceBuffer(

@@ -25,7 +25,7 @@ FVulkanQueue::FVulkanQueue(FVulkanDevice* InDevice, uint32 InFamilyIndex, uint32
 	, QueueIndex(InQueueIndex)
 	, Device(InDevice)
 {
-	vkGetDeviceQueue(Device->GetInstanceHandle(), FamilyIndex, InQueueIndex, &Queue);
+	VulkanRHI::vkGetDeviceQueue(Device->GetInstanceHandle(), FamilyIndex, InQueueIndex, &Queue);
 }
 
 FVulkanQueue::~FVulkanQueue()
@@ -62,8 +62,7 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 		SubmitInfo.pWaitSemaphores = &Semaphores[1];
 		SubmitInfo.pWaitDstStageMask = &WaitStageFlags;
 	}
-	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** VkQueueSubmit CmdBuffer %p Fence %p\n"), (void*)CmdBuffer->GetHandle(), (void*)Fence->GetHandle());
-	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
+	VERIFYVULKANRESULT(VulkanRHI::vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 
 	if (GWaitForIdleOnSubmit != 0)
 	{

@@ -162,29 +162,29 @@ void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNorm
 	}
 	else if (TexelFactor >= 0)
 	{
-		if (GIsEditor)
+		if (GIsEditor) // In editor, visibility information is unreliable and we only consider the max.
 		{
-			UE_LOG(LogContentStreaming, Log, TEXT("    Size=%f"), TexelFactor * FMath::Max(MaxNormalizedSize, MaxNormalizedSize_VisibleOnly));
+			UE_LOG(LogContentStreaming, Log, TEXT("    Size=%f, BoundIndex=%d"), TexelFactor * FMath::Max(MaxNormalizedSize, MaxNormalizedSize_VisibleOnly), GetBoundsIndex());
 		}
 		else if (MaxNormalizedSize_VisibleOnly > 0)
 		{
-			UE_LOG(LogContentStreaming, Log, TEXT("    OnScreenSize=%f"), TexelFactor * MaxNormalizedSize_VisibleOnly);
+			UE_LOG(LogContentStreaming, Log, TEXT("    OnScreenSize=%f, BoundIndex=%d"), TexelFactor * MaxNormalizedSize_VisibleOnly, GetBoundsIndex());
 		}
 		else
 		{
-			int32 BoundIndex = GetBoundsIndex();
-			if (!GIsEditor && State.Bounds4.IsValidIndex(BoundIndex / 4))
+			const int32 BoundIndex = GetBoundsIndex();
+			if (State.Bounds4.IsValidIndex(BoundIndex / 4))
 			{
 				float LastRenderTime = State.Bounds4[BoundIndex / 4].LastRenderTime[BoundIndex % 4];
-				UE_LOG(LogContentStreaming, Log, TEXT("    OffScreenSize=%f, LastRenderTime= %.3f"), TexelFactor * MaxNormalizedSize, LastRenderTime);
+				UE_LOG(LogContentStreaming, Log, TEXT("    OffScreenSize=%f, LastRenderTime= %.3f, BoundIndex=%d"), TexelFactor * MaxNormalizedSize, LastRenderTime, BoundIndex);
 			}
 			else
 			{
-				UE_LOG(LogContentStreaming, Log, TEXT("    OffScreenSize=%f"), TexelFactor * MaxNormalizedSize);
+				UE_LOG(LogContentStreaming, Log, TEXT("    OffScreenSize=%f, BoundIndex=Invalid"), TexelFactor * MaxNormalizedSize);
 			}
 		}
 	}
-	else
+	else // Negative texel factors relate to forced specific resolution.
 	{
 		UE_LOG(LogContentStreaming, Log, TEXT("    ForcedSize=%f"), -TexelFactor);
 	}
@@ -702,7 +702,7 @@ TRefCountPtr<const FTextureInstanceState> FDynamicTextureInstanceManager::GetAsy
 	return TRefCountPtr<const FTextureInstanceState>(AsyncState);
 }
 
-void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseApproxDistance, float MaxEffectiveScreenSize)
+void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseNewMetrics, float MaxEffectiveScreenSize)
 {
 	if (!State.IsValid())  return;
 
@@ -751,7 +751,7 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 			const VectorRegister ViewOriginZ = VectorLoadFloat1( &ViewInfo.ViewOrigin.Z );
 
 			VectorRegister DistSqMinusRadiusSq = VectorZero();
-			if (!bUseApproxDistance)
+			if (bUseNewMetrics)
 			{
 				// In this case DistSqMinusRadiusSq will contain the distance to the box^2
 				VectorRegister Temp = VectorSubtract( ViewOriginX, OriginX );

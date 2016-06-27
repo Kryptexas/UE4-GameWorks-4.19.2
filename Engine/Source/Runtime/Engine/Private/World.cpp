@@ -834,6 +834,16 @@ UCanvas* UWorld::GetCanvasForRenderingToTarget()
 	return CanvasForRenderingToTarget;
 }
 
+UCanvas* UWorld::GetCanvasForDrawMaterialToRenderTarget()
+{
+	if (!CanvasForDrawMaterialToRenderTarget)
+	{
+		CanvasForDrawMaterialToRenderTarget = NewObject<UCanvas>(GetTransientPackage(), NAME_None);
+	}
+
+	return CanvasForDrawMaterialToRenderTarget;
+}
+
 UAISystemBase* UWorld::CreateAISystem()
 {
 	// create navigation system for editor and server targets, but remove it from game clients

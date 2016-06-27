@@ -321,28 +321,6 @@ private:
 
 #include "ShaderParameters.h"
 
-/** 
- * Current limit of the dynamic branching forward lighting code path (see r.ForwardLighting)
- */
-static const int32 GMaxNumForwardLights = 32;
-
-/** 
- * Data used to pass light properties and some other parameters down to the dynamic forward lighting code path.
- * todo: Fix static size (to be more efficient and to not limit the feature)
- */
-BEGIN_UNIFORM_BUFFER_STRUCT(FForwardLightData,ENGINE_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightCount)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,TileSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,TileCountX)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,InvTileSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,LightPositionAndInvRadius,[GMaxNumForwardLights])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,LightColorAndFalloffExponent,[GMaxNumForwardLights])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,LightDirectionAndSpotlightMaskAndMinRoughness,[GMaxNumForwardLights])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,SpotAnglesAndSourceRadiusAndDir,[GMaxNumForwardLights])
-END_UNIFORM_BUFFER_STRUCT(FForwardLightData)
-
-//////////////////////////////////////////////////////////////////////////
-
 //////////////////////////////////////////////////////////////////////////
 
 static const int MAX_MOBILE_SHADOWCASCADES = 2;
@@ -569,9 +547,6 @@ public:
 
 	/** The uniform buffer for the view's parameters. This is only initialized in the rendering thread's copies of the FSceneView. */
 	TUniformBufferRef<FViewUniformShaderParameters> ViewUniformBuffer;
-
-	/** uniform buffer with the lights for forward lighting/shading */
-	TUniformBufferRef<FForwardLightData> ForwardLightData;
 
 	/** The actor which is being viewed from. */
 	const AActor* ViewActor;

@@ -254,17 +254,16 @@ enum ETranslucencyLightingMode
 	TLM_VolumetricPerVertexDirectional UMETA(DisplayName="Volumetric PerVertex Directional"),
 
 	/** 
-	 * Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry
-	 * (fixed resolution), limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water.
+	 * Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry, 
+	 * limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water.
+	 * Only diffuse lighting is supported.
 	 */
 	TLM_Surface UMETA(DisplayName="Surface TranslucencyVolume"),
 
 	/** 
 	 * Lighting will be calculated for a surface. Use this on translucent surfaces like glass and water.
-	 * Higher quality than Surface but more expensive (loops through point lights with some basic culling, only inverse square, expensive, no shadow support yet)
-	 * Requires 'r.ForwardLighting' to be 1
 	 */
-	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface PerPixel (experimental, limited features)"),
+	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface PerPixel (currently uses TranslucencyVolume)"),
 
 	TLM_MAX,
 };

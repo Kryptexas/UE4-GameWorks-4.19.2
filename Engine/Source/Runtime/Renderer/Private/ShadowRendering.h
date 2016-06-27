@@ -280,11 +280,6 @@ namespace StencilingGeometry
 /** Renders a cone with a spherical cap, used for rendering spot lights in deferred passes. */
 extern void DrawStencilingCone(const FMatrix& ConeToWorld, float ConeAngle, float SphereRadius, const FVector& PreViewTranslation);
 
-/** Shadow border needs to be wide enough to prevent the shadow filtering from picking up content in other shadowmaps in the atlas. */
-const static uint32 SHADOW_BORDER = 4; 
-
-
-
 template <bool bRenderingReflectiveShadowMaps> class TShadowDepthBasePS;
 class FShadowStaticMeshElement;
 
@@ -400,7 +395,7 @@ public:
 private:
 
 	class FShadowDepthVS* VertexShader;
-	class FOnePassPointShadowProjectionGS* GeometryShader;
+	class FOnePassPointShadowDepthGS* GeometryShader;
 	TShadowDepthBasePS<bRenderingReflectiveShadowMaps>* PixelShader;
 	class FBaseHS* HullShader;
 	class FShadowDepthDS* DomainShader;
@@ -505,7 +500,7 @@ public:
 enum EShadowDepthRenderMode
 {
 	/** The render mode used by regular shadows */
-	ShadowDepthRenderMode_Dynamic,
+	ShadowDepthRenderMode_Normal,
 
 	/** The render mode used when injecting emissive-only objects into the RSM. */
 	ShadowDepthRenderMode_EmissiveOnly,
@@ -514,6 +509,39 @@ enum EShadowDepthRenderMode
 	ShadowDepthRenderMode_GIBlockingVolumes,
 };
 
+enum EShadowDepthCacheMode
+{
+	SDCM_MovablePrimitivesOnly,
+	SDCM_StaticPrimitivesOnly,
+	SDCM_Uncached
+};
+
+class FShadowMapRenderTargets
+{
+public:
+	TArray<IPooledRenderTarget*, SceneRenderingAllocator> ColorTargets;
+	IPooledRenderTarget* DepthTarget;
+
+	FShadowMapRenderTargets() :
+		DepthTarget(NULL)
+	{}
+
+	FIntPoint GetSize() const
+	{
+		if (DepthTarget)
+		{
+			return DepthTarget->GetDesc().Extent;
+		}
+		else 
+		{
+			check(ColorTargets.Num() > 0);
+			return ColorTargets[0]->GetDesc().Extent;
+		}
+	}
+};
+
+typedef TFunctionRef<void(FRHICommandList& RHICmdList, bool bFirst)> FSetShadowRenderTargetFunction;
+
 /**
  * Information about a projected shadow.
  */
@@ -521,6 +549,14 @@ class FProjectedShadowInfo : public FRefCountedObject
 {
 public:
 	typedef TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> PrimitiveArrayType;
+
+	/** The view to be used when rendering this shadow's depths. */
+	const FViewInfo* ShadowDepthView;
+
+	/** The depth or color targets this shadow was rendered to. */
+	FShadowMapRenderTargets RenderTargets;
+
+	EShadowDepthCacheMode CacheMode;
 
 	/** The main view this shadow must be rendered in, or NULL for a view independent shadow. */
 	FViewInfo* DependentView;
@@ -562,13 +598,22 @@ public:
 
 	FShadowCascadeSettings CascadeSettings;
 
-	/** X and Y position of the shadow in the appropriate depth buffer.  These are only initialized after the shadow has been allocated. */
+	/** 
+	 * X and Y position of the shadow in the appropriate depth buffer.  These are only initialized after the shadow has been allocated. 
+	 * The actual contents of the shadowmap are at X + BorderSize, Y + BorderSize.
+	 */
 	uint32 X;
 	uint32 Y;
 
-	/** Resolution of the shadow. */
+	/** 
+	 * Resolution of the shadow, excluding the border. 
+	 * The full size of the region allocated to this shadow is therefore ResolutionX + 2 * BorderSize, ResolutionY + 2 * BorderSize.
+	 */
 	uint32 ResolutionX;
 	uint32 ResolutionY;
+
+	/** Size of the border, if any, used to allow filtering without clamping for shadows stored in an atlas. */
+	uint32 BorderSize;
 
 	/** The largest percent of either the width or height of any view. */
 	float MaxScreenPercent;
@@ -578,12 +623,6 @@ public:
 
 	/** Whether the shadow has been allocated in the shadow depth buffer, and its X and Y properties have been initialized. */
 	uint32 bAllocated : 1;
-
-	/** 
-	 * Whether the translucent shadow has been allocated in the per-frame translucent shadow layout, and therefore has a resident shadow map.
-	 * If true, the resident shadow map can be re-used during the translucency pass, otherwise it needs to be re-rendered.
-	 */
-	uint32 bAllocatedInTranslucentLayout : 1;
 
 	/** Whether the shadow's projection has been rendered. */
 	uint32 bRendered : 1;
@@ -597,6 +636,9 @@ public:
 	// redundant to LightSceneInfo->Proxy->GetLightType() == LightType_Directional, could be made ELightComponentType LightType
 	uint32 bDirectionalLight : 1;
 
+	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
+	uint32 bOnePassPointLightShadow : 1;
+
 	/** Whether this shadow affects the whole scene or only a group of objects. */
 	uint32 bWholeSceneShadow : 1;
 
@@ -606,6 +648,9 @@ public:
 	/** Whether this shadow should support casting shadows from translucent surfaces. */
 	uint32 bTranslucentShadow : 1;
 
+	/** Whether the shadow will be computed by ray tracing the distance field. */
+	uint32 bRayTracedDistanceField : 1;
+
 	/** Whether this is a per-object shadow that should use capsule shapes to shadow instead of the mesh's triangles. */
 	uint32 bCapsuleShadow : 1;
 
@@ -614,6 +659,9 @@ public:
 
 	/** To not cast a shadow on the ground outside the object and having higher quality (useful for first person weapon). */
 	uint32 bSelfShadowOnly : 1;
+
+	/** Whether the shadow is a per object shadow or not. */
+	uint32 bPerObjectOpaqueShadow : 1;
 
 	TBitArray<SceneRenderingBitArrayAllocator> StaticMeshWholeSceneShadowDepthMap;
 	TArray<uint64,SceneRenderingAllocator> StaticMeshWholeSceneShadowBatchVisibility;
@@ -641,6 +689,7 @@ public:
 		bool bInPreShadow,
 		uint32 InResolutionX,
 		uint32 MaxShadowResolutionY,
+		uint32 InBorderSize,
 		float InMaxScreenPercent,
 		bool bInTranslucentShadow
 		);
@@ -652,6 +701,7 @@ public:
 		const FWholeSceneProjectedShadowInitializer& Initializer,
 		uint32 InResolutionX,
 		uint32 InResolutionY,
+		uint32 InBorderSize,
 		bool bInReflectiveShadowMap
 		);
 
@@ -660,15 +710,15 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode = ShadowDepthRenderMode_Dynamic);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
 
 	/** Set state for depth rendering */
 	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode );
 
-	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, bool bPerformClear);
+	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, bool bPerformClear);
 
 	/** Renders shadow maps for translucent primitives. */
-	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
 
 	/**
 	 * Projects the shadow onto the scene for a particular view.
@@ -732,10 +782,13 @@ public:
 	FMatrix GetScreenToShadowMatrix(const FSceneView& View, uint32 TileOffsetX, uint32 TileOffsetY, uint32 TileResolutionX, uint32 TileResolutionY) const;
 
 	/** Returns a matrix that transforms a world space position into shadow space. */
-	FMatrix GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride = nullptr, bool bHasShadowBorder = true ) const;
+	FMatrix GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride = nullptr) const;
 
 	/** Returns the resolution of the shadow buffer used for this shadow, based on the shadow's type. */
-	FIntPoint GetShadowBufferResolution() const;
+	FIntPoint GetShadowBufferResolution() const
+	{
+		return RenderTargets.GetSize();
+	}
 
 	/** Computes and updates ShaderDepthBias */
 	void UpdateShaderDepthBias();
@@ -763,6 +816,9 @@ public:
 	 * 0 if Setup...() wasn't called yet
 	 */	
 	const FPrimitiveSceneInfo* GetParentSceneInfo() const { return ParentSceneInfo; }
+
+	/** Creates a new view from the pool and caches it in ShadowDepthView for depth rendering. */
+	void SetupShadowDepthView(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer);
 
 private:
 	// 0 if Setup...() wasn't called yet
@@ -808,20 +864,22 @@ private:
 	 */
 	float ShaderDepthBias;
 
+	void CopyCachedShadowMap(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo& View, FSetShadowRenderTargetFunction SetShadowRenderTargets);
+
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode );
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode );
 
 	/**
 	* Modifies the passed in view for this shadow
 	*/
-	void ModifyViewForShadow(FRHICommandList& RHICmdList, FViewInfo* FoundView);
+	void ModifyViewForShadow(FRHICommandList& RHICmdList, FViewInfo* FoundView) const;
 
 	/**
 	* Finds a relevant view for a shadow
 	*/
-	FViewInfo* FindViewForShadow(FSceneRenderer* SceneRenderer);
+	FViewInfo* FindViewForShadow(FSceneRenderer* SceneRenderer) const;
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view
@@ -1114,8 +1172,8 @@ public:
 
 			FVector2D InverseShadowBufferResolution(1.0f/ShadowBufferResolution.X, 1.0f/ShadowBufferResolution.Y);	
 			FVector4 ShadowTileOffsetAndSize(
-				(SHADOW_BORDER + ShadowInfo->X) * InverseShadowBufferResolution.X,
-				(SHADOW_BORDER + ShadowInfo->Y) * InverseShadowBufferResolution.Y,
+				(ShadowInfo->BorderSize + ShadowInfo->X) * InverseShadowBufferResolution.X,
+				(ShadowInfo->BorderSize + ShadowInfo->Y) * InverseShadowBufferResolution.Y,
 				ShadowInfo->ResolutionX * InverseShadowBufferResolution.X,
 				ShadowInfo->ResolutionY * InverseShadowBufferResolution.Y);
 
@@ -1142,7 +1200,18 @@ public:
 				FVector4(ShadowBufferSizeValue.X, ShadowBufferSizeValue.Y, 1.0f / ShadowBufferSizeValue.X, 1.0f / ShadowBufferSizeValue.Y));
 		}
 
-		FTexture2DRHIRef ShadowDepthTextureValue = FSceneRenderTargets::Get(RHICmdList).GetShadowDepthZTexture(ShadowInfo->bAllocatedInPreshadowCache);
+		FTextureRHIParamRef ShadowDepthTextureValue;
+
+		// Translucency shadow projection has no depth target
+		if (ShadowInfo->RenderTargets.DepthTarget)
+		{
+			ShadowDepthTextureValue = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+		}
+		else
+		{
+			ShadowDepthTextureValue = GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+		}
+			
 		FSamplerStateRHIParamRef DepthSamplerState = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);		
@@ -1346,16 +1415,31 @@ public:
 		TranslucencyShadowTransmission1Sampler.Bind(ParameterMap,TEXT("TranslucencyShadowTransmission1Sampler"));
 	}
 
-	void Set(FRHICommandList& RHICmdList, FShader* Shader) const
+	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FProjectedShadowInfo* ShadowInfo) const
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+		FTextureRHIParamRef TranslucencyShadowTransmission0Value;
+		FTextureRHIParamRef TranslucencyShadowTransmission1Value;
+
+		if (ShadowInfo)
+		{
+			TranslucencyShadowTransmission0Value = ShadowInfo->RenderTargets.ColorTargets[0]->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+			TranslucencyShadowTransmission1Value = ShadowInfo->RenderTargets.ColorTargets[1]->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+		}
+		else
+		{
+			TranslucencyShadowTransmission0Value = GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+			TranslucencyShadowTransmission1Value = GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+		}
+			
 		SetTextureParameter(
 			RHICmdList, 
 			Shader->GetPixelShader(),
 			TranslucencyShadowTransmission0,
 			TranslucencyShadowTransmission0Sampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			SceneContext.TranslucencyShadowTransmission[0]->GetRenderTargetItem().ShaderResourceTexture
+			TranslucencyShadowTransmission0Value
 			);
 
 		SetTextureParameter(
@@ -1364,7 +1448,7 @@ public:
 			TranslucencyShadowTransmission1,
 			TranslucencyShadowTransmission1Sampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			SceneContext.TranslucencyShadowTransmission[1]->GetRenderTargetItem().ShaderResourceTexture
+			TranslucencyShadowTransmission1Value
 			);
 	}
 
@@ -1420,7 +1504,7 @@ public:
 	{
 		TShadowProjectionPS<Quality>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 
-		TranslucencyProjectionParameters.Set(RHICmdList, this);
+		TranslucencyProjectionParameters.Set(RHICmdList, this, ShadowInfo);
 	}
 
 	/**
@@ -1455,11 +1539,15 @@ public:
 	template<typename ShaderRHIParamRef>
 	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FProjectedShadowInfo* ShadowInfo) const
 	{
+		FTextureRHIParamRef ShadowDepthTextureValue = ShadowInfo 
+			? ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference()
+			: GBlackTextureCube->TextureRHI.GetReference();
+
 		SetTextureParameter(
 			RHICmdList, 
 			ShaderRHI, 
 			ShadowDepthTexture, 
-			FSceneRenderTargets::Get(RHICmdList).GetCubeShadowDepthZTexture(ShadowInfo->ResolutionX)
+			ShadowDepthTextureValue
 			);
 
 		if (ShadowDepthCubeComparisonSampler.IsBound())
@@ -1472,15 +1560,22 @@ public:
 				);
 		}
 
-		SetShaderValueArray<ShaderRHIParamRef, FMatrix>(
-			RHICmdList, 
-			ShaderRHI,
-			ShadowViewProjectionMatrices,
-			ShadowInfo->OnePassShadowViewProjectionMatrices.GetData(),
-			ShadowInfo->OnePassShadowViewProjectionMatrices.Num()
-			);
+		if (ShadowInfo)
+		{
+			SetShaderValueArray<ShaderRHIParamRef, FMatrix>(
+				RHICmdList, 
+				ShaderRHI,
+				ShadowViewProjectionMatrices,
+				ShadowInfo->OnePassShadowViewProjectionMatrices.GetData(),
+				ShadowInfo->OnePassShadowViewProjectionMatrices.Num()
+				);
 
-		SetShaderValue(RHICmdList, ShaderRHI,InvShadowmapResolution,1.0f / ShadowInfo->ResolutionX);
+			SetShaderValue(RHICmdList, ShaderRHI,InvShadowmapResolution,1.0f / ShadowInfo->ResolutionX);
+		}
+		else
+		{
+			check(!ShadowViewProjectionMatrices.IsBound());
+		}
 	}
 
 	/** Serializer. */ 
@@ -1518,6 +1613,7 @@ public:
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		OnePassShadowParameters.Bind(Initializer.ParameterMap);
+		ShadowDepthTextureSampler.Bind(Initializer.ParameterMap,TEXT("ShadowDepthTextureSampler"));
 		LightPosition.Bind(Initializer.ParameterMap,TEXT("LightPositionAndInvRadius"));
 		ShadowFadeFraction.Bind(Initializer.ParameterMap,TEXT("ShadowFadeFraction"));
 		ShadowSharpen.Bind(Initializer.ParameterMap,TEXT("ShadowSharpen"));
@@ -1556,6 +1652,8 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex]);
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowSharpen, LightProxy.GetShadowSharpen() * 7.0f + 1.0f);
 		SetShaderValue(RHICmdList, ShaderRHI, PointLightDepthBiasParameters, FVector2D(ShadowInfo->GetShaderDepthBias(), 0.0f));
+
+		SetSamplerParameter(RHICmdList, ShaderRHI, ShadowDepthTextureSampler, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1563,6 +1661,7 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DeferredParameters;
 		Ar << OnePassShadowParameters;
+		Ar << ShadowDepthTextureSampler;
 		Ar << LightPosition;
 		Ar << ShadowFadeFraction;
 		Ar << ShadowSharpen;
@@ -1573,6 +1672,7 @@ public:
 private:
 	FDeferredPixelShaderParameters DeferredParameters;
 	FOnePassPointShadowProjectionShaderParameters OnePassShadowParameters;
+	FShaderResourceParameter ShadowDepthTextureSampler;
 	FShaderParameter LightPosition;
 	FShaderParameter ShadowFadeFraction;
 	FShaderParameter ShadowSharpen;
@@ -1591,6 +1691,51 @@ struct FShadowProjectionMatrix: FMatrix
 		FPlane(0,	0,	-MinZ * (WAxis.Z * MaxZ + WAxis.W) / (MaxZ - MinZ),	WAxis.W)
 		)
 	{}
+};
+
+// Sort by descending resolution
+struct FCompareFProjectedShadowInfoByResolution
+{
+	FORCEINLINE bool operator() (const FProjectedShadowInfo& A, const FProjectedShadowInfo& B) const
+	{
+		return (B.ResolutionX * B.ResolutionY < A.ResolutionX * A.ResolutionY);
+	}
+};
+
+// Sort by shadow type (CSMs first, then other types).
+// Then sort CSMs by descending split index, and other shadows by resolution.
+// Used to render shadow cascades in far to near order, whilst preserving the
+// descending resolution sort behavior for other shadow types.
+struct FCompareFProjectedShadowInfoBySplitIndex
+{
+	FORCEINLINE bool operator()( const FProjectedShadowInfo& A, const FProjectedShadowInfo& B ) const
+	{
+		if (A.IsWholeSceneDirectionalShadow())
+		{
+			if (B.IsWholeSceneDirectionalShadow())
+			{
+				// Both A and B are CSMs
+				// Compare Split Indexes, to order them far to near.
+				return (B.CascadeSettings.ShadowSplitIndex < A.CascadeSettings.ShadowSplitIndex);
+			}
+
+			// A is a CSM, B is per-object shadow etc.
+			// B should be rendered after A.
+			return true;
+		}
+		else
+		{
+			if (B.IsWholeSceneDirectionalShadow())
+			{
+				// B should be rendered after A.
+				return false;
+			}
+			
+			// Neither shadow is a CSM
+			// Sort by descending resolution.
+			return FCompareFProjectedShadowInfoByResolution()(A, B);
+		}
+	}
 };
 
 #endif

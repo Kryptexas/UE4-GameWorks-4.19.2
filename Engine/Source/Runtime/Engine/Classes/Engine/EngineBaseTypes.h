@@ -885,7 +885,7 @@ enum EViewModeIndex
 
 	VMI_CollisionPawn = 15, 
 	VMI_CollisionVisibility = 16, 
-	VMI_VertexDensities = 17,
+	//VMI_UNUSED = 17,
 	/** Colored according to the current LOD index. */
 	VMI_LODColoration = 18,
 	/** Colored according to the quad coverage. */

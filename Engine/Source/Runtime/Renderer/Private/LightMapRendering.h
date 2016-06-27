@@ -275,7 +275,7 @@ public:
 			const FPixelShaderRHIParamRef ShaderRHI = PixelShader->GetPixelShader();
 
 			// Set these even if ElementData.TranslucentSelfShadow is NULL to avoid a d3d debug error from the shader expecting texture SRV's when a different type are bound
-			PixelShaderParameters->TranslucencyShadowParameters.Set(RHICmdList, PixelShader);
+			PixelShaderParameters->TranslucencyShadowParameters.Set(RHICmdList, PixelShader, ElementData.TranslucentSelfShadow);
 
 			if (ElementData.TranslucentSelfShadow)
 			{

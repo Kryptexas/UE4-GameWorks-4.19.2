@@ -1079,8 +1079,8 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewI
 */
 void FLightPropagationVolume::GetShadowInfo( const FProjectedShadowInfo& ProjectedShadowInfo, FRsmInfo& RsmInfoOut )
 {
-	FIntPoint ShadowBufferResolution( ProjectedShadowInfo.ResolutionX, ProjectedShadowInfo.ResolutionY );
-	RsmInfoOut.WorldToShadow = ProjectedShadowInfo.GetWorldToShadowMatrix(RsmInfoOut.ShadowmapMinMax, &ShadowBufferResolution );
+	FIntPoint ShadowBufferResolution( ProjectedShadowInfo.ResolutionX, ProjectedShadowInfo.ResolutionY);
+	RsmInfoOut.WorldToShadow = ProjectedShadowInfo.GetWorldToShadowMatrix(RsmInfoOut.ShadowmapMinMax, &ShadowBufferResolution);
 	RsmInfoOut.ShadowToWorld = RsmInfoOut.WorldToShadow.InverseFast();
 
 	// Determine the shadow area in world space, so we can scale the brightness if needed. 
@@ -1130,8 +1130,8 @@ void FLightPropagationVolume::SetVplInjectionConstants(
 void FLightPropagationVolume::InjectDirectionalLightRSM(
 	FRHICommandListImmediate& RHICmdList,
 	FViewInfo&					View,
-	const FTexture2DRHIRef&		RsmDiffuseTex, 
 	const FTexture2DRHIRef&		RsmNormalTex, 
+	const FTexture2DRHIRef&		RsmDiffuseTex, 
 	const FTexture2DRHIRef&		RsmDepthTex, 
 	const FProjectedShadowInfo&	ProjectedShadowInfo,
 	const FLinearColor&			LightColour )
@@ -1151,7 +1151,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		Shader->SetParameters(RHICmdList, ShaderParams, RsmDiffuseTex, RsmNormalTex, RsmDepthTex );
 
 		int32 RSMResolution = FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution();
-		// todo: what if not divisble by 8?
+		// todo: what if not divisible by 8?
 		DispatchComputeShader(RHICmdList, *Shader, RSMResolution / 8, RSMResolution / 8, 1 ); 
 
 		Shader->UnbindBuffers(RHICmdList, ShaderParams);
@@ -1525,5 +1525,80 @@ void FSceneViewState::DestroyLightPropagationVolume()
 		}
 		);
 		bIsStereoView = false;
+	}
+}
+
+
+void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdList)
+{
+	SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
+	bool bAnyViewHasLPVs = false;
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		FViewInfo& View = Views[ViewIndex];
+		FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
+
+		if (ViewState)
+		{
+			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+
+			if (LightPropagationVolume)
+			{
+				bAnyViewHasLPVs = true;
+				break;
+			}
+		}
+	}
+
+	if (bAnyViewHasLPVs)
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs);
+
+		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+			FViewInfo& View = Views[ViewIndex];
+
+			FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
+			if(ViewState)
+			{
+				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+
+				if(LightPropagationVolume)
+				{
+					LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
+					LightPropagationVolume->Clear(RHICmdList, View);
+				}
+			}
+		}
+	}
+}
+
+void FDeferredShadingSceneRenderer::UpdateLPVs(FRHICommandListImmediate& RHICmdList)
+{
+	SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
+	SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
+
+	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+		FViewInfo& View = Views[ViewIndex];
+		FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
+
+		if(ViewState)
+		{
+			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+
+			if(LightPropagationVolume)
+			{
+//				SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
+//				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
+				
+				LightPropagationVolume->Update(RHICmdList, View);
+			}
+		}
 	}
 }

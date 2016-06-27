@@ -38,6 +38,8 @@ private:
 	TArray<void*> mBackedMemory;
 
 	static const SIZE_T mFileGrowSize = (1024 * 1024); // 1 megabyte;
+	static int32 GEnablePSOCache;
+	static FAutoConsoleVariableRef CVarEnablePSOCache;	
 
 	void GrowMapping(SIZE_T size, bool firstrun);
 
@@ -63,7 +65,11 @@ public:
 	{
 		return mHeader.mSizeInBytes;
 	}
-	bool IsInErrorState() const;
+
+	FORCEINLINE_DEBUGGABLE bool IsInErrorState() const
+	{
+		return !GEnablePSOCache || mInErrorState;
+	}
 
 	SIZE_T GetCurrentOffset() const { return mCurrentOffset; }
 

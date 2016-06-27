@@ -17,7 +17,7 @@ public:
 	FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, bool bInIsImmediate);
 	virtual ~FVulkanCommandListContext();
 
-	bool IsImmediate() const
+	inline bool IsImmediate() const
 	{
 		return bIsImmediate;
 	}
@@ -112,7 +112,7 @@ public:
 		return CommandBufferManager;
 	}
 
-	VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
+	inline VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
 	{
 		return TempFrameAllocationBuffer;
 	}
@@ -121,6 +121,11 @@ public:
 	{
 		check(PendingState);
 		return *PendingState;
+	}
+
+	inline FVulkanDescriptorPool* GetDescriptorPool()
+	{
+		return &DescriptorPool;
 	}
 
 protected:
@@ -147,6 +152,8 @@ protected:
 	TArray<FString> EventStack;
 
 	FVulkanCommandBufferManager* CommandBufferManager;
+
+	FVulkanDescriptorPool DescriptorPool;
 
 	//#todo-rco: Temp!
 	FVulkanPendingState* PendingState;

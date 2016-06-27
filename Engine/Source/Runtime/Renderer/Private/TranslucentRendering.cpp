@@ -195,7 +195,7 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 
 	// Find this primitive's self shadow if there is one
 	if (PrimitiveSceneInfo->Proxy && PrimitiveSceneInfo->Proxy->CastsVolumetricTranslucentShadow())
-	{			
+	{		
 		for (FLightPrimitiveInteraction* Interaction = PrimitiveSceneInfo->LightList;
 			Interaction && !TranslucentSelfShadow;
 			Interaction = Interaction->GetNextLight()
@@ -203,13 +203,10 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 		{
 			const FLightSceneInfo* LightSceneInfo = Interaction->GetLight();
 
-			if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional
-				// Only reuse cached shadows from the light which last used TranslucentSelfShadowLayout
-				// This has the side effect of only allowing per-pixel self shadowing from one light
-				&& LightSceneInfo->Id == CachedTranslucentSelfShadowLightId)
+			// Note: applying shadowmap from first directional light found
+			if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional)
 			{
 				VisibleLightInfo = &VisibleLightInfos[LightSceneInfo->Id];
-				FProjectedShadowInfo* ObjectShadow = NULL;
 
 				for (int32 ShadowIndex = 0, Count = VisibleLightInfo->AllProjectedShadows.Num(); ShadowIndex < Count; ShadowIndex++)
 				{
@@ -217,71 +214,11 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 
 					if (CurrentShadowInfo && CurrentShadowInfo->bTranslucentShadow && CurrentShadowInfo->GetParentSceneInfo() == PrimitiveSceneInfo)
 					{
+						check(CurrentShadowInfo->RenderTargets.ColorTargets.Num() > 0);
 						TranslucentSelfShadow = CurrentShadowInfo;
 						break;
 					}
 				}
-			}
-		}
-
-		// Allocate and render the shadow's depth map if needed
-		if (TranslucentSelfShadow && !TranslucentSelfShadow->bAllocatedInTranslucentLayout)
-		{
-			check(IsInRenderingThread());
-			bool bPossibleToAllocate = true;
-
-			// Attempt to find space in the layout
-			TranslucentSelfShadow->bAllocatedInTranslucentLayout = TranslucentSelfShadowLayout.AddElement(
-				TranslucentSelfShadow->X,
-				TranslucentSelfShadow->Y,
-				TranslucentSelfShadow->ResolutionX + SHADOW_BORDER * 2,
-				TranslucentSelfShadow->ResolutionY + SHADOW_BORDER * 2);
-
-			// Free shadowmaps from this light until allocation succeeds
-			while (!TranslucentSelfShadow->bAllocatedInTranslucentLayout && bPossibleToAllocate)
-			{
-				bPossibleToAllocate = false;
-
-				for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo->AllProjectedShadows.Num(); ShadowIndex++)
-				{
-					FProjectedShadowInfo* CurrentShadowInfo = VisibleLightInfo->AllProjectedShadows[ShadowIndex];
-
-					if (CurrentShadowInfo->bTranslucentShadow && CurrentShadowInfo->bAllocatedInTranslucentLayout)
-					{
-						verify(TranslucentSelfShadowLayout.RemoveElement(
-							CurrentShadowInfo->X,
-							CurrentShadowInfo->Y,
-							CurrentShadowInfo->ResolutionX + SHADOW_BORDER * 2,
-							CurrentShadowInfo->ResolutionY + SHADOW_BORDER * 2));
-
-						CurrentShadowInfo->bAllocatedInTranslucentLayout = false;
-
-						bPossibleToAllocate = true;
-						break;
-					}
-				}
-
-				TranslucentSelfShadow->bAllocatedInTranslucentLayout = TranslucentSelfShadowLayout.AddElement(
-					TranslucentSelfShadow->X,
-					TranslucentSelfShadow->Y,
-					TranslucentSelfShadow->ResolutionX + SHADOW_BORDER * 2,
-					TranslucentSelfShadow->ResolutionY + SHADOW_BORDER * 2);
-			}
-
-			if (!bPossibleToAllocate)
-			{
-				// Failed to allocate space for the shadow depth map, so don't use the self shadow
-				TranslucentSelfShadow = NULL;
-			}
-			else
-			{
-				check(TranslucentSelfShadow->bAllocatedInTranslucentLayout);
-
-				// Render the translucency shadow map
-				TranslucentSelfShadow->RenderTranslucencyDepths(RHICmdList, this);
-
-				// Restore state
-				SetTranslucentRenderTargetAndState(RHICmdList, View, TranslucencyPass);
 			}
 		}
 	}
@@ -829,18 +766,21 @@ void FTranslucentPrimSet::RenderPrimitive(
 	{
 		FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, TranslucenyPassType);
 
-		// need to chec further down if we can skip rendering ST primitives, because we need to make sure they render in the normal translucency pass otherwise
+		// need to check further down if we can skip rendering ST primitives, because we need to make sure they render in the normal translucency pass otherwise
 		// getting the cvar here and passing it down to be more efficient		
 		bool bSeparateTranslucencyPossible = (FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread() != 0) && View.Family->EngineShowFlags.SeparateTranslucency && View.Family->EngineShowFlags.PostProcessing;
+		
+		// Render dynamic scene prim
+		{	
+			// range in View.DynamicMeshElements[]
+			FInt32Range range = View.GetDynamicMeshElementRange(PrimitiveSceneInfo->GetIndex());
 
-
-		//@todo parallelrendering - come up with a better way to filter these by primitive
-		for (int32 MeshBatchIndex = 0, Count = View.DynamicMeshElements.Num(); MeshBatchIndex < Count; MeshBatchIndex++)
-		{
-			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-			if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
+			for (int32 MeshBatchIndex = range.GetLowerBoundValue(); MeshBatchIndex < range.GetUpperBoundValue(); MeshBatchIndex++)
 			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+				checkSlow(MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy);
+
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, bSeparateTranslucencyPossible);
 			}
@@ -903,14 +843,14 @@ inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo
 	return SortKey;
 }
 
-void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Elements, int32 Num, const FTranslucenyPrimCount& TranslucentPrimitiveCountPerPass)
+void FTranslucentPrimSet::AppendScenePrimitives(FTranslucentSortedPrim* Elements, int32 Num, const FTranslucenyPrimCount& TranslucentPrimitiveCountPerPass)
 {
 	SortedPrims.Append(Elements, Num);
 	SortedPrimsNum.Append(TranslucentPrimitiveCountPerPass);
 }
 
 void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency,
-	FTranslucentPrimSet::FSortedPrim *InArrayStart, int32& InOutArrayNum, FTranslucenyPrimCount& OutCount)
+	FTranslucentPrimSet::FTranslucentSortedPrim *InArrayStart, int32& InOutArrayNum, FTranslucenyPrimCount& OutCount)
 {
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
@@ -929,14 +869,14 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 	{
 		ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_SeparateTransluceny;
 
-		new(&InArrayStart[InOutArrayNum++]) FSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
+		new(&InArrayStart[InOutArrayNum++]) FTranslucentSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
 		OutCount.Add(TranslucencyPass);
 	}
 	if (bIsNonSeparateTranslucency)
 	{
 		ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_NonSeparateTransluceny;
 
-		new(&InArrayStart[InOutArrayNum++]) FSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
+		new(&InArrayStart[InOutArrayNum++]) FTranslucentSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
 		OutCount.Add(TranslucencyPass);
 	}
 }
@@ -944,7 +884,7 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 void FTranslucentPrimSet::SortPrimitives()
 {
 	// sort prims based on the specified criteria (usually depth)
-	SortedPrims.Sort( FCompareFSortedPrim() );
+	SortedPrims.Sort( FCompareFTranslucentSortedPrim() );
 }
 
 bool FSceneRenderer::ShouldRenderTranslucency() const

@@ -307,7 +307,7 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 	{
 		Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, MemProps, __FILE__, __LINE__);
 		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, (void*)Allocation->GetHandle(), (uint32)0, (uint32)MemoryRequirements.size);
-		VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, Allocation->GetHandle(), 0));
+		VERIFYVULKANRESULT(VulkanRHI::vkBindImageMemory(Device->GetInstanceHandle(), Image, Allocation->GetHandle(), 0));
 	}
 
 
@@ -909,21 +909,21 @@ void FVulkanDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uin
 }
 
 
-void FVulkanTextureView::Create(FVulkanDevice& Device, FVulkanSurface& Surface, VkImageViewType ViewType, VkFormat Format, uint32 NumMips)
+void FVulkanTextureView::Create(FVulkanDevice& Device, VkImage Image, VkImageViewType ViewType, VkImageAspectFlags AspectFlags, EPixelFormat UEFormat, VkFormat Format, uint32 NumMips)
 {
 	VkImageViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
 	ViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	ViewInfo.pNext = nullptr;
-	ViewInfo.image = Surface.Image;
+	ViewInfo.image = Image;
 	ViewInfo.viewType = ViewType;
 	ViewInfo.format = Format;
-	ViewInfo.components = Device.GetFormatComponentMapping(Surface.Format);
+	ViewInfo.components = Device.GetFormatComponentMapping(UEFormat);
 
 	uint32 ArraySize = 1;	//@TODO: Fix for arrays
 	uint32 FaceCount = (ViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1;
 	ViewInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, NumMips, 0, ArraySize*FaceCount };
-	ViewInfo.subresourceRange.aspectMask = Surface.GetAspectMask();
+	ViewInfo.subresourceRange.aspectMask = AspectFlags;
 
 	VERIFYVULKANRESULT(vkCreateImageView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
@@ -1048,7 +1048,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	#endif
 {
 	check(InMem == VK_NULL_HANDLE);
-	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM)
+	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM && Surface.Image != VK_NULL_HANDLE)
 	{
 		View.Create(Device, Surface, ResourceType, Surface.InternalFormat, 1);
 	}
@@ -1096,17 +1096,15 @@ void FVulkanTexture2D::Destroy(FVulkanDevice& Device)
 }
 
 
-FVulkanBackBuffer::FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo)
-	: FVulkanTexture2D(Device, Format, SizeX, SizeY, Image, UEFlags, CreateInfo)
-	, AcquiredSemaphore(nullptr)
+FVulkanBackBuffer::FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags)
+	: FVulkanTexture2D(Device, Format, SizeX, SizeY, Image, UEFlags, FRHIResourceCreateInfo())
 {
-	RenderingDoneSemaphore = new FVulkanSemaphore(Device);
 }
 
 FVulkanBackBuffer::~FVulkanBackBuffer()
 {
-	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
-	delete RenderingDoneSemaphore;
+	View.View = VK_NULL_HANDLE;
+	Surface.Image = VK_NULL_HANDLE;
 }
 
 
@@ -1226,7 +1224,49 @@ void FVulkanDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture
 
 void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, const TCHAR* Name)
 {
+#if VULKAN_ENABLE_DRAW_MARKERS
+	//if (Device->SupportsDebugMarkers())
+	/*
+	{
+		if (FRHITexture2D* Tex2d = TextureRHI->GetTexture2D())
+		{
+			// Lambda so the char* pointer is valid
+			auto DoCall = [](PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectName, VkDevice VulkanDevice, FVulkanTexture2D* VulkanTexture, const char* ObjectName)
+			{
+				VkDebugMarkerObjectNameInfoEXT Info;
+				FMemory::Memzero(Info);
+				Info.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+				Info.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
+				Info.object = (uint64)VulkanTexture->Surface.Image;
+				Info.pObjectName = ObjectName;
+				DebugMarkerSetObjectName(VulkanDevice, &Info);
+			};
+			FVulkanTexture2D* VulkanTexture = (FVulkanTexture2D*)Tex2d;
+			DoCall(Device->DebugMarkerSetObjectName, Device->GetInstanceHandle(), VulkanTexture, TCHAR_TO_ANSI(Name));
+		}
+	}*/
+#endif
 }
+
+void FVulkanDynamicRHI::RHIBindDebugLabelName(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const TCHAR* Name)
+{
+#if VULKAN_ENABLE_DRAW_MARKERS
+	//if (Device->SupportsDebugMarkers())
+	{
+		//if (FRHITexture2D* Tex2d = UnorderedAccessViewRHI->GetTexture2D())
+		//{
+		//	FVulkanTexture2D* VulkanTexture = (FVulkanTexture2D*)Tex2d;
+		//	VkDebugMarkerObjectTagInfoEXT Info;
+		//	FMemory::Memzero(Info);
+		//	Info.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+		//	Info.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
+		//	Info.object = VulkanTexture->Surface.Image;
+		//	vkDebugMarkerSetObjectNameEXT(Device->GetInstanceHandle(), &Info);
+		//}
+	}
+#endif
+}
+
 
 void FVulkanDynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)
 {

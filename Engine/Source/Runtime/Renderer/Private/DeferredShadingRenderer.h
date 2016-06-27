@@ -27,13 +27,6 @@ public:
 	bool bEarlyZPassMovable;
 	bool bDitheredLODTransitionsUseStencil;
 
-	/** 
-	 * Layout used to track translucent self shadow residency from the per-light shadow passes, 
-	 * So that shadow maps can be re-used in the translucency pass where possible.
-	 */
-	FTextureLayout TranslucentSelfShadowLayout;
-	int32 CachedTranslucentSelfShadowLightId;
-
 	FDeferredShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer);
 
 	/** Clears a view */
@@ -136,18 +129,6 @@ private:
 		bool bCreateInsetObjectShadow,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& OutPreShadows);
-
-	/**
-	* Creates a projected shadow for all primitives affected by a light.
-	* @param LightSceneInfo - The light to create a shadow for.
-	*/
-	void CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo);
-
-	/** Updates the preshadow cache, allocating new preshadows that can fit and evicting old ones. */
-	void UpdatePreshadowCache(FSceneRenderTargets& SceneContext);
-
-	/** Finds the visible dynamic shadows for each view. */
-	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	* Used by RenderLights to figure out if light functions need to be rendered to the attenuation buffer.
@@ -299,9 +280,6 @@ private:
 	/** Renders world-space lightmap density instead of the normal color. */
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 
-	/** Renders the visualize vertex densities mode. */
-	bool RenderVertexDensities(FRHICommandListImmediate& RHICmdList);
-
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
@@ -310,14 +288,8 @@ private:
 
 	void CopyStencilToLightingChannelTexture(FRHICommandList& RHICmdList);
 
-	/** Renders one pass point light shadows. */
-	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
-
-	/** Renders the shadowmaps of translucent shadows and their projections onto opaque surfaces. */
-	bool RenderTranslucentProjectedShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
-
-	/** Renders reflective shadowmaps for LPVs */
-	bool RenderReflectiveShadowMaps(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
+	/** Injects reflective shadowmaps into LPVs */
+	bool InjectReflectiveShadowMaps(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
 
 	/** Renders capsule shadows for all per-object shadows using it for the given light. */
 	bool RenderCapsuleDirectShadows(
@@ -334,16 +306,8 @@ private:
 	/** Renders capsule shadows for movable skylights, using the cone of visibility (bent normal) from DFAO. */
 	void RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const;
 
-	/**
-	  * Used by RenderLights to render projected shadows to the attenuation buffer.
-	  *
-	  * @param LightSceneInfo Represents the current light
-	  * @return true if anything got rendered
-	  */
-	bool RenderProjectedShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
-
-	/** Caches the depths of any preshadows that should be cached, and renders their projections. */
-	bool RenderCachedPreshadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
+	/** Render deferred projections of shadows for a given light into the light attenuation buffer. */
+	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool& bInjectedTranslucentVolume);
 
 	/**
 	  * Used by RenderLights to render a light function to the attenuation buffer.
@@ -423,3 +387,8 @@ private:
 
 	friend class FTranslucentPrimSet;
 };
+
+DECLARE_STATS_GROUP(TEXT("Command List Markers"), STATGROUP_CommandListMarkers, STATCAT_Advanced);
+
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PrePass"), STAT_CLM_PrePass, STATGROUP_CommandListMarkers, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("DeferredShadingSceneRenderer AsyncSortBasePassStaticData"), STAT_FDeferredShadingSceneRenderer_AsyncSortBasePassStaticData, STATGROUP_SceneRendering, );

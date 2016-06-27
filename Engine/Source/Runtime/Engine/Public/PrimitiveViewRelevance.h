@@ -5,11 +5,31 @@
 
 /**
  * The different types of relevance a primitive scene proxy can declare towards a particular scene view.
+ * the class is only storing bits, and has an |= operator
  */
 struct FPrimitiveViewRelevance
 {
-	/* The LightingProfile supported by this primitive, as a bitmask. */
+	// from FMaterialRelevance (could be made the base class):
+
+	/** The LightingProfile supported by this primitive, as a bitmask. */
 	uint16 ShadingModelMaskRelevance;
+	/** The primitive has one or more opaque or masked elements. */
+	uint32 bOpaqueRelevance : 1;
+	/** The primitive has one or more masked elements. */
+	uint32 bMaskedRelevance : 1;
+	/** The primitive has one or more distortion elements. */
+	uint32 bDistortionRelevance : 1;
+	/** The primitive has one or more elements that have SeparateTranslucency. */
+	uint32 bSeparateTranslucencyRelevance : 1;
+	/** The primitive has one or more elements that have MobileSeparateTranslucency. */
+	uint32 bMobileSeparateTranslucencyRelevance : 1;
+	/** The primitive has one or more elements that have normal translucency. */
+	uint32 bNormalTranslucencyRelevance : 1;
+	/** */
+	uint32 bUsesGlobalDistanceField : 1;
+
+	// others:
+
 	/** The primitive's static elements are rendered for the view. */
 	uint32 bStaticRelevance : 1; 
 	/** The primitive's dynamic elements are rendered for the view. */
@@ -28,23 +48,12 @@ struct FPrimitiveViewRelevance
 	uint32 bEditorNoDepthTestPrimitiveRelevance : 1;
 	/** The primitive should have GatherSimpleLights called on the proxy when gathering simple lights. */
 	uint32 bHasSimpleLights : 1;
-
-	/** The primitive has one or more opaque or masked elements. */
-	uint32 bOpaqueRelevance : 1;
-	/** The primitive has one or more masked elements. */
-	uint32 bMaskedRelevance : 1;
-	/** The primitive has one or more distortion elements. */
-	uint32 bDistortionRelevance : 1;
-	/** The primitive has one or more elements that have SeparateTranslucency. */
-	uint32 bSeparateTranslucencyRelevance : 1;
-	/** The primitive has one or more elements that have MobileSeparateTranslucency. */
-	uint32 bMobileSeparateTranslucencyRelevance : 1;
-	/** The primitive has one or more elements that have normal translucency. */
-	uint32 bNormalTranslucencyRelevance : 1;
-	// The primitive has one or more elements that have World Position Offset.
-	uint32 bHasWorldPositionOffset : 1;
-	uint32 bUsesGlobalDistanceField : 1;
+	/**  The primitive has one or more elements that have World Position Offset. */
+	uint32 bUsesWorldPositionOffset : 1;
+	/** */
 	uint32 bUsesLightingChannels : 1;
+	/** */
+	uint32 bDecal : 1;
 
 	/** 
 	 * Whether this primitive view relevance has been initialized this frame.  
@@ -58,61 +67,34 @@ struct FPrimitiveViewRelevance
 		return bSeparateTranslucencyRelevance || bNormalTranslucencyRelevance || bMobileSeparateTranslucencyRelevance;
 	}
 
-	/** Initialization constructor. */
-	FPrimitiveViewRelevance():
-		ShadingModelMaskRelevance(0),
-		bStaticRelevance(false),
-		bDynamicRelevance(false),
-		bDrawRelevance(false),
-		bShadowRelevance(false),
-		bRenderCustomDepth(false),
-		bRenderInMainPass(true),
-		bEditorPrimitiveRelevance(false),
-		bEditorNoDepthTestPrimitiveRelevance(false),
-		bHasSimpleLights(false),
-		bOpaqueRelevance(true),
-		bMaskedRelevance(false),
-		bDistortionRelevance(false),
-		bSeparateTranslucencyRelevance(false),
-		bMobileSeparateTranslucencyRelevance(false),
-		bNormalTranslucencyRelevance(false),		
-		bHasWorldPositionOffset(false),
-		bUsesGlobalDistanceField(false),
-		bUsesLightingChannels(false),
-		bInitializedThisFrame(false)
-	{}
-
-	/** Bitwise OR operator.  Sets any relevance bits which are present in either FPrimitiveViewRelevance. */
-	FPrimitiveViewRelevance& operator|=(const FPrimitiveViewRelevance& B)
+	/** Default constructor */
+	FPrimitiveViewRelevance()
 	{
-		ShadingModelMaskRelevance |= B.ShadingModelMaskRelevance;
-		bStaticRelevance |= B.bStaticRelevance != 0;
-		bDynamicRelevance |= B.bDynamicRelevance != 0;
-		bDrawRelevance |= B.bDrawRelevance != 0;
-		bShadowRelevance |= B.bShadowRelevance != 0;
-		bOpaqueRelevance |= B.bOpaqueRelevance != 0;
-		bMaskedRelevance |= B.bMaskedRelevance != 0;
-		bDistortionRelevance |= B.bDistortionRelevance != 0;
-		bRenderCustomDepth |= B.bRenderCustomDepth != 0;
-		bRenderInMainPass |= B.bRenderInMainPass !=0;
-		bEditorPrimitiveRelevance |= B.bEditorPrimitiveRelevance !=0;
-		bEditorNoDepthTestPrimitiveRelevance |= B.bEditorNoDepthTestPrimitiveRelevance !=0;
-		bHasSimpleLights |= B.bHasSimpleLights != 0;
-		bSeparateTranslucencyRelevance |= B.bSeparateTranslucencyRelevance != 0;
-		bMobileSeparateTranslucencyRelevance |= B.bMobileSeparateTranslucencyRelevance != 0;
-		bNormalTranslucencyRelevance |= B.bNormalTranslucencyRelevance != 0;
-		bInitializedThisFrame |= B.bInitializedThisFrame;		
-		bHasWorldPositionOffset |= B.bHasWorldPositionOffset != 0;
-		bUsesGlobalDistanceField |= B.bUsesGlobalDistanceField;
-		bUsesLightingChannels |= B.bUsesLightingChannels;
-		return *this;
+		// the class is only storing bits, the following avoids code redundancy
+		uint8 * RESTRICT p = (uint8*)this;
+		for(uint32 i = 0; i < sizeof(*this); ++i)
+		{
+			*p++ = 0;
+		}
+
+		// only exceptions (bugs we need to fix?):
+
+		bOpaqueRelevance = true;
+		// without it BSP doesn't render
+		bRenderInMainPass = true;
 	}
 
-	/** Binary bitwise OR operator. */
-	friend FPrimitiveViewRelevance operator|(const FPrimitiveViewRelevance& A,const FPrimitiveViewRelevance& B)
+	/** Bitwise OR operator.  Sets any relevance bits which are present in either. */
+	FPrimitiveViewRelevance& operator|=(const FPrimitiveViewRelevance& B)
 	{
-		FPrimitiveViewRelevance Result(A);
-		Result |= B;
-		return Result;
+		// the class is only storing bits, the following avoids code redundancy
+		const uint8 * RESTRICT s = (const uint8*)&B;
+		uint8 * RESTRICT d = (uint8*)this;
+		for(uint32 i = 0; i < sizeof(*this); ++i)
+		{
+			*d = *d | *s; 
+			++s;++d;
+		}
+		return *this;
 	}
 };

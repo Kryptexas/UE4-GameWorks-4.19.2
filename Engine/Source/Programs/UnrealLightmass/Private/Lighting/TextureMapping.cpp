@@ -420,6 +420,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 						TexelToVertex.ElementIndex, 
 						1, 
 						NumAdaptiveRefinementLevels,
+						1.0f,
 						CachedHemisphereSamplesForApproximateSkyLighting,
 						CachedHemisphereSamplesForApproximateSkyLightingUniforms,
 						1,
@@ -727,6 +728,8 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 		// Count the time doing material coloring and invalid lightmap UV color toward texel setup for now
 		MappingContext.Stats.TexelRasterizationTime += FPlatformTime::Seconds() - ErrorAndMaterialColoringStart;
 	}
+#else
+	FPlatformAtomics::InterlockedDecrement(&MappingTasksInProgressThatWillNeedHelp);
 #endif
 
 	const double PaddingStart = FPlatformTime::Seconds();

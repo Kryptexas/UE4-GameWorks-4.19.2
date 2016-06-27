@@ -505,7 +505,6 @@ public:
 	uint32 bForceLODUpdateFromRenderer:1;
 
 	/** The view relevance flags for each LODLevel. */
-	UPROPERTY(transient)
 	TArray<FMaterialRelevance> CachedViewRelevanceFlags;
 
 	/** If true, the ViewRelevanceFlags are dirty and should be recached */

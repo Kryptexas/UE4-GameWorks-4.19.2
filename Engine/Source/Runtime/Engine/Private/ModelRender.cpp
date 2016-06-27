@@ -175,6 +175,8 @@ public:
 			MaterialRelevance |= Element->GetMaterial()->GetRelevance(GetScene().GetFeatureLevel());
 		}
 
+		bGoodCandidateForCachedShadowmap = CacheShadowDepthsFromPrimitivesUsingWPO() || !MaterialRelevance.bUsesWorldPositionOffset;
+
 		// Try to find a color for level coloration.
 		UObject* ModelOuter = InComponent->GetModel()->GetOuter();
 		ULevel* Level = Cast<ULevel>( ModelOuter );

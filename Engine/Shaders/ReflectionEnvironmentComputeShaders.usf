@@ -420,7 +420,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 	float IndirectDiffuseOcclusion;
 	GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion);
 	// Apply DFAO to IndirectIrradiance before mixing with indirect specular
-	IndirectIrradiance *= IndirectDiffuseOcclusion;	
+	IndirectIrradiance *= IndirectDiffuseOcclusion;
 #endif
 
 	float Mip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
@@ -444,7 +444,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 		#endif
 			
 		float4 CapturePositionAndRadius = ReflectionCapture.PositionAndRadius[CaptureIndex];
-		float4 CaptureProperties = ReflectionCapture.CaptureProperties[CaptureIndex];		
+		float4 CaptureProperties = ReflectionCapture.CaptureProperties[CaptureIndex];
 
 		float3 CaptureVector = WorldPosition - CapturePositionAndRadius.xyz;
 		float CaptureVectorLength = sqrt(dot(CaptureVector, CaptureVector));		
@@ -452,7 +452,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 
 		BRANCH
 		if (CaptureVectorLength < CapturePositionAndRadius.w)
-		{			
+		{
 			float3 ProjectedCaptureVector = RayDirection;
 
 			// Fade out based on distance to capture
@@ -593,8 +593,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 		float NoV = saturate( dot( N, V ) );
 
 		// Point lobe in off-specular peak direction
-		float a = Square( GBuffer.Roughness );
-		R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
+		R = GetOffSpecularPeakReflectionDir(N, R, GBuffer.Roughness);
 
 #if 1
 		// Note: this texture may also contain planar reflections
@@ -620,8 +619,8 @@ void ReflectionEnvironmentTiledDeferredMain(
 		float AO = ScreenSpaceData.AmbientOcclusion;
 		float RoughnessSq = GBuffer.Roughness * GBuffer.Roughness;
 		float SpecularOcclusion = GetSpecularOcclusion(NoV, RoughnessSq, AO);
+		Color.a *= SpecularOcclusion;
 
-		R = GetOffSpecularPeakReflectionDir(N, R, GBuffer.Roughness);
 		//bottom for clearcoat or the only reflection.
 		GatherRadiance(Color, WorldPosition, R, GBuffer.Roughness, ScreenPosition, IndirectIrradiance, NoV, GBuffer.ShadingModelID);
 

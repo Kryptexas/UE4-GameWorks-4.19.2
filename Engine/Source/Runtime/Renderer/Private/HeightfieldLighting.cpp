@@ -759,7 +759,7 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowDepthBias, ProjectedShadowInfo->GetShaderDepthBias());
 		SetShaderValue(RHICmdList, ShaderRHI, CascadeDepthMinMax, FVector2D(ProjectedShadowInfo->CascadeSettings.SplitNear, ProjectedShadowInfo->CascadeSettings.SplitFar));
 
-		FTexture2DRHIRef ShadowDepthTextureValue = FSceneRenderTargets::Get(RHICmdList).GetShadowDepthZTexture(ProjectedShadowInfo->bAllocatedInPreshadowCache);
+		FTextureRHIParamRef ShadowDepthTextureValue = ProjectedShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
 		FSamplerStateRHIParamRef DepthSamplerState = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);	
@@ -814,7 +814,7 @@ void FHeightfieldLightingViewInfo::ComputeShadowMapShadowing(const FViewInfo& Vi
 		&& Heightfield.ComponentDescriptions.Num() > 0
 		&& ProjectedShadowInfo->IsWholeSceneDirectionalShadow()
 		&& ProjectedShadowInfo->DependentView == &View
-		&& !ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
+		&& !ProjectedShadowInfo->bRayTracedDistanceField)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, HeightfieldShadowMapShadowingForGI);
 
@@ -976,7 +976,7 @@ void FHeightfieldLightingViewInfo::ComputeRayTracedShadowing(
 		&& Heightfield.ComponentDescriptions.Num() > 0
 		&& ProjectedShadowInfo->IsWholeSceneDirectionalShadow()
 		&& ProjectedShadowInfo->DependentView == &View
-		&& ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
+		&& ProjectedShadowInfo->bRayTracedDistanceField)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, HeightfieldRayTracedShadowingForGI);
 

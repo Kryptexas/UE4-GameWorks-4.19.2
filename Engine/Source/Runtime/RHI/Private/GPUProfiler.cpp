@@ -46,7 +46,7 @@ static TAutoConsoleVariable<int32> GProfileGPUTransitions(
 // Should we print a summary at the end?
 static TAutoConsoleVariable<int32> GProfilePrintAssetSummary(
 	TEXT("r.ProfileGPU.PrintAssetSummary"),
-	1,
+	0,
 	TEXT("Should we print a summary split by asset (r.ShowMaterialDrawEvents is strongly recommended as well).\n"),
 	ECVF_Default);
 

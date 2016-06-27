@@ -9,7 +9,6 @@
 #include "LightMapRendering.h"
 #include "VelocityRendering.h"
 #include "ShaderBaseClasses.h"
-#include "LightGrid.h"
 #include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 
@@ -546,15 +545,6 @@ public:
 			{
 				SetShaderValue(RHICmdList, ShaderRHI, DownsampleFactorFromSceneBufferSize, DownsampleFactorFromSceneBufferSizeValue);
 				TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
-
-				// Experimental dynamic forward lighting for translucency. Can be the base for opaque forward lighting which will allow more lighting models or rendering without a GBuffer
-				if(BlendMode == BLEND_Translucent && MaterialResource.GetTranslucencyLightingMode() == TLM_SurfacePerPixelLighting)
-				{
-					check(GetUniformBufferParameter<FForwardLightData>().IsInitialized());
-					
-					SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(),View->ForwardLightData);
-					SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
-				}
 			}
 		}
 		

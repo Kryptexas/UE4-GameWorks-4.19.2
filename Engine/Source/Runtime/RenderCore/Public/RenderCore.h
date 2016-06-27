@@ -83,7 +83,10 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Static Draw List"),STAT_WholeSceneStaticDrawList
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Static Primitives"),STAT_WholeSceneStaticShadowDepthsTime,STATGROUP_ShadowRendering, RENDERCORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Dynamic Primitives"),STAT_WholeSceneDynamicShadowDepthsTime,STATGROUP_ShadowRendering, RENDERCORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("WholeScene Reflective Shadow maps"),STAT_RenderWholeSceneReflectiveShadowMapsTime,STATGROUP_ShadowRendering, RENDERCORE_API); 
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Per-Frame Shadowmap Atlases"),STAT_ShadowmapAtlasMemory,STATGROUP_ShadowRendering, RENDERCORE_API); 
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Cached Shadowmaps"),STAT_CachedShadowmapMemory,STATGROUP_ShadowRendering, RENDERCORE_API); 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Whole Scene shadows"),STAT_WholeSceneShadows,STATGROUP_ShadowRendering, RENDERCORE_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Cached Whole Scene shadows"),STAT_CachedWholeSceneShadows,STATGROUP_ShadowRendering, RENDERCORE_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("PreShadows"),STAT_PreShadows,STATGROUP_ShadowRendering, RENDERCORE_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Reflective Shadow Maps"),STAT_ReflectiveShadowMaps,STATGROUP_ShadowRendering, RENDERCORE_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Cached PreShadows"),STAT_CachedPreShadows,STATGROUP_ShadowRendering, RENDERCORE_API);

@@ -1866,6 +1866,16 @@ void UParticleModuleSubUV::InitializeDefaults()
 	}
 }
 
+void UParticleModuleSubUV::PostLoad()
+{
+	Super::PostLoad();
+
+	if (Animation)
+	{
+		Animation->ConditionalPostLoad();
+	}	
+}
+
 void UParticleModuleSubUV::PostInitProperties()
 {
 	Super::PostInitProperties();

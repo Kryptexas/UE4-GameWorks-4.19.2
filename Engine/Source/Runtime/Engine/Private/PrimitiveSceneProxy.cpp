@@ -16,17 +16,29 @@ static TAutoConsoleVariable<int32> CVarForceSingleSampleShadowingFromStationary(
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
+static TAutoConsoleVariable<int32> CVarCacheWPOPrimitives(
+	TEXT("r.Shadow.CacheWPOPrimitives"),
+	0,
+	TEXT("Whether primitives whose materials use World Position Offset should be considered movable for cached shadowmaps.\n")
+	TEXT("Enablings this gives more correct, but slower whole scene shadows from materials that use WPO."),
+	ECVF_RenderThreadSafe | ECVF_Scalability
+	);
+
+bool CacheShadowDepthsFromPrimitivesUsingWPO()
+{
+	return CVarCacheWPOPrimitives.GetValueOnAnyThread(true) != 0;
+}
+
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponent, FName InResourceName)
 :	WireframeColor(FLinearColor::White)
 ,	LevelColor(FLinearColor::White)
 ,	PropertyColor(FLinearColor::White)
+,	Mobility(InComponent->Mobility)
 ,	DrawInGame(InComponent->bVisible && !InComponent->bHiddenInGame)
 ,	DrawInEditor(InComponent->bVisible)
 ,	bReceivesDecals(InComponent->bReceivesDecals)
 ,	bOnlyOwnerSee(InComponent->bOnlyOwnerSee)
 ,	bOwnerNoSee(InComponent->bOwnerNoSee)
-,	bStatic(false)
-,	bOftenMoving(false)
 ,	bParentSelected(InComponent->ShouldRenderSelected())
 ,	bIndividuallySelected(InComponent->IsComponentIndividuallySelected())
 ,	bHovered(false)
@@ -41,6 +53,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bCollisionEnabled(InComponent->IsCollisionEnabled())
 ,	bTreatAsBackgroundForOcclusion(InComponent->bTreatAsBackgroundForOcclusion)
 ,	bDisableStaticPath(false)
+,	bGoodCandidateForCachedShadowmap(true)
 ,	bNeedsUnbuiltPreviewLighting(InComponent->HasStaticLighting() && !InComponent->bHasCachedStaticLighting)
 ,	bHasValidSettingsForStaticLighting(InComponent->HasValidSettingsForStaticLighting(false))
 ,	bWillEverBeLit(true)
@@ -122,9 +135,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 		// Otherwise they would light differently in editor and in game, even after a lighting rebuild
 		bNeedsUnbuiltPreviewLighting = false;
 	}
-
-	bStatic = InComponent->Mobility == EComponentMobility::Static;
-	bOftenMoving = InComponent->Mobility == EComponentMobility::Movable;
 
 	if(InComponent->GetOwner())
 	{

@@ -46,7 +46,7 @@ DEFINE_LOG_CATEGORY(LogContentStreaming);
 
 ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics(
 	TEXT("r.Streaming.UseNewMetrics"),
-	0,
+	1,
 	TEXT("If non-zero, will use tight AABB bounds and improved texture factors."),
 	ECVF_Default);
 

@@ -73,8 +73,8 @@ struct FMaterialParticleParameters
 	half4 Velocity;
 	/** Per-particle color. */
 	half4 Color;
-	/** Particle world space position and size(radius). */
-	float4 PositionAndSize;
+	/** Particle translated world space position and size(radius). */
+	float4 TranslatedWorldPositionAndSize;
 	/** Macro UV scale and bias. */
 	half4 MacroUV;
 	/** Dynamic parameter used by particle systems. */
@@ -239,7 +239,7 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	MPP.LightingPositionOffset = 0;
 	MPP.AOMaterialMask = 0;
 	MPP.Particle.Color = 0;
-	MPP.Particle.PositionAndSize = 0;
+	MPP.Particle.TranslatedWorldPositionAndSize = 0;
 	MPP.Particle.MacroUV = 0;
 	MPP.Particle.DynamicParameter = 0;
 	#if USE_PARTICLE_SUBUVS
@@ -382,7 +382,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	return Parameters.ScreenPosition;
 }
 
-#if DECAL_RENDERSTAGE && NUM_MATERIAL_TEXCOORDS
+#if DEFERRED_DECAL && NUM_MATERIAL_TEXCOORDS
 	/*
 	 * Material node DecalMipmapLevel's code designed to avoid the 2x2 pixels artefacts on the edges around where the decal
 	 * is projected to. The technique is fetched from (http://www.humus.name/index.php?page=3D&ID=84).
@@ -442,7 +442,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 		float MaxDiff = max(dot(UvPixelDiffX, UvPixelDiffX), dot(UvPixelDiffY, UvPixelDiffY));
 		return 0.5 * log2(MaxDiff);
 	}
-#else
+#else // DEFERRED_DECAL && NUM_MATERIAL_TEXCOORDS
 	float2 ComputeDecalDDX(FMaterialPixelParameters Parameters)
 	{
 		return 0.0f;
@@ -457,9 +457,9 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	{
 		return 0.0f;
 	}
-#endif //DECAL_RENDERSTAGE
+#endif // DEFERRED_DECAL && NUM_MATERIAL_TEXCOORDS
 
-#if DECAL_RENDERSTAGE
+#if DEFERRED_DECAL
 	/*
 	 * Deferred decal don't have a Primitive uniform buffer, because we don't know on which primitive the decal
 	 * is being projected to. But the user may still need to get the decal's actor world position.
@@ -475,7 +475,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	{
 		return Primitive.ActorWorldPosition;
 	}
-#endif //DECAL_RENDERSTAGE
+#endif // DEFERRED_DECAL
 
 #if DECAL_PRIMITIVE
 	float DecalLifetimeOpacity()
@@ -834,14 +834,14 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 
 #if PARTICLE_FACTORY
 
-	float3 ParticlePosition = Parameters.Particle.PositionAndSize.xyz;
-	float ParticleRadius = max(0.000001f, Parameters.Particle.PositionAndSize.w);
+	float3 ParticleTranslatedWorldPosition = Parameters.Particle.TranslatedWorldPositionAndSize.xyz;
+	float ParticleRadius = max(0.000001f, Parameters.Particle.TranslatedWorldPositionAndSize.w);
 
 #elif HAS_PRIMITIVE_UNIFORM_BUFFER
 
 	// Substitute object attributes if the mesh is not a particle
 	// This is mostly useful for previewing materials using spherical opacity in the material editor
-	float3 ParticlePosition = Primitive.ObjectWorldPositionAndRadius.xyz;
+	float3 ParticleTranslatedWorldPosition = Primitive.ObjectWorldPositionAndRadius.xyz + ResolvedView.PreViewTranslation.xyz;
 	float ParticleRadius = max(0.000001f, Primitive.ObjectWorldPositionAndRadius.w);
 
 #endif
@@ -850,7 +850,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 	float RescaledDensity = Density / ParticleRadius;
 
 	// Distance from point being shaded to particle center
-	float DistanceToParticle = length(Parameters.AbsoluteWorldPosition - ParticlePosition);
+	float DistanceToParticle = length(Parameters.WorldPosition_NoOffsets_CamRelative - ParticleTranslatedWorldPosition);
 
 	FLATTEN
 	if (DistanceToParticle < ParticleRadius) 

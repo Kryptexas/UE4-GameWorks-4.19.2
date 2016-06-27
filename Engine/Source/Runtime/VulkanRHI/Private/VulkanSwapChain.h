@@ -16,7 +16,7 @@ public:
 
 	void Destroy();
 
-	void Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
+	bool Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
 
 protected:
 	VkSwapchainKHR SwapChain;

@@ -82,6 +82,7 @@ void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, 
 			bool bResult = Device->GetImmediateContext().GetTempFrameAllocationBuffer().Alloc(Size + Offset, 256, VolatileLockInfo);
 			Data = VolatileLockInfo.Data;
 			check(bResult);
+			++VolatileLockInfo.LockCounter;
 		}
 	}
 	else

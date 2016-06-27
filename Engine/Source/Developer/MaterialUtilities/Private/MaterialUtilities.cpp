@@ -458,10 +458,9 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsUsedWithDeferredDecal() const override
+	virtual bool IsDeferredDecal() const override
 	{
-		return	Material &&
-				Material->MaterialDomain == MD_DeferredDecal;
+		return Material && Material->MaterialDomain == MD_DeferredDecal;
 	}
 	virtual bool IsSpecialEngineMaterial() const override
 	{

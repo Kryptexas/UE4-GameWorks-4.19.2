@@ -79,8 +79,7 @@ public class VulkanRHI : ModuleRules
 					PrivateIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
 				}
 			}
-			else
-			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			else if (!String.IsNullOrEmpty(VulkanSDKPath))
 			{
 				bHaveVulkan = true;
 				PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
@@ -88,11 +87,11 @@ public class VulkanRHI : ModuleRules
 				//#todo-rco: Using /Source/lib instead of /bin as we want pdb's for now
 				if (Target.Platform == UnrealTargetPlatform.Win32)
 				{
-					PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib32");
+					PublicLibraryPaths.Add(VulkanSDKPath + "/Bin32");
 				}
 				else
 				{
-					PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib");
+					PublicLibraryPaths.Add(VulkanSDKPath + "/Bin");
 				}
 
 				PublicAdditionalLibraries.Add("vulkan-1.lib");

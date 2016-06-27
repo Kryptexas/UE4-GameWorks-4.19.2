@@ -141,7 +141,15 @@ public:
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
-		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.Family->FrameNumber);
+		{
+			uint8 FrameIndexMod8 = 0;
+			if (Context.View.State)
+			{
+				FrameIndexMod8 = Context.View.State->GetFrameIndexMod8();
+			}
+			GrainRandomFromFrame(&GrainRandomFullValue, FrameIndexMod8);
+		}
+
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
 
 		

@@ -349,7 +349,7 @@ void FVulkanDynamicRHI::IssueLongGPUTask()
 		const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
 
 		FRHICommandList_RecursiveHazardous RHICmdList(&Device->GetImmediateContext());
-		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
+		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(RHICmdList), FTextureRHIRef());
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -385,9 +385,9 @@ namespace VulkanRHI
 		BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		BufferCreateInfo.size = Size;
 		BufferCreateInfo.usage = BufferUsageFlags;
-		VERIFYVULKANRESULT_EXPANDED(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &Buffer));
+		VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &Buffer));
 
-		vkGetBufferMemoryRequirements(Device, Buffer, &OutMemoryRequirements);
+		VulkanRHI::vkGetBufferMemoryRequirements(Device, Buffer, &OutMemoryRequirements);
 
 		return Buffer;
 	}

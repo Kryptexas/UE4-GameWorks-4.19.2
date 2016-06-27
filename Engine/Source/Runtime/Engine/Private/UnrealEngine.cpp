@@ -141,11 +141,20 @@ IMPLEMENT_MODULE( FEngineModule, Engine );
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
+void OnChangeEngineCVarRequiringRecreateRenderState(IConsoleVariable* Var)
+{
+	// Propgate cvar change to static draw lists
+	FGlobalComponentRecreateRenderStateContext Context;
+}
+
 void FEngineModule::StartupModule()
 {
 	// Setup delegate callback for ProfilingHelpers to access current map name
 	extern const FString GetMapNameStatic();
 	GGetMapNameDelegate.BindStatic(&GetMapNameStatic);
+
+	static auto CVarCacheWPOPrimitives = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.CacheWPOPrimitives"));
+	CVarCacheWPOPrimitives->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeEngineCVarRequiringRecreateRenderState));
 }
 
 
@@ -802,8 +811,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
-
-	InitializeViewExtentions();
 
 	// Disable the screensaver when running the game.
 	if( GIsClient && !GIsEditor )
@@ -2110,15 +2117,6 @@ bool UEngine::InitializeHMDDevice()
 	}
  
 	return StereoRenderingDevice.IsValid();
-}
-
-void UEngine::InitializeViewExtentions()
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	extern TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension();
-
-	ViewExtensions.Add(GetRendererViewExtension());
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UEngine::RecordHMDAnalytics()
@@ -7004,7 +7002,7 @@ void UEngine::PerformanceCapture(UWorld* World, const FString& MapName, const FS
 		UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
 		FConsoleOutputDevice StrOut(ViewportConsole);
 
-		StrOut.Logf(TEXT("FrameCounter:%d PerformanceCapture triggers RequestScreenshot Name='%s'"), GFrameCounter, *ScreenshotName);
+		StrOut.Logf(TEXT("  frame:%d %s"), GFrameCounter, *ScreenshotName);
 	}
 
 	const bool bShowUI = false;

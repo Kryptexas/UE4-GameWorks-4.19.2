@@ -56,18 +56,6 @@
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-int32 GShaderModelDebug = 0;
-static FAutoConsoleVariableRef CVarShaderModelDebug(
-	TEXT("r.ShaderModelDebug"),
-	GShaderModelDebug,
-	TEXT("Added logging to each frame that should allow to track down issues with View.ShadingModelMaskInView\n")
-	TEXT(" 0: off (default)\n")
-	TEXT(" 1: logging is enabled\n")
-	TEXT("-1: logging is enabled for one frame only"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-#endif
-
 static TAutoConsoleVariable<int32> CVarUseMobileBloom(
 	TEXT("r.UseMobileBloom"),
 	0,
@@ -1953,9 +1941,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("AfterPostprocessing"));
-
-	// End of frame, we don't need it anymore
-	FSceneRenderTargets::Get(RHICmdList).FreeSeparateTranslucencyDepth();
 }
 
 static bool IsGaussianActive(FPostprocessContext& Context)

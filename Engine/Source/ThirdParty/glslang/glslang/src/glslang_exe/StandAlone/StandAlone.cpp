@@ -37,6 +37,7 @@
 // this only applies to the standalone wrapper, not the front end in general
 #define _CRT_SECURE_NO_WARNINGS
 
+#include "DefaultResourceLimits.h"
 #include "Worklist.h"
 #include "glslang/Include/ShHandle.h"
 #include "glslang/Include/revision.h"
@@ -74,6 +75,7 @@ enum TOptions {
     EOptionVulkanRules        = 0x2000,
     EOptionDefaultDesktop     = 0x4000,
     EOptionOutputPreprocessed = 0x8000,
+    EOptionReadHlsl          = 0x10000,
 };
 
 //
@@ -111,108 +113,7 @@ TBuiltInResource Resources;
 std::string ConfigFile;
 
 //
-// These are the default resources for TBuiltInResources, used for both
-//  - parsing this string for the case where the user didn't supply one
-//  - dumping out a template for user construction of a config file
-//
-const char* DefaultConfig =
-    "MaxLights 32\n"
-    "MaxClipPlanes 6\n"
-    "MaxTextureUnits 32\n"
-    "MaxTextureCoords 32\n"
-    "MaxVertexAttribs 64\n"
-    "MaxVertexUniformComponents 4096\n"
-    "MaxVaryingFloats 64\n"
-    "MaxVertexTextureImageUnits 32\n"
-    "MaxCombinedTextureImageUnits 80\n"
-    "MaxTextureImageUnits 32\n"
-    "MaxFragmentUniformComponents 4096\n"
-    "MaxDrawBuffers 32\n"
-    "MaxVertexUniformVectors 128\n"
-    "MaxVaryingVectors 8\n"
-    "MaxFragmentUniformVectors 16\n"
-    "MaxVertexOutputVectors 16\n"
-    "MaxFragmentInputVectors 15\n"
-    "MinProgramTexelOffset -8\n"
-    "MaxProgramTexelOffset 7\n"
-    "MaxClipDistances 8\n"
-    "MaxComputeWorkGroupCountX 65535\n"
-    "MaxComputeWorkGroupCountY 65535\n"
-    "MaxComputeWorkGroupCountZ 65535\n"
-    "MaxComputeWorkGroupSizeX 1024\n"
-    "MaxComputeWorkGroupSizeY 1024\n"
-    "MaxComputeWorkGroupSizeZ 64\n"
-    "MaxComputeUniformComponents 1024\n"
-    "MaxComputeTextureImageUnits 16\n"
-    "MaxComputeImageUniforms 8\n"
-    "MaxComputeAtomicCounters 8\n"
-    "MaxComputeAtomicCounterBuffers 1\n"
-    "MaxVaryingComponents 60\n" 
-    "MaxVertexOutputComponents 64\n"
-    "MaxGeometryInputComponents 64\n"
-    "MaxGeometryOutputComponents 128\n"
-    "MaxFragmentInputComponents 128\n"
-    "MaxImageUnits 8\n"
-    "MaxCombinedImageUnitsAndFragmentOutputs 8\n"
-    "MaxCombinedShaderOutputResources 8\n"
-    "MaxImageSamples 0\n"
-    "MaxVertexImageUniforms 0\n"
-    "MaxTessControlImageUniforms 0\n"
-    "MaxTessEvaluationImageUniforms 0\n"
-    "MaxGeometryImageUniforms 0\n"
-    "MaxFragmentImageUniforms 8\n"
-    "MaxCombinedImageUniforms 8\n"
-    "MaxGeometryTextureImageUnits 16\n"
-    "MaxGeometryOutputVertices 256\n"
-    "MaxGeometryTotalOutputComponents 1024\n"
-    "MaxGeometryUniformComponents 1024\n"
-    "MaxGeometryVaryingComponents 64\n"
-    "MaxTessControlInputComponents 128\n"
-    "MaxTessControlOutputComponents 128\n"
-    "MaxTessControlTextureImageUnits 16\n"
-    "MaxTessControlUniformComponents 1024\n"
-    "MaxTessControlTotalOutputComponents 4096\n"
-    "MaxTessEvaluationInputComponents 128\n"
-    "MaxTessEvaluationOutputComponents 128\n"
-    "MaxTessEvaluationTextureImageUnits 16\n"
-    "MaxTessEvaluationUniformComponents 1024\n"
-    "MaxTessPatchComponents 120\n"
-    "MaxPatchVertices 32\n"
-    "MaxTessGenLevel 64\n"
-    "MaxViewports 16\n"
-    "MaxVertexAtomicCounters 0\n"
-    "MaxTessControlAtomicCounters 0\n"
-    "MaxTessEvaluationAtomicCounters 0\n"
-    "MaxGeometryAtomicCounters 0\n"
-    "MaxFragmentAtomicCounters 8\n"
-    "MaxCombinedAtomicCounters 8\n"
-    "MaxAtomicCounterBindings 1\n"
-    "MaxVertexAtomicCounterBuffers 0\n"
-    "MaxTessControlAtomicCounterBuffers 0\n"
-    "MaxTessEvaluationAtomicCounterBuffers 0\n"
-    "MaxGeometryAtomicCounterBuffers 0\n"
-    "MaxFragmentAtomicCounterBuffers 1\n"
-    "MaxCombinedAtomicCounterBuffers 1\n"
-    "MaxAtomicCounterBufferSize 16384\n"
-    "MaxTransformFeedbackBuffers 4\n"
-    "MaxTransformFeedbackInterleavedComponents 64\n"
-    "MaxCullDistances 8\n"
-    "MaxCombinedClipAndCullDistances 8\n"
-    "MaxSamples 4\n"
-
-    "nonInductiveForLoops 1\n"
-    "whileLoops 1\n"
-    "doWhileLoops 1\n"
-    "generalUniformIndexing 1\n"
-    "generalAttributeMatrixVectorIndexing 1\n"
-    "generalVaryingIndexing 1\n"
-    "generalSamplerIndexing 1\n"
-    "generalVariableIndexing 1\n"
-    "generalConstantMatrixVectorIndexing 1\n"
-    ;
-
-//
-// Parse either a .conf file provided by the user or the default string above.
+// Parse either a .conf file provided by the user or the default from glslang::DefaultTBuiltInResource
 //
 void ProcessConfigFile()
 {
@@ -229,8 +130,8 @@ void ProcessConfigFile()
     }
 
     if (config == 0) {
-        config = new char[strlen(DefaultConfig) + 1];
-        strcpy(config, DefaultConfig);
+        Resources = glslang::DefaultTBuiltInResource;
+        return;
     }
 
     const char* delims = " \t\n\r";
@@ -449,6 +350,7 @@ int NumWorkItems = 0;
 int Options = 0;
 const char* ExecutableName = nullptr;
 const char* binaryFileName = nullptr;
+const char* entryPointName = nullptr;
 
 //
 // Create the default name for saving a binary if -o is not provided.
@@ -537,6 +439,19 @@ void ProcessArguments(int argc, char* argv[])
             case 'd':
                 Options |= EOptionDefaultDesktop;
                 break;
+            case 'D':
+                Options |= EOptionReadHlsl;
+                break;
+            case 'e':
+                // HLSL todo: entry point handle needs much more sophistication.
+                // This is okay for one compilation unit with one entry point.
+                entryPointName = argv[1];
+                if (argc > 0) {
+                    argc--;
+                    argv++;
+                } else
+                    Error("no <entry-point> provided for -e");
+                break;
             case 'h':
                 usage();
                 break;
@@ -616,6 +531,8 @@ void SetMessageOptions(EShMessages& messages)
         messages = (EShMessages)(messages | EShMsgVulkanRules);
     if (Options & EOptionOutputPreprocessed)
         messages = (EShMessages)(messages | EShMsgOnlyPreprocessor);
+    if (Options & EOptionReadHlsl)
+        messages = (EShMessages)(messages | EShMsgReadHlsl);
 }
 
 //
@@ -689,19 +606,23 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
     //
 
     glslang::TProgram& program = *new glslang::TProgram;
-    for (auto compUnit : compUnits) {
+    for (auto it = compUnits.cbegin(); it != compUnits.cend(); ++it) {
+        const auto &compUnit = *it;
         glslang::TShader* shader = new glslang::TShader(compUnit.stage);
 		//#Epic: Be nicer about the header
 		auto* Text = strstr(*compUnit.text, "#version");
         shader->setStrings(&Text, 1);
+        if (entryPointName) // HLSL todo: this needs to be tracked per compUnits
+            shader->setEntryPoint(entryPointName);
         shaders.push_back(shader);
 
         const int defaultVersion = Options & EOptionDefaultDesktop? 110: 100;
 
         if (Options & EOptionOutputPreprocessed) {
             std::string str;
+            glslang::TShader::ForbidInclude includer;
             if (shader->preprocess(&Resources, defaultVersion, ENoProfile, false, false,
-                                   messages, &str, glslang::TShader::ForbidInclude())) {
+                                   messages, &str, includer)) {
                 PutsIfNonEmpty(str.c_str());
             } else {
                 CompileFailed = true;
@@ -727,20 +648,24 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
     // Program-level processing...
     //
 
+    // Link
     if (! (Options & EOptionOutputPreprocessed) && ! program.link(messages))
         LinkFailed = true;
 
+    // Report
     if (! (Options & EOptionSuppressInfolog) &&
         ! (Options & EOptionMemoryLeakMode)) {
         PutsIfNonEmpty(program.getInfoLog());
         PutsIfNonEmpty(program.getInfoDebugLog());
     }
 
+    // Reflect
     if (Options & EOptionDumpReflection) {
         program.buildReflection();
         program.dumpReflection();
     }
 
+    // Dump SPIR-V
     if (Options & EOptionSpv) {
         if (CompileFailed || LinkFailed)
             printf("SPIR-V is not generated for failed compile or link\n");
@@ -748,11 +673,14 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
             for (int stage = 0; stage < EShLangCount; ++stage) {
                 if (program.getIntermediate((EShLanguage)stage)) {
                     std::vector<unsigned int> spirv;
-                    glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
+                    std::string warningsErrors;
+                    spv::SpvBuildLogger logger;
+                    glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv, &logger);
 
                     // Dump the spv to a file or stdout, etc., but only if not doing
                     // memory/perf testing, as it's not internal to programmatic use.
                     if (! (Options & EOptionMemoryLeakMode)) {
+                      printf("%s", logger.getAllMessages().c_str());
                         glslang::OutputSpv(spirv, GetBinaryName((EShLanguage)stage));
                         if (Options & EOptionHumanReadableSpv) {
                             spv::Disassemble(std::cout, spirv);
@@ -823,8 +751,8 @@ void CompileAndLinkShaderFiles()
             glslang::OS_DumpMemoryCounters();
     }
 
-    for (auto c : compUnits)
-        FreeFileData(c.text);
+    for (auto it = compUnits.begin(); it != compUnits.end(); ++it)
+        FreeFileData(it->text);
 }
 
 int C_DECL main(int argc, char* argv[])
@@ -832,7 +760,7 @@ int C_DECL main(int argc, char* argv[])
     ProcessArguments(argc, argv);
 
     if (Options & EOptionDumpConfig) {
-        printf("%s", DefaultConfig);
+        printf("%s", glslang::GetDefaultTBuiltInResourceString().c_str());
         if (Worklist.empty())
             return ESuccess;
     }
@@ -1031,6 +959,8 @@ void usage()
            "              creates the default configuration file (redirect to a .conf file)\n"
            "  -d          default to desktop (#version 110) when there is no shader #version\n"
            "              (default is ES version 100)\n"
+           "  -D          input is HLSL\n"
+           "  -e          specify entry-point name\n"
            "  -h          print this usage message\n"
            "  -i          intermediate tree (glslang AST) is printed out\n"
            "  -l          link all input files together to form a single module\n"

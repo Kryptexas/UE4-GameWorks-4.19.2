@@ -667,6 +667,9 @@ private:
 	UPROPERTY(Transient)
 	UCanvas* CanvasForRenderingToTarget;
 
+	UPROPERTY(Transient)
+	UCanvas* CanvasForDrawMaterialToRenderTarget;
+
 public:
 	/** Set the pointer to the Navgation system. */
 	void SetNavigationSystem( UNavigationSystem* InNavigationSystem);
@@ -2006,6 +2009,7 @@ public:
 
 	/** Gets the canvas object for rendering to a render target.  Will allocate one if needed. */
 	UCanvas* GetCanvasForRenderingToTarget();
+	UCanvas* GetCanvasForDrawMaterialToRenderTarget();
 
 	/** Struct containing a collection of optional parameters for initialization of a World. */
 	struct InitializationValues

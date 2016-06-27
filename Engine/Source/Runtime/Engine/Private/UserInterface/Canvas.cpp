@@ -1886,7 +1886,7 @@ TWeakObjectPtr<class UReporterGraph> UCanvas::GetReporterGraph()
 
 void UCanvas::K2_DrawLine(FVector2D ScreenPositionA, FVector2D ScreenPositionB, float Thickness, FLinearColor RenderColor)
 {
-	if (FMath::Square(ScreenPositionB.X - ScreenPositionA.X) + FMath::Square(ScreenPositionB.Y - ScreenPositionA.Y))
+	if (FMath::Square(ScreenPositionB.X - ScreenPositionA.X) + FMath::Square(ScreenPositionB.Y - ScreenPositionA.Y) > 0 && Canvas)
 	{
 		FCanvasLineItem LineItem(ScreenPositionA, ScreenPositionB);
 		LineItem.LineThickness = Thickness;
@@ -1897,7 +1897,7 @@ void UCanvas::K2_DrawLine(FVector2D ScreenPositionA, FVector2D ScreenPositionB, 
 
 void UCanvas::K2_DrawTexture(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, FLinearColor RenderColor, EBlendMode BlendMode, float Rotation, FVector2D PivotPoint)
 {
-	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f && Canvas)
 	{
 		FTexture* RenderTextureResource = (RenderTexture) ? RenderTexture->Resource : GWhiteTexture;
 		FCanvasTileItem TileItem(ScreenPosition, RenderTextureResource, ScreenSize, CoordinatePosition, CoordinatePosition + CoordinateSize, RenderColor);
@@ -1910,7 +1910,11 @@ void UCanvas::K2_DrawTexture(UTexture* RenderTexture, FVector2D ScreenPosition, 
 
 void UCanvas::K2_DrawMaterial(UMaterialInterface* RenderMaterial, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, float Rotation, FVector2D PivotPoint)
 {
-	if (RenderMaterial && ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	if (RenderMaterial 
+		&& ScreenSize.X > 0.0f 
+		&& ScreenSize.Y > 0.0f 
+		// Canvas can be NULL if the user tried to draw after EndDrawCanvasToRenderTarget
+		&& Canvas)
 	{
 		FCanvasTileItem TileItem(ScreenPosition, RenderMaterial->GetRenderProxy(0), ScreenSize, CoordinatePosition, CoordinatePosition + CoordinateSize);
 		TileItem.Rotation = FRotator(0, Rotation, 0);
@@ -1921,7 +1925,7 @@ void UCanvas::K2_DrawMaterial(UMaterialInterface* RenderMaterial, FVector2D Scre
 
 void UCanvas::K2_DrawText(UFont* RenderFont, const FString& RenderText, FVector2D ScreenPosition, FLinearColor RenderColor, float Kerning, FLinearColor ShadowColor, FVector2D ShadowOffset, bool bCentreX, bool bCentreY, bool bOutlined, FLinearColor OutlineColor)
 {
-	if (!RenderText.IsEmpty())
+	if (!RenderText.IsEmpty() && Canvas)
 	{
 		FCanvasTextItem TextItem(ScreenPosition, FText::FromString(RenderText), RenderFont, RenderColor);
 		TextItem.HorizSpacingAdjust = Kerning;
@@ -1937,7 +1941,7 @@ void UCanvas::K2_DrawText(UFont* RenderFont, const FString& RenderText, FVector2
 
 void UCanvas::K2_DrawBorder(UTexture* BorderTexture, UTexture* BackgroundTexture, UTexture* LeftBorderTexture, UTexture* RightBorderTexture, UTexture* TopBorderTexture, UTexture* BottomBorderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, FLinearColor RenderColor, FVector2D BorderScale, FVector2D BackgroundScale, float Rotation, FVector2D PivotPoint, FVector2D CornerSize)
 {
-	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f && BorderTexture && BackgroundTexture && LeftBorderTexture && RightBorderTexture && TopBorderTexture && BottomBorderTexture)
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f && BorderTexture && BackgroundTexture && LeftBorderTexture && RightBorderTexture && TopBorderTexture && BottomBorderTexture && Canvas)
 	{
 		FCanvasBorderItem BorderItem(ScreenPosition, BorderTexture->Resource, BackgroundTexture->Resource, LeftBorderTexture->Resource, RightBorderTexture->Resource, TopBorderTexture->Resource, BottomBorderTexture->Resource, ScreenSize, RenderColor);
 		BorderItem.BorderScale = BorderScale;
@@ -1953,7 +1957,7 @@ void UCanvas::K2_DrawBorder(UTexture* BorderTexture, UTexture* BackgroundTexture
 
 void UCanvas::K2_DrawBox(FVector2D ScreenPosition, FVector2D ScreenSize, float Thickness)
 {
-	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f && Canvas)
 	{
 		FCanvasBoxItem BoxItem(ScreenPosition, ScreenSize);
 		BoxItem.LineThickness = Thickness;
@@ -1963,7 +1967,7 @@ void UCanvas::K2_DrawBox(FVector2D ScreenPosition, FVector2D ScreenSize, float T
 
 void UCanvas::K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Triangles)
 {
-	if (Triangles.Num() > 0)
+	if (Triangles.Num() > 0 && Canvas)
 	{
 		FCanvasTriangleItem TriangleItem(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture);
 		TriangleItem.TriangleList = MoveTemp(Triangles);
@@ -1973,7 +1977,7 @@ void UCanvas::K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Tria
 
 void UCanvas::K2_DrawMaterialTriangle(UMaterialInterface* RenderMaterial, TArray<FCanvasUVTri> Triangles)
 {
-	if (RenderMaterial && Triangles.Num() > 0)
+	if (RenderMaterial && Triangles.Num() > 0 && Canvas)
 	{
 		FCanvasTriangleItem TriangleItem(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, NULL);
 		TriangleItem.MaterialRenderProxy = RenderMaterial->GetRenderProxy(0);
@@ -1984,7 +1988,7 @@ void UCanvas::K2_DrawMaterialTriangle(UMaterialInterface* RenderMaterial, TArray
 
 void UCanvas::K2_DrawPolygon(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D Radius, int32 NumberOfSides, FLinearColor RenderColor)
 {
-	if (Radius.X > 0.0f && Radius.Y > 0.0f && NumberOfSides >= 3)
+	if (Radius.X > 0.0f && Radius.Y > 0.0f && NumberOfSides >= 3 && Canvas)
 	{
 		FCanvasNGonItem NGonItem(ScreenPosition, Radius, NumberOfSides, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture, RenderColor);
 		DrawItem(NGonItem);

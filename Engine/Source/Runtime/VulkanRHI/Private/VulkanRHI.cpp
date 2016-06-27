@@ -319,6 +319,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 	, CommandBufferManager(nullptr)
+	, DescriptorPool(InDevice)
 	, PendingState(nullptr)
 {
 	// Create CommandBufferManager, contain all active buffers
@@ -442,7 +443,7 @@ void FVulkanDynamicRHI::Shutdown()
 	RemoveDebugLayerCallback();
 #endif
 
-	vkDestroyInstance(Instance, nullptr);
+	VulkanRHI::vkDestroyInstance(Instance, nullptr);
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	IConsoleManager::Get().UnregisterConsoleObject(SavePipelineCacheCmd);
@@ -454,6 +455,10 @@ void FVulkanDynamicRHI::Shutdown()
 #endif
 
 	FreeVulkanLibrary();
+
+#if VULKAN_ENABLE_DUMP_LAYER
+	VulkanRHI::FlushDebugWrapperLog();
+#endif
 }
 
 void FVulkanDynamicRHI::CreateInstance()
@@ -494,7 +499,7 @@ void FVulkanDynamicRHI::CreateInstance()
 		InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
 	#endif
 
-	VkResult Result = vkCreateInstance(&InstInfo, nullptr, &Instance);
+	VkResult Result = VulkanRHI::vkCreateInstance(&InstInfo, nullptr, &Instance);
 	
 	if(Result == VK_ERROR_INCOMPATIBLE_DRIVER)
 	{
@@ -557,12 +562,12 @@ void FVulkanDynamicRHI::InitInstance()
 			CreateInstance();
 
 			uint32 GpuCount = 0;
-			VERIFYVULKANRESULT_EXPANDED(vkEnumeratePhysicalDevices(Instance, &GpuCount, nullptr));
+			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkEnumeratePhysicalDevices(Instance, &GpuCount, nullptr));
 			check(GpuCount >= 1);
 
 			TArray<VkPhysicalDevice> PhysicalDevices;
 			PhysicalDevices.AddZeroed(GpuCount);
-			VERIFYVULKANRESULT_EXPANDED(vkEnumeratePhysicalDevices(Instance, &GpuCount, PhysicalDevices.GetData()));
+			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkEnumeratePhysicalDevices(Instance, &GpuCount, PhysicalDevices.GetData()));
 
 			UE_LOG(LogVulkanRHI, Display, TEXT("Found %d device(s)"), GpuCount);
 			for (uint32 Index = 0; Index < GpuCount; ++Index)
@@ -592,9 +597,8 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = false;	// #todo-rco
-		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;	// #todo-rco
+		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;
 
-		//#todo-rco: Leaks/issues still present!
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
 		GRHINeedsExtraDeletionLatency = true;
 
@@ -637,14 +641,14 @@ void FVulkanDynamicRHI::InitInstance()
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 		SavePipelineCacheCmd = IConsoleManager::Get().RegisterConsoleCommand(
-			TEXT("SavePipelineCache"),
+			TEXT("r.Vulkan.SavePipelineCache"),
 			TEXT("Save pipeline cache."),
 			FConsoleCommandDelegate::CreateStatic(SavePipelineCache),
 			ECVF_Default
 			);
 
 		RebuildPipelineCacheCmd = IConsoleManager::Get().RegisterConsoleCommand(
-			TEXT("RebuildPipelineCache"),
+			TEXT("r.Vulkan.RebuildPipelineCache"),
 			TEXT("Rebuilds pipeline cache."),
 			FConsoleCommandDelegate::CreateStatic(RebuildPipelineCache),
 			ECVF_Default
@@ -653,7 +657,7 @@ void FVulkanDynamicRHI::InitInstance()
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		DumpMemoryCmd = IConsoleManager::Get().RegisterConsoleCommand(
-			TEXT("DumpVulkanMemory"),
+			TEXT("r.Vulkan.DumpMemory"),
 			TEXT("Dumps memory map."),
 			FConsoleCommandDelegate::CreateStatic(DumpMemory),
 			ECVF_Default
@@ -664,6 +668,7 @@ void FVulkanDynamicRHI::InitInstance()
 
 void FVulkanCommandListContext::RHIBeginFrame()
 {
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginFrame()\n")));
 	PendingState->GetGlobalUniformPool().BeginFrame();
 
 	VulkanRHI::GManager.GPUProfilingData.BeginFrame(this, Device->GetTimestampQueryPool(RHI->GetPresentCount() % FVulkanDevice::NumTimestampPools));
@@ -672,10 +677,12 @@ void FVulkanCommandListContext::RHIBeginFrame()
 
 void FVulkanCommandListContext::RHIBeginScene()
 {
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginScene\n")));
 }
 
 void FVulkanCommandListContext::RHIEndScene()
 {
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndScene()\n")));
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	if (PendingState->IsRenderPassActive())
 	{
@@ -685,45 +692,44 @@ void FVulkanCommandListContext::RHIEndScene()
 
 void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
 {
-	static bool bHackClear = false;
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginDrawingViewport\n")));
+	check(ViewportRHI);
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
-	if (Viewport->GetBackBufferIndex() < 0)
-	{
-		Viewport->AcquireBackBuffer(Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer());
-	}
 	RHI->DrawingViewport = Viewport;
-
-	if (!RenderTargetRHI)
-	{
-		FVulkanTexture2D* BackBuffer = Viewport->GetBackBuffer();
-		RenderTargetRHI = BackBuffer;
-		if (bHackClear)
-		{
-			bHackClear = false;
-		}
-	}
-
-	FRHIRenderTargetView RTView(RenderTargetRHI);
-	if (bHackClear)
-	{
-		RTView.LoadAction = ERenderTargetLoadAction::EClear;
-	}
-
-	RHISetRenderTargets(1, &RTView, nullptr, 0, nullptr);
 }
 
 void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI, bool bPresent, bool bLockToVsync)
 {
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndDrawingViewport\n")));
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 	check(Viewport == RHI->DrawingViewport);
+	RHI->DrawingViewport = nullptr;
 
+	//#todo-rco: Unbind all pending state
+/*
+	check(bPresent);
 	RHI->Present();
+*/
+	FVulkanCommandBufferManager* ImmediateCmdBufferManager = Device->GetImmediateContext().GetCommandBufferManager();
+	FVulkanCmdBuffer* CmdBuffer = ImmediateCmdBufferManager->GetActiveCmdBuffer();
+	check(!CmdBuffer->HasEnded());
+	if (CmdBuffer->IsInsideRenderPass())
+	{
+		checkf(bPresent, TEXT("An open render pass when not presenting is not allowed..."));
+		PendingState->RenderPassEnd(CmdBuffer);
+	}
 
+	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetQueue(), bLockToVsync);
+	if (bNativePresent)
+	{
+		//#todo-rco: Check for r.FinishCurrentFrame
+	}
 	PendingState->InitFrame();
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame\n")));
 	Device->GetDeferredDeletionQueue().Clear();
 
 	Device->GetStagingManager().ProcessPendingFree();
@@ -741,9 +747,17 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 	if (IsImmediate())
 	{
 #if VULKAN_ENABLE_DRAW_MARKERS
-		if (auto VkCmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
+		if (auto CmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
 		{
-			VkCmdDbgMarkerBegin(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle(), TCHAR_TO_ANSI(Name));
+			VkDebugMarkerMarkerInfoEXT Info;
+			FMemory::Memzero(Info);
+			Info.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+			Info.pMarkerName = TCHAR_TO_ANSI(Name);
+			Info.color[0] = Color.R;
+			Info.color[1] = Color.G;
+			Info.color[2] = Color.B;
+			Info.color[3] = Color.A;
+			CmdDbgMarkerBegin(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle(), &Info);
 		}
 #endif
 
@@ -757,9 +771,9 @@ void FVulkanCommandListContext::RHIPopEvent()
 	if (IsImmediate())
 	{
 #if VULKAN_ENABLE_DRAW_MARKERS
-		if (auto VkCmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
+		if (auto CmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
-			VkCmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
+			CmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
 		}
 #endif
 
@@ -822,15 +836,14 @@ FVulkanBuffer::FVulkanBuffer(FVulkanDevice& InDevice, uint32 InSize, VkFlags InU
 	BufInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	BufInfo.size = Size;
 	BufInfo.usage = Usage;
-	VERIFYVULKANRESULT_EXPANDED(vkCreateBuffer(Device.GetInstanceHandle(), &BufInfo, nullptr, &Buf));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateBuffer(Device.GetInstanceHandle(), &BufInfo, nullptr, &Buf));
 
 	VkMemoryRequirements MemoryRequirements;
-	vkGetBufferMemoryRequirements(Device.GetInstanceHandle(), Buf, &MemoryRequirements);
+	VulkanRHI::vkGetBufferMemoryRequirements(Device.GetInstanceHandle(), Buf, &MemoryRequirements);
 
 	Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, InMemPropertyFlags, File ? File : __FILE__, Line ? Line : __LINE__);
 	check(Allocation);
-	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buf, (void*)Allocation->GetHandle(), (uint32)0, (uint32)MemoryRequirements.size);
-	VERIFYVULKANRESULT_EXPANDED(vkBindBufferMemory(Device.GetInstanceHandle(), Buf, Allocation->GetHandle(), 0));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkBindBufferMemory(Device.GetInstanceHandle(), Buf, Allocation->GetHandle(), 0));
 }
 
 FVulkanBuffer::~FVulkanBuffer()
@@ -838,7 +851,7 @@ FVulkanBuffer::~FVulkanBuffer()
 	// The buffer should be unmapped
 	check(BufferPtr == nullptr);
 
-	vkDestroyBuffer(Device.GetInstanceHandle(), Buf, nullptr);
+	VulkanRHI::vkDestroyBuffer(Device.GetInstanceHandle(), Buf, nullptr);
 	Buf = VK_NULL_HANDLE;
 
 	Device.GetMemoryManager().Free(Allocation);
@@ -900,7 +913,7 @@ FVulkanDescriptorSetsLayout::~FVulkanDescriptorSetsLayout()
 	check(Device);
 	for (VkDescriptorSetLayout Handle : LayoutHandles)
 	{
-		vkDestroyDescriptorSetLayout(Device->GetInstanceHandle(), Handle, nullptr);
+		VulkanRHI::vkDestroyDescriptorSetLayout(Device->GetInstanceHandle(), Handle, nullptr);
 	}
 }
 
@@ -987,7 +1000,7 @@ void FVulkanDescriptorSetsLayout::Compile()
 		DescriptorLayoutInfo.pBindings = Layout.LayoutBindings.GetData();
 
 		VkDescriptorSetLayout* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
-		VERIFYVULKANRESULT(vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));
 	}
 }
 
@@ -1009,7 +1022,7 @@ FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVul
 	DescriptorSetAllocateInfo.pSetLayouts = LayoutHandles.GetData();
 
 	Sets.AddZeroed(LayoutHandles.Num());
-	VERIFYVULKANRESULT(vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, Sets.GetData()));
+	VERIFYVULKANRESULT(VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, Sets.GetData()));
 }
 
 FVulkanDescriptorSets::~FVulkanDescriptorSets()
@@ -1018,7 +1031,7 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 
 	if (Sets.Num() > 0)
 	{
-		VERIFYVULKANRESULT(vkFreeDescriptorSets(Device->GetInstanceHandle(), Pool->GetHandle(), Sets.Num(), Sets.GetData()));
+		VERIFYVULKANRESULT(VulkanRHI::vkFreeDescriptorSets(Device->GetInstanceHandle(), Pool->GetHandle(), Sets.Num(), Sets.GetData()));
 	}
 }
 
@@ -1040,7 +1053,7 @@ void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint3
 	Flags = Buffer.GetFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
-	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
 void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
@@ -1061,14 +1074,14 @@ void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat 
 	Flags = Buffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
-	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
 void FVulkanBufferView::Destroy()
 {
 	if (View != VK_NULL_HANDLE)
 	{
-		vkDestroyBufferView(GetParent()->GetInstanceHandle(), View, nullptr);
+		VulkanRHI::vkDestroyBufferView(GetParent()->GetInstanceHandle(), View, nullptr);
 		View = VK_NULL_HANDLE;
 	}
 }
@@ -1265,14 +1278,14 @@ FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRende
 	RenderPassInfo.dependencyCount = 0;
 	RenderPassInfo.pDependencies = nullptr;
 
-	VERIFYVULKANRESULT_EXPANDED(vkCreateRenderPass(Device.GetInstanceHandle(), &RenderPassInfo, nullptr, &RenderPass));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateRenderPass(Device.GetInstanceHandle(), &RenderPassInfo, nullptr, &RenderPass));
 }
 
 FVulkanRenderPass::~FVulkanRenderPass()
 {
 	DEC_DWORD_STAT(STAT_VulkanNumRenderPasses);
 
-	vkDestroyRenderPass(Device.GetInstanceHandle(), RenderPass, nullptr);
+	VulkanRHI::vkDestroyRenderPass(Device.GetInstanceHandle(), RenderPass, nullptr);
 	RenderPass = VK_NULL_HANDLE;
 }
 
@@ -1352,7 +1365,7 @@ void VulkanSetImageLayout(
 		DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	}
 
-	vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, BarrierList);
+	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer, SourceStages, DestStages, 0, 0, nullptr, 0, nullptr, 1, BarrierList);
 }
 
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI)
@@ -1383,7 +1396,7 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
     ResolveDesc.extent.height = Src->Surface.Height;
     ResolveDesc.extent.depth = 1;
 
-	vkCmdResolveImage(Cmd,
+	VulkanRHI::vkCmdResolveImage(Cmd,
 		Src->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 		Dst->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		1, &ResolveDesc);

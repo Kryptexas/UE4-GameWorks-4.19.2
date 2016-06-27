@@ -203,12 +203,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, QuadOverdrawBuffer(GRenderTargetPool.MakeSnapshot(SnapshotSource.QuadOverdrawBuffer))
 	, CustomDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.CustomDepth))
 	, CustomStencilSRV(SnapshotSource.CustomStencilSRV)
-	, ShadowDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.ShadowDepthZ))
 	, OptionalShadowDepthColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.OptionalShadowDepthColor))
 	, PreShadowCacheDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.PreShadowCacheDepthZ))
-	, ReflectiveShadowMapNormal(GRenderTargetPool.MakeSnapshot(SnapshotSource.ReflectiveShadowMapNormal))
-	, ReflectiveShadowMapDiffuse(GRenderTargetPool.MakeSnapshot(SnapshotSource.ReflectiveShadowMapDiffuse))
-	, ReflectiveShadowMapDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.ReflectiveShadowMapDepth))
 	, SkySHIrradianceMap(GRenderTargetPool.MakeSnapshot(SnapshotSource.SkySHIrradianceMap))
 	, EditorPrimitivesColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesColor))
 	, EditorPrimitivesDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesDepth))
@@ -249,8 +245,6 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
 {
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
-	SnapshotArray(TranslucencyShadowTransmission, SnapshotSource.TranslucencyShadowTransmission);
-	SnapshotArray(CubeShadowDepthZ, SnapshotSource.CubeShadowDepthZ);
 	SnapshotArray(ReflectionColorScratchCubemap, SnapshotSource.ReflectionColorScratchCubemap);
 	SnapshotArray(DiffuseIrradianceScratchCubemap, SnapshotSource.DiffuseIrradianceScratchCubemap);
 	SnapshotArray(ReflectionBrightness, SnapshotSource.ReflectionBrightness);
@@ -767,7 +761,7 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 
 	// Create the world-space normal g-buffer.
 	{
-		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
+		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
 
 		if(bEnforce8BitPerChannel)
 		{
@@ -1153,83 +1147,6 @@ void FSceneRenderTargets::FinishRenderingPrePass(FRHICommandListImmediate& RHICm
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneDepthZ);
 }
 
-void FSceneRenderTargets::BeginRenderingShadowDepth(FRHICommandList& RHICmdList, bool bClear)
-{
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ShadowDepthZ);
-
-	//All of the shadow passes are written using 'clear stencil after', so keep stencil as-is
-	FRHISetRenderTargetsInfo Info(0, nullptr, FRHIDepthRenderTargetView(GetShadowDepthZSurface(), 
-		bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, 
-		ERenderTargetStoreAction::EStore, 
-		ERenderTargetLoadAction::ELoad, 
-		ERenderTargetStoreAction::EStore));
-
-	check(Info.DepthStencilRenderTarget.Texture->GetDepthClearValue() == 1.0f);	
-	Info.ColorRenderTarget[0].StoreAction = ERenderTargetStoreAction::ENoAction;
-
-	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
-	{
-		Info.NumColorRenderTargets = 1;
-		Info.ColorRenderTarget[0].Texture = GetOptionalShadowDepthColorSurface();
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.ColorRenderTarget[0].Texture);
-	}
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.DepthStencilRenderTarget.Texture);
-	RHICmdList.SetRenderTargetsAndClear(Info);
-}
-
-void FSceneRenderTargets::BeginRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution)
-{
-	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingCubeShadowDepth);
-	SetRenderTarget(RHICmdList, FTextureRHIRef(), GetCubeShadowDepthZSurface(ShadowResolution), true);
-}
-
-void FSceneRenderTargets::FinishRenderingShadowDepth(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect)
-{
-	// Resolve the shadow depth z surface.
-	RHICmdList.CopyToResolveTarget(GetShadowDepthZSurface(), GetShadowDepthZTexture(), false, FResolveParams(ResolveRect));
-}
-
-void FSceneRenderTargets::BeginRenderingReflectiveShadowMap(FRHICommandList& RHICmdList, FLightPropagationVolume* Lpv)
-{
-	FTextureRHIParamRef RenderTargets[2];
-	RenderTargets[0] = GetReflectiveShadowMapNormalSurface();
-	RenderTargets[1] = GetReflectiveShadowMapDiffuseSurface();
-
-	// Hook up the geometry volume UAVs
-	FUnorderedAccessViewRHIParamRef Uavs[4];
-	Uavs[0] = Lpv->GetGvListBufferUav();
-	Uavs[1] = Lpv->GetGvListHeadBufferUav();
-	Uavs[2] = Lpv->GetVplListBufferUav();
-	Uavs[3] = Lpv->GetVplListHeadBufferUav();
-	
-	RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToGfx, Uavs, ARRAY_COUNT(Uavs));
-	SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, GetReflectiveShadowMapDepthSurface(), 4, Uavs);
-}
-
-void FSceneRenderTargets::FinishRenderingReflectiveShadowMap(FRHICommandList& RHICmdList, FLightPropagationVolume* Lpv, const FResolveRect& ResolveRect)
-{
-	// Resolve the shadow depth z surface.
-	RHICmdList.CopyToResolveTarget(GetReflectiveShadowMapDepthSurface(), GetReflectiveShadowMapDepthTexture(), false, FResolveParams(ResolveRect));
-	RHICmdList.CopyToResolveTarget(GetReflectiveShadowMapDiffuseSurface(), GetReflectiveShadowMapDiffuseTexture(), false, FResolveParams(ResolveRect));
-	RHICmdList.CopyToResolveTarget(GetReflectiveShadowMapNormalSurface(), GetReflectiveShadowMapNormalTexture(), false, FResolveParams(ResolveRect));
-
-	FUnorderedAccessViewRHIParamRef UavsToReadable[2];
-	UavsToReadable[0] = Lpv->GetGvListBufferUav();
-	UavsToReadable[1] = Lpv->GetGvListHeadBufferUav();	
-	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToGfx, UavsToReadable, ARRAY_COUNT(UavsToReadable));
-
-	// Unset render targets
-	FTextureRHIParamRef RenderTargets[2] = {NULL};
-	FUnorderedAccessViewRHIParamRef Uavs[2] = {NULL};
-	SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), 2, Uavs);
-}
-
-void FSceneRenderTargets::FinishRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution)
-{
-	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingCubeShadowDepth);
-	RHICmdList.CopyToResolveTarget(GetCubeShadowDepthZSurface(ShadowResolution), GetCubeShadowDepthZTexture(ShadowResolution), false, FResolveParams(FResolveRect(), CubeFace_PosX, -1, -1, 0));
-}
-
 void FSceneRenderTargets::BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneAlphaCopy);
@@ -1551,20 +1468,6 @@ void FSceneRenderTargets::AllocateMobileRenderTargets(FRHICommandList& RHICmdLis
 	}
 }
 
-void FSceneRenderTargets::AllocateMobileShadowDepthTarget(FRHICommandListImmediate& RHICmdList, const FIntPoint& ShadowBufferResolution)
-{
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ShadowDepthZ, TEXT("ShadowDepthZ"));
-	}
-
-	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OptionalShadowDepthColor, TEXT("OptionalShadowDepthColor"));
-	}
-}
-
 // for easier use of "VisualizeTexture"
 static TCHAR* const GetVolumeName(uint32 Id, bool bDirectional)
 {
@@ -1574,22 +1477,6 @@ static TCHAR* const GetVolumeName(uint32 Id, bool bDirectional)
 		case 0: return bDirectional ? (TCHAR*)TEXT("TranslucentVolumeDir0") : (TCHAR*)TEXT("TranslucentVolume0");
 		case 1: return bDirectional ? (TCHAR*)TEXT("TranslucentVolumeDir1") : (TCHAR*)TEXT("TranslucentVolume1");
 		case 2: return bDirectional ? (TCHAR*)TEXT("TranslucentVolumeDir2") : (TCHAR*)TEXT("TranslucentVolume2");
-
-		default:
-			check(0);
-	}
-	return (TCHAR*)TEXT("InvalidName");
-}
-
-
-// for easier use of "VisualizeTexture"
-static TCHAR* const GetTranslucencyShadowTransmissionName(uint32 Id)
-{
-	// (TCHAR*) for non VisualStudio
-	switch(Id)
-	{
-		case 0: return (TCHAR*)TEXT("TranslucencyShadowTransmission0");
-		case 1: return (TCHAR*)TEXT("TranslucencyShadowTransmission1");
 
 		default:
 			check(0);
@@ -1711,6 +1598,21 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 		Desc.AutoWritable = false;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
 	}
+
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GetPreShadowCacheTextureResolution(), PF_ShadowDepth, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		Desc.AutoWritable = false;
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PreShadowCacheDepthZ, TEXT("PreShadowCacheDepthZ"));
+		// Mark the preshadow cache as newly allocated, so the cache will know to update
+		bPreshadowCacheNewlyAllocated = true;
+	}
+
+	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
+	{
+		const FIntPoint ShadowBufferResolution = GetShadowDepthTextureResolution();
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OptionalShadowDepthColor, TEXT("OptionalShadowDepthColor"));
+	}	
 }
 
 void FSceneRenderTargets::AllocateLightingChannelTexture(FRHICommandList& RHICmdList)
@@ -1733,50 +1635,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SmallDepthZSize, PF_DepthStencil, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, true));
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SmallDepthZ, TEXT("SmallDepthZ"));
-	}
-
-	// Set up quarter size scene color shared texture
-	const FIntPoint ShadowBufferResolution = GetShadowDepthTextureResolution();
-
-	const FIntPoint TranslucentShadowBufferResolution = GetTranslucentShadowDepthTextureResolution();
-
-	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		for (int32 SurfaceIndex = 0; SurfaceIndex < NumTranslucencyShadowSurfaces; SurfaceIndex++)
-		{
-			if (!TranslucencyShadowTransmission[SurfaceIndex])
-			{
-				// Using PF_FloatRGBA because Fourier coefficients used by Fourier opacity maps have a large range and can be negative
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(TranslucentShadowBufferResolution, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, TranslucencyShadowTransmission[SurfaceIndex], GetTranslucencyShadowTransmissionName(SurfaceIndex));
-			}
-		}
-	}
-
-	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		// Create several shadow depth cube maps with different resolutions, to handle different sized shadows on the screen
-		for (int32 SurfaceIndex = 0; SurfaceIndex < NumCubeShadowDepthSurfaces; SurfaceIndex++)
-		{
-			const int32 SurfaceResolution = GetCubeShadowDepthZResolution(SurfaceIndex);
-
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::CreateCubemapDesc(SurfaceResolution, PF_ShadowDepth, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable | TexCreate_NoFastClear, false));
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CubeShadowDepthZ[SurfaceIndex], TEXT("CubeShadowDepthZ[]"));
-		}
-	}
-
-	//create the shadow depth texture and/or surface
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ShadowDepthZ, TEXT("ShadowDepthZ"));
-	}
-		
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GetPreShadowCacheTextureResolution(), PF_ShadowDepth, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-		Desc.AutoWritable = false;
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PreShadowCacheDepthZ, TEXT("PreShadowCacheDepthZ"));
-		// Mark the preshadow cache as newly allocated, so the cache will know to update
-		bPreshadowCacheNewlyAllocated = true;
 	}
 
 	// Create the required render targets if running Highend.
@@ -1853,31 +1711,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 	}
 
 	AllocateDebugViewModeTargets(RHICmdList);
-
-	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
-	{
-		// Create the reflective shadow map textures for LightPropagationVolume feature
-		if(bCurrentLightPropagationVolume)
-		{
-			int32 Res = GetReflectiveShadowMapResolution();
-			FIntPoint Extent = FIntPoint(Res, Res);
-
-			{
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Extent, PF_R8G8B8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ReflectiveShadowMapNormal, TEXT("RSMNormal"));
-			}
-
-			{
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Extent, PF_FloatR11G11B10, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ReflectiveShadowMapDiffuse, TEXT("RSMDiffuse"));
-			}
-
-			{
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Extent, PF_DepthStencil, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ReflectiveShadowMapDepth, TEXT("RSMDepth"));
-			}
-		}
-	}
 
 	if (bAllocateVelocityGBuffer)
 	{
@@ -1975,25 +1808,11 @@ void FSceneRenderTargets::ReleaseAllTargets()
 	DirectionalOcclusion.SafeRelease();
 	CustomDepth.SafeRelease();
 	CustomStencilSRV.SafeRelease();
-	ReflectiveShadowMapNormal.SafeRelease();
-	ReflectiveShadowMapDiffuse.SafeRelease();
-	ReflectiveShadowMapDepth.SafeRelease();
 
-	for (int32 SurfaceIndex = 0; SurfaceIndex < NumTranslucencyShadowSurfaces; SurfaceIndex++)
-	{
-		TranslucencyShadowTransmission[SurfaceIndex].SafeRelease();
-	}
-
-	ShadowDepthZ.SafeRelease();
 	OptionalShadowDepthColor.SafeRelease();
 
 	PreShadowCacheDepthZ.SafeRelease();
 	
-	for(int32 Index = 0; Index < NumCubeShadowDepthSurfaces; ++Index)
-	{
-		CubeShadowDepthZ[Index].SafeRelease();
-	}
-
 	for (int32 i = 0; i < ARRAY_COUNT(ReflectionColorScratchCubemap); i++)
 	{
 		ReflectionColorScratchCubemap[i].SafeRelease();

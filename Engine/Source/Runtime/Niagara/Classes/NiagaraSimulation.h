@@ -10,7 +10,6 @@ NiagaraSimulation.h: Niagara emitter simulation class
 #include "NiagaraEvents.h"
 #include "NiagaraDataSet.h"
 #include "NiagaraEmitterProperties.h"
-#include "Private/NiagaraSimulationDebugger.h"
 
 DECLARE_CYCLE_STAT(TEXT("Tick"), STAT_NiagaraTick, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Simulate"), STAT_NiagaraSimulate, STATGROUP_Niagara);
@@ -148,29 +147,4 @@ private:
 	}
 
 	bool CheckAttriubtesForRenderer();
-
-	//Debugger hooks
-#if ENABLE_NIAGARA_SIMULATION_DEBUGGING
-	FORCEINLINE void DebuggerHook_PreSpawn(FNiagaraSimulation* Sim, int32 CurrNumParticles, int32 NumToSpawn)
-	{
-		FNiagaraSimulationDebugger::Get().PreSpawn(Sim, CurrNumParticles, NumToSpawn);
-	}
-	FORCEINLINE void DebuggerHook_OnDeath(FNiagaraSimulation* Sim, int32 DyingParticle, int32 ReplacementParticle)
-	{
-		FNiagaraSimulationDebugger::Get().OnDeath(Sim, DyingParticle, ReplacementParticle);
-	}
-	FORCEINLINE void DebuggerHook_PreScriptRun(FNiagaraSimulation* Sim, UNiagaraScript* Script, int32 TotalNumParticles, int32 NumParticlesProcessed, int32 StartingParticle)
-	{
-		FNiagaraSimulationDebugger::Get().PreScriptRun(Sim, Script, TotalNumParticles, NumParticlesProcessed, StartingParticle);
-	}
-	FORCEINLINE void DebuggerHook_PostScriptRun(FNiagaraSimulation* Sim, UNiagaraScript* Script)
-	{
-		FNiagaraSimulationDebugger::Get().PostScriptRun(Sim, Script);
-	}
-#else
-	FORCEINLINE void DebuggerHook_PreSpawn(FNiagaraSimulation* Sim, int32 CurrNumParticles, int32 NumToSpawn){}
-	FORCEINLINE void DebuggerHook_OnDeath(FNiagaraSimulation* Sim, int32 DyingParticle, int32 ReplacementParticle){}
-	FORCEINLINE void DebuggerHook_PreScriptRun(FNiagaraSimulation* Sim, UNiagaraScript* Script, int32 TotalNumParticles, int32 NumParticlesProcessed, int32 StartingParticle){ }
-	FORCEINLINE void DebuggerHook_PostScriptRun(FNiagaraSimulation* Sim, UNiagaraScript* Script){}
-#endif
 };

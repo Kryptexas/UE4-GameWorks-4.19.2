@@ -385,10 +385,10 @@ public:
 
 			if(IsTranslucentBlendMode(Material->GetBlendMode()))
 			{
-				int32 UserRefraction = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_Refraction, this), MCT_Float2);
+				int32 UserRefraction = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_Refraction, this), MCT_Float1);
 				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), Material->GetRefractionDepthBiasValue()), MCT_Float1);
 
-				Chunk[MP_Refraction] = AppendVector(ForceCast(UserRefraction, MCT_Float1), RefractionDepthBias);
+				Chunk[MP_Refraction] = AppendVector(UserRefraction, RefractionDepthBias);
 			}
 
 			if (bCompileForComputeShader)
@@ -423,9 +423,10 @@ public:
 
 			const bool bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
 			MaterialCompilationOutput.bModifiesMeshPosition = bUsesPixelDepthOffset || bUsesWorldPositionOffset;
+			MaterialCompilationOutput.bUsesWorldPositionOffset = bUsesWorldPositionOffset;
 			MaterialCompilationOutput.bUsesPixelDepthOffset = bUsesPixelDepthOffset;
 			
-			if (Material->GetBlendMode() == BLEND_Modulate && MaterialShadingModel != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
+			if (Material->GetBlendMode() == BLEND_Modulate && MaterialShadingModel != MSM_Unlit && !Material->IsDeferredDecal())
 			{
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
 			}
@@ -484,6 +485,14 @@ public:
 			{
 				// Error feedback for when the decal would not be displayed due to project settings
 				Errorf(TEXT("DBuffer decal blend modes are only supported when the 'DBuffer Decals' Rendering Project setting is enabled."));
+			}
+
+			if (Domain == MD_DeferredDecal && Material->GetBlendMode() != BLEND_Translucent)
+			{
+				// We could make the change for the user but it would be confusing when going to DeferredDecal and back
+				// or we would have to pay a performance cost to make the change more transparently.
+				// The change saves performance as with translucency we don't need to test for MeshDecals in all opaque rendering passes
+				Errorf(TEXT("Material using the DeferredDecal domain need to use the BlendModel Translucent (this saves performance)"));
 			}
 
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
@@ -582,6 +591,12 @@ public:
 					SharedPropertyCodeChunks[NormalShaderFrequency],
 					TranslatedCodeChunkDefinitions[MP_Normal],
 					TranslatedCodeChunks[MP_Normal]);
+
+				// Always gather MP_Normal definitions as they can be shared by other properties
+				if (TranslatedCodeChunkDefinitions[MP_Normal].IsEmpty())
+				{
+					TranslatedCodeChunkDefinitions[MP_Normal] = GetDefinitions(SharedPropertyCodeChunks[NormalShaderFrequency], 0, NormalCodeChunkEnd);
+				}
 			}
 
 			// Now the rest, skipping Normal
@@ -2141,7 +2156,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		if (!Material->IsLightFunction() && !Material->IsUsedWithDeferredDecal())
+		if (!Material->IsLightFunction() && !Material->IsDeferredDecal())
 		{
 			return Errorf(TEXT("LightVector can only be used in LightFunction or DeferredDecal materials"));
 		}
@@ -2235,7 +2250,7 @@ protected:
 			return NonVertexOrPixelShaderExpressionError();
 		}
 		bNeedsParticlePosition = true;
-		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.Particle.PositionAndSize.xyz"));	
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("(Parameters.Particle.TranslatedWorldPositionAndSize.xyz - ResolvedView.PreViewTranslation.xyz)"));	
 	}
 
 	virtual int32 ParticleRadius() override
@@ -2245,7 +2260,7 @@ protected:
 			return NonVertexOrPixelShaderExpressionError();
 		}
 		bNeedsParticlePosition = true;
-		return AddInlinedCodeChunk(MCT_Float,TEXT("max(Parameters.Particle.PositionAndSize.w, .001f)"));	
+		return AddInlinedCodeChunk(MCT_Float,TEXT("max(Parameters.Particle.TranslatedWorldPositionAndSize.w, .001f)"));	
 	}
 
 	virtual int32 SphericalParticleOpacity(int32 Density) override
@@ -2262,6 +2277,8 @@ protected:
 
 		bNeedsParticlePosition = true;
 		bUsesSphericalParticleOpacity = true;
+		bNeedsWorldPositionExcludingShaderOffsets = true;
+		bUsesSceneDepth = true;
 		return AddCodeChunk(MCT_Float, TEXT("GetSphericalParticleOpacity(Parameters,%s)"), *GetParameterCode(Density));
 	}
 
@@ -3830,7 +3847,10 @@ protected:
 		
 		if (AWComponent != 0)
 		{
-			A = AppendVector(A, Constant(1));
+			if (GetType(A) == MCT_Float3)
+			{
+				A = AppendVector(A, Constant(1));
+			}
 			CodeStr.ReplaceInline(TEXT("<TO>"),TEXT("PositionTo"));
 			CodeStr.ReplaceInline(TEXT("<MATRIX>"),TEXT(""));
 			CodeStr += ".xyz";

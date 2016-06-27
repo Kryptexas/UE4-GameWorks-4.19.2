@@ -71,6 +71,7 @@ typedef enum {
 	TonemapperColorFringe       = (1<<12),
 	TonemapperMsaa              = (1<<13),
 	TonemapperSharpen           = (1<<14),
+	TonemapperInverseTonemapping = (1 << 15),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -92,6 +93,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperColorFringe
 	1, //TonemapperMsaa
 	1, //TonemapperSharpen
+	1, //TonemapperInverseTonemapping
 };
 
 // Edit the following to add and remove configurations.
@@ -99,7 +101,7 @@ static uint8 TonemapperCostTab[] = {
 // Place most common first (faster when searching in TonemapperFindLeastExpensive()).
 
 // List of configurations compiled for PC.
-static uint32 TonemapperConfBitmaskPC[9] = { 
+static uint32 TonemapperConfBitmaskPC[14] = { 
 
 	TonemapperBloom +
 	TonemapperGrainJitter +
@@ -149,6 +151,45 @@ static uint32 TonemapperConfBitmaskPC[9] = {
 
 	TonemapperBloom + 
 	TonemapperVignette +
+	0,
+
+	// with TonemapperInverseTonemapping
+
+	TonemapperBloom +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperGrainQuantization +
+	TonemapperVignette +
+	TonemapperColorFringe +
+	TonemapperSharpen +
+	TonemapperInverseTonemapping +
+	0,
+
+	TonemapperBloom +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperGrainQuantization +
+	TonemapperVignette +
+	TonemapperColorFringe +
+	TonemapperInverseTonemapping +
+	0,
+
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperGrainQuantization +
+	TonemapperColorFringe +
+	TonemapperInverseTonemapping +
+	0,
+
+	TonemapperBloom +
+	TonemapperVignette +
+	TonemapperGrainQuantization +
+	TonemapperInverseTonemapping +
+	0,
+
+	TonemapperBloom +
+	TonemapperSharpen +
+	TonemapperInverseTonemapping +
 	0,
 
 	//
@@ -581,6 +622,7 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 		return Bitmask;
 	}
 
+	// Grain Quantization
 	{
 		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper.GrainQuantization"));
 		int32 Value = CVar->GetValueOnRenderThread();
@@ -588,6 +630,17 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 		if(Value > 0)
 		{
 			Bitmask |= TonemapperGrainQuantization;
+		}
+	}
+
+	// Inverse Tonemapping
+	{
+		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+		int32 Value = CVar->GetValueOnRenderThread();
+
+		if (Value > 0)
+		{
+			Bitmask |= TonemapperInverseTonemapping;
 		}
 	}
 
@@ -874,8 +927,8 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
+		OutEnvironment.SetDefine(TEXT("USE_INVERSE_TONEMAPPING"), TonemapperIsDefined(ConfigBitmask, TonemapperInverseTonemapping));
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
-
 	}
 
 	/** Default constructor. */
@@ -1146,7 +1199,8 @@ public:
 #define VARIATION1(A) typedef FPostProcessTonemapPS<A> FPostProcessTonemapPS##A; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
-VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
+	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
+	VARIATION1(9)  VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13)
 
 #undef VARIATION1
 
@@ -1267,6 +1321,11 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	case 6: SetShaderTempl<6>(Context, bDoEyeAdaptation); break;
 	case 7: SetShaderTempl<7>(Context, bDoEyeAdaptation); break;
 	case 8: SetShaderTempl<8>(Context, bDoEyeAdaptation); break;
+	case 9: SetShaderTempl<9>(Context, bDoEyeAdaptation); break;
+	case 10: SetShaderTempl<10>(Context, bDoEyeAdaptation); break;
+	case 11: SetShaderTempl<11>(Context, bDoEyeAdaptation); break;
+	case 12: SetShaderTempl<12>(Context, bDoEyeAdaptation); break;
+	case 13: SetShaderTempl<13>(Context, bDoEyeAdaptation); break;
 	default:
 		check(0);
 	}
@@ -1368,7 +1427,7 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_MATRIX"),       TonemapperIsDefined(ConfigBitmask, TonemapperColorMatrix));
 		OutEnvironment.SetDefine(TEXT("USE_SHADOW_TINT"),        TonemapperIsDefined(ConfigBitmask, TonemapperShadowTint));
 		OutEnvironment.SetDefine(TEXT("USE_CONTRAST"),           TonemapperIsDefined(ConfigBitmask, TonemapperContrast));
-		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"),         TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR));
+		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"),          TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR));
 		OutEnvironment.SetDefine(TEXT("USE_BLOOM"),              TonemapperIsDefined(ConfigBitmask, TonemapperBloom));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_JITTER"),       TonemapperIsDefined(ConfigBitmask, TonemapperGrainJitter));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_INTENSITY"),    TonemapperIsDefined(ConfigBitmask, TonemapperGrainIntensity));
@@ -1580,7 +1639,15 @@ public:
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
-		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.Family->FrameNumber);
+		{
+			uint8 FrameIndexMod8 = 0;
+			if (Context.View.State)
+			{
+				FrameIndexMod8 = Context.View.State->GetFrameIndexMod8();
+			}
+			GrainRandomFromFrame(&GrainRandomFullValue, FrameIndexMod8);
+		}
+
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);

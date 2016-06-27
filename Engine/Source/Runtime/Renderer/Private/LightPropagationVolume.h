@@ -148,8 +148,8 @@ public:
 	void InjectDirectionalLightRSM(
 		FRHICommandListImmediate& RHICmdList,
 		FViewInfo&					View,
-		const FTexture2DRHIRef&		RsmDiffuseTex, 
 		const FTexture2DRHIRef&		RsmNormalTex, 
+		const FTexture2DRHIRef&		RsmDiffuseTex, 
 		const FTexture2DRHIRef&		RsmDepthTex, 
 		const FProjectedShadowInfo&	ProjectedShadowInfo,
 		const FLinearColor&			LightColour );

@@ -40,7 +40,7 @@ void Main(
 		float Accuracy = clamp(log2(CPUTexelFactor) - log2(GPUTexelFactor), -1.99, 1.99);
 		int ColorIndex = floor(Accuracy) + 2;
 
-		Result = lerp(AccuracyColors[ColorIndex], AccuracyColors[ColorIndex + 1], frac(Accuracy));
+		Result = lerp(AccuracyColors[ColorIndex].rgb, AccuracyColors[ColorIndex + 1].rgb, frac(Accuracy));
 	}
 
 	OutColor = RETURN_COLOR(float4(Result, .25f));

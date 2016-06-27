@@ -95,10 +95,6 @@ TArray<FString> OpNames;
 TArray<FString> OperandLocationNames;
 #endif
 
-#if ENABLE_VM_DEBUGGING
-FVectorVMDebuggerImpl* AttachedDebugger = NULL;
-#endif
-
 /**
  * Context information passed around during VM execution.
  */
@@ -149,68 +145,7 @@ struct FVectorVMContext
 	{
 	}
 
-	FORCEINLINE bool IsDebugging()
-	{
-#if ENABLE_VM_DEBUGGING
-		return AttachedDebugger != nullptr; 
-#else
-		return false;
-#endif
-	}
 	FORCEINLINE void SetOp(EVectorVMOp InOp){ CurrOp = InOp; }
-
-#if ENABLE_VM_DEBUGGING
-	FORCEINLINE void BeginOp(VectorVM::EVMType InType, int32 InNumArgs, int32 InNumInstancesPerOp)
-	{
-		if (AttachedDebugger)
-		{
-			AttachedDebugger->BeginOp(*this, InType, InNumArgs, InNumInstancesPerOp);
-		}
-	}
-
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handle, typename Arg2Handler, typename Arg3Handle>
-	FORCEINLINE void PreOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1 = DummyHandler, Arg2Handler& Arg2 = DummyHandler, Arg3Handler& Arg3 = DummyHandler)
-	{
-		if (AttachedDebugger)
-		{
-			AttachedDebugger->PreOp(*this, Dst, Arg0, Arg1, Arg2, Arg3);
-		}
-	}
-
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler>
-	FORCEINLINE void PostOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1 = DummyHandler, Arg2Handler& Arg2 = DummyHandler, Arg3Handler& Arg3 = DummyHandler)
-	{
-		if (AttachedDebugger)
-		{
-			AttachedDebugger->PostOp(*this, Dst, Arg0, Arg1, Arg2, Arg3);
-		}
-	}
-#else
-	FORCEINLINE void BeginOp(VectorVM::EVMType InType, int32 InNumArgs, int32 InNumInstancesPerOp) { }
-
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler>
-	FORCEINLINE void PreOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1, Arg2Handler& Arg2, Arg3Handler& Arg3){	}
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler>
-	FORCEINLINE void PostOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1, Arg2Handler& Arg2, Arg3Handler& Arg3){	}
-
-
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler>
-	FORCEINLINE void PreOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1, Arg2Handler& Arg2){	}
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler>
-	FORCEINLINE void PostOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1, Arg2Handler& Arg2){	}
-
-
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler>
-	FORCEINLINE void PreOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1){	}
-	template<typename DstHandler, typename Arg0Handler, typename Arg1Handler>
-	FORCEINLINE void PostOp(DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1){	}
-
-
-	template<typename DstHandler, typename Arg0Handler>
-	FORCEINLINE void PreOp(DstHandler& Dst, Arg0Handler& Arg0){	}
-	template<typename DstHandler, typename Arg0Handler>
-	FORCEINLINE void PostOp(DstHandler& Dst, Arg0Handler& Arg0){	}
-#endif
 };
 
 
@@ -251,10 +186,6 @@ struct FConstantHandlerBase
 	{}
 
 	VM_FORCEINLINE void Advance(){ }
-	VM_FORCEINLINE int32 GetLocationIndex(){ return ConstantIndex; }
-	VM_FORCEINLINE int32 GetSecondaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE int32 GetTertiaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE EVectorVMOperandLocation GetLocation(){ return EVectorVMOperandLocation::Constant; }
 };
 
 template<typename T>
@@ -291,10 +222,6 @@ struct FDataObjectConstantHandler
 		, Constant(Context.DataObjConstantTable[ConstantIndex])
 	{}
 	VM_FORCEINLINE void Advance(){ }
-	VM_FORCEINLINE int32 GetLocationIndex(){ return ConstantIndex; }
-	VM_FORCEINLINE int32 GetSecondaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE int32 GetTertiaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE EVectorVMOperandLocation GetLocation(){ return EVectorVMOperandLocation::DataObjConstant; }
 	VM_FORCEINLINE UNiagaraDataObject *Get(){ return Constant; }
 };
 
@@ -308,38 +235,6 @@ struct FRegisterHandlerBase
 	FRegisterHandlerBase(FVectorVMContext& Context)
 		: RegisterIndex(DecodeU8(Context))
 	{}
-	VM_FORCEINLINE int32 GetLocationIndex()
-	{
-		if (RegisterIndex < VectorVM::NumTempRegisters)
-		{
-			return RegisterIndex;
-		}
-		else if (RegisterIndex < VectorVM::NumTempRegisters + VectorVM::MaxInputRegisters)
-		{
-			return RegisterIndex - VectorVM::NumTempRegisters;
-		}
-		else
-		{
-			return RegisterIndex - (VectorVM::NumTempRegisters + VectorVM::MaxInputRegisters);
-		}
-	}
-	VM_FORCEINLINE int32 GetSecondaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE int32 GetTertiaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE EVectorVMOperandLocation GetLocation()
-	{
-		if (RegisterIndex < VectorVM::NumTempRegisters)
-		{
-			return EVectorVMOperandLocation::TemporaryRegister;
-		}
-		else if (RegisterIndex < VectorVM::NumTempRegisters + VectorVM::MaxInputRegisters)
-		{
-			return EVectorVMOperandLocation::InputRegister;
-		}
-		else
-		{ 
-			return EVectorVMOperandLocation::OutputRegister;
-		}
-	}
 };
 
 template<typename T, int32 NumInstancesPerOp=1>
@@ -404,12 +299,9 @@ struct TUnaryKernel
 		DstHandler Dst(Context);
 		Arg0Handler Arg0(Context);
 
-		Context.BeginOp(Kernel::Type, 1, Kernel::NumInstancesPerOp);
 		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
 		{
-			Context.PreOp<DstHandler, Arg0Handler>(Dst, Arg0);
 			Kernel::DoKernel(Dst.Get(), Arg0.Get());
-			Context.PostOp<DstHandler, Arg0Handler>(Dst, Arg0);
 			Dst.Advance();	Arg0.Advance();
 		}
 	}
@@ -423,12 +315,9 @@ struct TBinaryKernel
 		DstHandler Dst(Context); 
 		Arg0Handler Arg0(Context); 
 		Arg1Handler Arg1(Context);
-		Context.BeginOp(Kernel::Type, 2, Kernel::NumInstancesPerOp);
 		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
 		{
-			Context.PreOp<DstHandler, Arg0Handler, Arg1Handler>(Dst, Arg0, Arg1);
 			Kernel::DoKernel(Dst.Get(), Arg0.Get(), Arg1.Get());
-			Context.PostOp<DstHandler, Arg0Handler, Arg1Handler>(Dst, Arg0, Arg1);
 			Dst.Advance(); Arg0.Advance(); Arg1.Advance();
 		}
 	}
@@ -443,12 +332,9 @@ struct TTrinaryKernel
 		Arg0Handler Arg0(Context);
 		Arg1Handler Arg1(Context);
 		Arg2Handler Arg2(Context);
-		Context.BeginOp(Kernel::Type, 3, Kernel::NumInstancesPerOp);
 		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
 		{
-			Context.PreOp<DstHandler, Arg0Handler, Arg1Handler, Arg2Handler>(Dst, Arg0, Arg1, Arg2);
 			Kernel::DoKernel(Dst.Get(), Arg0.Get(), Arg1.Get(), Arg2.Get());
-			Context.PostOp<DstHandler, Arg0Handler, Arg1Handler, Arg2Handler>(Dst, Arg0, Arg1, Arg2);
 			Dst.Advance(); Arg0.Advance(); Arg1.Advance(); Arg2.Advance();
 		}
 	}
@@ -464,12 +350,9 @@ struct TQuaternaryKernel
 		Arg1Handler Arg1(Context);
 		Arg2Handler Arg2(Context);
 		Arg3Handler Arg3(Context);
-		Context.BeginOp(Kernel::Type, 4, Kernel::NumInstancesPerOp);
 		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
 		{
-			Context.PreOp<DstHandler, Arg0Handler, Arg1Handler, Arg2Handler, Arg3Handler>(Dst, Arg0, Arg1, Arg2, Arg3);
 			Kernel::DoKernel(Dst.Get(), Arg0.Get(), Arg1.Get(), Arg2.Get(), Arg3.Get());
-			Context.PostOp<DstHandler, Arg0Handler, Arg1Handler, Arg2Handler, Arg3Handler>(Dst, Arg0, Arg1, Arg2, Arg3);
 			Dst.Advance(); Arg0.Advance(); Arg1.Advance(); Arg2.Advance(); Arg3.Advance();
 		}
 	}
@@ -479,7 +362,6 @@ struct TQuaternaryKernel
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
 struct TUnaryVectorKernel
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
@@ -497,7 +379,6 @@ struct TUnaryVectorKernel
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
 struct TBinaryVectorKernel
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
@@ -520,7 +401,6 @@ struct TBinaryVectorKernel
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
 struct TBinaryVectorKernelData
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
@@ -540,7 +420,6 @@ struct TBinaryVectorKernelData
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
 struct TTrinaryVectorKernelData
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
@@ -560,7 +439,6 @@ struct TTrinaryVectorKernelData
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
 struct TTrinaryVectorKernel
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
@@ -584,7 +462,6 @@ struct TTrinaryVectorKernel
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
 struct TQuatenaryVectorKernel
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
@@ -1156,12 +1033,7 @@ struct FSharedDataHandlerBase
 	VM_FORCEINLINE void Advance(){ IndexRegisterHandler.Advance(); }
 	VM_FORCEINLINE int32 GetSharedDataIndex(){ return SharedDataIdx; }
 	VM_FORCEINLINE int32 GetVarIndex(){ return VarIndex; }
-	VM_FORCEINLINE EVectorVMOperandLocation GetLocation(){ return EVectorVMOperandLocation::SharedData; }
 	VM_FORCEINLINE int32 GetDataIndex(){ return IndexRegisterHandler.Get(); }
-
-	VM_FORCEINLINE int32 GetLocationIndex(){ return GetSharedDataIndex(); }
-	VM_FORCEINLINE int32 GetSecondaryIndex(){ return GetVarIndex(); }
-	VM_FORCEINLINE int32 GetTertiaryIndex(){ return GetDataIndex(); }
 };
 
 struct FSharedDataHandler : public FSharedDataHandlerBase
@@ -1199,7 +1071,6 @@ Temporary Vector only version of this.
 */
 struct FVectorKernelSharedDataWrite : public TUnaryKernel<FVectorKernelSharedDataWrite, FSharedDataDestHandler, FRegisterHandler<VectorRegister>>
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void VM_FORCEINLINE DoKernel(VectorRegister* Buffer, VectorRegister Data)
 	{
@@ -1212,7 +1083,6 @@ Temporary Vector only version of this.
 */
 struct FVectorKernelSharedDataRead : public TUnaryKernel<FVectorKernelSharedDataRead, FRegisterDestHandler<VectorRegister>, FSharedDataHandler>
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Data)
 	{
@@ -1227,13 +1097,7 @@ struct FSharedDataIndexHandlerBase
 	FVectorVMSharedDataView& SharedData;
 
 	VM_FORCEINLINE void Advance(){}
-	VM_FORCEINLINE EVectorVMOperandLocation GetLocation(){ return EVectorVMOperandLocation::Undefined; }
-	VM_FORCEINLINE int32 GetLocationIndex(){ return SharedDataIndex; }
-	VM_FORCEINLINE int32 GetSecondaryIndex(){ return INDEX_NONE; }
-	VM_FORCEINLINE int32 GetTertiaryIndex(){ return INDEX_NONE; }
-
 	int32 Get(){ return CurrIndex; }
-
 	FSharedDataIndexHandlerBase(FVectorVMContext& Context) 
 		: SharedDataIndex(DecodeU8(Context))
 		, SharedData(Context.SharedDataTable[SharedDataIndex])
@@ -1264,7 +1128,6 @@ struct FSharedDataIndexHandler_ConsumeWrap : public FSharedDataIndexHandlerBase
 template <typename IndexHandler>
 struct FKernelSharedDataGetAppendIndexBase
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
@@ -1272,16 +1135,12 @@ struct FKernelSharedDataGetAppendIndexBase
 		FRegisterHandler<float, 4> ValidSrc(Context);
 		IndexHandler IdxHandler(Context);
 		int32 NumInstances = Context.NumInstances;
-		Context.BeginOp(VectorVM::EVMType::Vector4, 2, 1);
 		for (int32 i = 0; i < NumInstances; ++i)
 		{
-			Context.PreOp<FRegisterDestHandler<int32, 4>, FRegisterHandler<float, 4>, IndexHandler>(IndexDest, ValidSrc, IdxHandler);
-
 			int32 Index = ValidSrc.Get() > 0.0f ? IdxHandler.GetNextIndex() : INDEX_NONE;
 			int32* Dest = IndexDest.Get();
 			Dest[0] = Index; Dest[1] = Index; Dest[2] = Index; Dest[3] = Index;
 
-			Context.PostOp<FRegisterDestHandler<int32, 4>, FRegisterHandler<float, 4>, IndexHandler>(IndexDest, ValidSrc, IdxHandler);
 			ValidSrc.Advance();
 			IndexDest.Advance();
 			IdxHandler.Advance();
@@ -1296,7 +1155,6 @@ typedef FKernelSharedDataGetAppendIndexBase<FSharedDataIndexHandler_AcquireWrap>
 template<typename IndexHandler>
 struct FKernelSharedDataGetConsumeIndexBase
 {
-	static const VectorVM::EVMType Type = VectorVM::EVMType::Vector4;
 	static const int32 NumInstancesPerOp = 1;
 
 	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
@@ -1304,16 +1162,12 @@ struct FKernelSharedDataGetConsumeIndexBase
 		FRegisterDestHandler<int32, 4> IndexDest(Context);
 		IndexHandler IdxHandler(Context);
 		int32 NumInstances = Context.NumInstances;
-		Context.BeginOp(VectorVM::EVMType::Vector4, 1, 1);
 		for (int32 i = 0; i < NumInstances; ++i)
 		{
-			Context.PreOp<FRegisterDestHandler<int32, 4>, IndexHandler>(IndexDest, IdxHandler);
-
 			int32 Index = IdxHandler.GetNextIndex();
 			//Better to just stay in int pipeline?
 			*IndexDest.Get() = Index;//Only need index in X;
 
-			Context.PostOp<FRegisterDestHandler<int32, 4>, IndexHandler>(IndexDest, IdxHandler);
 			IndexDest.Advance();
 			IdxHandler.Advance();
 		}
@@ -1332,18 +1186,14 @@ struct FKernelSharedDataIndexValid
 		FRegisterHandler<int32, 4> IndexSrc(Context);
 		FVectorVMSharedDataView& SharedData = Context.SharedDataTable[DecodeU8(Context)];
 		int32 NumInstances = Context.NumInstances;
-		Context.BeginOp(VectorVM::EVMType::Vector4, 1, 1);
 		for (int32 i = 0; i < NumInstances; ++i)
 		{
-			Context.PreOp<FRegisterDestHandler<float, 4>, FRegisterHandler<int32, 4>>(ValidDest, IndexSrc);
-
 			int32 Index = IndexSrc.Get();
 			float Valid = SharedData.ValidIndex(Index) ? 1.0f : 0.0f;
 			//Better to just stay in int pipeline?
 			float* Dst = ValidDest.Get();
 			Dst[0] = Valid; Dst[1] = Valid; Dst[2] = Valid; Dst[3] = Valid;
 
-			Context.PostOp<FRegisterDestHandler<float, 4>, FRegisterHandler<int32, 4>>(ValidDest, IndexSrc);
 			ValidDest.Advance();
 			IndexSrc.Advance();;
 		}
@@ -1568,16 +1418,7 @@ void VectorVM::Exec(
 			case EVectorVMOp::select: FVectorKernelSelect::Exec(Context); break;
 			case EVectorVMOp::output:
 			{
-#if ENABLE_VM_DEBUGGING
-				if (Context.IsDebugging())
-				{
-					FVectorKernelOutputStreamed::Exec(Context);
-				}
-				else
-#endif
-				{
-					FVectorKernelOutput::Exec(Context);
-				}
+				FVectorKernelOutput::Exec(Context);
 			}
 				break;
 
@@ -1612,137 +1453,5 @@ FString VectorVM::GetOperandLocationName(EVectorVMOperandLocation Location)
 	return OperandLocationNames[(int32)Location];
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-#if ENABLE_VM_DEBUGGING
-
-void FVectorVMDebuggerImpl::BeginOp(FVectorVMContext& Context, VectorVM::EVMType InType, int32 InNumArgs, int32 InNumInstancesPerOp)
-{
-	CurrOp = Context.CurrOp;
-	OpType = InType;
-	CurrNumArgs = InNumArgs;
-	NumInstancesPerOp = InNumInstancesPerOp;
-	CurrInstanceBase = StartInstance + Context.StartInstance;
-}
-
-template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler>
-void FVectorVMDebuggerImpl::PreOp(FVectorVMContext& Context, DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1, Arg2Handler& Arg2, Arg3Handler& Arg3)
-{
-	CachedPreOpData[(int32)VectorVM::EKernelArgs::Dest].Set(Dst.GetValue());
-	CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg0].Set(Arg0.Get());
-	CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg1].Set(Arg1.Get());
-	CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg2].Set(Arg2.Get());
-	CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg3].Set(Arg3.Get());
-}
-
-template<typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler >
-void FVectorVMDebuggerImpl::PostOp(FVectorVMContext& Context, DstHandler& Dst, Arg0Handler& Arg0, Arg1Handler& Arg1, Arg2Handler& Arg2, Arg3Handler& Arg3)
-{
-	for (int32 i = 0; i < NumInstancesPerOp; ++i)
-	{
-		if (TArray<VectorVM::FOpDebugInfo>* Info = DebugInfo.Find(CurrInstanceBase + i))
-		{
-			TArray<VectorVM::FOpDebugInfo>& InfoArray = *Info;
-			int32 NewIdx = InfoArray.AddUninitialized();
-			VectorVM::FOpDebugInfo& NewInfo = InfoArray[NewIdx];
-			NewInfo.NumArgs = CurrNumArgs;
-			NewInfo.Op = CurrOp;
-			NewInfo.OpType = OpType;
-			NewInfo.LocationInfo[(int32)VectorVM::EKernelArgs::Dest] = VectorVM::FDataLocationInfo(Context, Dst.GetLocation(), Dst.GetLocationIndex(), Dst.GetSecondaryIndex(), Dst.GetTertiaryIndex());
-			NewInfo.LocationInfo[(int32)VectorVM::EKernelArgs::Arg0] = VectorVM::FDataLocationInfo(Context, Arg0.GetLocation(), Arg0.GetLocationIndex(), Arg0.GetSecondaryIndex(), Arg0.GetTertiaryIndex());;
-			NewInfo.LocationInfo[(int32)VectorVM::EKernelArgs::Arg1] = VectorVM::FDataLocationInfo(Context, Arg1.GetLocation(), Arg1.GetLocationIndex(), Arg1.GetSecondaryIndex(), Arg1.GetTertiaryIndex());;
-			NewInfo.LocationInfo[(int32)VectorVM::EKernelArgs::Arg2] = VectorVM::FDataLocationInfo(Context, Arg2.GetLocation(), Arg2.GetLocationIndex(), Arg2.GetSecondaryIndex(), Arg2.GetTertiaryIndex());;
-			NewInfo.LocationInfo[(int32)VectorVM::EKernelArgs::Arg3] = VectorVM::FDataLocationInfo(Context, Arg3.GetLocation(), Arg3.GetLocationIndex(), Arg3.GetSecondaryIndex(), Arg3.GetTertiaryIndex());;
-
-			NewInfo.PreOpValues[(int32)VectorVM::EKernelArgs::Dest] = CachedPreOpData[(int32)VectorVM::EKernelArgs::Dest];
-			NewInfo.PreOpValues[(int32)VectorVM::EKernelArgs::Arg0] = CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg0];
-			NewInfo.PreOpValues[(int32)VectorVM::EKernelArgs::Arg1] = CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg1];
-			NewInfo.PreOpValues[(int32)VectorVM::EKernelArgs::Arg2] = CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg2];
-			NewInfo.PreOpValues[(int32)VectorVM::EKernelArgs::Arg3] = CachedPreOpData[(int32)VectorVM::EKernelArgs::Arg3];
-
-			NewInfo.PostOpValues[(int32)VectorVM::EKernelArgs::Dest].Set(Dst.GetValue());
-			NewInfo.PostOpValues[(int32)VectorVM::EKernelArgs::Arg0].Set(Arg0.Get());
-			NewInfo.PostOpValues[(int32)VectorVM::EKernelArgs::Arg1].Set(Arg1.Get());
-			NewInfo.PostOpValues[(int32)VectorVM::EKernelArgs::Arg2].Set(Arg2.Get());
-			NewInfo.PostOpValues[(int32)VectorVM::EKernelArgs::Arg3].Set(Arg3.Get());
-		}
-	}
-	CurrInstanceBase += NumInstancesPerOp;
-}
-
-void VectorVM::AttachDebugger(VectorVM::FVectorVMDebugger* Debugger)
-{
-	check(IsInGameThread());
-	check(Debugger);
-	check(AttachedDebugger == NULL);
-	AttachedDebugger = Debugger->GetImpl();
-}
-
-void VectorVM::DetachDebugger(VectorVM::FVectorVMDebugger* Debugger)
-{
-	check(IsInGameThread());
-	check(Debugger);
-	check(AttachedDebugger == Debugger->GetImpl());
-	AttachedDebugger = NULL;
-}
-
-VectorVM::FVectorVMDebugger::FVectorVMDebugger()
-: Impl(new FVectorVMDebuggerImpl())
-{
-
-}
-
-VectorVM::FVectorVMDebugger::~FVectorVMDebugger()
-{
-	if (Impl)
-	{
-		delete Impl;
-	}
-}
-
-void VectorVM::FVectorVMDebugger::AddInstanceToGather(int32 Instance)
-{
-	check(Impl);
-	Impl->DebugInfo.Add(Instance);
-}
-
-const TArray<VectorVM::FOpDebugInfo>* VectorVM::FVectorVMDebugger::GetDebugInfoForInstance(int32 Instance)
-{
-	check(Impl);
-	return Impl->DebugInfo.Find(Instance);
-}
-
-FVectorVMDebuggerImpl* VectorVM::FVectorVMDebugger::GetImpl()
-{
-	return Impl;
-}
-
-void VectorVM::FVectorVMDebugger::InitForScriptRun(int32 StartInstance, const TArray<int32> InstancesToDebug)
-{
-	Impl->InitForScriptRun(StartInstance, InstancesToDebug);
-}
-
-VectorVM::FDataLocationInfo::FDataLocationInfo(FVectorVMContext& Context, EVectorVMOperandLocation InLocation, int32 InPrimaryIndex, int32 InSecondaryIndex, int32 InTertiaryIndex)
-: Location(InLocation)
-, PrimaryLocationIndex(InPrimaryIndex)
-, SecondaryLocationIndex(InSecondaryIndex)
-, TertiaryLocationIndex(InTertiaryIndex)
-{
-	switch (Location)
-	{
-	case EVectorVMOperandLocation::Constant: MemoryAddress = &Context.ConstantTable[PrimaryLocationIndex]; break;
-	case EVectorVMOperandLocation::TemporaryRegister: MemoryAddress = &Context.RegisterTable[PrimaryLocationIndex]; break;
-	case EVectorVMOperandLocation::InputRegister: MemoryAddress = &Context.RegisterTable[NumTempRegisters + PrimaryLocationIndex]; break;
-	case EVectorVMOperandLocation::OutputRegister: MemoryAddress = &Context.ConstantTable[NumTempRegisters + MaxInputRegisters + PrimaryLocationIndex]; break;
-	case EVectorVMOperandLocation::SharedData:
-	{
-												 FVectorVMSharedDataView& SharedData = Context.SharedDataTable[PrimaryLocationIndex];
-												 MemoryAddress = SharedData.GetReadBuffer(SecondaryLocationIndex, TertiaryLocationIndex);
-	} break;
-	default: MemoryAddress = nullptr; break;
-	};
-}
-
-#endif 
 
 #undef VM_FORCEINLINE

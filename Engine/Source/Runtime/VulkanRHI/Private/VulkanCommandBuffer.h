@@ -46,6 +46,11 @@ public:
 		return State == EState::HasEnded;
 	}
 
+	inline bool IsSubmitted() const
+	{
+		return State == EState::Submitted;
+	}
+
 	inline VkCommandBuffer GetHandle()
 	{
 		return CommandBufferHandle;

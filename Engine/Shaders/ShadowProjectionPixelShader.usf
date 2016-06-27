@@ -222,9 +222,17 @@ void MainOnePassPointLightPS(
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
  	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
+	// For debugging
+#define OUTPUT_CUBE_SHADOW_DEPTH_NO_FILTERING 0
+#if OUTPUT_CUBE_SHADOW_DEPTH_NO_FILTERING
+	float3 LightVector = LightPositionAndInvRadius.xyz - WorldPosition.xyz;
+	// Note: point light shadow depth is Z / W, not linear
+	float Shadow = TextureCubeSampleLevel(ShadowDepthCubeTexture, ShadowDepthTextureSampler, LightVector, 0);
+#else
  	float Shadow = CubemapHardwarePCF(WorldPosition, LightPositionAndInvRadius.xyz, LightPositionAndInvRadius.w, PointLightDepthBiasParameters.x);
 
 	Shadow = saturate( (Shadow - 0.5) * ShadowSharpen + 0.5 );
+#endif
 
 	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
 	// Light attenuation buffer has been remapped. 

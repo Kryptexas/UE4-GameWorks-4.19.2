@@ -2242,6 +2242,7 @@ private:
 	/** Calculates incident radiance for a given world space position. */
 	void CalculateVolumeSampleIncidentRadiance(
 		const TArray<FVector4>& UniformHemisphereSamples,
+		const TArray<FVector2D>& UniformHemisphereSampleUniforms,
 		float MaxUnoccludedLength,
 		FVolumeLightingSample& LightingSample,
 		FLMRandomStream& RandomStream,
@@ -2374,6 +2375,7 @@ private:
 		int32 ElementIndex,
 		int32 BounceNumber,
 		int32 NumAdaptiveRefinementLevels,
+		float BrightnessThresholdScale,
 		const TArray<FVector4>& UniformHemisphereSamples,
 		const TArray<FVector2D>& UniformHemisphereSampleUniforms,
 		float MaxUnoccludedLength,

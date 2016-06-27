@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// ...
+// ..
 
 #include "VulkanShaderFormat.h"
 #include "Core.h"
@@ -191,30 +191,26 @@ uint32 ParseNumber(const T* Str)
 
 static inline FString GetExtension(EHlslShaderFrequency Frequency, bool bAddDot = true)
 {
+	const TCHAR* Name = nullptr;
 	switch (Frequency)
 	{
 	default:
 		check(0);
 		// fallthrough...
 
-	case HSF_PixelShader:
-		return bAddDot ? TEXT(".frag") : TEXT("frag");
-
-	case HSF_VertexShader:
-		return bAddDot ? TEXT(".vert") : TEXT("vert");
-
-	case HSF_ComputeShader:
-		return bAddDot ? TEXT(".comp") : TEXT("comp");
-
-	case HSF_GeometryShader:
-		return bAddDot ? TEXT(".geom") : TEXT("geom");
-
-	case HSF_HullShader:
-		return bAddDot ? TEXT(".tesc") : TEXT("tesc");
-
-	case HSF_DomainShader:
-		return bAddDot ? TEXT(".tese") : TEXT("tese");
+	case HSF_PixelShader:		Name = TEXT(".frag"); break;
+	case HSF_VertexShader:		Name = TEXT(".vert"); break;
+	case HSF_ComputeShader:		Name = TEXT(".comp"); break;
+	case HSF_GeometryShader:	Name = TEXT(".geom"); break;
+	case HSF_HullShader:		Name = TEXT(".tesc"); break;
+	case HSF_DomainShader:		Name = TEXT(".tese"); break;
 	}
+
+	if (bAddDot)
+	{
+		++Name;
+	}
+	return FString(Name);
 }
 
 static uint32 GetTypeComponents(const FString& Type)

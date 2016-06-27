@@ -32,7 +32,6 @@ DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcess
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, TEXT("InstancedView"));
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FForwardLightData,TEXT("ForwardLightData"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
 
 FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
@@ -2081,7 +2080,7 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 static bool PlatformSupportsDebugViewShaders(EShaderPlatform Platform)
 {
 	// List of platforms that have been tested and proven functional. 
-	return Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5 || Platform == SP_OPENGL_SM4;
+	return Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5 || Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_METAL_SM4;
 }
 
 bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
@@ -2136,160 +2135,4 @@ bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode)
 	return AllowDebugViewPS(ShaderMode, GMaxRHIShaderPlatform);
 }
 
-
-class FConsoleVariableAutoCompleteVisitor 
-{
-public:
-	// @param Name must not be 0
-	// @param CVar must not be 0
-	static void OnConsoleVariable(const TCHAR *Name, IConsoleObject* CObj, uint32& Crc)
-	{
-		IConsoleVariable* CVar = CObj->AsVariable();
-		if(CVar)
-		{
-			if(CObj->TestFlags(ECVF_Scalability) || CObj->TestFlags(ECVF_ScalabilityGroup))
-			{
-				// float should work on int32 as well
-				float Value = CVar->GetFloat();
-				Crc = FCrc::MemCrc32(&Value, sizeof(Value), Crc);
-			}
-		}
-	}
-};
-static uint32 ComputeScalabilityCVarHash()
-{
-	uint32 Ret = 0;
-
-	IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(FConsoleObjectVisitor::CreateStatic< uint32& >(&FConsoleVariableAutoCompleteVisitor::OnConsoleVariable, Ret));
-
-	return Ret;
-}
-
-static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	auto Family = InView.Family;
-	// if r.DisplayInternals != 0
-	if(Family->EngineShowFlags.OnScreenDebug && Family->DisplayInternalsData.IsValid())
-	{
-		// could be 0
-		auto State = InView.State;
-
-		FCanvas Canvas((FRenderTarget*)Family->RenderTarget, NULL, Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime, InView.GetFeatureLevel());
-		Canvas.SetRenderTargetRect(FIntRect(0, 0, Family->RenderTarget->GetSizeXY().X, Family->RenderTarget->GetSizeXY().Y));
-
-		SetRenderTarget(RHICmdList, Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
-
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
-		// further down to not intersect with "LIGHTING NEEDS TO BE REBUILT"
-		FVector2D Pos(30, 140);
-		const int32 FontSizeY = 14;
-
-		// dark background
-		const uint32 BackgroundHeight = 28;
-		Canvas.DrawTile(Pos.X - 4, Pos.Y - 4, 500 + 8, FontSizeY * BackgroundHeight + 8, 0, 0, 1, 1, FLinearColor(0,0,0,0.6f), 0, true);
-
-		UFont* Font = GEngine->GetSmallFont();
-		FCanvasTextItem SmallTextItem( Pos, FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-
-		SmallTextItem.SetColor(FLinearColor::White);
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("r.DisplayInternals = %d"), Family->DisplayInternalsData.DisplayInternalsCVarValue));
-		Canvas.DrawItem(SmallTextItem, Pos);
-		SmallTextItem.SetColor(FLinearColor::Gray);
-		Pos.Y += 2 * FontSizeY;
-
-#define CANVAS_HEADER(txt) \
-		{ \
-			SmallTextItem.SetColor(FLinearColor::Gray); \
-			SmallTextItem.Text = FText::FromString(txt); \
-			Canvas.DrawItem(SmallTextItem, Pos); \
-			Pos.Y += FontSizeY; \
-		}
-#define CANVAS_LINE(bHighlight, txt, ... ) \
-		{ \
-			SmallTextItem.SetColor(bHighlight ? FLinearColor::Red : FLinearColor::Gray); \
-			SmallTextItem.Text = FText::FromString(FString::Printf(txt, __VA_ARGS__)); \
-			Canvas.DrawItem(SmallTextItem, Pos); \
-			Pos.Y += FontSizeY; \
-		}
-
-		CANVAS_HEADER(TEXT("command line options:"))
-		{
-			bool bHighlight = !(FApp::UseFixedTimeStep() && FApp::bUseFixedSeed);
-			CANVAS_LINE(bHighlight, TEXT("  -UseFixedTimeStep: %u"), FApp::UseFixedTimeStep())
-			CANVAS_LINE(bHighlight, TEXT("  -FixedSeed: %u"), FApp::bUseFixedSeed)
-			CANVAS_LINE(false, TEXT("  -gABC= (changelist): %d"), GetChangeListNumberForPerfTesting())
-		}
-
-		CANVAS_HEADER(TEXT("Global:"))
-		CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
-		CANVAS_LINE(false, TEXT("  Scalability CVar Hash: %x (use console command \"Scalability\")"), ComputeScalabilityCVarHash())
-		//not really useful as it is non deterministic and should not be used for rendering features:  CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
-		CANVAS_LINE(false, TEXT("  FrameCounter: %u"), GFrameCounter)
-		CANVAS_LINE(false, TEXT("  rand()/SRand: %x/%x"), FMath::Rand(), FMath::GetRandSeed())
-		{
-			bool bHighlight = Family->DisplayInternalsData.NumPendingStreamingRequests != 0;
-			CANVAS_LINE(bHighlight, TEXT("  FStreamAllResourcesLatentCommand: %d"), bHighlight)
-		}
-		{
-			static auto* Var = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.FramesForFullUpdate"));
-			int32 Value = Var->GetValueOnRenderThread();
-			bool bHighlight = Value != 0;
-			CANVAS_LINE(bHighlight, TEXT("  r.Streaming.FramesForFullUpdate: %u%s"), Value, bHighlight ? TEXT(" (should be 0)") : TEXT(""));
-		}
-
-		if(State)
-		{
-			CANVAS_HEADER(TEXT("State:"))
-				CANVAS_LINE(false, TEXT("  TemporalAASample: %u"), State->GetCurrentTemporalAASampleIndex())
-				CANVAS_LINE(false, TEXT("  FrameIndexMod8: %u"), State->GetFrameIndexMod8())
-				CANVAS_LINE(false, TEXT("  LODTransition: %.2f"), State->GetTemporalLODTransition())
-		}
-
-		CANVAS_HEADER(TEXT("Family:"))
-		CANVAS_LINE(false, TEXT("  Time (Real/World/DeltaWorld): %.2f/%.2f/%.2f"), Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime)
-		CANVAS_LINE(false, TEXT("  MatineeTime: %f"), Family->DisplayInternalsData.MatineeTime)
-		CANVAS_LINE(false, TEXT("  FrameNumber: %u"), Family->FrameNumber)
-		CANVAS_LINE(false, TEXT("  ExposureSettings: %s"), *Family->ExposureSettings.ToString())
-		CANVAS_LINE(false, TEXT("  GammaCorrection: %.2f"), Family->GammaCorrection)
-
-		CANVAS_HEADER(TEXT("View:"))
-		CANVAS_LINE(false, TEXT("  TemporalJitter: %.2f/%.2f"), InView.TemporalJitterPixelsX, InView.TemporalJitterPixelsY)
-		CANVAS_LINE(false, TEXT("  ViewProjectionMatrix Hash: %x"), InView.ViewProjectionMatrix.ComputeHash())
-		CANVAS_LINE(false, TEXT("  ViewLocation: %s"), *InView.ViewLocation.ToString())
-		CANVAS_LINE(false, TEXT("  ViewRotation: %s"), *InView.ViewRotation.ToString())
-		CANVAS_LINE(false, TEXT("  ViewRect: %s"), *InView.ViewRect.ToString())
-
-#undef CANVAS_LINE
-
-		Canvas.Flush_RenderThread(RHICmdList);
-	}
-#endif
-}
-
-TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
-{
-	class FRendererViewExtension : public ISceneViewExtension
-	{
-	public:
-		virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) {}
-		virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) {}
-		virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) {}
-		virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
-		virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
-		virtual int32 GetPriority() const { return 0; }
-		virtual void PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
-		{
-			DisplayInternals(RHICmdList, InView);
-		}
-	};
-	TSharedPtr<FRendererViewExtension, ESPMode::ThreadSafe> ptr(new FRendererViewExtension);
-	return StaticCastSharedPtr<ISceneViewExtension>(ptr);
-}
-
-#endif
-
-
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

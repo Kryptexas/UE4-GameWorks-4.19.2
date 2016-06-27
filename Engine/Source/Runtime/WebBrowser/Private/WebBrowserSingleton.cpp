@@ -278,7 +278,8 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	bool bThumbMouseButtonNavigation,
 	TOptional<FString> ContentsToLoad, 
 	bool ShowErrorMessage,
-	FColor BackgroundColor)
+	FColor BackgroundColor,
+	int BrowserFrameRate )
 {
 #if WITH_CEF3
 	static bool AllowCEF = !FParse::Param(FCommandLine::Get(), TEXT("nocef"));
@@ -309,7 +310,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 		{
 			// Use off screen rendering so we can integrate with our windows
 			WindowInfo.SetAsWindowless(nullptr, bUseTransparency);
-			BrowserSettings.windowless_frame_rate = 24;
+			BrowserSettings.windowless_frame_rate = BrowserFrameRate;
 		}
 
 
@@ -360,6 +361,19 @@ bool FWebBrowserSingleton::Tick(float DeltaTime)
 		}
 	}
 	CefDoMessageLoopWork();
+
+	// Update video buffering for any windows that need it
+	for (int32 Index = 0; Index < WindowInterfaces.Num(); Index++)
+	{
+		if (WindowInterfaces[Index].IsValid())
+		{
+			TSharedPtr<FWebBrowserWindow> BrowserWindow = WindowInterfaces[Index].Pin();
+			if (BrowserWindow.IsValid())
+			{
+				BrowserWindow->UpdateVideoBuffering();
+			}
+		}
+	}
 #endif
 	return true;
 }

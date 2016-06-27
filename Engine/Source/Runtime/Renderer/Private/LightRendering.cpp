@@ -511,7 +511,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					if ( LightSceneInfo.Proxy->HasReflectiveShadowMap() )
 					{
 						INC_DWORD_STAT(STAT_NumReflectiveShadowMapLights);
-						RenderReflectiveShadowMaps( RHICmdList, &LightSceneInfo );
+						InjectReflectiveShadowMaps(RHICmdList, &LightSceneInfo);
 						bRenderedRSM = true;
 					}
 				}
@@ -596,10 +596,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					bool bClearToWhite = true;
 					SceneContext.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
 
-					bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
-					// Render non-modulated projected shadows to the attenuation buffer.
-					RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
-				
+					RenderShadowProjections(RHICmdList, &LightSceneInfo, bInjectedTranslucentVolume);
+
 					bUsedLightAttenuation = true;
 				}
 

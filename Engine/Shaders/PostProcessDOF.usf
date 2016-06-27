@@ -77,7 +77,7 @@ float4 ReadFullResAndDepth(float2 UV, in out float Depth)
 void SetupPS(
 	noperspective float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor0 : SV_Target0
-#if MRT_COUNT > 0
+#if MRT_COUNT > 1
 	, out float4 OutColor1 : SV_Target1
 #endif
 	)

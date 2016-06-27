@@ -59,15 +59,16 @@
             this.quitToolStripMenuQuit = new System.Windows.Forms.ToolStripMenuItem();
             this.actionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.MenuItemGenerateHTMLReport = new System.Windows.Forms.ToolStripMenuItem();
+            this.generateHTMLReportWithThumbnailsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.howToUseWithUnrealEngineToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.saveFileDialogExport = new System.Windows.Forms.SaveFileDialog();
+            this.buttonRefresh = new System.Windows.Forms.Button();
             this.textBoxCountToFail = new ImageValidator.NumericTextBox();
             this.textBoxThreshold = new ImageValidator.NumericTextBox();
-            this.generateHTMLReportWithThumbnailsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxTest)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxDiff)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxRef)).BeginInit();
@@ -103,7 +104,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxRefDir.Location = new System.Drawing.Point(121, 44);
             this.textBoxRefDir.Name = "textBoxRefDir";
-            this.textBoxRefDir.Size = new System.Drawing.Size(738, 20);
+            this.textBoxRefDir.Size = new System.Drawing.Size(647, 20);
             this.textBoxRefDir.TabIndex = 2;
             this.textBoxRefDir.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBoxRefDir_KeyDown);
             // 
@@ -172,9 +173,9 @@
             // buttonPickRefFolder
             // 
             this.buttonPickRefFolder.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonPickRefFolder.Location = new System.Drawing.Point(865, 44);
+            this.buttonPickRefFolder.Location = new System.Drawing.Point(774, 44);
             this.buttonPickRefFolder.Name = "buttonPickRefFolder";
-            this.buttonPickRefFolder.Size = new System.Drawing.Size(32, 21);
+            this.buttonPickRefFolder.Size = new System.Drawing.Size(32, 20);
             this.buttonPickRefFolder.TabIndex = 11;
             this.buttonPickRefFolder.Text = "...";
             this.buttonPickRefFolder.UseVisualStyleBackColor = true;
@@ -184,18 +185,18 @@
             // 
             this.textBoxTestDir.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxTestDir.Location = new System.Drawing.Point(121, 97);
+            this.textBoxTestDir.Location = new System.Drawing.Point(121, 70);
             this.textBoxTestDir.Name = "textBoxTestDir";
-            this.textBoxTestDir.Size = new System.Drawing.Size(738, 20);
+            this.textBoxTestDir.Size = new System.Drawing.Size(647, 20);
             this.textBoxTestDir.TabIndex = 5;
             this.textBoxTestDir.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBoxTestDir_KeyDown);
             // 
             // buttonPickTestFolder
             // 
             this.buttonPickTestFolder.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonPickTestFolder.Location = new System.Drawing.Point(865, 97);
+            this.buttonPickTestFolder.Location = new System.Drawing.Point(774, 70);
             this.buttonPickTestFolder.Name = "buttonPickTestFolder";
-            this.buttonPickTestFolder.Size = new System.Drawing.Size(32, 21);
+            this.buttonPickTestFolder.Size = new System.Drawing.Size(32, 20);
             this.buttonPickTestFolder.TabIndex = 7;
             this.buttonPickTestFolder.Text = "...";
             this.buttonPickTestFolder.UseVisualStyleBackColor = true;
@@ -204,7 +205,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(225, 73);
+            this.label3.Location = new System.Drawing.Point(312, 106);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(86, 13);
             this.label3.TabIndex = 10;
@@ -214,7 +215,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(55, 100);
+            this.label4.Location = new System.Drawing.Point(55, 73);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(60, 13);
             this.label4.TabIndex = 4;
@@ -224,7 +225,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(34, 73);
+            this.label2.Location = new System.Drawing.Point(121, 106);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(81, 13);
             this.label2.TabIndex = 8;
@@ -346,6 +347,13 @@
             this.MenuItemGenerateHTMLReport.Text = "Generate HTML Report";
             this.MenuItemGenerateHTMLReport.Click += new System.EventHandler(this.MenuItemGenerateHTMLReport_Click);
             // 
+            // generateHTMLReportWithThumbnailsToolStripMenuItem
+            // 
+            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Name = "generateHTMLReportWithThumbnailsToolStripMenuItem";
+            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Size = new System.Drawing.Size(287, 22);
+            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Text = "Generate HTML Report with Thumbnails";
+            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Click += new System.EventHandler(this.MenuItemGenerateHTMLReportWithT_Click);
+            // 
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -385,10 +393,22 @@
             this.saveFileDialogExport.DefaultExt = "html";
             this.saveFileDialogExport.Filter = "HTML files|*.html;*htm|All files|*.*";
             // 
+            // Refresh
+            // 
+            this.buttonRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonRefresh.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.buttonRefresh.Location = new System.Drawing.Point(812, 44);
+            this.buttonRefresh.Name = "Refresh";
+            this.buttonRefresh.Size = new System.Drawing.Size(85, 79);
+            this.buttonRefresh.TabIndex = 14;
+            this.buttonRefresh.Text = "Refresh";
+            this.buttonRefresh.UseVisualStyleBackColor = true;
+            this.buttonRefresh.Click += new System.EventHandler(this.Refresh_Click);
+            // 
             // textBoxCountToFail
             // 
             this.textBoxCountToFail.AllowSpace = false;
-            this.textBoxCountToFail.Location = new System.Drawing.Point(317, 70);
+            this.textBoxCountToFail.Location = new System.Drawing.Point(404, 103);
             this.textBoxCountToFail.Name = "textBoxCountToFail";
             this.textBoxCountToFail.Size = new System.Drawing.Size(49, 20);
             this.textBoxCountToFail.TabIndex = 9;
@@ -399,7 +419,7 @@
             // textBoxThreshold
             // 
             this.textBoxThreshold.AllowSpace = false;
-            this.textBoxThreshold.Location = new System.Drawing.Point(121, 70);
+            this.textBoxThreshold.Location = new System.Drawing.Point(208, 103);
             this.textBoxThreshold.Name = "textBoxThreshold";
             this.textBoxThreshold.Size = new System.Drawing.Size(49, 20);
             this.textBoxThreshold.TabIndex = 7;
@@ -407,18 +427,12 @@
             this.textBoxThreshold.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.textBoxThreshold.TextChanged += new System.EventHandler(this.textBoxThreshold_TextChanged);
             // 
-            // generateHTMLReportWithThumbnailsToolStripMenuItem
-            // 
-            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Name = "generateHTMLReportWithThumbnailsToolStripMenuItem";
-            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Size = new System.Drawing.Size(287, 22);
-            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Text = "Generate HTML Report with Thumbnails";
-            this.generateHTMLReportWithThumbnailsToolStripMenuItem.Click += new System.EventHandler(this.MenuItemGenerateHTMLReportWithT_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(909, 643);
+            this.Controls.Add(this.buttonRefresh);
             this.Controls.Add(this.buttonPickRefFolder);
             this.Controls.Add(this.pictureBoxRef);
             this.Controls.Add(this.textBoxTestDir);
@@ -435,7 +449,7 @@
             this.Controls.Add(this.textBoxThreshold);
             this.Controls.Add(this.label1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MinimumSize = new System.Drawing.Size(400, 500);
+            this.MinimumSize = new System.Drawing.Size(600, 500);
             this.Name = "Form1";
             this.Text = "WindowTitle";
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -492,6 +506,7 @@
         private System.Windows.Forms.ToolStripMenuItem MenuItemGenerateHTMLReport;
         private System.Windows.Forms.SaveFileDialog saveFileDialogExport;
         private System.Windows.Forms.ToolStripMenuItem generateHTMLReportWithThumbnailsToolStripMenuItem;
+        private System.Windows.Forms.Button buttonRefresh;
     }
 }
 

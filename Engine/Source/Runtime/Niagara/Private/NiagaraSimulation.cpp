@@ -267,8 +267,6 @@ void FNiagaraSimulation::PreTick()
 					check(CurNumParticles > ParticleIndex);
 					// Particle is dead, move one from the end here. 
 					MoveParticleToIndex(--CurNumParticles, ParticleIndex);
-
-					DebuggerHook_OnDeath(this, ParticleIndex, CurNumParticles);
 				}
 				--ParticleIndex;
 			}
@@ -338,8 +336,6 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraSimulate);
 		RunVMScript(PinnedProps->UpdateScriptProps, EUnusedAttributeBehaviour::Copy);
 	}
-
-	DebuggerHook_PreSpawn(this, OrigNumParticles, NumToSpawn);
 
 	//Init new particles with the spawn script.
 	if (TickState==NTS_Running)
@@ -505,8 +501,6 @@ void FNiagaraSimulation::RunVMScript(FNiagaraEmitterScriptProperties& ScriptProp
 		}
 	}
 	
-	DebuggerHook_PreScriptRun(this, ScriptProps.Script, Data.GetDataAllocation(), NumParticles, StartParticle);
-
 	VectorVM::Exec(
 		Script->ByteCode.GetData(),
 		InputRegisters,
@@ -528,8 +522,6 @@ void FNiagaraSimulation::RunVMScript(FNiagaraEmitterScriptProperties& ScriptProp
 		GeneratorSet->SetNumInstances(View.GetCounter());
 		INC_DWORD_STAT_BY(STAT_NiagaraNumCustomEvents, View.GetCounter());
 	}
-
-	DebuggerHook_PostScriptRun(this, Script);
 }
 
 bool FNiagaraSimulation::CheckAttriubtesForRenderer()

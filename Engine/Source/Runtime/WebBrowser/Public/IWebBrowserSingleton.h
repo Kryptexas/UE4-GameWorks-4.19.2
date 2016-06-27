@@ -40,6 +40,7 @@ public:
 	 * @param ContentsToLoad Optional string to load as a web page
 	 * @param ShowErrorMessage Whether to show an error message in case of loading errors.
 	 * @param BackgroundColor Opaque background color used before a document is loaded and when no document color is specified.
+	 * @param BrowserFrameRate The framerate of the browser in FPS
 	 * @return New Web Browser Window Interface (may be null if not supported)
 	 */
 	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
@@ -49,7 +50,8 @@ public:
 		bool bThumbMouseButtonNavigation,
 		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
 		bool ShowErrorMessage = true,
-		FColor BackgroundColor = FColor(255, 255, 255, 255)) = 0;
+		FColor BackgroundColor = FColor(255, 255, 255, 255),
+		int BrowserFrameRate = 24 ) = 0;
 
 	/**
 	 * Delete all browser cookies.

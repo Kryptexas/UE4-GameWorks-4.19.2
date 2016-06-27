@@ -19,9 +19,13 @@ public:
 		, MaterialInterface(nullptr)
 		, Material(nullptr)
 		, Usage(EMaterialShaderMapUsage::Default)
+		, bValid(true)
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
+
+	void MarkAsInvalid() { bValid = false; }
+	bool IsValid() const { return bValid; }
 
 	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
 
@@ -83,7 +87,7 @@ public:
 	virtual bool IsTwoSided() const  override;
 	virtual bool IsDitheredLODTransition() const  override;
 	virtual bool IsLightFunction() const override;
-	virtual bool IsUsedWithDeferredDecal() const override;
+	virtual bool IsDeferredDecal() const override;
 	virtual bool IsSpecialEngineMaterial() const override;
 	virtual bool IsWireframe() const override;
 	virtual bool IsMasked() const override;
@@ -99,6 +103,7 @@ public:
 	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
 	static const FMaterial* GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
 	static void ClearAllShaders();
+	static void ValidateAllShaders(OUT FTexCoordScaleMap& TexCoordScales);
 
 private:
 
@@ -107,6 +112,9 @@ private:
 	UMaterial* Material;	
 	TArray<UTexture*> ReferencedTextures;
 	EMaterialShaderMapUsage::Type Usage;
+
+	/** Whether this debug material should be used or not. */
+	bool bValid;
 
 	static volatile bool bReentrantCall;
 	static TMap<const FMaterial*, FDebugViewModeMaterialProxy*> DebugMaterialShaderMap;

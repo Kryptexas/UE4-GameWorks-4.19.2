@@ -11,58 +11,126 @@
 #include "VulkanContext.h"
 
 
-FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat InPreferredPixelFormat)
-	: RHI(InRHI)
+struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackBuffer>
+{
+	FVulkanViewport* Viewport;
+	FVulkanBackBuffer* NewBackBuffer;
+	FORCEINLINE_DEBUGGABLE FRHICommandAcquireBackBuffer(FVulkanViewport* InViewport, FVulkanBackBuffer* InNewBackBuffer)
+		: Viewport(InViewport)
+		, NewBackBuffer(InNewBackBuffer)
+	{
+	}
+
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		Viewport->AcquireBackBuffer(CmdList, NewBackBuffer);
+	}
+};
+
+
+FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, void* InWindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat InPreferredPixelFormat)
+	: VulkanRHI::FDeviceChild(InDevice)
+	, RHI(InRHI)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, bIsFullscreen(bInIsFullscreen)
 	, PixelFormat(InPreferredPixelFormat)
-	, CurrentBackBuffer(-1)
+	, AcquiredImageIndex(-1)
 	, SwapChain(nullptr)
+	, WindowHandle(InWindowHandle)
+	, AcquiredSemaphore(nullptr)
 {
 	check(IsInGameThread());
+	FMemory::Memzero(BackBufferImages);
 	RHI->Viewports.Add(this);
 
 	// Make sure Instance is created
 	RHI->InitInstance();
 
-	uint32 DesiredNumBackBuffers = NUM_BUFFERS;
+	CreateSwapchain();
 
-	TArray<VkImage> Images;
-	SwapChain = new FVulkanSwapChain(
-		RHI->Instance, *RHI->Device, WindowHandle,
-		PixelFormat, InSizeX, InSizeY, 
-		&DesiredNumBackBuffers,
-		Images);
-
-	check(Images.Num() == NUM_BUFFERS);
-
-	FVulkanCmdBuffer* CmdBuffer = RHI->Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
-	check(CmdBuffer->IsOutsideRenderPass());
-	for (int32 Index = 0, Count = Images.Num(); Index < Count; ++Index)
+	for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
 	{
-		VkImage Image = Images[Index];
-
-		// Constructor will set to color optimal
-		BackBuffers[Index] = new FVulkanBackBuffer(*RHI->Device, PixelFormat, InSizeX, InSizeY, Image, TexCreate_Presentable | TexCreate_RenderTargetable, FClearValueBinding());
-
-		FName Name = FName(*FString::Printf(TEXT("BackBuffer%d"), Index));
-		BackBuffers[Index]->SetName(Name);
+		RenderingDoneSemaphores[Index] = new FVulkanSemaphore(*InDevice);
 	}
 }
 
 FVulkanViewport::~FVulkanViewport()
 {
+	RenderingBackBuffer = nullptr;
+	RHIBackBuffer = nullptr;
+
 	for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
 	{
-		BackBuffers[Index]->Destroy(*RHI->Device);
-		BackBuffers[Index] = nullptr;
+		delete RenderingDoneSemaphores[Index];
+
+		TextureViews[Index].Destroy(*Device);
 	}
 
 	SwapChain->Destroy();
 	delete SwapChain;
 
 	RHI->Viewports.Remove(this);
+}
+
+void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBackBuffer* NewBackBuffer)
+{
+	check(NewBackBuffer);
+	RHIBackBuffer = NewBackBuffer;
+
+	int32 PrevImageIndex = AcquiredImageIndex;
+	AcquiredImageIndex = SwapChain->AcquireImageIndex(&AcquiredSemaphore);
+	check(AcquiredImageIndex != -1);
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanViewport::AcquireBackBuffer(), Prev=%d, AcquiredImageIndex => %d\n"), PrevImageIndex, AcquiredImageIndex));
+	RHIBackBuffer->Surface.Image = BackBufferImages[AcquiredImageIndex];
+	RHIBackBuffer->View.View = TextureViews[AcquiredImageIndex].View;
+	FVulkanCommandListContext& Context = (FVulkanCommandListContext&)CmdList.GetContext();
+
+	FVulkanCommandBufferManager* CmdBufferManager = Context.GetCommandBufferManager();
+	FVulkanCmdBuffer* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
+	check(CmdBuffer->IsOutsideRenderPass());
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	// Submit here so we can add a dependency with the acquired semaphore
+	CmdBuffer->End();
+	Device->GetQueue()->Submit(CmdBuffer, AcquiredSemaphore, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, nullptr);
+	CmdBufferManager->PrepareForNewActiveCommandBuffer();
+}
+
+FVulkanTexture2D* FVulkanViewport::GetBackBuffer(FRHICommandList& RHICmdList)
+{
+	check(IsInRenderingThread());
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanViewport::GetBackBuffer(), AcquiredImageIndex=%d %s\n"), AcquiredImageIndex, RenderingBackBuffer ? TEXT("BB") : TEXT("NullBB")));
+
+	if (!RenderingBackBuffer)
+	{
+		RenderingBackBuffer = new FVulkanBackBuffer(*Device, PixelFormat, SizeX, SizeY, VK_NULL_HANDLE, TexCreate_Presentable | TexCreate_RenderTargetable);
+		check(RHICmdList.IsImmediate());
+
+		if (RHICmdList.Bypass() || !GRHIThread)
+		{
+			FRHICommandAcquireBackBuffer Cmd(this, RenderingBackBuffer);
+			Cmd.Execute(RHICmdList);
+		}
+		else
+		{
+			new (RHICmdList.AllocCommand<FRHICommandAcquireBackBuffer>()) FRHICommandAcquireBackBuffer(this, RenderingBackBuffer);
+		}
+	}
+
+	return RenderingBackBuffer;
+}
+
+void FVulkanViewport::AdvanceBackBufferFrame()
+{
+	check(IsInRenderingThread());
+
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanViewport::AdvanceBackBufferFrame(), AcquiredImageIndex = %d\n"), AcquiredImageIndex));
+	RenderingBackBuffer = nullptr;
+}
+
+void FVulkanViewport::WaitForFrameEventCompletion()
+{
 }
 
 
@@ -240,21 +308,138 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 	return true;
 }
 
-void FVulkanViewport::AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer)
+void FVulkanViewport::CreateSwapchain()
 {
-	FVulkanSemaphore* AcquireSemaphore = nullptr;
-	CurrentBackBuffer = SwapChain->AcquireImageIndex(&AcquireSemaphore);
-	check(CurrentBackBuffer != -1);
-	check(!BackBuffers[CurrentBackBuffer]->AcquiredSemaphore);
-	BackBuffers[CurrentBackBuffer]->AcquiredSemaphore = AcquireSemaphore;
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	uint32 DesiredNumBackBuffers = NUM_BUFFERS;
+
+	TArray<VkImage> Images;
+	SwapChain = new FVulkanSwapChain(
+		RHI->Instance, *Device, WindowHandle,
+		PixelFormat, SizeX, SizeY,
+		&DesiredNumBackBuffers,
+		Images
+		);
+
+	check(Images.Num() == NUM_BUFFERS);
+
+	FVulkanCmdBuffer* CmdBuffer = Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer();
+	ensure(CmdBuffer->IsOutsideRenderPass());
+
+	for (int32 Index = 0; Index < Images.Num(); ++Index)
+	{
+		BackBufferImages[Index] = Images[Index];
+
+		FName Name = FName(*FString::Printf(TEXT("BackBuffer%d"), Index));
+		//BackBuffers[Index]->SetName(Name);
+
+		TextureViews[Index].Create(*Device, Images[Index], VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, PixelFormat, (VkFormat)GPixelFormats[PixelFormat].PlatformFormat, 1);
+
+		// Clear the swapchain to avoid a validation warning, and transition to ColorAttachment
+		{
+			VkImageSubresourceRange Range;
+			FMemory::Memzero(Range);
+			Range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			Range.baseMipLevel = 0;
+			Range.levelCount = 1;
+			Range.baseArrayLayer = 0;
+			Range.layerCount = 1;
+
+			VkClearColorValue Color;
+			FMemory::Memzero(Color);
+			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+			vkCmdClearColorImage(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, &Color, 1, &Range);
+			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		}
+	}
 }
 
-FVulkanBackBuffer* FVulkanViewport::PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer)
+bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, bool bLockToVsync)
 {
-	check(CurrentBackBuffer != -1);
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-	return BackBuffers[CurrentBackBuffer];
+	//FRCLog::Printf(FString::Printf(TEXT("FVulkanViewport::Present(), AcquiredImageIndex=%d\n"), AcquiredImageIndex));
+	check(AcquiredImageIndex != -1);
+
+	//Transition back buffer to presentable and submit that command
+	check(CmdBuffer->IsOutsideRenderPass());
+
+	check(RHIBackBuffer && RHIBackBuffer->Surface.Image == BackBufferImages[AcquiredImageIndex]);
+
+	//#todo-rco: Might need to NOT be undefined...
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED/*VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	CmdBuffer->End();
+	Queue->Submit(CmdBuffer, nullptr, 0, RenderingDoneSemaphores[AcquiredImageIndex]);
+
+	//Flush all commands
+	//check(0);
+
+	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
+	int32 SyncInterval = 0;
+	bool bNeedNativePresent = true;
+	if (IsValidRef(CustomPresent))
+	{
+		bNeedNativePresent = CustomPresent->Present(SyncInterval);
+	}
+
+	bool bResult = false;
+	if (bNeedNativePresent)
+	{
+		// Present the back buffer to the viewport window.
+		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
+
+		// Release the back buffer
+		RHIBackBuffer = nullptr;
+	}
+
+	static const TConsoleVariableData<int32>* CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
+	if (!CFinishFrameVar->GetValueOnRenderThread())
+	{
+		// Wait for the GPU to finish rendering the previous frame before finishing this frame.
+		WaitForFrameEventCompletion();
+		IssueFrameEvent();
+	}
+	else
+	{
+		// Finish current frame immediately to reduce latency
+		IssueFrameEvent();
+		WaitForFrameEventCompletion();
+	}
+
+	// If the input latency timer has been triggered, block until the GPU is completely
+	// finished displaying this frame and calculate the delta time.
+	if (GInputLatencyTimer.RenderThreadTrigger)
+	{
+		WaitForFrameEventCompletion();
+		uint32 EndTime = FPlatformTime::Cycles();
+		GInputLatencyTimer.DeltaTime = EndTime - GInputLatencyTimer.StartTime;
+		GInputLatencyTimer.RenderThreadTrigger = false;
+	}
+
+	//#todo-rco: This needs to go on RHIEndFrame but the CmdBuffer index is not the correct one to read the stats out!
+	VulkanRHI::GManager.GPUProfilingData.EndFrame();
+
+	Device->GetImmediateContext().GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
+
+	//#todo-rco: Consolidate 'end of frame'
+	Device->GetImmediateContext().GetTempFrameAllocationBuffer().Reset();
+#if 0
+	CurrentBackBuffer = -1;
+	PendingState->Reset();
+
+	const uint32 QueryCurrFrameIndex = PresentCount % FVulkanDevice::NumTimestampPools;
+	const uint32 QueryPrevFrameIndex = (QueryCurrFrameIndex + FVulkanDevice::NumTimestampPools - 1) % FVulkanDevice::NumTimestampPools;
+	const uint32 QueryNextFrameIndex = (QueryCurrFrameIndex + 1) % FVulkanDevice::NumTimestampPools;
+
+	FVulkanTimestampQueryPool* TimestampQueryPool = Device->GetTimestampQueryPool(QueryPrevFrameIndex);
+	if (TimestampQueryPool)
+	{
+		if (PresentCount > FVulkanDevice::NumTimestampPools)
+		{
+			TimestampQueryPool->CalculateFrameTime();
+		}
+
+		Device->GetTimestampQueryPool(QueryNextFrameIndex)->WriteStartFrame(CmdBufferManager->GetActiveCmdBuffer()->GetHandle());
+	}
+#endif
+	return bResult;
 }
 
 void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
@@ -268,7 +453,7 @@ void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
 	const VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 
 	check(CmdBuffer->IsOutsideRenderPass());
-	vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SrcStages, DestStages, 0, 0, nullptr, 0, nullptr, WriteBarriers.Num(), WriteBarriers.GetData());
+	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SrcStages, DestStages, 0, 0, nullptr, 0, nullptr, WriteBarriers.Num(), WriteBarriers.GetData());
 }
 
 /*=============================================================================
@@ -277,12 +462,12 @@ void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
 FViewportRHIRef FVulkanDynamicRHI::RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
 {
 	check( IsInGameThread() );
-	return new FVulkanViewport(this, WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
+	return new FVulkanViewport(this, Device, WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
 }
 
 void FVulkanDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI, uint32 SizeX, uint32 SizeY, bool bIsFullscreen)
 {
-	check( IsInGameThread() );
+	check(IsInGameThread());
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 }
 
@@ -309,6 +494,7 @@ void FVulkanDynamicRHI::WriteEndFrameTimestamp(void* Data)
 
 void FVulkanDynamicRHI::Present()
 {
+#if 0
 	check(DrawingViewport);
 
 	check(Device);
@@ -320,6 +506,31 @@ void FVulkanDynamicRHI::Present()
 	{
 		PendingState->RenderPassEnd(CmdBuffer);
 	}
+
+
+
+
+	check(0);
+
+
+	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
+	int32 SyncInterval = 0;
+	bool bNeedNativePresent = true;
+	if (IsValidRef(DrawingViewport->CustomPresent))
+	{
+		bNeedNativePresent = DrawingViewport->CustomPresent->Present(SyncInterval);
+	}
+
+
+	if (bNeedNativePresent)
+	{
+		// Present the back buffer to the viewport window.
+		/*Result = */DrawingViewport->SwapChain->Present(SyncInterval, 0);
+	}
+#endif
+	check(0);
+
+#if 0
 	FVulkanBackBuffer* BackBuffer = DrawingViewport->PrepareBackBufferForPresent(CmdBuffer);
 	WriteEndFrameTimestamp(this);
 	CmdBuffer->End();
@@ -383,23 +594,24 @@ void FVulkanDynamicRHI::Present()
 
 		Device->GetTimestampQueryPool(QueryNextFrameIndex)->WriteStartFrame(CmdBufferManager->GetActiveCmdBuffer()->GetHandle());
 	}
-
+#endif
 	PresentCount++;
 }
 
 FTexture2DRHIRef FVulkanDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {
+	check(IsInRenderingThread());
+	check(ViewportRHI);
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
-	if (Viewport->CurrentBackBuffer < 0)
-	{
-		Viewport->AcquireBackBuffer(Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer());
-	}
-	return Viewport->GetBackBuffer();
+	return Viewport->GetBackBuffer(FRHICommandListExecutor::GetImmediateCommandList());
 }
 
 void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 {
-	//#todo-rco: Do a pass to clear unused or expired elements in managers
+	for (FVulkanViewport* Viewport : Viewports)
+	{
+		Viewport->AdvanceBackBufferFrame();
+	}
 }
 
 void FVulkanCommandListContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)

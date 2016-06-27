@@ -37,13 +37,11 @@ public:
 
 	inline FVulkanQueue* GetQueue()
 	{
-		check(Queue);
 		return Queue;
 	}
 
-	inline VkPhysicalDevice GetPhysicalHandle()
+	inline VkPhysicalDevice GetPhysicalHandle() const
 	{
-		check(Gpu != VK_NULL_HANDLE);
 		return Gpu;
 	}
 
@@ -93,37 +91,32 @@ public:
 		return FormatProperties;
 	}
 
-	VulkanRHI::FDeviceMemoryManager& GetMemoryManager()
+	inline VulkanRHI::FDeviceMemoryManager& GetMemoryManager()
 	{
 		return MemoryManager;
 	}
 
-	VulkanRHI::FResourceHeapManager& GetResourceHeapManager()
+	inline VulkanRHI::FResourceHeapManager& GetResourceHeapManager()
 	{
 		return ResourceHeapManager;
 	}
 
-	VulkanRHI::FDeferredDeletionQueue& GetDeferredDeletionQueue()
+	inline VulkanRHI::FDeferredDeletionQueue& GetDeferredDeletionQueue()
 	{
 		return DeferredDeletionQueue;
 	}
 
-	VulkanRHI::FStagingManager& GetStagingManager()
+	inline VulkanRHI::FStagingManager& GetStagingManager()
 	{
 		return StagingManager;
 	}
 
-	FVulkanDescriptorPool* GetDescriptorPool()
-	{
-		return DescriptorPool;
-	}
-
-	VulkanRHI::FFenceManager& GetFenceManager()
+	inline VulkanRHI::FFenceManager& GetFenceManager()
 	{
 		return FenceManager;
 	}
 
-	FVulkanCommandListContext& GetImmediateContext()
+	inline FVulkanCommandListContext& GetImmediateContext()
 	{
 		return *ImmediateContext;
 	}
@@ -131,18 +124,14 @@ public:
 	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
-
-	typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerBegin)(VkCommandBuffer commandBuffer, const char *pMarker);
-	typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerEnd)(VkCommandBuffer commandBuffer);
-
-	PFN_vkCmdDbgMarkerBegin GetCmdDbgMarkerBegin() const
+	PFN_vkCmdDebugMarkerBeginEXT GetCmdDbgMarkerBegin() const
 	{
-		return VkCmdDbgMarkerBegin;
+		return CmdDbgMarkerBegin;
 	}
 
-	PFN_vkCmdDbgMarkerEnd GetCmdDbgMarkerEnd() const
+	PFN_vkCmdDebugMarkerEndEXT GetCmdDbgMarkerEnd() const
 	{
-		return VkCmdDbgMarkerEnd;
+		return CmdDbgMarkerEnd;
 	}
 #endif
 
@@ -167,8 +156,6 @@ private:
 
 	VulkanRHI::FFenceManager FenceManager;
 
-	FVulkanDescriptorPool* DescriptorPool;
-
 	FVulkanSamplerState* DefaultSampler;
 
 	TArray<VkQueueFamilyProperties> QueueFamilyProps;
@@ -191,8 +178,9 @@ private:
 	void SetupFormats();
 
 #if VULKAN_ENABLE_DRAW_MARKERS
-	PFN_vkCmdDbgMarkerBegin VkCmdDbgMarkerBegin;
-	PFN_vkCmdDbgMarkerEnd VkCmdDbgMarkerEnd;
+	PFN_vkCmdDebugMarkerBeginEXT CmdDbgMarkerBegin;
+	PFN_vkCmdDebugMarkerEndEXT CmdDbgMarkerEnd;
+	PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectName;
 	friend class FVulkanCommandListContext;
 #endif
 

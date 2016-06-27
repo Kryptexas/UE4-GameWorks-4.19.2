@@ -1962,6 +1962,13 @@ static TAutoConsoleVariable<int32> CVarMaxGPUSkinBones(
 	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarContactShadows(
+	TEXT("r.ContactShadows"),
+	1,
+	TEXT(" 0: disabled.\n")
+	TEXT(" 1: enabled.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
 	TEXT("r.AllowStaticLighting"),

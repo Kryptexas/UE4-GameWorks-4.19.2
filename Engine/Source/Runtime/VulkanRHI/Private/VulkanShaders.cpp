@@ -95,7 +95,7 @@ void FVulkanShader::Create(EShaderFrequency Frequency, const TArray<uint8>& InSh
 	CodeSize = ModuleCreateInfo.codeSize;
 	ModuleCreateInfo.pCode = Code;
 
-	VERIFYVULKANRESULT(vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &ShaderModule));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &ShaderModule));
 }
 
 
@@ -118,7 +118,7 @@ FVulkanShader::~FVulkanShader()
 
 	if (ShaderModule != VK_NULL_HANDLE)
 	{
-		vkDestroyShaderModule(Device->GetInstanceHandle(), ShaderModule, nullptr);
+		VulkanRHI::vkDestroyShaderModule(Device->GetInstanceHandle(), ShaderModule, nullptr);
 		ShaderModule = VK_NULL_HANDLE;
 	}
 }
@@ -243,10 +243,6 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	FMemory::Memzero(DirtyPackedUniformBufferStagingMask);
 	FMemory::Memzero(DescriptorBufferInfoForStage);
 	FMemory::Memzero(SRVWriteInfoForStage);
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		FMemory::Memzero(ImageDescCount);		
-	#endif
 
 	check(Device);
 
@@ -405,10 +401,6 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 
 void FVulkanBoundShaderState::ResetState()
 {
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		LastError.Reset();
-	#endif
-
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");
 	for(uint32 Stage = 0; Stage < SF_Compute; Stage++)
 	{
@@ -587,9 +579,6 @@ void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformSamplerC
 				WriteDesc->pImageInfo = TextureInfo;
 				//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
 				SRVWriteInfoForStage[Stage].Add(WriteDesc);
-#if VULKAN_HAS_DEBUGGING_ENABLED
-				ImageDescCount[Stage]++;
-#endif
 			}
 		}
 
@@ -675,12 +664,10 @@ void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, c
 				{
 					if (Attributes[AttributeIndex].binding == CurrBinding.binding)
 					{
-						// This section of the could should not be reached
-						SetLastError(FString::Printf(
-							TEXT("Missing binding on location %d in '%s' vertex shader"),
+						UE_LOG(LogVulkanRHI, Warning, TEXT("Missing binding on location %d in '%s' vertex shader"),
 							CurrBinding.binding,
-							*GetShader(SF_Vertex).DebugName));
-						break;
+							*GetShader(SF_Vertex).DebugName);
+						ensure(0);
 					}
 				}
 			#endif
@@ -1048,22 +1035,13 @@ void FVulkanBoundShaderState::GetDescriptorInfoCounts(uint32& OutSamplerCount, u
 	}
 }
 
-#if VULKAN_HAS_DEBUGGING_ENABLED
-void FVulkanBoundShaderState::SetLastError(const FString& Error)
-{
-	LastError = Error;
-	UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *LastError);
-}
-#endif
-
 FVulkanBoundShaderState::FDescriptorSetsPair::~FDescriptorSetsPair()
 {
 	delete DescriptorSets;
 }
 
-inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer)
+inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer)
 {
-	//#todo-rco: Make thread safe!
 	FDescriptorSetsEntry* FoundEntry = nullptr;
 	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
 	{
@@ -1091,7 +1069,7 @@ inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVu
 	}
 
 	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
-	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Device->GetDescriptorPool());
+	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Context->GetDescriptorPool());
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
@@ -1109,7 +1087,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 
 	int32 WriteIndex = 0;
 
-	CurrDescriptorSets = RequestDescriptorSets(CmdBuffer);
+	CurrDescriptorSets = RequestDescriptorSets(CmdListContext, CmdBuffer);
 
 	const TArray<VkDescriptorSet>& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;

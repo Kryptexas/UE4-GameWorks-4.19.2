@@ -199,15 +199,25 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	if (bIsDynamic)
 	{
 		// Add the interaction to the light's interaction list.
-		PrevPrimitiveLink = &LightSceneInfo->DynamicPrimitiveList;
+		PrevPrimitiveLink = PrimitiveSceneInfo->Proxy->IsMeshShapeOftenMoving() ? &LightSceneInfo->DynamicInteractionOftenMovingPrimitiveList : &LightSceneInfo->DynamicInteractionStaticPrimitiveList;
 
 		// ES2 dynamic point lights
 		if (PrimitiveSceneInfo->Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4 && LightSceneInfo->Proxy->GetLightType() == LightType_Point && LightSceneInfo->Proxy->IsMovable())
 		{
 			bES2DynamicPointLight = true;
 			PrimitiveSceneInfo->NumES2DynamicPointLights++;
-			// The forward renderer renders dynamic point lights as part of the base pass using the dynamic path only.
+			// The mobile renderer hanldes dynamic point lights as part of the base pass using the dynamic path only.
 			PrimitiveSceneInfo->Proxy->bDisableStaticPath = true;
+		}
+	}
+
+	if (bCastShadow && !PrimitiveSceneInfo->Proxy->IsMeshShapeOftenMoving())
+	{
+		FCachedShadowMapData* CachedShadowMapData = PrimitiveSceneInfo->Scene->CachedShadowMaps.Find(LightSceneInfo->Id);
+
+		if (CachedShadowMapData)
+		{
+			CachedShadowMapData->ShadowMap.Release();
 		}
 	}
 
@@ -218,7 +228,7 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	}
 	*PrevPrimitiveLink = this;
 
-	// Add the interaction to the primitive's interaction list.
+	// Add the interaction to the primitives' interaction list.
 	PrevLightLink = &PrimitiveSceneInfo->LightList;
 	NextLight = *PrevLightLink;
 	if(*PrevLightLink)
@@ -243,6 +253,16 @@ FLightPrimitiveInteraction::~FLightPrimitiveInteraction()
 #endif
 	}
 #endif
+
+	if (bCastShadow && !PrimitiveSceneInfo->Proxy->IsMeshShapeOftenMoving())
+	{
+		FCachedShadowMapData* CachedShadowMapData = PrimitiveSceneInfo->Scene->CachedShadowMaps.Find(LightSceneInfo->Id);
+
+		if (CachedShadowMapData)
+		{
+			CachedShadowMapData->ShadowMap.Release();
+		}
+	}
 
 	// Track ES2 dynamic point light count
 	if (bES2DynamicPointLight)

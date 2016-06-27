@@ -2296,8 +2296,6 @@ protected:
 	 */
 	virtual bool InitializeHMDDevice();
 
-	virtual void InitializeViewExtentions();
-
 	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();
 

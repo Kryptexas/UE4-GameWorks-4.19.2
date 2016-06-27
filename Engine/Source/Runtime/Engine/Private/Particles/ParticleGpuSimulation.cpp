@@ -3507,6 +3507,9 @@ public:
 				FSpawnInfo SpawnInfo = GetNumParticlesToSpawn(DeltaSeconds);
 				SpawnInfo.Count += ForceSpawnedParticles.Num();
 
+				float SpawnRateMult = SpriteTemplate->GetQualityLevelSpawnRateMult();
+				SpawnInfo.Count *= SpawnRateMult;
+				BurstInfo.Count *= SpawnRateMult;
 
 				int32 FirstBurstParticleIndex = NewParticles.Num();
 

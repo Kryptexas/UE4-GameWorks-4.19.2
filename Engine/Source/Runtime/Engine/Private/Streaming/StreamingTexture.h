@@ -21,7 +21,7 @@ struct FStreamingTexture
 	void UpdateStaticData(float GlobalMipBias);
 
 	/** Update data that the engine could change through gameplay. */
-	void UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], bool bOnlyStreamIn, int32 HLODStrategy);
+	void UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], bool bOnlyStreamIn, int32 GlobalMipBias, int32 HLODStrategy);
 
 	/** Lightweight version of UpdateDynamicData. */
 	void UpdateStreamingStatus();

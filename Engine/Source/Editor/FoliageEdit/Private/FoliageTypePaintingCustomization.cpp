@@ -83,7 +83,7 @@ void FFoliageTypePaintingCustomization::ShowFoliagePropertiesForCategory(IDetail
 			if (Property->GetFName() == MobilityName)
 			{
 				MobilityCustomization = MakeShareable(new FMobilityCustomization);
-				MobilityCustomization->CreateMobilityCustomization(CategoryBuilder, DetailLayoutBuilder.GetProperty(MobilityName), FMobilityCustomization::StationaryMobilityBitMask);
+				MobilityCustomization->CreateMobilityCustomization(CategoryBuilder, DetailLayoutBuilder.GetProperty(MobilityName), FMobilityCustomization::StationaryMobilityBitMask, false);
 			}
 			else
 			{

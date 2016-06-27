@@ -3240,7 +3240,9 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 			ViewFamily.EngineShowFlags.CameraInterpolation = 0;
 		}
 
-		if( !bStereoRendering )
+		static auto* ScreenPercentageEditorCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ScreenPercentage.Editor"));
+
+		if( !bStereoRendering && ScreenPercentageEditorCVar && ScreenPercentageEditorCVar->GetValueOnAnyThread() == 0)
 		{
 			// Keep the image sharp - ScreenPercentage is an optimization and should not affect the editor (except when
 			// stereo is enabled, as many HMDs require this for proper visuals

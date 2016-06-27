@@ -311,7 +311,7 @@ float4 CommonDOFSetup(in float2 CenterUV, out bool bFrontLayer, out float4 Mask 
 	float4 ColorAndDepth[4];
 	float2 Layer[4];
 
-	FLATTEN for(uint i = 0; i < 4; ++i)
+	UNROLL for(uint i = 0; i < 4; ++i)
 	{
 		// clamping to a small number fixes black dots appearing (denorms?, 0 doesn't fix it)
 		ColorAndDepth[i].rgb = max(float3(0.0001f, 0.0001f, 0.0001f), Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV[i]).rgb);

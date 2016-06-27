@@ -44,6 +44,7 @@ void FVulkanDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32
 
 void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
+	//FRCLog::Printf(FString::Printf(TEXT("RHISetRenderTargetsAndClear\n")));
 	PendingState->SetRenderTargetsInfo(RenderTargetsInfo);
 
 #if 0//VULKAN_USE_NEW_RESOURCE_MANAGEMENT
@@ -63,6 +64,7 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 
 void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
 {
+	//FRCLog::Printf(FString::Printf(TEXT("RHICopyToResolveTarget\n")));
 #if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	// Verify if we need to do some work (for the case of SetRT(), CopyToResolve() with no draw calls in between)
@@ -85,6 +87,8 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 
 	if (GSubmitOnCopyToResolve)
 	{
+		check(0);
+#if 0
 		CmdBuffer->End();
 
 		FVulkanSemaphore* BackBufferAcquiredSemaphore = Framebuffer->GetBackBuffer() ? Framebuffer->GetBackBuffer()->AcquiredSemaphore : nullptr;
@@ -93,6 +97,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		// No need to acquire it anymore
 		Framebuffer->GetBackBuffer()->AcquiredSemaphore = nullptr;
 		CommandBufferManager->PrepareForNewActiveCommandBuffer();
+#endif
 	}
 #else
 	// If we're using the pResolveAttachments property of the subpass, so we don't need manual command buffer resolves and this function is a NoOp.

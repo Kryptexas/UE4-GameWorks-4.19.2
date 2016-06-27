@@ -275,7 +275,12 @@ struct FVulkanTextureView
 	{
 	}
 
-	void Create(FVulkanDevice& Device, FVulkanSurface& Surface, VkImageViewType ViewType, VkFormat Format, uint32 NumMips);
+	void Create(FVulkanDevice& Device, VkImage Image, VkImageViewType ViewType, VkImageAspectFlags AspectFlags, EPixelFormat UEFormat, VkFormat Format, uint32 NumMips);
+
+	inline void Create(FVulkanDevice& Device, FVulkanSurface& Surface, VkImageViewType ViewType, VkFormat Format, uint32 NumMips)
+	{
+		Create(Device, Surface.Image, ViewType, Surface.GetAspectMask(), Surface.Format, Format, NumMips);
+	}
 
 	void Destroy(FVulkanDevice& Device);
 
@@ -342,19 +347,13 @@ protected:
 class FVulkanBackBuffer : public FVulkanTexture2D
 {
 public:
-	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
+	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags);
 	virtual ~FVulkanBackBuffer();
 
 	virtual bool IsBackBuffer() const override final
 	{
 		return true;
 	}
-
-	// Just a pointer, not owned by this class
-	FVulkanSemaphore* AcquiredSemaphore;
-
-	// Is owned by this class
-	FVulkanSemaphore* RenderingDoneSemaphore;
 };
 
 class FVulkanTexture2DArray : public FRHITexture2DArray, public FVulkanTextureBase
@@ -676,9 +675,20 @@ public:
 		return Buffers[DynamicBufferIndex]->GetHandle();
 	}
 
-	bool IsDynamic() const
+	inline bool IsDynamic() const
 	{
 		return NumBuffers > 1;
+	}
+
+	inline bool IsVolatile() const
+	{
+		return NumBuffers == 0;
+	}
+
+	inline uint32 GetVolatileLockCounter() const
+	{
+		check(IsVolatile());
+		return VolatileLockInfo.LockCounter;
 	}
 
 	// Offset used for Binding a VkBuffer
@@ -770,6 +780,10 @@ public:
 class FVulkanShaderResourceView : public FRHIShaderResourceView
 {
 public:
+	FVulkanShaderResourceView()
+		: VolatileLockCounter(MAX_uint32)
+	{
+	}
 
 	void UpdateView(FVulkanDevice* Device);
 
@@ -783,6 +797,9 @@ public:
 
 	~FVulkanShaderResourceView();
 
+protected:
+	// Used to check on volatile buffers if a new BufferView is required
+	uint32 VolatileLockCounter;
 };
 
 class FVulkanVertexInputStateInfo
@@ -955,31 +972,15 @@ public:
 		return *Shader;
 	}
 
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		// Basic error handling. This allows us to track errors, while also skip draw calls
-		// which potentially may crash the driver
-		bool HasError() const { return LastError.Len() > 0; }
-
-		const FString& GetLastError() const { return LastError; }
-
-		const VkDescriptorImageInfo* GetStageImageDescriptors(EShaderFrequency Stage, uint32& OutNum) const
+	inline void BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline)
+	{
+		if (LastBoundPipeline != NewPipeline)
 		{
-			check(Stage < SF_Compute);
-			OutNum = ImageDescCount[Stage];
-			return DescriptorImageInfoForStage[Stage];
+			//#todo-rco: Compute
+			vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
+			LastBoundPipeline = NewPipeline;
 		}
-	#endif
-
-		inline void BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline)
-		{
-			if (LastBoundPipeline != NewPipeline)
-			{
-				//#todo-rco: Compute
-				vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
-				LastBoundPipeline = NewPipeline;
-			}
-		}
+	}
 
 private:
 	void InitGlobalUniforms(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings);
@@ -1078,14 +1079,6 @@ private:
 	// Vertex input configuration
 	FVulkanVertexInputStateInfo VertexInputStateInfo;
 
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		void SetLastError(const FString& Error);
-
-		// If the string is not empty, an error has occurred.
-		FString LastError;
-		uint32 ImageDescCount[SF_Compute];
-	#endif
-
 	// Members in Tmp are normally allocated each frame
 	// To reduce the allocation, we reuse these array
 	struct FTmp
@@ -1123,7 +1116,7 @@ private:
 	};
 	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
 
-	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer);
+	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer);
 };
 
 template<class T>

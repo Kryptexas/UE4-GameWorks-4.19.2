@@ -370,6 +370,5 @@ bool ShouldRenderFog(const FSceneViewFamily& Family)
 		&& !Family.UseDebugViewPS()
 		&& CVarFog.GetValueOnRenderThread() == 1
 		&& !EngineShowFlags.StationaryLightOverlap 
-		&& !EngineShowFlags.VertexDensities
 		&& !EngineShowFlags.LightMapDensity;
 }

@@ -405,28 +405,6 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 	check(IsInRenderingThread());
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapDiffuse);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapNormal);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapDepth);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	{
-		extern int32 GShaderModelDebug;
-		if(GShaderModelDebug)
-		{
-			UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug: ProcessAfterLighting %x"), View.ShadingModelMaskInView);
-			UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug:"));
-			
-			if(GShaderModelDebug < 0)
-			{
-				// disable after one frame
-				GShaderModelDebug = 0;
-			}
-		}
-	}
-#endif
-
 	{
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);

@@ -63,7 +63,7 @@ void Main(
 	//Fix for Fov and aspect.
 	float InvTanHalfFov = DistortionParams.x;
     float Ratio = DistortionParams.y;
- 	float3 FovFix = float3(InvTanHalfFov,Ratio*InvTanHalfFov,1);
+ 	float2 FovFix = float2(InvTanHalfFov,Ratio*InvTanHalfFov);
 	Distortion *= DistortionParams.zw * float2(OffsetFudgeFactor,-OffsetFudgeFactor) * FovFix;
 
 	// Sample depth at distortion offset

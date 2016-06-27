@@ -97,7 +97,9 @@ public:
 	FLightSceneProxy* Proxy;
 
 	/** The list of dynamic primitives affected by the light. */
-	FLightPrimitiveInteraction* DynamicPrimitiveList;
+	FLightPrimitiveInteraction* DynamicInteractionOftenMovingPrimitiveList;
+
+	FLightPrimitiveInteraction* DynamicInteractionStaticPrimitiveList;
 
 	/** If bVisible == true, this is the index of the primitive in Scene->Lights. */
 	int32 Id;

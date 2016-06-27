@@ -86,6 +86,8 @@ void MainVS(
 
 void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
+	OutColor = 0;
+
 #if METHOD == 0
 	// Nearest sampling (not blurry but blocky, more for testing)
 	#if ES2_PROFILE

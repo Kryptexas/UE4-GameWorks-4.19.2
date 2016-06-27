@@ -302,6 +302,7 @@ public:
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
 		bModifiesMeshPosition(false),
+		bUsesWorldPositionOffset(false),
 		bNeedsGBuffer(false),
 		bUsesGlobalDistanceField(false),
 		bUsesPixelDepthOffset(false)
@@ -324,6 +325,9 @@ public:
 
 	/** true if the material modifies the the mesh position. */
 	bool bModifiesMeshPosition;
+
+	/** Whether the material uses world position offset. */
+	bool bUsesWorldPositionOffset;
 
 	/** true if the material uses any GBuffer textures */
 	bool bNeedsGBuffer;
@@ -707,6 +711,7 @@ public:
 	bool RequiresSceneColorCopy() const { return MaterialCompilationOutput.bRequiresSceneColorCopy; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
 	bool UsesGlobalDistanceField() const { return MaterialCompilationOutput.bUsesGlobalDistanceField; }
+	bool UsesWorldPositionOffset() const { return MaterialCompilationOutput.bUsesWorldPositionOffset; }
 	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
@@ -972,7 +977,7 @@ public:
 	virtual bool ShouldDoSSR() const { return false; }
 	virtual bool IsLightFunction() const = 0;
 	virtual bool IsUsedWithEditorCompositing() const { return false; }
-	virtual bool IsUsedWithDeferredDecal() const = 0;
+	virtual bool IsDeferredDecal() const = 0;
 	virtual bool IsWireframe() const = 0;
 	virtual bool IsUIMaterial() const { return false; }
 	virtual bool IsSpecialEngineMaterial() const = 0;
@@ -1092,6 +1097,7 @@ public:
 	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
 	ENGINE_API bool UsesGlobalDistanceField_GameThread() const;
+	ENGINE_API bool UsesWorldPositionOffset_GameThread() const;
 
 	/** Does the material modify the mesh position. */
 	ENGINE_API bool MaterialModifiesMeshPosition_RenderThread() const;
@@ -1593,7 +1599,7 @@ public:
 	ENGINE_API virtual bool ShouldDoSSR() const override;
 	ENGINE_API virtual bool IsLightFunction() const override;
 	ENGINE_API virtual bool IsUsedWithEditorCompositing() const override;
-	ENGINE_API virtual bool IsUsedWithDeferredDecal() const override;
+	ENGINE_API virtual bool IsDeferredDecal() const override;
 	ENGINE_API virtual bool IsWireframe() const override;
 	ENGINE_API virtual bool IsUIMaterial() const override;
 	ENGINE_API virtual bool IsSpecialEngineMaterial() const override;

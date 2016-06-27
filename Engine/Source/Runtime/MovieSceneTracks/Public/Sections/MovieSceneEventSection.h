@@ -42,11 +42,11 @@ public:
 	/**
 	 * Trigger the events that fall into the given time range.
 	 *
-	 * @param EventContextObjects The objects to trigger the events on.
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
+	 * @param Player The movie scene player that has the event contexts where the events should be invoked from.
 	 */
-	void TriggerEvents(TArray<UObject*> EventContextObjects, float Position, float LastPosition);
+	void TriggerEvents(float Position, float LastPosition, IMovieScenePlayer& Player);
 
 public:
 
@@ -64,9 +64,10 @@ protected:
 	 * Trigger event for the specified name.
 	 *
 	 * @param Event The Name to trigger.
-	 * @param EventContextObjects The objects to trigger the events on.
+	 * @param Position The current position in time.
+	 * @param Player The movie scene player that has the event contexts where the events should be invoked from.
 	 */
-	void TriggerEvent(const FName& Event, TArray<UObject*> EventContextObjects);
+	void TriggerEvent(const FName& Event, float Position, IMovieScenePlayer& Player);
 
 private:
 

@@ -1562,7 +1562,7 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
 			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());
+			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (!ShouldUseDeferredRenderer() && (!SimpleDirectionalLight->Proxy->HasStaticShadowing() || SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()));
 			SimpleDirectionalLight = NULL;
 		}
 
@@ -2201,7 +2201,18 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 
 		bool bLightHasUnbuiltInteractions = false;
 
-		for(FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicPrimitiveList;
+		for(FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionOftenMovingPrimitiveList;
+			Interaction;
+			Interaction = Interaction->GetNextPrimitive())
+		{
+			if (Interaction->IsUncachedStaticLighting())
+			{
+				bLightHasUnbuiltInteractions = true;
+				PrimitivesWithUnbuiltInteractions.AddUnique(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
+			}
+		}
+
+		for(FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionStaticPrimitiveList;
 			Interaction;
 			Interaction = Interaction->GetNextPrimitive())
 		{

@@ -86,9 +86,6 @@ public:
 	/** Changes the viewport to lightmap density mode */
 	TSharedPtr< FUICommandInfo > LightmapDensityMode;
 
-	/** Changes the viewport to vertex densities mode */
-	TSharedPtr< FUICommandInfo > VertexDensitiesMode;
-
 	/** Shows the group menu item for LOD and HLOD coloration modes */
 	TSharedPtr< FUICommandInfo > GroupLODColorationMode;
 

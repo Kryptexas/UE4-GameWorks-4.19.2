@@ -5,6 +5,9 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
+#include "ImageUtils.h"
+#include "FileManagerGeneric.h"
+#include "Paths.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
@@ -26,7 +29,7 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 		&& World 
 		&& Material)
 	{
-		UCanvas* Canvas = World->GetCanvasForRenderingToTarget();
+		UCanvas* Canvas = World->GetCanvasForDrawMaterialToRenderTarget();
 
 		Canvas->Init(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY, nullptr);
 		Canvas->Update();
@@ -75,6 +78,90 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 	else if (!TextureRenderTarget)
 	{
 		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "DrawMaterialToRenderTarget: TextureRenderTarget must be non-null."));
+	}
+}
+
+void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, const FString& FilePath, const FString& FileName)
+{
+	FString TotalFileName = FPaths::Combine(*FilePath, *FileName);
+	FText PathError;
+	FPaths::ValidatePath(TotalFileName, &PathError);
+
+	if (TextureRenderTarget && !FileName.IsEmpty() && PathError.IsEmpty())
+	{
+		FArchive* Ar = IFileManager::Get().CreateFileWriter(*TotalFileName);
+
+		if (Ar)
+		{
+			FBufferArchive Buffer;
+			bool bSuccess = FImageUtils::ExportRenderTarget2DAsHDR(TextureRenderTarget, Buffer);
+
+			if (bSuccess)
+			{
+				Ar->Serialize(const_cast<uint8*>(Buffer.GetData()), Buffer.Num());
+			}
+
+			delete Ar;
+		}
+		else
+		{
+			FMessageLog("Blueprint").Warning(LOCTEXT("FileWriterFailedToCreate", "ExportRenderTarget: FileWrite failed to create."));
+		}
+	}
+
+    else if (!TextureRenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "ExportRenderTarget: TextureRenderTarget must be non-null."));
+	}
+	if (!PathError.IsEmpty())
+	{
+		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("InvalidFilePath", "ExportRenderTarget: Invalid file path provided: '{0}'"), PathError));
+	}
+	if (FileName.IsEmpty())
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
+	}
+}
+
+void UKismetRenderingLibrary::ExportTexture2D(UObject* WorldContextObject, UTexture2D* Texture, const FString& FilePath, const FString& FileName)
+{
+	FString TotalFileName = FPaths::Combine(*FilePath, *FileName);
+	FText PathError;
+	FPaths::ValidatePath(TotalFileName, &PathError);
+
+	if (Texture && !FileName.IsEmpty() && PathError.IsEmpty())
+	{
+		FArchive* Ar = IFileManager::Get().CreateFileWriter(*TotalFileName);
+
+		if (Ar)
+		{
+			FBufferArchive Buffer;
+			bool bSuccess = FImageUtils::ExportTexture2DAsHDR(Texture, Buffer);
+
+			if (bSuccess)
+			{
+				Ar->Serialize(const_cast<uint8*>(Buffer.GetData()), Buffer.Num());
+			}
+
+			delete Ar;
+		}
+		else
+		{
+			FMessageLog("Blueprint").Warning(LOCTEXT("FileWriterFailedToCreate", "ExportTexture2D: FileWrite failed to create."));
+		}
+	}
+
+	else if (!Texture)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "ExportTexture2D: TextureRenderTarget must be non-null."));
+	}
+	if (!PathError.IsEmpty())
+	{
+		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("InvalidFilePath", "ExportTexture2D: Invalid file path provided: '{0}'"), PathError));
+	}
+	if (FileName.IsEmpty())
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidFileName", "ExportTexture2D: FileName must be non-empty."));
 	}
 }
 
@@ -155,6 +242,10 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 					delete DrawEvent;
 				}
 			);
+
+			// Remove references to the context now that we've resolved it, to avoid a crash when EndDrawCanvasToRenderTarget is called multiple times with the same context
+			// const cast required, as BP will treat Context as an output without the const
+			const_cast<FDrawToRenderTargetContext&>(Context) = FDrawToRenderTargetContext();
 		}
 		else if (!Context.RenderTarget)
 		{

@@ -4,7 +4,7 @@
 	CubemapUnwapUtils.cpp: Pixel and Vertex shader to render a cube map as 2D texture
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "EnginePrivate.h"
 #include "ShaderParameterUtils.h"
 #include "CubemapUnwrapUtils.h" 
 #include "RHIStaticStates.h"
