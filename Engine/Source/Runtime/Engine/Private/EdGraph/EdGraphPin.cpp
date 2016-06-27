@@ -1113,7 +1113,8 @@ void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* Deprecated
 	{
 		UEdGraphPin_Deprecated* OldLinkedToPin = DeprecatedPin->LinkedTo[PinIdx];
 		UEdGraphPin*& NewPin = LinkedTo[PinIdx];
-		if (OldLinkedToPin)
+		// check for corrupt data with cross graph links:
+		if (OldLinkedToPin && OldLinkedToPin->GetTypedOuter<UEdGraph>() == DeprecatedPin->GetTypedOuter<UEdGraph>())
 		{
 			UEdGraphPin* ExistingPin = FindPinCreatedFromDeprecatedPin(OldLinkedToPin);
 			if (ExistingPin)
