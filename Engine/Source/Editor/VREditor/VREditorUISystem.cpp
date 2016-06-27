@@ -12,6 +12,8 @@
 #include "VREditorWorldInteraction.h"
 #include "ViewportInteractor.h"
 #include "VREditorInteractor.h"
+#include "VREditorMotionControllerInteractor.h"
+
 // UI
 #include "WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
@@ -170,7 +172,7 @@ void UVREditorUISystem::Shutdown()
 void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
 	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
-	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
+	UVREditorMotionControllerInteractor* VREditorInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
 	if ( VREditorInteractor )
 	{
 		if ( !bWasHandled )
@@ -326,7 +328,7 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 
 void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled )
 {
-	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
+	UVREditorMotionControllerInteractor* VREditorInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
 	if( VREditorInteractor != nullptr )
 	{
 		if( !bWasHandled && Interactor->GetDraggingMode() != EViewportInteractionDraggingMode::Interactable )
@@ -557,13 +559,13 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 
 		if( HandInteractorThatNeedsQuickMenu != nullptr && !QuickMenuUI->IsUIVisible() )
 		{
-			UVREditorInteractor* VREditorHandInteractorThatNeedsQuickMenu = Cast<UVREditorInteractor>( HandInteractorThatNeedsQuickMenu );
-			if ( VREditorHandInteractorThatNeedsQuickMenu )
+			UVREditorMotionControllerInteractor* MotionControllerHandInteractorThatNeedsQuickMenu = Cast<UVREditorMotionControllerInteractor>( HandInteractorThatNeedsQuickMenu );
+			if ( MotionControllerHandInteractorThatNeedsQuickMenu )
 			{
-				const AVREditorFloatingUI::EDockedTo DockTo = ( VREditorHandInteractorThatNeedsQuickMenu->GetControllerSide() == EControllerHand::Left ) ? AVREditorFloatingUI::EDockedTo::LeftArm : AVREditorFloatingUI::EDockedTo::RightArm;
+				const AVREditorFloatingUI::EDockedTo DockTo = ( MotionControllerHandInteractorThatNeedsQuickMenu->GetControllerSide() == EControllerHand::Left ) ? AVREditorFloatingUI::EDockedTo::LeftArm : AVREditorFloatingUI::EDockedTo::RightArm;
 				QuickMenuUI->SetDockedTo( DockTo );
 				QuickMenuUI->ShowUI( true );
-				VREditorHandInteractorThatNeedsQuickMenu->SetHasUIOnForearm( true );
+				MotionControllerHandInteractorThatNeedsQuickMenu->SetHasUIOnForearm( true );
 			}
 		}
 	}
@@ -947,8 +949,12 @@ void UVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, UVREditor
 				}
 			}
 			
-			const AVREditorFloatingUI::EDockedTo NewDockedTo = Interactor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
-			Panel->SetDockedTo( NewDockedTo );
+			UVREditorMotionControllerInteractor* MotionControllerInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
+			if ( MotionControllerInteractor )
+			{
+				const AVREditorFloatingUI::EDockedTo NewDockedTo = MotionControllerInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
+				Panel->SetDockedTo( NewDockedTo );
+			}
 			
 			if ( bShouldShow )
 			{
@@ -1005,37 +1011,41 @@ void UVREditorUISystem::UpdateRadialMenu( UVREditorInteractor* Interactor )
 
 void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
 {
-	UVREditorInteractor* DockedToInteractor = nullptr;
-	if( !QuickRadialMenu->bHidden )
+	UVREditorMotionControllerInteractor* MotionControllerInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
+	if( MotionControllerInteractor )
 	{
-		const EControllerHand ControllerHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? EControllerHand::Left : EControllerHand::Right;
-		DockedToInteractor = GetOwner().GetHandInteractor( ControllerHand );
-	}
+		UVREditorInteractor* DockedToInteractor = nullptr;
+		if ( !QuickRadialMenu->bHidden )
+		{
+			const EControllerHand ControllerHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? EControllerHand::Left : EControllerHand::Right;
+			DockedToInteractor = GetOwner().GetHandInteractor( ControllerHand );
+		}
 
-	EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
+		EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
 
-	bool bNeedsSpawn =
-		( QuickRadialMenu->bHidden || DockedToInteractor != Interactor ) &&
-		DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// Don't show radial menu if the hand is busy dragging something around
-		DraggingMode != EViewportInteractionDraggingMode::ActorsFreely &&
-		DraggingMode != EViewportInteractionDraggingMode::ActorsWithGizmo &&
-		DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
-		( InteractorDraggingUI == nullptr || InteractorDraggingUI != Interactor ) &&
-		!Interactor->IsHoveringOverUI();	// Don't show radial menu when aiming at a UI  (too much clutter)
+		bool bNeedsSpawn =
+			( QuickRadialMenu->bHidden || DockedToInteractor != Interactor ) &&
+			DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// Don't show radial menu if the hand is busy dragging something around
+			DraggingMode != EViewportInteractionDraggingMode::ActorsFreely &&
+			DraggingMode != EViewportInteractionDraggingMode::ActorsWithGizmo &&
+			DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
+			( InteractorDraggingUI == nullptr || InteractorDraggingUI != Interactor ) &&
+			!Interactor->IsHoveringOverUI();	// Don't show radial menu when aiming at a UI  (too much clutter)
 
-	UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();
-	// We need to update the trackpad position in the radialmenu before checking if it can be used
-	RadialMenu->Update( Interactor );
-	if( RadialMenu && RadialMenu->IsInMenuRadius() )
-	{
-		bNeedsSpawn = false;
-	}
+		UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();
+		// We need to update the trackpad position in the radialmenu before checking if it can be used
+		RadialMenu->Update( Interactor );
+		if ( RadialMenu && RadialMenu->IsInMenuRadius() )
+		{
+			bNeedsSpawn = false;
+		}
 
-	if( bNeedsSpawn )
-	{
-		const AVREditorFloatingUI::EDockedTo DockedTo = Interactor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
-		QuickRadialMenu->SetDockedTo( DockedTo );
-		QuickRadialMenu->ShowUI( true );
+		if ( bNeedsSpawn )
+		{
+			const AVREditorFloatingUI::EDockedTo DockedTo = MotionControllerInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
+			QuickRadialMenu->SetDockedTo( DockedTo );
+			QuickRadialMenu->ShowUI( true );
+		}
 	}
 }
 
@@ -1075,7 +1085,7 @@ FTransform UVREditorUISystem::MakeDockableUITransform( AVREditorDockableWindow* 
 
 	if( DraggingUI != nullptr &&  DraggingUI->GetDockedTo() == AVREditorFloatingUI::EDockedTo::Dragging && InteractorDraggingUI && Interactor == InteractorDraggingUI )
 	{
-		UVREditorInteractor* OtherInteractor = Cast<UVREditorInteractor>( InteractorDraggingUI->GetOtherInteractor() );
+		UVREditorMotionControllerInteractor* OtherInteractor = Cast<UVREditorMotionControllerInteractor>( InteractorDraggingUI->GetOtherInteractor() );
 		if ( OtherInteractor )
 		{
 			const float WorldScaleFactor = GetOwner().GetWorldScaleFactor();
@@ -1160,11 +1170,11 @@ void UVREditorUISystem::StopDraggingDockUI( UVREditorInteractor* VREditorInterac
 		UViewportInteractor* OtherInteractor = VREditorInteractor->GetOtherInteractor();
 		if ( OtherInteractor )
 		{
-			UVREditorInteractor* OtherVREditorInteractor = Cast<UVREditorInteractor>( OtherInteractor );
-			if ( OtherVREditorInteractor )
+			UVREditorMotionControllerInteractor* MotionControllerOtherInteractor = Cast<UVREditorMotionControllerInteractor>( OtherInteractor );
+			if ( MotionControllerOtherInteractor )
 			{
 				bool bOnHand = false;
-				const float Distance = FVector::Dist( LastDraggingHoverLocation, OtherVREditorInteractor->GetTransform().GetLocation() ) / GetOwner().GetWorldScaleFactor();
+				const float Distance = FVector::Dist( LastDraggingHoverLocation, MotionControllerOtherInteractor->GetTransform().GetLocation() ) / GetOwner().GetWorldScaleFactor();
 				if ( Distance > VREd::MinDockDragDistance->GetFloat() )
 				{
 					DraggingUI->SetDockedTo( AVREditorFloatingUI::EDockedTo::Room );
@@ -1173,12 +1183,12 @@ void UVREditorUISystem::StopDraggingDockUI( UVREditorInteractor* VREditorInterac
 				{
 					bOnHand = true;
 					const FVector EditorUIRelativeOffset( DraggingUI->GetSize().Y * 0.5f + VREd::EditorUIOffsetFromHand->GetFloat(), 0.0f, 0.0f );
-					const FTransform MovingUIGoalTransform = DraggingUI->MakeUITransformLockedToHand( OtherVREditorInteractor, false, EditorUIRelativeOffset, FRotator( 90.0f, 180.0f, 0.0f ) );
-					const AVREditorFloatingUI::EDockedTo NewDockedTo = OtherVREditorInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
+					const FTransform MovingUIGoalTransform = DraggingUI->MakeUITransformLockedToHand( MotionControllerOtherInteractor, false, EditorUIRelativeOffset, FRotator( 90.0f, 180.0f, 0.0f ) );
+					const AVREditorFloatingUI::EDockedTo NewDockedTo = MotionControllerOtherInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
 					DraggingUI->MoveTo( MovingUIGoalTransform, VREd::DockSnapTime->GetFloat(), NewDockedTo );
 				}
 
-				ShowEditorUIPanel( DraggingUI, OtherVREditorInteractor, true, bOnHand );
+				ShowEditorUIPanel( DraggingUI, MotionControllerOtherInteractor, true, bOnHand );
 
 				DraggingUI = nullptr;
 				InteractorDraggingUI->SetDraggingMode( EViewportInteractionDraggingMode::Nothing );

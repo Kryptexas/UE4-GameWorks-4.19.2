@@ -38,6 +38,8 @@ void UVREditorTeleporter::Init( IVREditorMode* InMode )
 
 void UVREditorTeleporter::Shutdown()
 {
+	VRMode->OnTickHandle().RemoveAll( this );
+	VRMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
 	TeleportSound = nullptr;
 }
 
@@ -57,7 +59,7 @@ void UVREditorTeleporter::Tick( const float DeltaTime )
 void UVREditorTeleporter::StartTeleport( UViewportInteractor* Interactor )
 {
 	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
-	if ( VREditorInteractor == nullptr || !VREditorInteractor->IsHoveringOverUI() )
+	if ( VREditorInteractor && !VREditorInteractor->IsHoveringOverUI() )
 	{
 		FVector LaserPointerStart, LaserPointerEnd;
 		if ( Interactor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )

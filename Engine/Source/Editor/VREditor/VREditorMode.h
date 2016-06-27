@@ -353,10 +353,10 @@ protected:
 	class UMouseCursorInteractor* MouseCursorInteractor;
 
 	/** The right motion controller */
-	class UVREditorInteractor* LeftHandInteractor; //@todo vreditor: Hardcoded interactors
+	class UVREditorMotionControllerInteractor* LeftHandInteractor; //@todo vreditor: Hardcoded interactors
 	
 	/** The right motion controller */
-	class UVREditorInteractor* RightHandInteractor; 
+	class UVREditorMotionControllerInteractor* RightHandInteractor; 
 
 	//
 	// Colors

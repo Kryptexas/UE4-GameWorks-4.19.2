@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "Editor/ViewportInteraction/Public/ViewportInteractorMotionController.h"
+#include "Editor/ViewportInteraction/Public/ViewportInteractor.h"
 #include "VREditorInteractor.generated.h"
 
 /**
  * VREditor default interactor
  */
 UCLASS()
-class VREDITOR_API UVREditorInteractor : public UViewportInteractorMotionController
+class VREDITOR_API UVREditorInteractor : public UViewportInteractor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -18,10 +18,7 @@ public:
 	virtual ~UVREditorInteractor();
 
 	/** Initialize default values */
-	void Init( const EControllerHand InHandSide, class FVREditorMode* InVRMode );
-
-	/** Sets up all componentes defined in UViewportInteractorMotionController with the passed Actor as owner */
-	void SetupComponent( AActor* OwningActor );
+	virtual void Init( class FVREditorMode* InVRMode );
 
 	/** Gets the owner of this system */
 	class FVREditorMode& GetVRMode()
@@ -41,17 +38,16 @@ public:
 	virtual FHitResult GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors = nullptr, const bool bIgnoreGizmos = false,
 		TArray<UClass*>* ObjectsInFrontOfGizmo = nullptr, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f ) override;
 	virtual void ResetHoverState( const float DeltaTime ) override;
-	virtual void CalculateDragRay() override;
 	virtual void OnStartDragging( UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors ) override;
+
+	/** Returns the slide delta for pushing and pulling objects. Needs to be implemented by derived classes (e.g. touchpad for vive controller or scrollweel for mouse ) */
+	virtual float GetSlideDelta();
 
 	//
 	// Getters and setters
 	//
 
-	/** Gets the Y delta of the trackpad */
-	float GetTrackpadSlideDelta();
-
-	/** Gets if*/
+	/** Gets if this interactor is hovering over UI */
 	bool IsHoveringOverUI() const;
 	
 	/** Sets if there is a docked window on this interactor */
@@ -66,26 +62,11 @@ public:
 	/** Check if the quick menu is on this interactor */
 	bool HasUIOnForearm() const;
 
-	/** Check if the touchpad is currently touched */
-	bool IsTouchingTrackpad() const;
-
-	/** Get the current position of the trackpad or analog stick */
-	FVector2D GetTrackpadPosition() const;
-
-	/** Get the last position of the trackpad or analog stick */
-	FVector2D GetLastTrackpadPosition() const;
-
 	/** Gets the current hovered widget component if any */
 	UWidgetComponent* GetHoveringOverWidgetComponent() const;
 
 	/** Sets the current hovered widget component */
 	void SetHoveringOverWidgetComponent( UWidgetComponent* NewHoveringOverWidgetComponent );
-	
-	/** If the trackpad values are valid */
-	bool IsTrackpadPositionValid( const int32 AxisIndex ) const;
-
-	/** Get when the last time the trackpad position was updated */
-	FTimespan& GetLastTrackpadPositionUpdateTime();
 
 	/** If the modifier key is currently pressed */
 	bool IsModifierPressed() const;
@@ -116,43 +97,29 @@ public:
 
 	/** Gets the UI scroll velocity */
 	float GetUIScrollVelocity() const;
+
+	/** Gets the trigger value */
+	float GetSelectAndMoveTriggerValue() const;
 	
 	/* ViewportInteractor overrides, checks if the laser is blocked by UI */
 	virtual bool GetIsLaserBlocked() override;
-
+	
 protected:
 
-	// ViewportInteractor overrides
-	virtual void HandleInputKey( FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
-	virtual void HandleInputAxis( FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) override;
-
-private:
-
-	/** Changes the color of the buttons on the handmesh */
-	void ApplyButtonPressColors( const FViewportActionKeyInput& Action );
-
-	/** Set the visuals for a button on the motion controller */
-	void SetMotionControllerButtonPressedVisuals( const EInputEvent Event, const FName& ParameterName, const float PressStrength );
-	
-	/** Pops up some help text labels for the controller in the specified hand, or hides it, if requested */
-	void ShowHelpForHand( const bool bShowIt );
-	
-	/** Called every frame to update the position of any floating help labels */
-	void UpdateHelpLabels();
-
-	/** Given a mesh and a key name, tries to find a socket on the mesh that matches a supported key */
-	UStaticMeshSocket* FindMeshSocketForKey( UStaticMesh* StaticMesh, const FKey Key );
-
-	/** Sets the visuals of the LaserPointer */
-	void SetLaserVisuals( const FLinearColor& NewColor, const float CrawlFade, const float CrawlSpeed );
-
-	/** Updates the radial menu */
-	void UpdateRadialMenuInput( const float DeltaTime );
-
-private:
-	
-	/** The mode that created this interactor */
+	/** The mode that owns this interactor */
 	class FVREditorMode* VRMode;
+
+	//
+	// General input @todo: VREditor: Should this be general (non-UI) in interactordata ?
+	//
+
+	/** Is the Modifier button held down? */
+	bool bIsModifierPressed;
+
+	/** Current trigger pressed amount for 'select and move' (0.0 - 1.0) */
+	float SelectAndMoveTriggerValue;
+
+private:
 
 	//
 	// UI
@@ -177,35 +144,11 @@ private:
 	/** Inertial scrolling -- how fast to scroll the mousewheel over UI */
 	float UIScrollVelocity;	
 
-	//
-	// Trackpad support
-	//
-
-	/** True if the trackpad is actively being touched */
-	bool bIsTouchingTrackpad;
-
-	/** Position of the touched trackpad */
-	FVector2D TrackpadPosition;
-
-	/** Last position of the touched trackpad */
-	FVector2D LastTrackpadPosition;
-
-	/** True if we have a valid trackpad position (for each axis) */
-	bool bIsTrackpadPositionValid[ 2 ];
-
-	/** Real time that the last trackpad position was last updated.  Used to filter out stale previous data. */
-	FTimespan LastTrackpadPositionUpdateTime;
-
-	//
-	// General input @todo: VREditor: Should this be general (non-UI) in interactordata ?
-	//
-
-	/** Is the Modifier button held down? */
-	bool bIsModifierPressed;
-
 	/** Last real time that we released the 'SelectAndMove' button on UI.  This is used to detect double-clicks. */
 	double LastClickReleaseTime;
-	
+
+protected:
+
 	//
 	// Help
 	//

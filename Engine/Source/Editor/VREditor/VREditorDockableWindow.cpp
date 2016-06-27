@@ -426,7 +426,7 @@ void UDockableWindowDragOperation::ExecuteDrag( UViewportInteractor* Interactor,
 		UVREditorUISystem& UISystem = DockableWindow->GetOwner();
 
 		const bool bIsAbsolute = ( UISystem.GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
-		float SlideDeltaY = VRInteractor->GetTrackpadSlideDelta();
+		float SlideDeltaY = VRInteractor->GetSlideDelta();
 
 		float NewUIScale = DockableWindow->GetScale() + SlideDeltaY;
 		if ( NewUIScale <= UISystem.GetMinDockWindowSize() )

@@ -26,6 +26,7 @@
 #include "Editor/ViewportInteraction/Public/ViewportInteraction.h"
 #include "VREditorInteractor.h"
 #include "MouseCursorInteractor.h"
+#include "VREditorMotionControllerInteractor.h"
 
 #include "Interactables/VREditorButton.h"
 
@@ -333,12 +334,14 @@ void FVREditorMode::Enter()
 
 		// Motion controllers
 		{
-			LeftHandInteractor = NewObject<UVREditorInteractor>( WorldInteraction );
-			LeftHandInteractor->Init( EControllerHand::Left, this );
+			LeftHandInteractor = NewObject<UVREditorMotionControllerInteractor>( WorldInteraction );
+			LeftHandInteractor->SetControllerHandSide( EControllerHand::Left );
+			LeftHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( LeftHandInteractor );
 
-			RightHandInteractor = NewObject<UVREditorInteractor>( WorldInteraction );
-			RightHandInteractor->Init( EControllerHand::Right, this );
+			RightHandInteractor = NewObject<UVREditorMotionControllerInteractor>( WorldInteraction );
+			RightHandInteractor->SetControllerHandSide( EControllerHand::Right );
+			RightHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( RightHandInteractor );
 
 			WorldInteraction->PairInteractors( LeftHandInteractor, RightHandInteractor );
@@ -382,6 +385,8 @@ void FVREditorMode::Exit()
 		WorldMovementPostProcessMaterial->MarkPendingKill();
 		WorldMovementPostProcessMaterial = nullptr;
 	}
+
+	check( WorldInteraction->GetViewportClient() != nullptr );
 
 	{
 		DestroyTransientActor( AvatarMeshActor );
@@ -474,18 +479,18 @@ void FVREditorMode::Exit()
 		UISystem = nullptr;
 	}
 
-	if ( WorldInteraction != nullptr )
-	{
-		WorldInteraction->Shutdown();
-		WorldInteraction->MarkPendingKill();
-		WorldInteraction = nullptr;
-	}
-
 	if ( TeleporterSystem != nullptr )
 	{
 		TeleporterSystem->Shutdown();
 		TeleporterSystem->MarkPendingKill();
 		TeleporterSystem = nullptr;
+	}
+
+	if ( WorldInteraction != nullptr )
+	{
+		WorldInteraction->Shutdown();
+		WorldInteraction->MarkPendingKill();
+		WorldInteraction = nullptr;
 	}
 
 	// @todo vreditor urgent: Disable global editor hacks for VR Editor mode
@@ -1136,7 +1141,6 @@ const SLevelViewport& FVREditorMode::GetLevelViewportPossessedForVR() const
 	return *VREditorLevelViewportWeakPtr.Pin();
 }
 
-
 SLevelViewport& FVREditorMode::GetLevelViewportPossessedForVR()
 {
 	return *VREditorLevelViewportWeakPtr.Pin();
@@ -1213,26 +1217,30 @@ void FVREditorMode::CleanUpActorsBeforeMapChangeOrSimulate()
 
 void FVREditorMode::ToggleFlashlight( UVREditorInteractor* Interactor )
 {
-	if ( FlashlightComponent == nullptr )
+	UVREditorMotionControllerInteractor* MotionControllerInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
+	if ( MotionControllerInteractor )
 	{
-		FlashlightComponent = NewObject<USpotLightComponent>(AvatarMeshActor);
-		AvatarMeshActor->AddOwnedComponent(FlashlightComponent);
-		FlashlightComponent->RegisterComponent();
-		FlashlightComponent->SetMobility(EComponentMobility::Movable);
-		FlashlightComponent->SetCastShadows(false);
-		FlashlightComponent->bUseInverseSquaredFalloff = false;
-		//@todo vreditor tweak
-		FlashlightComponent->SetLightFalloffExponent(8.0f);
-		FlashlightComponent->SetIntensity(20.0f);
-		FlashlightComponent->SetOuterConeAngle(25.0f);
-		FlashlightComponent->SetInnerConeAngle(25.0f);
-		
-	}
+		if ( FlashlightComponent == nullptr )
+		{
+			FlashlightComponent = NewObject<USpotLightComponent>( AvatarMeshActor );
+			AvatarMeshActor->AddOwnedComponent( FlashlightComponent );
+			FlashlightComponent->RegisterComponent();
+			FlashlightComponent->SetMobility( EComponentMobility::Movable );
+			FlashlightComponent->SetCastShadows( false );
+			FlashlightComponent->bUseInverseSquaredFalloff = false;
+			//@todo vreditor tweak
+			FlashlightComponent->SetLightFalloffExponent( 8.0f );
+			FlashlightComponent->SetIntensity( 20.0f );
+			FlashlightComponent->SetOuterConeAngle( 25.0f );
+			FlashlightComponent->SetInnerConeAngle( 25.0f );
 
-	const FAttachmentTransformRules AttachmentTransformRules = FAttachmentTransformRules( EAttachmentRule::KeepRelative, true );
-	FlashlightComponent->AttachToComponent( Interactor->GetMotionControllerComponent(), AttachmentTransformRules );
-	bIsFlashlightOn = !bIsFlashlightOn;
-	FlashlightComponent->SetVisibility(bIsFlashlightOn);
+		}
+
+		const FAttachmentTransformRules AttachmentTransformRules = FAttachmentTransformRules( EAttachmentRule::KeepRelative, true );
+		FlashlightComponent->AttachToComponent( MotionControllerInteractor->GetMotionControllerComponent(), AttachmentTransformRules );
+		bIsFlashlightOn = !bIsFlashlightOn;
+		FlashlightComponent->SetVisibility( bIsFlashlightOn );
+	}
 }
 
 void FVREditorMode::CycleTransformGizmoHandleType()
