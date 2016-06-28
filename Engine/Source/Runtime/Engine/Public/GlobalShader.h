@@ -130,6 +130,16 @@ public:
 #if USE_GBuiltinSamplersUniformBuffer
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
 #endif
+		// Skip if instanced stereo is not enabled
+		if (View.bIsInstancedStereoEnabled && View.Family->Views.Num() > 0)
+		{
+			// When drawing the left eye in a stereo scene, copy the right eye view values into the instanced view uniform buffer.
+			const EStereoscopicPass StereoPassIndex = (View.StereoPass != eSSP_FULL) ? eSSP_RIGHT_EYE : eSSP_FULL;
+
+			const FSceneView& InstancedView = View.Family->GetStereoEyeView(StereoPassIndex);
+			const auto& InstancedViewUniformBufferParameter = GetUniformBufferParameter<FInstancedViewUniformShaderParameters>();
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedViewUniformBufferParameter, InstancedView.ViewUniformBuffer);
+		}
 	}
 
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, FShaderCompilerEnvironment&);

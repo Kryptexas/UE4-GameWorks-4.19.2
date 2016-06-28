@@ -26,7 +26,7 @@ FAnalyticsET::Config DefaultAnalyticsConfigFunc()
 */
 TFunction<FAnalyticsET::Config()>& GetCrashReportAnalyticsConfigFunc()
 {
-	static TFunction<FAnalyticsET::Config()> Config;
+	static TFunction<FAnalyticsET::Config()> Config = &DefaultAnalyticsConfigFunc;
 	return Config;
 }
 

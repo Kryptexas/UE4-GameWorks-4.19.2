@@ -761,8 +761,8 @@ public:
 				CumulativeCooldown += TickFunction->RelativeTickCooldown;
 
 				TickFunction->TickState = FTickFunction::ETickState::Enabled;
-				// we store a bit in here if this came from an interval queue 
-				AllTickFunctions.Add((FTickFunction*)(UPTRINT(TickFunction) | 1));
+				TickFunction->bWasInterval = true;
+				AllTickFunctions.Add(TickFunction);
 
 				TickFunctionsToReschedule.Add(FTickScheduleDetails(TickFunction, TickFunction->TickInterval - (Context.DeltaSeconds - CumulativeCooldown))); // Give credit for any overrun
 
@@ -1381,13 +1381,10 @@ public:
 			ParallelFor(AllTickFunctions.Num(), 
 				[this](int32 Index)
 				{
-					// we store a bit in here if this came from an interval queue 
 					FTickFunction* TickFunction = AllTickFunctions[Index];
-					bool bWasInterval = !!(UPTRINT(TickFunction) & 1);
-					TickFunction = (FTickFunction*)(UPTRINT(TickFunction) & ~1);
 
 					TArray<FTickFunction*, TInlineAllocator<8> > StackForCycleDetection;
-					TickFunction->QueueTickFunctionParallel(Context, StackForCycleDetection, bWasInterval);
+					TickFunction->QueueTickFunctionParallel(Context, StackForCycleDetection);
 				}
 			);
 		    for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
@@ -1593,6 +1590,7 @@ FTickFunction::FTickFunction()
 	, bHighPriority(false)
 	, bRunOnAnyThread(false)
 	, bRegistered(false)
+	, bWasInterval(false)
 	, TickState(ETickState::Enabled)
 	, TickVisitedGFrameCounter(0)
 	, TickQueuedGFrameCounter(0)
@@ -1784,7 +1782,7 @@ void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTic
 	}
 }
 
-void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection, bool bWasInterval)
+void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection)
 {
 
 	bool bProcessTick;
@@ -1818,7 +1816,7 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 					else if (Prereq->bRegistered)
 					{
 						// recursive call to make sure my prerequisite is set up so I can use its completion handle
-						Prereq->QueueTickFunctionParallel(TickContext, StackForCycleDetection, false);
+						Prereq->QueueTickFunctionParallel(TickContext, StackForCycleDetection);
 						if (!Prereq->TaskPointer)
 						{
 							//ok UE_LOG(LogTick, Warning, TEXT("While processing prerequisites for %s, could use %s because it is disabled."),*DiagnosticMessage(), *Prereq->DiagnosticMessage());
@@ -1868,6 +1866,8 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 				}
 			}
 		}
+		bWasInterval = false;
+
 		FPlatformMisc::MemoryBarrier();
 		TickQueuedGFrameCounter = GFrameCounter;
 	}

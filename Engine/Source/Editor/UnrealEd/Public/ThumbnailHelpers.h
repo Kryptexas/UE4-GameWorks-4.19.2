@@ -236,7 +236,8 @@ protected:
 
 private:
 
-	class AActor* PreviewActor;
+	// To avoid the possibility of backwards compatibility issues in 4.12, the old AActor* will now be a void* that we will treat as a TWeakObjectPtr<AActor>
+	void* PreviewActorWeakObjPtrMadness;
 };
 
 class UNREALED_API FBlueprintThumbnailScene : public FClassActorThumbnailScene

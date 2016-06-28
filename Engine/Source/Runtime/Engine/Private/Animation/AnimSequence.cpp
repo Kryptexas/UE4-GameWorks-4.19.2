@@ -3150,6 +3150,8 @@ void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)
 	InitializeNotifyTrack();
 	//Make sure we dont have any notifies off the end of the sequence
 	ClampNotifiesAtEndOfSequence();
+	// mark package as dirty
+	MarkPackageDirty();
 }
 
 void UAnimSequence::RemoveNaNTracks()

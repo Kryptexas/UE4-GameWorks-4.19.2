@@ -2532,9 +2532,9 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 		}
 	}
 
+#if WITH_EDITOR
 	// If any of the data is out of sync, build the tree now!
-	if (PerInstanceSMData.Num() != ClusterTreePtr->Num() ||
-		InstanceReorderTable.Num() != PerInstanceSMData.Num() ||
+	if (InstanceReorderTable.Num() != PerInstanceSMData.Num() ||
 		NumBuiltInstances != PerInstanceSMData.Num() ||
 		UnbuiltInstanceBoundsList.Num() > 0 ||
 		GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES)
@@ -2547,6 +2547,7 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 		}
 		BuildTree();
 	}
+#endif
 
 	if (CVarASyncInstaneBufferConversion.GetValueOnGameThread() > 0)
 	{

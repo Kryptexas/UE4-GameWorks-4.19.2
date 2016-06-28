@@ -1562,7 +1562,11 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 	
 	UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
-	
+
+	// since we don't assign the avoidance velocity but instead use it to adjust steering and throttle,
+	// always reset the avoidance velocity to the current velocity
+	AvoidanceVelocity = GetVelocityForRVOConsideration();
+
 	if (AvoidanceWeight >= 1.0f || AvoidanceManager == NULL || MyOwner == NULL)
 	{
 		return;
@@ -1576,10 +1580,6 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	const bool bShowDebug = AvoidanceManager->IsDebugEnabled(AvoidanceUID);
 #endif
-
-	// since we don't assign the avoidance velocity but instead use it to adjust steering and throttle,
-	// always reset the avoidance velocity to the current velocity
-	AvoidanceVelocity = GetVelocityForRVOConsideration();
 
 	if (!AvoidanceVelocity.IsZero())
 	{

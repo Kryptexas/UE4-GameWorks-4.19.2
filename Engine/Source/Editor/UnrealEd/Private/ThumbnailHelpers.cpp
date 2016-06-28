@@ -964,14 +964,21 @@ void FAnimBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegr
 
 FClassActorThumbnailScene::FClassActorThumbnailScene()
 	: FThumbnailPreviewScene()
-	, PreviewActor(nullptr)
 {
+	static_assert(sizeof(PreviewActorWeakObjPtrMadness) <= sizeof(TWeakObjectPtr<AActor>), "Expected TWeakObjectPtr to be the size of a pointer");
+	new(&PreviewActorWeakObjPtrMadness) TWeakObjectPtr<AActor>();
 }
 
 void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
-	if (PreviewActor)
+	TWeakObjectPtr<AActor>& PreviewActor = *((TWeakObjectPtr<AActor>*)&PreviewActorWeakObjPtrMadness);
+	if (PreviewActor.IsValid())
 	{
+		if (PreviewActor->GetClass() == InClass)
+		{
+			return;
+		}
+
 		PreviewActor->Destroy();
 		PreviewActor = nullptr;
 	}
@@ -984,7 +991,7 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 		SpawnInfo.ObjectFlags = RF_Transient;
 		PreviewActor = GetWorld()->SpawnActor<AActor>(InClass, SpawnInfo);
 
-		if (PreviewActor)
+		if (PreviewActor.IsValid())
 		{
 			const FBoxSphereBounds Bounds = GetPreviewActorBounds();
 			const float BoundsZOffset = GetBoundsZOffset(Bounds);
@@ -1019,7 +1026,8 @@ bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent
 FBoxSphereBounds FClassActorThumbnailScene::GetPreviewActorBounds() const
 {
 	FBoxSphereBounds Bounds(ForceInitToZero);
-	if (PreviewActor && PreviewActor->GetRootComponent())
+	TWeakObjectPtr<AActor>& PreviewActor = *((TWeakObjectPtr<AActor>*)&PreviewActorWeakObjPtrMadness);
+	if (PreviewActor.IsValid() && PreviewActor->GetRootComponent())
 	{
 		TArray<USceneComponent*> PreviewComponents;
 		PreviewActor->GetRootComponent()->GetChildrenComponents(true, PreviewComponents);

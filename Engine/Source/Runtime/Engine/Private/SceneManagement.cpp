@@ -240,6 +240,11 @@ void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 			*this);
 	}
 
+	for (int32 Index = 0; Index < MeshBatch.Elements.Num(); ++Index)
+	{
+		check(MeshBatch.Elements[Index].PrimitiveUniformBuffer || MeshBatch.Elements[Index].PrimitiveUniformBufferResource);
+	}
+
 	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& ViewMeshBatches = *MeshBatches[ViewIndex];
 	new (ViewMeshBatches) FMeshBatchAndRelevance(MeshBatch, PrimitiveSceneProxy, FeatureLevel);	
 }

@@ -427,7 +427,7 @@ public class DeploymentContext //: ProjectParams
 				// allow missing files if needed
 				if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || File.Exists())
 				{
-					bool bRemap = RuntimeDependency.Type == StagedFileType.UFS && !bUsingPakFile;
+					bool bRemap = RuntimeDependency.Type != StagedFileType.UFS || !bUsingPakFile;
 					StageFile(RuntimeDependency.Type, File.FullName, bRemap: bRemap);
 				}
 			}

@@ -3427,7 +3427,6 @@ namespace
 
 void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
 	const FName PropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
 	if (bIsProxy)
 	{
@@ -3519,6 +3518,9 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			}
 		}
 	}
+
+	// Must do this *after* clamping values / propogating values to components
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
@@ -3596,8 +3598,6 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 
 void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	bool ChangedMaterial = false;
@@ -3681,6 +3681,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	{
 		bChangedNavRelevance = true;
 	}
+
+	// Must do this *after* clamping values
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	bPropagateToProxies = bPropagateToProxies || bNeedsRecalcBoundingBox || bChangedLighting;
 
@@ -3858,8 +3861,6 @@ void ULandscapeComponent::PreEditChange(UProperty* PropertyThatWillChange)
 
 void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 	if (PropertyName == FName(TEXT("OverrideMaterial")))
 	{
@@ -3898,6 +3899,9 @@ void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		SimpleCollisionMipLevel = FMath::Clamp<int32>(SimpleCollisionMipLevel, 0, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
 		UpdateCollisionData(true); // Rebuild for new CollisionMipLevel
 	}
+
+	// Must do this *after* clamping values
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 TSet<class ULandscapeComponent*> ULandscapeInfo::GetSelectedComponents() const

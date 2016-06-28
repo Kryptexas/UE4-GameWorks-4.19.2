@@ -767,7 +767,7 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 
 	// Create the world-space normal g-buffer.
 	{
-		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
+		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
 
 		if(bEnforce8BitPerChannel)
 		{
@@ -1458,8 +1458,10 @@ bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) co
 {	
 	int32 Value = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
+	// This condition must match with FTranslucentPrimSet::PlaceScenePrimitive
 	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
-		&& (View.Family->EngineShowFlags.PostProcessing || View.Family->EngineShowFlags.ShaderComplexity)
+		&& View.Family->EngineShowFlags.PostProcessing 
+		&& !View.Family->EngineShowFlags.ShaderComplexity
 		&& View.Family->EngineShowFlags.SeparateTranslucency;
 }
 
