@@ -11,6 +11,12 @@ class ISequencer;
 class UWidgetAnimation;
 class UUserWidget;
 
+struct FNamedSlotSelection
+{
+	FWidgetReference NamedSlotHostWidget;
+	FName SlotName;
+};
+
 /**
  * widget blueprint editor (extends Blueprint editor)
  */
@@ -36,6 +42,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void PostUndo(bool bSuccessful) override;
 	virtual void PostRedo(bool bSuccessful) override;
+	virtual void Compile() override;
 
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -82,11 +89,17 @@ public:
 	/** Sets the currently selected set of objects */
 	void SelectObjects(const TSet<UObject*>& Objects);
 
+	/** Sets the selected named slot */
+	void SetSelectedNamedSlot(TOptional<FNamedSlotSelection> SelectedNamedSlot);
+
 	/** Removes removed widgets from the selection set. */
 	void CleanSelection();
 
 	/** @return The selected set of widgets */
 	const TSet<FWidgetReference>& GetSelectedWidgets() const;
+
+	/** @return The selected named slot */
+	TOptional<FNamedSlotSelection> GetSelectedNamedSlot() const;
 
 	/** @return The selected set of Objects */
 	const TSet< TWeakObjectPtr<UObject> >& GetSelectedObjects() const;
@@ -147,6 +160,7 @@ protected:
 	// Begin FBlueprintEditor
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false) override;
 	virtual FGraphAppearanceInfo GetGraphAppearance(class UEdGraph* InGraph) const override;
+	virtual void AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing) override;
 	// End FBlueprintEditor
 
 private:
@@ -215,6 +229,9 @@ private:
 	/** The currently selected objects in the designer */
 	TSet< TWeakObjectPtr<UObject> > SelectedObjects;
 
+	/** The currently selected named slot */
+	TOptional<FNamedSlotSelection> SelectedNamedSlot;
+
 	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetPtr;
 
@@ -245,4 +262,7 @@ private:
 	TWeakObjectPtr<UWidgetAnimation> CurrentAnimation;
 
 	FDelegateHandle SequencerExtenderHandle;
+
+	/** Messages we want to append to the compiler results. */
+	TArray< TSharedRef<class FTokenizedMessage> > DesignerCompilerMessages;
 };

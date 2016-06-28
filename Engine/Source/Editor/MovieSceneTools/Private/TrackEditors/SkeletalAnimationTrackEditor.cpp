@@ -35,7 +35,9 @@ namespace SkeletalAnimationEditorConstants
 
 
 FSkeletalAnimationSection::FSkeletalAnimationSection( UMovieSceneSection& InSection )
-	: Section( InSection )
+	: Section(*CastChecked<UMovieSceneSkeletalAnimationSection>(&InSection))
+	, InitialStartOffsetDuringResize(0.f)
+	, InitialStartTimeDuringResize(0.f)
 { }
 
 
@@ -53,10 +55,9 @@ FText FSkeletalAnimationSection::GetDisplayName() const
 
 FText FSkeletalAnimationSection::GetSectionTitle() const
 {
-	UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(&Section);
-	if (AnimSection != nullptr && AnimSection->GetAnimSequence() != nullptr)
+	if (Section.GetAnimSequence() != nullptr)
 	{
-		return FText::FromString( AnimSection->GetAnimSequence()->GetName() );
+		return FText::FromString( Section.GetAnimSequence()->GetName() );
 	}
 	return LOCTEXT("NoAnimationSection", "No Animation");
 }
@@ -71,20 +72,18 @@ float FSkeletalAnimationSection::GetSectionHeight() const
 int32 FSkeletalAnimationSection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 {
 	const ESlateDrawEffect::Type DrawEffects = Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-
-	UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(&Section);
 	
 	const FTimeToPixel& TimeToPixelConverter = Painter.GetTimeConverter();
 
 	int32 LayerId = Painter.PaintSectionBackground();
 
 	// Add lines where the animation starts and ends/loops
-	float CurrentTime = AnimSection->GetStartTime();
-	float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
-	float SeqLength = (AnimSection->GetSequenceLength() - (AnimSection->GetStartOffset() + AnimSection->GetEndOffset())) / AnimPlayRate;
-	while (CurrentTime < AnimSection->GetEndTime() && !FMath::IsNearlyZero(AnimSection->GetDuration()) && SeqLength > 0)
+	float CurrentTime = Section.GetStartTime();
+	float AnimPlayRate = FMath::IsNearlyZero(Section.GetPlayRate()) ? 1.0f : Section.GetPlayRate();
+	float SeqLength = (Section.GetSequenceLength() - (Section.GetStartOffset() + Section.GetEndOffset())) / AnimPlayRate;
+	while (CurrentTime < Section.GetEndTime() && !FMath::IsNearlyZero(Section.GetDuration()) && SeqLength > 0)
 	{
-		if (CurrentTime > AnimSection->GetStartTime())
+		if (CurrentTime > Section.GetStartTime())
 		{
 			float CurrentPixels = TimeToPixelConverter.TimeToPixel(CurrentTime);
 
@@ -107,6 +106,33 @@ int32 FSkeletalAnimationSection::OnPaintSection( FSequencerSectionPainter& Paint
 	return LayerId;
 }
 
+void FSkeletalAnimationSection::BeginResizeSection()
+{
+	InitialStartOffsetDuringResize = Section.GetStartOffset();
+	InitialStartTimeDuringResize = Section.GetStartTime();
+}
+
+void FSkeletalAnimationSection::ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime)
+{
+	// Adjust the start offset when resizing from the beginning
+	if (ResizeMode == SSRM_LeadingEdge)
+	{
+		float StartOffset = (ResizeTime - InitialStartTimeDuringResize) * Section.GetPlayRate();
+		StartOffset += InitialStartOffsetDuringResize;
+
+		// Ensure start offset is not less than 0 and adjust ResizeTime
+		if (StartOffset < 0)
+		{
+			ResizeTime = ResizeTime - (StartOffset / Section.GetPlayRate());
+
+			StartOffset = 0.f;
+		}
+
+		Section.SetStartOffset(StartOffset);
+	}
+
+	ISequencerSection::ResizeSection(ResizeMode, ResizeTime);
+}
 
 FSkeletalAnimationTrackEditor::FSkeletalAnimationTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 

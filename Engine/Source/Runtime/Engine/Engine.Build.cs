@@ -256,6 +256,7 @@ public class Engine : ModuleRules
 						"LinuxTargetPlatform",
 						"LinuxNoEditorTargetPlatform",
 						"LinuxServerTargetPlatform",
+						"LinuxClientTargetPlatform",
 						"AllDesktopTargetPlatform",
 					}
 				);

@@ -1271,7 +1271,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		for (auto ContextIt = WorldList.CreateIterator(); ContextIt; ++ContextIt)
 		{
 			FWorldContext &PieContext = *ContextIt;
-			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL)
+			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL || !PieContext.World()->ShouldTick())
 			{
 				continue;
 			}

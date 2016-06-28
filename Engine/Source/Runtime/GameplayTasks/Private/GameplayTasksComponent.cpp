@@ -288,19 +288,32 @@ void UGameplayTasksComponent::EndAllResourceConsumingTasksOwnedBy(const IGamepla
 	}
 }
 
-bool UGameplayTasksComponent::FindAllTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const
+bool UGameplayTasksComponent::FindAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const
 {
 	int32 NumFound = 0;
-	for (int32 Idx = 0; Idx < TaskPriorityQueue.Num(); Idx++)
+	for (int32 TaskIndex = 0; TaskIndex < TaskPriorityQueue.Num(); TaskIndex++)
 	{
-		if (TaskPriorityQueue[Idx] && TaskPriorityQueue[Idx]->GetTaskOwner() == &TaskOwner)
+		if (TaskPriorityQueue[TaskIndex] && TaskPriorityQueue[TaskIndex]->GetTaskOwner() == &TaskOwner)
 		{
-			FoundTasks.Add(TaskPriorityQueue[Idx]);
+			FoundTasks.Add(TaskPriorityQueue[TaskIndex]);
 			NumFound++;
 		}
 	}
 
 	return (NumFound > 0);
+}
+
+UGameplayTask* UGameplayTasksComponent::FindResourceConsumingTaskByName(const FName TaskInstanceName) const
+{
+	for (int32 TaskIndex = 0; TaskIndex < TaskPriorityQueue.Num(); TaskIndex++)
+	{
+		if (TaskPriorityQueue[TaskIndex] && TaskPriorityQueue[TaskIndex]->GetInstanceName() == TaskInstanceName)
+		{
+			return TaskPriorityQueue[TaskIndex];
+		}
+	}
+
+	return nullptr;
 }
 
 bool UGameplayTasksComponent::HasActiveTasks(UClass* TaskClass) const

@@ -15,6 +15,12 @@ public:
 	FGameplayDebuggerInputHandler& GetInputHandler(int32 HandlerId) { return InputHandlers[HandlerId]; }
 	FString GetInputHandlerDescription(int32 HandlerId) const;
 
+	/** [ALL] called when gameplay debugger is activated */
+	virtual void OnGameplayDebuggerActivated();
+
+	/** [ALL] called when gameplay debugger is deactivated */
+	virtual void OnGameplayDebuggerDeactivated();
+
 	/** check if simulate in editor mode is active */
 	static bool IsSimulateInEditor();
 

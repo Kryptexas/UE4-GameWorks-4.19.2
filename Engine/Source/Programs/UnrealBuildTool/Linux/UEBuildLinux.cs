@@ -65,6 +65,7 @@ namespace UnrealBuildTool
 				{
 					Rules.DynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
 					Rules.DynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("LinuxClientTargetPlatform");
 					Rules.DynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
 					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
 				}
@@ -303,6 +304,7 @@ namespace UnrealBuildTool
 						{
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxClientTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
 						}
 					}
@@ -313,6 +315,7 @@ namespace UnrealBuildTool
 				{
 					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
 					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxClientTargetPlatform");
 					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
 				}
 			}

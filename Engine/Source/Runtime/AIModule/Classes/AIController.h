@@ -82,6 +82,7 @@ class AIMODULE_API AAIController : public AController, public IAIPerceptionListe
 {
 	GENERATED_BODY()
 
+	FGameplayResourceSet ScriptClaimedResources;
 protected:
 	FFocusKnowledge	FocusInformation;
 
@@ -272,6 +273,11 @@ public:
 	/** does this AIController allow given UBlackboardComponent sync data with it */
 	virtual bool ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const { return true; }
 
+	UFUNCTION(BlueprintCallable, Category = "AI|Tasks")
+	void ClaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass);
+	
+	UFUNCTION(BlueprintCallable, Category = "AI|Tasks")
+	void UnclaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass);
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent)
@@ -332,6 +338,7 @@ public:
 	//~ Begin AController Interface
 	virtual void Possess(APawn* InPawn) override;
 	virtual void UnPossess() override;
+	virtual bool ShouldPostponePathUpdates() const override;
 	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 
 #if ENABLE_VISUAL_LOG

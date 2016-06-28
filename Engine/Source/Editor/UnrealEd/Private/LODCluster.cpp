@@ -324,6 +324,8 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 			{
 				Utilities->BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup);
 			}
+			NewActor->PostEditChange();
+
 			return NewActor;
 		}
 	}

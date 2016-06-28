@@ -582,8 +582,10 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}
 
 	// Are we currently immune to this? (ApplicationImmunity)
-	if (ActiveGameplayEffects.HasApplicationImmunityToSpec(Spec))
+	const FActiveGameplayEffect* ImmunityGE=nullptr;
+	if (ActiveGameplayEffects.HasApplicationImmunityToSpec(Spec, ImmunityGE))
 	{
+		OnImmunityBlockGameplayEffect(Spec, ImmunityGE);
 		return FActiveGameplayEffectHandle();
 	}
 
@@ -952,6 +954,11 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 		}
 	}
 	return FActiveGameplayEffectHandle();
+}
+
+void UAbilitySystemComponent::OnImmunityBlockGameplayEffect(const FGameplayEffectSpec& Spec, const FActiveGameplayEffect* ImmunityGE)
+{
+	OnImmunityBlockGameplayEffectDelegate.Broadcast(Spec, ImmunityGE);
 }
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)

@@ -54,6 +54,30 @@ bool UseSelectiveBasePassOutputs()
 	return CVarSelectiveBasePassOutputs.GetValueOnAnyThread() == 1;
 }
 
+static TAutoConsoleVariable<int32> CVarSupportStationarySkylight(
+	TEXT("r.SupportStationarySkylight"),
+	1,
+	TEXT("Enables Stationary and Dynamic Skylight shader permutations."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSupportAtmosphericFog(
+	TEXT("r.SupportAtmosphericFog"),
+	1,
+	TEXT("Enables AtmosphericFog shader permutations."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSupportLowQualityLightmaps(
+	TEXT("r.SupportLowQualityLightmaps"),
+	1,
+	TEXT("Support low quality lightmap shader permutations"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSupportAllShaderPermutations(
+	TEXT("r.SupportAllShaderPermutations"),
+	0,
+	TEXT("Local user config override to force all shader permutation features on."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 /** Whether to replace lightmap textures with solid colors to visualize the mip-levels. */
 bool GVisualizeMipLevels = false;
 
@@ -325,11 +349,8 @@ public:
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);
 
-			const bool bRenderSkylight = Parameters.ShadingModel != MSM_Unlit
-				&& Scene->SkyLight 
-				&& !Scene->SkyLight->bHasStaticLighting 
-				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
-				&& (Scene->SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(Scene->GetShaderPlatform()));
+			const bool bRenderSkylight = Scene->ShouldRenderSkylight() && Parameters.ShadingModel != MSM_Unlit;
+			const bool bRenderAtmosphericFog = IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
 
 			// Add the static mesh to the draw list.
 			DrawList.AddMesh(
@@ -344,7 +365,7 @@ public:
 					Parameters.BlendMode,
 					Parameters.TextureMode,
 					bRenderSkylight,
-					IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog(),
+					bRenderAtmosphericFog,
 					/* DebugViewShaderMode = */ DVSM_None,
 					/* bInAllowGlobalFog = */ false,
 					/* bInEnableEditorPrimitiveDepthTest = */ false,
@@ -430,9 +451,7 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// When rendering masked materials in the shader complexity viewmode, 
 		// We want to overwrite complexity for the pixels which get depths written,
 		// And accumulate complexity for pixels which get killed due to the opacity mask being below the clip value.
@@ -447,11 +466,8 @@ public:
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
-		const bool bRenderSkylight = Scene && Scene->SkyLight 
-			&& !Scene->SkyLight->bHasStaticLighting 
-			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
-			&& (Scene->SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(Scene->GetShaderPlatform()))
-			&& bIsLitMaterial;
+		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight() && Parameters.ShadingModel != MSM_Unlit;
+		const bool bRenderAtmosphericFog = IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog) && View.Family->EngineShowFlags.AtmosphericFog;
 
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
@@ -462,7 +478,7 @@ public:
 			Parameters.BlendMode,
 			Parameters.TextureMode,
 			bRenderSkylight,
-			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.AtmosphericFog,
+			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
 			false,
 			Parameters.bEditorCompositeDepthTest,

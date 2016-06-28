@@ -446,6 +446,11 @@ public:
 		return RequestID;
 	}
 
+	FString ToString() const
+	{
+		return FString::FromInt(int32(RequestID));
+	}
+
 	static const FAIRequestID AnyRequest;
 	static const FAIRequestID CurrentRequest;
 	static const FAIRequestID InvalidRequest;

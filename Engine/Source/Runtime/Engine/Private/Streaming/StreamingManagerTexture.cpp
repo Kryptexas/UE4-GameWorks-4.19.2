@@ -1444,7 +1444,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 					UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%s) ScreenSize=%f Boost=%f"), ViewIndex, *ViewInfo.ViewOrigin.ToString(), ViewInfo.ScreenSize, ViewInfo.BoostFactor);
 				}
 
-				StreamingData.UpdatePerfectWantedMips_Async(StreamingTexture, true);
+				StreamingData.UpdatePerfectWantedMips_Async(StreamingTexture, MipBias, true);
 			}
 		}
 	}

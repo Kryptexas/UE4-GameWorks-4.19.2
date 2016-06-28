@@ -35,9 +35,9 @@
 #include "HierarchicalLODUtilities.h"
 #include "HierarchicalLODProxyProcessor.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogHierarchicalLODUtilities, Verbose, All);
+
 #define LOCTEXT_NAMESPACE "HierarchicalLODUtils"
-
-
 
 void FHierarchicalLODUtilities::ExtractStaticMeshComponentsFromLODActor(AActor* Actor, TArray<UStaticMeshComponent*>& InOutComponents)
 {
@@ -135,6 +135,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 			return false;
 		}
 
+		UE_LOG(LogHierarchicalLODUtilities, Log, TEXT("Building Proxy Mesh for Cluster %s"), *LODActor->GetName());
 		const FScopedTransaction Transaction(LOCTEXT("UndoAction_BuildProxyMesh", "Building Proxy Mesh for Cluster"));
 		LODActor->Modify();		
 
@@ -427,6 +428,7 @@ ALODActor* FHierarchicalLODUtilities::CreateNewClusterActor(UWorld* InWorld, con
 	NewActor->LODLevel = InLODLevel + 1;
 	NewActor->LODDrawDistance = 0.0f;
 	NewActor->SetStaticMesh(nullptr);
+	NewActor->PostEditChange();
 
 	return NewActor;
 }

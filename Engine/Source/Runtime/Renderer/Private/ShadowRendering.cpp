@@ -90,6 +90,12 @@ uint32 GetShadowQuality()
 	return FMath::Clamp(Ret, 0, 5);
 }
 
+static TAutoConsoleVariable<int32> CVarSupportPointLightWholeSceneShadows(
+	TEXT("r.SupportPointLightWholeSceneShadows"),
+	1,
+	TEXT("Enables shadowcasting point lights."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 /** The stencil sphere vertex buffer. */
 TGlobalResource<StencilingGeometry::TStencilSphereVertexBuffer<18, 12, FVector4> > StencilingGeometry::GStencilSphereVertexBuffer;
 TGlobalResource<StencilingGeometry::TStencilSphereVertexBuffer<18, 12, FVector> > StencilingGeometry::GStencilSphereVectorBuffer;

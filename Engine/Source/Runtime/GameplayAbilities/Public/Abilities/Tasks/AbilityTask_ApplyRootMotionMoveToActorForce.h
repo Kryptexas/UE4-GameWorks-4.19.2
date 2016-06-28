@@ -33,7 +33,7 @@ class UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask
 
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_ApplyRootMotionMoveToActorForce* ApplyRootMotionMoveToActorForce(UObject* WorldContextObject, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish);
+	static UAbilityTask_ApplyRootMotionMoveToActorForce* ApplyRootMotionMoveToActorForce(UObject* WorldContextObject, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, bool bDisableDestinationReachedInterrupt);
 
 	virtual void Activate() override;
 
@@ -74,6 +74,11 @@ protected:
 
 	UPROPERTY(Replicated)
 	float Duration;
+
+	/** By default, this force ends when the destination is reached. Using this parameter you can disable it so it will not 
+	 *  "early out" and get interrupted by reaching the destination and instead go to its full duration. */
+	UPROPERTY(Replicated)
+	bool bDisableDestinationReachedInterrupt;
 
 	UPROPERTY(Replicated)
 	bool bSetNewMovementMode;

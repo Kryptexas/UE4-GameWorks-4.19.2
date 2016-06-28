@@ -64,6 +64,12 @@ public:
 	void DirtyLayout();
 
 	/**
+	 * Force dirty the content due to an external change that can't be picked up automatically by this cache.
+	 * Also force dirties the layout. Will cause the contained text to be re-parsed by the marshaller next frame.
+	 */
+	void DirtyContent();
+
+	/**
 	 * Override the text style used and immediately update the text layout (if required).
 	 * This can be used to override the text style after calling ComputeDesiredSize (eg, if you can only compute your text style in OnPaint)
 	 * Please note that changing the size or font used by the text may causing clipping issues until the next call to ComputeDesiredSize

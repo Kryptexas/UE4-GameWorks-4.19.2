@@ -127,6 +127,8 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 
 	bStopOnOverlap = true;
 	Status = EPathFollowingStatus::Idle;
+
+	CurrentMoveInput = FVector::ZeroVector;
 }
 
 void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavigationPath* InLogPath, const AActor* LogGoalActor)
@@ -635,6 +637,7 @@ void UPathFollowingComponent::Reset()
 	bStopOnOverlap = true;
 	bCollidedWithGoal = false;
 	bIsUsingMetaPath = false;
+	bWalkingNavLinkStart = false;
 
 	CurrentRequestId = FAIRequestID::InvalidRequest;
 	Status = EPathFollowingStatus::Idle;
@@ -741,6 +744,8 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 			: (FNavMeshNodeFlags(PathPt1.Flags).IsNavLink() == false ? PathPointAcceptanceRadius : NavLinkAcceptanceRadius);
 
 		MoveSegmentDirection = (SegmentEnd - SegmentStart).GetSafeNormal();
+
+		bWalkingNavLinkStart = FNavMeshNodeFlags(PathPt0.Flags).IsNavLink();
 
 		// handle moving through custom nav links
 		if (PathPt0.CustomLinkId)
@@ -871,7 +876,7 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 	const bool bAccelerationBased = MovementComp->UseAccelerationForPathFollowing();
 	if (bAccelerationBased)
 	{
-		FVector MoveInput = (CurrentTarget - CurrentLocation).GetSafeNormal();
+		CurrentMoveInput = (CurrentTarget - CurrentLocation).GetSafeNormal();
 
 		if (MoveSegmentStartIndex >= DecelerationSegmentIndex)
 		{
@@ -881,12 +886,12 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 			if (bShouldDecelerate)
 			{
 				const float SpeedPct = FMath::Clamp(FMath::Sqrt(DistToEndSq) / CachedBrakingDistance, 0.0f, 1.0f);
-				MoveInput *= SpeedPct;
+				CurrentMoveInput *= SpeedPct;
 			}
 		}
 
-		PostProcessMove.ExecuteIfBound(this, MoveInput);
-		MovementComp->RequestPathMove(MoveInput);
+		PostProcessMove.ExecuteIfBound(this, CurrentMoveInput);
+		MovementComp->RequestPathMove(CurrentMoveInput);
 	}
 	else
 	{
@@ -1364,6 +1369,11 @@ FNavLocation UPathFollowingComponent::GetCurrentNavLocation() const
 	return CurrentNavLocation;
 }
 
+bool UPathFollowingComponent::IsCurrentSegmentNavigationLink() const
+{
+	return Path.IsValid() && Path->GetPathPoints().IsValidIndex(MoveSegmentStartIndex) && FNavMeshNodeFlags(Path->GetPathPoints()[MoveSegmentStartIndex].Flags).IsNavLink();
+}
+
 FVector UPathFollowingComponent::GetCurrentDirection() const
 {
 	if (CurrentDestination.Base)
@@ -1434,13 +1444,14 @@ void UPathFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) co
 	}
 	
 	FString StatusDesc = GetStatusDesc();
-	if (Status == EPathFollowingStatus::Moving)
+	if (Status == EPathFollowingStatus::Moving && Path.IsValid())
 	{
-		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->GetPathPoints().Num() : -1;
-		StatusDesc += FString::Printf(TEXT(" [%d..%d/%d]"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, NumMoveSegments);
+		StatusDesc += FString::Printf(TEXT(" [%d..%d/%d]%s%s"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, Path->GetPathPoints().Num()
+			, bWalkingNavLinkStart ? TEXT("navlink") : TEXT(""), Path->IsValid() ? TEXT("") : TEXT(" Invalidated"));
 	}
 
 	Category.Add(TEXT("Status"), StatusDesc);
+	Category.Add(TEXT("MoveID"), GetCurrentRequestId().ToString());
 	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") :
 		(Path->CastPath<FNavMeshPath>() != NULL) ? TEXT("navmesh") :
 		(Path->CastPath<FAbstractNavigationPath>() != NULL) ? TEXT("direct") :
@@ -1530,6 +1541,11 @@ FString UPathFollowingComponent::GetDebugString() const
 bool UPathFollowingComponent::IsPathFollowingAllowed() const
 {
 	return MovementComp && MovementComp->CanStartPathFollowing();
+}
+
+void UPathFollowingComponent::OnStartedFalling()
+{
+	bWalkingNavLinkStart = false;
 }
 
 void UPathFollowingComponent::LockResource(EAIRequestPriority::Type LockSource)

@@ -66,6 +66,8 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	bReplicateInputDirectly = false;
 	RemoteInstanceEnded = false;
 
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerExecution;
+
 	ScopeLockCount = 0;
 }
 

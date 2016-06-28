@@ -68,6 +68,18 @@ bool APartyBeaconHost::ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InN
 	return bSuccess;
 }
 
+void APartyBeaconHost::SetTeamAssignmentMethod(FName NewAssignmentMethod)
+{
+	if (State)
+	{
+		State->SetTeamAssignmentMethod(NewAssignmentMethod);
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning, TEXT("SetTeamAssignmentMethod failed for beacon with no state!"));
+	}
+}
+
 void APartyBeaconHost::Tick(float DeltaTime)
 {
 	if (State)
@@ -247,6 +259,27 @@ int32 APartyBeaconHost::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) co
 	}
 
 	return TeamNum;
+}
+
+int32 APartyBeaconHost::GetPlayersOnTeam(int32 TeamIndex, TArray<FUniqueNetIdRepl>& TeamMembers) const
+{
+	if (State)
+	{
+		if (TeamIndex < State->GetNumTeams())
+		{
+			return State->GetPlayersOnTeam(TeamIndex, TeamMembers);
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("GetPlayersOnTeam: Invalid team index %d"), TeamIndex);
+		}
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning, TEXT("GetPlayersOnTeam failed for beacon with no state!"));
+	}
+
+	return 0;
 }
 
 void APartyBeaconHost::SendReservationUpdates()

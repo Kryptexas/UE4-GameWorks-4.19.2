@@ -27,13 +27,11 @@ int32 GetBuildUniqueId()
 	static int32 BuildIdOverride = 0;
 	if (!bStaticCheck)
 	{
-#if !UE_BUILD_SHIPPING
 		if (FParse::Value(FCommandLine::Get(), TEXT("BuildIdOverride="), BuildIdOverride) && BuildIdOverride != 0)
 		{
 			bUseBuildIdOverride = true;
 		}
 		else
-#endif // !UE_BUILD_SHIPPING
 		{
 			if (!GConfig->GetBool(TEXT("OnlineSubsystem"), TEXT("bUseBuildIdOverride"), bUseBuildIdOverride, GEngineIni))
 			{

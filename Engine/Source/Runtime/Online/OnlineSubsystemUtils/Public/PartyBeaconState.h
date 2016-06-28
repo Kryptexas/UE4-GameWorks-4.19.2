@@ -138,6 +138,16 @@ namespace EPartyReservationResult
 	}
 }
 
+namespace ETeamAssignmentMethod
+{
+	/** Fill smallest team first */
+	extern ONLINESUBSYSTEMUTILS_API const FName Smallest;
+	/** Optimize for best fit within the number of available reservations */
+	extern ONLINESUBSYSTEMUTILS_API const FName BestFit;
+	/** Assign random team */
+	extern ONLINESUBSYSTEMUTILS_API const FName Random;
+}
+
 /** A single player reservation */
 USTRUCT()
 struct FPlayerReservation
@@ -221,6 +231,13 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	virtual bool ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InNumPlayersPerTeam, int32 InNumReservations);
 
 	/**
+	 * Define the method for assignment new reservations to teams
+	 * 
+	 * @param NewAssignmentMethod name of the assignment method to use (@see ETeamAssignmentMethod for descriptions)
+	 */
+	virtual void SetTeamAssignmentMethod(FName NewAssignmentMethod);
+
+	/**
 	 * Add a reservation to the beacon state, tries to assign a team
 	 * 
 	 * @param ReservationRequest reservation to possibly add to this state
@@ -302,7 +319,16 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	 *
 	 * @return index of reservation, INDEX_NONE otherwise
 	 */
-	virtual int32 GetExistingReservation(const FUniqueNetIdRepl& PartyLeader);
+	virtual int32 GetExistingReservation(const FUniqueNetIdRepl& PartyLeader) const;
+
+	/**
+	 * Get an existing reservation containing a given party member
+	 *
+	 * @param PartyMember UniqueId of party member for a reservation
+	 *
+	 * @return index of reservation, INDEX_NONE otherwise
+	 */
+	virtual int32 GetExistingReservationContainingMember(const FUniqueNetIdRepl& PartyMember) const;
 
 	/**
 	* Get the current reservation count inside the beacon
@@ -382,6 +408,16 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	virtual int32 GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) const;
 
 	/**
+	 * Get all the known players on a given team
+	 * 
+	 * @param TeamIndex valid team index to query
+	 * @param TeamMembers [out] array of unique ids found to be on the given team
+	 *
+	 * @return number of players on team, 0 if invalid
+	 */
+	int32 GetPlayersOnTeam(int32 TeamIndex, TArray<FUniqueNetIdRepl>& TeamMembers) const;
+
+	/**
 	 * Does a given player id have an existing reservation
 	 *
 	 * @param PlayerId uniqueid of the player to check
@@ -455,6 +491,9 @@ protected:
 	/** Number of players on each team for balancing */
 	UPROPERTY(Transient)
 	int32 NumPlayersPerTeam;
+	/** Team assignment method */
+	UPROPERTY(Transient)
+	FName TeamAssignmentMethod;
 	/** Team that the host has been assigned to */
 	UPROPERTY(Transient)
 	int32 ReservedHostTeamNum;
@@ -467,6 +506,13 @@ protected:
 	TArray<FPartyReservation> Reservations;
 	/** Players that are expected to join shortly */
 	TArray< TSharedPtr<const FUniqueNetId> > PlayersPendingJoin;
+
+	/**
+	 * Arrange reservations to make the most room available on a single team
+	 * allowing larger parties to fit into this session
+	 * Since teams change, this shouldn't be used after the teams have been set in the game logic
+	 */
+	void BestFitTeamAssignmentJiggle();
 
 	friend class APartyBeaconHost;
 };

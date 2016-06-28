@@ -714,6 +714,17 @@ public:
 
 #endif // WITH_EDITOR
 
+	/**
+	 * Sets whether or not this world is ticked by the engine, but use it at your own risk! This could
+	 * have unintended consequences if used carelessly. That said, for worlds that are not interactive
+	 * and not rendering, it can save the cost of ticking them. This should probably never be used
+	 * for a primary game world.
+	 */
+	void SetShouldTick(const bool bInShouldTick) { bShouldTick = bInShouldTick; }
+
+	/** Returns whether or not this world is currently ticking. See SetShouldTick. */
+	bool ShouldTick() const { return bShouldTick; }
+
 private:
 
 	/** List of all the controllers in the world. */
@@ -748,6 +759,9 @@ private:
 
 	/** Whether the render scene for this World should be created with HitProxies or not */
 	bool bRequiresHitProxies;
+
+	/** Whether to do any ticking at all for this world. */
+	bool bShouldTick;
 
 	/** a delegate that broadcasts a notification whenever an actor is spawned */
 	FOnActorSpawned OnActorSpawned;

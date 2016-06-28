@@ -15,6 +15,8 @@
 #include "AIController.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "GameplayTasksComponent.h"
+#include "GameplayTaskResource.h"
+#include "Tasks/GameplayTask_ClaimResource.h"
 
 // mz@todo these need to be removed, legacy code
 #define CLOSEPROXIMITY					500.f
@@ -95,7 +97,7 @@ void AAIController::Reset()
 
 	if (PathFollowingComponent)
 	{
-		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished);
+		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished | FPathFollowingResultFlags::ForcedScript);
 	}
 }
 
@@ -528,7 +530,7 @@ void AAIController::UnPossess()
 		}
 	}
 
-	if (CachedGameplayTasksComponent)
+	if (CachedGameplayTasksComponent && (CachedGameplayTasksComponent->GetOwner() == CurrentPawn))
 	{
 		CachedGameplayTasksComponent->OnClaimedResourcesChange.RemoveDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 		CachedGameplayTasksComponent = nullptr;
@@ -730,7 +732,14 @@ bool AAIController::ResumeMove(FAIRequestID RequestToResume)
 
 void AAIController::StopMovement()
 {
-	PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::MovementStop);
+	// @note FPathFollowingResultFlags::ForcedScript added to make AITask_MoveTo instances 
+	// not ignore OnRequestFinished notify that's going to be sent out due to this call
+	PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::MovementStop | FPathFollowingResultFlags::ForcedScript);
+}
+
+bool AAIController::ShouldPostponePathUpdates() const
+{
+	return GetPathFollowingComponent()->HasStartedNavLinkMove() || Super::ShouldPostponePathUpdates();
 }
 
 bool AAIController::BuildPathfindingQuery(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query) const
@@ -887,8 +896,8 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	bool bShouldInitializeBlackboard = false;
 
 	// see if need a blackboard component at all
-	UBlackboardComponent* BlackboardComp = NULL;
-	if (BTAsset->BlackboardAsset)
+	UBlackboardComponent* BlackboardComp = Blackboard;
+	if (BTAsset->BlackboardAsset && (Blackboard == nullptr || Blackboard->IsCompatibleWith(BTAsset->BlackboardAsset) == false))
 	{
 		bSuccess = UseBlackboard(BTAsset->BlackboardAsset, BlackboardComp);
 	}
@@ -912,6 +921,49 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	}
 
 	return bSuccess;
+}
+
+void AAIController::ClaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass)
+{
+	if (CachedGameplayTasksComponent)
+	{
+		const uint8 ResourceID = UGameplayTaskResource::GetResourceID(ResourceClass);
+		if (ScriptClaimedResources.HasID(ResourceID) == false)
+		{
+			ScriptClaimedResources.AddID(ResourceID);
+
+			UE_VLOG(this, LogGameplayTasks, Log, TEXT("ClaimTaskResource %s"), *GetNameSafe(*ResourceClass));
+			
+			IGameplayTaskOwnerInterface& AsTaskOwner = *this;
+			UGameplayTask_ClaimResource* ResourceTask = UGameplayTask_ClaimResource::ClaimResource(AsTaskOwner, ResourceClass, uint8(EAITaskPriority::High), ResourceClass->GetFName());
+			if (ResourceTask)
+			{
+				CachedGameplayTasksComponent->AddTaskReadyForActivation(*ResourceTask);
+			}
+			UE_CVLOG(ResourceTask == nullptr, this, LogGameplayTasks, Warning, TEXT("ClaimTaskResource failed to create UGameplayTask_ClaimResource instance"));
+		}
+	}
+}
+
+void AAIController::UnclaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass)
+{
+	if (CachedGameplayTasksComponent)
+	{
+		const uint8 ResourceID = UGameplayTaskResource::GetResourceID(ResourceClass);
+		if (ScriptClaimedResources.HasID(ResourceID) == true)
+		{
+			ScriptClaimedResources.RemoveID(ResourceID);
+			
+			UE_VLOG(this, LogGameplayTasks, Log, TEXT("UnclaimTaskResource %s"), *GetNameSafe(*ResourceClass));
+
+			UGameplayTask* ResourceTask = CachedGameplayTasksComponent->FindResourceConsumingTaskByName(ResourceClass->GetFName());
+			if (ResourceTask)
+			{
+				ResourceTask->EndTask();
+			}
+			UE_CVLOG(ResourceTask == nullptr, this, LogGameplayTasks, Warning, TEXT("UnclaimTaskResource failed to find UGameplayTask_ClaimResource instance"));
+		}
+	}
 }
 
 bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, UBlackboardData& BlackboardAsset)

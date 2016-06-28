@@ -1020,7 +1020,19 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 	}
 
 	// This should only come from button presses/local instigation (AI, etc)
-	ENetRole NetMode = ActorInfo->AvatarActor->Role;
+	ENetRole NetMode = ROLE_SimulatedProxy;
+
+	// Use PC netmode if its there
+	if (APlayerController* PC = ActorInfo->PlayerController.Get())
+	{
+		NetMode = PC->Role;
+	}
+	// Fallback to avataractor otherwise. Edge case: avatar "dies" and becomes torn off and ROLE_Authority. We don't want to use this case (use PC role instead).
+	else if (AvatarActor)
+	{
+		NetMode = AvatarActor->Role;
+	}
+
 	if (NetMode == ROLE_SimulatedProxy)
 	{
 		return false;

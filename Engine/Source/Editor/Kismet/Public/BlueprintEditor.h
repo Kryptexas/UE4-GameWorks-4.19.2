@@ -545,6 +545,8 @@ public:
 	void SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
 protected:
+	virtual void AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing);
+
 	/** Called during initialization of the blueprint editor to register any application modes. */
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false);
 

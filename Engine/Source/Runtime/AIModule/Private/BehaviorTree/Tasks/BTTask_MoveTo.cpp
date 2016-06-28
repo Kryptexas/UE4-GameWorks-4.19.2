@@ -126,9 +126,15 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 
 					if (bReuseExistingTask)
 					{
-						ensure(MoveTask->IsActive());
-						UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s"), *GetNodeName(), *MoveTask->GetName());
-						MoveTask->ConditionalPerformMove();
+						if (MoveTask->IsActive())
+						{
+							UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s"), *GetNodeName(), *MoveTask->GetName());
+							MoveTask->ConditionalPerformMove();
+						}
+						else
+						{
+							UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s, but task is not active - handing over move performing to task mechanics"), *GetNodeName(), *MoveTask->GetName());
+						}
 					}
 					else
 					{

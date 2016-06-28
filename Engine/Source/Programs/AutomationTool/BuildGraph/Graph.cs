@@ -248,7 +248,7 @@ namespace AutomationTool
 			}
 
 			// Remove all the empty reports
-			NameToReport = NameToReport.Where(x => x.Value.Nodes.Count > 0).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
+			NameToReport = NameToReport.Where(x => x.Value.Nodes.Count > 0).ToDictionary(Pair => Pair.Key, Pair => Pair.Value, StringComparer.InvariantCultureIgnoreCase);
 
 			// Remove all the order dependencies which are no longer part of the graph. Since we don't need to build them, we don't need to wait for them
 			foreach(Node Node in RetainNodes)
@@ -260,7 +260,7 @@ namespace AutomationTool
 			NameToTrigger = RetainNodes.Where(x => x.ControllingTrigger != null).Select(x => x.ControllingTrigger).Distinct().ToDictionary(x => x.Name, x => x, StringComparer.InvariantCultureIgnoreCase);
 
 			// Create a new list of aggregates for everything that's left
-			AggregateNameToNodes = AggregateNameToNodes.Where(x => x.Value.All(y => RetainNodes.Contains(y))).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
+			AggregateNameToNodes = AggregateNameToNodes.Where(x => x.Value.All(y => RetainNodes.Contains(y))).ToDictionary(Pair => Pair.Key, Pair => Pair.Value, StringComparer.InvariantCultureIgnoreCase);
 
 			// Remove any badges which do not have all their dependencies
 			Badges.RemoveAll(x => x.Nodes.Any(y => !RetainNodes.Contains(y)));

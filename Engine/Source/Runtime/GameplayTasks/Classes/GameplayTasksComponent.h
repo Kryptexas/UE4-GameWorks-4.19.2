@@ -68,7 +68,7 @@ protected:
 	 *	Note: this TaskEvents is assumed to be used in a single thread */
 	TArray<FGameplayTaskEventData> TaskEvents;
 
-	/** Array of currently active UAbilityTasks that require ticking */
+	/** Array of currently active UGameplayTask that require ticking */
 	UPROPERTY()
 	TArray<UGameplayTask*> TickingTasks;
 
@@ -104,7 +104,10 @@ public:
 	void RemoveResourceConsumingTask(UGameplayTask& Task);
 	void EndAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner);
 
-	bool FindAllTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const;
+	bool FindAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const;
+	
+	/** finds first resource-consuming task of given name */
+	UGameplayTask* FindResourceConsumingTaskByName(const FName TaskInstanceName) const;
 
 	bool HasActiveTasks(UClass* TaskClass) const;
 

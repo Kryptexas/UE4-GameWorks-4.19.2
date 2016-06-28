@@ -34,7 +34,7 @@ void FAsyncTextureStreamingData::UpdateBoundSizes_Async()
 }
 
 
-void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, bool bOutputToLog) const
+void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, float MipBias, bool bOutputToLog) const
 {
 #if UE_BUILD_SHIPPING
 	bOutputToLog = false;
@@ -124,7 +124,7 @@ void FAsyncTextureStreamingData::UpdatePerfectWantedMips_Async(FStreamingTexture
 		}
 	}
 
-	StreamingTexture.SetPerfectWantedMips_Async(MaxSize, MaxSize_VisibleOnly, bLooksLowRes);
+	StreamingTexture.SetPerfectWantedMips_Async(MaxSize, MaxSize_VisibleOnly, MipBias, bLooksLowRes);
 }
 
 void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int64& TempMemoryUsed)
@@ -423,7 +423,7 @@ void FAsyncTextureStreamingTask::DoWork()
 	{
 		if (IsAborted()) break;
 
-		StreamingData.UpdatePerfectWantedMips_Async(StreamingTexture);
+		StreamingData.UpdatePerfectWantedMips_Async(StreamingTexture, StreamingManager.MipBias);
 		StreamingTexture.DynamicBoostFactor = 1.f; // Reset after every computation.
 	}
 

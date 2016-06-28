@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameplayTagsModule.h"
+#include "GameplayAbilitiesModule.h"
 #include "AbilitySystemGlobals.generated.h"
 
 class AActor;
@@ -28,7 +29,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** Gets the single instance of the globals object, will create it as necessary */
-	static UAbilitySystemGlobals& Get();
+	static UAbilitySystemGlobals& Get()
+	{
+		return *IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
+	}
 
 	/** Should be called once as part of project setup to load global data tables and tags */
 	virtual void InitGlobalData();
@@ -140,6 +144,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	FGameplayTag ActivateFailNetworkingTag; // Failed to activate due to invalid networking settings, this is designer error
 	UPROPERTY(config)
 	FName ActivateFailNetworkingName;
+
+	/** How many bits to use for "number of tags" in FMinimapReplicationTagCountMap::NetSerialize.  */
+	UPROPERTY(config)
+	int32	MinimalReplicationTagCountBits;
 
 	virtual void InitGlobalTags()
 	{

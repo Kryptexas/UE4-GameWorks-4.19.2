@@ -549,6 +549,16 @@ FSlateWindowElementList::FDeferredPaint::FDeferredPaint( const TSharedRef<const 
 {
 }
 
+FSlateWindowElementList::FDeferredPaint::FDeferredPaint(const FDeferredPaint& Copy, const FPaintArgs& InArgs)
+	: WidgetToPaintPtr(Copy.WidgetToPaintPtr)
+	, Args(InArgs)
+	, AllottedGeometry(Copy.AllottedGeometry)
+	, MyClippingRect(Copy.MyClippingRect)
+	, WidgetStyle(Copy.WidgetStyle)
+	, bParentEnabled(Copy.bParentEnabled)
+{
+}
+
 
 int32 FSlateWindowElementList::FDeferredPaint::ExecutePaint( int32 LayerId, FSlateWindowElementList& OutDrawElements ) const
 {
@@ -559,6 +569,11 @@ int32 FSlateWindowElementList::FDeferredPaint::ExecutePaint( int32 LayerId, FSla
 	}
 
 	return LayerId;
+}
+
+FSlateWindowElementList::FDeferredPaint FSlateWindowElementList::FDeferredPaint::Copy(const FPaintArgs& InArgs)
+{
+	return FDeferredPaint(*this, InArgs);
 }
 
 

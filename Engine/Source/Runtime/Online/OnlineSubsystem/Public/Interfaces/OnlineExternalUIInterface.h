@@ -58,6 +58,8 @@ struct FShowWebUrlParams
 	bool bShowBackground;
 	/** Hide the mouse cursor */
 	bool bHideCursor;
+	/** Rest cookies before invoking web browser */
+	bool bResetCookies;
 	/** x offset in pixels from top left */
 	int32 OffsetX;
 	/** y offset in pixels from top left */
@@ -79,6 +81,7 @@ struct FShowWebUrlParams
 		, bShowCloseButton(false)
 		, bShowBackground(false)
 		, bHideCursor(false)
+		, bResetCookies(false)
 		, OffsetX(InOffsetX)
 		, OffsetY(InOffsetY)
 		, SizeX(InSizeX)
@@ -93,6 +96,7 @@ struct FShowWebUrlParams
 		, bShowCloseButton(false)
 		, bShowBackground(false)
 		, bHideCursor(false)
+		, bResetCookies(false)
 		, OffsetX(0)
 		, OffsetY(0)
 		, SizeX(0)

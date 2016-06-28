@@ -2588,7 +2588,7 @@ void AActor::PostEditImport()
 /** Util that sets up the actor's component hierarchy (when users forget to do so, in their native ctor) */
 static USceneComponent* FixupNativeActorComponents(AActor* Actor)
 {
-	TArray<USceneComponent*> SceneComponents;
+	TInlineComponentArray<USceneComponent*> SceneComponents;
 	Actor->GetComponents(SceneComponents);
 
 	USceneComponent* SceneRootComponent = Actor->GetRootComponent();
@@ -3916,20 +3916,20 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 		RegisterAllActorTickFunctions(true, false); // components will be handled when they are registered
 	}
 	
-	// Register RootComponent first so all other components can reliable use it (ie call GetLocation) when they register
-	if( RootComponent != NULL && !RootComponent->IsRegistered() )
+	// Register RootComponent first so all other children components can reliably use it (i.e., call GetLocation) when they register
+	if (RootComponent != NULL && !RootComponent->IsRegistered())
 	{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		FScopeCycleCounterUObject ContextScope(RootComponent);
 #endif
-		// An unregistered root component is bad news
-		check(RootComponent->bAutoRegister);
+		if (RootComponent->bAutoRegister)
+		{
+			// Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
+			// This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
+			RootComponent->Modify(false);
 
-		//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
-		//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
-		RootComponent->Modify(false);
-
-		RootComponent->RegisterComponentWithWorld(World);
+			RootComponent->RegisterComponentWithWorld(World);
+		}
 	}
 
 	int32 NumTotalRegisteredComponents = 0;
@@ -3941,7 +3941,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 	for (int32 CompIdx = 0; CompIdx < Components.Num() && NumRegisteredComponentsThisRun < NumComponentsToRegister; CompIdx++)
 	{
 		UActorComponent* Component = Components[CompIdx];
-		if(!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
+		if (!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
 		{
 			// Ensure that all parent are registered first
 			USceneComponent* UnregisteredParentComponent = GetUnregisteredParent(Component);
@@ -3964,8 +3964,8 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 			FScopeCycleCounterUObject ContextScope(Component);
 #endif
 				
-			//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
-			//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
+			// Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
+			// This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
 			Component->Modify(false);
 
 			Component->RegisterComponentWithWorld(World);

@@ -829,21 +829,29 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 {
 	if( GConfig )
 	{
-		FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIni );
-		for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
+		// Go over all configs so that plugins/etc have a chance to register TaggedPropertyRedirects
+		for (const auto& ConfigPair : *GConfig)
 		{
-			if( It.Key() == TEXT("TaggedPropertyRedirects") )
+			const FString& ConfigFilename = ConfigPair.Key;
+
+			if (FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, ConfigFilename ))
 			{
-				FName ClassName = NAME_None;
-				FName OldPropertyName = NAME_None;
-				FName NewPropertyName = NAME_None;
+				for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
+				{
+					if( It.Key() == TEXT("TaggedPropertyRedirects") )
+					{
+						FName ClassName = NAME_None;
+						FName OldPropertyName = NAME_None;
+						FName NewPropertyName = NAME_None;
 
-				FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
-				FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
-				FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
+						FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
+						FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
+						FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
 
-				check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
-				TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
+						check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
+						TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
+					}
+				}
 			}
 		}
 	}
@@ -2154,7 +2162,11 @@ void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 		{
 			for (int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++)
 			{
-				TheCppStructOps->Construct(Dest + ArrayIndex * Stride);
+				void* PropertyDest = Dest + ArrayIndex * Stride;
+				checkf(IsAligned(PropertyDest, TheCppStructOps->GetAlignment()),
+					TEXT("Destination address for property does not match requirement of %d byte alignment"), 
+					TheCppStructOps->GetAlignment());
+				TheCppStructOps->Construct(PropertyDest);
 			}
 		}
 

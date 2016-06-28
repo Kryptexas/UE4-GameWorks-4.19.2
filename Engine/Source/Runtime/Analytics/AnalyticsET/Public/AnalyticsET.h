@@ -58,11 +58,12 @@ public:
 		Config() : UseLegacyProtocol(false) {}
 		/** Ctor exposing common configurables . */
 		Config(FString InAPIKeyET, FString InAPIServerET, FString InAppVersionET = FString(), bool InUseLegacyProtocol = false, FString InAppEnvironment = FString(), FString InUploadType = FString()) 
-			: APIKeyET(InAPIKeyET)
-			, APIServerET(InAPIServerET)
+			: APIKeyET(MoveTemp(InAPIKeyET))
+			, APIServerET(MoveTemp(InAPIServerET))
+			, AppVersionET(MoveTemp(InAppVersionET))
 			, UseLegacyProtocol(InUseLegacyProtocol)
-			, AppEnvironment(InAppEnvironment)
-			, UploadType(InUploadType)
+			, AppEnvironment(MoveTemp(InAppEnvironment))
+			, UploadType(MoveTemp(InUploadType))
 		{}
 
 		/** KeyName required for APIKey configuration. */

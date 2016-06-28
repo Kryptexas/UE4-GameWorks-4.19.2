@@ -16,10 +16,15 @@
 //#include "VisualLogger/VisualLogger.h"
 #endif // ENABLE_VISUAL_LOG
 
-const float UGameplayEffect::INFINITE_DURATION = -1.f;
-const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
-const float UGameplayEffect::NO_PERIOD = 0.f;
-const float UGameplayEffect::INVALID_LEVEL = -1.f;
+const float FGameplayEffectConstants::INFINITE_DURATION = -1.f;
+const float FGameplayEffectConstants::INSTANT_APPLICATION = 0.f;
+const float FGameplayEffectConstants::NO_PERIOD = 0.f;
+const float FGameplayEffectConstants::INVALID_LEVEL = -1.f;
+
+const float UGameplayEffect::INFINITE_DURATION = FGameplayEffectConstants::INFINITE_DURATION;
+const float UGameplayEffect::INSTANT_APPLICATION =FGameplayEffectConstants::INSTANT_APPLICATION;
+const float UGameplayEffect::NO_PERIOD = FGameplayEffectConstants::NO_PERIOD;
+const float UGameplayEffect::INVALID_LEVEL = FGameplayEffectConstants::INVALID_LEVEL;
 
 DECLARE_CYCLE_STAT(TEXT("MakeQuery"), STAT_MakeGameplayEffectQuery, STATGROUP_AbilitySystem);
 
@@ -110,6 +115,8 @@ void UGameplayEffect::PostLoad()
 		}
 	}
 
+	HasGrantedApplicationImmunityQuery = !GrantedApplicationImmunityQuery.IsEmpty();
+
 #if WITH_EDITOR
 	GETCURVE_REPORTERROR(Period.Curve);
 	GETCURVE_REPORTERROR(ChanceToApplyToTarget.Curve);
@@ -150,6 +157,8 @@ void UGameplayEffect::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			RemoveGameplayEffectsWithTags.UpdateInheritedTagProperties(Parent ? &Parent->RemoveGameplayEffectsWithTags : NULL);
 		}
 	}
+
+	HasGrantedApplicationImmunityQuery = !GrantedApplicationImmunityQuery.IsEmpty();
 }
 
 #endif // #if WITH_EDITOR
@@ -967,6 +976,11 @@ const FGameplayEffectModifiedAttribute* FGameplayEffectSpecForRPC::GetModifiedAt
 		}
 	}
 	return NULL;
+}
+
+FString FGameplayEffectSpecForRPC::ToSimpleString() const
+{
+	return FString::Printf(TEXT("%s"), *Def->GetName());
 }
 
 FGameplayEffectModifiedAttribute* FGameplayEffectSpec::AddModifiedAttribute(const FGameplayAttribute& Attribute)
@@ -2682,8 +2696,14 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 		Owner->AddMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
 	}
 
+	// Immunity
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, 1);
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
+
+	if (Effect.Spec.Def->HasGrantedApplicationImmunityQuery)
+	{	
+		ApplicationImmunityQueryEffects.Add(Effect.Spec.Def);
+	}
 
 	// Grant abilities
 	if (IsNetAuthority() && !Owner->bSuppressGrantAbility)
@@ -2875,7 +2895,11 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FAct
 		RemoveActiveEffectTagDependency(Effect.Spec.Def->OngoingTagRequirements.IgnoreTags, Effect.Handle);
 		RemoveActiveEffectTagDependency(Effect.Spec.Def->OngoingTagRequirements.RequireTags, Effect.Handle);
 
-		RemoveActiveGameplayEffectGrantedTagsAndModifiers(Effect, bInvokeGameplayCueEvents);
+		// Only Need to update tags and modifiers if the gameplay effect is active.
+		if (!Effect.bIsInhibited)
+		{
+			RemoveActiveGameplayEffectGrantedTagsAndModifiers(Effect, bInvokeGameplayCueEvents);
+		}
 	}
 	else
 	{
@@ -2915,8 +2939,14 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 		Owner->RemoveMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
 	}
 
+	// Immunity
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, -1);
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, -1);
+
+	if (Effect.Spec.Def->HasGrantedApplicationImmunityQuery)
+	{
+		ApplicationImmunityQueryEffects.Remove(Effect.Spec.Def);
+	}
 
 	// Cancel/remove granted abilities
 	if (IsNetAuthority())
@@ -3060,7 +3090,7 @@ void FActiveGameplayEffectsContainer::OnOwnerTagChange(FGameplayTag TagChange, i
 	}
 }
 
-bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply) const
+bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply, const FActiveGameplayEffect*& OutGEThatProvidedImmunity) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_HasApplicationImmunityToSpec)
 
@@ -3070,16 +3100,36 @@ bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGamepl
 		return false;
 	}
 
+	// Query
+	for (const UGameplayEffect* EffectDef : ApplicationImmunityQueryEffects)
+	{
+		if (EffectDef->GrantedApplicationImmunityQuery.Matches(SpecToApply))
+		{
+			// This is blocked, but who blocked? Search for that Active GE
+			for (const FActiveGameplayEffect& Effect : this)
+			{
+				if (Effect.Spec.Def == EffectDef)
+				{
+					OutGEThatProvidedImmunity = &Effect;
+					return true;
+				}
+			}
+			ABILITY_LOG(Error, TEXT("Application Immunity was triggered for Applied GE: %s by Granted GE: %s. But this GE was not found in the Active GameplayEffects list!"), *GetNameSafe(SpecToApply.Def), *GetNameSafe( EffectDef));
+			break;
+		}
+	}
+
 	// Quick map test
 	if (!AggregatedSourceTags->MatchesAny(ApplicationImmunityGameplayTagCountContainer.GetExplicitGameplayTags(), false))
 	{
 		return false;
 	}
 
-	for (const FActiveGameplayEffect& Effect :  this)
+	for (const FActiveGameplayEffect& Effect : this)
 	{
 		if (Effect.Spec.Def->GrantedApplicationImmunityTags.IsEmpty() == false && Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *AggregatedSourceTags ))
 		{
+			OutGEThatProvidedImmunity = &Effect;
 			return true;
 		}
 	}
@@ -4124,6 +4174,19 @@ bool FGameplayEffectQuery::Matches(const FGameplayEffectSpec& Spec) const
 	}
 
 	return true;
+}
+
+bool FGameplayEffectQuery::IsEmpty() const
+{
+	return 
+	(
+		OwningTagQuery.IsEmpty() &&
+		EffectTagQuery.IsEmpty() &&
+		SourceTagQuery.IsEmpty() &&
+		!ModifyingAttribute.IsValid() &&
+		!EffectSource &&
+		!EffectDefinition
+	);
 }
 
 // static

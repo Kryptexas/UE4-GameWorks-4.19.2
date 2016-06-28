@@ -490,6 +490,20 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 			TargetSkeleton = AnimationAsset->GetSkeleton();
 			break;
 		}
+
+		if (UAnimInstance* AnimInstance = Cast<UAnimInstance>(*OuterIter))
+		{
+			if (AnimInstance->CurrentSkeleton)
+			{
+				TargetSkeleton = AnimInstance->CurrentSkeleton;
+				break;
+			}
+			else if (UAnimBlueprintGeneratedClass* AnimBPClass = Cast<UAnimBlueprintGeneratedClass>(AnimInstance->GetClass()))
+			{
+				TargetSkeleton = AnimBPClass->TargetSkeleton;
+				break;
+			}
+		}
 	}
 
 	if (TargetSkeleton)

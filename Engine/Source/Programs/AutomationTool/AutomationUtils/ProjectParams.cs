@@ -633,7 +633,11 @@ namespace AutomationTool
 				if (Command != null)
 				{
 					var ClientConfig = Command.ParseParamValue("clientconfig");
-					if (ClientConfig != null)
+
+                    if (ClientConfig == null)
+                        ClientConfig = Command.ParseParamValue("config");
+
+                    if (ClientConfig != null)
 					{
 						this.ClientConfigsToBuild = new List<UnrealTargetConfiguration>();
 						var Configs = new ParamList<string>(ClientConfig.Split('+'));
@@ -748,7 +752,11 @@ namespace AutomationTool
 				if (Command != null)
 				{
 					var ServerConfig = Command.ParseParamValue("serverconfig");
-					if (ServerConfig != null && ServerConfigsToBuild == null)
+
+                    if (ServerConfig == null)
+                        ServerConfig = Command.ParseParamValue("config");
+
+                    if (ServerConfig != null)
 					{
 						this.ServerConfigsToBuild = new List<UnrealTargetConfiguration>();
 						var Configs = new ParamList<string>(ServerConfig.Split('+'));

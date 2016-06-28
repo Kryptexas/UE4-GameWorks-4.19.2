@@ -23,7 +23,7 @@
 #define LOCTEXT_NAMESPACE "SGameplayCueEditor"
 
 
-/** Widget for picking a new GameplayCue Notify class (similiar to actor class picker)  */
+/** Widget for picking a new GameplayCue Notify class (similar to actor class picker)  */
 class SGameplayCuePickerDialog : public SCompoundWidget
 {
 public:
@@ -267,7 +267,7 @@ TSharedRef<ITableRow> SGameplayCuePickerDialog::GenerateListRow(UClass* ItemClas
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
-			.FillWidth(0.45f)
+			.FillWidth(0.65f)
 			[
 				SNew(SButton)
 				.OnClicked(this, &SGameplayCuePickerDialog::OnDefaultClassPicked, ItemClass)
@@ -340,11 +340,16 @@ FReply SGameplayCuePickerDialog::OnClassPickerConfirmed()
 
 FString SGameplayCueEditor::GetPathNameForGameplayCueTag(FString GameplayCueTagName)
 {
-	FString NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
+	FString NewDefaultPathName;
 	auto PathDel = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyPathDelegate();
 	if (PathDel.IsBound())
 	{
 		NewDefaultPathName = PathDel.Execute(GameplayCueTagName);
+	}
+	else
+	{
+		GameplayCueTagName = GameplayCueTagName.Replace(TEXT("GameplayCue."), TEXT(""), ESearchCase::IgnoreCase);
+		NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
 	}
 	NewDefaultPathName.ReplaceInline(TEXT("."), TEXT("_"));
 	return NewDefaultPathName;

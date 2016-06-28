@@ -128,6 +128,11 @@ FString FQoSReporter::GetQoSReporterInstanceId()
 	return FString();
 }
 
+FString FQoSReporter::GetBackendDeploymentName()
+{
+	return StoredDeploymentName;
+}
+
 double FQoSReporter::ModuleInitializationTime = FPlatformTime::Seconds();
 bool FQoSReporter::bStartupEventReported = false;
 bool FQoSReporter::bCountHitches = false;
@@ -155,6 +160,8 @@ void FQoSReporter::ReportStartupCompleteEvent()
 
 void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
 {
+	StoredDeploymentName = InDeploymentName;
+
 	if (Analytics.IsValid())
 	{
 		// abuse somewhat outdated IAnalyticsProvider API for this
@@ -171,7 +178,6 @@ void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
 	}
 	else
 	{
-		StoredDeploymentName = InDeploymentName;
 		UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter will be configured for '%s' deployment."), *StoredDeploymentName);
 	}
 }

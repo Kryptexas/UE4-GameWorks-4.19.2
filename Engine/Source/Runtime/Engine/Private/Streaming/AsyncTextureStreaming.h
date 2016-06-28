@@ -19,7 +19,7 @@ public:
 	/** Update everything internally so to allow calls to CalcWantedMips */
 	void UpdateBoundSizes_Async();
 
-	void UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, bool bOutputToLog = false) const;
+	void UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, float MipBias, bool bOutputToLog = false) const;
 
 	uint32 GetAllocatedSize() const { return ViewInfos.GetAllocatedSize() + StaticInstancesViews.GetAllocatedSize(); }
 

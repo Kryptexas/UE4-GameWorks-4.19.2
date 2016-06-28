@@ -305,5 +305,6 @@ void UPoseableMeshComponent::CopyPoseFromSkeletalComponent(const USkeletalMeshCo
 				}
 			}
 		}
+		RefreshBoneTransforms();
 	}
 }

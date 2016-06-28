@@ -360,6 +360,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		MaxDesiredRecordTimeMS			= -1.0f;
 		ViewerOverride					= nullptr;
 		bPrioritizeActors				= false;
+		bPauseRecording					= false;
 
 		ResetDemoState();
 
@@ -647,7 +648,7 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 {
 	Super::TickFlush( DeltaSeconds );
 
-	if ( !IsRecording() )
+	if ( !IsRecording() || bPauseRecording )
 	{
 		// Nothing to do
 		return;
@@ -926,7 +927,10 @@ static bool DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 				// Close the channel if this actor shouldn't have one
 				if (!bShouldHaveChannel)
 				{
-					Channel->Close();
+					if (!Connection->bResendAllDataSinceOpen)		// Don't close the channel if we're forcing them to re-open for checkpoints
+					{
+						Channel->Close();
+					}
 				}
 			}
 		}
@@ -1025,67 +1029,55 @@ void UDemoNetDriver::SaveCheckpoint()
 	// First, save the current guid cache
 	SerializeGuidCache( GuidCache, CheckpointArchive );
 
+	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
+
 	// Save the compatible rep layout map
-	( ( UPackageMapClient* )ClientConnections[0]->PackageMap )->SerializeCompatibleReplayoutMap( *CheckpointArchive );
+	PackageMapClient->SerializeNetFieldExportGroupMap( *CheckpointArchive );
 
 	const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
 
 	FURL CheckpointURL;
 	CheckpointURL.Map = TEXT( "Checkpoint" );
 
-	UDemoNetConnection* CheckpointConnection = NewObject<UDemoNetConnection>();
-	ClientConnections.Add( CheckpointConnection );
-	CheckpointConnection->InitConnection( this, USOCK_Open, CheckpointURL, 1000000 );
-	CheckpointConnection->InitSendBuffer();
+	const double SerializeCacheTime = FPlatformTime::Seconds();
 
-	// Some hackery to make the player thinks this checkpoint connection owns it
-	CheckpointConnection->PlayerController					= ClientConnections[0]->PlayerController;
-	CheckpointConnection->PlayerController->Player			= CheckpointConnection;
-	CheckpointConnection->PlayerController->NetConnection	= CheckpointConnection;
-	//CheckpointConnection->OwningActor						= CheckpointConnection->PlayerController;
+	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
-	// Sync up ack status, so we don't send what we've already explicity saved from above
-	( ( UPackageMapClient* )CheckpointConnection->PackageMap )->SyncPackageMapExportAckStatus( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
-
-	// Make sure we have the exact same actor channel indexes
-	for ( auto It = ClientConnections[0]->ActorChannels.CreateIterator(); It; ++It )
-	{
-		UActorChannel* Channel = (UActorChannel*)CheckpointConnection->CreateChannel( CHTYPE_Actor, true, It.Value()->ChIndex );
-		if ( Channel != NULL )
-		{
-			Channel->SetChannelActor( It.Value()->Actor );
-		}
-	}
-
+	// Re-use the existing connection to record all properties that have changed since channels were first opened
+	// Set bResendAllDataSinceOpen to true to signify that we want to do this
+	ClientConnections[0]->bResendAllDataSinceOpen = true;
 	bSavingCheckpoint = true;
 
-	// Replicate *only* the actors that were in the previous frame, we want to be able to re-create up to that point with this single checkpoint
-	// It's important that we don't catch any new actors that the next frame will also catch, that will cause conflict with bOpen (the open will occur twice on the same channel)
+	FPackageMapAckState SavedAckState;
+
+	// Save package map ack status in case we export stuff during the checkpoint (so we can restore the connection back to what it was before we saved the checkpoint)
+	PackageMapClient->SavePackageMapExportAckStatus( SavedAckState );
 
 	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
 	{
 		AActor* Actor = ObjectInfo.Get()->Actor;
 
-		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
+		if ( ClientConnections[0]->ActorChannels.Contains( Actor ) )
 		{
 			Actor->CallPreReplication( this );
-			DemoReplicateActor( Actor, CheckpointConnection, SpectatorController, true );
+			DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, true );
 		}
 	}
 
-	CheckpointConnection->FlushNet();
-	check( CheckpointConnection->SendBuffer.GetNumBits() == 0 );
+	const double AfterReplicationTime = FPlatformTime::Seconds();
 
-	WriteDemoFrameFromQueuedDemoPackets( *CheckpointArchive, CastChecked< UDemoNetConnection>( CheckpointConnection ) );
+	ClientConnections[0]->FlushNet();
+	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
+	WriteDemoFrameFromQueuedDemoPackets( *CheckpointArchive, CastChecked< UDemoNetConnection>( ClientConnections[0] ) );
+
+	const double AfterWritePacketsTime = FPlatformTime::Seconds();
+
+	// Restore the connection back to what it was before we saved the checkpoint
+	PackageMapClient->RestorePackageMapExportAckStatus( SavedAckState );
+
+	ClientConnections[0]->bResendAllDataSinceOpen = false;
 	bSavingCheckpoint = false;
-
-	// Undo hackery
-	ClientConnections[0]->PlayerController->Player			= ClientConnections[0];
-	ClientConnections[0]->PlayerController->NetConnection	= ClientConnections[0];
-
-	CheckpointConnection->Close();
-	CheckpointConnection->CleanUp();
 
 	const uint32 CheckpointSize = CheckpointArchive->TotalSize() - GuidCacheSize;
 
@@ -1104,9 +1096,13 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	const double EndCheckpointTime = FPlatformTime::Seconds();
 
-	const float CheckpointTimeInMS = ( EndCheckpointTime - StartCheckpointTime ) * 1000.0f;
+	const float CheckpointTimeInMS			= ( EndCheckpointTime - StartCheckpointTime ) * 1000.0;
+	const float SerializeCacheTimeMS		= ( SerializeCacheTime - StartCheckpointTime ) * 1000.0;
+	const float AfterReplicationTimeMS		= ( AfterReplicationTime - SerializeCacheTime ) * 1000.0;
+	const float AfterWritePacketsTimeMS		= ( AfterWritePacketsTime - AfterReplicationTime ) * 1000.0;
+	const float MiscTimeMS					= ( EndCheckpointTime - AfterWritePacketsTime ) * 1000.0;
 
-	UE_LOG( LogDemo, Log, TEXT( "Checkpoint. Total: %i, Rep size: %i, PackageMap: %u, Time: %2.2f" ), TotalSize, CheckpointSize, GuidCacheSize, CheckpointTimeInMS );
+	UE_LOG( LogDemo, Log, TEXT( "Checkpoint. Actors: %i, TotalSize: %i, RepSize: %i, PackageMap: %u, TotalTime: %2.2f, SerializeCacheTimeMS: %2.2f, AfterReplicationTimeMS: %2.2f, AfterWritePacketsTimeMS: %2.2f, Misc: %2.2f" ), GetNetworkObjectList().GetObjects().Num(), TotalSize, CheckpointSize, GuidCacheSize, CheckpointTimeInMS, SerializeCacheTimeMS, AfterReplicationTimeMS, AfterWritePacketsTimeMS, MiscTimeMS );
 }
 
 void UDemoNetDriver::SaveExternalData( FArchive& Ar )
@@ -1201,7 +1197,7 @@ void UDemoNetDriver::RequestEventData(const FString& EventID, FOnRequestEventDat
 
 void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 {
-	if ( !IsRecording() )
+	if ( !IsRecording() || bPauseRecording )
 	{
 		return;
 	}
@@ -1271,7 +1267,8 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	// Set the location of the connection's viewtarget for prioritization.
 	FVector ViewLocation = FVector::ZeroVector;
 	FVector ViewDirection = FVector::ZeroVector;
-	APlayerController* Viewer = ViewerOverride ? ViewerOverride : ClientConnections[0]->GetPlayerController(World);
+	APlayerController* CachedViewerOverride = ViewerOverride.Get();
+	APlayerController* Viewer = CachedViewerOverride ? CachedViewerOverride : ClientConnections[0]->GetPlayerController(World);
 	AActor* ViewTarget = Viewer ? Viewer->GetViewTarget() : nullptr;
 	
 	if (ViewTarget)
@@ -2274,15 +2271,23 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 	// Remember the spectator network guid, so we can persist the spectator player across the checkpoint
 	// (so the state and position persists)
-	const FNetworkGUID SpectatorGUID = GuidCache->NetGUIDLookup.FindRef( SpectatorController );
+	FNetworkGUID SpectatorGUID = GuidCache->NetGUIDLookup.FindRef( SpectatorController );
+
+	// Handle a rare case where the spectator controller is null, but a valid GUID is
+	// found on the GuidCache. The weak pointers in the NetGUIDLookup map are probably
+	// going null, and we want catch these cases and investigate further.
+	if ( !ensure( SpectatorGUID.IsValid() == ( SpectatorController != nullptr ) ) )
+	{
+		SpectatorGUID.Reset();
+	}
 
 	// Clean package map to prepare to restore it to the checkpoint state
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
 
-	GuidCache->CompatibleRepLayoutMap.Empty();
-	GuidCache->CompatibleRepLayoutPathToIndex.Empty();
-	GuidCache->CompatibleRepLayoutIndexToPath.Empty();
+	GuidCache->NetFieldExportGroupMap.Empty();
+	GuidCache->NetFieldExportGroupPathToIndex.Empty();
+	GuidCache->NetFieldExportGroupIndexToPath.Empty();
 
 	// Restore the spectator controller packagemap entry (so we find it when we process the checkpoint)
 	if ( SpectatorGUID.IsValid() )
@@ -2342,7 +2347,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	}
 
 	// Read in the compatible rep layouts in this checkpoint
-	( ( UPackageMapClient* )ServerConnection->PackageMap )->SerializeCompatibleReplayoutMap( *GotoCheckpointArchive );
+	( ( UPackageMapClient* )ServerConnection->PackageMap )->SerializeNetFieldExportGroupMap( *GotoCheckpointArchive );
 
 	ReadDemoFrameIntoPlaybackPackets( *GotoCheckpointArchive );
 

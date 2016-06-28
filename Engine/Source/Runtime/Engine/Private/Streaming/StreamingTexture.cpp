@@ -173,32 +173,41 @@ float FStreamingTexture::GetExtraBoost(TextureGroup	LODGroup, float GlobalBias)
 	}
 }
 
-int32 FStreamingTexture::GetWantedMipsFromSize(float Size) const
+int32 FStreamingTexture::GetWantedMipsFromSize(float Size, int32 MipBias) const
 {
 	float WantedMipsFloat = 1.0f + FMath::Log2(FMath::Max(1.f, Size));
+	// Using the new metrics has very conservative distance computation. Rounding to mip here compensates.
 	int32 WantedMipsInt = FMath::CeilToInt(WantedMipsFloat);
-	return FMath::Clamp<int32>(WantedMipsInt, MinAllowedMips, MaxAllowedMips);
+
+	if (LODGroup != TEXTUREGROUP_HierarchicalLOD  && LODGroup != TEXTUREGROUP_Terrain_Heightmap)
+	{
+		return FMath::Max<int32>(FMath::Min<int32>(WantedMipsInt, MaxAllowedMips - MipBias), MinAllowedMips);
+	}
+	else
+	{
+		return FMath::Clamp<int32>(WantedMipsInt, MinAllowedMips, MaxAllowedMips);
+	}
 }
 
 /** Set the wanted mips from the async task data */
-void FStreamingTexture::SetPerfectWantedMips_Async(float MaxSize, float MaxSize_VisibleOnly, bool InLooksLowRes)
+void FStreamingTexture::SetPerfectWantedMips_Async(float MaxSize, float MaxSize_VisibleOnly, float MipBias, bool InLooksLowRes)
 {
 	const float HiddenScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
 
 	bForceFullyLoadHeuristic = (MaxSize == FLT_MAX || MaxSize_VisibleOnly == FLT_MAX);
-	VisibleWantedMips = GetWantedMipsFromSize(MaxSize_VisibleOnly);
+	VisibleWantedMips = GetWantedMipsFromSize(MaxSize_VisibleOnly, MipBias);
 	bLooksLowRes = InLooksLowRes; // Things like lightmaps, HLOD and close instances.
 
 	// Terrain, Forced Fully Load and Things that already look bad are not affected by hidden scale.
 	if (bIsTerrainTexture || bForceFullyLoadHeuristic || bLooksLowRes)
 	{
-		HiddenWantedMips = GetWantedMipsFromSize(MaxSize);
+		HiddenWantedMips = GetWantedMipsFromSize(MaxSize, MipBias);
 		NumMissingMips = 0; // No impact for terrains as there are not allowed to drop mips.
 	}
 	else
 	{
-		HiddenWantedMips = GetWantedMipsFromSize(MaxSize * HiddenScale);
-		NumMissingMips = FMath::Max<int32>(GetWantedMipsFromSize(MaxSize) - FMath::Max<int32>(VisibleWantedMips, HiddenWantedMips), 0);
+		HiddenWantedMips = GetWantedMipsFromSize(MaxSize * HiddenScale, MipBias);
+		NumMissingMips = FMath::Max<int32>(GetWantedMipsFromSize(MaxSize, MipBias) - FMath::Max<int32>(VisibleWantedMips, HiddenWantedMips), 0);
 	}
 }
 

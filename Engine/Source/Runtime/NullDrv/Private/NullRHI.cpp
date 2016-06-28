@@ -61,9 +61,7 @@ void FNullDynamicRHI::Shutdown()
  */
 void* FNullDynamicRHI::GetStaticBuffer()
 {
-#if !WITH_EDITOR
-    checkf(WITH_EDITOR || !IsRunningDedicatedServer(), TEXT("NullRHI should never allocate memory on the server. Change the caller to avoid doing allocs in when FApp::ShouldUseNullRHI() is true."));
-#endif
+	ensureMsgf(WITH_EDITOR || !IsRunningDedicatedServer(), TEXT("NullRHI should never allocate memory on the server. Change the caller to avoid doing allocs in when FApp::ShouldUseNullRHI() is true."));
 
 	static void* Buffer = nullptr;
 	if (!Buffer)

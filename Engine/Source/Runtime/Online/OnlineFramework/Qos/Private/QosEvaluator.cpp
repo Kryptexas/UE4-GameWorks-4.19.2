@@ -171,12 +171,13 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 		{
 			const FString& RegionId = Region.Region.RegionId;
 			const int32 NumServers = Region.Region.Servers.Num();
+			int32 ServerIdx = FMath::RandHelper(NumServers);
 			Region.Result = NumServers > 0 ? EQosCompletionResult::Invalid : EQosCompletionResult::Success;
 			if (NumServers > 0)
 			{
 				for (int32 PingIdx = 0; PingIdx < NumTestsPerRegion; PingIdx++)
 				{
-					const FQosPingServerInfo& Server = Region.Region.Servers[FMath::RandHelper(NumServers)];
+					const FQosPingServerInfo& Server = Region.Region.Servers[ServerIdx];
 					const FString Address = FString::Printf(TEXT("%s:%d"), *Server.Address, Server.Port);
 
 					auto CompletionDelegate = [WeakThisCap, RegionId, NumTestsPerRegion, InCompletionDelegate](FIcmpEchoResult Result)
@@ -196,6 +197,7 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 
 					UE_LOG(LogQos, Verbose, TEXT("Pinging [%s] %s"), *RegionId, *Address);
 					FUDPPing::UDPEcho(Address, InParams.Timeout, CompletionDelegate);
+					ServerIdx = (ServerIdx + 1) % NumServers;
 					bDidNothing = false;
 				}
 			}
@@ -557,7 +559,16 @@ void UQosEvaluator::OnPingResultComplete(const FString& RegionId, int32 NumTests
 		if (Region.Region.RegionId == RegionId)
 		{
 			UE_LOG(LogQos, Verbose, TEXT("Ping Complete [%s] %s: %d"), *RegionId, *Result.ResolvedAddress, (int32)(Result.Time * 1000.0f));
-			Region.PingResults.Add(Result.Status == EIcmpResponseStatus::Success ? (int32)(Result.Time * 1000.0f) : UNREACHABLE_PING);
+
+			const bool bSuccess = (Result.Status == EIcmpResponseStatus::Success);
+			int32 PingInMs = bSuccess ? (int32)(Result.Time * 1000.0f) : UNREACHABLE_PING;
+			Region.PingResults.Add(PingInMs);
+
+			if (QosStats.IsValid())
+			{
+				QosStats->RecordQosAttempt(RegionId, PingInMs, bSuccess);
+			}
+
 			if (Region.PingResults.Num() == NumTests)
 			{
 				Region.LastCheckTimestamp = FDateTime::UtcNow();

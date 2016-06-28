@@ -1070,7 +1070,7 @@ public:
 			return;
 		}
 
-		uint8* Data = (uint8*)InData;
+		const uint8* Data = (uint8*)InData;
 
 		BufferEmptyEvent->Reset();
 		FScopeLock WriteLock(&BufferPosCritical);
@@ -1078,39 +1078,41 @@ public:
 		// Store the local copy of the current buffer start pos. It may get moved by the worker thread but we don't
 		// care about it too much because we only modify BufferEndPos. Copy should be atomic enough. We only use it
 		// for checking the remaining space in the buffer so underestimating is ok.
-		int32 ThisThreadStartPos = BufferStartPos;
-		// Calculate the remaining size in the ring buffer
-		int32 BufferFreeSize = ThisThreadStartPos <= BufferEndPos ? (Buffer.Num() - BufferEndPos + ThisThreadStartPos) : (ThisThreadStartPos - BufferEndPos);
-		if (BufferFreeSize >= Length)
 		{
-			// There's enough space in the buffer to copy data
-			int32 WritePos = BufferEndPos;
-			if ((WritePos + Length) <= Buffer.Num())
+			const int32 ThisThreadStartPos = BufferStartPos;
+			// Calculate the remaining size in the ring buffer
+			const int32 BufferFreeSize = ThisThreadStartPos <= BufferEndPos ? (Buffer.Num() - BufferEndPos + ThisThreadStartPos) : (ThisThreadStartPos - BufferEndPos);
+			// Make sure the buffer is BIGGER than we require otherwise we may calculate the wrong (0) buffer EndPos for StartPos = 0 and Length = Buffer.Num()
+			if (BufferFreeSize <= Length)
 			{
-				// Copy straight into the ring buffer
-				FMemory::Memcpy(Buffer.GetData() + WritePos, Data, Length);
+				// Force the async thread to call SerializeBufferToArchive even if it's currently empty
+				BufferDirtyEvent->Trigger();
+				FlushBuffer();
+
+				// Resize the buffer if needed
+				if (Length >= Buffer.Num())
+				{
+					// Keep the buffer bigger than we require so that % Buffer.Num() does not return 0 for Lengths = Buffer.Num()
+					Buffer.SetNumUninitialized(Length + 1);
+				}
 			}
-			else
-			{
-				// Wrap around the ring buffer
-				int32 BufferSizeToEnd = Buffer.Num() - WritePos;
-				FMemory::Memcpy(Buffer.GetData() + WritePos, Data, BufferSizeToEnd);
-				FMemory::Memcpy(Buffer.GetData() + 0, Data + BufferSizeToEnd, Length - BufferSizeToEnd);
-			}
+		}
+
+		// We now know there's enough space in the buffer to copy data
+		const int32 WritePos = BufferEndPos;
+		if ((WritePos + Length) <= Buffer.Num())
+		{
+			// Copy straight into the ring buffer
+			FMemory::Memcpy(Buffer.GetData() + WritePos, Data, Length);
 		}
 		else
 		{
-			// Force the async thread to call SerializeBufferToArchive even if it's currently empty
-			BufferDirtyEvent->Trigger();
-			FlushBuffer();
-			// Resize the buffer if needed
-			if (Length > Buffer.Num())
-			{
-				Buffer.AddUninitialized(Length - Buffer.Num());
-			}
-			// Now we can copy to the empty buffer
-			FMemory::Memcpy(Buffer.GetData(), Data, Length);
+			// Wrap around the ring buffer
+			int32 BufferSizeToEnd = Buffer.Num() - WritePos;
+			FMemory::Memcpy(Buffer.GetData() + WritePos, Data, BufferSizeToEnd);
+			FMemory::Memcpy(Buffer.GetData(), Data + BufferSizeToEnd, Length - BufferSizeToEnd);
 		}
+
 		// Update the end position and let the async thread know we need to write to disk
 		BufferEndPos = (BufferEndPos + Length) % Buffer.Num();
 		BufferDirtyEvent->Trigger();
@@ -1161,6 +1163,7 @@ public:
  */
 FOutputDeviceFile::FOutputDeviceFile( const TCHAR* InFilename, bool bInDisableBackup  )
 : AsyncWriter(nullptr)
+, WriterArchive(nullptr)
 , Opened(false)
 , Dead(false)
 , bDisableBackup(bInDisableBackup)
@@ -1199,6 +1202,8 @@ void FOutputDeviceFile::TearDown()
 		delete AsyncWriter;
 		AsyncWriter = nullptr;
 	}
+	delete WriterArchive;
+	WriterArchive = nullptr;
 }
 
 /**
@@ -1248,7 +1253,7 @@ void FOutputDeviceFile::WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark
 	}
 }
 
-FAsyncWriter* FOutputDeviceFile::CreateWriter(uint32 MaxAttempts)
+bool FOutputDeviceFile::CreateWriter(uint32 MaxAttempts)
 {
 	uint32 WriteFlags = FILEWRITE_AllowRead | (Opened ? FILEWRITE_Append : 0);
 
@@ -1278,10 +1283,11 @@ FAsyncWriter* FOutputDeviceFile::CreateWriter(uint32 MaxAttempts)
 	FAsyncWriter* Result = nullptr;
 	if (Ar)
 	{
-		Result = new FAsyncWriter(*Ar);
+		WriterArchive = Ar;
+		AsyncWriter = new FAsyncWriter(*WriterArchive);
 	}
 
-	return Result;
+	return !!AsyncWriter;
 }
 
 /**
@@ -1311,9 +1317,7 @@ void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbos
 			}
 
 			// Open log file and create the worker thread.
-			AsyncWriter = CreateWriter();
-
-			if (AsyncWriter)
+			if (CreateWriter())
 			{
 				Opened = true;
 

@@ -22,6 +22,8 @@
 #include "GenericCommands.h"
 #include "WidgetBlueprint.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "IMessageLogListing.h"
 
 #include "MovieSceneWidgetMaterialTrack.h"
 #include "WidgetMaterialTrackUtilities.h"
@@ -168,6 +170,7 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 		SelectedWidgets.Empty();
 	}
 	SelectedObjects.Empty();
+	SelectedNamedSlot.Reset();
 
 	for ( const FWidgetReference& Widget : TempSelection )
 	{
@@ -190,11 +193,25 @@ void FWidgetBlueprintEditor::SelectObjects(const TSet<UObject*>& Objects)
 
 	SelectedWidgets.Empty();
 	SelectedObjects.Empty();
+	SelectedNamedSlot.Reset();
 
 	for ( UObject* Obj : Objects )
 	{
 		SelectedObjects.Add(Obj);
 	}
+
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
+void FWidgetBlueprintEditor::SetSelectedNamedSlot(TOptional<FNamedSlotSelection> InSelectedNamedSlot)
+{
+	OnSelectedWidgetsChanging.Broadcast();
+
+	SelectedWidgets.Empty();
+	SelectedObjects.Empty();
+	SelectedNamedSlot.Reset();
+
+	SelectedNamedSlot = InSelectedNamedSlot;
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -232,6 +249,11 @@ const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
 const TSet< TWeakObjectPtr<UObject> >& FWidgetBlueprintEditor::GetSelectedObjects() const
 {
 	return SelectedObjects;
+}
+
+TOptional<FNamedSlotSelection> FWidgetBlueprintEditor::GetSelectedNamedSlot() const
+{
+	return SelectedNamedSlot;
 }
 
 void FWidgetBlueprintEditor::InvalidatePreview(bool bViewOnly)
@@ -334,10 +356,25 @@ bool FWidgetBlueprintEditor::CanPasteWidgets()
 		const bool bIsPanel = Cast<UPanelWidget>(Target.GetTemplate()) != nullptr;
 		return bIsPanel;
 	}
-	else if ( Widgets.Num() == 0 )
+	else if ( GetWidgetBlueprintObj()->WidgetTree->RootWidget == nullptr )
 	{
-		if ( GetWidgetBlueprintObj()->WidgetTree->RootWidget == nullptr )
+		return true;
+	}
+	else
+	{
+		TOptional<FNamedSlotSelection> NamedSlotSelection = GetSelectedNamedSlot();
+		if ( NamedSlotSelection.IsSet() )
 		{
+			INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(NamedSlotSelection->NamedSlotHostWidget.GetTemplate());
+			if ( NamedSlotHost == nullptr )
+			{
+				return false;
+			}
+			else if ( NamedSlotHost->GetContentForSlot(NamedSlotSelection->SlotName) != nullptr )
+			{
+				return false;
+			}
+
 			return true;
 		}
 	}
@@ -349,8 +386,16 @@ void FWidgetBlueprintEditor::PasteWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
 	FWidgetReference Target = Widgets.Num() > 0 ? *Widgets.CreateIterator() : FWidgetReference();
+	FName SlotName = NAME_None;
 
-	FWidgetBlueprintEditorUtils::PasteWidgets(SharedThis(this), GetWidgetBlueprintObj(), Target, PasteDropLocation);
+	TOptional<FNamedSlotSelection> NamedSlotSelection = GetSelectedNamedSlot();
+	if ( NamedSlotSelection.IsSet() )
+	{
+		Target = NamedSlotSelection->NamedSlotHostWidget;
+		SlotName = NamedSlotSelection->SlotName;
+	}
+
+	FWidgetBlueprintEditorUtils::PasteWidgets(SharedThis(this), GetWidgetBlueprintObj(), Target, SlotName, PasteDropLocation);
 
 	//TODO UMG - Select the newly selected pasted widgets.
 }
@@ -637,6 +682,13 @@ void FWidgetBlueprintEditor::RefreshPreview()
 	OnSelectedWidgetsChanged.Broadcast();
 }
 
+void FWidgetBlueprintEditor::Compile()
+{
+	DestroyPreview();
+
+	FBlueprintEditor::Compile();
+}
+
 void FWidgetBlueprintEditor::DestroyPreview()
 {
 	UUserWidget* PreviewActor = GetPreview();
@@ -644,8 +696,56 @@ void FWidgetBlueprintEditor::DestroyPreview()
 	{
 		check(PreviewScene.GetWorld());
 
+		// Immediately release the preview ptr to let people know it's gone.
+		PreviewWidgetPtr.Reset();
+
+		// Immediately notify anyone with a preview out there they need to dispose of it right now,
+		// otherwise the leak detection can't be trusted.
+		OnWidgetPreviewUpdated.Broadcast();
+
+		TWeakPtr<SWidget> PreviewSlateWidgetWeak = PreviewActor->GetCachedWidget();
+
 		PreviewActor->MarkPendingKill();
+		PreviewActor->ReleaseSlateResources(true);
+
+		FCompilerResultsLog LogResults;
+		LogResults.bAnnotateMentionedNodes = false;
+
+		ensure(!PreviewSlateWidgetWeak.IsValid());
+
+		bool bFoundLeak = false;
+		
+		// NOTE: This doesn't explore sub UUserWidget trees, searching for leaks there.
+
+		// Verify everything is going to be garbage collected.
+		PreviewActor->WidgetTree->ForEachWidget([&LogResults, &bFoundLeak] (UWidget* Widget) {
+			if ( !bFoundLeak )
+			{
+				TWeakPtr<SWidget> PreviewChildWidget = Widget->GetCachedWidget();
+				if ( PreviewChildWidget.IsValid() )
+				{
+					bFoundLeak = true;
+					if ( UPanelWidget* ParentWidget = Widget->GetParent() )
+					{
+						LogResults.Warning(*FString::Printf(*LOCTEXT("LeakingWidgetsWithParent_Warning", "Leak Detected!  %s (@@) still has living Slate widgets, it or the parent %s (@@) is keeping them in memory.  Release all Slate resources in ReleaseSlateResources().").ToString(), *Widget->GetName(), *( ParentWidget->GetName() )), Widget->GetClass(), ParentWidget->GetClass());
+					}
+					else
+					{
+						LogResults.Warning(*FString::Printf(*LOCTEXT("LeakingWidgetsWithoutParent_Warning", "Leak Detected!  %s (@@) still has living Slate widgets, it or the parent widget is keeping them in memory.  Release all Slate resources in ReleaseSlateResources().").ToString(), *Widget->GetName()), Widget->GetClass());
+					}
+				}
+			}
+		});
+
+		DesignerCompilerMessages = LogResults.Messages;
 	}
+}
+
+void FWidgetBlueprintEditor::AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing)
+{
+	FBlueprintEditor::AppendExtraCompilerResults(ResultsListing);
+
+	ResultsListing->AddMessages(DesignerCompilerMessages);
 }
 
 void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate)

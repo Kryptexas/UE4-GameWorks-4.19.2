@@ -776,7 +776,13 @@ void FPixelShaderInOut_MainPS(
 
 #if USE_DBUFFER && MATERIALDECALRESPONSEMASK && !MATERIALBLENDING_ANY_TRANSLUCENT
 	// apply decals from the DBuffer
-	BRANCH if(Primitive.DecalReceiverMask > 0 && View.ShowDecalsMask > 0)
+#if SM5_PROFILE
+	//Temporary workaround to avoid crashes on AMD, revert back to BRANCH
+	FLATTEN
+#else
+	BRANCH
+#endif
+	if(Primitive.DecalReceiverMask > 0 && View.ShowDecalsMask > 0)
 	{
 		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
 		
@@ -967,7 +973,7 @@ void FPixelShaderInOut_MainPS(
 			float3 V = MaterialParameters.CameraVector;
 			float3 L = normalize( V - N * dot(V,N) );
 			DiffuseDir = L;
-			DiffuseColorForIndirect = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
+			DiffuseColorForIndirect = 2*PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
 		}
 		#endif
 

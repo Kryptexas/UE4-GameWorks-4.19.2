@@ -340,7 +340,7 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 		}
 		else if ((ProjParams.Deploy || ProjParams.Run) && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux)
 		{
-			throw new AutomationException("must specify device IP for remote Linux target (-serverdevice=<ip>)");
+			throw new AutomationException("must specify device IP for remote Linux target (-serverdevice=linux@<ip>)");
 		}
 	}
 	public override List<string> GetDebugFileExtentions()

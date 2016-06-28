@@ -16,6 +16,7 @@ class UGameplayAbility;
 class AGameplayAbilityTargetActor;
 class UAbilityTask;
 class UAttributeSet;
+struct FActiveGameplayEffect;
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 

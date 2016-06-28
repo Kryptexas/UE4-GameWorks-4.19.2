@@ -129,8 +129,11 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 		BatchData.CreateRenderBatches(RootBatchMap);
 
 		RenderTargetPolicy->UpdateVertexAndIndexBuffers(InRHICmdList, BatchData);
-
+		
 		FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix(RTResource->GetSizeX(), RTResource->GetSizeY());
+		FMatrix ViewOffset = FTranslationMatrix::Make(FVector(WindowDrawBuffer.ViewOffset.X, WindowDrawBuffer.ViewOffset.Y, 0));
+		ProjectionMatrix = ViewOffset * ProjectionMatrix;
+
 		if ( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RTResource->GetSizeX(), RTResource->GetSizeY()));

@@ -958,7 +958,7 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 
 	if ( bHasRepLayoutExport )
 	{
-		ReceiveCompatibleRepLayoutExports( InBunch );
+		ReceiveNetFieldExports( InBunch );
 		return;
 	}
 
@@ -1000,107 +1000,92 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 	GuidCache->IsExportingNetGUIDBunch = false;
 }
 
-TSharedPtr< FCompatibleRepLayout > UPackageMapClient::TrackCompatibleRepLayout( const FRepLayout* RepLayout )
+TSharedPtr< FNetFieldExportGroup > UPackageMapClient::GetNetFieldExportGroup( const FString& PathName )
 {
-	TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = GuidCache->CompatibleRepLayoutMap.FindRef( RepLayout->Owner->GetPathName() );
-
-	if ( !CompatibleRepLayout.IsValid() )
-	{
-		CompatibleRepLayout = TSharedPtr< FCompatibleRepLayout >( new FCompatibleRepLayout() );
-		CompatibleRepLayout->PathName = RepLayout->Owner->GetPathName();
-
-		CompatibleRepLayout->PathNameIndex = ++GuidCache->UniqueCompatibleRepLayoutPathIndex;
-
-		check( !GuidCache->CompatibleRepLayoutPathToIndex.Contains( CompatibleRepLayout->PathName ) );
-		check( !GuidCache->CompatibleRepLayoutIndexToPath.Contains( CompatibleRepLayout->PathNameIndex ) );
-
-		GuidCache->CompatibleRepLayoutPathToIndex.Add( CompatibleRepLayout->PathName, CompatibleRepLayout->PathNameIndex );
-		GuidCache->CompatibleRepLayoutIndexToPath.Add( CompatibleRepLayout->PathNameIndex, CompatibleRepLayout->PathName );
-
-		CompatibleRepLayout->Cmds.SetNum( RepLayout->Cmds.Num() );
-
-		for ( int32 i = 0; i < RepLayout->Cmds.Num(); i++ )
-		{
-			FCompatibleRepLayoutCmd CompatibleCmd(
-				i,
-				RepLayout->Cmds[i].CompatibleChecksum,
-				RepLayout->Cmds[i].Property ? RepLayout->Cmds[i].Property->GetName() : TEXT( "" ),
-				RepLayout->Cmds[i].Property ? RepLayout->Cmds[i].Property->GetCPPType( nullptr, 0 ) : TEXT( "" ) );
-
-			CompatibleRepLayout->Cmds[i] = CompatibleCmd;
-		}
-
-		GuidCache->CompatibleRepLayoutMap.Add( CompatibleRepLayout->PathName, CompatibleRepLayout );
-	}
-
-	return CompatibleRepLayout;
+	return GuidCache->NetFieldExportGroupMap.FindRef( PathName );
 }
 
-void UPackageMapClient::TrackCompatibleRepLayoutCmd( const FRepLayout* RepLayout, FCompatibleRepLayout* CompatibleRepLayout, const int32 CmdIndex )
+void UPackageMapClient::AddNetFieldExportGroup( const FString& PathName, TSharedPtr< FNetFieldExportGroup > NewNetFieldExportGroup )
 {
-	CompatibleRepLayout->Cmds[CmdIndex].bExported = true;
+	check( !GuidCache->NetFieldExportGroupMap.Contains( NewNetFieldExportGroup->PathName ) );
 
-	const uint64 CmdHandle = ( ( uint64 )CompatibleRepLayout->PathNameIndex ) << 32 | ( uint64 )CmdIndex;
+	NewNetFieldExportGroup->PathNameIndex = ++GuidCache->UniqueNetFieldExportGroupPathIndex;
+
+	check( !GuidCache->NetFieldExportGroupPathToIndex.Contains( NewNetFieldExportGroup->PathName ) );
+	check( !GuidCache->NetFieldExportGroupIndexToPath.Contains( NewNetFieldExportGroup->PathNameIndex ) );
+
+	GuidCache->NetFieldExportGroupPathToIndex.Add( NewNetFieldExportGroup->PathName, NewNetFieldExportGroup->PathNameIndex );
+	GuidCache->NetFieldExportGroupIndexToPath.Add( NewNetFieldExportGroup->PathNameIndex, NewNetFieldExportGroup->PathName );
+	GuidCache->NetFieldExportGroupMap.Add( NewNetFieldExportGroup->PathName, NewNetFieldExportGroup );
+}
+
+void UPackageMapClient::TrackNetFieldExport( FNetFieldExportGroup* NetFieldExportGroup, const int32 NetFieldExportHandle )
+{
+	check( NetFieldExportHandle >= 0 );
+	check( NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].Handle == NetFieldExportHandle );
+	NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].bExported = true;
+
+	const uint64 CmdHandle = ( ( uint64 )NetFieldExportGroup->PathNameIndex ) << 32 | ( uint64 )NetFieldExportHandle;
 
 	// If this cmd hasn't been confirmed as exported, we need to export it for this bunch
-	if ( !CompatibleRepLayoutCmdExported.Contains( CmdHandle ) )
+	if ( !AckState.NetFieldExportAcked.Contains( CmdHandle ) )
 	{
-		CompatibleRepLayoutCmdExports.Add( CmdHandle );		// NOTE - This is a set, so it will only add once
+		NetFieldExports.Add( CmdHandle );		// NOTE - This is a set, so it will only add once
 	}
 }
 
-TSharedPtr< FCompatibleRepLayout > UPackageMapClient::GetCompatibleRepLayoutChecked( UObject* Owner ) const
+TSharedPtr< FNetFieldExportGroup > UPackageMapClient::GetNetFieldExportGroupChecked( const FString& PathName ) const
 {
-	return GuidCache->CompatibleRepLayoutMap.FindChecked( Owner->GetPathName() );
+	return GuidCache->NetFieldExportGroupMap.FindChecked( PathName );
 }
 
-void UPackageMapClient::SerializeCompatibleReplayoutMap( FArchive& Ar )
+void UPackageMapClient::SerializeNetFieldExportGroupMap( FArchive& Ar )
 {
 	if ( Ar.IsSaving() )
 	{
 		// Save the number of layouts
-		uint32 NumLayouts = GuidCache->CompatibleRepLayoutMap.Num();
-		Ar << NumLayouts;
+		uint32 NumNetFieldExportGroups = GuidCache->NetFieldExportGroupMap.Num();
+		Ar << NumNetFieldExportGroups;
 
 		// Save each layout
-		for ( auto It = GuidCache->CompatibleRepLayoutMap.CreateIterator(); It; ++It )
+		for ( auto It = GuidCache->NetFieldExportGroupMap.CreateIterator(); It; ++It )
 		{
-			// Save out the compatible replayout
+			// Save out the export group
 			Ar << *It.Value().Get();
 		}
 	}
 	else
 	{
 		// Clear all of our mappings, since we're starting over
-		GuidCache->CompatibleRepLayoutMap.Empty();
-		GuidCache->CompatibleRepLayoutPathToIndex.Empty();
-		GuidCache->CompatibleRepLayoutIndexToPath.Empty();
+		GuidCache->NetFieldExportGroupMap.Empty();
+		GuidCache->NetFieldExportGroupPathToIndex.Empty();
+		GuidCache->NetFieldExportGroupIndexToPath.Empty();
 
-		// Read the number of layouts
-		uint32 NumLayouts = 0;
-		Ar << NumLayouts;
+		// Read the number of export groups
+		uint32 NumNetFieldExportGroups = 0;
+		Ar << NumNetFieldExportGroups;
 
-		// Read each compatible layout
-		for ( int32 i = 0; i < ( int32 )NumLayouts; i++ )
+		// Read each export group
+		for ( int32 i = 0; i < ( int32 )NumNetFieldExportGroups; i++ )
 		{
-			TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = TSharedPtr< FCompatibleRepLayout >( new FCompatibleRepLayout() );
+			TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = TSharedPtr< FNetFieldExportGroup >( new FNetFieldExportGroup() );
 
-			// Read in the compatible layout
-			Ar << *CompatibleRepLayout.Get();
+			// Read in the export group
+			Ar << *NetFieldExportGroup.Get();
 
 			// Assign index to path name
-			GuidCache->CompatibleRepLayoutPathToIndex.Add( CompatibleRepLayout->PathName, CompatibleRepLayout->PathNameIndex );
-			GuidCache->CompatibleRepLayoutIndexToPath.Add( CompatibleRepLayout->PathNameIndex, CompatibleRepLayout->PathName );
+			GuidCache->NetFieldExportGroupPathToIndex.Add( NetFieldExportGroup->PathName, NetFieldExportGroup->PathNameIndex );
+			GuidCache->NetFieldExportGroupIndexToPath.Add( NetFieldExportGroup->PathNameIndex, NetFieldExportGroup->PathName );
 
-			// Add the compatible layout to the map
-			GuidCache->CompatibleRepLayoutMap.Add( CompatibleRepLayout->PathName, CompatibleRepLayout );
+			// Add the export group to the map
+			GuidCache->NetFieldExportGroupMap.Add( NetFieldExportGroup->PathName, NetFieldExportGroup );
 		}
 	}
 }
 
-void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& OutgoingBunches )
+void UPackageMapClient::AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunches )
 {
-	if ( CompatibleRepLayoutCmdExports.Num() == 0 )
+	if ( NetFieldExports.Num() == 0 )
 	{
 		return;	// Nothing to do
 	}
@@ -1108,19 +1093,19 @@ void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& O
 	FOutBunch* ExportBunch = nullptr;
 	TSet< uint32 > ExportedPathInThisBunchAlready;
 
-	uint32 CurrentRepLayoutCmdCount = 0;
+	uint32 CurrentNetFieldExportCount = 0;
 
 	// Go through each layout, and try to export to single bunch, using a new bunch each time we fragment (go past max bunch size)
-	for ( const uint64 CmdExport : CompatibleRepLayoutCmdExports )
+	for ( const uint64 FieldExport : NetFieldExports )
 	{
 		// Parse the path name index and cmd index out of the uint64
-		uint32 PathNameIndex	= CmdExport >> 32;
-		uint32 CmdIndex			= CmdExport & ( ( (uint64)1 << 32 ) - 1 );
+		uint32 PathNameIndex		= FieldExport >> 32;
+		uint32 NetFieldExportHandle	= FieldExport & ( ( (uint64)1 << 32 ) - 1 );
 
 		check( PathNameIndex != 0 );
 
-		FString PathName = GuidCache->CompatibleRepLayoutIndexToPath.FindChecked( PathNameIndex );
-		TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = GuidCache->CompatibleRepLayoutMap.FindChecked( PathName );
+		FString PathName = GuidCache->NetFieldExportGroupIndexToPath.FindChecked( PathNameIndex );
+		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = GuidCache->NetFieldExportGroupMap.FindChecked( PathName );
 
 		for ( int32 NumTries = 0; NumTries < 2; NumTries++ )
 		{
@@ -1132,14 +1117,14 @@ void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& O
 				ExportBunch->bHasPackageMapExports = true;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				ExportBunch->DebugString = TEXT( "CompatibleRepLayoutCmdExports" );
+				ExportBunch->DebugString = TEXT( "NetFieldExports" );
 #endif
 
 				ExportBunch->WriteBit( 1 );		// To signify this is a rep layout export
 
-				// Write stub cmd amount, we'll replace it with the final number when this bunch fills up (or we're done)
-				uint32 NumFakeRepLayoutCmds = 0;
-				*ExportBunch << NumFakeRepLayoutCmds;
+				// Write stub net field export amount, we'll replace it with the final number when this bunch fills up (or we're done)
+				uint32 FakeNetFieldExportCount = 0;
+				*ExportBunch << FakeNetFieldExportCount;
 			}
 
 			// Save our spot so we can undo if we don't have enough room
@@ -1150,26 +1135,29 @@ void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& O
 			ExportBunch->SerializeIntPacked( PathNameIndex );
 
 			// Export the path if we need to
-			if ( !CompatibleRepLayoutPathExported.Contains( PathNameIndex ) && !ExportedPathInThisBunchAlready.Contains( PathNameIndex ) )
+			if ( !AckState.NetFieldExportGroupPathAcked.Contains( PathNameIndex ) && !ExportedPathInThisBunchAlready.Contains( PathNameIndex ) )
 			{
 				ExportBunch->WriteBit( 1 );
 				*ExportBunch << PathName;
+
+				int32 MaxExports = NetFieldExportGroup->NetFieldExports.Num();
+				*ExportBunch << MaxExports;
 			}
 			else
 			{
 				ExportBunch->WriteBit( 0 );
 			}
 
-			check( CmdIndex == CompatibleRepLayout->Cmds[CmdIndex].Handle );
+			check( NetFieldExportHandle == NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].Handle );
 
-			*ExportBunch << CompatibleRepLayout->Cmds[CmdIndex];
+			*ExportBunch << NetFieldExportGroup->NetFieldExports[NetFieldExportHandle];
 
 			if ( !ExportBunch->IsError() )
 			{
 				// We had enough room, continue on to the next one
-				ExportBunch->ExportRepLayoutCmds.Add( CmdExport );		// Add this cmd to this bunch so we know to handle it during NotifyBunchCommit
+				ExportBunch->NetFieldExports.Add( FieldExport );		// Add this cmd to this bunch so we know to handle it during NotifyBunchCommit
 				ExportedPathInThisBunchAlready.Add( PathNameIndex );
-				CurrentRepLayoutCmdCount++;
+				CurrentNetFieldExportCount++;
 				break;
 			}
 
@@ -1177,48 +1165,50 @@ void UPackageMapClient::AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& O
 			// If we get here, we overflowed, wrap up the currently pending bunch, and start a new one
 			//
 
-			if ( CurrentRepLayoutCmdCount == 0 || NumTries == 1 )
+			if ( CurrentNetFieldExportCount == 0 || NumTries == 1 )
 			{
 				// This means we couldn't serialize a single compatible rep layout cmd into a single bunch. This should never happen unless a single cmd takes way too much space
-				UE_LOG( LogNetPackageMap, Fatal, TEXT( "AppendExportBunches: Failed to serialize CompatibleRepLayout into single bunch: %s, %i" ), *CompatibleRepLayout->PathName, CmdIndex );
+				UE_LOG( LogNetPackageMap, Fatal, TEXT( "AppendExportBunches: Failed to serialize NetFieldExportGroup into single bunch: %s, %i" ), *NetFieldExportGroup->PathName, NetFieldExportHandle );
 				return;
 			}
 
 			LastExportMark.Pop( *ExportBunch );
 
-			PatchHeaderCount( *ExportBunch, true, CurrentRepLayoutCmdCount );
+			PatchHeaderCount( *ExportBunch, true, CurrentNetFieldExportCount );
 
 			OutgoingBunches.Add( ExportBunch );
 
 			// Reset bunch
 			ExportBunch					= nullptr;
-			CurrentRepLayoutCmdCount	= 0;
+			CurrentNetFieldExportCount	= 0;
 
 			ExportedPathInThisBunchAlready.Empty();
 		}
 	}
 
 	// Wrap up the last bunch if needed
-	if ( CurrentRepLayoutCmdCount > 0 )
+	if ( CurrentNetFieldExportCount > 0 )
 	{
-		PatchHeaderCount( *ExportBunch, true, CurrentRepLayoutCmdCount );
+		PatchHeaderCount( *ExportBunch, true, CurrentNetFieldExportCount );
 		OutgoingBunches.Add( ExportBunch );
 	}
 
-	CompatibleRepLayoutCmdExports.Empty();
+	NetFieldExports.Empty();
 }
 
-void UPackageMapClient::ReceiveCompatibleRepLayoutExports( FInBunch &InBunch )
+void UPackageMapClient::ReceiveNetFieldExports( FInBunch &InBunch )
 {
-	// Read number of rep layout cmds
+	// Read number of net field exports
 	uint32 NumLayoutCmdExports = 0;
 	InBunch << NumLayoutCmdExports;
 
 	for ( int32 i = 0; i < ( int32 )NumLayoutCmdExports; i++ )
 	{
-		// Read the index that represents the name in the CompatibleRepLayoutIndexToPath map
+		// Read the index that represents the name in the NetFieldExportGroupIndexToPath map
 		uint32 PathNameIndex;
 		InBunch.SerializeIntPacked( PathNameIndex );
+
+		int32 MaxExports = 0;
 
 		// See if the path name was exported (we'll expect it if we haven't seen this index before)
 		if ( InBunch.ReadBit() == 1 )
@@ -1226,45 +1216,46 @@ void UPackageMapClient::ReceiveCompatibleRepLayoutExports( FInBunch &InBunch )
 			FString PathName;
 			InBunch << PathName;
 
-			GuidCache->CompatibleRepLayoutPathToIndex.Add( PathName, PathNameIndex );
-			GuidCache->CompatibleRepLayoutIndexToPath.Add( PathNameIndex, PathName );
+			InBunch << MaxExports;
+
+			GuidCache->NetFieldExportGroupPathToIndex.Add( PathName, PathNameIndex );
+			GuidCache->NetFieldExportGroupIndexToPath.Add( PathNameIndex, PathName );
 		}
 
-		// At this point, we expect to be able to find the entry in CompatibleRepLayoutIndexToPath
-		const FString PathName = GuidCache->CompatibleRepLayoutIndexToPath.FindChecked( PathNameIndex );
+		// At this point, we expect to be able to find the entry in NetFieldExportGroupIndexToPath
+		const FString PathName = GuidCache->NetFieldExportGroupIndexToPath.FindChecked( PathNameIndex );
 
-		TSharedPtr< FCompatibleRepLayout > CompatibleRepLayout = GuidCache->CompatibleRepLayoutMap.FindRef( PathName );
+		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = GuidCache->NetFieldExportGroupMap.FindRef( PathName );
 
-		if ( !CompatibleRepLayout.IsValid() )
+		if ( !NetFieldExportGroup.IsValid() )
 		{
-			CompatibleRepLayout = TSharedPtr< FCompatibleRepLayout >( new FCompatibleRepLayout() );
-			CompatibleRepLayout->PathName = PathName;
-			CompatibleRepLayout->PathNameIndex = PathNameIndex;
-			GuidCache->CompatibleRepLayoutMap.Add( CompatibleRepLayout->PathName, CompatibleRepLayout );
+			NetFieldExportGroup = TSharedPtr< FNetFieldExportGroup >( new FNetFieldExportGroup() );
+			NetFieldExportGroup->PathName = PathName;
+			NetFieldExportGroup->PathNameIndex = PathNameIndex;
+
+			NetFieldExportGroup->NetFieldExports.SetNum( MaxExports );
+
+			GuidCache->NetFieldExportGroupMap.Add( NetFieldExportGroup->PathName, NetFieldExportGroup );
 		}
 
-		FCompatibleRepLayoutCmd Cmd;
+		FNetFieldExport NetFieldExport;
 
 		// Read the cmd
-		InBunch << Cmd;
+		InBunch << NetFieldExport;
 
-		// Make room for the cmd
-		if ( ( int32 )Cmd.Handle >= CompatibleRepLayout->Cmds.Num() )
-		{
-			CompatibleRepLayout->Cmds.AddDefaulted( Cmd.Handle - CompatibleRepLayout->Cmds.Num() + 1 );
-		}
+		check( ( int32 )NetFieldExport.Handle < NetFieldExportGroup->NetFieldExports.Num() );
 
-		// Assign it to the correct slot (Cmd.Handle is just the index into the array)
-		CompatibleRepLayout->Cmds[Cmd.Handle] = Cmd;
+		// Assign it to the correct slot (NetFieldExport.Handle is just the index into the array)
+		NetFieldExportGroup->NetFieldExports[NetFieldExport.Handle] = NetFieldExport;
 	}
 }
 
 void UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches)
 {
 	// If we have rep layouts to export, handle those now
-	if ( CompatibleRepLayoutCmdExports.Num() > 0 )
+	if ( NetFieldExports.Num() > 0 )
 	{
-		AppendCompatibleRepLayoutExports( OutgoingBunches );
+		AppendNetFieldExports( OutgoingBunches );
 	}
 
 	// Finish current in progress bunch if necessary
@@ -1301,9 +1292,17 @@ void UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches
 
 void UPackageMapClient::SyncPackageMapExportAckStatus( const UPackageMapClient* Source )
 {
-	NetGUIDAckStatus				= Source->NetGUIDAckStatus;
-	CompatibleRepLayoutCmdExported	= Source->CompatibleRepLayoutCmdExported;
-	CompatibleRepLayoutPathExported	= Source->CompatibleRepLayoutPathExported;
+	AckState = Source->AckState;
+}
+
+void UPackageMapClient::SavePackageMapExportAckStatus( FPackageMapAckState& OutState )
+{
+	OutState = AckState;
+}
+
+void UPackageMapClient::RestorePackageMapExportAckStatus( const FPackageMapAckState& InState )
+{
+	AckState = InState;
 }
 
 //--------------------------------------------------------------------
@@ -1318,13 +1317,13 @@ void UPackageMapClient::SyncPackageMapExportAckStatus( const UPackageMapClient* 
  */
 void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const FOutBunch* OutBunch )
 {
-	// Mark all of the rep layout cmds in this bunch as exported
+	// Mark all of the net field exports in this bunch as ack'd
 	// NOTE - This only currently works with reliable connections (i.e. InternalAck)
 	// For this to work with normal connections, we'll need to do real ack logic here
-	for ( int32 i = 0; i < OutBunch->ExportRepLayoutCmds.Num(); i++ )
+	for ( int32 i = 0; i < OutBunch->NetFieldExports.Num(); i++ )
 	{
-		CompatibleRepLayoutPathExported.Add( OutBunch->ExportRepLayoutCmds[i] >> 32, true );
-		CompatibleRepLayoutCmdExported.Add( OutBunch->ExportRepLayoutCmds[i], true );
+		AckState.NetFieldExportGroupPathAcked.Add( OutBunch->NetFieldExports[i] >> 32, true );
+		AckState.NetFieldExportAcked.Add( OutBunch->NetFieldExports[i], true );
 	}
 
 	const TArray< FNetworkGUID >& ExportNetGUIDs = OutBunch->ExportNetGUIDs;
@@ -1338,12 +1337,12 @@ void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const FOutBu
 
 	for ( int32 i = 0; i < ExportNetGUIDs.Num(); i++ )
 	{
-		if ( !NetGUIDAckStatus.Contains( ExportNetGUIDs[i] ) )
+		if ( !AckState.NetGUIDAckStatus.Contains( ExportNetGUIDs[i] ) )
 		{
-			NetGUIDAckStatus.Add( ExportNetGUIDs[i], GUID_PACKET_NOT_ACKED );
+			AckState.NetGUIDAckStatus.Add( ExportNetGUIDs[i], GUID_PACKET_NOT_ACKED );
 		}
 
-		int32& ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( ExportNetGUIDs[i] );
+		int32& ExpectedPacketIdRef = AckState.NetGUIDAckStatus.FindChecked( ExportNetGUIDs[i] );
 
 		// Only update expected sequence if this guid was previously nak'd
 		// If we always update to the latest packet id, we risk prolonging the ack for no good reason
@@ -1372,7 +1371,7 @@ void UPackageMapClient::ReceivedAck( const int32 AckPacketId )
 {
 	for ( int32 i = PendingAckGUIDs.Num() - 1; i >= 0; i-- )
 	{
-		int32& ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
+		int32& ExpectedPacketIdRef = AckState.NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
 
 		check( ExpectedPacketIdRef > GUID_PACKET_ACKED );		// Make sure we really are pending, since we're on the list
 
@@ -1392,7 +1391,7 @@ void UPackageMapClient::ReceivedNak( const int32 NakPacketId )
 {
 	for ( int32 i = PendingAckGUIDs.Num() - 1; i >= 0; i-- )
 	{
-		int32& ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
+		int32& ExpectedPacketIdRef = AckState.NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
 
 		check( ExpectedPacketIdRef > GUID_PACKET_ACKED );		// Make sure we aren't acked, since we're on the list
 
@@ -1430,12 +1429,12 @@ bool UPackageMapClient::NetGUIDHasBeenAckd(FNetworkGUID NetGUID)
 	}
 
 	// If brand new, add it to map with GUID_PACKET_NOT_ACKED
-	if ( !NetGUIDAckStatus.Contains( NetGUID ) )
+	if ( !AckState.NetGUIDAckStatus.Contains( NetGUID ) )
 	{
-		NetGUIDAckStatus.Add( NetGUID, GUID_PACKET_NOT_ACKED );
+		AckState.NetGUIDAckStatus.Add( NetGUID, GUID_PACKET_NOT_ACKED );
 	}
 
-	int32& AckPacketId = NetGUIDAckStatus.FindChecked( NetGUID );	
+	int32& AckPacketId = AckState.NetGUIDAckStatus.FindChecked( NetGUID );
 
 	if ( AckPacketId == GUID_PACKET_ACKED )
 	{
@@ -1519,9 +1518,9 @@ void UPackageMapClient::LogDebugInfo( FOutputDevice & Ar )
 		FNetworkGUID NetGUID = It.Value();
 
 		FString Status = TEXT("Unused");
-		if ( NetGUIDAckStatus.Contains( NetGUID ) )
+		if ( AckState.NetGUIDAckStatus.Contains( NetGUID ) )
 		{
-			const int32 PacketId = NetGUIDAckStatus.FindRef(NetGUID);
+			const int32 PacketId = AckState.NetGUIDAckStatus.FindRef(NetGUID);
 			if ( PacketId == GUID_PACKET_NOT_ACKED )
 			{
 				Status = TEXT("UnAckd");
@@ -1586,7 +1585,7 @@ bool UPackageMapClient::IsNetGUIDAuthority() const
 void UPackageMapClient::GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount)
 {
 	AckCount = UnAckCount = PendingCount = 0;
-	for ( auto It = NetGUIDAckStatus.CreateIterator(); It; ++It )
+	for ( auto It = AckState.NetGUIDAckStatus.CreateIterator(); It; ++It )
 	{
 		// Sanity check that we're in sync
 		check( ( It.Value() > GUID_PACKET_ACKED ) == PendingAckGUIDs.Contains( It.Key() ) );
@@ -1670,7 +1669,7 @@ FNetworkGUID UPackageMapClient::GetNetGUIDFromObject(const UObject* InObject) co
 FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : IsExportingNetGUIDBunch( false ), Driver( InDriver ), NetworkChecksumMode( NETCHECKSUM_SaveAndUse )
 {
 	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
-	UniqueCompatibleRepLayoutPathIndex = 0;
+	UniqueNetFieldExportGroupPathIndex = 0;
 }
 
 class FArchiveCountMemGUID : public FArchive

@@ -89,6 +89,7 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	EngineNetworkProtocolVersion( FNetworkVersion::GetEngineNetworkProtocolVersion() )
 ,	GameNetworkProtocolVersion( FNetworkVersion::GetGameNetworkProtocolVersion() )
 ,	ClientWorldPackageName( NAME_None )
+,	bResendAllDataSinceOpen( false )
 {
 }
 
@@ -1504,11 +1505,7 @@ float UNetConnection::GetTimeoutValue()
 
 	if ( ( State != USOCK_Pending ) && ( bPendingDestroy || ( OwningActor && OwningActor->UseShortConnectTimeout() ) ) )
 	{
-#if !UE_BUILD_SHIPPING
-		const float ConnectionTimeout = !Driver->bNoTimeouts ? Driver->ConnectionTimeout : MAX_FLT;
-#else
 		const float ConnectionTimeout = Driver->ConnectionTimeout;
-#endif
 
 		// If the connection is pending destroy give it 2 seconds to try to finish sending any reliable packets
 		Timeout = bPendingDestroy ? 2.f : ConnectionTimeout;

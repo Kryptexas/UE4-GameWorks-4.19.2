@@ -420,7 +420,7 @@ void UOnlineHotfixManager::ReadHotfixFiles()
 		// Do this in two passes so already cached files don't trigger completion
 		for (auto& FileHeader : ChangedHotfixFileList)
 		{
-			UE_LOG(LogOnline, Verbose, TEXT("HF: %s %s %d "), *FileHeader.DLName, *FileHeader.FileName, FileHeader.FileSize); 
+			UE_LOG(LogOnline, VeryVerbose, TEXT("HF: %s %s %d "), *FileHeader.DLName, *FileHeader.FileName, FileHeader.FileSize);
 			PendingHotfixFiles.Add(FileHeader.DLName, FPendingFileDLProgress());
 		}
 		for (auto& FileHeader : ChangedHotfixFileList)
@@ -645,13 +645,27 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 				// Handle the per object config case by finding the object for reload
 				else
 				{
-					const int32 Count = PerObjectNameIndex - StartIndex - 1;
-					const FString PerObjectName = IniData.Mid(StartIndex + 1, Count);
-					// Explicitly search the transient package (won't update non-transient objects)
-					UObject* PerObject = FindObject<UObject>(ANY_PACKAGE, *PerObjectName, false);
-					if (PerObject != nullptr)
+					const int32 ClassNameStart = PerObjectNameIndex + 1;
+					const FString ClassName = IniData.Mid(ClassNameStart, EndIndex - ClassNameStart);
+
+					// Look up the class to search for
+					UClass* ObjectClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+
+					if (ObjectClass)
 					{
-						PerObjectConfigObjects.Add(PerObject);
+						const int32 Count = PerObjectNameIndex - StartIndex - 1;
+						const FString PerObjectName = IniData.Mid(StartIndex + 1, Count);
+
+						// Explicitly search the transient package (won't update non-transient objects)
+						UObject* PerObject = StaticFindObject(ObjectClass, ANY_PACKAGE, *PerObjectName, false);
+						if (PerObject != nullptr)
+						{
+							PerObjectConfigObjects.Add(PerObject);
+						}
+					}
+					else
+					{
+						UE_LOG(LogHotfixManager, Warning, TEXT("Specified per-object class %s was not found"), *ClassName);
 					}
 				}
 				StartIndex = EndIndex;

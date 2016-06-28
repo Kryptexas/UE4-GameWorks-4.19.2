@@ -4,6 +4,7 @@
 
 #include "DeferredShadingCommon.usf"
 #include "BRDF.usf"
+#include "FastMath.usf"
 
 #if 0
 void StandardShadingShared( float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 V, half3 N )
@@ -563,7 +564,7 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 	const float VoL       = dot(V,L);
 	const float SinThetaL = dot(N,L);
 	const float SinThetaV = dot(N,V);
-	float CosThetaD = cos( 0.5 * abs( asin( SinThetaV ) - asin( SinThetaL ) ) );
+	float CosThetaD = cos( 0.5 * abs( asinFast( SinThetaV ) - asinFast( SinThetaL ) ) );
 
 	//CosThetaD = abs( CosThetaD ) < 0.01 ? 0.01 : CosThetaD;
 
@@ -571,7 +572,7 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 	const float3 Vp = V - SinThetaV * N;
 	const float CosPhi = dot(Lp,Vp) * rsqrt( dot(Lp,Lp) * dot(Vp,Vp) + 1e-4 );
 	const float CosHalfPhi = sqrt( saturate( 0.5 + 0.5 * CosPhi ) );
-	const float Phi = acos( CosPhi );
+	const float Phi = acosFast( CosPhi );
 
 	float n = 1.55;
 	//float n_prime = sqrt( n*n - 1 + Pow2( CosThetaD ) ) / CosThetaD;
@@ -615,8 +616,8 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 		float h = CosHalfPhi * rsqrt( 1 + a*a - 2*a * sqrt( 0.5 - 0.5 * CosPhi ) );
 		//float h = CosHalfPhi * ( ( 1 - Pow2( CosHalfPhi ) ) * a + 1 );
 		//float h = 0.4;
-		float yi = asin(h);
-		float yt = asin(h / n_prime);
+		float yi = asinFast(h);
+		float yt = asinFast(h / n_prime);
 		
 		float f = Hair_F( CosThetaD * sqrt( saturate( 1 - h*h ) ) );
 		float Fp = Pow2(1 - f);
@@ -628,7 +629,8 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 		//float d = ( sqrt(2) - t ) / ( 1 - t );
 		//float s = -0.5 * PI * (1 - 1 / n_prime) * log( 2*d - 1 - 2 * sqrt( d * (d - 1) ) );
 		float s = 0.3;
-		float Np = exp( (Phi - PI) / s ) / ( s * Pow2( 1 + exp( (Phi - PI) / s ) ) );
+		//float Np = exp( (Phi - PI) / s ) / ( s * Pow2( 1 + exp( (Phi - PI) / s ) ) );
+		float Np = 0.83 * exp( -2.2 * Pow2(Phi - PI) );
 
 		S += Mp * Np * Fp * Tp * Backlit;
 	}

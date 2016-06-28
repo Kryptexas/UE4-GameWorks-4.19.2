@@ -101,7 +101,7 @@ static uint8 TonemapperCostTab[] = {
 // Place most common first (faster when searching in TonemapperFindLeastExpensive()).
 
 // List of configurations compiled for PC.
-static uint32 TonemapperConfBitmaskPC[14] = { 
+static uint32 TonemapperConfBitmaskPC[15] = { 
 
 	TonemapperBloom +
 	TonemapperGrainJitter +
@@ -109,6 +109,14 @@ static uint32 TonemapperConfBitmaskPC[14] = {
 	TonemapperGrainQuantization +
 	TonemapperVignette +
 	TonemapperColorFringe +
+	TonemapperSharpen +
+	0,
+
+	TonemapperBloom +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperGrainQuantization +
+	TonemapperVignette +
 	TonemapperSharpen +
 	0,
 
@@ -1200,7 +1208,7 @@ public:
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
 	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
-	VARIATION1(9)  VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13)
+	VARIATION1(9)  VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13) VARIATION1(14)
 
 #undef VARIATION1
 
@@ -1254,6 +1262,12 @@ namespace PostProcessTonemapUtil
 		}
 	}
 }
+
+static TAutoConsoleVariable<int32> CVarTonemapperOverride(
+	TEXT("r.Tonemapper.ConfigIndexOverride"),
+	-1,
+	TEXT("direct configindex override. Ignores all other tonemapper configuration cvars"),
+	ECVF_RenderThreadSafe);
 
 void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 {
@@ -1309,7 +1323,9 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	switch (ConfigIndexPC)
+	const int32 ConfigOverride = CVarTonemapperOverride->GetInt();
+	const uint32 FinalConfigIndex = ConfigOverride == -1 ? ConfigIndexPC : (int32)ConfigOverride;
+	switch (FinalConfigIndex)
 	{
     using namespace PostProcessTonemapUtil;
 	case 0:	SetShaderTempl<0>(Context, bDoEyeAdaptation); break;

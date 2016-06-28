@@ -52,6 +52,9 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
 /** Notify interested parties that ability spec has been modified */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilitySpecDirtied, const FGameplayAbilitySpec&);
 
+/** Notifies when GameplayEffectSpec is blocked by an ActiveGameplayEffect due to immunity  */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FImmunityBlockGE, const FGameplayEffectSpec& /*BlockedSpec*/, const FActiveGameplayEffect* /*ImmunityGameplayEffect*/);
+
 UENUM()
 enum class EReplicationMode : uint8
 {
@@ -1257,8 +1260,13 @@ protected:
 	/** Returns true if the specified ability should be activated from an event in this network mode */
 	bool HasNetworkAuthorityToActivateTriggeredAbility(const FGameplayAbilitySpec &Spec) const;
 
+	virtual void OnImmunityBlockGameplayEffect(const FGameplayEffectSpec& Spec, const FActiveGameplayEffect* ImmunityGE);
+
 	// -----------------------------------------------------------------------------
 public:
+
+	/** Immunity notification support */
+	FImmunityBlockGE OnImmunityBlockGameplayEffectDelegate;
 
 	/** The actor that owns this component logically */
 	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)

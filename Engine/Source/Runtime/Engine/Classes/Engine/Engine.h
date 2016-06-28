@@ -1164,10 +1164,10 @@ public:
 	int32 NumPawnsAllowedToBeSpawnedInAFrame;
 
 	/**
-	 * Whether or not the LQ lightmaps should be generated during lighting rebuilds.
+	 * Whether or not the LQ lightmaps should be generated during lighting rebuilds.  This has been moved to r.SupportLowQualityLightmaps.
 	 */
 	UPROPERTY(globalconfig)
-	uint32 bShouldGenerateLowQualityLightmaps:1;
+	uint32 bShouldGenerateLowQualityLightmaps_DEPRECATED :1;
 
 	/**
 	 * Bool that indicates that 'console' input is desired. This flag is mis named as it is used for a lot of gameplay related things
@@ -2022,7 +2022,7 @@ public:
 	*
 	* @param	InMapName	Name of the map (Or Global)
 	*/
-	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
+	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo);
 
 	/** Delegate called when FPS charting detects a hitch (it is not triggered if a capture isn't in progress). */
 	FEngineHitchDetectedDelegate OnHitchDetectedDelegate;

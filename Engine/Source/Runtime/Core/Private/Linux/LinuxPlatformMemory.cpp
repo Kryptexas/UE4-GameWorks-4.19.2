@@ -45,8 +45,8 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 	}
 	AllocatorToUse = EAllocatorToUse::Binned;
 
-	// Prefer jemalloc as it consistently saves ~20% RES usage in my (RCL) tests.
-	if (PLATFORM_SUPPORTS_JEMALLOC)
+	// Prefer jemalloc as it consistently saves ~20% RES usage in my (RCL) tests (editor only)
+	if (PLATFORM_SUPPORTS_JEMALLOC && WITH_EDITOR)
 	{
 		AllocatorToUse = EAllocatorToUse::Jemalloc;
 	}

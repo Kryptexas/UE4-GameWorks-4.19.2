@@ -646,6 +646,7 @@ namespace AutomationTool
 				string[] RequiresNames = ReadListAttribute(Element, "Requires");
 				string[] ProducesNames = ReadListAttribute(Element, "Produces");
 				string[] AfterNames = ReadListAttribute(Element, "After");
+				string[] TicketFileNames = ReadListAttribute(Element, "Ticket");
 				bool bNotifyOnWarnings = ReadBooleanAttribute(Element, "NotifyOnWarnings", true);
 
 				// Resolve all the inputs we depend on
@@ -665,9 +666,13 @@ namespace AutomationTool
 					}
 				}
 
+				// Remove all the lock names from the list of required names
+				HashSet<FileReference> RequiredTickets = new HashSet<FileReference>(TicketFileNames.Select(x => FileReference.Combine(CommandUtils.RootDirectory, x)));
+
 				// Recursively include all their dependencies too
 				foreach (Node InputDependency in InputDependencies.ToArray())
 				{
+					RequiredTickets.UnionWith(InputDependency.RequiredTickets);
 					InputDependencies.UnionWith(InputDependency.InputDependencies);
 				}
 
@@ -718,7 +723,7 @@ namespace AutomationTool
 				if (CheckNameIsUnique(Element, Name))
 				{
 					// Add it to the node lookup
-					Node NewNode = new Node(Name, Inputs.ToArray(), ValidOutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger);
+					Node NewNode = new Node(Name, Inputs.ToArray(), ValidOutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger, RequiredTickets.ToArray());
 					NewNode.bNotifyOnWarnings = bNotifyOnWarnings;
 					Graph.NameToNode.Add(Name, NewNode);
 

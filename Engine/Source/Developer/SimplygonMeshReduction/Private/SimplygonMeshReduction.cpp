@@ -508,14 +508,10 @@ public:
 			UE_LOG(LogSimplygon, Warning, TEXT("Simplygon is disabled with -NoSimplygon flag"));
 			return  NULL;
 		}
-		const ANSICHAR* SIMPLYGON_VERSION_STRING = "7.0";  
+		const ANSICHAR* SIMPLYGON_VERSION_STRING = "7.1";  
 
 		FString DllPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/NotForLicensees/Simplygon")));
-		FString DllFilename(FPaths::Combine(*DllPath, TEXT("SimplygonSDKEpicUE4Releasex64.dll")));
-		if( !FPaths::FileExists(DllFilename) )
-		{
-			DllFilename = FPaths::Combine(*DllPath, TEXT("SimplygonSDKRuntimeReleasex64.dll"));
-		}
+		FString DllFilename(FPaths::Combine(*DllPath, TEXT("SimplygonSDKRuntimeReleasex64.dll")));
 
 		// If the DLL just doesn't exist, fail gracefully. Licensees and Subscribers will not necessarily have Simplygon.
 		if( !FPaths::FileExists(DllFilename) )
@@ -657,7 +653,7 @@ public:
 	void SimplygonProcessLOD(
 		ProcessorClass Processor,
 		const TArray<FMeshMergeData>& DataArray,
-		const TArray<FFlattenMaterial> FlattenedMaterials,
+		const TArray<FFlattenMaterial>& FlattenedMaterials,
 		const FSimplygonMaterialLODSettings& MaterialLODSettings,
 		FFlattenMaterial& OutMaterial)
 	{
@@ -678,7 +674,7 @@ public:
 
 		// Convert FFlattenMaterial array to Simplygon materials
 		SimplygonSDK::spMaterialTable InputMaterialTable = SDK->CreateMaterialTable();
-		CreateSGMaterialFromFlattenMaterial(FlattenedMaterials, MaterialLODSettings, InputMaterialTable, true);
+		CreateSGMaterialFromFlattenMaterial(FlattenedMaterials, MaterialLODSettings, InputMaterialTable, false);
 		
 		// Perform LOD processing
 		UE_LOG(LogSimplygon, Log, TEXT("Processing with %s."), *FString(Processor->GetClass()));
@@ -757,7 +753,7 @@ public:
 			//For each raw mesh in array create a scene mesh and populate with geometry data
 			for (int32 MeshIndex = 0; MeshIndex < Data.Num(); ++MeshIndex)
 			{
-				SimplygonSDK::spGeometryData GeometryData = Reduction->CreateGeometryFromRawMesh(Data[MeshIndex].RawMesh, Data[MeshIndex].TexCoordBounds, Data[MeshIndex].NewUVs);
+				SimplygonSDK::spGeometryData GeometryData = Reduction->CreateGeometryFromRawMesh(*Data[MeshIndex].RawMesh, Data[MeshIndex].TexCoordBounds, Data[MeshIndex].NewUVs);
 				if (!GeometryData)
 				{
 					UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
@@ -874,7 +870,7 @@ public:
 			OutProxyMesh.Empty();
 			return;
 		}
-
+		
 		//Create a Simplygon Scene
 		SimplygonSDK::spScene Scene = SDK->CreateScene();
 
@@ -886,10 +882,16 @@ public:
 			GlobalTexcoordBounds.Append(InData[MeshIndex].TexCoordBounds);
 		}
 
+		// Create Selection Sets for tagging geometry for processing and clipping geometry
+		SimplygonSDK::spSelectionSet processingSet = SDK->CreateSelectionSet();		
+		processingSet->SetName("RemeshingProcessingSet");
+		SimplygonSDK::spSelectionSet clippingGeometrySet = SDK->CreateSelectionSet();
+		clippingGeometrySet->SetName("ClippingObjectSet");
+
 		//For each raw mesh in array create a scene mesh and populate with geometry data
 		for (int32 MeshIndex = 0; MeshIndex < InData.Num(); ++MeshIndex)
 		{
-			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(InData[MeshIndex].RawMesh, InData[MeshIndex].TexCoordBounds, InData[MeshIndex].NewUVs);
+			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(*InData[MeshIndex].RawMesh, InData[MeshIndex].TexCoordBounds, InData[MeshIndex].NewUVs);
 			if (!GeometryData)
 			{
 				UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
@@ -909,22 +911,47 @@ public:
 			objexp->SetSingleGeometry(GeometryData);
 			objexp->RunExport();
 #endif
-
 			SimplygonSDK::spSceneMesh Mesh = SDK->CreateSceneMesh();
 			Mesh->SetGeometry(GeometryData);
 			Mesh->SetName(TCHAR_TO_ANSI(*FString::Printf(TEXT("UnrealMesh%d"), MeshIndex)));
 			Scene->GetRootNode()->AddChild(Mesh);
 
+			// if mesh is clipping geometry add to clipping set else processing set
+			if (!InData[MeshIndex].bIsClippingMesh)
+			{
+				processingSet->AddItem(Mesh->GetNodeGUID());
+			}
+			else if (InData[MeshIndex].bIsClippingMesh)
+			{
+				clippingGeometrySet->AddItem(Mesh->GetNodeGUID());
+			}
 		}
+
+		//add the sets to the scene
+		Scene->GetSelectionSetTable()->AddItem(processingSet);
+		Scene->GetSelectionSetTable()->AddItem(clippingGeometrySet);
 
 		//Create a remesher
 		SimplygonSDK::spRemeshingProcessor RemeshingProcessor = SDK->CreateRemeshingProcessor();
+		RemeshingProcessor->Clear();
 
 		//Setup the remesher
 		RemeshingProcessor->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
-		// TODO add more settings back in
 		RemeshingProcessor->GetRemeshingSettings()->SetOnScreenSize(InProxySettings.ScreenSize);
 		RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance(InProxySettings.MergeDistance);
+		
+		// Setup sets for the remeshing processor
+		bool bUseClippingGeometry = clippingGeometrySet->GetItemCount() > 0 ? true : false;
+
+		RemeshingProcessor->GetRemeshingSettings()->SetUseClippingGeometry(bUseClippingGeometry);
+		RemeshingProcessor->GetRemeshingSettings()->SetProcessSelectionSetName("RemeshingProcessingSet");
+
+		if (bUseClippingGeometry)
+		{
+			RemeshingProcessor->GetRemeshingSettings()->SetClippingGeometrySelectionSetName("ClippingObjectSet");
+			RemeshingProcessor->GetRemeshingSettings()->SetUseClippingGeometryEmptySpaceOverride(false);
+		}
+
 		RemeshingProcessor->SetScene(Scene);
 
 		FSimplygonMaterialLODSettings MaterialLODSettings(InProxySettings.MaterialSettings);
@@ -934,7 +961,20 @@ public:
 		SimplygonProcessLOD<SimplygonSDK::spRemeshingProcessor>(RemeshingProcessor, InData, InputMaterials, MaterialLODSettings, OutMaterial);
 
 		//Collect the proxy mesh
-		SimplygonSDK::spSceneMesh ProxyMesh = SimplygonSDK::Cast<SimplygonSDK::ISceneMesh>(Scene->GetRootNode()->GetChild(0));
+		const uint32 ChildNodeCount = Scene->GetRootNode()->GetChildCount();
+
+		SimplygonSDK::spSceneMesh ProxyMesh = nullptr;
+		for (uint32 ChildNodeIndex = 0; ChildNodeIndex < ChildNodeCount; ++ChildNodeIndex)
+		{
+			auto ChildNode = Scene->GetRootNode()->GetChild(ChildNodeIndex);
+			SimplygonSDK::spSceneMesh Mesh = SimplygonSDK::SafeCast<SimplygonSDK::ISceneMesh>(ChildNode);
+			if (Mesh != NULL)
+			{
+				ProxyMesh = Mesh;
+			}
+		}
+
+		checkf(ProxyMesh != nullptr, TEXT("Unable to find resulting proxy mesh in SimplygonScene"));
 
 #ifdef DEBUG_PROXY_MESH
 		SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
@@ -953,7 +993,7 @@ public:
 		{
 			SmoothingMask = 1;
 		}
-
+				
 		CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
 	}
 
@@ -970,8 +1010,7 @@ private:
 		SDK->SetErrorHandler(&ErrorHandler);
 		SDK->SetGlobalSetting("DefaultTBNType", SimplygonSDK::SG_TANGENTSPACEMETHOD_ORTHONORMAL_LEFTHANDED);
 		SDK->SetGlobalSetting("AllowDirectX", true);
-
-		
+				
 		const TCHAR* LibraryVersion = ANSI_TO_TCHAR(InSDK->GetVersion());
 		const TCHAR* UnrealVersionGuid = TEXT("18f808c3cf724e5a994f57de5c83cc4b");
 		VersionString = FString::Printf(TEXT("%s.%s_%s"), LibraryVersion, SG_UE_INTEGRATION_REV,UnrealVersionGuid);

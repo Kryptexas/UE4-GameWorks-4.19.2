@@ -160,7 +160,7 @@ void SRichTextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWid
 
 void SRichTextBlock::Refresh()
 {
-	TextLayoutCache->DirtyLayout();
+	TextLayoutCache->DirtyContent();
 	Invalidate(EInvalidateWidget::Layout);
 }
 

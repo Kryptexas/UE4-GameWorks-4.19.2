@@ -473,12 +473,14 @@ void FActiveGameplayEffect::PrintAll() const
 void FGameplayEffectSpec::PrintAll() const
 {
 	ABILITY_LOG(Log, TEXT("Def: %s"), *Def->GetName());
-
 	ABILITY_LOG(Log, TEXT("Duration: %.2f"), GetDuration());
-
 	ABILITY_LOG(Log, TEXT("Period: %.2f"), GetPeriod());
-
 	ABILITY_LOG(Log, TEXT("Modifiers:"));
+}
+
+FString FGameplayEffectSpec::ToSimpleString() const
+{
+	return FString::Printf(TEXT("%s"), *GetNameSafe(Def));
 }
 
 const FGameplayTagContainer* FTagContainerAggregator::GetAggregatedTags() const
@@ -781,7 +783,7 @@ const UObject* FGameplayCueParameters::GetSourceObject() const
 
 bool FMinimapReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	const int32 CountBits = 4;
+	const int32 CountBits = UAbilitySystemGlobals::Get().MinimalReplicationTagCountBits;
 	const int32 MaxCount = ((1 << CountBits)-1);
 
 	if (Ar.IsSaving())
@@ -789,7 +791,7 @@ bool FMinimapReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMa
 		int32 Count = TagMap.Num();
 		if (Count > MaxCount)
 		{
-			ABILITY_LOG(Error, TEXT("FMinimapReplicationTagCountMap has too many tags (%d)"), TagMap.Num());
+			ABILITY_LOG(Error, TEXT("FMinimapReplicationTagCountMap has too many tags (%d). This will cause tags to not replicate. See FMinimapReplicationTagCountMap::NetSerialize"), TagMap.Num());
 			Count = MaxCount;
 		}
 

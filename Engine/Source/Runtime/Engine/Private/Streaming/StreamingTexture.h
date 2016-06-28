@@ -40,10 +40,10 @@ struct FStreamingTexture
 
 	static float GetExtraBoost(TextureGroup	LODGroup, float GlobalBias);
 
-	FORCEINLINE int32 GetWantedMipsFromSize(float Size) const;
+	FORCEINLINE int32 GetWantedMipsFromSize(float Size, int32 MipBias) const;
 
 	/** Set the wanted mips from the async task data */
-	void SetPerfectWantedMips_Async(float MaxSize, float MaxSize_VisibleOnly, bool InLooksLowRes);
+	void SetPerfectWantedMips_Async(float MaxSize, float MaxSize_VisibleOnly, float MipBias, bool InLooksLowRes);
 
 	/** Init BudgetedMip and update RetentionPriority. Returns the size that would be taken if all budgeted mips where loaded. */
 	int64 UpdateRetentionPriority_Async();

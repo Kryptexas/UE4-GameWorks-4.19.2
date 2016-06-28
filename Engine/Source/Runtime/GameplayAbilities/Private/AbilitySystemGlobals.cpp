@@ -17,6 +17,8 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 
 	PredictTargetGameplayEffects = true;
 
+	MinimalReplicationTagCountBits = 5;
+
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
@@ -113,16 +115,6 @@ FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo() const
 FGameplayEffectContext* UAbilitySystemGlobals::AllocGameplayEffectContext() const
 {
 	return new FGameplayEffectContext();
-}
-
-/** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */
-UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
-{
-	static UAbilitySystemGlobals* GlobalPtr = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
-	check(GlobalPtr == IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals());
-	check(GlobalPtr);
-
-	return *GlobalPtr;
 }
 
 /** Helping function to avoid having to manually cast */
@@ -353,8 +345,14 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 		}
 
 		GlobalGameplayCueManager->OnCreated();
+
+		if (GameplayCueNotifyPaths.Num() == 0)
+		{
+			GameplayCueNotifyPaths.Add(TEXT("/Game"));
+			ABILITY_LOG(Warning, TEXT("No GameplayCueNotifyPaths were specified in DefaultGame.ini under [/Script/GameplayAbilities.AbilitySystemGlobals]. Falling back to using all of /Game/. This may be slow on large projects. Consider specifying which paths are to be searched."));
+		}
 		
-		if (GlobalGameplayCueManager->ShouldAsyncLoadObjectLibrariesAtStart() && GameplayCueNotifyPaths.Num() > 0)
+		if (GlobalGameplayCueManager->ShouldAsyncLoadObjectLibrariesAtStart())
 		{
 			StartAsyncLoadingObjectLibraries();
 		}

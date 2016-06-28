@@ -360,7 +360,7 @@ public partial class Project : CommandUtils
 
                 List<string> PakFiles = new List<string>();
 
-                string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
+                string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.Client, Params.CookFlavor);
 
                 if (Path.HasExtension(SourceCookedContentPath) && (!SourceCookedContentPath.EndsWith(".pak")))
                 {

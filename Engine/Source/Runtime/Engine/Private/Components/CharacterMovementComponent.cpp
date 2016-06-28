@@ -910,6 +910,11 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 		}
 	}
 
+	if (MovementMode != MOVE_Falling && PreviousMovementMode == MOVE_Falling && PathFollowingComp.IsValid())
+	{
+		PathFollowingComp->OnStartedFalling();
+	}
+
 	CharacterOwner->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 	ensure(GroundMovementMode == MOVE_Walking || GroundMovementMode == MOVE_NavWalking);
 };

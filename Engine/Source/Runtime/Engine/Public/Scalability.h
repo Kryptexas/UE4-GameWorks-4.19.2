@@ -25,6 +25,8 @@ namespace Scalability
 
 		float CPUBenchmarkResults;
 		float GPUBenchmarkResults;
+		TArray<float> CPUBenchmarkSteps;
+		TArray<float> GPUBenchmarkSteps;
 
 		FQualityLevels()
 			: CPUBenchmarkResults(-1.0f)

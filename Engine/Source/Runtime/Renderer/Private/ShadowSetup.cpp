@@ -3162,6 +3162,8 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 		bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 	}
 
+	const bool bProjectEnablePointLightShadows = Scene->ReadOnlyCVARCache.bEnablePointLightShadows;
+
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> PreShadows;
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> ViewDependentWholeSceneShadows;
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> ViewDependentWholeSceneShadowsThatNeedCulling;
@@ -3200,24 +3202,43 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 					static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 					const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 
+
 					// Only create whole scene shadows for lights that don't precompute shadowing (movable lights)
-					const bool bCreateShadowForMovableLight = 
+					const bool bShouldCreateShadowForMovableLight = 
 						LightSceneInfoCompact.bCastDynamicShadow
 						&& (!LightSceneInfo->Proxy->HasStaticShadowing() || !bAllowStaticLighting);
 
+					const bool bCreateShadowForMovableLight = 
+						bShouldCreateShadowForMovableLight
+						&& (LightSceneInfoCompact.LightType != LightType_Point || bProjectEnablePointLightShadows);
+
 					// Also create a whole scene shadow for lights with precomputed shadows that are unbuilt
-					const bool bCreateShadowToPreviewStaticLight = 
+					const bool bShouldCreateShadowToPreviewStaticLight =
 						LightSceneInfo->Proxy->HasStaticShadowing()
-						&& LightSceneInfoCompact.bCastStaticShadow 
-						&& !LightSceneInfo->IsPrecomputedLightingValid();
+						&& LightSceneInfoCompact.bCastStaticShadow
+						&& !LightSceneInfo->IsPrecomputedLightingValid();						
+
+					const bool bCreateShadowToPreviewStaticLight = 
+						bShouldCreateShadowToPreviewStaticLight						
+						&& (LightSceneInfoCompact.LightType != LightType_Point || bProjectEnablePointLightShadows);
 
 					// Create a whole scene shadow for lights that want static shadowing but didn't get assigned to a valid shadowmap channel due to overlap
-					const bool bCreateShadowForOverflowStaticShadowing =
+					const bool bShouldCreateShadowForOverflowStaticShadowing =
 						LightSceneInfo->Proxy->HasStaticShadowing()
 						&& !LightSceneInfo->Proxy->HasStaticLighting()
-						&& LightSceneInfoCompact.bCastStaticShadow 
+						&& LightSceneInfoCompact.bCastStaticShadow
 						&& LightSceneInfo->IsPrecomputedLightingValid()
 						&& LightSceneInfo->Proxy->GetShadowMapChannel() == INDEX_NONE;
+
+					const bool bCreateShadowForOverflowStaticShadowing =
+						bShouldCreateShadowForOverflowStaticShadowing
+						&& (LightSceneInfoCompact.LightType != LightType_Point || bProjectEnablePointLightShadows);
+
+					const bool bPointLightWholeSceneShadow = (bShouldCreateShadowForMovableLight || bShouldCreateShadowForOverflowStaticShadowing || bShouldCreateShadowToPreviewStaticLight) && LightSceneInfoCompact.LightType == LightType_Point;
+					if (bPointLightWholeSceneShadow)
+					{						
+						UsedWholeScenePointLightNames.Add(LightSceneInfoCompact.LightSceneInfo->Proxy->GetComponentName());
+					}
 
 					if (bCreateShadowForMovableLight || bCreateShadowToPreviewStaticLight || bCreateShadowForOverflowStaticShadowing)
 					{

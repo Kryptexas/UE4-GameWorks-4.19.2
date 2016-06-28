@@ -106,6 +106,21 @@ void FQosDatacenterStats::RecordQosAttempt(const FOnlineSessionSearchResult& Sea
 	}
 }
 
+void FQosDatacenterStats::RecordQosAttempt(const FString& Region, int32 PingInMs, bool bSuccess)
+{
+	if (bAnalyticsInProgress)
+	{
+		QosData.NumTotalSearches++;
+		QosData.NumSuccessAttempts += bSuccess ? 1 : 0;
+
+		FQosStats_QosSearchResult& NewSearchResult = *new (QosData.SearchResults) FQosStats_QosSearchResult();
+		NewSearchResult.OwnerId = nullptr;
+		NewSearchResult.PingInMs = PingInMs;
+		NewSearchResult.DatacenterId = Region;
+		NewSearchResult.bIsValid = true;
+	}
+}
+
 void FQosDatacenterStats::EndQosPass(EDatacenterResultType Result)
 {
 	if (bAnalyticsInProgress)

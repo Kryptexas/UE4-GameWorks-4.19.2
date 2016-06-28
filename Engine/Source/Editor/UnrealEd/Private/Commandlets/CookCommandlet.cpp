@@ -438,7 +438,7 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 			bShouldGC |= true;
 		}
 
-		if ( !bShouldGC && HasExceededMaxMemory(MaxMemoryAllowance) )
+		if ( !bShouldGC && CookOnTheFlyServer->HasExceededMaxMemory() )
 		{
 			UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max memory usage collecting garbage"));
 			bShouldGC |= true;

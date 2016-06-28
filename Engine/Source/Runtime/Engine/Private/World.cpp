@@ -167,6 +167,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 , HierarchicalLODBuilder(new FHierarchicalLODBuilder(this))
 #endif
 ,	FeatureLevel(GMaxRHIFeatureLevel)
+,	bShouldTick(true)
 , URL(FURL(NULL))
 ,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())

@@ -295,7 +295,7 @@ bool FChunkCacheWorker::CheckSignature(const FChunkRequest& ChunkInfo)
 		--RetriesRemaining;
 	}
 
-	if (!ensure(bPakChunkSignaturesMatched))
+	if (!bPakChunkSignaturesMatched)
 	{
 		// Check that the encrypted signatures data is the same as it was when we started up
 		int32 CurrentEncryptedSignaturesCRC = FCrc::MemCrc32(&EncryptedSignatures[0], EncryptedSignatures.Num() * sizeof(FEncryptedSignature));
@@ -314,8 +314,10 @@ bool FChunkCacheWorker::CheckSignature(const FChunkRequest& ChunkInfo)
 		UE_LOG(LogPakFile, Warning, TEXT("  Chunk Size: %d"), ChunkInfo.Size);
 		UE_LOG(LogPakFile, Warning, TEXT("  Background decrypt: %d\\%d"), LastDecryptedSignatureIndex, DecryptedSignatures.Num());
 
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Corrupt Installation Detected. Please use \"Verify\" in the Epic Games Launcher"), TEXT("Pakfile Error"));
-		FPlatformMisc::RequestExit(1);
+		ensure(bPakChunkSignaturesMatched);
+
+		//FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Corrupt Installation Detected. Please use \"Verify\" in the Epic Games Launcher"), TEXT("Pakfile Error"));
+		//FPlatformMisc::RequestExit(1);
 	}
 	
 	return bPakChunkSignaturesMatched;

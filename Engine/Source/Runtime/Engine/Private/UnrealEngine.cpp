@@ -2341,6 +2341,37 @@ struct FSortedParticleSet
 		, ComponentResourceSize(InComponentResourceSize)
 		, ComponentTrueResourceSize(InComponentTrueResourceSize)
 	{}
+
+	FSortedParticleSet(const FString& InName)
+		: Name(InName)
+		, Size(0)
+		, PSysSize(0)
+		, ModuleSize(0)
+		, ComponentSize(0)
+		, ComponentCount(0)
+		, ComponentResourceSize(0)
+		, ComponentTrueResourceSize(0)
+	{
+	}
+
+	const FSortedParticleSet& operator += (const FSortedParticleSet& InOther)
+	{
+		Size += InOther.Size;
+		PSysSize += InOther.PSysSize;
+		ModuleSize += InOther.ModuleSize;
+		ComponentSize += InOther.ComponentSize;
+		ComponentCount += InOther.ComponentCount;
+		ComponentResourceSize += InOther.ComponentResourceSize;
+		ComponentTrueResourceSize += InOther.ComponentTrueResourceSize;
+		return *this;
+	}
+
+	void Dump(FOutputDevice& InArchive)
+	{
+		InArchive.Logf(TEXT("%10d,%s,%d,%d,%d,%d,%d,%d"),
+			Size, *Name, PSysSize, ModuleSize, ComponentSize,
+			ComponentCount, ComponentResourceSize, ComponentTrueResourceSize);
+	}
 };
 
 struct FCompareFSortedParticleSet
@@ -3979,16 +4010,16 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 	// Now print them out.
 	Ar.Logf(TEXT("ParticleSystems:"));
 	Ar.Logf(TEXT("Size,Name,PSysSize,ModuleSize,ComponentSize,ComponentCount,CompResSize,CompTrueResSize"));
+	FSortedParticleSet TotalSet(TEXT("Total"));
 	int32 TotalSize = 0;
 	for(int32 i=0; i<SortedSets.Num(); i++)
 	{
 		FSortedParticleSet& SetInfo = SortedSets[i];
 		TotalSize += SetInfo.Size;
-		Ar.Logf(TEXT("%10d,%s,%d,%d,%d,%d,%d,%d"), 
-			SetInfo.Size, *SetInfo.Name, SetInfo.PSysSize, SetInfo.ModuleSize, SetInfo.ComponentSize, 
-			SetInfo.ComponentCount, SetInfo.ComponentResourceSize, SetInfo.ComponentTrueResourceSize);
+		TotalSet += SetInfo;
+		SetInfo.Dump(Ar);
 	}
-	Ar.Logf(TEXT("Total Size:%d(%0.2f KB)"), TotalSize, TotalSize/1024.f);
+	TotalSet.Dump(Ar);
 	return true;
 }
 

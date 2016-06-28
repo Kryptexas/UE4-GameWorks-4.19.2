@@ -129,6 +129,12 @@ void FTextBlockLayout::DirtyLayout()
 	TextLayout->DirtyLayout();
 }
 
+void FTextBlockLayout::DirtyContent()
+{
+	DirtyLayout();
+	Marshaller->MakeDirty();
+}
+
 void FTextBlockLayout::OverrideTextStyle(const FTextBlockStyle& InTextStyle)
 {
 	// Has the style used for this text block changed?

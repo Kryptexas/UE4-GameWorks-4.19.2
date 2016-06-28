@@ -209,6 +209,15 @@ public:
 	void RecordQosAttempt(const FOnlineSessionSearchResult& SearchResult, bool bSuccess);
 
 	/**
+	 * Record a single ping attempt
+	 * 
+	 * @param Region region of the server
+	 * @param PingInMs ping to the server
+	 * @param bSuccess was the attempt successful
+	 */
+	void RecordQosAttempt(const FString& Region, int32 PingInMs, bool bSuccess);
+
+	/**
 	 * End recording of a Qos determination
 	 *
 	 * @param Result results of the qos pass

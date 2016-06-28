@@ -125,12 +125,22 @@ int32 FDerivedDataPhysXCooker::BuildConvex( TArray<uint8>& OutData, bool InMirro
 		// Cook and store Result at ResultInfoOffset
 		UE_LOG(LogPhysics, Log, TEXT("Cook Convex: %s %d (FlipX:%d)"), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored);		
 		const bool bDeformableMesh = CollisionDataProvider->IsA(USplineMeshComponent::StaticClass());
-		const bool Result = Cooker->CookConvex(Format, RuntimeCookFlags, *MeshVertices, OutData, bDeformableMesh);
-		if( !Result )
+		const EPhysXCookingResult Result = Cooker->CookConvex(Format, RuntimeCookFlags, *MeshVertices, OutData, bDeformableMesh);
+		switch (Result)
 		{
-			UE_LOG(LogPhysics, Warning, TEXT("Failed to cook convex: %s %d (FlipX:%d). The remaining elements will not get cooked."), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored);
+		case EPhysXCookingResult::Succeeded:
+			break;
+		case EPhysXCookingResult::Failed:
+			UE_LOG(LogPhysics, Warning, TEXT("Failed to cook convex: %s %d (FlipX:%d). The remaining elements will not get cooked."), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored ? 1 : 0);
+			break;
+		case EPhysXCookingResult::SucceededWithInflation:
+			UE_LOG(LogPhysics, Warning, TEXT("Cook convex: %s %d (FlipX:%d) failed but succeeded with inflation.  The mesh should be looked at."), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored ? 1 : 0);
+			break;
+		default:
+			// Unknown/unsupported enum value
+			check(false);
 		}
-		OutData[ ResultInfoOffset ] = Result;
+		OutData[ ResultInfoOffset ] = (Result != EPhysXCookingResult::Failed) ? 1 : 0;
 	}
 
 	return BodySetup->AggGeom.ConvexElems.Num();

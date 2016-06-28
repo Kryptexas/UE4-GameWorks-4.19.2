@@ -502,6 +502,13 @@ public:
 	{
 		return !!FindDirectory(InPath);
 	}
+	
+	/**
+	 * Checks the validity of the pak data by reading out the data for every file in the pak
+	 *
+	 * @return true if the pak file is valid
+	 */
+	bool Check();
 
 	/** Iterator class used to iterate over all files in pak. */
 	class FFileIterator

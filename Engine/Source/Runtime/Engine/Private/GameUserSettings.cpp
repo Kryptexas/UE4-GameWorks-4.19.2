@@ -169,6 +169,13 @@ void UGameUserSettings::SetToDefaults()
 	MinResolutionScale = Scalability::MinResolutionScale;
 	DesiredScreenWidth = 1280;
 	DesiredScreenHeight = 720;
+	LastCPUBenchmarkResult = -1.0f;
+	LastGPUBenchmarkResult = -1.0f;
+	LastCPUBenchmarkSteps.Empty();
+	LastGPUBenchmarkSteps.Empty();
+	LastGPUBenchmarkMultiplier = 1.0f;
+	LastRecommendedScreenWidth = -1.0f;
+	LastRecommendedScreenHeight = -1.0f;
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 	PreferredFullscreenMode = CVar->GetValueOnGameThread();
@@ -673,4 +680,23 @@ int32 UGameUserSettings::GetFoliageQuality() const
 UGameUserSettings* UGameUserSettings::GetGameUserSettings()
 {
 	return GEngine->GetGameUserSettings();
+}
+
+void UGameUserSettings::RunHardwareBenchmark(int32 WorkScale, float CPUMultiplier, float GPUMultiplier)
+{
+	ScalabilityQuality = Scalability::BenchmarkQualityLevels(WorkScale, CPUMultiplier, GPUMultiplier);
+	LastCPUBenchmarkResult = ScalabilityQuality.CPUBenchmarkResults;
+	LastGPUBenchmarkResult = ScalabilityQuality.GPUBenchmarkResults;
+	LastCPUBenchmarkSteps = ScalabilityQuality.CPUBenchmarkSteps;
+	LastGPUBenchmarkSteps = ScalabilityQuality.GPUBenchmarkSteps;
+	LastGPUBenchmarkMultiplier = GPUMultiplier;
+}
+
+void UGameUserSettings::ApplyHardwareBenchmarkResults()
+{
+	// Apply the new settings and save them
+	Scalability::SetQualityLevels(ScalabilityQuality);
+	Scalability::SaveState(GGameUserSettingsIni);
+
+	SaveSettings();
 }

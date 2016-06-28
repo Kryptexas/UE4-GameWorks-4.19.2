@@ -1010,7 +1010,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	for (int32 WorldIdx = 0; WorldIdx < WorldList.Num(); ++WorldIdx)
 	{
 		FWorldContext &Context = WorldList[WorldIdx];
-		if (Context.World() == NULL)
+		if (Context.World() == NULL || !Context.World()->ShouldTick())
 		{
 			continue;
 		}

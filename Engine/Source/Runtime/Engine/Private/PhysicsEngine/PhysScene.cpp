@@ -263,6 +263,7 @@ FPhysScene::FPhysScene()
 #endif	//#if WITH_PHYSX
 
 	UPhysicsSettings * PhysSetting = UPhysicsSettings::Get();
+	FMemory::Memzero(FrameTimeSmoothingFactor);
 	FrameTimeSmoothingFactor[PST_Sync] = PhysSetting->SyncSceneSmoothingFactor;
 	FrameTimeSmoothingFactor[PST_Async] = PhysSetting->AsyncSceneSmoothingFactor;
 

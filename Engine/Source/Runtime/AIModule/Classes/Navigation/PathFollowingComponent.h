@@ -12,7 +12,6 @@ AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
 
 class UCanvas;
 class AActor;
-class APawn;
 class INavLinkCustomInterface;
 class INavAgentInterface;
 class UNavigationComponent;
@@ -308,7 +307,11 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FORCEINLINE UObject* GetCurrentCustomLinkOb() const { return CurrentCustomLinkOb.Get(); }
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
 	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
+	bool HasStartedNavLinkMove() const { return bWalkingNavLinkStart; }
+	bool IsCurrentSegmentNavigationLink() const;
 	FVector GetCurrentDirection() const;
+	/** note that CurrentMoveInput is only valid if MovementComp->UseAccelerationForPathFollowing() == true */
+	FVector GetCurrentMoveInput() const { return CurrentMoveInput; }
 
 	/** check if path following has authority over movement (e.g. not falling) and can update own state */
 	FORCEINLINE bool HasMovementAuthority() const { return (MovementComp == nullptr) || MovementComp->CanStopPathFollowing(); }
@@ -342,6 +345,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 
 	/** Called when movement is blocked by a collision with another actor.  */
 	virtual void OnMoveBlockedBy(const FHitResult& BlockingImpact) {}
+
+	/** Called when falling movement starts. */
+	virtual void OnStartedFalling();
 
 	/** Called when falling movement ends. */
 	virtual void OnLanded() {}
@@ -445,6 +451,9 @@ protected:
 	/** destination for current path segment */
 	FBasedPosition CurrentDestination;
 
+	/** last MoveInput calculated and passed over to MovementComponent. Valid only if MovementComp->UseAccelerationForPathFollowing() == true */
+	FVector CurrentMoveInput;
+
 	/** relative offset from goal actor's location to end of path */
 	FVector MoveOffset;
 
@@ -471,6 +480,9 @@ protected:
 
 	/** if set, path following is using FMetaNavMeshPath */
 	uint32 bIsUsingMetaPath : 1;
+
+	/** gets set when agent starts following a navigation link. Cleared after agent starts falling or changes segment to a non-link one */
+	uint32 bWalkingNavLinkStart : 1;
 
 	/** timeout for Waiting state, negative value = infinite */
 	float WaitingTimeout;

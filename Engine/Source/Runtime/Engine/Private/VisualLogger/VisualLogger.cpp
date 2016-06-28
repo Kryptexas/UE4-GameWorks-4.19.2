@@ -91,9 +91,46 @@ bool FVisualLogger::IsClassWhitelisted(const UClass& InClass) const
 	return false;
 }
 
+void FVisualLogger::AddWhitelistedObject(const UObject& InObject)
+{
+	const int32 PrevNum = ObjectWhitelist.Num();
+	ObjectWhitelist.Add(&InObject);
+
+	const bool bChanged = (PrevNum != ObjectWhitelist.Num());
+	if (bChanged)
+	{
+		FVisualLogEntry* CurrentEntry = CurrentEntryPerObject.Find(&InObject);
+		if (CurrentEntry)
+		{
+			CurrentEntry->bIsObjectWhitelisted = true;
+			CurrentEntry->UpdateAllowedToLog();
+		}
+	}
+}
+
+void FVisualLogger::ClearObjectWhitelist()
+{
+	for (const UObject* It : ObjectWhitelist)
+	{
+		FVisualLogEntry* CurrentEntry = CurrentEntryPerObject.Find(It);
+		if (CurrentEntry)
+		{
+			CurrentEntry->bIsObjectWhitelisted = false;
+			CurrentEntry->UpdateAllowedToLog();
+		}
+	}
+
+	ObjectWhitelist.Empty();
+}
+
+bool FVisualLogger::IsObjectWhitelisted(const UObject* InObject) const
+{
+	return ObjectWhitelist.Contains(InObject);
+}
+
 FVisualLogEntry* FVisualLogger::GetLastEntryForObject(const UObject* Object)
 {
-	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
+	UObject* LogOwner = FVisualLogger::FindRedirection(Object);
 	return CurrentEntryPerObject.Contains(LogOwner) ? &CurrentEntryPerObject[LogOwner] : nullptr;
 }
 
@@ -106,16 +143,15 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const UObject* Object, float Tim
 		return nullptr;
 	}
 
-	bool InitializeNewEntry = false;
+	bool bInitializeNewEntry = false;
 
 	const UWorld* World = GetWorldForVisualLogger(LogOwner);
-
 	if (CurrentEntryPerObject.Contains(LogOwner))
 	{
 		CurrentEntry = &CurrentEntryPerObject[LogOwner];
 		if (CurrentEntry->bIsAllowedToLog)
 		{
-			InitializeNewEntry = TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create;
+			bInitializeNewEntry = (TimeStamp > CurrentEntry->TimeStamp) && (ShouldCreate == ECreateIfNeeded::Create);
 			if (World && IsInGameThread())
 			{
 				World->GetTimerManager().ClearTimer(VisualLoggerCleanupTimerHandle);
@@ -146,13 +182,14 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const UObject* Object, float Tim
 		
 		// IsClassWhitelisted isn't super fast, but this gets calculated only once for every 
 		// object trying to log something
-		const bool bCanBeLogged = ClassWhitelist.Num() == 0 || IsClassWhitelisted(*LogOwner->GetClass()) 
-			|| IsClassWhitelisted(*Object->GetClass());
-		InitializeNewEntry = bCanBeLogged;
-		CurrentEntry->bIsAllowedToLog = bCanBeLogged;
+		CurrentEntry->bIsClassWhitelisted = (ClassWhitelist.Num() == 0) || IsClassWhitelisted(*LogOwner->GetClass()) || IsClassWhitelisted(*Object->GetClass());
+		CurrentEntry->bIsObjectWhitelisted = IsObjectWhitelisted(LogOwner);
+		CurrentEntry->UpdateAllowedToLog();
+
+		bInitializeNewEntry = CurrentEntry->bIsAllowedToLog;
 	}
 
-	if (InitializeNewEntry)
+	if (bInitializeNewEntry)
 	{
 		CurrentEntry->Reset();
 		CurrentEntry->TimeStamp = TimeStamp;

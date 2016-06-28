@@ -46,7 +46,7 @@ bool UPartyMemberState::IsPartyLeader() const
 	check(Party);
 
 	TSharedPtr<const FUniqueNetId> PartyLeader = Party->GetPartyLeader();
-	if (PartyLeader.IsValid())
+	if (PartyLeader.IsValid() && PartyLeader->IsValid())
 	{
 		return *PartyLeader == *UniqueId;
 	}

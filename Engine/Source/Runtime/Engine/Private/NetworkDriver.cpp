@@ -1303,21 +1303,24 @@ void UNetDriver::InternalProcessRemoteFunction
 	TSharedPtr<FRepLayout> RepLayout = GetFunctionRepLayout( Function );
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, TempWriter, Parms );
 
+	// Make sure net field export group is registered
+	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj->GetClass() );
+
 	int32 HeaderBits	= 0;
 	int32 ParameterBits	= 0;
 
 	// Queue unreliable multicast 
-	bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
+	const bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
 
 	if ( QueueBunch )
 	{
-		Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, TempWriter );
+		Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
 		ParameterBits = Bunch.GetNumBits();
 	}
 	else
 	{
 		FNetBitWriter TempBlockWriter( Bunch.PackageMap, 0 );
-		Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, TempWriter );
+		Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
 		ParameterBits = TempBlockWriter.GetNumBits();
 		HeaderBits = Ch->WriteContentBlockPayload( TargetObj, Bunch, false, TempBlockWriter );
 	}
@@ -1846,7 +1849,6 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 {
 	// Remove the actor from the property tracker map
 	RepChangedPropertyTrackerMap.Remove(ThisActor);
-#if WITH_SERVER_CODE
 
 	FActorDestructionInfo* DestructionInfo = NULL;
 	const bool bIsServer = ServerConnection == NULL;
@@ -1888,7 +1890,6 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 			Connection->DormantActors.Remove( ThisActor );
 		}
 	}
-#endif // WITH_SERVER_CODE
 }
 
 void UNetDriver::NotifyStreamingLevelUnload( ULevel* Level)

@@ -12,6 +12,88 @@ CURLSH* FCurlHttpManager::GShareHandle = NULL;
 
 FCurlHttpManager::FCurlRequestOptions FCurlHttpManager::CurlRequestOptions;
 
+#if PLATFORM_LINUX	// known to be available for Linux libcurl+libcrypto bundle at least
+extern "C"
+{
+void CRYPTO_get_mem_functions(
+		void *(**m)(size_t, const char *, int),
+		void *(**r)(void *, size_t, const char *, int),
+		void (**f)(void *, const char *, int));
+int CRYPTO_set_mem_functions(
+		void *(*m)(size_t, const char *, int),
+		void *(*r)(void *, size_t, const char *, int),
+		void (*f)(void *, const char *, int));
+}
+#endif // PLATFORM_LINUX
+
+// set functions that will init the memory
+namespace LibCryptoMemHooks
+{
+	void* (*ChainedMalloc)(size_t Size, const char* Src, int Line) = nullptr;
+	void* (*ChainedRealloc)(void* Ptr, const size_t Size, const char* Src, int Line) = nullptr;
+	void (*ChainedFree)(void* Ptr, const char* Src, int Line) = nullptr;
+	bool bMemoryHooksSet = false;
+
+	/** This malloc will init the memory, keeping valgrind happy */
+	void* MallocWithInit(size_t Size, const char* Src, int Line)
+	{
+		void* Result = FMemory::Malloc(Size);
+		if (LIKELY(Result))
+		{
+			FMemory::Memzero(Result, Size);
+		}
+
+		return Result;
+	}
+
+	/** This realloc will init the memory, keeping valgrind happy */
+	void* ReallocWithInit(void* Ptr, const size_t Size, const char* Src, int Line)
+	{
+		size_t CurrentUsableSize = FMemory::GetAllocSize(Ptr);
+		void* Result = FMemory::Realloc(Ptr, Size);
+		if (LIKELY(Result) && CurrentUsableSize < Size)
+		{
+			FMemory::Memzero(reinterpret_cast<uint8 *>(Result) + CurrentUsableSize, Size - CurrentUsableSize);
+		}
+
+		return Result;
+	}
+
+	/** This realloc will init the memory, keeping valgrind happy */
+	void Free(void* Ptr, const char* Src, int Line)
+	{
+		return FMemory::Free(Ptr);
+	}
+
+	void SetMemoryHooks()
+	{
+		// do not set this in Shipping until we prove that the change in OpenSSL behavior is safe
+#if PLATFORM_LINUX && !UE_BUILD_SHIPPING
+		CRYPTO_get_mem_functions(&ChainedMalloc, &ChainedRealloc, &ChainedFree);
+		CRYPTO_set_mem_functions(MallocWithInit, ReallocWithInit, Free);
+#endif // PLATFORM_LINUX && !UE_BUILD_SHIPPING
+
+		bMemoryHooksSet = true;
+	}
+
+	void UnsetMemoryHooks()
+	{
+		// remove our overrides
+		if (LibCryptoMemHooks::bMemoryHooksSet)
+		{
+			// do not set this in Shipping until we prove that the change in OpenSSL behavior is safe
+#if PLATFORM_LINUX && !UE_BUILD_SHIPPING
+			CRYPTO_set_mem_functions(LibCryptoMemHooks::ChainedMalloc, LibCryptoMemHooks::ChainedRealloc, LibCryptoMemHooks::ChainedFree);
+#endif // PLATFORM_LINUX && !UE_BUILD_SHIPPING
+
+			bMemoryHooksSet = false;
+			ChainedMalloc = nullptr;
+			ChainedRealloc = nullptr;
+			ChainedFree = nullptr;
+		}
+	}
+}
+
 void FCurlHttpManager::InitCurl()
 {
 	if (GMultiHandle != NULL)
@@ -19,6 +101,10 @@ void FCurlHttpManager::InitCurl()
 		UE_LOG(LogInit, Warning, TEXT("Already initialized multi handle"));
 		return;
 	}
+
+	// Override libcrypt functions to initialize memory since OpenSSL triggers multiple valgrind warnings due to this.
+	// Do this before libcurl/libopenssl/libcrypto has been inited.
+	LibCryptoMemHooks::SetMemoryHooks();
 
 	CURLcode InitResult = curl_global_init_mem(CURL_GLOBAL_ALL, CurlMalloc, CurlFree, CurlRealloc, CurlStrdup, CurlCalloc);
 	if (InitResult == 0)
@@ -267,6 +353,8 @@ void FCurlHttpManager::ShutdownCurl()
 	}
 
 	curl_global_cleanup();
+
+	LibCryptoMemHooks::UnsetMemoryHooks();
 }
 
 FHttpThread* FCurlHttpManager::CreateHttpThread()

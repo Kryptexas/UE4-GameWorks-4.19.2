@@ -565,6 +565,11 @@ public:
 	UPROPERTY(transient)
 	uint32 bAnimTreeInitialised:1;
 
+	/** If true, the Location of this Component will be included into its bounds calculation
+	* (this can be useful when using SMU_OnlyTickPoseWhenRendered on a character that moves away from the root and no bones are left near the origin of the component) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = SkeletalMesh)
+	uint32 bIncludeComponentLocationIntoBounds : 1;
+
 	/** If true, line checks will test against the bounding box of this skeletal mesh component and return a hit if there is a collision. */
 	UPROPERTY()
 	uint32 bEnableLineCheckWithBounds:1;

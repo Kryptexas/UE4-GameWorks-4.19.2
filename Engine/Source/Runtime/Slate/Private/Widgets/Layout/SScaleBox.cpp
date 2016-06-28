@@ -169,6 +169,15 @@ void SScaleBox::SetIgnoreInheritedScale(bool InIgnoreInheritedScale)
 	IgnoreInheritedScale = InIgnoreInheritedScale;
 }
 
+FVector2D SScaleBox::ComputeDesiredSize(float InScale) const
+{
+	const EStretch::Type CurrentStretch = Stretch.Get();
+
+	float LayoutScale = (CurrentStretch == EStretch::UserSpecified) ? UserSpecifiedScale.Get(1.0f) : 1;
+
+	return LayoutScale * SCompoundWidget::ComputeDesiredSize(InScale);
+}
+
 float SScaleBox::GetRelativeLayoutScale(const FSlotBase& Child) const
 {
 	const EStretch::Type CurrentStretch = Stretch.Get();

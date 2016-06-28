@@ -15,6 +15,9 @@ URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer
 {
 	SectionName = TEXT("Rendering");
 	TranslucentSortAxis = FVector(0.0f, -1.0f, 0.0f);
+	bSupportStationarySkylight = true;
+	bSupportPointLightWholeSceneShadows = true;
+	bSupportAtmosphericFog = true;
 }
 
 void URendererSettings::PostInitProperties()
@@ -82,3 +85,33 @@ void URendererSettings::SanatizeReflectionCaptureResolution()
 	static const int32 MinReflectionCaptureResolution = 64;
 	ReflectionCaptureResolution = FMath::Clamp(int32(FMath::RoundUpToPowerOfTwo(ReflectionCaptureResolution)), MinReflectionCaptureResolution, MaxReflectionCaptureResolution);
 }
+
+URendererOverrideSettings::URendererOverrideSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SectionName = TEXT("Rendering Overrides");	
+}
+
+void URendererOverrideSettings::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+#if WITH_EDITOR
+	if (IsTemplate())
+	{
+		ImportConsoleVariableValues();
+	}
+#endif // #if WITH_EDITOR
+}
+
+#if WITH_EDITOR
+void URendererOverrideSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);	
+
+	if (PropertyChangedEvent.Property)
+	{
+		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);		
+	}
+}
+#endif // #if WITH_EDITOR

@@ -1745,6 +1745,15 @@ class FScene : public FSceneInterface
 {
 public:
 
+	struct FReadOnlyCVARCache
+	{
+		FReadOnlyCVARCache();
+		bool bEnablePointLightShadows;
+		bool bEnableStationarySkylight;
+		bool bEnableAtmosphericFog;
+		bool bEnableLowQualityLightmaps;
+	};
+
 	/** An optional world associated with the scene. */
 	UWorld* World;
 
@@ -1929,6 +1938,8 @@ public:
 
 	float GlobalDistanceFieldViewDistance;
 
+	FReadOnlyCVARCache ReadOnlyCVARCache;
+
 #if WITH_EDITOR
 	/** Editor Pixel inspector */
 	FPixelInspectorData PixelInspectorData;
@@ -2099,7 +2110,17 @@ public:
 
 	bool ShouldRenderSkylight() const
 	{
-		return SkyLight && !SkyLight->bHasStaticLighting && GSupportsRenderTargetFormat_PF_FloatRGBA;
+		return ShouldRenderSkylight_Internal() && ReadOnlyCVARCache.bEnableStationarySkylight;
+	}
+
+	bool ShouldRenderSkylight_Internal() const
+	{
+		const bool bRenderSkylight = SkyLight
+			&& !SkyLight->bHasStaticLighting
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+			&& (SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(GetShaderPlatform()));
+
+		return bRenderSkylight;
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

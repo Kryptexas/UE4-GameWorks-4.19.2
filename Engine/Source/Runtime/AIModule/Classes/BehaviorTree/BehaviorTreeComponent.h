@@ -191,6 +191,9 @@ public:
 	/** @return true if ExecutionRequest is switching to higher priority node */
 	bool IsRestartPending() const;
 
+	/** @return true if waiting for abort to finish */
+	bool IsAbortPending() const;
+
 	/** @return true if active node is one of child nodes of given one */
 	bool IsExecutingBranch(const UBTNode* Node, int32 ChildIndex = -1) const;
 
@@ -400,4 +403,9 @@ FORCEINLINE uint16 UBehaviorTreeComponent::GetActiveInstanceIdx() const
 FORCEINLINE bool UBehaviorTreeComponent::IsRestartPending() const
 {
 	return ExecutionRequest.ExecuteNode && !ExecutionRequest.bTryNextChild;
+}
+
+FORCEINLINE bool UBehaviorTreeComponent::IsAbortPending() const
+{
+	return bWaitingForAbortingTasks || PendingExecution.IsSet();
 }

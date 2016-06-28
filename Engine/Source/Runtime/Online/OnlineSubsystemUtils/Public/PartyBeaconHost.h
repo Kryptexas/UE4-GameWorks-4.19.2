@@ -86,6 +86,13 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	virtual bool ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InNumPlayersPerTeam, int32 InNumReservations);
 
 	/**
+	 * Define the method for assignment new reservations to teams
+	 * 
+	 * @param NewAssignmentMethod name of the assignment method to use (@see ETeamAssignmentMethod for descriptions)
+	 */
+	virtual void SetTeamAssignmentMethod(FName NewAssignmentMethod);
+
+	/**
 	 * @return reference to the state of the PartyBeacon
 	 */
 	UPartyBeaconState* GetState() const { return State; }
@@ -136,6 +143,16 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 * @return index of team assignment for the given player, INDEX_NONE if not found
 	 */
 	int32 GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) const;
+
+	/**
+	 * Get all the known players on a given team
+	 * 
+	 * @param TeamIndex valid team index to query
+	 * @param TeamMembers [out] array of unique ids found to be on the given team
+	 *
+	 * @return number of players on team, 0 if invalid
+	 */
+	int32 GetPlayersOnTeam(int32 TeamIndex, TArray<FUniqueNetIdRepl>& TeamMembers) const;
 
 	/**
 	 * Get the number of teams.

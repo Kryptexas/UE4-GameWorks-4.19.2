@@ -88,7 +88,8 @@ static FAutoConsoleVariableRef CVarAllowSubPrimitiveQueries(
 static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
 	TEXT("r.StaticMeshLODDistanceScale"),
 	1.0f,
-	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (0.25-1)"),
+	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (defaults to 1)\n")
+	TEXT("(higher values make LODs transition earlier, e.g., 2 is twice as fast / half the distance)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static int32 GOcclusionCullParallelPrimFetch = 0;

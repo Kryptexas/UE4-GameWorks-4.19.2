@@ -3199,6 +3199,7 @@ void FBlueprintEditor::Compile()
 		BlueprintLog.NewPage(FText::Format(LOCTEXT("CompilationPageLabel", "Compile {BlueprintName}"), Arguments));
 
 		FCompilerResultsLog LogResults;
+		LogResults.BeginEvent(TEXT("Compile"));
 		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
 		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
 		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, bSaveIntermediateBuildProducts, &LogResults);
@@ -3219,6 +3220,10 @@ void FBlueprintEditor::Compile()
 		{
 			CompilerResultsListing->AddMessages(BlueprintObj->UpgradeNotesLog->Messages);
 		}
+
+		AppendExtraCompilerResults(CompilerResultsListing);
+
+		LogResults.EndEvent();
 
 		// send record when player clicks compile and send the result
 		// this will make sure how the users activity is
@@ -3616,6 +3621,11 @@ void FBlueprintEditor::DumpMessagesToCompilerLog(const TArray<TSharedRef<FTokeni
 	{
 		TabManager->InvokeTab(FBlueprintEditorTabs::CompilerResultsID);
 	}
+}
+
+void FBlueprintEditor::AppendExtraCompilerResults(TSharedPtr<IMessageLogListing> ResultsListing)
+{
+	// Allow subclasses to append extra data after the compiler finishes dumping all the messages it has.
 }
 
 void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin, bool bInToMemberVariable )

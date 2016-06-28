@@ -20,6 +20,7 @@ UAbilityTask_ApplyRootMotionMoveToActorForce::UAbilityTask_ApplyRootMotionMoveTo
 {
 	bTickingTask = true;
 	bSimulatedTask = true;
+	bDisableDestinationReachedInterrupt = false;
 	bSetNewMovementMode = false;
 	NewMovementMode = EMovementMode::MOVE_Walking;
 	PreviousMovementMode = EMovementMode::MOVE_None;
@@ -37,7 +38,7 @@ UAbilityTask_ApplyRootMotionMoveToActorForce::UAbilityTask_ApplyRootMotionMoveTo
 	SetVelocityOnFinish = FVector::ZeroVector;
 }
 
-UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToActorForce(UObject* WorldContextObject, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish)
+UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToActorForce(UObject* WorldContextObject, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, bool bDisableDestinationReachedInterrupt)
 {
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionMoveToActorForce>(WorldContextObject, TaskInstanceName);
 
@@ -46,6 +47,7 @@ UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveTo
 	MyTask->TargetLocationOffset = TargetLocationOffset;
 	MyTask->OffsetAlignment = OffsetAlignment;
 	MyTask->Duration = FMath::Max(Duration, KINDA_SMALL_NUMBER); // Avoid negative or divide-by-zero cases
+	MyTask->bDisableDestinationReachedInterrupt = bDisableDestinationReachedInterrupt;
 	MyTask->TargetLerpSpeedHorizontalCurve = TargetLerpSpeedHorizontal;
 	MyTask->TargetLerpSpeedVerticalCurve = TargetLerpSpeedVertical;
 	MyTask->bSetNewMovementMode = bSetNewMovementMode;
@@ -285,7 +287,7 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::TickTask(float DeltaTime)
 		const float ReachedDestinationDistanceSqr = 50.f * 50.f;
 		const bool bReachedDestination = FVector::DistSquared(TargetLocation, MyActor->GetActorLocation()) < ReachedDestinationDistanceSqr;
 
-		if (bTimedOut || bReachedDestination)
+		if (bTimedOut || (bReachedDestination && !bDisableDestinationReachedInterrupt))
 		{
 			// Task has finished
 			bIsFinished = true;
@@ -313,6 +315,7 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::GetLifetimeReplicatedProps(TA
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLocationOffset);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, OffsetAlignment);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, Duration);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, bDisableDestinationReachedInterrupt);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLerpSpeedHorizontalCurve);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLerpSpeedVerticalCurve);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, bSetNewMovementMode);

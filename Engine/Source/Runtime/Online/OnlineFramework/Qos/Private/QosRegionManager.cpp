@@ -271,25 +271,28 @@ void UQosRegionManager::ForceSelectRegion(const FString& InRegionId)
 
 void UQosRegionManager::TrySetDefaultRegion()
 {
-	// Try to set a default region if one hasn't already been selected
-	if (!SetSelectedRegion(GetRegionId()))
+	if (!IsRunningDedicatedServer())
 	{
-		// try to select the lowest ping
-		int32 BestPing = INT_MAX;
-		FString BestRegionId;
-		for (const FQosRegionInfo& Region : RegionOptions)
+		// Try to set a default region if one hasn't already been selected
+		if (!SetSelectedRegion(GetRegionId()))
 		{
-			if (!Region.Region.bBeta && Region.AvgPingMs < BestPing)
+			// try to select the lowest ping
+			int32 BestPing = INT_MAX;
+			FString BestRegionId;
+			for (const FQosRegionInfo& Region : RegionOptions)
 			{
-				BestPing = Region.AvgPingMs;
-				BestRegionId = Region.Region.RegionId;
+				if (!Region.Region.bBeta && Region.AvgPingMs < BestPing)
+				{
+					BestPing = Region.AvgPingMs;
+					BestRegionId = Region.Region.RegionId;
+				}
 			}
-		}
-		if (!SetSelectedRegion(BestRegionId))
-		{
-			UE_LOG(LogQos, Warning, TEXT("Unable to set a good region!"));
-			UE_LOG(LogQos, Warning, TEXT("Wanted to set %s, failed to fall back to %s"), *GetRegionId(), *BestRegionId);
-			DumpRegionStats();
+			if (!SetSelectedRegion(BestRegionId))
+			{
+				UE_LOG(LogQos, Warning, TEXT("Unable to set a good region!"));
+				UE_LOG(LogQos, Warning, TEXT("Wanted to set %s, failed to fall back to %s"), *GetRegionId(), *BestRegionId);
+				DumpRegionStats();
+			}
 		}
 	}
 }

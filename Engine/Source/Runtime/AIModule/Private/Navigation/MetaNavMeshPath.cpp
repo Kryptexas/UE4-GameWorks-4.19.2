@@ -90,7 +90,8 @@ bool FMetaNavMeshPath::ConditionalMoveToNextSection(const FVector& AgentLocation
 	if (Waypoints.IsValidIndex(TargetWaypointIdx))
 	{
 		const float DistSq = FVector::DistSquared(AgentLocation, Waypoints[TargetWaypointIdx]);
-		if ((Reason == EMetaPathUpdateReason::PathFinished) || (DistSq < FMath::Square(WaypointSwitchRadius)))
+		if (((Reason == EMetaPathUpdateReason::PathFinished) || (DistSq < FMath::Square(WaypointSwitchRadius)))
+			&& (GetSourceActorAsNavAgent() == nullptr || GetSourceActorAsNavAgent()->ShouldPostponePathUpdates() == false))
 		{
 			return MoveToNextSection(AgentLocation);
 		}

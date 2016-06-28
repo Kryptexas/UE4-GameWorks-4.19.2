@@ -246,6 +246,7 @@ FSequencer::FSequencer()
 	, OldMaxTickRate(GEngine->GetMaxFPS())
 {
 	Selection.GetOnOutlinerNodeSelectionChanged().AddRaw(this, &FSequencer::OnSelectedOutlinerNodesChanged);
+	Selection.GetOnNodesWithSelectedKeysOrSectionsChanged().AddRaw(this, &FSequencer::OnSelectedOutlinerNodesChanged);
 }
 
 
@@ -3625,10 +3626,14 @@ void FSequencer::SynchronizeExternalSelectionWithSequencerSelection()
 	}
 
 	TSet<AActor*> SelectedSequencerActors;
-	for ( TSharedRef<FSequencerDisplayNode> SelectedOutlinerNode : Selection.GetSelectedOutlinerNodes() )
+
+	TSet<TSharedRef<FSequencerDisplayNode> > DisplayNodes = Selection.GetNodesWithSelectedKeysOrSections();
+	DisplayNodes.Append(Selection.GetSelectedOutlinerNodes());
+
+	for ( TSharedRef<FSequencerDisplayNode> DisplayNode : DisplayNodes)
 	{
 		// Get the root object binding node.
-		TSharedPtr<FSequencerDisplayNode> CurrentNode = SelectedOutlinerNode;
+		TSharedPtr<FSequencerDisplayNode> CurrentNode = DisplayNode;
 		TSharedPtr<FSequencerObjectBindingNode> ObjectBindingNode;
 		while ( CurrentNode.IsValid() )
 		{

@@ -228,7 +228,8 @@ public:
 	virtual void		KeepReplay( const FString& ReplayName, const bool bKeep ) override;
 	virtual ENetworkReplayError::Type GetLastError() const override;
 	virtual FString		GetReplayID() const override { return SessionName; }
-
+	virtual void		SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) override {}
+	
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
 	void FlushStream();

@@ -36,7 +36,7 @@ public:
 		return GetDefault<T>()->GetResourceID();
 	}
 
-	static uint8 GetResourceID(TSubclassOf<UGameplayTaskResource>& RequiredResource)
+	static uint8 GetResourceID(const TSubclassOf<UGameplayTaskResource>& RequiredResource)
 	{
 		return RequiredResource->GetDefaultObject<UGameplayTaskResource>()->GetResourceID();
 	}

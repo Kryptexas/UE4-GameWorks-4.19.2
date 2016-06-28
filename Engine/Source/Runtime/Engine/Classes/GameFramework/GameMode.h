@@ -120,6 +120,7 @@ class ENGINE_API AGameMode : public AInfo
 protected:
 
 	/** What match state we are currently in */
+	UPROPERTY(Transient)
 	FName MatchState;
 
 	/** Updates the match state and calls the appropriate transition functions */

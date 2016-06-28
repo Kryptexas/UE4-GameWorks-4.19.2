@@ -376,6 +376,15 @@ public:
 	void UpdatePacketSimulationSettings(void);
 #endif
 
+	/** 
+	 * If true, will resend everything this connection has ever sent, since the connection has been open.
+	 *	This functionality is used during replay checkpoints for example, so we can re-use the existing connection and channels to record
+	 *	a version of each actor and capture all properties that have changed since the actor has been alive...
+	 *	This will also act as if it needs to re-open all the channels, etc.
+	 *   NOTE - This doesn't force all exports to happen again though, it will only export new stuff, so keep that in mind.
+	 */
+	bool bResendAllDataSinceOpen;
+
 	/**
 	 * Called to determine if a voice packet should be replicated to this
 	 * connection or any of its child connections

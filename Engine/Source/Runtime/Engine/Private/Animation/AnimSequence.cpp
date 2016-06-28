@@ -3341,7 +3341,7 @@ int32 UAnimSequence::InsertTrack(const FName& BoneName)
 
 bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
 {
-	if (RefPoseSeq  && RefPoseSeq != this)
+	if (RefPoseSeq  && RefPoseSeq != this && !AnimationAssets.Contains(RefPoseSeq))
 	{
 		RefPoseSeq->HandleAnimReferenceCollection(AnimationAssets);
 	}

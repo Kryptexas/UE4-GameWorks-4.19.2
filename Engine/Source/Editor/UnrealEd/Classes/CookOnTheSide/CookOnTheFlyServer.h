@@ -756,6 +756,9 @@ private:
 	double IdleTimeToGC;
 	/** Max memory the cooker should use before forcing a gc */
 	uint64 MaxMemoryAllowance;
+	/** If we have less then this much memory free then finish current task and kick off gc */
+	uint64 MinFreeMemory;
+	
 
 	ECookInitializationFlags CookFlags;
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
@@ -772,14 +775,17 @@ private:
 
 	//////////////////////////////////////////////////////////////////////////
 	
-	// data about the current package being processed
+	// data about the current packages being processed
+	// stores temporal state like finished cache as an optimization so we don't need to 
 	struct FReentryData
 	{
 		FName FileName;
 		bool bBeginCacheFinished;
 		int BeginCacheCount;
+		bool bFinishedCacheFinished;
+		TArray<UObject*> CachedObjectsInOuter;
 
-		FReentryData() : FileName(NAME_None), bBeginCacheFinished(false), BeginCacheCount(0)
+		FReentryData() : FileName(NAME_None), bBeginCacheFinished(false), BeginCacheCount(0), bFinishedCacheFinished(false)
 		{ }
 
 		void Reset( const FName& InFilename )
@@ -790,7 +796,9 @@ private:
 		}
 	};
 
-	FReentryData CurrentReentryData;
+	TMap<FName, FReentryData> PackageReentryData;
+
+	FReentryData& GetReentryData(const UPackage* Package);
 
 	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
 	FFilenameQueue CookRequests; // list of requested files
@@ -1039,6 +1047,8 @@ public:
 	/** Returns the configured amount of memory allowed before forcing a GC */
 	uint64 GetMaxMemoryAllowance() const;
 
+	bool HasExceededMaxMemory() const;
+
 	/**
 	* RequestPackage to be cooked
 	*
@@ -1085,7 +1095,7 @@ public:
 	/**
 	 * Callbacks from UObject globals
 	 */
-
+	void PreGarbageCollect();
 	void OnStringAssetReferenceLoadedPackage(const FName& PackageName);
 
 

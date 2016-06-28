@@ -215,6 +215,13 @@ public:
 	 * @param UserString a string that uniquely identifies the user, usually his or her FUniqueNetId
 	 */
 	virtual void AddUserToReplay( const FString& UserString ) = 0;
+
+	/**
+	 * Sets a hint for how much data needs to be kept in memory. If set to a value greater than zero,
+	 * a streamer implementation may free any in-memory data that would be required to go to a time
+	 * before the beginning of the buffer.
+	 */
+	virtual void SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) = 0;
 };
 
 /** Replay streamer factory */

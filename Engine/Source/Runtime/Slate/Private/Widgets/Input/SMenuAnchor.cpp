@@ -87,7 +87,7 @@ FGeometry ComputeMenuPlacement(const FGeometry& AllottedGeometry, const FVector2
 		FSlateLayoutTransform(TransformPoint(Inverse(AllottedGeometry.GetAccumulatedLayoutTransform()), NewPositionDesktopSpace)));
 }
 
-
+/*static*/ TArray<TWeakPtr<IMenu>> SMenuAnchor::OpenApplicationMenus;
 
 /**
  * Construct this widget
@@ -101,19 +101,20 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	
 
 	Children[0]
-	.Padding(0)
-	[
-		InArgs._Content.Widget
-	];
-	MenuContent = InArgs._MenuContent;
-	WrappedContent = InArgs._MenuContent;
-	OnGetMenuContent = InArgs._OnGetMenuContent;
-	OnMenuOpenChanged = InArgs._OnMenuOpenChanged;
-	Placement = InArgs._Placement;
-	Method = InArgs._Method;
+		.Padding(0)
+		[
+			InArgs._Content.Widget
+		];
+
+	MenuContent                            = InArgs._MenuContent;
+	WrappedContent                         = InArgs._MenuContent;
+	OnGetMenuContent                       = InArgs._OnGetMenuContent;
+	OnMenuOpenChanged                      = InArgs._OnMenuOpenChanged;
+	Placement                              = InArgs._Placement;
+	Method                                 = InArgs._Method;
 	bShouldDeferPaintingAfterWindowContent = InArgs._ShouldDeferPaintingAfterWindowContent;
-	bUseApplicationMenuStack = InArgs._UseApplicationMenuStack;
-	bIsCollapsedByParent = InArgs._IsCollapsedByParent;
+	bUseApplicationMenuStack               = InArgs._UseApplicationMenuStack;
+	bIsCollapsedByParent                   = InArgs._IsCollapsedByParent;
 }
 
 
@@ -511,6 +512,8 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 							{
 								FSlateApplication::Get().SetKeyboardFocus(MenuContentRef, EFocusCause::SetDirectly);
 							}
+
+							OpenApplicationMenus.Add(NewMenu);
 						}
 					}
 				}
@@ -529,6 +532,13 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 				OwnedMenuPtr.Reset();
 				MethodInUse = FPopupMethodReply::Unhandled();
 			}
+
+			// Always clear out the menu content children slot to prevent prepass and other hierarchy queries from considering the
+			// hidden menu content as content they should be concerned with.
+			Children[1]
+			[
+				SNullWidget::NullWidget
+			];
 		}
 	}
 }
@@ -594,6 +604,20 @@ void SMenuAnchor::OnMenuDismissed()
 	{
 		OnMenuClosed(PopupMenuPtr.Pin().ToSharedRef());
 	}
+}
+
+/*static*/ void SMenuAnchor::DismissAllApplicationMenus()
+{
+	for (TWeakPtr<IMenu>& OpenMenu : OpenApplicationMenus)
+	{
+		TSharedPtr<IMenu> Iter = OpenMenu.IsValid() ? OpenMenu.Pin() : nullptr;
+		if (Iter.IsValid())
+		{
+			Iter->Dismiss();
+		}
+	}
+
+	OpenApplicationMenus.Empty();
 }
 
 SMenuAnchor::SMenuAnchor()

@@ -13,6 +13,7 @@ USizeBox::USizeBox(const FObjectInitializer& ObjectInitializer)
 {
 	bIsVariable = false;
 	Visibility = ESlateVisibility::SelfHitTestInvisible;
+	MaxAspectRatio = 1;
 }
 
 void USizeBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -148,6 +149,25 @@ void USizeBox::ClearMaxDesiredHeight()
 	}
 }
 
+void USizeBox::SetMaxAspectRatio(float InMaxAspectRatio)
+{
+	bOverride_MaxAspectRatio = true;
+	MaxAspectRatio = InMaxAspectRatio;
+	if ( MySizeBox.IsValid() )
+	{
+		MySizeBox->SetMaxAspectRatio(InMaxAspectRatio);
+	}
+}
+
+void USizeBox::ClearMaxAspectRatio()
+{
+	bOverride_MaxAspectRatio = false;
+	if ( MySizeBox.IsValid() )
+	{
+		MySizeBox->SetMaxAspectRatio(FOptionalSize());
+	}
+}
+
 void USizeBox::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
@@ -204,6 +224,15 @@ void USizeBox::SynchronizeProperties()
 	else
 	{
 		ClearMaxDesiredHeight();
+	}
+
+	if ( bOverride_MaxAspectRatio )
+	{
+		SetMaxAspectRatio(MaxAspectRatio);
+	}
+	else
+	{
+		ClearMaxAspectRatio();
 	}
 }
 

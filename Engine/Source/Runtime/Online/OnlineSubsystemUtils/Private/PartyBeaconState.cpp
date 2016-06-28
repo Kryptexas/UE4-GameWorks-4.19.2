@@ -4,6 +4,13 @@
 #include "OnlineBeacon.h"
 #include "PartyBeaconState.h"
 
+namespace ETeamAssignmentMethod
+{
+	const FName Smallest = FName(TEXT("Smallest"));
+	const FName BestFit = FName(TEXT("BestFit"));
+	const FName Random = FName(TEXT("Random"));
+}
+
 bool FPartyReservation::IsValid() const
 {
 	bool bIsValid = false;
@@ -34,7 +41,12 @@ UPartyBeaconState::UPartyBeaconState(const FObjectInitializer& ObjectInitializer
 	Super(ObjectInitializer),
 	SessionName(NAME_None),
 	NumConsumedReservations(0),
-	MaxReservations(0)
+	MaxReservations(0),
+	NumTeams(0),
+	NumPlayersPerTeam(0),
+	TeamAssignmentMethod(ETeamAssignmentMethod::Smallest),
+	ReservedHostTeamNum(0),
+	ForceTeamNum(0)
 {
 }
 
@@ -200,7 +212,37 @@ int32 UPartyBeaconState::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) c
 	return TeamNum;
 }
 
+int32 UPartyBeaconState::GetPlayersOnTeam(int32 TeamIndex, TArray<FUniqueNetIdRepl>& TeamMembers) const
+{
+	TeamMembers.Empty(NumPlayersPerTeam);
+	if (TeamIndex < GetNumTeams())
+	{
+		for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
+		{
+			const FPartyReservation& Reservation = Reservations[ResIdx];
+			if (Reservation.TeamNum == TeamIndex)
+			{
+				for (int32 PlayerIdx = 0; PlayerIdx < Reservation.PartyMembers.Num(); PlayerIdx++)
+				{
+					TeamMembers.Add(Reservation.PartyMembers[PlayerIdx].UniqueId);
+				}
+			}
+		}
 
+		return TeamMembers.Num();
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning, TEXT("GetPlayersOnTeam: Invalid team index %d"), TeamIndex);
+	}
+	
+	return 0;
+}
+
+void UPartyBeaconState::SetTeamAssignmentMethod(FName NewAssignmentMethod)
+{
+	TeamAssignmentMethod = NewAssignmentMethod;
+}
 
 /**
 * Helper for sorting team sizes
@@ -253,27 +295,67 @@ int32 UPartyBeaconState::GetTeamAssignment(const FPartyReservation& Party)
 		// Grab one from our list of choices
 		if (PotentialTeamChoices.Num() > 0)
 		{
-			if (1)
+			if (TeamAssignmentMethod == ETeamAssignmentMethod::Smallest)
 			{
-				// Choose smallest team
 				PotentialTeamChoices.Sort(FSortTeamSizeSmallestToLargest());
 				return PotentialTeamChoices[0].TeamIdx;
 			}
-			else
+			else if (TeamAssignmentMethod == ETeamAssignmentMethod::BestFit)
 			{
-				// Random choice from set of choices
+				PotentialTeamChoices.Sort(FSortTeamSizeSmallestToLargest());
+				return PotentialTeamChoices[PotentialTeamChoices.Num() - 1].TeamIdx;
+			}
+			else if (TeamAssignmentMethod == ETeamAssignmentMethod::Random)
+			{
 				int32 TeamIndex = FMath::Rand() % PotentialTeamChoices.Num();
 				return PotentialTeamChoices[TeamIndex].TeamIdx;
 			}
 		}
 		else
 		{
-			UE_LOG(LogBeacon, Warning, TEXT("(UPartyBeaconHost.GetTeamAssignment): couldn't find an open team for party members."));
+			UE_LOG(LogBeacon, Warning, TEXT("UPartyBeaconHost::GetTeamAssignment: couldn't find an open team for party members."));
 			return INDEX_NONE;
 		}
 	}
 
 	return ForceTeamNum;
+}
+
+void UPartyBeaconState::BestFitTeamAssignmentJiggle()
+{
+	if (TeamAssignmentMethod == ETeamAssignmentMethod::BestFit &&
+		NumTeams > 1)
+	{
+		TArray<FPartyReservation*> ReservationsToJiggle;
+		ReservationsToJiggle.Reserve(Reservations.Num());
+		for (FPartyReservation& Reservation : Reservations)
+		{
+			// Only want to rejiggle reservations with existing team assignments (new reservations will still stay at -1)
+			if (Reservation.TeamNum != -1)
+			{
+				// Remove existing team assignments so new assignments can be given
+				Reservation.TeamNum = -1;
+				// Add to list of reservations that need new assignments
+				ReservationsToJiggle.Add(&Reservation);
+			}
+		}
+		// Sort so that largest party reservations come first
+		ReservationsToJiggle.Sort([](const FPartyReservation& A, const FPartyReservation& B)
+			{
+				return B.PartyMembers.Num() < A.PartyMembers.Num();
+			}
+		);
+
+		// Re-add these reservations with best fit team assignments
+		for (FPartyReservation* Reservation : ReservationsToJiggle)
+		{
+			Reservation->TeamNum = GetTeamAssignment(*Reservation);
+			if (Reservation->TeamNum == -1)
+			{
+				UE_LOG(LogBeacon, Warning, TEXT("UPartyBeaconHost::BestFitTeamAssignmentJiggle: could not reassign to a team!"));
+			}
+		}
+	}
 }
 
 bool UPartyBeaconState::AreTeamsAvailable(const FPartyReservation& ReservationRequest) const
@@ -309,6 +391,9 @@ bool UPartyBeaconState::AddReservation(const FPartyReservation& ReservationReque
 		NumConsumedReservations += IncomingPartySize;
 		int32 ResIdx = Reservations.Add(ReservationRequest);
 		Reservations[ResIdx].TeamNum = TeamAssignment;
+
+		// Possibly shuffle existing teams so that beacon can accommodate biggest open slots
+		BestFitTeamAssignmentJiggle();
 	}
 
 	return TeamAssignment != INDEX_NONE;
@@ -322,6 +407,8 @@ bool UPartyBeaconState::RemoveReservation(const FUniqueNetIdRepl& PartyLeader)
 		NumConsumedReservations -= Reservations[ExistingReservationIdx].PartyMembers.Num();
 		Reservations.RemoveAtSwap(ExistingReservationIdx);
 
+		// Possibly shuffle existing teams so that beacon can accommodate biggest open slots
+		BestFitTeamAssignmentJiggle();
 		return true;
 	}
 
@@ -502,10 +589,16 @@ bool UPartyBeaconState::RemovePlayer(const FUniqueNetIdRepl& PlayerId)
 		}
 	}
 
+	if (bWasRemoved)
+	{
+		// Reshuffle existing teams so that beacon can accommodate biggest open slots
+		BestFitTeamAssignmentJiggle();
+	}
+
 	return bWasRemoved;
 }
 
-int32 UPartyBeaconState::GetExistingReservation(const FUniqueNetIdRepl& PartyLeader)
+int32 UPartyBeaconState::GetExistingReservation(const FUniqueNetIdRepl& PartyLeader) const
 {
 	int32 Result = INDEX_NONE;
 	for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
@@ -515,6 +608,25 @@ int32 UPartyBeaconState::GetExistingReservation(const FUniqueNetIdRepl& PartyLea
 		{
 			Result = ResIdx;
 			break;
+		}
+	}
+
+	return Result;
+}
+
+int32 UPartyBeaconState::GetExistingReservationContainingMember(const FUniqueNetIdRepl& PartyMember) const
+{
+	int32 Result = INDEX_NONE;
+	for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
+	{
+		const FPartyReservation& ReservationEntry = Reservations[ResIdx];
+		for (const FPlayerReservation& PlayerReservation : ReservationEntry.PartyMembers)
+		{
+			if (PlayerReservation.UniqueId == PartyMember)
+			{
+				Result = ResIdx;
+				break;
+			}
 		}
 	}
 

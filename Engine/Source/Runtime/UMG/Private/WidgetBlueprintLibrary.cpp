@@ -5,6 +5,7 @@
 #include "Slate/UMGDragDropOp.h"
 #include "WidgetBlueprintLibrary.h"
 #include "EngineGlobals.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Engine/Engine.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -565,6 +566,18 @@ FInputEvent UWidgetBlueprintLibrary::GetInputEventFromControllerEvent(const FCon
 FInputEvent UWidgetBlueprintLibrary::GetInputEventFromNavigationEvent(const FNavigationEvent& Event)
 {
 	return Event;
+}
+
+void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FVector2D& SafePadding, FVector2D& SafePaddingScale, FVector2D& SpillOverPadding)
+{
+	FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(WorldContextObject);
+
+	FDisplayMetrics Metrics;
+	FSlateApplication::Get().GetDisplayMetrics(Metrics);
+
+	SafePadding = Metrics.TitleSafePaddingSize;
+	SafePaddingScale = SafePadding / ViewportSize;
+	SpillOverPadding = Metrics.ActionSafePaddingSize;
 }
 
 #undef LOCTEXT_NAMESPACE

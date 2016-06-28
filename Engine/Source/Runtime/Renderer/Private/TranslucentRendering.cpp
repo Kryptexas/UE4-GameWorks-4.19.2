@@ -363,6 +363,9 @@ public:
 
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
+		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight() && bIsLitMaterial;
+		const bool bRenderAtmosphericFog =(Scene && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog) && View.Family->EngineShowFlags.AtmosphericFog && View.Family->EngineShowFlags.Fog;
+
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
 			Parameters.Mesh.MaterialRenderProxy,
@@ -372,8 +375,8 @@ public:
 			Parameters.BlendMode,
 			// Translucent meshes need scene render targets set as textures
 			ESceneRenderTargetsMode::SetTextures,
-			bIsLitMaterial && Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting,
-			Scene && Scene->HasAtmosphericFog() && View.Family->EngineShowFlags.AtmosphericFog && View.Family->EngineShowFlags.Fog,
+			bRenderSkylight,
+			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
 			Parameters.bAllowFog,
 			false,

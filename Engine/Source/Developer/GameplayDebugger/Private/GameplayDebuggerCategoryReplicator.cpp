@@ -5,6 +5,7 @@
 #include "GameplayDebuggerAddonManager.h"
 #include "GameplayDebuggerPlayerManager.h"
 #include "GameplayDebuggerRenderingComponent.h"
+#include "GameplayDebuggerExtension.h"
 #include "Net/UnrealNetwork.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -394,10 +395,12 @@ void AGameplayDebuggerCategoryReplicator::BeginPlay()
 	bHasAuthority = (NetMode != NM_Client);
 	bIsLocal = (NetMode != NM_DedicatedServer);
 
-	FGameplayDebuggerAddonManager& CategoryManager = FGameplayDebuggerAddonManager::GetCurrent();
-	CategoryManager.OnCategoriesChanged.AddUObject(this, &AGameplayDebuggerCategoryReplicator::OnCategoriesChanged);
-	
+	FGameplayDebuggerAddonManager& AddonManager = FGameplayDebuggerAddonManager::GetCurrent();
+	AddonManager.OnCategoriesChanged.AddUObject(this, &AGameplayDebuggerCategoryReplicator::OnCategoriesChanged);
+	AddonManager.OnExtensionsChanged.AddUObject(this, &AGameplayDebuggerCategoryReplicator::OnExtensionsChanged);
+
 	OnCategoriesChanged();
+	OnExtensionsChanged();
 
 	AGameplayDebuggerPlayerManager& PlayerManager = AGameplayDebuggerPlayerManager::GetCurrent(GetWorld());
 	PlayerManager.RegisterReplicator(*this);
@@ -420,16 +423,29 @@ void AGameplayDebuggerCategoryReplicator::Destroyed()
 {
 	Super::Destroyed();
 
-	FGameplayDebuggerAddonManager& CategoryManager = FGameplayDebuggerAddonManager::GetCurrent();
-	CategoryManager.OnCategoriesChanged.RemoveAll(this);
+	FGameplayDebuggerAddonManager& AddonManager = FGameplayDebuggerAddonManager::GetCurrent();
+	AddonManager.OnCategoriesChanged.RemoveAll(this);
+	AddonManager.OnExtensionsChanged.RemoveAll(this);
 }
 
 void AGameplayDebuggerCategoryReplicator::OnCategoriesChanged()
 {
-	FGameplayDebuggerAddonManager& CategoryManager = FGameplayDebuggerAddonManager::GetCurrent();
-	CategoryManager.CreateCategories(*this, Categories);
+	FGameplayDebuggerAddonManager& AddonManager = FGameplayDebuggerAddonManager::GetCurrent();
+	AddonManager.CreateCategories(*this, Categories);
 
 	ReplicatedData.OnCategoriesChanged();
+
+	if (bIsLocal)
+	{
+		AGameplayDebuggerPlayerManager& PlayerManager = AGameplayDebuggerPlayerManager::GetCurrent(GetWorld());
+		PlayerManager.RefreshInputBindings(*this);
+	}
+}
+
+void AGameplayDebuggerCategoryReplicator::OnExtensionsChanged()
+{
+	FGameplayDebuggerAddonManager& AddonManager = FGameplayDebuggerAddonManager::GetCurrent();
+	AddonManager.CreateExtensions(*this, Extensions);
 
 	if (bIsLocal)
 	{
@@ -488,14 +504,24 @@ void AGameplayDebuggerCategoryReplicator::ServerSetCategoryEnabled_Implementatio
 	SetCategoryEnabled(CategoryId, bEnable);
 }
 
-bool AGameplayDebuggerCategoryReplicator::ServerSendInputEvent_Validate(int32 CategoryId, int32 HandlerId)
+bool AGameplayDebuggerCategoryReplicator::ServerSendCategoryInputEvent_Validate(int32 CategoryId, int32 HandlerId)
 {
 	return true;
 }
 
-void AGameplayDebuggerCategoryReplicator::ServerSendInputEvent_Implementation(int32 CategoryId, int32 HandlerId)
+void AGameplayDebuggerCategoryReplicator::ServerSendCategoryInputEvent_Implementation(int32 CategoryId, int32 HandlerId)
 {
-	SendInputEvent(CategoryId, HandlerId);
+	SendCategoryInputEvent(CategoryId, HandlerId);
+}
+
+bool AGameplayDebuggerCategoryReplicator::ServerSendExtensionInputEvent_Validate(int32 ExtensionId, int32 HandlerId)
+{
+	return true;
+}
+
+void AGameplayDebuggerCategoryReplicator::ServerSendExtensionInputEvent_Implementation(int32 ExtensionId, int32 HandlerId)
+{
+	SendExtensionInputEvent(ExtensionId, HandlerId);
 }
 
 void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket)
@@ -649,6 +675,8 @@ void AGameplayDebuggerCategoryReplicator::SetEnabled(bool bEnable)
 	}
 
 	MarkComponentsRenderStateDirty();
+	NotifyCategoriesToolState(bEnable);
+	NotifyExtensionsToolState(bEnable);
 }
 
 void AGameplayDebuggerCategoryReplicator::SetDebugActor(AActor* Actor)
@@ -687,7 +715,7 @@ void AGameplayDebuggerCategoryReplicator::SetCategoryEnabled(int32 CategoryId, b
 	MarkComponentsRenderStateDirty();
 }
 
-void AGameplayDebuggerCategoryReplicator::SendInputEvent(int32 CategoryId, int32 HandlerId)
+void AGameplayDebuggerCategoryReplicator::SendCategoryInputEvent(int32 CategoryId, int32 HandlerId)
 {
 	if (HandlerId >= 0 && Categories.IsValidIndex(CategoryId) &&
 		HandlerId < Categories[CategoryId]->GetNumInputHandlers())
@@ -702,8 +730,57 @@ void AGameplayDebuggerCategoryReplicator::SendInputEvent(int32 CategoryId, int32
 			}
 			else
 			{
-				ServerSendInputEvent(CategoryId, HandlerId);
+				ServerSendCategoryInputEvent(CategoryId, HandlerId);
 			}
+		}
+	}
+}
+
+void AGameplayDebuggerCategoryReplicator::SendExtensionInputEvent(int32 ExtensionId, int32 HandlerId)
+{
+	if (HandlerId >= 0 && Extensions.IsValidIndex(ExtensionId) &&
+		HandlerId < Extensions[ExtensionId]->GetNumInputHandlers())
+	{
+		FGameplayDebuggerInputHandler& InputHandler = Extensions[ExtensionId]->GetInputHandler(HandlerId);
+		if (InputHandler.Mode == EGameplayDebuggerInputMode::Local || bHasAuthority)
+		{
+			InputHandler.Delegate.ExecuteIfBound();
+		}
+		else
+		{
+			ServerSendExtensionInputEvent(ExtensionId, HandlerId);
+		}
+	}
+}
+
+void AGameplayDebuggerCategoryReplicator::NotifyCategoriesToolState(bool bIsActive)
+{
+	for (int32 Idx = 0; Idx < Categories.Num(); Idx++)
+	{
+		FGameplayDebuggerCategory& CategoryOb = Categories[Idx].Get();
+		if (bIsActive)
+		{
+			CategoryOb.OnGameplayDebuggerActivated();
+		}
+		else
+		{
+			CategoryOb.OnGameplayDebuggerDeactivated();
+		}
+	}
+}
+
+void AGameplayDebuggerCategoryReplicator::NotifyExtensionsToolState(bool bIsActive)
+{
+	for (int32 Idx = 0; Idx < Extensions.Num(); Idx++)
+	{
+		FGameplayDebuggerExtension& ExtensionOb = Extensions[Idx].Get();
+		if (bIsActive)
+		{
+			ExtensionOb.OnGameplayDebuggerActivated();
+		}
+		else
+		{
+			ExtensionOb.OnGameplayDebuggerDeactivated();
 		}
 	}
 }

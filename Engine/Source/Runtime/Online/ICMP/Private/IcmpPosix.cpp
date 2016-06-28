@@ -56,7 +56,7 @@ uint32 HtoNL(uint32 val)
 	return htonl(val);
 }
 
-FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
+FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout)
 {
 	static const SIZE_T IpHeaderSize = sizeof(struct ip);
 	static const SIZE_T IcmpHeaderSize = sizeof(struct icmp);
@@ -83,7 +83,7 @@ FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
 	FMemory::Memset(Packet, 0, PacketSize);
 
 	FString ResolvedAddress;
-	if (!ResolveIp(TargetAddress, ResolvedAddress))
+	if (!ResolveIp(SocketSub, TargetAddress, ResolvedAddress))
 	{
 		Result.Status = EIcmpResponseStatus::Unresolvable;
 		return Result;

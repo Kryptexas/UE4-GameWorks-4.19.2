@@ -56,6 +56,8 @@ namespace AutomationTool
 	[Help("ShowNotifications", "Show notifications that will be sent for each node in the output")]
 	[Help("Trigger=<Name>[+<Name>...]", "Activates the given triggers, including all the nodes behind them in the graph")]
 	[Help("SkipTriggers", "Activate all triggers")]
+	[Help("TicketSignature=<Name>", "Specifies the signature identifying the current job, to be written to tickets for nodes that require them. Tickets are ignored if this parameter is not specified.")]
+	[Help("SkipTargetsWithoutTickets", "Excludes targets which we can't acquire tickets for, rather than failing")]
 	[Help("Preprocess=<FileName>", "Writes the preprocessed graph to the given file")]
 	[Help("Export=<FileName>", "Exports a JSON file containing the preprocessed build graph, for use as part of a build system")]
 	[Help("PublicTasksOnly", "Only include built-in tasks in the schema, excluding any other UAT modules")]
@@ -89,8 +91,10 @@ namespace AutomationTool
 			string PreprocessedFileName = ParseParamValue("Preprocess", null);
 			string SharedStorageDir = ParseParamValue("SharedStorageDir", null);
 			string SingleNodeName = ParseParamValue("SingleNode", null);
-			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
 			bool bSkipTriggers = ParseParam("SkipTriggers");
+			string TicketSignature = ParseParamValue("TicketSignature", null);
+			bool bSkipTargetsWithoutTickets = ParseParam("SkipTargetsWithoutTickets");
 			bool bClearHistory = ParseParam("Clean") || ParseParam("ClearHistory");
 			bool bListOnly = ParseParam("ListOnly");
 			bool bWriteToSharedStorage = ParseParam("WriteToSharedStorage") || CommandUtils.IsBuildMachine;
@@ -111,7 +115,7 @@ namespace AutomationTool
 			List<string> CleanNodes = new List<string>();
 			foreach(string NodeList in ParseParamValues("CleanNode"))
 			{
-				foreach(string NodeName in NodeList.Split('+'))
+				foreach(string NodeName in NodeList.Split('+', ';'))
 				{
 					CleanNodes.Add(NodeName);
 				}
@@ -185,7 +189,7 @@ namespace AutomationTool
 
 			// Convert the supplied target references into nodes 
 			HashSet<Node> TargetNodes = new HashSet<Node>();
-			foreach(string TargetName in TargetNames.Split(new char[]{ '+' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))
+			foreach(string TargetName in TargetNames.Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))
 			{
 				Node[] Nodes;
 				if(!Graph.TryResolveReference(TargetName, out Nodes))
@@ -194,6 +198,58 @@ namespace AutomationTool
 					return ExitCode.Error_Unknown;
 				}
 				TargetNodes.UnionWith(Nodes);
+			}
+
+			// Try to acquire tickets for all the target nodes we want to build
+			if(TicketSignature != null)
+			{
+				// Find all the lock files
+				HashSet<FileReference> RequiredTickets = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTickets));
+
+				// Try to create all the lock files
+				List<FileReference> CreatedTickets = new List<FileReference>();
+				if(!bListOnly)
+				{
+					CreatedTickets.AddRange(RequiredTickets.Where(x => WriteTicket(x, TicketSignature)));
+				}
+
+				// Find all the tickets that we don't have
+				Dictionary<FileReference, string> MissingTickets = new Dictionary<FileReference, string>();
+				foreach(FileReference RequiredTicket in RequiredTickets)
+				{
+					string CurrentOwner = ReadTicket(RequiredTicket);
+					if(CurrentOwner != null && CurrentOwner != TicketSignature)
+					{
+						MissingTickets.Add(RequiredTicket, CurrentOwner);
+					}
+				}
+
+				// If we want to skip all the nodes with missing locks, adjust the target nodes to account for it
+				if(MissingTickets.Count > 0)
+				{
+					if(bSkipTargetsWithoutTickets)
+					{
+						foreach(KeyValuePair<FileReference, string> Pair in MissingTickets)
+						{
+							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTickets.Contains(Pair.Key)).ToList();
+							Log("Skipping {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
+							TargetNodes.ExceptWith(SkipNodes);
+						}
+					}
+					else
+					{
+						foreach(KeyValuePair<FileReference, string> Pair in MissingTickets)
+						{
+							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTickets.Contains(Pair.Key)).ToList();
+							LogError("Cannot run {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
+						}
+						foreach(FileReference CreatedTicket in CreatedTickets)
+						{
+							CreatedTicket.Delete();
+						}
+						return ExitCode.Error_Unknown;
+					}
+				}
 			}
 
 			// Cull the graph to include only those nodes
@@ -326,6 +382,69 @@ namespace AutomationTool
 				}
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// Reads the contents of the given ticket
+		/// </summary>
+		/// <returns>Contents of the ticket, or null if it does not exist</returns>
+		public string ReadTicket(FileReference Location)
+		{
+			return Location.Exists()? File.ReadAllText(Location.FullName) : null;
+		}
+
+		/// <summary>
+		/// Attempts to write an owner to a ticket file transactionally
+		/// </summary>
+		/// <returns>True if the lock was acquired, false otherwise</returns>
+		public bool WriteTicket(FileReference Location, string Signature)
+		{
+			// Check it doesn't already exist
+			if(Location.Exists())
+			{
+				return false;
+			}
+
+			// Make sure the directory exists
+			Location.Directory.CreateDirectory();
+
+			// Create a temp file containing the owner name
+			string TempFileName;
+			for(int Idx = 0;;Idx++)
+			{
+				TempFileName = String.Format("{0}.{1}.tmp", Location.FullName, Idx);
+				try
+				{
+					byte[] Bytes = Encoding.UTF8.GetBytes(Signature);
+					using (FileStream Stream = File.Open(TempFileName, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+					{
+						Stream.Write(Bytes, 0, Bytes.Length);
+					}
+					break;
+				}
+				catch(IOException)
+				{
+					if(!File.Exists(TempFileName))
+					{
+						throw;
+					}
+				}
+			}
+
+			// Try to move the temporary file into place. 
+			try
+			{
+				File.Move(TempFileName, Location.FullName);
+				return true;
+			}
+			catch
+			{
+				if(!File.Exists(TempFileName))
+				{
+					throw;
+				}
+				return false;
+			}
 		}
 
 		/// <summary>

@@ -440,6 +440,9 @@ private:
 
 	/** Writes to a file on a separate thread */
 	FAsyncWriter* AsyncWriter;
+	/** Archive used by the async writer */
+	FArchive* WriterArchive;
+
 	TCHAR Filename[1024];
 	bool Opened;
 	bool Dead;
@@ -449,7 +452,8 @@ private:
 	
 	void WriteRaw( const TCHAR* C );
 
-	FAsyncWriter* CreateWriter(uint32 MaxAttempts = 32);
+	/** Creates the async writer and its archive. Returns true if successful.  */
+	bool CreateWriter(uint32 MaxAttempts = 32);
 
 	void WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark);
 };

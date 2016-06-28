@@ -247,10 +247,10 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 
 				if (SpawnedCue)
 				{
-					SpawnedCue->bInRecycleQueue = false;				
-					SpawnedCue->SetActorHiddenInGame(false);
+					SpawnedCue->bInRecycleQueue = false;
 					SpawnedCue->SetOwner(NewOwnerActor);
 					SpawnedCue->SetActorLocationAndRotation(TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+					SpawnedCue->ReuseAfterRecycle();					
 				}
 
 				UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("GetInstancedCueActor Popping Recycled %s (Target: %s). Using GC Actor: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue));
@@ -319,10 +319,6 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 
 			UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("NotifyGameplayCueActorFinished %s"), *GetNameSafe(Actor));
 
-			Actor->SetOwner(nullptr);
-			Actor->SetActorHiddenInGame(true);
-			Actor->DetachRootComponentFromParent();
-
 			FPreallocationInfo& Info = GetPreallocationInfo(Actor->GetWorld());
 			TArray<AGameplayCueNotify_Actor*>& PreAllocatedList = Info.PreallocatedInstances.FindOrAdd(Actor->GetClass());
 
@@ -352,10 +348,18 @@ void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPa
 	if (!GameplayCueNotifyActorObjectLibrary)
 	{
 		GameplayCueNotifyActorObjectLibrary = UObjectLibrary::CreateLibrary(AGameplayCueNotify_Actor::StaticClass(), true, GIsEditor && !IsRunningCommandlet());
+		if (GIsEditor)
+		{
+			GameplayCueNotifyActorObjectLibrary->bIncludeOnlyOnDiskAssets = false;
+		}
 	}
 	if (!GameplayCueNotifyStaticObjectLibrary)
 	{
 		GameplayCueNotifyStaticObjectLibrary = UObjectLibrary::CreateLibrary(UGameplayCueNotify_Static::StaticClass(), true, GIsEditor && !IsRunningCommandlet());
+		if (GIsEditor)
+		{
+			GameplayCueNotifyStaticObjectLibrary->bIncludeOnlyOnDiskAssets = false;
+		}
 	}
 
 	LoadedPaths = InPaths;
@@ -397,6 +401,11 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibrary* ActorObjectLibrary, UObjectLibrary* StaticObjectLibrary, FOnGameplayCueNotifySetLoaded OnLoadDelegate, FShouldLoadGCNotifyDelegate ShouldLoadDelegate)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Library"), STAT_ObjectLibrary, STATGROUP_LoadTime);
+
+	if (ActorObjectLibrary==nullptr || StaticObjectLibrary==nullptr)
+	{
+		return;
+	}
 
 #if WITH_EDITOR
 	bAccelerationMapOutdated = false;

@@ -1422,9 +1422,15 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 				bShowGlobalClipPlaneWarning = true;
 			}
 		}
-
+		
 		extern int32 GDistanceFieldAO;
 		bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
+
+		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
+		const bool bShowSkylightWarning = Scene->ShouldRenderSkylight_Internal() && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
+		const bool bShowPointLightWarning = UsedWholeScenePointLightNames.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnablePointLightShadows;
+
+		const bool bAnyWarning = bShowPrecomputedVisibilityWarning || bShowGlobalClipPlaneWarning || bShowAtmosphericFogWarning || bShowSkylightWarning || bShowPointLightWarning || bShowDFAODisabledWarning;
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
@@ -1435,7 +1441,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 				FSceneViewState* ViewState = (FSceneViewState*)View.State;
 				bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
 				bool bLocked = View.bIsLocked;
-				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked || bShowGlobalClipPlaneWarning || bShowDFAODisabledWarning)
+				if (bViewParentOrFrozen || bLocked || bAnyWarning)
 				{
 					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
@@ -1474,25 +1480,51 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					}
 					if (bShowPrecomputedVisibilityWarning)
 					{
-						const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
+						static const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
 					if (bShowGlobalClipPlaneWarning)
 					{
-						const FText Message = NSLOCTEXT("Renderer", "NoGlobalClipPlane", "GLOBAL CLIP PLANE PROJECT SETTING NOT ENABLED");
+						static const FText Message = NSLOCTEXT("Renderer", "NoGlobalClipPlane", "GLOBAL CLIP PLANE PROJECT SETTING NOT ENABLED");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
 					if (bShowDFAODisabledWarning)
 					{
-						const FText Message = NSLOCTEXT("Renderer", "DFAODisabled", "Distance Field AO is disabled through scalability");
+						static const FText Message = NSLOCTEXT("Renderer", "DFAODisabled", "Distance Field AO is disabled through scalability");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
+
+					if (bShowAtmosphericFogWarning)
+					{
+						static const FText Message = NSLOCTEXT("Renderer", "AtmosphericFog", "PROJECT DOES NOT SUPPORT ATMOSPHERIC FOG");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;						
+					}
+					if (bShowSkylightWarning)
+					{
+						static const FText Message = NSLOCTEXT("Renderer", "Skylight", "PROJECT DOES NOT SUPPORT STATIONARY SKYLIGHT OR MOVABLE SKYLIGHT IN SIMPLEFORWARD MODE: ");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+					}
+					if (bShowPointLightWarning)
+					{
+						static const FText Message = NSLOCTEXT("Renderer", "PointLight", "PROJECT DOES NOT SUPPORT WHOLE SCENE POINT LIGHT SHADOWS: ");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+
+						for (FName LightName : UsedWholeScenePointLightNames)
+						{
+							Canvas.DrawShadowedText(10, Y, FText::FromString(LightName.ToString()), GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+							Y += 14;
+						}
+					}
+
 					if (bLocked)
 					{
-						const FText Message = NSLOCTEXT("Renderer", "ViewLocked", "VIEW LOCKED");
+						static const FText Message = NSLOCTEXT("Renderer", "ViewLocked", "VIEW LOCKED");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(0.8, 1.0, 0.2, 1.0));
 						Y += 14;
 					}

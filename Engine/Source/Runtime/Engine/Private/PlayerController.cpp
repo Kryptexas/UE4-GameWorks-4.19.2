@@ -682,6 +682,7 @@ void APlayerController::ClientRetryClientRestart_Implementation(APawn* NewPawn)
 	{
 		SetPawn(NewPawn);
 		NewPawn->Controller = this;
+		NewPawn->OnRep_Controller();
 		ClientRestart(GetPawn());
 	}
 }
@@ -3785,6 +3786,13 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	}
 
 	UpdateStateInputComponents();
+
+#if ENABLE_VISUAL_LOG
+	if (Role == ROLE_Authority && FVisualLogger::Get().IsRecordingOnServer())
+	{
+		OnServerStartedVisualLogger(true);
+	}
+#endif
 
 	// notify script that we've been assigned a valid player
 	ReceivedPlayer();

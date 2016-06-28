@@ -2312,7 +2312,7 @@ FBaseParticle* FParticleEmitterInstance::GetParticle(int32 Index)
 
 FBaseParticle* FParticleEmitterInstance::GetParticleDirect(int32 InDirectIndex)
 {
-	if (/*(ActiveParticles > 0) &&*/ (InDirectIndex < MaxActiveParticles))
+	if ((ActiveParticles > 0) && (InDirectIndex < MaxActiveParticles))
 	{
 		DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * InDirectIndex);
 		return Particle;

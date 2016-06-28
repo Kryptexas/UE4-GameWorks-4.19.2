@@ -45,7 +45,7 @@ FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const 
 	FPathFindingQueryData(PathToRecalculate->GetQueryData()),
 	NavData(NavDataOverride ? NavDataOverride : PathToRecalculate->GetNavigationDataUsed()), PathInstanceToFill(PathToRecalculate), NavAgentProperties(FNavAgentProperties::DefaultProperties)
 {
-	if (PathToRecalculate->ShouldUpdateStartPointOnRepath())
+	if (PathToRecalculate->ShouldUpdateStartPointOnRepath() && (PathToRecalculate->GetSourceActor() != nullptr))
 	{
 		const FVector NewStartLocation = PathToRecalculate->GetPathFindingStartLocation();
 		if (FAISystem::IsValidLocation(NewStartLocation))
@@ -54,7 +54,7 @@ FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const 
 		}
 	}
 
-	if (PathToRecalculate->ShouldUpdateEndPointOnRepath())
+	if (PathToRecalculate->ShouldUpdateEndPointOnRepath() && (PathToRecalculate->GetGoalActor() != nullptr))
 	{
 		const FVector NewEndLocation = PathToRecalculate->GetGoalLocation();
 		if (FAISystem::IsValidLocation(NewEndLocation))

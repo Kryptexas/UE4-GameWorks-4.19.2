@@ -317,6 +317,7 @@ public:
 	void SetSourceActor(const AActor& InSourceActor);
 
 	const AActor* GetSourceActor() const { return SourceActor.Get(); }
+	const INavAgentInterface* GetSourceActorAsNavAgent() const { return SourceActorAsNavAgent; }
 
 	FVector GetLastRepathGoalLocation() const { return GoalActorLastLocation; }
 	void UpdateLastRepathGoalLocation();
@@ -333,6 +334,10 @@ public:
 	{
 		return bDoAutoUpdateOnInvalidation;
 	}
+
+	/** if ignoring, path will stay bUpToDate after being invalidated due to a change to underlying navigation (observer and auto repath will NOT be triggered!) */
+	void SetIgnoreInvalidation(bool bShouldIgnore) { bIgnoreInvalidation = bShouldIgnore; }
+	bool GetIgnoreInvalidation() const { return bIgnoreInvalidation; }
 
 	EPathObservationResult::Type TickPathObservation();
 
@@ -412,6 +417,12 @@ protected:
 
 	/** if true path will request re-pathing if it gets invalidated due to underlying navigation changed */
 	uint32 bDoAutoUpdateOnInvalidation : 1;
+
+	/** if true path will keep bUpToDate value after getting invalidated due to underlying navigation changed
+	 *  (observer and auto repath will NOT be triggered!)
+	 *  it's NOT safe to use if path relies on navigation data references (e.g. poly corridor)
+	 */
+	uint32 bIgnoreInvalidation : 1;
 
 	/** if true path will use GetPathFindingStartLocation() for updating QueryData before repath */
 	uint32 bUpdateStartPointOnRepath : 1;

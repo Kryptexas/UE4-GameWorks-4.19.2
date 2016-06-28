@@ -385,6 +385,11 @@ bool UUserWidget::IsAnimationPlaying(const UWidgetAnimation* InAnimation) const
 	return false;
 }
 
+bool UUserWidget::IsAnyAnimationPlaying() const
+{
+	return ActiveSequencePlayers.Num() > 0;
+}
+
 void UUserWidget::SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 InNumLoopsToPlay)
 {
 	if (InAnimation)
@@ -978,12 +983,10 @@ void UUserWidget::StopListeningForAllInputActions()
 			InputComponent->RemoveActionBinding( ExistingIndex );
 		}
 
-		if ( APlayerController* Controller = GetOwningPlayer() )
-		{
-			Controller->PopInputComponent( InputComponent );
-		}
+		UnregisterInputComponent();
 
 		InputComponent->ClearActionBindings();
+		InputComponent->MarkPendingKill();
 		InputComponent = nullptr;
 	}
 }
@@ -1005,6 +1008,28 @@ bool UUserWidget::IsListeningForInputAction( FName ActionName ) const
 	}
 
 	return bResult;
+}
+
+void UUserWidget::RegisterInputComponent()
+{
+	if ( InputComponent )
+	{
+		if ( APlayerController* Controller = GetOwningPlayer() )
+		{
+			Controller->PushInputComponent(InputComponent);
+		}
+	}
+}
+
+void UUserWidget::UnregisterInputComponent()
+{
+	if ( InputComponent )
+	{
+		if ( APlayerController* Controller = GetOwningPlayer() )
+		{
+			Controller->PopInputComponent(InputComponent);
+		}
+	}
 }
 
 void UUserWidget::SetInputActionPriority( int32 NewPriority )

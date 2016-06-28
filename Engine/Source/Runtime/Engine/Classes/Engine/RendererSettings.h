@@ -329,6 +329,38 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
 
+	/**
+	"Stationary skylight requires permutations of the basepass shaders.  Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.SupportStationarySkylight", DisplayName = "Support Stationary Skylight",
+		ConfigRestartRequired = true))
+		uint32 bSupportStationarySkylight : 1;
+
+	/**
+	"Low quality lightmap requires permutations of the lightmap rendering shaders.  Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.SupportLowQualityLightmaps", DisplayName = "Support low quality lightmap shader permutations",
+		ConfigRestartRequired = true))
+		uint32 bSupportLowQualityLightmaps : 1;
+
+	/**
+	PointLight WholeSceneShadows requires many vertex and geometry shader permutations for cubemap rendering. Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.SupportPointLightWholeSceneShadows", DisplayName = "Support PointLight WholeSceneShadows",
+		ConfigRestartRequired = true))
+		uint32 bSupportPointLightWholeSceneShadows : 1;
+
+	/** 
+	"Atmospheric fog requires permutations of the basepass shaders.  Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.SupportAtmosphericFog", DisplayName = "Support Atmospheric Fog",	
+		ConfigRestartRequired = true))
+		uint32 bSupportAtmosphericFog : 1;
+
 public:
 
 	//~ Begin UObject Interface
@@ -349,4 +381,28 @@ private:
 
 	UPROPERTY(config)
 	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;
+};
+
+UCLASS(config = Engine, globaluserconfig, meta = (DisplayName = "Rendering Overrides (Local)"))
+class ENGINE_API URendererOverrideSettings : public UDeveloperSettings
+{
+	GENERATED_UCLASS_BODY()
+
+	/**
+		"Enabling will locally override all ShaderPermutationReduction settings from the Renderer section to be enabled.  Saved to local user config only.."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.SupportAllShaderPermutations", DisplayName = "Force all shader permutation support",
+		ConfigRestartRequired = true))
+		uint32 bSupportAllShaderPermutations : 1;
+
+public:
+
+	//~ Begin UObject Interface
+
+	virtual void PostInitProperties() override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };

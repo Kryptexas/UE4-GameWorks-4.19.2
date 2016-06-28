@@ -23,6 +23,7 @@
 #include "MeshUtilities.h"
 #include "MeshRendering.h"
 #include "MeshMergeData.h"
+#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 
 IMPLEMENT_MODULE(FMaterialUtilities, MaterialUtilities);
 
@@ -1397,7 +1398,7 @@ void FMaterialUtilities::AnalyzeMaterial(UMaterialInterface* InMaterial, const s
 	}
 }
 
-void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterface*>& InMaterials, const TArray<struct FRawMeshExt>& InMeshData, const TMap<FMeshIdAndLOD, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FMeshIdAndLOD, TArray<int32> >& OutMaterialMap, TArray<UMaterialInterface*>& OutMaterials)
+void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterface*>& InMaterials, const TArray<FRawMeshExt>& InMeshData, const TMap<FMeshIdAndLOD, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FMeshIdAndLOD, TArray<int32> >& OutMaterialMap, TArray<UMaterialInterface*>& OutMaterials)
 {
 	// Gather material properties
 	TMap<UMaterialInterface*, int32> MaterialNumTexCoords;
@@ -1436,7 +1437,7 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
 		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
-		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
 		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, InMeshData[MeshIndex].ExportLODIndex)];
 		int32 NumTexCoords = 0;
 		bool bUseVertexData = false;
@@ -1478,7 +1479,7 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
 		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
-		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
 		
 		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
 		TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));

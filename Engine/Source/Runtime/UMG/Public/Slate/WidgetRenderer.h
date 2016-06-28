@@ -68,6 +68,8 @@ public:
 		FSlateRect WindowClipRect,
 		float DeltaTime);
 
+	TArray< TSharedPtr<FSlateWindowElementList::FDeferredPaint> > DeferredPaints;
+
 private:
 	void PrepassWindowAndChildren(TSharedRef<SWindow> Window, float Scale);
 
@@ -89,4 +91,7 @@ private:
 	bool bUseGammaSpace;
 	/** Should we clear the render target before rendering. */
 	bool bClearTarget;
+
+public:
+	FVector2D ViewOffset;
 };

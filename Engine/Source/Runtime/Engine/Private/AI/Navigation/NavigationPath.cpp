@@ -23,6 +23,8 @@ const FNavPathType FNavigationPath::Type;
 
 FNavigationPath::FNavigationPath()
 	: PathType(FNavigationPath::Type)
+	, bDoAutoUpdateOnInvalidation(true)
+	, bIgnoreInvalidation(false)
 	, bUpdateStartPointOnRepath(true)
 	, bUpdateEndPointOnRepath(true)
 	, bUseOnPathUpdatedNotify(false)
@@ -34,6 +36,8 @@ FNavigationPath::FNavigationPath()
 
 FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	: PathType(FNavigationPath::Type)
+	, bDoAutoUpdateOnInvalidation(true)
+	, bIgnoreInvalidation(false)
 	, bUpdateStartPointOnRepath(true)
 	, bUpdateEndPointOnRepath(true)
 	, bUseOnPathUpdatedNotify(false)
@@ -74,6 +78,7 @@ void FNavigationPath::InternalResetNavigationPath()
 	// - PathType
 	// - ObserverDelegate
 	// - bDoAutoUpdateOnInvalidation
+	// - bIgnoreInvalidation
 	// - bUpdateStartPointOnRepath
 	// - bUpdateEndPointOnRepath
 	// - bWaitingForRepath
@@ -151,12 +156,15 @@ void FNavigationPath::DisableGoalActorObservation()
 
 void FNavigationPath::Invalidate()
 {
-	bUpToDate = false;
-	ObserverDelegate.Broadcast(this, ENavPathEvent::Invalidated);
-	if (bDoAutoUpdateOnInvalidation && NavigationDataUsed.IsValid())
+	if (!bIgnoreInvalidation)
 	{
-		bWaitingForRepath = true;
-		NavigationDataUsed->RequestRePath(AsShared(), ENavPathUpdateType::NavigationChanged);
+		bUpToDate = false;
+		ObserverDelegate.Broadcast(this, ENavPathEvent::Invalidated);
+		if (bDoAutoUpdateOnInvalidation && NavigationDataUsed.IsValid())
+		{
+			bWaitingForRepath = true;
+			NavigationDataUsed->RequestRePath(AsShared(), ENavPathUpdateType::NavigationChanged);
+		}
 	}
 }
 

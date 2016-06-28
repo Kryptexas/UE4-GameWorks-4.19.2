@@ -52,25 +52,27 @@ class SBlueprintWarningRow : public SMultiColumnTableRow< FBlueprintWarningListE
 		}
 		else if (InColumnName == ColumnWarningBehavior )
 		{
+			const auto& GetWarningText = [this]() -> FText
+			{
+				UEnum* const BlueprintWarningBehaviorEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EBlueprintWarningBehavior"));
+				EBlueprintWarningBehavior Behavior = EBlueprintWarningBehavior::Warn;
+				FName WarningIdentifier = this->WarningInfo->WarningIdentifier;
+				if (FBlueprintSupport::ShouldTreatWarningAsError(WarningIdentifier))
+				{
+					Behavior = EBlueprintWarningBehavior::Error;
+				}
+				else if (FBlueprintSupport::ShouldSuppressWarning(WarningIdentifier))
+				{
+					Behavior = EBlueprintWarningBehavior::Suppress;
+				}
+				return BlueprintWarningBehaviorEnum->GetDisplayNameText(static_cast<int32>(Behavior));
+			};
+
 			return SNew(FBlueprintWarningBehaviorComboBox)
 				.Content()
 				[
 					SNew(STextBlock)
-						.Text_Lambda([this]() 
-						{
-							UEnum* const BlueprintWarningBehaviorEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EBlueprintWarningBehavior"));
-							EBlueprintWarningBehavior Behavior = EBlueprintWarningBehavior::Warn;
-							FName WarningIdentifier = this->WarningInfo->WarningIdentifier;
-							if( FBlueprintSupport::ShouldTreatWarningAsError(WarningIdentifier))
-							{
-								Behavior = EBlueprintWarningBehavior::Error;
-							}
-							else if(FBlueprintSupport::ShouldSuppressWarning(WarningIdentifier))
-							{
-								Behavior = EBlueprintWarningBehavior::Suppress;
-							}
-							return BlueprintWarningBehaviorEnum->GetDisplayNameText(static_cast<int32>(Behavior));
-						})
+					.Text_Lambda(GetWarningText)
 				]
 				.OptionsSource(&(Parent->CachedBlueprintWarningBehaviors))
 				.OnSelectionChanged(
