@@ -977,7 +977,11 @@ public:
 		if (LastBoundPipeline != NewPipeline)
 		{
 			//#todo-rco: Compute
+#if	VULKAN_COMMANDWRAPPERS_ENABLE
 			vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
+#else
+			VulkanRHI::vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
+#endif
 			LastBoundPipeline = NewPipeline;
 		}
 	}

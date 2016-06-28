@@ -234,8 +234,6 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	}
 #endif	// VULKAN_HAS_DEBUGGING_ENABLED
 
-	//@TODO: Android driver hasn't implemented extensions yet
-#if !PLATFORM_ANDROID
 	for (int32 i = 0; i < GlobalExtensions.ExtensionProps.Num(); i++)
 	{
 		for (int32 j = 0; j < ARRAY_COUNT(GInstanceExtensions); j++)
@@ -247,7 +245,6 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 			}
 		}
 	}
-#endif	// !PLATFORM_ANDROID
 
 	if (OutInstanceExtensions.Num() > 0)
 	{
@@ -349,8 +346,6 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	}
 #endif	// VULKAN_HAS_DEBUGGING_ENABLED
 
-	//@TODO: Extensions mechanisms are currently unavailable
-#if !PLATFORM_ANDROID
 	FLayerExtension Extensions;
 	FMemory::Memzero(Extensions.LayerProps);
 	GetDeviceLayerExtensions(Gpu, nullptr, Extensions);
@@ -383,9 +378,6 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		}
 	}
 	#endif
-
-
-#endif	// !PLATFORM_ANDROID
 
 	if (OutDeviceExtensions.Num() > 0)
 	{

@@ -28,15 +28,19 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 
 #if PLATFORM_ANDROID
 #include "VulkanLoader.h"
+#define VULKAN_COMMANDWRAPPERS_ENABLE 0
 #else
 #include <vulkan/vulkan.h>
+#define VULKAN_COMMANDWRAPPERS_ENABLE 1
 #endif
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "RHI.h"
 
+#if VULKAN_COMMANDWRAPPERS_ENABLE
 #include "VulkanCommandWrappers.h"
+#endif
 using namespace VulkanRHI;
 
 // Default is 1 (which is aniso off), the number is adjusted after the limits are queried.

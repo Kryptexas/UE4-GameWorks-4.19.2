@@ -30,7 +30,7 @@ static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the
 
 // Vulkan function pointers
 
-#define DEFINE_VK_ENTRYPOINTS(Type,Func) Type Func = NULL;
+#define DEFINE_VK_ENTRYPOINTS(Type,Func) Type VulkanRHI::Func = NULL;
 ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
 
 #endif
@@ -197,10 +197,10 @@ static bool LoadVulkanLibrary()
 	}
 
 	bool bFoundAllEntryPoints = true;
-#define CHECK_VK_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+#define CHECK_VK_ENTRYPOINTS(Type,Func) if (VulkanRHI::Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
 
 	// Initialize all of the entry points we have to query manually
-#define GET_VK_ENTRYPOINTS(Type,Func) Func = (Type)dlsym(VulkanLib, #Func);
+#define GET_VK_ENTRYPOINTS(Type,Func) VulkanRHI::Func = (Type)dlsym(VulkanLib, #Func);
 	ENUM_VK_ENTRYPOINTS_BASE(GET_VK_ENTRYPOINTS);
 	ENUM_VK_ENTRYPOINTS_BASE(CHECK_VK_ENTRYPOINTS);
 	if (!bFoundAllEntryPoints)
@@ -219,9 +219,9 @@ static bool LoadVulkanLibrary()
 static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
 {
 	bool bFoundAllEntryPoints = true;
-#define CHECK_VK_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+#define CHECK_VK_ENTRYPOINTS(Type,Func) if (VulkanRHI::Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
 
-#define GETINSTANCE_VK_ENTRYPOINTS(Type, Func) Func = (Type)vkGetInstanceProcAddr(inInstance, #Func);
+#define GETINSTANCE_VK_ENTRYPOINTS(Type, Func) VulkanRHI::Func = (Type)VulkanRHI::vkGetInstanceProcAddr(inInstance, #Func);
 	ENUM_VK_ENTRYPOINTS_INSTANCE(GETINSTANCE_VK_ENTRYPOINTS);
 	ENUM_VK_ENTRYPOINTS_INSTANCE(CHECK_VK_ENTRYPOINTS);
 
@@ -232,7 +232,7 @@ static void FreeVulkanLibrary()
 {
 	if (VulkanLib != nullptr)
 	{
-#define CLEAR_VK_ENTRYPOINTS(Type,Func) Func = nullptr;
+#define CLEAR_VK_ENTRYPOINTS(Type,Func) VulkanRHI::Func = nullptr;
 		ENUM_VK_ENTRYPOINTS_ALL(CLEAR_VK_ENTRYPOINTS);
 
 		dlclose(VulkanLib);
