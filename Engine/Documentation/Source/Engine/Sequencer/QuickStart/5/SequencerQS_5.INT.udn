@@ -62,7 +62,16 @@ At the end of this step, you will have created your own multi-shot cinematic wit
 
 	![](SequencerQS_5_6.png)
 
-	You can click-and-drag Shots around and arrange them on a Shot Track. 
+	[REGION:tip]
+	You can drag shots around to arrange the playback order or for organization purposes. 
+	A typical best practice is to alternate between tracks within a Shot Track to illustrate where cuts occur rather than leaving them all on the same single track. 
+
+	![](ShotCuts.png)
+
+	Below we have the same number of shots without using an adddtional Track within the Shots Track. 
+
+	![](ShotCutsB.png)
+	[/REGION]
 
 1. Click the **Lock Viewport** toggle button to lock the camera to the **Shot Track**. 
 

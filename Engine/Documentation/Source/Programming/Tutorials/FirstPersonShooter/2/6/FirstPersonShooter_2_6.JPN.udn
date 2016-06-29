@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3018072
 Availability:Docs
 Title:2.6 - キャラクターにメッシュを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターにメッシュを追加する方法を学びます。
-SkillLevel:Beginner
-Version:4.11
+SkillLevel: Beginner
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -151,7 +151,7 @@ Version:4.11
 
 ## PIE モードで新しいメッシュを確認する
 
-新規追加したメッシュをエディタ内でコンパイルし、テストします。
+新規追加したメッシュをエディタ内で見ます。
 
 1.	`FPSProjectGameMode.cpp` を Visual Studio に保存します。
 
@@ -167,7 +167,10 @@ Version:4.11
 
 	![](PawnwithShadow.png)
 
+	[REGION:note]
 	エディタのビューポート内でキャラクターのメッシュを確認したい場合は、[F8] キーを押してポーンの所有を解除してください。[F8] キーを押すと、カメラをレベル内で自由に動かすことができます。カメラを動かすには、左マウスボタンを押した状態でマウスを動かします。
+	[/REGION]
+
 	![](FreelyMovingCamera.png)
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。

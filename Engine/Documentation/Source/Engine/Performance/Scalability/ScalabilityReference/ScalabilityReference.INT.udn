@@ -442,7 +442,28 @@ Skeletal meshes can have static Level of Details models. With the console variab
 
 ## Grass and Foliage Scalability
 
-Both the Grass and Foliage systems can use the **Scalability System** to help reduce the impact those systems have on performance. To enable this functionality in your project you will need to do the following: 
+The **View** -> **Engine Scalability Settings** -> **Foliage** option adjusts how many foliage meshes are rendered at one time  in accordance with the settings found in the BaseScalaiblity.ini file located in [UE4_InstallPath]/Engine/Config folder. With the **Low** setting equating to FoliageQuality 0 and **Epic** to FoliageQuality 3.
+
+[region:note]
+For Foliage Static Meshes to work with the  Scalability settings you must enable the **Enable Density Scaling** option. You can read more about how to set this up in the [Foliage Instanced Meshes](Engine\Foliage) documentation.
+[/region]
+
+[REGION:simpletable]
+|FoliageQuality 0|FoliageQuality 1|
+| --- | --- |
+|[INCLUDE:#FoliageQuality@0]|[INCLUDE:#FoliageQuality@1]|
+
+|FoliageQuality 2|FoliageQuality 3|
+| --- | --- |
+|[INCLUDE:#FoliageQuality@2]|[INCLUDE:#FoliageQuality@3]|
+[/REGION]
+
+[REGION:fullwidth]
+[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
+[/REGION]
+
+## Customizing Scalability Settings
+You can customize any of the Scalability Settings that are used in your UE4 project. In the following example we will add and the change the Scalability Settings for the Foliage by doing the following:
 
 1. Go to your projects **Config** folder and create a new **.INI** file called **DefaultScalability.ini**.
 
@@ -451,34 +472,28 @@ Both the Grass and Foliage systems can use the **Scalability System** to help re
 1. Open up the newly created **DefaultScalability.ini** file and add the following lines of code to it. 
 
 		[FoliageQuality@0]
-		foliage.DensityScale=0
-		grass.DensityScale=0
+		foliage.DensityScale=.25
+		grass.DensityScale=.25
 
 		[FoliageQuality@1]
-		foliage.DensityScale=0.4
-		grass.DensityScale=0.4
+		foliage.DensityScale=0.50
+		grass.DensityScale=0.50
 
 		[FoliageQuality@2]
-		foliage.DensityScale=0.8
-		grass.DensityScale=0.8
+		foliage.DensityScale=0.75
+		grass.DensityScale=0.75
 
 		[FoliageQuality@3]
 		foliage.DensityScale=1.0
 		grass.DensityScale=1.0
 
 	When completed the information inside of the DefaultScalability.ini file should match the following image.
-
 	![](FGC_Config_Info.png)
 
-1. Now when the Scalability settings for **Foliage** are changed, the amount of Foliage and Landscape Grass Static Meshes that are spawned will be reduced or increased based on which setting was picked.
+1. Save the file and now when the Scalability settings for **Foliage** are changed, the amount of Foliage and Landscape Grass Static Meshes that are spawned will be reduced or increased based on which setting was picked.
 
-	[REGION:fullwidth]
-	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
-	[/REGION]
+	
 
-[region:note]
-For Foliage Static Meshes to work with the  Scalability settings you must enable the **Enable Density Scaling** option. You can read more about how to set this up in the [Foliage Instanced Meshes](Engine\Foliage) documentation.
-[/region]
 
 <!-----
 [EXCERPT:FGS]
@@ -542,3 +557,41 @@ For Foliage Static Meshes to work with the  Scalability settings you must enable
 [/EXCERPT:FoliageQuality@3]
 
 -->
+
+
+<!--
+Both the Grass and Foliage systems can use the **Scalability System** to help reduce the impact those systems have on performance. To enable this functionality in your project you will need to do the following: 
+
+1. Go to your projects **Config** folder and create a new **.INI** file called **DefaultScalability.ini**.
+
+	![](FGC_Config_Location.png)
+
+1. Open up the newly created **DefaultScalability.ini** file and add the following lines of code to it. 
+
+		[FoliageQuality@0]
+		foliage.DensityScale=0
+		grass.DensityScale=0
+
+		[FoliageQuality@1]
+		foliage.DensityScale=0.4
+		grass.DensityScale=0.4
+
+		[FoliageQuality@2]
+		foliage.DensityScale=0.8
+		grass.DensityScale=0.8
+
+		[FoliageQuality@3]
+		foliage.DensityScale=1.0
+		grass.DensityScale=1.0
+
+	When completed the information inside of the DefaultScalability.ini file should match the following image.
+
+	![](FGC_Config_Info.png)
+
+1. Now when the Scalability settings for **Foliage** are changed, the amount of Foliage and Landscape Grass Static Meshes that are spawned will be reduced or increased based on which setting was picked.
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
+	[/REGION]
+-->
+

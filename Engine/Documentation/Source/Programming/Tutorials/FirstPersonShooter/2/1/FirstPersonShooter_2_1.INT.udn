@@ -154,7 +154,7 @@ Now that we've successfully extended our newly modified Game Mode to Blueprints,
 
 	![](VerifyingFPSCharacterResult.png)
 
-	Your new Character doesn't have any movement controls yet, so you won't be able to move around in the level. If you're unable to move, you are using FPSCharacter as your Pawn correctly!
+	 If you're unable to move, you're using FPSCharacter as your Pawn correctly! Your new Character doesn't have any movement controls yet, so you won't be able to move around in the level.
 
 1.	Before going to the next step, press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 

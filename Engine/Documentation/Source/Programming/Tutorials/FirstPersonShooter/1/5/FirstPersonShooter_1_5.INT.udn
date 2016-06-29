@@ -46,7 +46,7 @@ Now that we've successfully extended our newly modified Game Mode to Blueprints,
     code
     [/PARAMLITERAL]
     [PARAM:heading]
-    Finished Code
+    Finished Section Code
     [/PARAM]
     [PARAM:content]
 		**FPSProjectGameMode.h**

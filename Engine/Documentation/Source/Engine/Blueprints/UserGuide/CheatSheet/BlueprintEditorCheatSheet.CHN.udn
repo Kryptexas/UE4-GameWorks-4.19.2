@@ -1,12 +1,47 @@
-﻿INTSourceChangelist:2055666
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:蓝图编辑器速查表
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:蓝图相关的快捷方式及有用操作的参考指南。
+version: 4.9
+parent:Engine/Blueprints/Workflow
+order:1
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CheatSheet:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CheatSheet:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CheatSheet:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CheatSheet:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:2)]
 
-## 概述
 **蓝图** 内置了很多提高效率的快捷方式，随着您应用编辑器，很多快捷方式自然而然地就会用到，但是还有一些快捷方式则略有隐藏。本文介绍了最常用的操作和快捷方式，使用它们进行操作效率会更高。您也可以从下面下载这些快捷方式的列表。
 
 点击下载： [彩色版本](BlueprintCheatSheet-1989117414.pdf) | [黑白版本](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)

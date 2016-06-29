@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Mesh Mode
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
-Description:User guide for Mesh Mode in the Persona animation editor.
+﻿INTSourceChangelist:2666135
+Availability:Public
+Title:网格模式
+Crumbs:%ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Description:Persona 动画编辑器中的网格模式的用户指南。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,131 +25,132 @@ Description:User guide for Mesh Mode in the Persona animation editor.
 [/OBJECT]
 [/VAR]
 
-##Overview 
+
 [EXCERPT:Overview]
-**Mesh Mode** of the **Persona** animation editor (accessed by clicking the **Mesh** tab) shares some of the same windows that are available while in other Editing Modes, however there are two windows which are specific to **Mesh Mode** (highlighted below): [Mesh Details](Engine/Animation/Persona\MeshDetails) and [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer). 
+**Persona** 动画编辑器的 **网格** 模式（单击 **网格（Mesh）**选项卡即可访问）使用的某些窗口与其他编辑模式下可用的窗口相同，但有两个窗口是 **网格** 模式所特有的（下图中用黄框突出显示）：[网格细节（Mesh Details）](Engine/Animation/Persona\MeshDetails) 和 [变形目标预览器（Morph Target Previewer）](Engine/Animation/Persona\MorphTargetPreviewer). 
 [/EXCERPT:Overview]
 
 [REGION:fullwidth]
 ![](MeshModeWindows.png)
 [/REGION]
 
-##Mesh Details
-The **Mesh Details** window allow you to modify properties pertaining to the mesh of the Skeletal Mesh such as **Material** and **LOD** settings, assigning **Apex Clothing**, adding meshes to the existing mesh, adjusting **Mirroring** settings or assigning a **Physics Asset** to the mesh. You can also **Reimport** asset data, adjust **Thumbnail Orbit** or **Texture Streaming** settings. 
+##网格细节（Mesh Details）
+**网格细节（Mesh Details）**允许您修改与骨骼网格相关的属性（例如 **材质**和 **细节水平（LOD）** 设置），指定 **Apex 服装**，向现有网格添加网格，调整 **镜像** 设置或向网格分配 **物理资产**。您还可以 **重新导入** 资产数据，调整 **缩略图轨道** 或 **纹理流** 设置。 
 
-###LOD Settings
+###LOD 设置（LOD Settings）
 
 [REGION:fullwidth]
 ![](LOD_Settings.png)
 [/REGION]
 
-In this section, you can assign **Materials** to aspects of the Skeletal Mesh and toggle whether or not those **Materials** cast shadows or not. 
+在此部分中，您可以对骨骼网格的各个面指定材质，并切换这些材质的阴影设置。 
 
-In the **LOD Info** section, there are settings that allow you to modify how the **LOD(s)** function: 
+在 **LOD 信息（LOD Info）**部分，有一些设置允许您修改 LOD 的作用方式： 
 
-| Property| Description |
+| 属性 | 说明 |
 |--- | --- |
-| **Display Factor** | Indicates when to use the LOD. A smaller number means use the LOD when further away.|
-| **LODHysteresis** | Used to avoid "flickering" when on LOD boundary. Only taken into account when moving from complex to single. |
-| **LODMaterial Map** | Specifies the mapping table from the LOD's materials to the USkeletalMesh materials array. |
-| **Triangle Sorting** | Set the current triangle sorting method. |
-| **Custom Left Right Axis** | Set the Left Right Axis.  |
-| **Custom Left Right Bone Name** | Set the Left Right Bone name.  |
+| **显示系数（Display Factor）** | 指示何时使用 LOD。数值越小表示使用 LOD 时的距离越远。|
+| **LOD 滞后（LODHysteresis）** | 用于避免在 LOD 边界上的“闪烁”。系统只会在从复杂转到单一时考虑此项。|
+| **LOD 材质图（LODMaterial Map）** | 指定从 LOD 的材质到 USkeletalMesh 材质阵列的映射表。|
+| **三角排序（Triangle Sorting）** | 设置当前的三角排序方法。|
+| **定制左右轴（Custom Left Right Axis）** | 设置左右轴。|
+| **定制左右骨骼名称（Custom Left Right Bone Name）** | 设置左右骨骼名称。|
 
-###Clothing
+###服装（Clothing）
 
 ![](AddClothing.png)
 
-This section of the **Mesh Details** allows you assign **Apex Cloth** assets to the mesh and view information about the assets assigned, there are also **Physics Properties** that can be adjusted for each asset assigned. 
+**网格细节（Mesh Details）**的这一部分允许您对网格分配 **Apex 服装** 资产并查看关于所分配资产的信息，这里还有可针对分配的每个资产调整的 **物理属性（Physics Properties）**。 
 
-| Property| Description |
+| 属性 | 说明 |
 |--- | --- |
-| **Bend Resistance** | Bending stiffness of the cloth in the range [0,1]. |
-| **Shear Resistance** | Shearing stiffness of the cloth in the range [0,1]. |
-| **Stretch Limit** | Make cloth simulation less stretchy. A value smaller than 1 will turn it off. |
-| **Friction** | Friction coefficient in the range [0,1]. |
-| **Damping** | Spring damping of the cloth in range [0,1].  |
-| **Drag** | Drag coefficient in the range [0,1].  |
-| **Gravity Scale** | Amount of gravity that is applied to the cloth. |
-| **Inertia Blend** | Amount of inertia that is kept when using local space simulation. Internal name is inertia scale. |
-| **Self Collision Thickness** | Minimal amount of distance particles will keep of each other. |
+| **抗弯曲性（Bend Resistance）** | 服装的抗弯刚度，范围是 [0,1]。|
+| **抗剪切性（Shearing Resistance）** | 服装的抗剪刚度，范围 [0,1]。|
+| **拉伸极限（Stretch Limit）** | 降低模拟布料的弹性。设置小于 1 的值会将其关闭。|
+| **摩擦（Friction）** | 摩擦系数，范围是 [0,1]。|
+| **阻尼（Damping）** | 布料的弹簧阻尼，范围是 [0,1]。|
+| **阻力（Drag）** | 阻力系数，范围是 [0,1]。|
+| **比重标度（Gravity Scale）** | 对布料应用的重力大小。|
+| **惯性混合（Inertia Blend）** | 使用局部空间模拟时保持的惯性大小。内容名称为惯性标度。|
+| **自碰撞厚度（Self Collision Thickness）** | 各粒子相互之间保持的最小距离量。|
 
-###Additional Meshes
+###附加网格（Additional Meshes）
 
-This section allows you to add meshes to the existing mesh or remove meshes that have been added. 
+此部分允许您向现有网格添加网格，或除去已添加的网格。 
 
-###Mesh
+###网格（Mesh）
 
-This section lists the **Skeleton** that is used with the **Skeletal Mesh** and its location inside the **Content Browser**. 
+此部分列出用于骨骼网格的骨架及其在 **内容浏览器** 中的位置。 
 
-###Skeletal Mesh
+###骨骼网格（Skeletal Mesh）
 
 ![](SkeletalMeshSection.png)
 
-The **Skeletal Mesh** section allows you to define **Materials** for any **Material Interfaces** that exist and whether or not to enable **Shadow Casting** from the **Material**. The ability to set whether or not to **Use Full Precision UVs** is available which if _true_, will use 32 bit UVs and if _false_, will use 16 bit UVs to save memory. 
+**骨骼网格（Skeletal Mesh）**允许您为现有的任何材质接口定义材质，并定义是否启用从材质投射阴影的功能。还提供了是否 **使用全精度 UV（Use Full Precision UVs）**的设置，如果启用，将使用 32 位 UV；如果禁用，将使用 16 位 UV 以节约内存。 
 
+<!--Commenting this section out as it no longer exists as of 4.9 Preview 4 
 ###Mirroring
 
 ![](MirroringSection.png)
 
 There are two options available inside the **Mirroring** section that can be set: 
 
-| Property| Description |
+| 属性 | 说明 |
 |--- | --- |
-| **Skel Mirror Table** | This lists all the bones that should be mirrored. |
-| **Skel Mirror Axis** | Set the Mirror Axis to X, Y, Z or None. |
-| **Skel Mirror Flip Axis** | Set the Mirror Flip Axis to X, Y, Z or None. |
+| **Skel Mirror Table** | This lists all the bones that should be mirrored.|
+| **Skel Mirror Axis** | Set the Mirror Axis to X, Y, Z or None.|
+| **Skel Mirror Flip Axis** | Set the Mirror Flip Axis to X, Y, Z or None.|-->
 
-###Physics
+###物理（Physics）
 
-In the **Physics** section, you can assign a **Physics Asset** to the mesh. The location of the asset in the **Content Browser** (if applicable) is also shown. 
+在 **物理（Physics）**部分中，您可以对网格指定物理资产。系统还会显示资产在 **内容浏览器** 中的位置（如果适用）。 
 
-###Reimport
+###重新导入（Reimport）
 
 ![](ReimportSection.png)
 
-This option allows you to reimport the asset being used and adjust the import settings (also shows the currently used import data and settings when applied).
+此选项允许您重新导入所用资产并调整导入设置（在应用时还会显示当前使用的导入数据和设置）。
 
-| Property| Description |
+| 属性 | 说明 |
 |--- | --- |
-| **Update Skeleton Reference Pose** | If enabled, update the Skeleton (of the mesh being imported)'s reference pose. |
-| **Use T0As Ref Pose** | Enable this option to use frame 0 as the reference pose.  |
-| **Preserve Smoothing Groups** | If checked, triangles with non-matching smoothing groups will be physically split. |
-| **Import Meshes in Bone Hierarchy** | If checked, meshes nested in bone hierarchies will be imported instead of being converted to bones.  |
-| **Import Morph Targets** | If enabled, creates Unreal morph objects for the imported meshes. |
-| **Import Mesh LODs** | If enabled, creates LOD models for Unreal meshes from LODs in the imported file; if not enabled, only the base mesh from the LOD group is imported. |
-| **Normal Import Method** | Enabling this option will read the tangents (tangent, binormal, normal) from FBX files instead of generating them automatically.  |
-| **Source File Path** | This is the path to the resource used to construct the Static Mesh. |
-| **Source File Timestamp** | Date/Time-stamp of the file from the last import. |
+| **更新骨架参考姿势（Update Skeleton Reference Pose）** | 如果启用此选项，会更新（所导入网格的）骨架的参考姿势。|
+| **使用 T0 作为参考姿势（Use T0As Ref Pose）** | 启用此选项将使用第 0 帧作为参考姿势。|
+| **保留平滑组（Preserve Smoothing Groups）** | 如果选中此选项，带有非匹配平滑组的三角形将被物理拆分。|
+| **在骨骼层次结构中导入网格（Import Meshes in Bone Hierarchy）** | 如果选中此选项，嵌套在骨骼层次结构中的网格将被导入而不是转换为骨骼。|
+| **导入变形目标（Import Morph Targets）** | 如果启用此选项，会为导入的网格创建虚幻变形对象。|
+| **导入网格 LOD（Import Mesh LODs）** | 如果启用此选项，会从导入文件中的 LOD 创建虚幻网格的 LOD 模型；如果不启用此选项，将仅导入 LOD 组中的基本网格。|
+| **法线导入方法（Normal Import Method）** | 启用此选项将从 FBX 文件读取切线（切线、副法线、法线）而不是自动生成它们。|
+| **源文件路径（Source File Path）** | 这是指向用于构造静态网格的资源的路径。|
+| **源文件时间戳记（Source File Timestamp）** | 上次导入的文件的日期/时间戳记。|
 
-###Thumbnail
+###缩略图（Thumbnail）
 
 ![](ThumbnailSection.png)
 
-The **Thumbnail** section allows you to set the **Orbit Pitch**, **Orbit Yaw** and **Orbit Zoom** of the camera around the asset.
+**缩略图（Thumbnail）**部分允许您设置围绕资产的摄像机的 **轨道俯仰角（Orbit Pitch）**、**轨道偏航角（Orbit Yaw）**和 **轨道缩放（Orbit Zoom）**。
 
-| Property| Description |
+| 属性 | 说明 |
 |--- | --- |
-| **Orbit Pitch** | The pitch of the orbit camera around the asset. |
-| **Orbit Yaw** | The yaw of the orbit camera around the asset. |
-| **Orbit Zoom** | The offset from the bounds sphere distance from the asset. |
+| **轨道俯仰角（Orbit Pitch）** | 摄像机围绕资产的轨道的俯仰角。|
+| **轨道偏航角（Orbit Yaw）** | 摄像机围绕资产的轨道的偏航角。|
+| **轨道缩放（Orbit Zoom）** | 相对于资产的界限球体距离的偏移。|
 
-###Texture Streaming
+###纹理流（Texture Streaming）
 
 ![](TextureStreamingSection.png)
 
-**Texture Streaming** allows artists to adjust the distance where textures using UV 0 are streamed in/out.
+**纹理流（Texture Streaming）**允许美工调整流式切入/切出使用 UV 0 的纹理的距离。
 
-| Property| Description |
+| 属性 | 说明 |
 |--- | --- |
-| **Streaming Distance Multiplier** | 1.0 is the default, where a higher value increases the streamed-in resolution. |
+| **流距离乘数（Streaming Distance Multiplier）** | 1.0 是默认值，增大该值会提高流式切入分辨率。|
 
 
 
-##Morph Target Previewer
+##变形目标预览器（Morph Target Previewer）
 
 [INCLUDE:Engine/Animation/Persona/MorphTargetPreviewer#Overview]
 
-For more information, refer to the [Morph Target Previewer](Engine/Animation/Persona/MorphTargetPreviewer/) documentation. 
+有关更多信息，请参见 [变形目标预览器](Engine/Animation/Persona/MorphTargetPreviewer/) 文档。 
 
 

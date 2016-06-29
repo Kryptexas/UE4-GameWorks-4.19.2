@@ -1,114 +1,102 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:1. Setting up the Blend Space
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
-Description:In this first step we create the Blend Space that will be used to blend our character animations.
-Related: Engine/Animation/Blendspaces
-Related: Engine/Animation/NodeReference/Blend
-Related: Engine/Animation/CharacterSetupOverview
-Related: Engine/Animation/AnimBlueprints
-Related: Engine/Animation/StateMachines
-version: 4.10
-skilllevel: Intermediate
-checkpoint: editorqs
+﻿INTSourceChangelist:2945857
+Availability:Public
+Title:1.设置混合空间
+Crumbs:%ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
+Description:在这第一步中，我们创建将用于混合角色动画的混合空间。
+Related:Engine/Animation/Blendspaces
+Related:Engine/Animation/NodeReference/Blend
+Related:Engine/Animation/CharacterSetupOverview
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/StateMachines
+version:4.10
+skilllevel:Intermediate
+checkpoint: animpropertyblend
+type:sequential
+order:1
+parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Property Based Blending](Engine\Animation\AnimHowTo\PropertyBasedBlending)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Animation\AnimHowTo\PropertyBasedBlending\AnimBP "%Engine\Animation\AnimHowTo\PropertyBasedBlending\AnimBP:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-In this first step, we set up our [Blend Space](Engine/Animation/Blendspaces) to move between several different animations based on values of two parameters. 
+在这第一步中，我们要设置我们的 [混合空间](Engine/Animation/Blendspaces)，以根据两个参数的值在多种不同动画之间切换。 
 
 
 [REGION:note]
-For this guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. 
-We are also using animations that are included in the **Animation Starter Pack** which is available for download for free via the **Marketplace**. 
-Once downloaded, add this pack to your project via the **Add to Project** button from the Launcher and proceed to the steps below.
+对于本操作指南，我们在启用了 **起步内容** 的前提下使用 **Blueprint Third Person** 模板创建了新项目。 
+我们还使用了 **动画初学者包** 中包含的动画，该包可以通过 **市场** 免费下载。 
+下载后，通过启动程序中的 **添加到项目（Add to Project）**按钮将此包添加到您的项目，然后继续执行下文的步骤。
 
 ![](AnimStarterPack.png)
 
 [/REGION]
 
 
-## Steps
+## 步骤
 
-1.  In the **Content Browser** under **Content/ThirdPersonBP/Blueprints**, open the **ThirdPersonGameMode** Blueprint. 
+1. 在 **内容浏览器** 的 **Content/ThirdPersonBP/Blueprints** 下面，打开 **ThirdPersonGameMode** 蓝图。 
 
-1.	Under **Default Pawn Class**, click the dropdown menu and select the **Ue4ASP_Character**. 
+1. 	在 **默认走卒类（Default Pawn Class）**下面，单击下拉菜单，并选择 **Ue4ASP_Character**。 
 
 	![](HowTo1.png)
 
-	This will set the default character pawn to use the one provided with the Animation Starter Pack. 
+	这将把默认角色走卒设置为使用动画初学者包中提供的角色。 
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1. 	**编译（Compile）**并 **保存（Save）**，然后关闭蓝图。 
 
-1.	In the **Content Browser**, click the **Add New** Button then under **Animation**, select **Blend Space**. 
+1. 	在 **内容浏览器** 中，单击 **新增（Add New）**按钮，然后在 **动画（Animation）**下面选择 **混合空间（Blend Space）**。 
 
 	![](HowTo2.png)
 
-1.	In the **Pick Skeleton** window, select the bottom **UE4_Mannequin_Skeleton**. 
+1. 	在 **选取骨架（Pick Skeleton）**窗口中选择最下面的 **UE4_Mannequin_Skeleton**。 
 
 	![](HowTo3.png)(w:540)
 
-	This refers to the Skeletal Asset that came with the Animation Starter Pack. 
+	这指的是动画初学者包附带的骨骼资产。 
 
-1.	Name the Blend Space **Walk_Jog_BS** (you can also move it to the **AnimStaterPack** folder if desired). 
+1. 	将混合空间命名为 **Walk_Jog_BS**（如果您愿意，也可以将它移动到 **AnimStaterPack** 文件夹）。 
 
 	![](HowTo4.png)(w:720)
 
-1.	Open the **Walk_Jog_BS**, then in the center window under the **Parameters** section, enter the values shown. 
+1. 	打开 **Walk_Jog_BS**，然后在中央窗口的 **参数（Parameters）**部分下面，输入图中所示的值。 
 
 	![](HowTo5.png)
 
-	Set the **X Axis Label** to **Direction** and its range to **-180 to 180**. Set the **Y Axis Label** to **Speed** and its range to **150 to 270**. With the values set, click the **Apply Parameter Changes** button which will make the grid space to the left update with your values. Here we are defining the parameters that will determine the motion the Blend Space will produce based on the variables **Direction** and **Speed** (clamped by the range provided) which we will get from the player character. 
+	将 **X 轴标签（X Axis Label）**设置为 **方向（Direction）**，将其范围设置为 **-180 到 180**。将 **Y 轴标签（Y Axis Label）**设置为 **速度（Speed）**，将其范围设置为 **150 到 270**。设置好这些值后，单击 **应用参数更改（Apply Parameter Changes）**按钮，系统将用您的值更新左边的栅格空间。我们在这里定义的参数将决定混合空间根据我们从玩家角色获得的变量 **方向（Direction）**和 **速度（Speed）**（限制在提供的范围内）产生的运动。 
 
-1.	From the **Asset Browser** window, drag the **Walk_Fwd_Rifle_Ironsights** animation into the graph at the bottom center location. 
+1. 	在 **资产浏览器（Asset Browser）**窗口中，将 **Walk_Fwd_Rifle_Ironsights** 动画拖动到图中的底部中间位置。 
 
 	![](HowTo6.png)
 
-1.	Drag the **Walk_Lt_Rifle_Ironsights** animation to position 1 and the **Walk_Rt_Rifle_Ironsights** animation to position 2 below. 
+1. 	将 **Walk_Lt_Rifle_Ironsights** 动画拖动到下面的位置 1，将 **Walk_Rt_Rifle_Ironsights** 动画拖动到位置 2。 
 
 	![](HowTo7.png)
 
-1.	Drag the **Walk_Bwd_Rifle_Ironsights** animation to position 1 and 2 below. 
+1. 	将 **Walk_Bwd_Rifle_Ironsights** 动画拖动到下图的位置 1 和 2。 
 
 	![](HowTo8.png)
 
-1.	Drag the **Jog_Fwd_Rifle** animation into the grid in the top center location. 
+1. 	将 **Jog_Fwd_Rifle** 动画拖动到栅格中的顶部中央位置。 
 
 	![](HowTo9.png)
 
-1.	Drag the **Jog_Lt_Rifle** animation to position 1 and the **Jog_Rt_Rifle** animation to position 2 below. 
+1. 	将 **Jog_Lt_Rifle** 动画拖动到下图的位置 1，将 **Jog_Rt_Rifle** 动画拖动到位置 2。 
 
 	![](HowTo10.png)
 
-1.	Drag the **Jog_Bwd_Rifle** animation to position 1 and 2 below.
+1. 	将 **Jog_Bwd_Rifle** 动画拖动到下图的位置 1 和 2。
 
 	![](HowTo11.png)
 
-	If you move your mouse around inside the grid, you will see the character start to blend between the different walk/jog animations. 
+	如果您在栅格中四处移动鼠标，将看到角色开始在不同的行走/慢跑动画之间混合。 
 
-1.	Inside the **Anim Asset Details** window under Sample Interpolation, set **Target Weight Interpolation Speed Per Sec** to **4.0**. 
+1. 	在 **动画资产细节（Anim Asset Details）**窗口的“取样插值”（Sample Interpolation）下，将 **每秒目标权重插值速度（Target Weight Interpolation Speed Per Sec）**设置为 **4.0**。 
 
 	![](HowTo12.png)
 
-	This will smooth out the transition between the animations in the Blend Space to prevent popping from pose to pose. 
+	这将使混合空间中的不同动画平滑过渡，防止突兀地变换姿势的现象。 
 
-1.	Click **Save** to save your Blend Space setup. 
+1. 	单击 **保存（Save）**保存您的混合空间设置。 
 
-## End Result
+## 最终结果
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -122,6 +110,6 @@ oVQ1iU0uaVk
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can now preview your Blend Space by moving your mouse inside the X/Y Grid. Moving near the lower end of the grid will cause the character to walk, while moving up near the top of the grid will cause the character to start to jog. If you are not seeing the character move, make sure that **Enable Preview BlendSpace** option is checked under the **Samples** section.
+现在您可以将鼠标在 X/Y 栅格中移动来预览混合空间。移动到栅格下端附近将使角色开始行走，上移到栅格顶端附近将使角色开始慢跑。如果你没有看到角色移动，请确保在 **样本（Samples）**部分下选中 **启用预览混合空间（Enable Preview BlendSpace）**选项。
 
-%Steps%
+[NAV]

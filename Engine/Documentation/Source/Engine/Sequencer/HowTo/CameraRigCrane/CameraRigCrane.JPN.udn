@@ -1,117 +1,117 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Shooting from a Camera Rig Crane
+﻿INTSourceChangelist:3009005
+Availability:Public
+Title:Camera Rig Crane から撮影する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Here we use a Camera Rig Crane to shoot a scene with sweeping movement. 
+Description:Camera Rig Crane を使ってスイープ動作でシーンを撮影します。 
 Version: 4.12
-SkillLevel: Intermediate
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-One of the tools real-world filmmakers use to produce smooth sweeping shots is by attaching a camera to a crane and controlling the shot through the crane's movement.
-You can create similar shots in Sequencer with the use of the **Camera Rig Crane** Actor and an attached **Camera**. 
+滑らかなスイープ ショットを生み出すために現実世界の映像制作で使われるツールとして、カメラをクレーンに装着し、クレーンの動きによってショットを制御するというものがあります。
+シーケンサーで **Camera Rig Crane** アクタとアタッチされた **カメラ** を使って同様のショットを作成することができます。 
 
-In this how-to we will add a Camera Rig Crane, attach a Camera, and create a sample Crane Shot. 
+この操作ガイドでは、Camera Rig Crane を追加し、カメラをアタッチし、サンプル Crane ショットを作成します。 
 
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
 [/REGION]
 
-1.	In your project on the **Modes** panel under **Cinematic**, drag a **Camera Rig Crane** asset into the level. 
+1.	**[Modes]** パネルの **[Cinematic]** から **Camera Rig Crane** アセットをレベルにドラッグします。 
 
 	![](Crane01.png)
 
-1.	Also under **Cinematic**, drag a **Cine Camera Actor** into the level. 
+1.	**[Cinematic]** から **Cine Camera アクタ** をレベルにドラッグします。 
 
 	![](Crane02.png)
 
-1.	In the **World Outliner** window, drag-and-drop the **CineCameraActor** onto the **CameraRig_Crane**. 
+1.	**[ワールド アウトライナー]** ウィンドウで **CineCameraActor** を **CameraRig_Crane** にドラッグ & ドロップします。 
 
 	![](Crane03.png)
 
-	This will attach the camera to the crane so that it will follow the crane's movement. 
+	これでカメラがクレーンにアタッチされて、クレーンの動きに追随するようになります。 
 
-1.	Select the **CineCameraActor**, then in the **Details** panel under **Transform** enter "0" for **Location** and **Rotation** values. 
+1.	**CineCameraActor** を選択し、**[Details (詳細)]** パネルの **[Transform]** で **[Location]** と **[Rotation]** の値に "0" を入力します。 
 
 	![](Crane04.png)
 
-	This will zero out the camera's transform and attach it correctly to the crane. 
+	これでカメラのトランスフォームが初期化されて、クレーンに正しくアタッチされます。 
 
-1.	From the Main Toolbar, click **Cinematics** then select **Add Level Sequence**. 
+1.	メイン ツールバー から **[Cinematics]** をクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** をクリックします。 
 
 	![](Crane05.png)
 
-1.	Hold **Ctrl** and select both the **CameraRigCrane** and **CineCameraActor**, then add both to **Sequencer**. 
+1.	**Ctrl** キーを押したまま、 **[CameraRigCrane]** と **[CineCameraActor]** を選択して両方とも **シーケンサー** に追加します。 
 
 	![](Crane06.png)
 
-1.	Click **Add** then select the **Camera Cut Track**. 
+1.	**[Add]** をクリックして、**[Camera Cut Track]** を選択します。 
 
 	![](Crane07.png)
 
-	This will allow us to define which camera to shoot this Level Sequence from. 
+	これでどのカメラからこのレベル シーケンスを撮影するかを定義できます。 
 
-1.	On the **Camera Cuts** track, click the **+ Camera** button then select the **CineCameraActor**. 
+1.	**Camera Cuts** トラックで、**[+ Camera]** ボタンをクリックし、 **CineCameraActor** を選択します。 
 
 	![](Crane08.png)
 
-	We are now ready to shoot our scene using our Camera Rig Crane and Cine Camera Actor. 
-	You can preview what the scene will look like through the perspective of the camera we added by clicking the **Lock Viewport to Camera** button on the **Camera Cuts Track**. 
+	これで、Camera Rig Crane と Cine Camera Actor を使ってシーンを撮影する準備が整いました。 
+	追加したカメラの視点を通してシーンがどのように見えるかをプレビューできます。これは、**Camera Cuts トラック** で、**[Lock Viewport to Camera Cuts (ビューポートをカメラカットにロック)]** ボタンをクリックして行います。 
 
 	![](Crane09.png)
 
-	Clicking **Lock Viewport to Camera** again will unlock the camera. 	
+	**[Lock Viewport to Camera]** を再度クリックすると、カメラのロックが解除されます。 	
 
-1.	Using the **Translate** tool (**W** key) and **Rotation** tool (**E** key), rotate the crane/camera as shown below. 
+1.	**Translate** ツール (**W** キー) と **Rotation** ツール (**E** キー) を使って、クレーン / カメラを以下のように回転させます。 
 
 	![](Crane10.png)
 
-	We are going to raise the crane and push it out to focus and reveal the character standing in the level for this particular shot. 
+	クレーンを上にあげ、押し出して、この特定のショットのためにレベルに立っているキャラクターにフォーカスし、その姿が見えるようにします。 
 
-1.	Add a key for the **Transform** location of the **Cine Camera Actor** by clicking the **Add Key** button on the **Transform Track**. 
+1.	**[Transform Track]** で **[Add Key]** ボタンをクリックして、**[Cine Camera Actor]** の **[Transform]** 位置にキーを追加します。 
 
 	![](Crane11.png)
 
-1.	Click the **+ Track** button on the **CameraRig_Crane** and add the **Crane Arm Length**, **Crane Pitch** and **Crane Yaw** tracks. 
+1.	**CameraRig_Crane** 上の **[+ Track]** ボタンをクリックして、**Crane Arm Length**、 **Crane Pitch**、および **Crane Yaw** の各トラックを追加します。 
 
 	![](Crane12.png)
 
-1.	Scrub the Timeline Marker ahead to **50** then set **Crane Arm Length** to **1000** and **Crane Pitch** to **20** and add keys for both. 
+1.	タイムライン マーカーを **50** に進めます。次に、**Crane Arm Length** を **1000** に、**Crane Pitch** を **20** に設定し、両方にキーを追加します。 
 
 	![](Crane13.png)
 
-	If you scrub back-and-forth between the start and frame 50 you should see the crane movement in the viewport.
+	スタートとフレーム 50 との間をスクラブして前後すると、ビューポートでクレーンが動くのがわかります。
 
-1.	Scrub the Timeline Marker to the end of the Sequence (**150**).
+1.	タイムライン マーカーをシーケンスの終わり (**150**) までスクラブします。
 
-1.	In the **Details** panel for the **CameraRig_Crane**, set **Crane Yaw** to **-25** and add a key. 
+1.	**CameraRig_Crane** の **[Details]** パネルで、**[Crane Yaw]** を **-25** に設定し、キーを追加します。 
 
 	![](Crane14.png)
 
-	You can set the **Crane Pitch**, **Crane Yaw** and **Crane Arm Length** from the **Details** panel by clicking the **Add Key** button next to each property. 
+	**[Details]** パネルで **[Crane Pitch]**、**[Crane Yaw]**、**[Crane Arm Length]** の各プロパティの隣にある **[Add Key]** ボタンをクリックしてこれらを設定することができます。 
 
-1.	In the **Details** panel for the **CineCameraActor**, set the **XYZ** values for **Rotation** to **0, -25, -50**. 
+1.	**[Details]** パネルの **CineCameraActor** で、**Rotation** の **XYZ** 値を **0、 -25、 -50** に設定します。 
 
 	![](Crane16.png)
 
-	The values may not be exact and might be auto adjusted which is fine. 
+	これらの値は正確ではない場合があり、自動調整されるかもしれませんが問題ありません。 
 
-1.	With the **Cine Camera Actor** still selected, press **Shift + E** to add a key for the rotational values. 
+1.	**Cine Camera Actor** を選択したままの状態で、**Shift + E** キーを押してこの回転値にキーを追加します。 
 
 	![](Crane17.png)
 
-1.	Lock the viewport to the **Camera Cuts** track then click the **Preview Play** button. 
+1.	ビューポートを **Camera Cuts** トラックに固定してから、**[Preview Play]** ボタンをクリックします。 
 
-	
-## End Result
+	## 最終結果
 
-You should have something similar to below where the camera pans up along with the crane and pushes in towards the character. 
+
+以下の動画に類似した結果になります。カメラがクレーンに沿ってパンアップし、キャラクターに向かってプッシュインします。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -125,10 +125,10 @@ RAsfP5G0Shk
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can adjust the keys by dragging them to new values in the keyframe window. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
+キーフレーム ウィンドウで新しい値にドラッグすることでキーを調整することができます。上の画像では、上方向の動きでクレーンを遅くしました。これは、フレーム **50** に追加した **Crane Arm Length** と **Crane Pitch** のキーフレームを、フレーム **100** まで動かして行いました。 
 
 [REGION:tip]
-There is an advanced method you can use to work with the **Camera Rig Crane** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 
+シーケンサーで **Camera Rig Crane** アセットで作業するための高度な方法があります。これを使うと、この操作ガイドのいくつかの手順を自動化できます。詳細は [**ワークフローのショートカット**](Engine\Sequencer\Workflow\CheatSheet) セクションをご覧ください。 
 [/REGION]
 
 

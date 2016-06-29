@@ -92,15 +92,16 @@ The Planar Reflection Actor has a number of properties that when adjusted can si
 While Planar Reflections offer some very realistic reflections, this features does have a number of limitations which are listed below.
 
 * There's no way to control what rendering features are enabled in the reflection pass.
-* Dynamic shadowing and fog are incorrect in the reflection pass.
+* Dynamic shadowing will incorrect in the reflection pass.
+* To hit your target framerate ensure that you budget enough resources for Planar Reflections.
 * Only a constant Roughness value is supported, and it's specified on the Planar Reflection Component instead of Materials.
 * If at all possible limit the amount of Planar Reflection Actors placed in the world to only one and move, rotate, or scale it to best fit the world. While you can use multiple Planar Reflection Actors, you need to exercise caution as Planar Reflection Actors don not do any sort of distance culling, only frustum, and occlusion culling. Because of this if both Planar Reflection Actors are in view at the same time your project's frame rate will suffer severely.
-* The cost to render the Planar Reflection Actor comes directly from what's currently being rendered in the level. Scenes that are triangle and draw call heavy will suffer the most performance issues when this feature is enabled. To avoid this you must ensure that you budget enough resources so that when enabled, Planar Reflections, do not make your project run slower.
+* The cost to render the Planar Reflection Actor comes directly from what's currently being rendered in the level. Scenes that are triangle and draw call heavy will suffer the most performance issues when this feature is enabled because those costs don't scale with ScreenPercentage. 
 
 
 ## Planar Reflection Performance
 
-While enabling and using  Planar Reflections in your project will give you crisp and reasonably accurate reflections, this option will have a direct impact on the project's performance. The impact that Planar Reflections will have on  performance is not something that can quickly be determined as its impact on performance is directly related to the complexity of both the Static Meshes and Materials used in the level. Levels that use Static Meshes and Materials with high triangle and instruction counts will suffer more performances issue than projects that use less because the Planar Reflection is effectively duplicating all of these assets to make the reflection. In the following section, we will take a look at the performance impact enabling Planar Reflections will have when enabled in a high-end PC project as well as a project that geared towards mobile devices.
+While enabling and using  Planar Reflections in your project will give you crisp and reasonably accurate reflections, this option will have a direct impact on the project's performance. In the following section, we will take a look at the performance impact enabling Planar Reflections will have in a high-end PC project as well as a project that is geared towards mobile devices.
 
 [region:note]
 To show off, the performance impact Planar Reflections have we will be using the 4.12 version of the Kite & Infinity Blade Grass Lands project that can be found in the UE4 launcher.
@@ -125,7 +126,7 @@ While the visual impact Planar Reflections have on the level is quite dramatic, 
 [INCLUDE:#KitePlanarReflection]
 [/REGION]
 
-The reason why Planar Reflections are taking around 31 ms to render is due to the complex nature of the level. If you were to reduce the complexity of both the Static Meshes and their Materials the cost to render the Planar Reflections would decrease.
+The reason why Planar Reflections are taking around 31 ms to render is due to the fully dynamic lighting and shadowing used in Kite. Levels that make use of Stationary / Precomputed lighting and shadowing will be much more efficient when rendered again for the Planar Reflection.
 
 ### Planar Reflection Performance & Infinity Blade Dungeons
 

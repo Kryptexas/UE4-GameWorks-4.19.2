@@ -1,5 +1,5 @@
 Availability:Public
-Title:How To: Use Modulated Shadows
+Title: Use Modulated Shadows
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Setting up Modulated Shadows for mobile games.
 Platform:Mobile
@@ -13,8 +13,6 @@ parent:Platforms/Mobile
 order:3
 type:overview
 tags:mobile
-
-In the following How To we will take a look at how you can enable Modulated Shadows in your UE4 mobile project.
 
 ## Enabling Modulated Shadows
 

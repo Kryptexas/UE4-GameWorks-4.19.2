@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011815
+﻿INTSourceChangelist:3020369
 Availability:Docs
 Title:1.4 - プロジェクトをコンパイルする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -30,7 +30,7 @@ Version:4.11
 
 	![](CompileProject.png)
 
-	_プロジェクトの構築を C++ プロジェクトとして開始したので、アンリアル エディタから直接 C++ コードをコンパイルすることができます。_
+	_プロジェクトの構築を C++ プロジェクトとして開始したので、アンリアル エディタから直接 CPP コードをコンパイルすることができます。_
 
 1.	**[Play (プレイ)]** ボタンをクリックして、[Play in Editor (PIE) (エディタでプレイする(PIE)) ] モードに入ります。
 

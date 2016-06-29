@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2953540
+﻿INTSourceChangelist:3020369
 Availability:Docs
 Title:4.1 - キャラクターをアニメートする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS キャラクターをアニメートする方法を学びます。
-SkillLevel:Beginner
-Version:4.11
+SkillLevel: Beginner
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -42,11 +42,11 @@ Version:4.11
 
 1.	 以下の 5 つのアニメーション ファイルを探します。
 
-	*	FPP_Idle.FBX
-	*	FPP_JumpEnd.FBX
-	*	FPP_JumpLoop.FBX
-	*	FPP_JumpStart.FBX
-	*	FPP_Run.FBX
+	*	`FPP_Idle.FBX`
+	*	`FPP_JumpEnd.FBX`
+	*	`FPP_JumpLoop.FBX`
+	*	`FPP_JumpStart.FBX`
+	*	`FPP_Run.FBX`
 
 1.	「Animations」フォルダ内で右クリックして、**[Import to /Game/Animations/...]** をクリックしてアニメーションのインポートを開始します。
 
@@ -92,6 +92,9 @@ Version:4.11
 
 1.	これで、アニメーションのステートマシンを操作する 2 つのアニメーション遷移変数が用意できました。
 
-	![](NewBooleans.png)
+	[REGION:lightbox]
+		[![](NewBooleans.png)(w:750)](NewBooleans.png)
+	[/REGION]
+	_ズームインするには画像をクリックします。_
 
 %Steps%

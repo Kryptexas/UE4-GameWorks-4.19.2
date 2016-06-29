@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2683604
+﻿INTSourceChangelist:2954984
 Availability:Public
-Title:Point Lights (ポイントライト)
+Title:ポイントライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
-Description:Point Light (ポイントライト)の基礎
+Description:ポイントライトの基礎
 Version:4.9
 
 [VAR:Topic]
@@ -53,7 +53,7 @@ Version:4.9
 
 
 [EXCERPT:Intro]
-**Point Light (ポイントライト)** は、電球のタングステン フィラメントから全方向に光を放射する現実世界の電球のように機能します。しかし、Point Light は、パフォーマンス上の理由から単純化されて、単に空間内のひとつのポイントから全方向に均一に光を放射するようになっています。Point Light を配置する場合、以下の 3 つの可動設定のいずれかを設定できます。
+**ポイントライト** は、電球のタングステン フィラメントから全方向に光を放射する現実世界の電球のように機能します。しかし、ポイントライトは、パフォーマンス上の理由から単純化されて、単に空間内のひとつのポイントから全方向に均一に光を放射するようになっています。ポイントライトを配置する場合、以下の 3 つの可動設定のいずれかを設定できます。
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -66,10 +66,6 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](PointLight_movable.png)(w:150 convert:false)
@@ -80,11 +76,7 @@ Version:4.9
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
-以下は、レベルに設置した Spot Light のサンプル 2 つです。
+以下は、レベルに設置したポイントライトのサンプル 2 つです。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -95,16 +87,16 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-_左が半径が表示されない Point Light、右が半径表示が有効になっている Point Light です。半径表示があると、ライトがワールドに影響を及ぼす範囲がよくわかります。_
+_左が半径が表示されないポイントライト、右が半径表示が有効になっているポイントライトです。半径表示があると、ライトがワールドに影響を及ぼす範囲がよくわかります。_
 
-Point Light からの光は、空間のある点から一定の形状を持たない光を放出するのみですが、アンリアル・エンジン 4 の Point Light は反射とスペキュラハイライト内で半径と長さを使用し、Point Light により一層の物理感覚をもたせることができます。
+ポイントライトからの光は、空間のある点から一定の形状を持たない光を放出するのみですが、アンリアル・エンジン 4 のポイントライトは反射とスペキュラハイライト内で半径と長さを使用し、ポイントライトにより一層の物理感覚をもたせることができます。
 
 ![](pointLight_001.png)(w:300 convert:false) ![](pointLight_002.png)(w:300) ![](pointLight_003.png)(w:300)
 
 
 ## Point Light のプロパティ
 
-**ポイント ライト** のプロパティは、Light、Light Profiles、Lightmass、および Light Function の 4 つのカテゴリに分類されます。 
+**ポイントライト** のプロパティは、Light、Light Profiles、Lightmass、および Light Function の 4 つのカテゴリに分類されます。 
 
 ### Light
 プロパティ | 説明 |
@@ -133,7 +125,7 @@ Point Light からの光は、空間のある点から一定の形状を持た�
 | -------- | ----------- |
 | **IES Texture** | ライトプロファイルに使用した IES "テクスチャ" です。アンリアルでは IES ファイルは ASCII ファイルで格納し、テクスチャを表現します。これらは画像ファイルではありません。 |
 | **Use IES Brightness** | _false_ の場合、ライトの生成量を決定するためにライトの Brightness (輝度) を使用します。_true_ の場合、ルーメン単位の IES ファイルの輝度を使用します (アンリアルのライトのデフォルト値よりもはるかに大きな数値です)。 |
-| **IES Brightness Scale** |シーンを大幅に超えることもあるため、IES 輝度の寄与をスケーリングします。 |
+| **IES Brightness Scale** |シーンを大幅に超えることもあるため、IES 輝度の影響をスケーリングします。 |
 
 ### Lightmass
 プロパティ | 説明 |

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title: Working with Blueprints
+Title: 用蓝图工作
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
+Description: 这篇用户指导用于说明蓝图图表中不同的节点的用法。
 version: 4.9
 parent:Engine/Blueprints
 order:3
@@ -47,7 +47,7 @@ order:3
 [/VAR]
 
 
-When working in Blueprints, commenting your graphs, searching through all the Blueprints in your project, and using breakpoints to debug systems are key tools available to you.
+当工作在蓝图中时，对图表进行注释，在项目中所有的蓝图内进行搜索，以及使用断点工具来调试。
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Workflow")]
 

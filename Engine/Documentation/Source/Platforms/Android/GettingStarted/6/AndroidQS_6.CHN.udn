@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2680000
 Availability:Public
 Title:6.其它资源
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Read more about Android development with Unreal Engine.
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]

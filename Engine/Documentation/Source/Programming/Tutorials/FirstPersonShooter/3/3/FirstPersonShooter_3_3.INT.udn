@@ -36,7 +36,7 @@ During this step, we're going to set up projectile collision and lifetime.
 
 1.	Add the following code to the `FPSProjectile` constructor to set the projectile's lifespan:
 
-		// die after 3 seconds
+		// Die after 3 seconds.
 		InitialLifeSpan = 3.0f;
 
 ## Editing the Projectile's Collision Settings
@@ -79,16 +79,16 @@ Unreal Engine comes packaged with several preset collision chanels; however, the
 		 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 			PrimaryActorTick.bCanEverTick = true;
 		
-			// use a sphere as a simple collision representation
+			// Use a sphere as a simple collision representation.
 			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 			CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
-		
-			// set the sphere's collision radius
+
+			// Set the sphere's collision radius.
 			CollisionComponent->InitSphereRadius(15.0f);
-			// set the root component to be the collision component
+			// Set the root component to be the collision component.
 			RootComponent = CollisionComponent;
 		
-			// use this component to drive this projectile's movement
+			// Use this component to drive this projectile's movement.
 			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
 			ProjectileMovementComponent->InitialSpeed = 3000.0f;
@@ -97,7 +97,7 @@ Unreal Engine comes packaged with several preset collision chanels; however, the
 			ProjectileMovementComponent->bShouldBounce = true;
 			ProjectileMovementComponent->Bounciness = 0.3f;
 		
-			// die after 3 seconds
+			// Die after 3 seconds.
 			InitialLifeSpan = 3.0f;
 		}
 		
@@ -115,8 +115,8 @@ Unreal Engine comes packaged with several preset collision chanels; however, the
 		
 		}
 		
-		// Function that initializes the projectile's velocity in the shoot direction
-		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
+		// Function that initializes the projectile's velocity in the shoot direction.
+		void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 		{
 			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}

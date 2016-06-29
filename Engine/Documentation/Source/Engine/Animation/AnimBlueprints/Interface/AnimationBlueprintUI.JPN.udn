@@ -1,31 +1,69 @@
-﻿INTSourceChangelist:2815917
+﻿INTSourceChangelist:3027057
 Availability:Public
 Title:Animation ブループリントのユーザー インターフェース
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:Animation ブループリントの UI の概要
-version:4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\Creation
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\AnimGraph
 
-[TOC(start:2 end:2)]
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 以下のセクションでは、Animation ブループリントのユーザー インターフェース (UI) のエリアについて説明します。
 
-
 ![](AnimGraphUI.png)
 
-1. メニューバー
-1. ツールバー
-1. ビューポート
-1. グラフ
-1. Anim プレビュー エディタ
-1. アセット オーバーライド エディタ
-1. Asset Browser (アセット ブラウザ) タブ
-1. My Blueprint タブ
-1. Details (詳細) パネル
-1. Palette (パレット)
+1. [メニューバー](#メニューバー)
+1. [ツールバー](#ツールバー)
+1. [ビューポート](#ビューポート)
+1. [グラフ](#グラフ)
+1. [Anim プレビュー エディタ](#Animプレビューエディタ)
+1. [アセット オーバーライド エディタ](#アセットオーバーライドエディタ)
+1. [アセット ブラウザ タブ](#アセットブラウザタブ)
+1. [My Blueprint タブ](#MyBlueprintタブ)
+1. [Detailsパネル](#Detailsパネル)
+1. [パレット](#パレット)
 
-##メニュー バー
+## メニューバー
 
 **メニューバー** では、保存、元に戻す、やり直し、およびいくつかのペルソナ固有のメニューなどの一般的なエディタ操作を利用できます。例えば、**Asset Browser (アセット ブラウザ)** タブでは、
 デフォルトのプレビュー メッシュの変更、スケルトンから使用されていないボーンを取り除く、アニメーションを記録することができます。 
@@ -43,6 +81,8 @@ Animation ブループリントの **ツールバー** には、他のブルー�
 | ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | ブループリントをコンパイルします。| 
 | ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
 | ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
+| ![](PoseButtons.png) | ビューポートをアップデートして、プレビューまたはリファレンス ポーズを表示します。 | 
+|  ![](Record.png)| 現在のプレビュー ポーズ アニメーションに基づき、新規アニメーションを記録することができます。 | 
 | ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
 | ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | シミュレーション モードでゲームを開始します。|
@@ -50,9 +90,11 @@ Animation ブループリントの **ツールバー** には、他のブルー�
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
-ブループリントのツールバーに関する詳細は、[](Engine/Blueprints\Editor/UIComponents\Toolbar) をご覧ください。
+[REGION:note]
+ブループリントのツールバーに関する詳細は、**[](Engine/Blueprints\Editor/UIComponents\Toolbar)** のドキュメントをご覧ください。
+[/REGION]
 
-上記のオプション以外に Animation ブループリント ツールバーには、ペルソナ(Persona) の様々なモード用のタブもあります。
+上記のオプション以外に Animation ブループリントのツールバーには、ペルソナの様々なモード用のタブもあります。
 
 | アイテム | 説明 |
 | ---- | ----------- |
@@ -75,21 +117,23 @@ Animation ブループリントの **ツールバー** には、他のブルー�
 
 ### EventGraph タブ
 
-**[EventGraph (イベントグラフ)]** タブには、スケルタル メッシュのポーズの更新をトリガーする animation event ノードがあります。どのアニメーション アセットをいつ再生するかを決定する変数値を設定するアニメーション ノードも含まれる場合があります。
+**[EventGraph (イベントグラフ)]** タブには、スケルタルメッシュのポーズの更新をトリガーする animation event ノードがあります。どのアニメーション アセットをいつ再生するかを決定する変数値を設定するアニメーション ノードも含まれる場合があります。
 
 ![](AnimGraphUI_Graph.png)(w:900)
 
-### [AnimGraph] タブ
+### AnimGraph タブ
 
 **[AnimGraph]** タブには、必要なアニメーション ノードと共に、すべての実際のアニメーションとステートをつなげるステートマシーンがあります。
 
 ![](AnimGraphUI_AnimGraph.png)
 
-ステートマシンに関する詳細は、**[](Engine/Animation/StateMachines)** をご覧ください。
+すべてのアニメーションノードを直接 [AnimGraph] タブに入れることもできます。しかし、管理しやすく単純化するには、ステートマシーン、ステート、遷移 (ルール) で構成すると効率が高まります。
 
 [REGION:note]
-すべてのアニメーションノードを直接 [AnimGraph] タブに入れることもできます。しかし、維持管理しやすく単純化するには、ステートマシーン、ステート、トランジション (ルール) で構成すると効率が高まります。
+ステートマシンに関する詳細は、**[](Engine/Animation/StateMachines)** をご覧ください。
 [/REGION]
+
+
 
 ## Anim プレビュー エディタ
 
@@ -97,7 +141,9 @@ Animation ブループリントの **ツールバー** には、他のブルー�
 
 ![](AnimGraphUI_BPDefaults.png)
 
+[REGION:note]
 詳細は、 **[](Engine/Animation/Persona\BlueprintDefaults)** をご覧ください。
+[/REGION]
 
 
 ## アセット オーバーライド エディタ
@@ -113,7 +159,7 @@ Animation ブループリントの **ツールバー** には、他のブルー�
 デフォルトで、グラフの下の **[My Blueprint]** タブの隣に [アセット ブラウザ] タブがあります。
 
 
-## [My Blueprint] タブ
+## My Blueprint タブ
 
 [My Blueprint] タブには、Animation ブループリントのすべてのグラフと変数のリストがあります。
 
@@ -122,13 +168,13 @@ Animation ブループリントの **ツールバー** には、他のブルー�
 デフォルトで、グラフの下の **[Asset Browser]**タブの隣に **[My Blueprint]** タブがあります。
 
 
-## [Details (詳細)] パネル
+## Details パネル
 
 **[Details (詳細)]** パネルには、選択した要素のプロパティが表示されます。
 
 ![](AnimGraphUI_Details.png)
 
-## Palette
+## パレット
 
 **[Palette (パレット)]** パネルには、Animation ブループリントの様々なグラフで使用可能なすべてのノードがあります。上のパネルには、"favorite (お気に入り)" とマークされたノードがあればそれが表示されます。
 

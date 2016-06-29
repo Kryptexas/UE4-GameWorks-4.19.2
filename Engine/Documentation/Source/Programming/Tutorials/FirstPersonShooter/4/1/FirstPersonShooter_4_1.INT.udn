@@ -41,11 +41,11 @@ Before getting started, download and extract the provided animations from the fo
 
 1.	Locate the five animation files, namely:
 
-	*	FPP_Idle.FBX
-	*	FPP_JumpEnd.FBX
-	*	FPP_JumpLoop.FBX
-	*	FPP_JumpStart.FBX
-	*	FPP_Run.FBX
+	*	`FPP_Idle.FBX`
+	*	`FPP_JumpEnd.FBX`
+	*	`FPP_JumpLoop.FBX`
+	*	`FPP_JumpStart.FBX`
+	*	`FPP_Run.FBX`
 
 1.	Right-click in the "Animations" folder and click **Import to /Game/Animations/...** to begin importing the animations.
 
@@ -55,7 +55,7 @@ Before getting started, download and extract the provided animations from the fo
 
 	![](SelectHeroFPP_Skeleton.png)
 
-1.	You should now have all five animations inside the **Animations** folder in the **Content Browser**.
+1.	You should now have all five animations inside of the **Animations** folder in the **Content Browser**.
 
 	![](ImportedAnimations.png)
 
@@ -91,6 +91,9 @@ Before getting started, download and extract the provided animations from the fo
 
 1.	You should now have two animation transition variables that will drive the animation's state machine.
 
-	![](NewBooleans.png)
+	[REGION:lightbox]
+		[![](NewBooleans.png)(w:750)](NewBooleans.png)
+	[/REGION]
+	_Click on the image to zoom in._
 
 %Steps%

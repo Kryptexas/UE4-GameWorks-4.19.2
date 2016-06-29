@@ -1,52 +1,53 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2664676
 Availability:Public
 Title:FABRIK
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
-Description:Animation node for Forward And Backward Reaching Inverse Kinematics.
+Crumbs:%ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
+Description:前后延伸反向运动学的动画节点。
+version:4.9
 
 [REGION:banner]
 ![FABRIK](FABRIK.png)(convert:false)
 [/REGION]
 
 [EXCERPT:Intro]
-**Forward And Backward Reaching Inverse Kinematics** (or **FABRIK**) is an IK solver that works on a chain of bones of arbitrary length (a minimum of 2 links). 
+**前后延伸反向运动学**（Forward And Backward Reaching Inverse Kinematics，简称 **FABRIK**）是处理一连串任意长度的骨骼（至少 2 节）的 IK 解算器。 
 [/EXCERPT:Intro]
 
-You can use **FABRIK**, by first adding the **FABRIK** node to the **AnimGraph** of your **Animation Blueprint** (pictured above). 
+要使用 FABRIK，需要先将 **FABRIK** 节点添加到动画蓝图的 **动画图**（见上图）。 
 
-Once added, in addition to the **Component Pose**, the node takes in an **Effector Transform** which can be an absolute **Transform** or a relative one (based on another bone from the same Skeleton); the settings for the **End Effector** are also very similar to the **TwoBone_IK** node. 
+添加后，该节点除了有 **组件姿势（Component Pose）**，还有 **效果器转换（Effector Transform）**，该转换可以是绝对转换，也可以是相对转换（相对于同一骨架中的另一骨骼）；**最终效果器（End Effector）**的设置也和 **TwoBone_IK** 节点非常相似。 
 
-In order to determine the current strength of the Skeletal Control applied, the **FABRIK** node takes in a float **Alpha** which can be set on the node itself or set through a float variable. 
+为了确定骨骼控件当前应用的力度，**FABRIK** 节点采用一个浮点 **阿尔法（Alpha）**，它可以在节点本身上设置，也可以通过浮点变量设置。 
 
-Inside the **Details** panel for the **FABRIK** node you will find additional settings which can be used to further adjust how the solver functions: 
+在 **FABRIK** 节点的 **细节（Details）**面板中，您将找到可用于进一步调整解算器功能的更多设置： 
 
 ![](FABRIK_Details.png)
 
-In the **End Effector** section, you determine the target location and rotation. 
+在 **最终效果器（End Effector）**部分，您可以确定目标位置和旋转。 
 
-| Property | Description |
+| 属性 | 说明 |
 | --- | ----------- |
-| **Location, Rotation, Scale**| Coordinates for target location of tip bone - if EffectorLocationSpace is bone, this is the offset from Target Bone to use as target location (can also be set as a Pin on the node). |
-| **Effector Transform Space**| Set the position of the bone in SkeletalMeshComponent's reference frame. |
-| **Effector Transform Bone**| If EffectorTransformSpace is bone, this is the bone to use. |
-| **Effector Rotation Source**| Control the Rotation (maintain component space, local space or match end effector target rotation). |
+| **位置（Location）、旋转（Rotation）、比例（Scale）**| 末梢骨骼的目标位置的坐标 - 如果效果器位置空间是骨骼，那么这就是相对于作为目标位置使用的目标骨骼的偏移（也可以在节点上作为引脚设置）。|
+| **效果器转换空间（Effector Transform Space）**| 设置骨骼在骨骼网格组件的参考帧中的位置。|
+| **效果器转换骨骼（Effector Transform Bone）**| 如果效果器转换空间是骨骼，那么这就是要使用的骨骼。|
+| **效果器旋转源（Effector Rotation Source）**| 控制旋转（维持组件空间、局部空间或匹配最终效果器目标旋转）。|
 
-In the **Solver** section, you define the chain of bones to use, from the **Root** to the **Tip**. The **Tip** will try to reach the end effector location.
+在 **解算器（Solver）**部分，您可以定义要使用的骨骼串，从 **根** 至 **末梢**。末梢将尝试到达最终效果器位置。
 
-| Property | Description |
+| 属性 | 说明 |
 | --- | ----------- |
-| **Tip Bone**| Set the Tip Bone (choose from available bones). |
-| **Root Bone**| Set the Root Bone (choose from available bones). |
-| **Precision**| Tolerance for final tip location delta from EffectorLocation. The lower, the more precise it gets to the **End Effector** target, but the more expensive. |
-| **Max Iterations**| Maximum number of iterations allowed, to control performance and make sure edge cases will not take frame rate down. |
-| **Enable Debug Draw**| Toggle drawing of axes to debug joint rotation. |
+| **末梢骨骼（Tip Bone）**| 设置末梢骨骼（从可用骨骼中选择）。|
+| **根骨骼（Root Bone）**| 设置根骨骼（从可用骨骼中选择）。|
+| **精度（Precision）**| 最终末梢位置相对于效果器位置之差的容差。该值越低，到达 **最终效果器** 目标的精度越高，但成本也越高。|
+| **最大迭代次数（Max Iterations）**| 为了控制性能和确保边缘用例不会使帧率下降而允许的最大迭代次数。|
+| **启用调试绘图（Enable Debug Draw）**| 切换用于调试关节旋转的轴的绘制。|
 
-In the **Settings** section, you set the strength applied. 
+在 **设置（Settings）**部分，您可以设置应用的力量。 
 
-| Property | Description |
+| 属性 | 说明 |
 | --- | ----------- |
-| **Alpha**| Current strength of the Skeletal Control (can also be set as a Pin on the node). |
-| **Alpha Scale Bias**| Set the Minimal and Maximal input scale values. |
-| **Node**| Can be used to reset the Effector Rotation Source if it is set to something other than Local Rotation Relative to Parent. |
+| **阿尔法（Alpha）**| 骨骼控件的当前力量（也可作为节点上的引脚设置）。|
+| **阿尔法标度偏差（Alpha Scale Bias）**| 设置最小和最大输入标度值。|
+| **节点（Node）**| 如果将它设置为非相对于父项的局部旋转，可以用于重置效果器旋转源。|
 
 

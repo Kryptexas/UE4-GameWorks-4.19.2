@@ -131,6 +131,257 @@ Selecting a channel will apply a shader to the Landscape which shows the area th
 
 [/EXCERPT:RecommendedLSS]
 
+## Landscape Collision 
+The Unreal Engine 4 (UE4) Landscape system allows you to specify how complex both the simple and complex Landscape collision meshes should be. This system also allows you specify theses settings for the entire Landscape as a whole or for each individual Landscape Component and will work with any platform that supports Landscape. In the following section, we will go over how to use this system as well as any relevant information you must know before using this in your UE4 projects.
+
+[region:note]
+For this example, we are using the Landscape Mountains project that can be found in the Learn tab of the UE4 Launcher.
+[/region]
+
+### Collision Mip Level
+
+If you select any Landscape Actor that has been placed in a level and go to the **Details** panel, under the **Collision** section you will find two settings called **Collision Mip Level** and **Simple Collision Mip Level**.
+
+
+* **Collision Mip Level:** The Collision Mip Level sets the complexity of the **Complex** collision that is used for the Landscape. Setting Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer.
+	
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Landscape\TechnicalGuide\#VC]
+	[/REGION]
+
+
+* **Simple Collision Mip Level:** The Simple Collision Mip Level sets the complexity of the **Simple** collision that is used for the Landscape. Setting Simple Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer.
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Landscape\TechnicalGuide\#PC]
+	[/REGION]
+
+### Viewing Collision Mip Level 
+
+You can see what happens to the Landscape collision mesh when you change the values of the Simple Collision Mip Level option or the Collision Mip Level option by using the Collision Viewmodes. To make your viewport display the collision view mode, go to the **View Mode** menu in the Editor viewport and from the drop down list, under the **Collision** section, select either the **Player Collision** option or the **Visibility Option**.
+
+[REGION:lightbox]
+[![](LSC_00.png)(w:524 h:303)](LSC_00.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+
+* **Player Collision:** Using the **Player Collision** view mode will show you what the Simple Collision Mip Level will look like. 
+
+	[REGION:lightbox]
+	[![](CML_Player_Collision.png)(w:524 h:303)](CML_Player_Collision.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+* **Visibility Collision:** Using the Visibility Collision view mode will show you what the Complex Collision Mip level will look like.
+
+	[REGION:lightbox]
+	[![](CML_Vis_Collision.png)(w:524 h:303)](CML_Vis_Collision.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+### Adjusting the Landscape Collision Mip Level
+
+To increase or decrease the complexity for both simple and complex Landscape collision you will need to do the following.
+
+1. Select your Landscape Terrain in the Editor viewport and then in the **Details** panel,  expand the **Collision** section.
+
+	[REGION:lightbox]
+	[![](LSC_01.png)(w:524 h:303)](LSC_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. Under the **Collision** section, look for the **Collision Mip Level** option and change the value from **0** to **5** and then press the **Enter** key to apply the change. 
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Collision Mip Level 0](LSC_03.png)(w:787 h:455)
+		[/PARAM]
+		[PARAM:after]
+		![Collision Mip Level 5](LSC_02.png)(w:787 h:455)
+		[/PARAM]
+	[/OBJECT]
+
+	[REGION:caption]
+	When you do you should see the gray collision mesh in the level update automatically to reflect the changes.
+	[/REGION]
+
+### Mixing Collision Mip Level Options 
+
+It is possible to independently increase or decrease the complexity of both the simple and complex Landscape collision meshes to help provide a better balance between performance and accuracy. To achieve this in your project, you will need to do the following.
+
+1. Select your Landscape and in the **Details** panel, expand the **Collision** section.
+
+	[REGION:lightbox]
+	[![](LSC_01.png)(w:524 h:303)](LSC_01.png)
+	[/REGION]
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. Leave the **Collision Mip Level** at a value of **0** and then set the **Simple Collision Mip Level** to a value of **2**.
+
+	[REGION:lightbox]
+	[![](LSC_04.png)(w:524 h:303)](LSC_04.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. In the following image comparison, you can see what happens to the Landscape collision when different values for the **Collision Mip Level** and **Simple Collision Mip Level** are set to different values.
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Player Collision 2](Player_Collision.png)(w:719 h:407)
+		[/PARAM]
+		[PARAM:after]
+		![Visibility Collision 0](Vis_Collision.png)(w:719 h:407)
+		[/PARAM]
+	[/OBJECT]
+
+	[region:note]
+	For most cases you will want to leave the **Collision Mip Level** at 0 and then use 1 or 2 for the **Simple Collision Mip Level**. Using any higher numbers will start to show inaccuracies between the player and collision.
+	[/region]
+
+
+### Setting Collision Mip Level Per Landscape Components
+
+You can also set the Collision Mip Level collision settings for individual Landscape Components which allow you to reduce the Landscape collision complexity even further in non-playable areas of the level. To use this functionality in your project, you will need to do the following.
+
+1. From the **Modes** panel, click on the Landscape option and make sure that **Manage** mode is selected.
+
+	[REGION:lightbox]
+	[![](CC_01.png)(w:524 h:303)](CC_01.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. Select a few Landscape components by clicking on them with the **Left Mouse Button**. You can tell if a Landscape component has been successfully selected as it will turn slightly red in color.
+
+	[REGION:lightbox]
+	[![](CC_02.png)(w:524 h:303)](CC_02.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. In the **Details** panel expands the **Landscape Component** section and change both the **Collision Mip Level** and **Simple Collision Mip Level** to **5**.
+
+	[REGION:lightbox]
+	[![](CC_03.png)(w:524 h:303)](CC_03.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+
+
+<!-----
+[EXCERPT:VC]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	6
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	VC
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Dragging the slider will show what happens when setting the Collision Mip Level from 0 to 5**
+	[/PARAM]
+	[PARAM:image_list]
+	![](VC_1.png)
+	![](VC_2.png)
+	![](VC_3.png)
+	![](VC_4.png)
+	![](VC_5.png)
+	![](VC_6.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:VC]
+-->
+
+<!-----
+[EXCERPT:PC]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	6
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	PC
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Dragging the slider will show what happens when setting the Simple Collision Mip Level from 0 to 5**
+	[/PARAM]
+	[PARAM:image_list]
+	![](PC_1.png)
+	![](PC_2.png)
+	![](PC_3.png)
+	![](PC_4.png)
+	![](PC_5.png)
+	![](PC_6.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:PC]
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

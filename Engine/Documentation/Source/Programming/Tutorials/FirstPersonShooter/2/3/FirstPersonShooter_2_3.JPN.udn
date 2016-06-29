@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3002602
+﻿INTSourceChangelist:3014773
 Availability:Docs
 Title:2.3- キャラクターの Movement 関数を実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -35,10 +35,10 @@ Version:4.11
 
 1.	 `FPSCharacter.h` で、以下の関数の宣言を`SetupPlayerInputComponent` の下に追加します。
 
-		// handles moving forward and backward (前後方向の移動を処理します) 
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理します) 
 		UFUNCTION()
 		void MoveForward(float Value);
-		// handles moving right and left (左右の移動を処理します) 
+		// Handles input for moving right and left. (左右の移動の入力を処理します) 
 
 		UFUNCTION()
 		void MoveRight(float Value);
@@ -71,11 +71,11 @@ Version:4.11
 		// Called to bind functionality to input (機能を入力にバインドするために呼ばれます) 
 
 			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		// handles moving forward and backward (前後方向の移動を処理します) 
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理します) 
 
 			UFUNCTION()
 			void MoveForward(float Value);
-		// handles moving right and left (左右の移動を処理します) 
+		// Handles input for moving right and left. (左右の移動の入力を処理します) 
 
 			UFUNCTION()
 			void MoveRight(float Value);
@@ -92,7 +92,7 @@ Version:4.11
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-			// set up gameplay key bindings (ゲームプレイのキーバインド設定)
+			// Set up "movement" bindings. (移動のバインディングをセットアップします) 
 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
@@ -106,10 +106,8 @@ Version:4.11
 
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// find out which way is forward (前進方向の確認)
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction (その方向へ動きを追加)
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way. (前進方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 
@@ -117,20 +115,18 @@ Version:4.11
 
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// find out which way is right (右方向の確認)
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction (その方向へ動きを追加)
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// Find out which way is "forward" and record that the player wants to move that way. (右方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
 		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
-
 		#include "FPSProject.h"
+
 		#include "FPSCharacter.h"
-		// Sets default values (デフォルト値を設定) 
+				// Sets default values (デフォルト値を設定) 
 
 		AFPSCharacter::AFPSCharacter()
 		{
@@ -143,17 +139,12 @@ Version:4.11
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			const int32 Key = -1;
-
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //秒
-		if (GEngine != nullptr)
+			if (GEngine)
 
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		}
-
+				// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+			}
 		}
 		// Called every frame (フレームごとに呼ばれます) 
 
@@ -167,7 +158,7 @@ Version:4.11
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-		// set up gameplay key bindings (ゲームプレイのキーバインド設定)
+		// Set up "movement" bindings. (移動のバインディングをセットアップします) 
 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
@@ -175,19 +166,15 @@ Version:4.11
 		void AFPSCharacter::MoveForward(float Value)
 
 		{
-			// find out which way is forward (前進方向の確認)
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction (その方向へ動きを追加)
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way. (前進方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		void AFPSCharacter::MoveRight(float Value)
 
 		{
-			// find out which way is right (右方向の確認)
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction (その方向へ動きを追加)
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// Find out which way is "forward" and record that the player wants to move that way. (右方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 

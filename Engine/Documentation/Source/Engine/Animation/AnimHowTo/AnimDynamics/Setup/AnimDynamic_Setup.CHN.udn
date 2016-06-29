@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2988432
 Availability:Public
-Title:1 - Required Setup
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
-Description:In this step we will set up the character we will use to apply dynamic animations to. 
+Title:1 - 必要设置
+Crumbs:%ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Description:在这一步中，我们将设置要用来应用动态动画的角色。 
 SkillLevel:Advanced
 Version:4.11
 checkpoint: editorqs
@@ -14,54 +14,54 @@ checkpoint: editorqs
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[AnimDynamics How-to](Engine\Animation\AnimHowTo\AnimDynamics)
+		[AnimDynamics 操作指南](Engine\Animation\AnimHowTo\AnimDynamics)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:title%")
+		[下一步](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Before we get started with applying dynamic animations to our character we need to set up the character we wish to use. 
-The template characters do not have any dynamic bones we can use so we will retarget animations from the template character over to an Infinity Blade character who has bones that we can influence with AnimDynamics. 
+在开始将动态动画应用到角色之前，我们需要先设置要使用的角色。 
+模板角色没有任何可供我们使用的动态骨骼，因此我们将把动画从模板角色重定位到一个《无尽之剑》（Infinity Blade）的角色，该角色具有我们可以通过 AnimDynamics 影响的骨骼。 
 
 [REGION:note]
-For this guide, we created a New Project using the **Blueprint Third Person** template. 
+对于本指南，我们使用 **Blueprint Third Person** 模板创建了新项目。 
 
-We then added the **Infinity Blade: Adversaries** pack which is available for free on the Marketplace to the project.
+然后我们将 **Infinity Blade:Adversaries** 包添加到项目，该包可以在市场上免费下载。
 ![](AdversariesPack.png)
 [/REGION]
 
 
-## Steps
+## 步骤
 
-With your **Blueprint Third Person** based template project open and the **Infinity Blade** assets added:
+打开基于 **Blueprint Third Person** 的模板项目并添加 **Infinity Blade** 资产后：
 
-1. In the **Content Browser** under **Content/Mannequin/Character/Mesh**, open the **UE4_Mannequin_Skeleton** asset. 
+1. 在 **内容浏览器** 中的 **Content/Mannequin/Character/Mesh** 下，打开 **UE4_Mannequin_Skeleton** 资产。 
 
 	![](1_OpenMesh.png)
 
-1. Click the **Retarget Manager** button, then under **Select Rig** assign the **Humanoid** rig. 
+1. 单击 **重定位管理器（Retarget Manager）**按钮，然后在 **选择结构（Select Rig）**下指定 **Humanoid** 结构。 
 
 	![](2_SetRig.png)
 
-	We are going to [retarget](Engine/Animation/AnimHowTo/Retargeting) this character's AnimBlueprint and Animations to an Infinity Blade character. 
+	我们要将此角色的动画蓝图和动画 [重定位](Engine/Animation/AnimHowTo/Retargeting) 到一个 Infinity Blade 角色。 
 
-1. In the **Content Browser** navigate to and open the **SK_Master_Grunt_Skeleton** in the Infinity Blade Adversaries folder. 
+1. 在 **内容浏览器** 中，导航到 Infinity Blade Adversaries 文件夹中，打开 **SK_Master_Grunt_Skeleton**。 
 
 	![](3_OpenGrunt.png)
 
-1. Click the **Retarget Manager** button, then select **Humanoid** under the **Select Rig** option. 
+1. 单击 **重定位管理器（Retarget Manager）**按钮，然后在 **选择结构（Select Rig）**选项下选择 **Humanoid**。 
 
-1. For each node on the Rig, assign a Bone from the Skeleton. 
+1. 为结构上的每个节点分配骨架中的一个骨骼。 
 
 	![](4_AssignBones.png)
 
-	The full assignment is shown in the table below. 
+	下表显示了完整的分配方案。 
 		
-	| Node (Rig) | Bone (Skeleton) |
+	| 节点（结构）| 骨骼（骨架）|
 	| ------- | ------------ |
 	| **Root** | b_MF_Root |
 	| **Pelvis** | b_MF_Pelvis |
@@ -85,50 +85,50 @@ With your **Blueprint Third Person** based template project open and the **Infin
 	| **calf_r** | b_MF_Calf_R  |
 	| **foot_r** | b_MF_Foot_R  |
 
-	Before we proceed with retargeting, we will adjust the Translation Retargeting to ensure that our animations play correctly. 
+	在继续重定位前，我们将调整平移重定位，以确保动画正确播放。 
 
-1. In the **Skeleton Tree**, click the **Show Advanced Options** button. 
+1. 在 **骨架树（Skeleton Tree）**中，单击 **显示高级选项（Show Advanced Options）**按钮。 
 
-1. **Right-click** on the **b_MF_Root** bone and select **Recursively Set Translation Retargeting Skeleton**. 
+1. **右键单击** **b_MF_Root** 骨骼并选择 **递归地设置平移重定位骨架（Recursively Set Translation Retargeting Skeleton）**。 
 
 	![](5_TranslationRetargetingA.png)
 
-1. Under **Translation Retargeting**, set **b_MF_Root** to **Animation** and **b_MF_Pelvis** to **Animation Scaled**. 
+1. 在 **平移重定位（Translation Retargeting）**下，将 **b_MF_Root** 设置为 **动画（Animation）**，将 **b_MF_Pelvis** 设置为 **比例动画（Animation Scaled）**。 
 
 	![](5_TranslationRetargetingB.png)
 
-	Our Skeleton is set up and we can now retarget the AnimBluperint and Aniamtions from the template character.
+	我们的骨架已经设置完毕，现在可以从模板角色重定位动画蓝图和动画了。
 
-1. Navigate to the **ThirdPersonAnimBP** and **Right-click** on it and select **Duplicate Anim Blueprints and Retarget**. 
+1. 导航至 **ThirdPersonAnimBP**，**右键单击** 它，并选择 **复制动画蓝图并重定位（Duplicate Anim Blueprints and Retarget）**。 
 
 	![](6_RetargetAnimBP.png)
 
-1. In the **Select Skeleton** window, select the **SK_Master_Grunt_Skeleton** asset then choose **Retarget**. 
+1. 在 **选择骨架（Select Skeleton）**窗口中，选择 **SK_Master_Grunt_Skeleton** 资产，然后选择 **重定位（Retarget）**。 
 
 	![](7_SetTarget.png)
 
 	[REGION:tip]
-	You can click the **Change...** button to assign where the retargeted assets are copied to if you like. 
+	如果您愿意，可以单击 **更改...（Change...）**按钮来指定要将重定位的资产复制到什么位置。 
 	[/REGION]
 
-1. Navigate to the duplicated assets and rename the new AnimBlueprint to **GruntAnimBP**. 
+1. 导航到复制的资产，将新的动画蓝图重命名为 **GruntAnimBP**。 
 
 	![](8_RenameAnimBP.png)
 
-1. Navigate to and open the **ThirdPersonCharacter** Blueprint. 
+1. 导航至 **ThirdPersonCharacter** 蓝图并打开。 
 
 	![](9_OpenThirdBP.png)
 
-1. Click the **Mesh** in the **Components** window, then assign the **SK_Master_Grunt** and **GruntAnimBP_C** in the **Details** panel. 
+1. 在 **组件（Components）**窗口中单击 **网格（Mesh）**，然后在 **细节（Details）**面板中指定 **SK_Master_Grunt** 和 **GruntAnimBP_C**。 
 
 	![](10_AssignNewCharacter.png)
 
-1. **Compile** and **Save**, then close the Blueprint. 
+1. **编译（Compile）**并 **保存（Save）**，然后关闭蓝图。 
 
 
-## End Result
+## 最终结果
 
-At this point if you play in the Editor, you should be controlling the Grunt Character who can run and jump with **WASD** and **Spacebar**. 
+此时如果您在编辑器中运行，应该可以控制这个大兵角色，用 **WASD** 和 **空格** 键使他奔跑和跳跃。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -142,9 +142,9 @@ WEVotwqetOs
 [/PARAMLITERAL]
 [/OBJECT]
 
-Notice the limited movement of the harness and furnace around the characters neck. It appears relatively static and our character would look more natural if these objects moved along with the character's movement. 
+请注意，背带和角色脖子上的炉子的运动都很有限。它们显得相对静止，如果这些对象能随着角色的运动而移动，我们的角色看起来会更自然。 
 
-In the next step we will use the AnimDynamics node to animate the harness and furnace so it reacts to character movement. 
+在下一步我们将使用 AnimDynamics 节点使背带和炉子动起来，使它们对角色运动作出反应。 
 
 %Steps%
 

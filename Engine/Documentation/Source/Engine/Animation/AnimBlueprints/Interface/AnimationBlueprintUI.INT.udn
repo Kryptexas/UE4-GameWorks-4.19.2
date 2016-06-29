@@ -2,27 +2,65 @@ Availability:Public
 Title:Animation Blueprint UI
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:An overview of the Animation Blueprint UI.
-version: 4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\Creation
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\AnimGraph
 
-[TOC(start:2 end:2)]
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 The following sections describe the areas of the Animation Blueprint UI.
 
-
 ![](AnimGraphUI.png)
 
-1. Menu Bar
-1. Toolbar
-1. Viewport
-1. Graph
-1. Anim Preview Editor
-1. Asset Override Editor
-1. Asset Browser tab
-1. My Blueprint tab
-1. Details panel
-1. Palette
+1. [Menu Bar](#menubar)
+1. [Toolbar](#toolbar)
+1. [Viewport](#viewport)
+1. [Graph](#graph)
+1. [Anim Preview Editor](#animprevieweditor)
+1. [Asset Override Editor](#assetoverrideeditor)
+1. [Asset Browser tab](#assetbrowsertab)
+1. [My Blueprint tab](#myblueprinttab)
+1. [Details panel](#detailspanel)
+1. [Palette](#palette)
 
 ## Menu Bar
 
@@ -42,6 +80,8 @@ The Animation Blueprint **Toolbar** contains many of the same options as other B
 | ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | Compiles the Blueprint. | 
 | ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
 | ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
+| ![](PoseButtons.png) | Updates the viewport to display the Preview or Reference pose. | 
+|  ![](Record.png)| Allows you to record a new animation based off the current preview pose animation. | 
 | ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
 | ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | Starts the game in simulation mode. |
@@ -49,7 +89,9 @@ The Animation Blueprint **Toolbar** contains many of the same options as other B
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
-For more information about Blueprint toolbars, see [](Engine/Blueprints\Editor/UIComponents\Toolbar).
+[REGION:note]
+For more information about Blueprint toolbars, see the **[](Engine/Blueprints\Editor/UIComponents\Toolbar)** documentation.
+[/REGION]
 
 In addition to those options, the Animation Blueprint toolbar also contains tabs for the various modes of Persona.
 
@@ -84,11 +126,13 @@ The **AnimGraph** tab contains the State Machine that hooks up all the actual an
 
 ![](AnimGraphUI_AnimGraph.png)
 
-For more information about State Machines, see **[](Engine/Animation/StateMachines)**.
+Although you could put all your animation nodes directly into the AnimGraph tab, it is more efficient to organize them into a State Machine, States, and Transitions (Rules), for ease of upkeep and simplicity.
 
 [REGION:note]
-Although you could put all your animation nodes directly into the AnimGraph tab, it is more efficient to organize them into a State Machine, States, and Transitions (Rules), for ease of upkeep and simplicity.
+For more information about State Machines, see **[](Engine/Animation/StateMachines)**.
 [/REGION]
+
+
 
 ## Anim Preview Editor
 
@@ -96,7 +140,9 @@ The **Anim Preview Editor** panel displays all of your Animation Blueprint's var
 
 ![](AnimGraphUI_BPDefaults.png)
 
+[REGION:note]
 For more information, see **[](Engine/Animation/Persona\BlueprintDefaults)**.
+[/REGION]
 
 
 ## Asset Override Editor

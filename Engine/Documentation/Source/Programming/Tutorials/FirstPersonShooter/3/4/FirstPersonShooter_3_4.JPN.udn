@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2946107
+﻿INTSourceChangelist:3018989
 Availability:Docs
 Title:3.4 - 発射物をワールドと相互作用させる
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -32,7 +32,7 @@ Version:4.11
 
 1.	次のコードを `FPSProjectile` クラスの宣言に追加します。
 
-		// Function that is called when the projectile hits something (発射物が何かにぶつかると呼び出される関数)
+		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
 		UFUNCTION()
 		void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
@@ -45,39 +45,41 @@ Version:4.11
 		#include "FPSProjectile.generated.h"
 
 		UCLASS()
+
 		class FPSPROJECT_API AFPSProjectile : public AActor
 		{
 			GENERATED_BODY()
 
-		public:	
+		public:
 			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
 			AFPSProjectile();
-
 		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
 			virtual void BeginPlay() override;
 
 			// Called every frame (フレームごとに呼ばれます)
 			virtual void Tick( float DeltaSeconds ) override;
-			// Sphere collision コンポーネント
+
+		// Sphere collision component (Sphere collision コンポーネント)
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
 
-			//Projectile movement component (Projectile Movement コンポーネント)
+		//Projectile movement component. (Projectile Movement コンポーネント)
+
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
 
-			// Function that initializes the projectile's velocity in the shoot direction (発射方向に発射物のべロシティを初期化する関数)
-			void InitVelocity(const FVector& ShootDirection);
+		// Function that initializes the projectile's velocity in the shoot direction. (発射方向に発射物のべロシティを初期化する関数)
+			void FireInDirection(const FVector& ShootDirection);
 
-			// Function that is called when the projectile hits something (発射物が何かにぶつかると呼び出される関数)
-			UFUNCTION()
+		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
+
 			void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 		};
 
 1.	**Solution Explorer** で、`FPSProjectile` class CPP ファイルを探して、`FPSProjectile.cpp` を開いて以下のコードを追加します。
 
-		// Function that is called when the projectile hits something (発射物が何かにぶつかると呼び出される関数)
-		void AFPSProjectile::OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
+		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -102,16 +104,18 @@ Version:4.11
 		 	// Set this actor to call Tick() every frame  (フレームごとに Tick() を呼び出すようにこのアクタを設定)必要がなければパフォーマンスを向上させるためにオフにすることができます。
 			PrimaryActorTick.bCanEverTick = true;
 
-		// use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
+		// Use a sphere as a simple collision representation. (簡易なコリジョン表現に球体を使用)
 			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 			CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 			CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
 
-		// set the sphere's collision radius (球体のコリジョン半径を設定します)
+		// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
+
 			CollisionComponent->InitSphereRadius(15.0f);
-			// set the root component to be the collision component (ルート コンポーネントを collision コンポーネントに設定します)
+			// Set the root component to be the collision component. (ルート コンポーネントを collision コンポーネントに設定します)
 			RootComponent = CollisionComponent;
-			// use this component to drive this projectile's movement (このコンポーネントを使って発射物の動きを操作します)
+		// Use this component to drive this projectile's movement. (このコンポーネントを使って発射物の動きを操作します)
+
 			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
 			ProjectileMovementComponent->InitialSpeed = 3000.0f;
@@ -119,34 +123,34 @@ Version:4.11
 			ProjectileMovementComponent->bRotationFollowsVelocity = true;
 			ProjectileMovementComponent->bShouldBounce = true;
 			ProjectileMovementComponent->Bounciness = 0.3f;
+		// Die after 3 seconds. (3 秒後に消滅)
 
-		// die after 3 seconds (3 秒後に消滅)
 			InitialLifeSpan = 3.0f;
 		}
 
 		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+
 		void AFPSProjectile::BeginPlay()
 		{
 			Super::BeginPlay();
-
-		}
+			}
 
 		// Called every frame (フレームごとに呼ばれます)
+
 		void AFPSProjectile::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
-
 		}
 
-		// Function that initializes the projectile's velocity in the shoot direction (発射方向に発射物のべロシティを初期化する関数)
+		// Function that initializes the projectile's velocity in the shoot direction. (発射方向に発射物のべロシティを初期化する関数)
 
-		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
+		void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 		{
 			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
+		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
 
-		// Function that is called when the projectile hits something (発射物が何かにぶつかると呼び出される関数)
-		void AFPSProjectile::OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -170,7 +174,7 @@ Version:4.11
 
 1.	この floor メッシュをコピー＆ペーストします。
 
-1.	比率の鍵を必ず解除して、floor メッシュのコピー ("Floor2" と呼びます) を  {0.2, 0.2, 0.3} にスケーリングします。
+1.	比率の鍵を必ず解除して、floor メッシュのコピー ("Floor2" と呼びます) を  {0.2, 0.2, 3.0} にスケーリングします。
 
 1.	floor メッシュのコピーを {320, 0, 170} に配置します。
 
@@ -188,7 +192,7 @@ Version:4.11
 
 1.	マップを Save (保存) して、**BP_FPSProjectile** をダブルクリックして、編集のために projectile ブループリントを開きます。
 
-1.	**Class Defaults モード** を開いて、 **[Components]** タブで **[ProjectileMesh]** をクリックします。
+1.	**Class Defaults モード** を開いて、 **[Components]** タブで **[ProjectileMeshComponent]** をクリックします。
 
 1.	**[Collision]** の **[Collision Presets]** プロパティを探して、**[Projectile]** に設定します。
 

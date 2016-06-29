@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/LevelStreaming
 Description:System for managing large worlds including origin shifting technology.
 SkillLevel: Intermediate
 Version: 4.9
+Parent:Engine/LevelStreaming
+Label:World Composition
 
 [TOC (start:2 end:3)]
 

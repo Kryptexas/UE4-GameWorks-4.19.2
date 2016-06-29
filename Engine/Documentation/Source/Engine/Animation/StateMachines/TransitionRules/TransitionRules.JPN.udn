@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2988144
+﻿INTSourceChangelist:2991202
 Availability:Public
 Title:遷移ルール
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
@@ -103,33 +103,9 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 
 遷移ルールのようにアセット プレイヤーを参照する get ノードを使用することもできます。 
 
-### 派生ネイティブ ゲッター
-
-多くのプロジェクトでは独自の `UAnimInstance` 派生クラスを作成し、パフォーマンスを高めます。これに合わせて、必要に応じて新しいゲッターを追加することができます。ただし、そのためには適切に動作するように若干のセットアップが必要になります。 
-
-* ゲッター関数には **UFUNCTIONS** とタグ付けします。 
-* これらは **BlueprintPure** でなければなりません。 
-* これらはメタデータ、 **AnimGetter="True"** を含まなければなりません。 
-
-いくつかの名前が付けられたパラメータも定義しなければなりません (これは上記の `AnimInstance.h` の基本の anim getter 関数でも説明されています)。パラメータのリストは以下のようになります。 
-
-| **パラメータ** | **説明** |
-| --- | --- |
-| **int32 AssetPlayerIndex**| このゲッターはアセット プレイヤーに作用し、利用可能なアセット プレイヤー毎にエントリがエディタに追加されます。 |
-| **int32 MachineIndex**| このゲッターはステートマシンに作用し、ステートマシン毎にエントリが追加されます。 |
-| **int32 StateIndex**| これには MachineIndex も必要です。ゲッターはステートに作用し、ステート毎にエントリが追加されます。 |
-| **int32 TransitionIndex**| これには MachineIndex も必要です。ゲッターは遷移に作用し、遷移毎にエントリが追加されます。 |
-
-ゲッターで実際のノードを get するヘルパー関数もあります。これは、`UAnimInstance` にあります。 
-
-| **関数** | **説明** |
-| --- | --- |
-| **GetStateMachineInstance(int32 MachineIndex)**| ベイクしたステートマシンのインスタンスを get します。 |
-| **GetCheckedNodeFromIndex(int32 NodeIdx)**| インデックスからノードを get します。無効ならアサートします。 |
-| **GetNodeFromIndex(int32 NodeIdx)**| 上記のように、nullptr を戻すことがあります。 |
-| **GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex)**| ステート内で一番ウェイトが高いアセット プレイヤーを get します。 |
-
-
+[REGION:note]
+アンリアル エンジンのアニメーションのプログラミングを理解している場合は、パフォーマンスを向上させるために [ネイティブの getter](Programming/Animation/AnimNodes) をご利用いただくこともできます。
+[/REGION]
 
 
 

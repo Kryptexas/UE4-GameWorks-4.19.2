@@ -1,0 +1,92 @@
+﻿INTSourceChangelist:3016843
+Availability:Public
+Title:Look At
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
+Description:Look At 制御を使用して、他のボーンに追随するボーンを指定することができます。 
+version:4.12
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\NodeReference\SkeletalControls\LookAt:title%](Engine\Animation\NodeReference\SkeletalControls\LookAt\LookAtnode.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\NodeReference\SkeletalControls\LookAt:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\LookAt]
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\NodeReference\SkeletalControls\LookAt:title%](Engine\Animation\NodeReference\SkeletalControls\LookAt\LookAtnode.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\NodeReference\SkeletalControls\LookAt:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\LookAt]
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+**Look At** スケルタル コントロール ノードを使用して、スケルトンの他のボーンに追随するボーンを指定することができます。 
+
+![](LookAtnode.png)
+
+以下では、キャラクターの左側に 2 つのパックがあります。これらは **Look At** 制御ノードを使用しており、足のボーンに追随するように設定されています。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+85dUv_jvIi4
+[/PARAMLITERAL]
+[/OBJECT]
+
+ビューポート内で黄色のデバッグ ラインは、どの **Look at Bone** を、**Bone to Modify** が追随しているかを視覚化するツールです。 
+
+[REGION:note]
+デバッグラインを確認するには映像を拡大するか、エディタで見る必要があるかもしれません。 
+[/REGION]
+
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**スケルタル コントロール**[/REGION] ||
+| **Bone To Modify** | 制御対象のボーンの名前です。修正をするメイン ボーン チェーンです。 |
+| **Look at Axis** | どの軸を注視点 (look at point) に合わせるかを指定します。 |
+| **Use Look Up Axis** | 上方の軸 (look up axis) を設定するかどうかを指定します。 |
+| **Look Up Axis** | ローカル空間の look up 軸 |
+| **Look at Clamp** | Look at Clamp 値、単位は角度。look at 軸が Z の場合、X、Y のクランプ角度だけが使用されます。 |
+| **Interpolation Type** | 使用する補間方法 |
+| **Interpolation Time** | 補間中に使用される時間 |
+| **Interpolation Trigger Threshold** | 補間をトリガーする閾値 |
+| **Enable Debug** | デバッグ表示を有効にするか、しないかを設定します。 |
+|[REGION:tablesection]**ターゲット**[/REGION]||
+| **Look at Bone** | look at するターゲット ボーン。LookAtLocation を代わりに使用することはできません。直接クエリするとボーン位置に遅延が生じるからです。 |
+| **Look at Socket** | look at するターゲット ソケット |
+| **Look at Location** | LookAtBone が空の場合に、ワールド空間のターゲット位置 |
+
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Component Pose** | 受け取るポーズ |
+| **Alpha** | 現在の制御の強さ |
+

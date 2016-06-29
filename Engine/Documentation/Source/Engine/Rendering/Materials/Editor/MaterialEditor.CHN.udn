@@ -1,7 +1,8 @@
-﻿Availability: Public
-Title:Material Editor Reference
+﻿INTSourceChangelist:0
+Availability: Public
+Title: 材质编辑器用户指南
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:Guide to using the Material Editor for creating shaders.
+Description: 使用材质编辑器创建 Shader 的指南。
 Version: 4.9
 
 [VAR:Topic]
@@ -13,10 +14,10 @@ Version: 4.9
 		![](%ROOT%/texture_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Material Editor
+		材质编辑器
 	[/PARAM]
 	[PARAM:description]
-		Guide to using the Material Editor for creating shaders.
+		使用材质编辑器创建 Shader 的指南。
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Rendering/Materials/Editor]

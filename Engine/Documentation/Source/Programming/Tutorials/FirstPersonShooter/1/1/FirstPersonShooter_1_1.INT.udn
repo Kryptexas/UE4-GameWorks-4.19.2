@@ -66,7 +66,7 @@ During this step, we're going to create a starting point for our First Person Sh
 
 	![](ProjectMaps_Modes.png)
 
-1.	Select **FPSMap** as the **Editor Startup Map** using the dropdown menu.
+1.	Using the dropdown menu, select **FPSMap** as the **Editor Startup Map**.
 
 	![](EditorDefaultMap.png)
 

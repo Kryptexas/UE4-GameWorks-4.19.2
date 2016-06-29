@@ -2,17 +2,57 @@ Availability:Public
 Title:AnimGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:Graph used to sample, blend, and manipulate poses to be applied to SkeletalMeshes by the Animation Blueprint.
-version: 4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\Interface
+related:Engine\Animation\AnimBlueprints\Creation
 
-[REGION:banner]
-![AnimGraph](animgraph_banner.png)(convert:false)
-[/REGION]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\AnimGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\AnimGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\AnimGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\AnimGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
 The **AnimGraph** is used to evaluate a final pose for the SkeletalMesh for the current frame. By default, 
-each Animation Blueprint has an AnimGraph which can have [animation nodes](Engine/Animation/AnimBlueprints/AnimGraph#AnimationNodes) placed within it 
+each Animation Blueprint has an AnimGraph which can have [**Animation Nodes**](Engine/Animation/AnimBlueprints/AnimGraph#AnimationNodes) placed within it 
 to sample AnimationSequences, perform animation blends, or control bone transforms using SkeletalControls. 
 The resulting pose is then applied to the SkeletalMesh each frame.
 [/EXCERPT:Intro]
@@ -34,7 +74,7 @@ at all times since it is not event-based and is being evaluated each frame.
 ![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
 
 In the **AnimGraph**, the flow of execution represents poses being passed from one node to another. Some 
-nodes, such as [blends](Engine/Animation/NodeReference/Blend), have multiple inputs and make a 
+nodes, such as [**Blends**](Engine/Animation/NodeReference/Blend), have multiple inputs and make a 
 decision internally on which input is currently part of the flow of execution. This determination is usually 
 dependent on some external input, like the value passed to a data pin.
 
@@ -56,7 +96,9 @@ BlendSpaces, or AnimMontages. These assets and nodes, as well as how they fit in
 
 ![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
 
-See the [](Engine/Animation/Sequences/UserGuide) for more details.
+[REGION:note]
+See the [**Animation Sequence User Guide**](Engine/Animation/Sequences/UserGuide) for more details.
+[/REGION]
 
 ### Blendspaces
 
@@ -64,13 +106,17 @@ See the [](Engine/Animation/Sequences/UserGuide) for more details.
 
 ![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
 
-See [](Engine/Animation/Blendspaces/UserGuide) for more details.
+[REGION:note]
+See [**Using Blend Spaces**](Engine/Animation/Blendspaces/UserGuide) for more details.
+[/REGION]
 
 ### Animation Nodes
 
 [INCLUDE:Engine/Animation/NodeReference#Intro]
 
-See [](Engine/Animation/NodeReference) for more descriptions of all available nodes.
+[REGION:note]
+See [**Animation Node Reference**](Engine/Animation/NodeReference) for more descriptions of all available nodes.
+[/REGION]
 
 #### Animation Blending
 
@@ -78,14 +124,17 @@ See [](Engine/Animation/NodeReference) for more descriptions of all available no
 
 ![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
 
-See [](Engine/Animation/NodeReference/Blend) for more information on the space conversion nodes.
+[REGION:note]
+See [**Blend Nodes**](Engine/Animation/NodeReference/Blend) for more information on the space conversion nodes.
+[/REGION]
 
 #### Skeletal Controls
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
 
-See [](Engine/Animation/NodeReference/SkeletalControls) for more information on the various 
-types of SkeletalControls available.
+[REGION:note]
+See [**Skeletal Controls**](Engine/Animation/NodeReference/SkeletalControls) for more information on the various types of SkeletalControls available.
+[/REGION]
 
 #### Space Conversion
 
@@ -95,7 +144,9 @@ types of SkeletalControls available.
 ![Usage in graph](Engine/Animation/NodeReference/SpaceConversion/graph_usage.png)
 [/REGION]
 
-See [](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
+[REGION:note]
+See [**Convert Space Nodes**](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
+[/REGION]
 
 #### Sync Groups
 
@@ -103,4 +154,6 @@ See [](Engine/Animation/NodeReference/SpaceConversion) for more information on t
 
 ![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
 
-See [](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.
+[REGION:note]
+See [**Sync Groups**](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.
+[/REGION]

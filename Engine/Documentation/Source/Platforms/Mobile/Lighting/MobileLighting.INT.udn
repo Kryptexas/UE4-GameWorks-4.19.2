@@ -61,10 +61,10 @@ Right now, each mesh component gets assigned to the closest [**Reflection Captur
 ## Modulated Shadowing
 
 Having fully Dynamic shadows helps to add life and realism to your Unreal Engine 4(UE4) mobile projects. 
-However on some mobile devices, fully Dynamic shadowing is not an option due to hardware restrictions and the high resource demands Dynamic shadows require to render. To get around this a new, cheaper type of Dynamic shadowing was introduced to UE4 called **Modulated Shadows**. For more information on how to setup Modulated Shadows check out the [**Modulated Shadows**](Platforms\Mobile\Lighting\HowTo\ModulatedShadows) How To.
+However on some mobile devices, fully Dynamic shadowing is not an option due to hardware restrictions and the high resource demands Dynamic shadows require to render. To get around this a new, cheaper type of Dynamic shadowing was introduced to UE4 called **Modulated Shadows**. For more information on how to setup Modulated Shadows check out the [**Modulated Shadows**](Platforms/Mobile/Lighting/HowTo/ModulatedShadows/) How To.
 
 ## Dynamic Cascaded Shadow Maps
-Stationary Directional lights can be used to cast Whole-scene Dynamic Cascade Shadow Maps (CSM) shadows for just the dynamic objects in your scene. One of the benefits to using CSM shadows is that CSM shadows will blend correctly with precomputed shadows cast by the static objects in the scene. CSM shadows also do not exhibit the double shadowing you see with Modulated shadows and this technique is also faster when casting dynamic shadows for multiple objects. For more information on how to setup Cascaded Shadows check out the [**Cascaded Shadows**](Platforms\Mobile\Lighting\HowTo\CascadedShadow) How To.
+Stationary Directional lights can be used to cast Whole-scene Dynamic Cascade Shadow Maps (CSM) shadows for just the dynamic objects in your scene. One of the benefits to using CSM shadows is that CSM shadows will blend correctly with precomputed shadows cast by the static objects in the scene. CSM shadows also do not exhibit the double shadowing you see with Modulated shadows and this technique is also faster when casting dynamic shadows for multiple objects. For more information on how to setup Cascaded Shadows check out the [**Cascaded Shadows**](Platforms\Mobile\Lighting\HowTo\CascadedShadow\) How To.
 
 ## Modulated Shadowing VS Dynamic Shadowing
 

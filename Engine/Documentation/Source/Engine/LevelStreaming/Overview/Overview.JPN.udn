@@ -1,0 +1,158 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Level Streaming Overview
+Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
+Description:Streaming Levels can be loaded with Level Streaming Volumes or programmatically with Blueprints or C++.
+parent:Engine/LevelStreaming
+type:reference
+order:1
+tags:Level Streaming
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/LevelStreaming:title%](streaming_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/LevelStreaming:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/LevelStreaming:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/LevelStreaming]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/LevelStreaming:title%](streaming_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/LevelStreaming:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/LevelStreaming:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/LevelStreaming]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC]
+
+[INCLUDE:Engine/LevelStreaming#intro]
+
+## The Persistent Level
+
+The first step towards getting your levels to blend together seamlessly is creating the persistent level. This can be thought of as a master level that is primarily used to govern which 
+levels will be streamed in and out. 
+
+
+## Level Streaming Volumes
+
+Level streaming volumes make controlling level streaming very easy.  The idea is simple: load/unload requests for a streaming level are issued based on whether the viewpoint is inside any of the 
+LevelStreamingVolume volumes associated with a level.
+
+Specifically, level streaming volumes can be used in two ways:
+
+
+* In the **game**, level streaming volumes cause levels to load when the player is inside the volume and unload when the player is outside the volume.
+
+* In the **editor**, level streaming volumes can be used to preview level streaming by automatically hiding/unhiding levels based on the location of the perspective viewport's camera.
+
+
+Volume-based level streaming is simple to use and does not require any scripting, making it an ideal way to control level streaming.  Furthermore, volume-based level streaming is much easier to 
+maintain than scripted streaming: when demands on the loading system change, level loading/unloading behavior can be modified by simply resizing the streaming volumes.
+
+### Associating Streaming Volumes With Levels
+
+Volume-based level streaming works as follows: each streaming level can have associated with it a set of volumes of type LevelStreamingVolume.  Each frame, the engine iterates over each level and 
+checks to see if the player viewpoint is inside any of the Level Streaming Volumes associated with that level.  If the viewpoint is inside at least one LevelStreamingVolume, a request is issued to 
+begin loading that level.  If the viewpoint is outside all Level Streaming Volumes, the level is marked for unloading.
+
+* [](Engine/LevelStreaming/HowTo/StreamWithVolumes)
+
+### Important Details
+
+* All Level Streaming Volumes must exist in the persistent level.  Level Streaming Volumes that live in other levels cannot be used for level streaming, and will generate warnings when the map is checked 
+for errors.
+
+* If a level has any streaming volumes associated with it, other methods of streaming the level will not behave correctly.
+
+* A single LevelStreamingVolume can affect multiple levels.  Similarly, a single level can be affected by multiple Level Streaming Volumes.
+
+* Volume-based streaming works for split screen.  The viewpoints of all local players are considered before any loading/unloading requests are issued.
+
+
+
+
+### Testing Your Streaming Volume Setup
+
+It is critical that volume-based level streaming be tested in game on the target platform.  Streaming in **Play in Editor** mode (PIE) will show where the loads/unloads will happen, but streaming in 
+PIE is not representative of real, in-game loading-unloading.  This is because in PIE, the levels are already in memory, and so "loading" a level is simply a matter of unhiding it and is thus instantaneous.
+
+Running the level in the standalone game on the target platform is critical in making sure your streaming setups work.  Note that on some platforms, it can take several seconds to stream in a level.  
+Size your Level Streaming Volumes appropriately, so that the level is loaded by the time the player can reach it.  Level loading behaviour can be modified by resizing the Level Streaming Volumes associated 
+with a level.  Growing a volume causes associated levels to load sooner and unload later, while shrinking a volume causes later loads and earlier unloads.
+
+
+### Level Streaming Volumes for Previs
+
+Volume-based level streaming can be easily previewed by enabling the "Level Streaming Volume Previs" button on the perspective viewport toolbar.  When this mode is enabled, levels will be hide/unhide 
+based on the location of the perspective viewport camera.  Note that this hiding/unhiding will affect the set of visible levels in the Level Browser.
+
+A LevelStreamingVolume can be marked for editor previs only by setting the bEditorPreVisOnly flag on the LevelStreamingVolume.  In this manner, volume-based level streaming can still be used for editor 
+previs while at the same time using another streaming method for in-game streaming.
+
+
+
+### Cost of Level Streaming Volumes
+
+Each frame, UWorld::ProcessLevel Streaming Volumes iterates over each streaming level and for each level, that level will begin loading if any local player is within any of the volumes associated with 
+that level.  Likewise, the level will be begin unloading if all local players are outside all volumes.
+
+UWorld::ProcessLevel Streaming Volumes exploits coherency in the following manner: for each level, the volume that most recently contained a player is cached.  This cached volume is checked first, so 
+that levels a player is in or returns to are quickly accepted.
+
+Volumes of any shape are fine, although obviously the fewer the better.  An upper bound on the cost of level streaming volumes can be approximated by the sum of the number of level streaming volumes 
+associated with unloaded levels.
+
+Two stats exist under the "Streaming" stats group for monitoring level streaming performance.  The "Streaming Volumes" stat tracks the number of Level Streaming Volumes tested against player viewpoints 
+per frame, while the "Volume Streaming Tick" stat tracks the amount of time spent in UWorld::ProcessLevel Streaming Volumes per frame.
+
+
+
+### Adding Hysteresis to Unloading Requests
+
+A player moving back and forth across a LevelStreamingVolume boundary causes spurious load/unload requests to be issued.  To address this, hysteresis has been added to unloading requests.   No hysteresis 
+exists for loading requests, because if a level needs to be loaded, we always want it loaded ASAP.
+
+The amount of unloading hysteresis can be adjusted by modifying the MinTimeBetweenVolumeUnloadRequests property of the LevelStreaming object (LevelStreaming properties can be accessed from the Level 
+Browser context menu).  The default unloading hysteresis is 2.0 seconds.
+
+
+
+### Disabling Level Streaming Volumes
+
+There is a property on Level Streaming Volumes called bDisabled.  When set to true, the volume will be ignored by the streaming volume code, both in-game and in the editor.  bDisabled can be used to disable 
+a LevelStreamingVolume without disassociating it from the level.  
+
+As an example of where the bDisabled flag is useful, imagine a door leading to a Level whose streaming is controlled with streaming volumes. The streaming volume extends out past the door, so that the 
+Level will be streamed in by the time the player can reach the door and open it.  Initially, however, the door is locked, and will become unlocked when the player achieves an objective in another part of the Level.  
+So, even though the streaming volume extends past the door, we don't want the Level on the other side of the door to stream in unless the door is actually unlocked ("openable").
+
+Blueprints and C++ could both be used to toggle the **Disabled** state of **Level Streaming Volumes**.
+
+## Programmatic Level Streaming
+
+If you want to set up more complex behavior for loading and unloading Levels, similar to the door unlocking example above, you can also set up Blueprint or C++ logic for Level loading and unloading. The key functions are
+**Load Stream Level** and **Unload Stream Level**, and you designate the Level to load by its name. See [](Engine/LevelStreaming/HowTo/StreamWithBlueprints) and [](Engine/LevelStreaming/HowTo/StreamWithC++) for examples. 

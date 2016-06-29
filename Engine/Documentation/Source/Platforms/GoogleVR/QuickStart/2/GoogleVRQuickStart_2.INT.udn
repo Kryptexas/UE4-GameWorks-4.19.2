@@ -1,7 +1,7 @@
 Availability:Public
 Title:2. Google VR Project Setup
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Setting up a UE4 project Google VR project.
+Description:Setting up a UE4 project to work with Google VR.
 Navigation:platform
 Skilllevel: Intermediate
 Version: 4.12

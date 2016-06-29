@@ -3,6 +3,11 @@ Availability:Public
 Title:游戏架构快速指南
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:关于构成游戏架构的游戏规则、角色、控制器、用户界面等类的概述。
+Version: 4.9
+type:reference
+parent:Gameplay/Framework
+order:2
+tags:Gameplay Framework
 
 基本游戏类包括表示玩家、盟友、敌人的功能以及使用玩家输入或AI逻辑控制这些角色的功能。还有一些类用于为玩家创建 
 抬头显示信息及相机。最后，像GameMode、GameState及PlayerState这样的类用于设置游戏规则，并且跟踪游戏及玩家的进展情况。

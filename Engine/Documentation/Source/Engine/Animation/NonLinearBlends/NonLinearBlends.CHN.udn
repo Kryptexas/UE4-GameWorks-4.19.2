@@ -1,16 +1,22 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2949987
 Availability:Public
-Title:Non-Linear Blends
-Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Overview of the different blend functions between animation poses and transitions.  
-version: 4.9
-Related: Engine\Animation\StateMachines\TransitionRules
-Related: Engine\Animation\StateMachines
-Related: Engine/UI/CurveEditor
-Related: Engine/Basics/Distributions
-Related: Engine/Animation/AnimMontage
+Title:动画混合模式
+Crumbs:%ROOT%, Engine, Engine/Animation
+Description:各种动画姿势和过渡之间的不同混合功能的概述。  
+version:4.11
+Related:Engine\Animation\StateMachines\TransitionRules
+Related:Engine\Animation\StateMachines
+Related:Engine/UI/CurveEditor
+Related:Engine/Basics/Distributions
+Related:Engine/Animation/AnimMontage
 
-Unreal Engine 4 supports many different blending functions that you can use when blending between animation poses and transitions. 
+
+通过 **动画混合模式**，您可以控制网格在从 [**状态机器**](Engine\Animation\StateMachines) 中的一种状态过渡到另一种状态时混合不同姿势的方式。 
+在状态机器的 **过渡规则（Transition Rule）**的 **混合设置（Blend Settings）**中，您可以选择设置各种不同的混合模式（见下图）。 
+
+![](BlendSettings.png)
+
+下图描绘了用于在不同姿势之间混合的 **定制（Custom）**曲线示例。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -24,17 +30,31 @@ Unreal Engine 4 supports many different blending functions that you can use when
 [/PARAMLITERAL]
 [/OBJECT]
 
-_An example of a Custom curve used to Blend between different poses._
+## 混合模式类型
 
-You can select from many different blending functions: Linear, Cubic, Hermite Cubic, Sinusoidal, Quadratic, Circular, Exponential and Custom. For most types, you can separately control whether you want easing on either the _in_ or the _out_ of the curve.
+您可以选择许多不同的混合功能：线性、三次、三次厄尔密、正弦、二次、圆弧、指数和定制。 
+对于大多数类型，您还可以分别控制对曲线进行缓 _入_ 还是缓 _出_ 处理。
 
-The **Custom** option requires a **Curve Float** asset. After creating one, you can assign it in the **Details** panel for the relevant nodes:
+下面是一些混合示例，为了显示差异，它们的混合时间较长： 
+
+| 混合模式 | 示例 |
+| --- | ----------- |
+| **线性（Linear）** |[OBJECT:EmbeddedVideo][PARAMLITERAL:width]480[/PARAMLITERAL][PARAMLITERAL:height]360[/PARAMLITERAL][PARAMLITERAL:videoid]rDW9z0UKPpo[/PARAMLITERAL][/OBJECT]|
+| **指数缓入（Exp Out）** |[OBJECT:EmbeddedVideo][PARAMLITERAL:width]480[/PARAMLITERAL][PARAMLITERAL:height]360[/PARAMLITERAL][PARAMLITERAL:videoid]CGUXT_n9n5c[/PARAMLITERAL][/OBJECT]|
+| **指数缓入缓出（Exp In Out）** | [OBJECT:EmbeddedVideo][PARAMLITERAL:width]480[/PARAMLITERAL][PARAMLITERAL:height]360[/PARAMLITERAL][PARAMLITERAL:videoid]Jy16fbNbCEM[/PARAMLITERAL][/OBJECT]|
+| **二次缓入缓出（Exp In Out）** | [OBJECT:EmbeddedVideo][PARAMLITERAL:width]480[/PARAMLITERAL][PARAMLITERAL:height]360[/PARAMLITERAL][PARAMLITERAL:videoid]oWqm624X69Y[/PARAMLITERAL][/OBJECT]|
+| **定制（Custom）** |[OBJECT:EmbeddedVideo][PARAMLITERAL:width]480[/PARAMLITERAL][PARAMLITERAL:height]360[/PARAMLITERAL][PARAMLITERAL:videoid]dfE5erD0abc[/PARAMLITERAL][/OBJECT]|
+
+**定制（Custom）** 选项需要一个 **曲线浮点** 资产。创建一个该资产后，您可以在相关节点的 **细节（Details）**面板中指定它。
 
 ![](image_44.png)
 
 ![](image_45.png)
 
-This will allow you to specify just about any blend you want to perform. The length of the curve will be normalized and scaled down to meet the specified blend time and any values that are outside of the range 0-1 are clamped back to fit. If a Custom curve is not specified the system will fall back to a Linear blend as depicted below.
+定制混合类型让您可以使用曲线浮点资产指定混合如何发生，为您提供全面的控制权。 
+系统会对曲线的长度进行规范化和比例调整，使其与指定的混合时间相符。 
+在曲线上任何在范围 0-1 之外的值都会被修剪到该范围内。 
+如果将混合模式设置为定制，但未指定曲线浮点资产，系统将按如下所示退回到线性混合。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -47,6 +67,7 @@ This will allow you to specify just about any blend you want to perform. The len
 GHxhplIScUY
 [/PARAMLITERAL]
 [/OBJECT]
+
 
 
 

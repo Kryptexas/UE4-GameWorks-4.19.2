@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2727199
 Availability:Public
-Title:C++ Programming Tutorials
+Title:C++ 编程教程
 Crumbs: %ROOT%, Programming
-Description: Step-by-step instructional guides for hands-on learning of programming in Unreal Engine.
+Description:虚幻引擎编程实践性学习的说明指南。
+version:4.9
 
 [VAR:Params]
 [PARAM:image]
@@ -30,7 +31,7 @@ Description: Step-by-step instructional guides for hands-on learning of programm
 	![](%ROOT%/prog_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	Programmers
+	程序员
 [/PARAM]
 [PARAM:description]
 	%Programming:description%
@@ -56,7 +57,7 @@ Description: Step-by-step instructional guides for hands-on learning of programm
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
-programmer
+程序员
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -65,12 +66,12 @@ programmer
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-programming
+编程
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
 
-## Beginner
+## 初级
 
 [REGION:features third]
 [OBJECT:Role]
@@ -87,7 +88,7 @@ programming
 		%Programming/QuickStart:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		quickstart
+		快速入门
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -105,7 +106,7 @@ programming
 		%Programming/Tutorials/PlayerInput:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		playerinput
+		玩家输入
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -123,7 +124,7 @@ programming
 		%Programming/Tutorials/AutoCamera:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		autocamera
+		自动摄像机
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -147,7 +148,7 @@ programming
 
 [/REGION]
 
-## Intermediate
+## 中级
 
 [REGION:features third]
 [OBJECT:Role]
@@ -164,7 +165,7 @@ programming
 		%Programming/Tutorials/PlayerCamera:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		playercamera
+		玩家相机
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -182,7 +183,7 @@ programming
 		%Programming/Tutorials/Components:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		components
+		组件
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -200,7 +201,7 @@ programming
 		%Programming/Tutorials/UMG:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		umg
+		UMG
 	[/PARAMLITERAL]
 [/OBJECT]
 

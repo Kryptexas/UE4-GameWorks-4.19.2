@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938864
+﻿INTSourceChangelist:3020188
 Availability:Docs
 Title:2.8 - ファーストパーソン メッシュをキャラクターに追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -33,71 +33,19 @@ Version:4.11
 
 1.	Visual Studio に切り替えて、`FPSCharacter.h` を開き、以下のコードを追加します。
 
-		// pawn mesh:FPS view (arms are only seen by self) (一人称視点 (自分からだけ見える腕))
+		// First-person mesh (arms), visible only to the owning player. (一人称メッシュ (腕)、所有しているプレイヤーにのみ見えます) 
 		UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		USkeletalMeshComponent* FPSMesh;
 
-1.	`FPSCharacter.h` は以下のようになります。
+1.	`FPSCharacter.cpp` を開いて、コンストラクタに進んで、次のコードを追加して、一人称メッシュを作成し設定します。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-		#pragma once
-
-		#include "GameFramework/Character.h"
-
-		#include "FPSCharacter.generated.h"
-		UCLASS()
-
-		class FPSPROJECT_API AFPSCharacter : public ACharacter
-		{
-			GENERATED_BODY()
-		public:
-
-			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定)
-			AFPSCharacter();
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
-
-			virtual void BeginPlay() override;
-			// Called every frame (フレーム毎に呼ばれます) 
-
-			virtual void Tick( float DeltaSeconds ) override;
-		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
-
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		// handles moving forward and backward (前後方向の移動を処理します) 
-
-			UFUNCTION()
-			void MoveForward(float Value);
-		// handles moving right and left (左右の移動を処理します)
-
-			UFUNCTION()
-			void MoveRight(float Value);
-		// sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
-
-			UFUNCTION()
-			void OnStartJump();
-		// clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
-
-			UFUNCTION()
-			void OnStopJump();
-		// FPS camera (FPS カメラ)
-
-			UPROPERTY(VisibleAnywhere)
-			UCameraComponent* FPSCameraComponent;
-		// pawn mesh:FPS view (arms are only seen by self) (一人称視点 (自分からだけ見える腕))
-
-			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FPSMesh;
-		};
-
-1.	`FPSCharacter.cpp` を開いて次のコードを追加して、ファーストパーソン メッシュを作成し設定します。
-
-		// create a first person mesh component (first person mesh コンポーネントを作成) 
+		// Create a first person mesh component for the owning player. (所有しているプレイヤーのために一人称メッシュを作成) 
 		FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-		// only the owning player sees this mesh (このメッシュは所有しているプレイヤーだけから見えます)
+		// Only the owning player sees this mesh (このメッシュは所有しているプレイヤーだけから見えます)
 		FPSMesh->SetOnlyOwnerSee(true);
-		// attach the FPS mesh to the FPS camera (FPS メッシュを FPS カメラにアタッチします)
+		// Attach the FPS mesh to the FPS camera (FPS メッシュを FPS カメラにアタッチします)
 		FPSMesh->AttachTo(FPSCameraComponent);
-		// disable some environmental shadowing to preserve the illusion of having a single mesh (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
+		// Disable some environmental shadowing to preserve the illusion of having a single mesh (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
 		FPSMesh->bCastDynamicShadow = false;
 		FPSMesh->CastShadow = false;
 
@@ -105,128 +53,27 @@ Version:4.11
 	また、このコードはメッシュをカメラにアタッチし、一部の背景シャドウイングを無効にします。
 	カメラがアタッチされたアームがシャドウをキャストするようにすると、ファースト パーソン キャラクターに対して単一のメッシュという錯覚が台無しになります。
 
-1.	以下のコードを `FPSCharacter.cpp` に追加して既存のサードパーソン メッシュを所有しているキャラクターから見えないようにします。
+1.	最後に以下のコードを `FPSCharacter.cpp` のコンストラクタに追加して既存の三人称メッシュを所有しているキャラクターから見えないようにします。
 
-		// everyone but you can see the regular body mesh (自分以外は誰でも通常のボディメッシュを見ることができます)
+		// The owning player doesn't see the regular (third-person) body mesh. (所有しているプレイヤーは、通常の (三人称視点の) ボディ メッシュは見えません) 
 		GetMesh()->SetOwnerNoSee(true);
 
-1.	`FPSCharacter.cpp` は以下のようになります。
-
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-		#include "FPSProject.h"
-
-		#include "FPSCharacter.h"
-		// デフォルト値を設定
-
-		AFPSCharacter::AFPSCharacter()
-		{
-		 	// このキャラクターがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
-			PrimaryActorTick.bCanEverTick = true;
-		//  create a first person camera component (first person camera コンポーネントを作成)
-
-			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-			// attach the camera component to our capsule component (camera コンポーネントを capsule コンポーネントにアタッチします)
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
-			// position the camera slightly above the eyes (目の高さより少し上にカメラを設定)
-			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-			// allow the pawn to control rotation (ポーンが回転を制御できるようにします)。
-			FPSCameraComponent->bUsePawnControlRotation = true;
-		// create a first person mesh component (first person mesh コンポーネントを作成) 
-
-			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-			// only the owning player sees this mesh (このメッシュは所有しているプレイヤーだけから見えます)
-			FPSMesh->SetOnlyOwnerSee(true);
-			// attach the FPS mesh to the FPS camera (FPS メッシュを FPS カメラにアタッチします)
-			FPSMesh->AttachTo(FPSCameraComponent);
-			// disable some environmental shadowing to preserve the illusion of having a single mesh (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
-			FPSMesh->bCastDynamicShadow = false;
-			FPSMesh->CastShadow = false;
-			// everyone but you can see the regular body mesh (自分以外は誰でも通常のボディメッシュを見ることができます)
-
-			GetMesh()->SetOwnerNoSee(true);
-		}
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
-
-		void AFPSCharacter::BeginPlay()
-		{
-			Super::BeginPlay();
-			const int32 Key = -1;
-
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds (秒) 
-		if (GEngine != nullptr)
-
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		}
-
-		}
-		// Called every frame (フレーム毎に呼ばれます) 
-
-		void AFPSCharacter::Tick( float DeltaTime )
-		{
-			Super::Tick( DeltaTime );
-		}
-
-		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
-
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
-		{
-			Super::SetupPlayerInputComponent(InputComponent);
-		// set up gameplay key bindings (ゲームプレイのキーバインドのセットアップ)
-
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-		// set up gameplay mouse bindings (ゲームプレイのマウス バインドのセットアップ) 
-
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-		// set up jump action bindings (ジャンプ アクションのバインドのセットアップ) 
-
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-		}
-		void AFPSCharacter::MoveForward(float Value)
-
-		{
-			// find out which way is forward (前進方向の確認)
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction (その方向へ動きを追加)
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-			AddMovementInput(Direction, Value);
-		}
-		void AFPSCharacter::MoveRight(float Value)
-
-		{
-			// find out which way is right (右方向の確認)
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction (その方向へ動きを追加)
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-			AddMovementInput(Direction, Value);
-		}
-		void AFPSCharacter::OnStartJump()
-
-		{
-			bPressedJump = true;
-		}
-		void AFPSCharacter::OnStopJump()
-
-		{
-			bPressedJump = false;
-		}
-
-1.	Visual Studio に `FPSCharacter` のヘッダ (\*.h) と CPP (\*.cpp) ファイルを保存します。
+1.	 `FPSCharacter` ヘッダー (\*.h) と実装 (\*.cpp) ファイルを Visual Studio に保存します。
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	[FPSProject] 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
-1.	ビルドが終了したらアンリアル エディタでご自身の **FPSProject** を開きます。この時点で、キャラクターのメッシュがエディタ内で可視状態になります。
+1.	ビルドが終了したら PIE モードで、 **FPSProject** を開いて実行します。 
+
+	![](HiddenMeshInGame.png)
+
+	この時点で、キャラクターのメッシュがエディタ内で可視状態になります。
 
 ## メッシュのブループリントを構築する
+
 
 [REGION:note]
 先に進む前に、次のリンクからサンプル メッシュをダウンロードし、抽出してください。
@@ -253,7 +100,7 @@ Version:4.11
 
 1.	**[Save]** ボタンをクリックしてインポートしたメッシュを保存します。
 
-1.	**コンテンツ ブラウザ** の **Blueprints** フォルダに戻ります。
+1.	**コンテンツ ブラウザ** の **「Blueprints」** フォルダに戻ります。
 
 1.	**BP_FPSCharacter** のアイコンをダブルクリックして **ブループリント エディタ** 内で開きます。
 
@@ -285,11 +132,170 @@ Version:4.11
 
 ## 新しいメッシュをインゲームで見る
 
-1.	**レベル エディタのツールバー** で、**[Play In]** ボタンを **クリック** します。
+1.	**レベル エディタのツールバー** で、**[Play]** ボタンをクリックします。
 
 	![](NewMeshInGame.png)
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    code
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    完成コード
+    [/PARAM]
+    [PARAM:content]
+		**FPSCharacter.h**
+			// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+
+			#pragma once
+
+			#include "GameFramework/Character.h"
+			#include "FPSCharacter.generated.h"
+
+			UCLASS()
+			class FPSPROJECT_API AFPSCharacter : public ACharacter
+			{
+				GENERATED_BODY()
+			public:
+
+				// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定)
+				AFPSCharacter();
+
+				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+
+				virtual void BeginPlay() override;
+
+				// Called every frame (フレーム毎に呼ばれます) 
+
+				virtual void Tick( float DeltaSeconds ) override;
+
+				// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
+				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+
+				// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
+				UFUNCTION()
+				void MoveForward(float Value);
+
+				//  Handles input for moving right and left. (左右の移動の入力を処理) 
+				UFUNCTION()
+				void MoveRight(float Value);
+
+				// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
+				UFUNCTION()
+				void StartJump();
+
+				// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
+				UFUNCTION()
+				void StopJump();
+
+				//FPS camera (FPS カメラ)
+
+				UPROPERTY(VisibleAnywhere)
+				UCameraComponent* FPSCameraComponent;
+				// First-person mesh (arms), visible only to the owning player. (一人称メッシュ (腕)、所有しているプレイヤーにのみ見えます) 
+				UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+				USkeletalMeshComponent* FPSMesh;
+			};
+
+		**FPSCharacter.cpp**
+
+			//Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+			#include "FPSProject.h"
+			#include "FPSCharacter.h"
+
+			// Sets default values (デフォルト値を設定) 
+			AFPSCharacter::AFPSCharacter()
+			{
+
+			 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
+
+				PrimaryActorTick.bCanEverTick = true;
+				// Create a first person camera component (first person camera コンポーネントを作成)
+				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+				// Attach the camera component to our capsule component (camera コンポーネントを capsule コンポーネントにアタッチします)
+				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				// Position the camera slightly above the eyes (目の高さより少し上にカメラを設定)
+				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+				// Allow the pawn to control camera rotation. (ポーンがカメラの回転を制御できるようにします)
+				FPSCameraComponent->bUsePawnControlRotation = true;
+			// Create a first person mesh component for the owning player. (所有しているプレイヤーのために一人称メッシュを作成) 
+
+				FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+				// Only the owning player sees this mesh (このメッシュは所有しているプレイヤーだけから見えます)
+				FPSMesh->SetOnlyOwnerSee(true);
+				// Attach the FPS mesh to the FPS camera (FPS メッシュを FPS カメラにアタッチします)
+				FPSMesh->AttachTo(FPSCameraComponent);
+				// Disable some environmental shadowing to preserve the illusion of having a single mesh (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
+				FPSMesh->bCastDynamicShadow = false;
+				FPSMesh->CastShadow = false;
+				// The owning player doesn't see the regular (third-person) body mesh. (所有しているプレイヤーは、通常の (三人称視点の) ボディ メッシュは見えません) 
+
+				GetMesh()->SetOwnerNoSee(true);
+			}
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+			void AFPSCharacter::BeginPlay()
+			{
+				Super::BeginPlay();
+				if (GEngine)
+
+				{
+					// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+				}
+			}
+
+			// Called every frame (フレーム毎に呼ばれます) 
+			void AFPSCharacter::Tick( float DeltaTime )
+			{
+				Super::Tick( DeltaTime );
+			}
+
+			// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
+			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+			{
+				Super::SetupPlayerInputComponent(InputComponent);
+			// Set up "movement" bindings. (移動のバインディングをセットアップ) 
+
+				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			// Set up "look" bindings. (look のバインディングをセットアップ) 
+
+				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			// Set up "action" bindings. (アクションのバインディングをセットアップ) 
+
+				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			}
+			void AFPSCharacter::MoveForward(float Value)
+
+			{
+				// Find out which way is "forward" and record that the player wants to move that way. (前進方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+				AddMovementInput(Direction, Value);
+			}
+			void AFPSCharacter::MoveRight(float Value)
+
+			{
+				// Find out which way is "forward" and record that the player wants to move that way. (右方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+				AddMovementInput(Direction, Value);
+			}
+			void AFPSCharacter::StartJump()
+
+			{
+				bPressedJump = true;
+			}
+			void AFPSCharacter::StopJump()
+
+			{
+				bPressedJump = false;
+			}
+
+    [/PARAM]
+[/OBJECT]
 
 これで終わりです！以下について学習しました。
 

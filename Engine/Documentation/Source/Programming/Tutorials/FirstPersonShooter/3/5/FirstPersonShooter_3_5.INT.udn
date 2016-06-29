@@ -37,7 +37,7 @@ Before getting started, download and extract our sample image from the following
 1.	Click **'Import to /Game...'** to open the **Import** dialog box.
 
 	![](RightClickImport.png)
-
+	`
 1.	Locate and select the **crosshair.TGA** image file.
 
 1.	Click **Open** to begin importing the image file to your project.
@@ -50,137 +50,44 @@ Before getting started, download and extract our sample image from the following
 
 1.	The **Choose Parent Class** menu will open. Scroll down, select **HUD** as the parent class and click **Next**.
 
-	![](ChooseHUDClass.png)
+	![](ChooseParentHUDClass.png)
 
 1.	Name the new class "FPSHUD," then click **Create**.
 
 	![](NameHUDClass.png)
 
-1.	Locate the `FPSHUD` class header file in the **Solution Explorer** and open `FPSHUD.h`.
+1.	Locate the `FPSHUD` class header file in the **Solution Explorer**, open `FPSHUD.h` and add the following protected variable:
 
-1.	Write the following constructor declaration in `FPSHUD.h` under `GENERATED_BODY()`:
-
-		// Constructor
-		AFPSHUD();
-
-1.	Locate the `FPSHUD` class CPP file in the **Solution Explorer** and open `FPSHUD.cpp`.
-
-1.	Write the following constructor definition in `FPSHUD.h` below `GENERATED_BODY()`:
-
-		// Constructor
-		AFPSHUD::AFPSHUD()
-		{
-		
-		}
-
-1.	Going back to `FPSHUD.h`, add the following private variable:
-
-		private:
-		
-			// Crosshair asset pointer
+		protected:
+			// This will be drawn at the center of the screen.
+			UPROPERTY(EditDefaultsOnly)
 			UTexture2D* CrosshairTexture;
 
-1.	Now add the following code inside the constructor that's located in `FPSHUD.cpp`:
+1.	Now, add the following function declaration in `FPSHUD.h`:
 
-		// set the crosshair texture
-		static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-
-		if (CrosshairTextureObject.Object)
-		{
-			CrosshairTexture = CrosshairTextureObject.Object;
-		}
-
-	[REGION:tip]
-	As a reminder, you can obtain the asset path to your texture in the editor by right-clicking the asset in the Content Browser and selecting Copy Reference.
-	![](CopyReference.png)
-	[/REGION]
-
-1.	Going back to `FPSHUD.h`, add the following function declaration:
-
-		// Primary draw call for the HUD
-		virtual void DrawHUD() override;
-
-1.	Now implement the `DrawHUD` override in `FPSHUD.cpp` with the following function definition:
-
-		void AFPSHUD::DrawHUD()
-		{
-			Super::DrawHUD();
-			
-			// Find the center of our canvas
-			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
-		
-			// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas
-			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
-		
-			// Draw the crosshair
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
-			TileItem.BlendMode = SE_BLEND_Translucent;
-			Canvas->DrawItem(TileItem);
-		}
-
-1.	`FPSHUD.h` should look like the following:
-
-		// Fill out your copyright notice in the Description page of Project Settings.
-		
-		#pragma once
-		
-		#include "GameFramework/HUD.h"
-		#include "FPSHUD.generated.h"
-		
-		/**
-		 * 
-		 */
-		UCLASS()
-		class FPSPROJECT_API AFPSHUD : public AHUD
-		{
-			GENERATED_BODY()
-		
-			// Constructor
-			AFPSHUD();
-		
-			// Primary draw call for the HUD
+		public:
+			// Primary draw call for the HUD.
 			virtual void DrawHUD() override;
-		
-		private:
-			
-			// Crosshair asset pointer
-			UTexture2D* CrosshairTexture;
-			
-		};
 
-1.	`FPSHUD.cpp` should now look like the following:
+1.	Now implement the `DrawHUD` function in `FPSHUD.cpp`:
 
-		// Fill out your copyright notice in the Description page of Project Settings.
-		
-		#include "FPSProject.h"
-		#include "FPSHUD.h"
-		
-		// Constructor
-		AFPSHUD::AFPSHUD()
-		{
-			// set the crosshair texture
-			static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTextureObject(TEXT("Texture2D'/Game/crosshair.crosshair'"));
-		
-			if (CrosshairTextureObject.Object) 
-			{
-				CrosshairTexture = CrosshairTextureObject.Object;
-			}
-		}
-		
 		void AFPSHUD::DrawHUD()
 		{
 			Super::DrawHUD();
-			
-			// Find the center of our canvas
-			const FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
 		
-			// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas
-			const FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+			if (CrosshairTexture)
+			{
+				// Find the center of our canvas.
+				FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
 		
-			// Draw the crosshair
-			FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
-			TileItem.BlendMode = SE_BLEND_Translucent;
-			Canvas->DrawItem(TileItem);
+				// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas.
+				FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+		
+				// Draw the crosshair at the centerpoint.
+				FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
+				TileItem.BlendMode = SE_BLEND_Translucent;
+				Canvas->DrawItem(TileItem);
+			}
 		}
 
 1.	Save `FPSHUD.h` and `FPSHUD.cpp` in Visual Studio.
@@ -191,67 +98,414 @@ Before getting started, download and extract our sample image from the following
 
 	![](BuildFPSProject.png)
 
-## Updating GameMode to Use the New HUD Class
+## Extending your CPP HUD Class to Blueprints
 
-1.	Add the following include statement at the top of `FPSGameMode.cpp`:
+Now is a good time to extend the CPP HUD class to Blueprints. Please feel free to go to our [](Gameplay/ClassCreation/CodeAndBlueprints) reference page to learn more about extending
+C++ classes to Blueprints.
 
-		#include "FPSHUD.h"
+1.	Right-click the `FPSHUD` class to open the **C++ Class Actions** menu.
 
-1.	In the `FPSGameMode` constructor, located inside `FPSGameMode.cpp`, add the following line of code:
+	![](CPPClassActionsMenu.png)
 
-		HUDClass = AFPSHUD::StaticClass();
+1.	Click **Create Blueprint class based on FPSHUD** to open the **Add Blueprint Class** dialog menu.
 
-1.	`FPSGameMode.cpp` should now look like the following:
+	![](CreateDerivedBPClass.png)
 
-		// Fill out your copyright notice in the Description page of Project Settings.
-		
-		#include "FPSProject.h"
-		#include "FPSProjectGameMode.h"
-		#include "FPSHUD.h"
-		
-		AFPSProjectGameMode::AFPSProjectGameMode()
-		{
-			//set the default pawn class to the Blueprint character
-			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != nullptr)
-			{
-				DefaultPawnClass = PlayerPawnObject.Class;
-			}
-			HUDClass = AFPSHUD::StaticClass();
-		}
-		
-		void AFPSProjectGameMode::StartPlay()
-		{
-			Super::StartPlay();
-		
-			StartMatch();
-		
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
-			FColor DisplayColor = FColor::Yellow;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-			}
-		}
+1.	Name your new Blueprint Class "BP_FPSHUD" and choose the Blueprints folder before clicking the **Create Blueprint Class** button.
 
-1.	Save `FPSGameMode.cpp` in Visual Studio.
+	![](AddBPClass.png)
 
-1.	Locate **FPSProject** in the **Solution Explorer**.
+1.	By now, you should have a newly created `BP_FPSHUD` Blueprint Class located inside of the Blueprints folder.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+	![](AddedBPClass.png)
 
-	![](BuildFPSProject.png)
+1.	Make sure to save your `BP_FPSHUD` Blueprint before closing the Blueprint Editor.
 
-1.	After the build finishes, open your **FPSProject** in Unreal Editor.
+## Setting the Default HUD Class
 
-1.	Click the **Play** button in the Level Editor Toolbar. You should be able to aim the projectiles with your newly created crosshairs.
+1.	In the **Edit** menu, click on **Project Settings**.
+
+1.	Under the **Project** heading on the left side of the **Project Settings** tab, click on **Maps & Modes**.
+
+1.	Select **BP_FPSHUD** in the **Default HUD** dropdown menu.
+
+	![](ChooseHUDClass.png)
+
+1.	Close the **Project Settings** menu.
+
+1.	Go back and open the `BP_FPSHUD` blueprint editor.
+
+1.	Now, click on dropdown menu located in the `FPSHUD` section of the blueprint editor to select your crosshair texture.
+
+	![](SelectCrosshairTexture.png)
+
+1.	Finally, save the `BP_FPSHUD` blueprint before closing the blueprint editor.
+
+## Verifying your HUD
+
+1.	Click the **Play** button in the Level Editor Toolbar. You should now be able to aim the projectiles with your newly added crosshair.
 
 	![](CrosshairsInGame.png)
 
 1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    code
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    Finished Section Code
+    [/PARAM]
+    [PARAM:content]
+		**FPSProjectile.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#pragma once
+			
+			#include "GameFramework/Actor.h"
+			#include "FPSProjectile.generated.h"
+			
+			UCLASS()
+			class FPSPROJECT_API AFPSProjectile : public AActor
+			{
+				GENERATED_BODY()
+				
+			public:	
+				// Sets default values for this actor's properties.
+				AFPSProjectile();
+			
+				// Called when the game starts or when spawned.
+				virtual void BeginPlay() override;
+				
+				// Called every frame.
+				virtual void Tick( float DeltaSeconds ) override;
+			
+				// Sphere collision component.
+				UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+				USphereComponent* CollisionComponent;
+				
+				// Projectile movement component.
+				UPROPERTY(VisibleAnywhere, Category = Movement)
+				UProjectileMovementComponent* ProjectileMovementComponent;
+			
+				// Function that initializes the projectile's velocity in the shoot direction.
+				void FireInDirection(const FVector& ShootDirection);
+			
+				// Function that is called when the projectile hits something.
+				void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+			
+			};
+
+		**FPSProjectile.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#include "FPSProject.h"
+			#include "FPSProjectile.h"
+			
+			// Sets default values
+			AFPSProjectile::AFPSProjectile()
+			{
+			 	// Set this actor to call Tick() every frame. You can turn this off to improve performance if you don't need it.
+				PrimaryActorTick.bCanEverTick = true;
+			
+				// Use a sphere as a simple collision representation.
+				CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+				CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
+				CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
+			
+				// Set the sphere's collision radius.
+				CollisionComponent->InitSphereRadius(15.0f);
+				// Set the root component to be the collision component.
+				RootComponent = CollisionComponent;
+			
+				// Use this component to drive this projectile's movement.
+				ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+				ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+				ProjectileMovementComponent->InitialSpeed = 3000.0f;
+				ProjectileMovementComponent->MaxSpeed = 3000.0f;
+				ProjectileMovementComponent->bRotationFollowsVelocity = true;
+				ProjectileMovementComponent->bShouldBounce = true;
+				ProjectileMovementComponent->Bounciness = 0.3f;
+			
+				// Die after 3 seconds.
+				InitialLifeSpan = 3.0f;
+			}
+			
+			// Called when the game starts or when spawned.
+			void AFPSProjectile::BeginPlay()
+			{
+				Super::BeginPlay();
+			}
+			
+			// Called every frame.
+			void AFPSProjectile::Tick(float DeltaTime)
+			{
+				Super::Tick(DeltaTime);
+			
+			}
+			
+			// Function that initializes the projectile's velocity in the shoot direction.
+			void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
+			{
+				ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
+			}
+			
+			// Function that is called when the projectile hits something.
+			void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+			{
+				if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
+				{
+					OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);
+				}
+			}
+
+		**FPSCharacter.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			
+			#pragma once
+			
+			#include "GameFramework/Character.h"
+			#include "FPSCharacter.generated.h"
+			
+			UCLASS()
+			class FPSPROJECT_API AFPSCharacter : public ACharacter
+			{
+				GENERATED_BODY()
+			
+			public:
+				// Sets default values for this character's properties.
+				AFPSCharacter();
+			
+				// Called when the game starts or when spawned.
+				virtual void BeginPlay() override;
+				
+				// Called every frame.
+				virtual void Tick( float DeltaSeconds ) override;
+			
+				// Called to bind functionality to input.
+				virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+			
+				// Handles input for moving forward and backward.
+				UFUNCTION()
+				void MoveForward(float Value);
+			
+				// Handles input for moving right and left.
+				UFUNCTION()
+				void MoveRight(float Value);
+			
+				// Sets jump flag when key is pressed.
+				UFUNCTION()
+				void StartJump();
+			
+				// Clears jump flag when key is released.
+				UFUNCTION()
+				void StopJump();
+			
+				// Function that handles firing projectiles.
+				UFUNCTION()
+				void Fire();
+			
+				// FPS camera.
+				UPROPERTY(VisibleAnywhere)
+				UCameraComponent* FPSCameraComponent;
+			
+				// First-person mesh (arms), visible only to the owning player.
+				UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+				USkeletalMeshComponent* FPSMesh;
+			
+				// Gun muzzle's offset from the camera location.
+				UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+				FVector MuzzleOffset;
+			
+				// Projectile class to spawn.
+				UPROPERTY(EditDefaultsOnly, Category = Projectile)
+				TSubclassOf<class AFPSProjectile> ProjectileClass;
+			};
+
+		**FPSCharacter.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			
+			#include "FPSProject.h"
+			#include "FPSCharacter.h"
+			#include "FPSProjectile.h"
+			
+			// Sets default values
+			AFPSCharacter::AFPSCharacter()
+			{
+			 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+				PrimaryActorTick.bCanEverTick = true;
+			
+				// Create a first person camera component.
+				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+				// Attach the camera component to our capsule component.
+				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				// Position the camera slightly above the eyes.
+				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+				// Allow the pawn to control camera rotation.
+				FPSCameraComponent->bUsePawnControlRotation = true;
+			
+				// Create a first person mesh component for the owning player.
+				FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+				// Only the owning player sees this mesh.
+				FPSMesh->SetOnlyOwnerSee(true);
+				// Attach the FPS mesh to the FPS camera.
+				FPSMesh->AttachTo(FPSCameraComponent);
+				// Disable some environmental shadowing to preserve the illusion of having a single mesh.
+				FPSMesh->bCastDynamicShadow = false;
+				FPSMesh->CastShadow = false;
+				
+				// The owning player doesn't see the regular (third-person) body mesh.
+				GetMesh()->SetOwnerNoSee(true);
+			}
+			
+			// Called when the game starts or when spawned.
+			void AFPSCharacter::BeginPlay()
+			{
+				Super::BeginPlay();
+				
+				if (GEngine)
+				{
+					// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+				}
+			}
+			
+			// Called every frame.
+			void AFPSCharacter::Tick( float DeltaTime )
+			{
+				Super::Tick( DeltaTime );
+			
+			}
+			
+			// Called to bind functionality to input.
+			void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
+			{
+				Super::SetupPlayerInputComponent(InputComponent);
+			
+				// Set up "movement" bindings.
+				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			
+				// Set up "look" bindings.
+				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			
+				// Set up "action" bindings.
+				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+				InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+			}
+			
+			void AFPSCharacter::MoveForward(float Value)
+			{
+				// Find out which way is "forward" and record that the player wants to move that way.
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+				AddMovementInput(Direction, Value);
+			}
+			
+			void AFPSCharacter::MoveRight(float Value)
+			{
+				// Find out which way is "right" and record that the player wants to move that way.
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+				AddMovementInput(Direction, Value);
+			}
+			
+			void AFPSCharacter::StartJump()
+			{
+				bPressedJump = true;
+			}
+			
+			void AFPSCharacter::StopJump()
+			{
+				bPressedJump = false;
+			}
+			
+			void AFPSCharacter::Fire()
+			{
+				// Attempt to fire a projectile.
+				if (ProjectileClass)
+				{
+					// Get the camera transform.
+					FVector CameraLocation;
+					FRotator CameraRotation;
+					GetActorEyesViewPoint(CameraLocation, CameraRotation);
+			
+					// Transform MuzzleOffset from camera space to world space.
+					FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
+					FRotator MuzzleRotation = CameraRotation;
+					// Skew the aim to be slightly upwards.
+					MuzzleRotation.Pitch += 10.0f; 
+					UWorld* World = GetWorld();
+					if (World)
+					{
+						FActorSpawnParameters SpawnParams;
+						SpawnParams.Owner = this;
+						SpawnParams.Instigator = Instigator;
+						// Spawn the projectile at the muzzle.
+						AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
+						if (Projectile)
+						{
+							// Set the projectile's initial trajectory.
+							FVector LaunchDirection = MuzzleRotation.Vector();
+							Projectile->FireInDirection(LaunchDirection);
+						}
+					}
+				}
+			}
+
+		**FPSHUD.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			
+			#pragma once
+			
+			#include "GameFramework/HUD.h"
+			#include "FPSHUD.generated.h"
+			
+			/**
+			 * 
+			 */
+			UCLASS()
+			class FPSPROJECT_API AFPSHUD : public AHUD
+			{
+				GENERATED_BODY()
+			
+			public:
+				// Primary draw call for the HUD.
+				virtual void DrawHUD() override;
+			
+			protected:	
+				// This will be drawn at the center of the screen.
+				UPROPERTY(EditDefaultsOnly)
+				UTexture2D* CrosshairTexture;	
+			};
+
+		**FPSHUD.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			
+			#include "FPSProject.h"
+			#include "FPSHUD.h"
+			
+			void AFPSHUD::DrawHUD()
+			{
+				Super::DrawHUD();
+				
+				if (CrosshairTexture)
+				{
+					// Find the center of our canvas.
+					FVector2D Center(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+			
+					// Offset by half of the texture's dimensions so that the center of the texture aligns with the center of the Canvas.
+					FVector2D CrossHairDrawPosition(Center.X - (CrosshairTexture->GetSurfaceWidth() * 0.5f), Center.Y - (CrosshairTexture->GetSurfaceHeight() * 0.5f));
+			
+					// Draw the crosshair at the centerpoint.
+					FCanvasTileItem TileItem(CrossHairDrawPosition, CrosshairTexture->Resource, FLinearColor::White);
+					TileItem.BlendMode = SE_BLEND_Translucent;
+					Canvas->DrawItem(TileItem);
+				}
+			}
+
+    [/PARAM]
+[/OBJECT]
 
 Congratulations! You've learned how to:
 

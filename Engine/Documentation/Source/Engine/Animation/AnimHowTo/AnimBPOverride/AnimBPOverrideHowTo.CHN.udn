@@ -1,53 +1,53 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Animation Blueprint Override
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Illustrates how you can override animations in a child Animation Blueprint. 
-Related: Engine\Animation\Sequences
-Related: Engine\Animation\AnimBlueprints
-Related: Engine\Animation\Skeleton
-Related: Engine\Animation\Overview
-version: 4.9
-skilllevel: Advanced
+﻿INTSourceChangelist:2692223
+Availability:Public
+Title:动画蓝图覆盖
+Crumbs:%ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:说明如何覆盖子动画蓝图中的动画。 
+Related:Engine\Animation\Sequences
+Related:Engine\Animation\AnimBlueprints
+Related:Engine\Animation\Skeleton
+Related:Engine\Animation\Overview
+version:4.9
+skilllevel:Advanced
 
-When setting up characters and animation for those characters, there may be instances where you want to have one character perform an animation for an action and have another character perform a different animation for the same action. By using the **Asset Override Editor** inside of a child [Animation Blueprint](Engine/Animation/AnimBlueprints), you can override any previously set animation asset used in a [Sequence Player Node](Engine/Animation/Sequences/UserGuide) allowing you to quickly create variations of Animation Blueprints that each of your characters can use. 
+在设置角色并为角色设置动画时，有时您会希望让一个角色为一种动作执行一个动画，让另一个角色为同样的动作执行一个不同的动画。通过使用子 [动画蓝图](Engine/Animation/AnimBlueprints) 中的 **资产覆盖编辑器**，您就可覆盖在 [序列玩家节点](Engine/Animation/Sequences/UserGuide) 中使用的任何先前设置的动画资产，从而快速创建动画蓝图的变体供每个角色使用。 
 
 
 
 [REGION:note]
-For this guide, we are using the **Blueprint Third Person** template and included the **Infinity Blade: Warriors** and **Animation Starter Pack** assets which are available for free via the Marketplace. We also performed some [Animation Retargeting](Engine/Animation/AnimHowTo/Retargeting) and retargeted the Animation Blueprint and Animations that came with the Animation Starter Pack for use with the Infinity Blade characters. 
+对于本指南，我们使用 **Blueprint Third Person** 模板并加入了 **Infinity Blade:Warriors** 和 **动画初学者包** 资产，它们都可以通过市场免费下载。我们还执行了一些 [动画重定位](Engine/Animation/AnimHowTo/Retargeting)，重定位了动画初学者包附带的动画蓝图和动画，用于 Infinity Blade 角色。 
 [/REGION]
 
-## Steps
+## 步骤
 
-1. **Right-click** on the **Animation Blueprint** you would like to override animations for and select **Create Child Blueprint Class**. 
+1. **右键单击** 您要覆盖动画的 **动画蓝图**，并选择 **创建子蓝图类（Create Child Blueprint Class）**。 
 
 	![](01_CreateChild.png)
 
-1. Open the child Animation Blueprint, then click **Window** from the **File Menu** and select **Asset Override Editor**. 
+1. 打开子动画蓝图，在 **文件（File）**菜单中单击 **窗口（Window）**，选择 **资产覆盖编辑器（Asset Override Editor）**。 
 
 	![](02_OpenEditor.png)
 
-1. The **Asset Override Editor** will open showing the available animations which can be overridden. 
+1. **资产覆盖编辑器** 将打开，显示可以覆盖的动画。 
 
 	![](03_AssetOverrideEditor.png)
 
-	You can expand/collapse the display of assets by clicking the arrow next to each asset. 
+	可以单击每个资产旁边的箭头来展开/折叠资产显示。 
 
-1. In the **Asset** column, click the drop-down window and specify the new asset to use (which will override the existing when called). 
+1. 在 **资产（Asset）**列中，单击下拉窗口并指定要使用的新资产（将在被调用时覆盖现有资产）。 
 
 	![](04_SelectAssetToOverride.png)
 
-	Clicking the eyeball icon will allow you to see a preview of the node context in the parent graph as read only in the main graph panel. 
+	单击眼球图标可以通过在主图面板中的只读形式预览父图中的节点上下文。 
 
 	![](05_JumpToNode.png)
 
-1. You can view your changes after you click **Compile**. That's it! 
+1. 单击 **编译（Compile）**后可以查看您的更改。这就行了！ 
 
 
-## End Result
+## 最终结果
 
-Below is an example where a character's default movement (assigned as Jog) in the parent Animation Blueprint is overridden so that the character performs a Walk instead. 
+下面是一个示例，其中角色在父动画蓝图中的默认运动（被指定为慢跑）已被覆盖，因此该角色执行的是行走。 
 
 
 [OBJECT:EmbeddedVideo]
@@ -62,7 +62,7 @@ MuQ5VQIGfY4
 [/PARAMLITERAL]
 [/OBJECT]
 
-A prime usage case for this is if you have a character that performs a certain attack when a button is pressed but you want a different character to have the same general movement but perform a different motion when the attack button is pressed. 
+此功能的主要用例是：您有一个角色在按下某个按钮时会执行某种攻击，而您希望另一个角色具有相同的常规运动，但在按下攻击按钮时会执行不同的动作。 
 
 
 

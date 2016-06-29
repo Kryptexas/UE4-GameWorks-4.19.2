@@ -9,7 +9,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
-version: 4.9
+version: 4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -31,11 +31,13 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
+[REGION:banner]
+![](AnimationBlueprint.png)
+[/REGION]
 
 
 [EXCERPT:Intro]
-An **Animation Blueprint** is essentially a specialized [Blueprint](Engine/Blueprints) whose graphs 
+An **Animation Blueprint** is essentially a specialized [**Blueprint**](Engine/Blueprints) whose graphs 
 control the animation of a SkeletalMesh. It can perform blending of animations, directly control the 
 bones of the skeleton, and output a final pose for a SkeletalMesh each frame.
 
@@ -47,11 +49,23 @@ calculate the current pose of the SkeletalMesh based on blending of AnimationSeq
 transformations of the Skeleton from SkeletalControls.
 [/EXCERPT:Intro]
 
-[REGION:tip]
-A simple example of an **Animation Blueprint** is demonstrated on the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.2.
+[REGION:note]
+An example of an **Animation Blueprint** is demonstrated on the [**Animation Content Examples**](Resources\ContentExamples\Animation) page under section 1.2.
+[/REGION]
+
+## Creating & Navigating Animation Blueprints
+
+Before jumping into how Animation Blueprints work, it’s best to understand how to create them and start to familiarize yourself with the Animation Blueprint Interface. 
+Check out each of the links below for more information. 
+
+[REGION:topics half]
+%Engine\Animation\AnimBlueprints\Creation:TopicCompact%
+%Engine\Animation\AnimBlueprints\Interface:TopicCompact%
 [/REGION]
 
 ## Working with Animation Blueprints
+
+Once you have created your Animation Blueprint and can navigate the UI, it's time to consider which aspect of it you want to work on first.
 
 [EXCERPT:Graphs]
 There are two main components in an Animation Blueprint that work in conjunction to create the final animation 
@@ -60,29 +74,13 @@ to drive State Machines, BlendSpaces, or other nodes allowing blending between m
 that can fire off notifications to other systems to enable dynamic animation-driven effects to occur.
 [/EXCERPT:Graphs]
 
-[OBJECT:IconSection]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints/EventGraph)
-	[/PARAM]
-	[PARAM:icon]
-		[![Event Graph](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/EventGraph)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints/EventGraph#Intro]
-	[/PARAM]
-[/OBJECT]
+Check out the links below for more information on each topic. 
 
-[OBJECT:IconSection]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints/AnimGraph)
-	[/PARAM]
-	[PARAM:icon]
-		[![Anim Graph](Engine/Animation/AnimBlueprints/AnimGraph/animgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/AnimGraph)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
-	[/PARAM]
-[/OBJECT]
+[REGION:topics half]
+%Engine\Animation\AnimBlueprints\EventGraph:TopicCompact%
+%Engine\Animation\AnimBlueprints\AnimGraph:TopicCompact%
+[/REGION]
+
 
 ## Working with Child Animation Blueprints
 
@@ -91,8 +89,9 @@ When creating and setting up your characters and Animation Blueprints, there may
 For example, suppose you have two humanoid type characters where one is a human and another is a werewolf. Both characters can walk, run, jump, crawl, etc. however their motions may be entirely different. The logic of moving between those motions is the same, but the motions themselves are different. It's perfectly fine to create two different Animation Blueprints, but to save some time; you can create a Child Animation Blueprint and selectively choose which animations to override. 
 
 [REGION:note]
-See [](Engine/Animation/AnimHowTo/AnimBPOverride) for an example walk-through of creating and overriding an Animation Blueprint with a Child.
+See [**Animation Blueprint Override**](Engine/Animation/AnimHowTo/AnimBPOverride) for an example walk-through of creating and overriding an Animation Blueprint with a Child.
 [/REGION]
+
 
 
 

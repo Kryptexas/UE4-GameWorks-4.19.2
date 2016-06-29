@@ -1,65 +1,65 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To use Dual Normals with Clear Coat
-Description: A How-To guide for using Dual Normal maps in your Clear Coat Material.
+﻿INTSourceChangelist:2998506
+Availability:Public
+Title:マテリアル エディタ - クリアコートで 2 つの法線マップを使用する方法
+Description:Clear Coat マテリアルに 2 つ目の法線マップを使うための操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 
-The Clear Coat Shading Model now has the option to add a 2nd Normal map for the surface that is below the clearcoat layer. This allows us to more accurately model complex materials such as carbon fiber which have a different geometric surface than the clearcoat layer. In the following How - To we will go over how you can enable and use this feature in your UE4 projects.
+クリアコート レイヤーの下のサーフェイスに 2 つ目の法線マップを追加するオプションがクリアコート シェーディング モデルに追加されました。このオプションを使うと、クリアコート レイヤーとは異なるジオメトリ サーフェイスを持つカーボン ファイバーなどの複雑なマテリアルも正確にモデル化ができるようになります。以下の操作ガイドでは、UE4 でこの機能を有効にして使用する方法について説明します。
 
-## What the 2nd Normal does
-Before we get started with this How - To, let's take a quick look at what adding the 2nd Normal map allows us to achieve with the Clear Coat shading model and in the image below we can see an example of just that.
+## 2 つ目の法線の効果
+操作の説明を始める前に、2 つ目の法線マップを追加すると、クリアコート シェーディング モデルにどんな効果があるのか見てみましょう。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Clear Coat Bottom Normal Off](Dual_CC_Off.png)(w:880 h:500)
+	![Clear Coat Bottom Normal Off](Dual_CC_Off.png)(w:700 h:700)
 	[/PARAM]
 	[PARAM:after]
-	![Clear Coat Bottom Normal On](Dual_CC_On.png)(w:880 h:500)
+	![Clear Coat Bottom Normal On](Dual_CC_On.png)(w:700 h:700)
 	[/PARAM]
 [/OBJECT]
 
-If you take a look at the image on the left-hand side you can see what the Material looks like with just a regular Normal map applied. Notice how the surface is bumpy but what is under the surface is still smooth. This is not what we want, we want to be able to define the look of the not only the surface but also what is below it. In the right-hand image we are doing just that, there is a Normal map being used to define the top surface and another Normal map that is being used to define the bottom surface and this is what we are trying to achieve, having two entirely different Normal maps affecting different surface all within the same Material. 
+上の画像では、2 つ目の法線マップを追加したことによる影響は、クリアコートが照らされているサーフェスに向かっていることが分かります。左の画像では Clear Coat Bottom Normal がオフにされています。クリアコートの下のサーフェスがライティングと交わっていますが、ライトは 1 方向のサーフェスのみに影響を与えることで、ライティングが少しフラットに見えるようにしています。右の画像では Clear Coat Bottom Normal がオンにされています。ライトはサーフェス上で複数方向に影響を与えているように見えます。この操作を行っていきたいと思います。
 
-## Required Files
-In order to follow along with this How - To you will need to download, extract and then import to UE4 the following Texture files. If you are unfamiliar with how to do this please check out the [Texture Import Guide](https://docs.unrealengine.com/latest/INT/Engine/Content/Types/Textures/Importing/) for more information about how to go about doing this.
+## 必要なファイル
+操作ガイドで作業するために、以下のテクスチャ ファイルをダウンロード、展開して UE4 にインポートしてください。テクスチャ ファイルの操作については [テクスチャ インポート ガイド](https://docs.unrealengine.com/latest/INT/Engine/Content/Types/Textures/Importing/) で詳しく説明をご覧いただけます。
 
-**[Required Textures Download](ClearCoatDualNormalTextures.zip)** (Right - Click Save as)
+**[必要なテクスチャのダウンロード](ClearCoatDualNormalTextures.zip)** (名前をつけて保存するには右クリック)
 
-## Enabling the Dual - Normal Clear Coat option
-Before you can use the new dual normal you will need to enable the feature by doing the following.
+## 二重法線クリアコート オプションを有効にする
+二重法線を使う前に、以下の手順に従って機能を有効にします。
 
-1. From the **Main Toolbar** go to **Edit** > **Project Settings**.
+1. **メイン ツールバー** で **[Edit (編集)]** > **[Project Settings (プロジェクト設定)]** を選びます。
 
 	![](Dual_CC_Enable_Option_00.png)
 
-1. In the Project Settings go to **Rendering** > **Materials** and then click on the check mark box that is next to **Clear Coat Enable Second Normal** option to enable it.
+1. [Project Settings (プロジェクト設定)] で **[Rendering]** > **[Materials]** を選び、**[Clear Coat Enable Second Normal]** オプションの横にあるボックスにチェックを入れて有効にします。
 
 	![](Dual_CC_Enable_Option_01.png)
 
-1. Click on the **Restart Now** option to re-launch the UE4 Editor with the Clear Coat Enable Second Normal feature now enabled.
+1. Clear Coat Enable Second Normal 機能を有効にしたら、**[Restart Now (再起動する)]** オプションをクリックして UE4 エディタを再起動します。
 
 	![](Dual_CC_Restart_Editor.png)
 
-## Using the Dual - Normal Clear Coat option
+## Dual - Normal Clear Coat オプションの使用方法
 
-With the Dual - Normal Clear Coat option now enabled, it is now time to create and setup a new  Material that can use it. To accomplish this you will need to do the following.
+Dual - Normal Clear Coat オプションを有効にしたら、使用するマテリアルを新規作成して設定します。作成および設定は以下の手順に従います。
 
-1. Create a new Material in the **Content Browser** with a name of **Dual_Normal_Clear_Coat** and then double - click on it to open it up.
+1. **コンテンツ ブラウザ** に **Dual_Normal_Clear_Coat** という名前の新しいマテリアルを作成し、ダブルクリックして開きます。
 
 	![](Dual_CC_Create_Material.png)
 
-1. Select the **Main Material Node** and in the **Details** panel under the **Material** section, change the following options.
+1. **Main Material Node** を選んで **[Details (詳細)]** パネルの **[Material]** セクションで以下のオプションを変更します。
 	* **Shading Model:** Clear Coat
 
 	![](Dual_CC_Change_Shading_Model.png)
 
-1. Add four **Scalar Parameter Expression** nodes to the Material Graph and give them the following names and values then connect them so that they match the image below.
+1. マテリアル グラフに **Scalar Parameter Expression** ノードを 4 つ追加し、以下の名前と値を入れて接続すると、以下の画像と同じになります。
 
-	|Material Expression Type| Name| Default Value|
+	|マテリアル表現式のタイプ| 名前| デフォルト値|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Base Color|0.1225|
 	|Scalar Parameter| Metallic|0.5|
@@ -70,9 +70,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	[![](Dual_CC_Base_Nodes_Setup.png)(w:200 h:250)](Dual_CC_Base_Nodes_Setup.png)
 	[/REGION]
 
-1. To setup, the **Roughness** section of the Material add the following Material Expression nodes to the Material Graph and give them the following values and name. Once the Material Expression nodes have been added, connect them so that they match the image below.
+1. 設定するには、マテリアルの **[Roughness]** セクションで、次のマテリアル表現式ノードをマテリアル グラフに追加して、次の値と名前を付けます。追加されたマテリアル表現式ノードを接続すると、以下の画像のようになります。
 
-	|Material Expression Type| Name| Default Value|
+	|マテリアル表現式のタイプ| 名前| デフォルト値|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Roughness Scaling|30.0|
 	|Scalar Parameter| Roughness Min|0.1|
@@ -83,9 +83,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 
 	![](Dual_CC_Roughness_Setup.png)
 
-1. Since this Material makes use of two Normal maps, we will need to setup two different **Normal** map sections for this Material. The first Normal map section of the Material is for the Clear Coat surface and will require the following Material Expression nodes. Once the Material Expression nodes have been added, connect them so that they match the image below.
+1. このマテリアルは法線マップを 2 つ使っているので、このマテリアルに対して異なる 2 つの **Normal** マップ セクションを設定する必要があります。まず 1 つ目の [Normal] マップ セクションは Clear Coat サーフェス用です。以下のマテリアル表現式ノードが必要です。追加されたマテリアル表現式ノードを接続すると、以下の画像のようになります。
 
-	|Material Expression Type| Name| Default Value|
+	|マテリアル表現式のタイプ| 名前| デフォルト値|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter|Surface Normal Strength|0.98|
 	|Scalar Parameter| Surface Normal Scaling|30.0|
@@ -96,9 +96,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 
 	![](Dual_CC_Normal_Setup.png)
 
-1. This **Normal** map is for the surface that is under the Clear Coat section of the Material and will require the following Material Expression nodes be added to the Material Graph with the following values and names. When completed connect the Material Expression nodes so that they match the image below.
+1. この **Normal** マップはマテリアルの [Clear Coat] セクションにあるサーフェス用で、以下のマテリアル表現式ノードにそれぞれの値と名前を付けてマテリアル グラフに追加する必要があります。追加されたマテリアル表現式ノードを接続すると、以下の画像のようになります。
 
-	|Material Expression Type| Name| Default Value|
+	|マテリアル表現式のタイプ| 名前| デフォルト値|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Clear Coat Scaling|30.0|
 	|Scalar Parameter|Fiber Strength|0.98|
@@ -111,16 +111,16 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	![](Dual_CC_Normal_ClearCoat_Setup.png)
 
 	[region:note]
-	Make sure that you have added the **ClearCoatBottomNormal** Material Expression node to the Material Graph and that you have connected the Normal map you want to use to its input. Failing to do this will result in you not being able to see the 2nd Normal map in your Material.
+	**ClearCoatBottomNormal** マテリアル式ノードを必ずマテリアル グラフに追加して、使用したい Normal マップを入力に接続しておいてください。そうしておかないと、マテリアルの中で 2 つ目の法線マップを見ることができません。
 	[/region]
 
-1. With all of the individual sections of the Material now setup, connect the outputs to the Main Material node so that your Material setup matches the following image.
-	
+1. マテリアルの各セクションがすべて設定して、Main Material ノードを接続すると、以下の画像と同じ設定になります。
+
 	[REGION:lightbox]
 	[![](Dual_CC_Final_Setup.png)(w:500 h:350)](Dual_CC_Final_Setup.png)
 	[/REGION]
 
-1. Finally, once all the various sections of the Material have been connected to the appropriate places on the Main Material node, press the **Apply** button to compile the Material and then close the Material Editor. 
+1. 最後に、マテリアルの各セクションを Main Material ノードの適切な場所にすべて接続したら、**[Apply (適用)]** ボタンを押してマテリアルをコンパイルしてマテリアル エディタを終了します。 
 
 	![](Dual_CC_Apply_Material.png)
 

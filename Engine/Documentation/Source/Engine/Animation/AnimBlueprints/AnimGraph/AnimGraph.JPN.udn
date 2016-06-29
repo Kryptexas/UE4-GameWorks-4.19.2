@@ -1,39 +1,80 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3027057
+Availability:Public
 Title:AnimGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:グラフを使用して Animation ブループリントでスケルタル メッシュに適用するポーズのサンプリング、ブレンド、操作をしてみましょう
-バージョン：4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\Interface
+related:Engine\Animation\AnimBlueprints\Creation
 
-[REGION:banner]
-![AnimGraph](animgraph_banner.png)(convert:false)
-[/REGION]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\AnimGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\AnimGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\AnimGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\AnimGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-**AnimGraph** を使用して、現在のフレームに対するスケルタルメッシュの最終ポーズを評価します。各 Animation ブループリントには AnimGraph がデフォルトで付いており、 
-その中には AnimationSequences のサンプリング、アニメーションのブレンド、 
-または SkeletalControl を使用したボーンの変換制御を行う [Animation ノード](Engine/Animation/AnimBlueprints/AnimGraph#Animationノード) が配置されています。 
+**AnimGraph** を使用して、現在のフレームに対するスケルタルメッシュの最終ポーズを評価します。デフォルトでは 
+各 Animation ブループリントには、AnimGraph があり、その中には AnimationSequences のサンプリング、アニメーションのブレンド、 
+または SkeletalControl を使用したボーンのトランスフォームを制御する [Animation ノード](Engine/Animation/AnimBlueprints/AnimGraph#Animationノード) が配置されています。 
 結果として得られたポーズは、スケルタルメッシュの各フレームに適用されます。
 [/EXCERPT:Intro]
 
 ![Anim Graph](animgraph.png)(w:720)
 
 AnimGraph 内では、コードなど **EventGraph** などで計算した値を使用でき、 
-これらを BlendSpaces や他のブレンド ノードへの入力値として使うことができます。特別なブレンド処理をせずに、 
-直接 AnimationSequences をサンプリングすることも可能です。AnimGraph では、SkeletalControls を使って 
+これらをブレンドスペースや他のブレンド ノードへの入力値として使うことができます。特別なブレンド処理をせずに、 
+直接 アニメーション シーケンスをサンプリングすることも可能です。AnimGraph では、SkeletalControls を使って 
 ボーンの配置、回転、スケールの修正が直接できるようになります。
 
 ## 実行フロー
 
-すべてのグラフには実行フローがあります。グラフのノードの実行ピンの間に、パルスリンクとして表示されます。ブループリントの **EventGraph** などの一般的なグラフの場合、 
-このフローはイベントの発行に依存しているので 
+すべてのグラフには実行フローがあります。グラフのノードの実行ピンの間に、パルスリンクとして表示されます。ブループリントの 
+**EventGraph** などの通常のグラフでは、このフローはイベントの発行に依存しているので 
 再生中に表示されます。**AnimGraph** の場合は、 
 イベントベースではなくフレームごとに評価されるので、常に実行フローを表示するいう点で異なります。
 
 ![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
 
-**AnimGraph** では、実行フローは 1 つのノードから他のノードへポーズが渡されたことを表します。ただし 
+**AnimGraph** では、実行フローは 1 つのノードから他のノードへポーズが渡されていることを表します。ただし 
 [Blend ノード](Engine/Animation/NodeReference/Blend) など、 
 複数のインプットをもち、現在の実行フローに関係しているインプットを内部で判断するノードもあります。こうした判断は通常、データピンへ渡された値など、 
 外部のインプットに依存します。
@@ -46,7 +87,7 @@ AnimGraph 内では、コードなど **EventGraph** などで計算した値を
 
 ## AnimGraph の操作
 
-**AnimGraph** はノードグラフを評価することにより機能します。1 つ以上の入力ポーズに対して特定の操作を実行するノードもあれば、 
+**AnimGraph** はノード グラフを評価することにより機能します。1 つ以上の入力ポーズに対して特定の操作を実行するノードもあれば、 
 AnimationSequences、BlendSpaces、 
 AnimMontages など別のアセットタイプのアクセスやサンプリングに使用するノードもあります。これらのアセットとノード、および **AnimGraph** との関わり方を説明します。
 
@@ -56,7 +97,9 @@ AnimMontages など別のアセットタイプのアクセスやサンプリン�
 
 ![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
 
-詳細は [](Engine/Animation/Sequences/UserGuide) を参照してください。
+[REGION:note]
+詳細は [**アニメーション シーケンスのユーザーガイド**](Engine/Animation/Sequences/UserGuide) を参照してください。
+[/REGION]
 
 ### Blendspaces
 
@@ -64,13 +107,17 @@ AnimMontages など別のアセットタイプのアクセスやサンプリン�
 
 ![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
 
-詳細は [](Engine/Animation/Blendspaces/UserGuide) を参照してください。
+[REGION:note]
+詳細は [**Blendspace の使用方法**](Engine/Animation/Blendspaces/UserGuide) を参照してください。
+[/REGION]
 
 ### Animation ノード
 
 [INCLUDE:Engine/Animation/NodeReference#Intro]
 
-使用可能なノード一覧の説明は、 [](Engine/Animation/NodeReference) を参照してください。
+[REGION:note]
+使用可能なノード一覧の説明は、 [**Animation ノードの参照**](Engine/Animation/NodeReference) を参照してください。
+[/REGION]
 
 #### アニメーションのブレンド
 
@@ -78,14 +125,17 @@ AnimMontages など別のアセットタイプのアクセスやサンプリン�
 
 ![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
 
-SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animation/NodeReference/Blend) を参照してください。
+[REGION:note]
+SpaceConversion (空間変換) ノードに関する詳細は、 [**ブレンド ノード**](Engine/Animation/NodeReference/Blend) を参照してください。
+[/REGION]
 
 #### スケルタルの制御
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
 
-使用できる SkeletalControls の各種タイプに関する詳細は、 
-[](Engine/Animation/NodeReference/SkeletalControls) を参照してください。
+[REGION:note]
+使用できる SkeletalControls の各種タイプに関する詳細は、[**Skeletal Controls**](Engine/Animation/NodeReference/SkeletalControls) をご覧ください。
+[/REGION]
 
 #### 空間の変換
 
@@ -95,7 +145,9 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 ![Usage in graph](Engine/Animation/NodeReference/SpaceConversion/graph_usage.png)
 [/REGION]
 
-SpaceConversion (空間変換) ノードに関する詳細は、 [](Engine/Animation/NodeReference/SpaceConversion) を参照してください。
+[REGION:note]
+SpaceConversion (空間変換) ノードに関する詳細は、[**Convert Space Nodes**](Engine/Animation/NodeReference/SpaceConversion) をご覧ください。
+[/REGION]
 
 #### Sync Groups
 
@@ -103,4 +155,6 @@ SpaceConversion (空間変換) ノードに関する詳細は、 [](Engine/Anima
 
 ![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
 
-Sync Group の使用方法および詳細は [](Engine\Animation\SyncGroups) を参照してください。
+[REGION:note]
+Synch Group の使用方法および詳細は [**Sync Groups**](Engine\Animation\SyncGroups) を参照してください。
+[/REGION]

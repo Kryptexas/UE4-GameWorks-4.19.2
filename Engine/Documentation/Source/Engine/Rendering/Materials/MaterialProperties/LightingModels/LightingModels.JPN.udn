@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2741618
+﻿INTSourceChangelist:3007356
 Availability:Public
 Title:シェーディング モデル
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials,  Engine/Rendering/Materials/MaterialProperties
@@ -6,14 +6,14 @@ Description:マテリアルのシェーディングモデルのプロパティ�
 Version:4.9
 
 
-[TOC(start:2 end:2)]
+[TOC(start:2 end:3)]
 
 シェーディング モデルは、差し込むライティングをマテリアルが反射する方法を制御します。言い換えれば、マテリアルを構成する入力データを最終イメージの作成にどのように使用するかをコントロールします。 
 
 ![](LightingModelProperties.png)
 
 
-アンリアル・エンジン 4 には、以下の 6 つのシェーディング モデルがあります。Default Lit (ライティング有り)、Unlit (ライティング無し)、サブサーフェス、Preintegrated Skin、クリアコード、およびサブサーフェス プロファイルの6 つです。ひとつめの Default Lit はほとんどのサーフェスで使用します。 
+アンリアル・エンジン 4 には、以下の 6 つのシェーディング モデルがあります。Default Lit (ライティング有り)、Unlit (ライティング無し)、Subsurface、Preintegrated Skin、Clear Coat、および Subsurface Profile です。ひとつめの Default Lit はほとんどのサーフェスで使用します。 
 一方、残りの 5 つは特殊ケースのシェーディング モデルであり、特定タイプのオブジェクトやサーフェスでよりリアルな結果を得るためのものです。
 
 [REGION:note]
@@ -42,7 +42,7 @@ Default Lit シェーディング モデル使用時は以下の入力値にア�
 
 ## Unlit （ライティング無し）
 
-**Unlit** シェーディング モデルはカラーのエミッシブ (発光色) のみを出力します。火や照明オブジェクトなどの特別効果に最適です。このマテリアルの例は、シーンにライトをキャストして _いない_ ことに注目してください。高いエミッシブ値がグロー効果を生み出しています。カメラに適用された汚れマスクも取り入れています。照らしているように _見えますが_、このオブジェクトにキャストされるライティングやシャドウはありません。
+**Unlit** シェーディング モデルはカラーのエミッシブ (発光色) のみを出力します。火や照明オブジェクトなどの特別効果に最適です。このマテリアルの例は、シーンにライトをキャストして _いない_ ことに注目してください。高いエミッシブ値がグロー効果を生み出しています。カメラに適用された汚れマスクも取り入れています。照らしているように _見えます_ が、このオブジェクトにキャストされるライティングやシャドウはありません。
 
 ![](UnlitExample.png)(w:500)
 
@@ -98,16 +98,16 @@ Preintegrated Skin シェーディング モデルを使用時は以下の入力
 * Ambient Occlusion (アンビエント オクルージョン)
 
 ## Clear Coat 
-**Clear Coat** シェーディングモデルは、スタンダードなマテリアルのサーフェス上に薄い半透明層のフィルムを持つマルチレイヤーのマテリアルをより適切にシミュレーションするために使用できます。
+**Clear Coat** シェーディング モデルは、スタンダードなマテリアルのサーフェス上に薄い半透明層のフィルムを持つマルチレイヤーのマテリアルをより適切にシミュレーションするために使用できます。
 それ以外にも、金属、非金属のサーフェスで使用できます。実際、無色系の金属マテリアルの上に色がついた半透明の層を重ねるような表現に特化して設計されています。 
 例としては、金属の上にアクリルやラッカーのクリアコートが塗られていたり、色付きフィルムが被せられた飲料水の缶やクルマのペイントがあります。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Monte Carlo Reference](ClearCoat_0.png)(w:400)
+	![Monte Carlo Reference](ClearCoat_0.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
-	![UE4](ClearCoat_1.png)(w:400)
+	![UE4](ClearCoat_1.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 
@@ -116,7 +116,18 @@ Preintegrated Skin シェーディング モデルを使用時は以下の入力
 (注：画像のキラキラはクリアコートの機能ではなく、単純にマテリアルエディターで作ったベース素材です)
 [/region]
 
-Clear Coat シェーディング モデル使用時は以下の入力値にアクセスできます。
+
+### Dual-Normal Clear Coat
+クリアコート レイヤーの下のサーフェイスに 2 つ目の法線マップを追加するオプションがクリアコート シェーディング モデルに追加されました。このオプションを使うと、クリアコート レイヤーとは異なるジオメトリ サーフェイスを持つカーボン ファイバーなどの複雑なマテリアルも正確にモデル化ができるようになります。 
+
+[REGION:imagetable]
+| ![Dual_Clear_Coat_Old](Dual_Clear_Coat_Old.png)(w:290) | ![Dual_Clear_Coat_New](Dual_Clear_Coat_New.png)(w:290) | ![(Dual_Clear_Coat_Photo](Dual_Clear_Coat_Photo.png)(w:290)|
+| ------ | ------ | ------ |
+| 以前の UE4 クリアコート | 新しい UE4 のクリアコートにボトム法線を使用 |実際の写真|
+[/REGION] 
+
+
+Clear Coat シェーディング モデルまたは クリアコートに Dual Normals シェーディング モデルを使用する場合は、以下の入力値にアクセスできます。
 
 * Base Color (基本色)
 * Metallic (メタリック)
@@ -131,14 +142,21 @@ Clear Coat シェーディング モデル使用時は以下の入力値にア�
 * Clear Coat Roughness (クリアコート ラフネス) 
 
 
-## Subsurface プロファイル
+## Subsurface Profile
 
 [Subsurface プロファイル シェーディング モデル](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile) は Subsurface モデルとPreintegrated Skin シェーディング モデルに非常に似ています。 
 しかし、よりハイエンドな皮膚のレンダリングを対象にしています。皮膚をシミュレーションしようとする場合、特に人間の皮膚の場合、これは最適なシェーディングモデルです。 
 
-![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Standard Shading](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_1.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Subsurface Profile Shading](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_2.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
-Subsurface プロファイル シェーディング モデル使用時は、以下の入力値にアクセスできます。
+Subsurface Profile モデル使用時は、以下の入力値にアクセスできます。
 
 * Base Color (基本色)
 * Specular (鏡面反射色)
@@ -151,18 +169,18 @@ Subsurface プロファイル シェーディング モデル使用時は、以�
 
 ## Two Sided Foliage
 
-**Two Sided Foliage** シェーディング モデルは、照らされた時のフォーリッジをより自然で均一な外観にしやすいように実装されました。 
-Default lit シェーディング モデルをフォーリッジに使用すると、フォーリッジ部分はほぼ黒く見えます。
-また、フォーリッジの外見に真実味を持たせるカギとなる光の透過もシミュレーションしません。
-Two Sided Foliage シェーディング モデルは、光がフォーリッジを透過している幻想を与えやすくする非常に薄くいオブジェクトを構成するサブサーフェス スキャタリング ライティング モデルを使うことで、これらの問題をなくしやすくします。
-さらに、フォーリッジの暗い部分を取り除いて、光に対してフォーリッジがより均一に見えるようにします。 
+**Two Sided Foliage** シェーディング モデルは、照らされた時のフォリッジをより自然で均一に見せるために実装されました。 
+Default lit シェーディング モデルをフォリッジに使用すると、フォリッジ部分はほぼ黒に見えます。
+また、フォリッジをより本物らしく見せるために重要な光の透過もシミュレーションしません。
+Two Sided Foliage シェーディング モデルは、光がフォリッジを透過している幻想を与えやすくする非常に薄いオブジェクトを構成するサブサーフェス スキャタリング ライティング モデルを使うことで、これらの問題を解決します。
+さらに、フォリッジの暗い部分を取り除いて、フォリッジが光に対してより均一に見えるようにします。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Two Sided Foliage Enabled](2_Sided_Enabled.png)
+	![Two Sided Foliage Enabled](2_Sided_Enabled.png)(h:700)
 	[/PARAM]
 	[PARAM:after]
-	![Two Sided Foliage Disabled](2_Sided_Disabled.png)
+	![Two Sided Foliage Disabled](2_Sided_Disabled.png)(h:700)
 	[/PARAM]
 [/OBJECT]
 

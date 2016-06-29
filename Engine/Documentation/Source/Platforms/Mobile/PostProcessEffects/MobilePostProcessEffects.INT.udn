@@ -12,108 +12,231 @@ tags:mobile
 [TOC(start:2)]
 
 
+Mobile Post Processing is implemented as a separate code path from PC/Console post processing. This is to reflect the slower dependent texture reads, missing hardware features, extra render target resolve costs, and the slower performance in general. The following categories can be found in a Post Process volume (or a camera Actor).
 
-Mobile postprocessing is implemented as a separate code path from PC/Console post processing. This is to reflect the slower dependent texture reads,
-missing hardware features, extra rendertarget resolve costs, and the slower performance in general. The following categories can be found in a postprocess volume (or a camera Actor).
+[region:note]
+Make sure that Mobile HDR is enabled in your project settings as most of the settings below require this setting to be enabled for the effect to work.
+[/region]
+
+## Enabling Tonemapper for Mobile Devices
+To use the Tonemapper Post Processing options on Mobile Devices, you will need to set the value of **r.tonemapperfilm** from its default of **0** to **1**.  You can change, enable, or disable the Tonemapper inside of the Unreal Engine 4 (UE4) Editor in the following ways: 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Tonemapper On](Tonemapper_On.png)(w:660 h:417)
+	[/PARAM]
+	[PARAM:after]
+	![Tonemapper Off](Tonemapper_Off.png)(w:660 h:417)
+	[/PARAM]
+[/OBJECT]
 
 
-## Post Process Categories
+### Enabling Tonemapper Film via the Console
+You can enable the Tonemapper in the UE4 Editor by first opening up the console by pressing the **Backtick key(`)** and then entering **r.tonemapperfilm 1** to enable the Tonemapper. To disable the Tonemapper, open up the console and enter **r.tonemapperfilm 0**. 
+
+[region:note]
+This method will enable the Tonemapper only for this session. If you want the Tonemapper to always be on you will need to add the Tonemapper settings you want to use to the DefaultEngine.INI.
+[/region]
+
+[REGION:lightbox]
+[![](TM_Console.png)(w:468 h:315)](TM_Console.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+### Enabling Tonemapper Film via .INI Files
+To enable or disable the Tonemapper project wide you will need to add **r.tonemapperfilm=1** to the **Rendering Settings** in your project's **DefaultEngine.ini**.
+
+[REGION:lightbox]
+[![](TM_Default_Engine_INI.png)(w:422 h:199)](TM_Default_Engine_INI.png)
+[/REGION]
+	
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+[REGION:lightbox]
+[![](TM_INI_Location.png)(w:422 h:199)](TM_INI_Location.png)
+[/REGION]
+	
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+### Enabling Tonemapper Film on a Mobile Device
+To enable or disable the Tonemapper on a Mobile Device you will need to tap the screen with **four fingers** at the same time to bring up the **Console Window** and then input **r.tonemapperfilm 1** to enable the Tonemapper or **r.tonemapperfilm 0** to disable the Tonemapper.
+
+[REGION:lightbox]
+[![](TM_Phone_Console.png)(w:640 h:360)](TM_Phone_Console.png)
+[/REGION]
+	
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+## Post Process Settings
+In the following section we will go over what Post Processing settings you can expect to work with **r.tonemapper** enabled as well as which Post Processing settings will work with **r.tonemapper** disabled.
+
+[REGION:lightbox]
+[![](TM_PostProcess_Settings.png)(w:275 h:355)](TM_PostProcess_Settings.png)
+[/REGION]
+	
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+### White Balance
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Temp|Yes|1|
+|Tint|Yes|1|
+
+### Color Grading
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Saturation|Yes|1|
+|Contrast|Yes|1|
+|Gamma|Yes|1|
+|Gain|Yes|1|
+|Offset|Yes|1|
 
 ### Film
-
-Everything works the same as desktop/console. 
-
-[REGION:tip]
-For best performance, keep "Tint Shadow Amount" set to zero to disable Tint Shadow. Keeping "Channel Mixer" controls unchecked and keeping "Saturation" unchecked or set to 1 can also improve the performance of the tonemapper on mobile.
-[/REGION]
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Tint|Yes|0|
+|Tint Shadow|Yes|0|
+|Tint Shadow Blend|Yes|0|
+|Tint Shadow Amount|Yes|0|
+|Saturation|Yes|0|
+|Channel Mixer Red|Yes|0|
+|Channel Mixer Green|Yes|0|
+|Channel Mixer Blue|Yes|0|
+|Contrast|Yes|0|
+|Crush Shadows|Yes|0|
+|Crush Highlights|Yes|0|
+|Dynamic Range|Yes|0|
+|Slope|Yes|1|
+|Toe|Yes|1|
+|Shoulder|Yes|1|
+|Black Clip|Yes|1|
+|White Clip|Yes|1|
 
 ### Scene Color
-
-The following are unsupported on mobile:
-* Fringe Intensity
-* Color Grading
-* Color Grading Intensity
-
-[REGION:tip]
-For best performance keep, "Grain Jitter" and "Grain Intensity" set to zero to disable grain. Turning off Vignette by setting "Vignette Intensity" to zero can provide a small increase in performance if bloom is disabled.
-[/REGION]
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Scene Color Tint|Yes|1|
+|Fringe Intensity|Yes|0 & 1|
+|Vignette Intensity|Yes|0 & 1|
+|Grain Jitter |Yes|0 & 1|
+|Grain Intensity |Yes|0 & 1|
+|Color Grading Intensity |Yes|1|
+|Color Grading |Yes|1|
 
 ### Bloom
-
-The following are unsupported on mobile:
-* Dirt Mask Intensity
-* Dirt Mask
-* Dirt Mask Tint
-
-[REGION:tip]
-Settings on the PC to best emulate mobile bloom are {4, 8, 16, 32, 64} for {#1 Size, #2 Size . . . #5 Size}. However, as the PC size values are in screen percentage, this
-only works for a specific viewport size. We intend to port the mobile bloom to PC to make it match better and to give the PC another more low spec option.
-[/REGION]
-
-###  Filmic Tonemapper 
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Intensity|Yes|0 & 1|
+|Threshold|Yes|0 & 1|
+|Size Scale |Yes|0 & 1|
+|#1 Size|No|n/a|
+|#2 Size|No|n/a|
+|#3 Size|No|n/a|
+|#4 Size|No|n/a|
+|#5 Size|No|n/a|
+|#1 Tint|No|n/a|
+|#2 Tint|No|n/a|
+|#3 Tint|No|n/a|
+|#4 Tint|No|n/a|
+|#5 Tint|No|n/a|
+|#6 Tint|No|n/a|
+|Dirt Mask Intensity|Yes|1|
+|Dirt Mask Tint |Yes|1|
+|Dirt Mask |Yes|1|
 
 ### Light Propagation Volume
-
-Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+Not currently supported or usable on Mobile Devices.
 
 ### Ambient Cubemap
-
-Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+Not currently supported or usable on Mobile Devices.
 
 ### Auto Exposure
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Auto Exposure Histogram|Yes|0 & 1|
+|Auto Exposure Basic|Yes|0 & 1|
+|Low Percent|No|n/a|
+|High Percent|No|n/a|
+|Min Brightness|No|n/a|
+|Max Brightness|No|n/a|
+|Speed Up|No|n/a|
+|Speed Down|No|n/a|
+|Exposure Bias|Yes|0 & 1|
+|Histogram Log Min|No|n/a|
+|Histogram Log Max|No|n/a|
 
-Auto exposure is not supported on mobile, however the "Auto Exposure Bias" setting is supported.
-Set "Min Brightness" and "Max Brightness" to 1 to emulate mobile on desktop (this clamps the range of auto exposure so that auto exposure will have no effect).
-The "Auto Exposure Bias" setting can then be used to lighten or darken the scene.
-
-### Lens Flares
-
-Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+### Lense Flares
+Not currently supported or usable on Mobile Devices.
 
 ### Ambient Occlusion
+Not currently supported or usable on Mobile Devices.
 
-Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+### Global Illumination
+Not currently supported or usable on Mobile Devices.
 
-### Depth Of Field
-
-To turn off Depth of Field, set "Scale" to zero, this is suggested as default to improve performance.
-
-Mobile Depth of Field is currently not compatible with PC. There is no way to currently visualize on the desktop version what the mobile settings will look like
-except using an unsupported "-FeatureLevelES2" launch flag when starting the editor, or using the "Mobile Preview" option from the "Play" button drop down menu.
-
-The following settings are not supported on mobile:
-* Near Transition Region
-* Far Transition Region
-* Max Bokeh Size
-* Near Blur Size
-* Far Blur Size
-
-Mobile Depth of Field provides two focal planes (one for the near and one for the far bokeh). The "Focal Distance" and "Focal Region"
-control those planes as they do on desktop. The "Scale" parameter goes from 0 (off) to 1 (full size) to 2 (faster transition to full size).
-Mobile Depth of Field has a relatively small maximum size.
+## Depth Of Field
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|BokehDOF|Yes|0 |
+|GaussianDOF|Yes|0 |
+|CircleDOF|No|n/a |
+|High Quality Gaussian DoF on Mobile|Yes|1|
+|Aperture F - Stop|No|n/a|
+|Focal Distance |Yes|0|
+|Depth Blur km for 50%|No|n/a|
+|Depth Blur Radius|No|n/a|
+|Focal Region|No|n/a|
+|Near Transition Region|Yes|0|
+|Far Transition Region|Yes|0|
+|Scale|Yes|0|
+|Max Bokeh Size|No|n/a|
+|Near Blur Size|No|n/a|
+|Far Blur Size|No|n/a|
+|Shape|No|n/a|
+|Occlusion|No|n/a|
+|Color Threshold|No|n/a|
+|Sky Distance|No|n/a|
+|Vignette Size|No|n/a|
 
 ### Motion Blur
+Not currently supported or usable on Mobile Devices.
 
-Unsupported. Set "Amount" to zero to emulate mobile on desktop.
-
-### Misc
-
-"Screen Percentage" is unsupported. Only the 100.0 setting works. "AA Method" supports "None" (the fastest) and "TemporalAA" which provides a
-special mobile temporal AA which provides something around 2xSGSSAA with a little bit of judder in motion.
-Postprocess materials (through Blendables) are not supported on mobile.
+## Misc
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Screen Percentage|No|n/a |
+|AA Methods|Yes|0 & 1|
+[region:note]
+The AA Method supports "None" (the fastest) and "TemporalAA" which provides a special mobile temporal AA which provides something around 2xSGSSAA with a little bit of judder in motion
+[/region]
 
 ### Screen Space Reflections
+|Post Process Property| Supported|R.tonemapperfilm Value| 
+|--------------------|-----------|--------------|
+|Intensity|Yes|0 & 1|
+|Quality|Yes|0 & 1|
+|Max Roughness|Yes|0 & 1|
 
-Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+### Blendables
+Not currently supported or usable on Mobile Devices.
 
 ## General Performance Tips
 
-* For best performance and quality, you should stick to Bloom and TemporalAA.
-* Make sure Depth of Field, light shafts, film grain, color grading LUT, ambient cubemap, etc are disabled.
-
+* For best performance and quality, you should stick to using just Bloom and TemporalAA.
 
 [REGION:note]
-For better performance, we have implemented a special workaround which is controlled by the console variable "r.RenderTargetSwitchWorkaround". In `BaseDeviceProfiles.ini`, you can see it is enabled
+For better performance, we have implemented a special workaround which is controlled by the console variable "r.RenderTargetSwitchWorkaround". In **BaseDeviceProfiles.ini**, you can see it is enabled
 for several devices. Note that there will be a small change in appearance to the bloom effect on devices with certain performance characteristics. The console variables help text describes this in more detail:
 
 	r.RenderTargetSwitchWorkaround
@@ -121,5 +244,5 @@ for several devices. Note that there will be a small change in appearance to the
 	Workaround needed on some mobile platforms to avoid a performance drop related to switching render targets.
 	Only enabled on some hardware. This affects the bloom quality a bit. It runs slower than the normal code path but
 	still faster as it avoids the many render target switches. (Default: 0)
-	We want this enabled (1) on all 32 bit iOS devices (implemented through DeviceProfiles).
+	We want this enabled (1) on all 32-bit iOS devices (implemented through DeviceProfiles).
 [/REGION]

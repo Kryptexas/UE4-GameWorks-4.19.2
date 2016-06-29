@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2743336
 Availability:Public
 Title: 设置设备配置文件
 Crumbs:%ROOT%, Platforms
 Description:Setting device profiles for platform-specific configurations
+Version: 4.9
 
 
-设置设备特定配置的最佳方法是在项目内部创建一个自定义的 `Config/DefaultDeviceProfiles.ini`。您可以在设备配置文件中设置许多属性，比如 
-纹理库大小；建议采用这种方式在不同的移动设备上或 PC/Mac 上的扩展性设置存储段中处理扩展性。
+设置设备特定配置的最佳方法是在项目内部创建一个自定义的 `Config/DefaultDeviceProfiles.ini`。
+您可以在设备配置文件中设置许多属性，比如纹理库大小；建议采用这种方式在不同的移动设备上或 PC/Mac 上的扩展性设置存储段中处理扩展性。
 
  
 	[iPhone5 DeviceProfile]
@@ -31,9 +32,9 @@ Description:Setting device profiles for platform-specific configurations
 
 ### iOS
 
-设备配置文件可用于设置 iOS 设备的游戏分辨率。`r.MobileContentScaleFactor` 属性与设备的 '标称 iOS 分辨率' 有关。例如，Retina 屏幕版 iPad 的 
-实际分辨率为 2048x1536，但标称分辨率为 1024x768，因此采用 2.0 才能获得原始分辨率。如果想要提高分辨率，但又不希望因为以原始分辨率运行而达到最佳性能， 
-还可以使用分数值（如 1.5）。
+设备配置文件可用于设置 iOS 设备的游戏分辨率。`r.MobileContentScaleFactor` 属性与设备的 '标称 iOS 分辨率' 有关。
+例如，Retina 屏幕版 iPad 的实际分辨率为 2048x1536，但标称分辨率为 1024x768，因此采用 2.0 才能获得原始分辨率。
+如果想要提高分辨率，但又不希望因为以原始分辨率运行而达到最佳性能，还可以使用分数值（如 1.5）。
 
 	[iPad3 DeviceProfile]
 	+CVars=r.MobileContentScaleFactor=1

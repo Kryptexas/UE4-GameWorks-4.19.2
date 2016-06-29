@@ -1,19 +1,15 @@
-﻿INTSourceChangelist:2890438
+﻿INTSourceChangelist:2997698
 Availability:Public
 Title:キャラクターをアニメートする
 Crumbs: %ROOT%, Engine
 Description:シーケンサーで Skeletal Mesh アクタにアニメーションを適用する方法を説明します。
-Version:4.11
+Version:4.12
 SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
-
-[REGION:warning]
-これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
-[/REGION]
 
 シネマティック シーケンスを作る場合、シーン内でキャラクターを動くようにしたり、何らかのアニメーションを実行させたいことがあるでしょう。 
 **シーケンサー** では、Skeletal Mesh アクタをレベル シーケンスに追加してから、アニメーションのサブトラックを追加し、アクタに行わせたいアニメーションを指定することでこれを行うことができます。 
@@ -94,7 +90,7 @@ Related:Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-TYJYT2e7fdA
+FMZG4yGriqc
 [/PARAMLITERAL]
 [/OBJECT]
 
@@ -103,7 +99,7 @@ TYJYT2e7fdA
 
 ![](CharacterAnim_10.png)
 
-この動画ではシーケンサーで再生がどのように処理されるかも示されています。**Section Bounds** に入っているものだけが再生されます (緑と赤のマーカーの間)。 
+この動画ではシーケンサーで再生がどのように処理されるかについても示しています。**Section Bounds** に入っているものだけが再生されます (緑と赤のマーカーの間)。 
 これらをドラッグしてシーケンスの境界を増加、減少させることができます。または、**[Sequencer]** オプションを使って、**[Keep Playback Range in Section Bounds]** オプション (以下で図示) を有効にして再生範囲にすべてのコンテンツを含むようにします。 
 
 ![](CharacterAnim_11.png)

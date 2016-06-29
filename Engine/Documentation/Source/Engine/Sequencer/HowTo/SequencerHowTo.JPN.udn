@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2890438
+﻿INTSourceChangelist:3007666
 Availability:Public
 Title:シーケンサーの操作ガイド
 Crumbs: %ROOT%, Engine, Engine\Sequencer
@@ -7,16 +7,16 @@ Related:Engine\Sequencer
 version:4.11
 
 
-この **シーケンサーの操作ガイド** のページでは、UE4 の様々な機能で **シーケンサー** エディタを使う方法を順を追って説明します。 
-キャラクターのアニメート、マルチ カメラのシーケンスのセットアップ、カメラを使った作業全般について順を追って説明します。
+この **シーケンサーの操作ガイド** のページでは、UE4 の様々な機能を使って **シーケンサー** エディタを使う方法を順を追って説明します。 
+キャラクターのアニメート、マルチ カメラのシーケンスのセットアップ、カメラを使った作業全般について説明します。
 各ガイドで説明しているシステムとコンテンツの詳細なドキュメントへの参照リンクもあります。 
 
 詳細は以下を参照してください。 
 
 ## Beginner
 [REGION:wrapper transparent]
-[](FANCY:Engine\Sequencer\HowTo\EnableSequencer "%Engine\Sequencer\HowTo\EnableSequencer:description%")
 [](FANCY:Engine\Sequencer\HowTo\ViewportOptions "%Engine\Sequencer\HowTo\ViewportOptions:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksAudio "%Engine\Sequencer\HowTo\TracksAudio:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksFade "%Engine\Sequencer\HowTo\TracksFade:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksPlayRate "%Engine\Sequencer\HowTo\TracksPlayRate:description%")
 [/REGION]
@@ -25,9 +25,12 @@ version:4.11
 ## Intermediate
 [REGION:wrapper transparent]
 [](FANCY:Engine\Sequencer\HowTo\CharacterAnimation "%Engine\Sequencer\HowTo\CharacterAnimation:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksEvent "%Engine\Sequencer\HowTo\TracksEvent:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksShot "%Engine\Sequencer\HowTo\TracksShot:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
+[](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
+[](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
+[](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
 [/REGION]
 
 

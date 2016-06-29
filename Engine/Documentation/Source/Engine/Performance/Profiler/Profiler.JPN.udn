@@ -1,8 +1,10 @@
-﻿Availability:Public
-Title:プロファイラ
+﻿INTSourceChangelist:2956400
+Availability:Public
+Title:Physics Asset Tool (PhAT) リファレンス 
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:ゲーム パフォーマンスの監視に使われるプロファイラー ツールの概要
 version:4.9
+Parent:Engine/Performance
 
 [REGION:fullwidth]
 ![](Profiler_Header.png)

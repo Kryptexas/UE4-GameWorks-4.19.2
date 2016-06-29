@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Creating Dynamic Animations
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Using AnimDynamics to provide physically based secondary animations to a character.
-version: 4.12
-skilllevel: Advanced
+﻿INTSourceChangelist:2988432
+Availability:Public
+Title:创建动态动画
+Crumbs:%ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:使用 AnimDynamics 为角色提供基于生理的附属动画。
+version:4.12
+skilllevel:Advanced
 
-One way you can improve the realism in your character's movement is to provide dynamic animations for items that they may be carrying or wearing. 
-With [**AnimDynamics**](Engine/Animation/NodeReference/SkeletalControls) those pieces that you would expect to move around as you move in real life (hair, necklaces, bracelets, swords, pouches, etc.) will bounce around and move while your character moves. 
+提高角色运动真实感的一种方法是为他们携带或穿戴的物品提供动态动画。 
+有了 [**AnimDynamics**](Engine/Animation/NodeReference/SkeletalControls)，在现实中会随着您运动而摆动的物件（毛发、项链、手镯、刀剑、荷包等）也将会在游戏里随着角色的运动而弹跳和移动。 
 
-In this How-to we will apply AnimDynamics to a character to achieve the effect seen below: 
+在本操作指南中，我们将把 AnimDynamics 应用到一个角色来实现下面看到的效果： 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -23,11 +23,11 @@ w7c3i2vpcUc
 [/PARAMLITERAL]
 [/OBJECT]
 
-Above, the character has AnimDynamics applied to the harness and furnace that is being carried around the character's neck. As the character moves, the harness shifts slightly while the furnace has a bit more movement forwards/backwards. 
-The amount of movement can be adjusted via the **Details** panel of the AnimDynamics node to achieve the effect you are looking for. Additional constraints can be added as well to manipulate just how the bones move. 
+在上面的示例中，角色身上的背带和挂在他脖子上的炉子都应用了 AnimDynamics。当角色移动时，背带会轻微摆动，而炉子的前后摆动幅度还要更大一点。 
+可以通过 AnimDynamics 节点的 **细节（Details）**面板来调整运动量，以获得您需要的效果。还可以添加更多约束来操纵骨骼移动方式。 
 
 [REGION:note]
-If you already have a character with an AnimBlueprint and bones ready to drive with AnimDynamics, you can proceed to step 2. 
+如果您已经有一个角色具备随时可用 AnimDynamics 驱动的动画蓝图和骨骼，可以直接跳到第 2 步。 
 [/REGION]
 
 [OBJECT:TopicButtonList]
@@ -35,7 +35,7 @@ If you already have a character with an AnimBlueprint and bones ready to drive w
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

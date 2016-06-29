@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Shooting from a Camera Rig Rail
+﻿INTSourceChangelist:3009005
+Availability:Public
+Title:Camera Rig Rail から撮影する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:An example of how to set up and shoot from the Camera Rig Rail. 
+Description:Camera Rig Rail をセットアップし、撮影する方法の例について説明します。 
 Version: 4.12
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
@@ -11,103 +11,103 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-The **Camera Rig Rail** Actor can be used to produce fly-through, 360 degree, or any other moving shots by attaching a camera to a rail to move along.
-The path for the rail can be defined using a [**Spline Component**](Engine/Components/Shapes/) and in Sequencer, you can keyframe the position along the rail where the camera should be at any given time. 
+**Camera Rig Rail** アクタは、カメラをレールにアタッチしてそれに沿って移動することでフライスルー、360 度、または他の移動ショットを撮るために使用することができます。
+レールの経路は [**Sprine コンポーネント**](Engine/Components/Shapes/) を使って定義することができます。シーケンサーでは、任意の時間にカメラが位置する、レールに沿った位置にキーフレームを指定することができます。 
 
-In this how-to we create a 180 degree rail where the attached camera stays focused on our character. 
+この操作ガイドでは 180 度のレールを作成し、アタッチしたカメラがキャラクターにフォーカスし続けるようにします。 
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
 [/REGION]
 
-1.	In your project on the **Modes** panel under **Cinematic**, drag a **Camera Rig Rail** asset into the level. 
+1.	**[Modes]** パネルの **[Cinematic]** から **Camera Rig Rail** アセットをレベルにドラッグします。 
 
 	![](Rails01.png)(w:800)
 
-1.	Also from the **Modes** panel under **Cinematic**, drag in a **Cine Camera Actor**. 
+1.	**[Modes]** パネルの **[Cinematic]** から **Cine Camera Actor** をドラッグします。 
 
 	![](Rails02.png)(w:800)
 
-1.	In the **World Outliner**, drag-and-drop the **CineCameraActor** onto the **CameraRig_Rail** to attach it.
+1.	**[ワールド アウトライナー]** で **CineCameraActor** を **CameraRig_Rail** にドラッグ & ドロップしてアタッチします。
 
 	![](Rails03.png)
 
-1.	In the **Details** panel for the **CineCameraActor**, set the **XYZ** for **Location** to **0, 0, 60**. 
+1.	**[Details]** パネルの **[CineCameraActor]** で、**Location** の **XYZ** 値を **0, 0, 60** に設定します。 
 
 	![](Rails04.png)
 
-	This will push the camera up slightly off the ground for our shot. 
+	こうすることで、撮影のためにカメラを地面から少し上にあげます。 
 
-1.	Select the **CameraRigRail** in the level, then select and move the end point so the rail moves to the left of the character. 
+1.	レベルの **[CameraRigRail]** を選択し、エンド ポイントを選択し移動して、レールがキャラクターの左側に移動するようにします。 
 
 	![](Rails05.png)(w:800)
 
-1.	With the end point still selected, hold **Alt** then drag out another point as shown below. 
+1.	エンドポイントを選択したままの状態で、 **Alt** キーを押したまま、以下のように別のポイントにドラッグします。 
 
 	![](Rails06.png)(w:800)
 
-1.	Select and move the red tangents to bend the rail to produce a curved shape. 
+1.	赤いタンジェントを選択し移動し、レールを曲げてカーブ形状にします。 
 
 	![](Rails07.png)(w:800)
 
-1.	Select and move the second point and its tangents to smooth out the curve.
+1.	2 つめのポイントとそのタンジェントを選択して移動して、カーブを滑らかにします。
 
 	![](Rails08.png)(w:800)
 
-1.	Select the last point on the rail, then **Alt** drag out another point and adjust to smooth out the curve as desired. 
+1.	レール上の最後のポイントを選択し、 **Alt** キーを押してもうひとつのポイントをドラッグして必要に応じてカーブが滑らかになるように調整します。 
 
 	![](Rails09.png)(w:800)
 
-1.	From the Main Toolbar, click **Cinematics** then select **Add Level Sequence**. 
+1.	メイン ツールバー から **[Cinematics]** をクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** をクリックします。 
 
 	![](Rails10.png)
 
-1.	Hold **Ctrl** and select the **Camera Rig Rail** and **Cine Camera Actor** then add both to Sequencer. 
+1.	**Ctrl** キーを押したまま、 **[Camera Rig Rail]** と **[Cine Camera Actor]** を選択して両方ともシーケンサーに追加します。 
 
 	![](Rails11.png)
 
-1.	Click the **Add** button and add a **Camera Cut Track**. 
+1.	**[Add]** ボタンをクリックし、**Camera Cut Track** を追加します。 
 
 	![](Rails12.png)
 
-1.	Click the **+ Camera** button and add the **Cine Camera Actor** as the camera to shoot from. 
+1.	**[+ Camera]** ボタンをクリックして、**Cine Camera Actor** を撮影するカメラとして追加します。 
 
 	![](Rails13.png)(w:900)
 
-	Our shot is now ready to shoot from the Cine Camera Actor attached to our Camera Rig Rail. 
+	Camera Rig Rail にアタッチされた Cine Camera アクタから撮影する用意が整いました。 
 
-1.	Add a key for the current **Transform** on the **CineCameraActor**. 
+1.	**CineCameraActor** の現在の **Transform** にキーを追加します。 
 
 	![](Rails14.png)(w:900)
 
-1.	On the **CameraRig_Rail**, click the **+ Track** button and add the **Current Position on Rail** property. 
+1.	**[CameraRig_Rail]** で、**[+ Track]** ボタンをクリックし、**[Current Position on Rail (レール上の現在位置)]** プロパティを追加します。 
 
 	![](Rails15.png)
 
-	This value represents the position of the attached camera where **0** is at the start of the rail and **1** is the end of the rail. 
+	この値はアタッチされたカメラの位置を表します。この場合、**0** はレールの開始点で **1** はレールの終点です。 
 
-1.	Move the Timeline marker to the end of the Sequence (**150**). 
+1.	タイムライン マーカーをシーケンスの終わり (**150**) まで移動します。 
 
-1.	With the **Camera Rig Rail** selected, in the **Details** panel set the **Current Position on Rail** to **1.0** then add a keyframe. 
+1.	**[Camera Rig Rail]** を選択した状態で、**[Details]** パネルで、**[Current Position on Rail]** を **1.0** に設定し、キーフレームを追加します。 
 
 	![](Rails16.png)
 
-	You can set this value inside Sequencer on the **Current Position on Rail** track or by clicking the keyframe in the **Details** panel. 
+	シーケンサー内の **Current Position on Rail** トラックまたは **[Details (詳細)]** パネルでキーフレームをクリックしてこの値を設定することができます。 
 
-1.	Select the **Cine Camera Actor**, then check **Enable Look at Tracking** for the **ThirdPersonCharacter** with a **Z** offset of **45.0**. 
+1.	**[Cine Camera Actor]** を選択し、**[ThirdPersonCharacter]** に対して **[Enable Look at Tracking]** にチェックを入れて **Z** オフセットを **45.0** にします。 
 
 	![](Rails17.png)
 
-	Here we are setting our camera to always follow the location of the **Actor to Track**, in this case the **ThirdPersonCharacter**. 
+	ここでは、**[Actor to Track (追跡対象のアクタ)]** の位置、この場合は **ThirdPersonCharacter** の位置をカメラが常に追随するようにします。 
 
-1.	Lock the viewport to the **Camera Cut Track** then click the preview play button. 
+1.	ビューポートを **Camera Cut Track** に固定してから、[Preview Play] ボタンをクリックします。 
 
-	
-## End Result
+	## 最終結果
 
-You should have something similar where the camera pans 180 degrees around the character. 
+
+以下の動画に類似した結果になります。カメラがキャラクター周囲を 180 度パンします。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -121,10 +121,10 @@ tKrJGdwAU_E
 [/PARAMLITERAL]
 [/OBJECT]
 
-You could continue to add key frames and points along the **Camera Rig Rail** for a full 360 degree orbit around the character. You could also use the rail for fly-through paths in game level or to highlight something of importance. 
+キーフレームを引き続き追加し、キャラクター周囲の 360 度の軌道になるように **Camera Rig Rail** に沿ってポイントします。レールは、ゲーム レベルでフライスルー経路のためや、重要なものを強調するために使用することができます。 
 
 [REGION:tip]
-There is an advanced method you can use to work with the **Camera Rig Rail** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 
+シーケンサーで **Camera Rig Rail** アセットで作業するための高度な方法があります。これを使うと、この操作ガイドのいくつかの手順を自動化できます。詳細は [**ワークフローのショートカット**](Engine\Sequencer\Workflow\CheatSheet) セクションをご覧ください。 
 [/REGION]
 
 
