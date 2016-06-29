@@ -253,10 +253,21 @@ private:
 		FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis,
 		FVector& DragDeltaFromStartOffset,
 		bool& bIsDrivingVelocityOfSimulatedTransformables,
-		FVector& OutUnsnappedDraggedTo );
+		FVector& OutUnsnappedDraggedTo);
 	
 	/** Given a drag delta from a starting point, contrains that delta based on a gizmo handle axis */
-	FVector ComputeConstrainedDragDeltaFromStart( const bool bIsFirstDragUpdate, const ETransformGizmoInteractionType InteractionType, const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement, const FVector& DragDeltaFromStart, const FVector& LaserPointerStart, const FVector& LaserPointerDirection, const bool bIsLaserPointerValid, const FTransform& GizmoStartTransform, FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis, FVector& DragDeltaFromStartOffset ) const;
+	FVector ComputeConstrainedDragDeltaFromStart( 
+		const bool bIsFirstDragUpdate, 
+		const ETransformGizmoInteractionType InteractionType, 
+		const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement, 
+		const FVector& DragDeltaFromStart, 
+		const FVector& LaserPointerStart, 
+		const FVector& LaserPointerDirection, 
+		const bool bIsLaserPointerValid, 
+		const FTransform& GizmoStartTransform, 
+		FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis, 
+		FVector& DragDeltaFromStartOffset,
+		FVector& OutClosestPointOnLaser) const;
 
 	/** Checks to see if smooth snapping is currently enabled */
 	bool IsSmoothSnappingEnabled() const;
