@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2742006
+﻿INTSourceChangelist:3005840
 Availability:Public
 Title:拡張性のリファレンス
-Crumbs: %ROOT%, Engine, Engine/Performance/Scalability
-Description:拡張性のオプション、プロパティ、コンソール変数
+Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
+Description:拡張機能のオプション、プロパティ、コンソール変数
 version:4.9
 
 [VAR:Topic]
@@ -53,9 +53,9 @@ version:4.9
 
 拡張性の設定では、異なるプラットフォームやハードウェアでゲームの最高性能を維持するために様々な機能の品質を調整することができます。
 
-## 拡張性の設定
+## 拡張設定
 
-エディタの [Scalability (拡張性)] 設定は、ツールバーの **[Settings (設定)]** メニューからアクセスします。**[Engine Scalability Settings (エンジンの拡張性設定)]** には BaseScalability.ini ファイルで定義された、一般的に使用する設定へのショートカットが含まれています。**[Material Quality Level (マテリアル品質レベル)]** では、グローバル マテリアルの品質を設定します。
+エディタの [Scalability (拡張)] 設定は、ツールバーの **[Settings (設定)]** メニューからアクセスします。**[Engine Scalability Settings (エンジンの拡張設定)]** には BaseScalability.ini ファイルで定義された、一般的に使用する設定へのショートカットが含まれています。**[Material Quality Level (マテリアル品質レベル)]** では、グローバル マテリアルの品質を設定します。
 
 [REGION:lightbox]
 [![](ScaleR_ViewQual.png)(h:490)](ScaleR_ViewQual.png) [![](ScaleR_ViewMatQual.png)(h:490)](ScaleR_ViewMatQual.png)
@@ -64,7 +64,7 @@ version:4.9
 
 ## スケーリング解像度
 
-アンリアル エンジン 4 は低解像度でシーンをレンダリングして、ターゲットの解像度まで画像をスケーリングすることができます。2D ユーザーインターフェースは通常は、少ないパフォーマンスコストで低解像度に悩まされがちですが、アンリアルエンジン 4 はこの技術を UI に適用しません。アップサンプリングは多少のコストを伴いますが、労力を費やすに値する技術です。
+アンリアル エンジン 4 はシーンのレンダリングは低解像度で行って、ターゲットの解像度まで画像をスケーリングすることができます。2D ユーザーインターフェースを使うと、通常は少ないパフォーマンス負荷ですみますが、解像度が低いことが問題になるため、アンリアルエンジン 4 はこの技術を UI に適用しません。アップサンプリングは多少の付加を伴いますが、使うに値する技術です。
 
 
 ![](SC_00007.png)(w:920)
@@ -73,7 +73,7 @@ version:4.9
 [/REGION]
 
 [REGION:note]
-滑らかな輪郭の入力画像はアップサンプリングのステップに役立ちます。つまり [Scalability] オプションは、アンチエイリアシング品質など、別の拡張機能オプションからの恩恵を受けます。
+滑らかな輪郭の入力画像はアップサンプリングのステップに役立ちます。つまり [Scalability (拡張)] オプションは、アンチエイリアシング品質など、別の拡張オプションからの恩恵を受けます。
 [/REGION]
 
 この設定は、**_r.ScreenPercentage_** コンソール変数でアクセスが可能です。10-100 の値を取り、 -1 は 100 ％と同等になります。
@@ -81,7 +81,7 @@ version:4.9
 
 ## 表示距離
 
-オブジェクトはビューアへの距離に基づいてカリングすることができます。デフォルトでは、全オブジェクトは距離に基づいたカリングではありません (値 0 の最大描画距離が望ましい)。デザイナーが指定する値に加えて、グローバル拡張設定が乗算値のように機能します (**_r.ViewDistanceScale_**)。以下に草オブジェクトを示します (値 1000 の最大描画距離が望ましい)。
+オブジェクトはビューアへの距離に基づいてカリングすることができます。デフォルトでは、全オブジェクトは距離に基づいたカリングではありません (値 0 の最大描画距離が望ましい)。デザイナーが指定する値に加えて、グローバル拡張設定が乗算値のように機能します (**_r.ViewDistanceScale_**)。以下にグラス オブジェクトを示します (値 1000 の最大描画距離が望ましい)。
 
 ![](SC_00006.png)(w:920)
 [REGION:caption]
@@ -111,7 +111,7 @@ Temporal AA 手法は、高い値を使用すればするほどエフェクト�
 **_sg.PostProcessQuality_** を、左から右へ 0 から 3 に設定
 [/REGION]
 
-**[View (表示)]** -> **[Engine Scalability Settings (エンジンの拡張性設定)]** -> **[Post Processing (ポストプロセス)]** オプションで、[UE4_InstallPath]/Engine/Config フォルダに格納されている BaseScalaiblity.ini ファイルの設定に従ってポストプロセス エフェクトの品質を調整します。**[Low]** 設定は、_sg.PostProcessQuality_ 0 に等しく、**[Epic]** は _sg.PostProcessQuality_ 3 と同じです。
+**[View (表示)]** -> **[Engine Scalability Settings (エンジンの拡張設定)]** -> **[Post Processing (ポストプロセス)]** オプションで、[UE4_InstallPath]/Engine/Config フォルダに格納されている BaseScalaiblity.ini ファイルの設定に従ってポストプロセス エフェクトの品質を調整します。**[Low]** 設定は、_sg.PostProcessQuality_ 0 に等しく、**[Epic]** は _sg.PostProcessQuality_ 3 と同じです。
 
 [REGION:simpletable]
 |sg.PostProcessQuality 0|sg.PostProcessQuality 1|
@@ -202,7 +202,7 @@ Temporal AA 手法は、高い値を使用すればするほどエフェクト�
 sg.ShadowQuality を、左から右へ 0 から 3 に設定
 [/REGION]
 
-**[View (表示)]** -> **[Engine Scalability Settings (エンジンの拡張性設定)]** -> **[Post Processing (ポストプロセス)]** オプションで、[UE4_InstallPath]/Engine/Config フォルダに格納されている BaseScalaiblity.ini ファイルの設定に従ってポストプロセス エフェクトの品質を調整します。**[Low]** 設定は、_sg.ShadowQuality_ 0 に等しく、**[Epic]** は _sg.ShadowQuality_ 3 と同じです。
+**[View (表示)]** -> **[Engine Scalability Settings (エンジンの拡張設定)]** -> **[Post Processing (ポストプロセス)]** オプションで、[UE4_InstallPath]/Engine/Config フォルダに格納されている BaseScalaiblity.ini ファイルの設定に従ってポストプロセス エフェクトの品質を調整します。**[Low]** 設定は、_sg.ShadowQuality_ 0 に等しく、**[Epic]** は _sg.ShadowQuality_ 3 と同じです。
 
 [REGION:simpletable]
 |sg.ShadowQuality 0|sg.ShadowQuality 1|
@@ -311,7 +311,7 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 
 ## エフェクト - sg.EffectsQuality
 
-**[View (表示)]** -> **[Engine Scalability Settings (エンジン拡張性の設定)]** -> **[Effects]** オプションで、`[UE4_InstallPath]/Engine/Config` フォルダに格納されている BaseScalaiblity.ini ファイルの設定に従ってさまざまなタイプのエフェクト品質を調整します。**[Low]** 設定は、sg.EffectsQuality 0 に等しく、**[Epic]** は sg.EffectsQuality 3 と同じです。
+**[View (表示)]** -> **[Engine Scalability Settings (エンジン拡張の設定)]** -> **[Effects]** オプションで、`[UE4_InstallPath]/Engine/Config` フォルダに格納されている BaseScalaiblity.ini ファイルの設定に従ってさまざまなタイプのエフェクト品質を調整します。**[Low]** 設定は、sg.EffectsQuality 0 に等しく、**[Epic]** は sg.EffectsQuality 3 と同じです。
 
 [REGION:simpletable]
 |sg.EffectsQuality 0|sg.EffectsQuality 1|
@@ -375,9 +375,9 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 
 ![](SC_00008.png)
 
-Scalability (拡張機能) モードはコンソールから変更できます:
+Scalability (拡張) モードはコンソールから変更できます:
 
-	r.DetailMode 1 
+	r.DetailMode 1
 
 詳細モードは、`r.DetailMode 0` が low、 `r.DetailMode 1` が medium、そして `r.DetailMode 2` が high になります。
 
@@ -389,28 +389,32 @@ Scalability (拡張機能) モードはコンソールから変更できます:
 
 ![](ScaleR_ViewMatQual.png)
 
-マテリアルに Quality Switch マテリアル表現式を使用して、最終イメージへの影響が少ない負荷の高いマテリアル部分を無効にすることができます。このエフェクトを見るには、品質モードを低く切り替えなくてはいけません。
+マテリアルに **Quality Switch** マテリアル表現式ノードを使用して、最終イメージへの影響が少ない負荷の高いマテリアル部分を無効にすることができます。このエフェクトを見るには、**Low Quality** モードを低く切り替えなくてはいけません。
 
 [REGION:lightbox]
-[![](SC_SwitchNode.png)(w:900)](SC_SwitchNode.png)
+[![](SC_SwitchNode.png)(w:555 h:391)](SC_SwitchNode.png)
 [/REGION]
 
 **Material Quality Level** が low または high のどちらに設定されていても、このマテリアルに対して評価される表現式が判断されます (low または high ピン)。入力が無い場合、デフォルトピンが high または low (もしくは両方) のどちらかに設定されます。high に設定時は、マテリアルにはかなり高負荷のパーリン ノイズオペレーションが 2 つ含まれます。
 
 [REGION:note]
-この例は単に **Material Switch Node** を示すためのものです。**Noise** ノードは非常に負荷が高く、この例には適していますが、このエフェクトを得るには負荷が低い方法があるため控え目に使用してください。
+この例は単に **Material Switch ノード** を示すためのものです。**Noise** ノードは非常に負荷が高く、この例には適していますが、このエフェクトを得るには負荷が低い方法があるため控え目に使用してください。
 [/REGION]
 
 [REGION:float_left half]
-**Material Quality Level** -> **Low**
+**[Material Quality Level]** -> **[Low]**
 [/REGION]
 [REGION:float_left half]
-**Material Quality Level** -> **High**
+**[Material Quality Level]** -> **[High]**
 [/REGION]
 
-![](SC_Closeup.png)
+[REGION:lightbox]
+[![](SC_Closeup.png)(w:681 h:164)](SC_Closeup.png)
+[/REGION]
 
-![](SC_MirrorComplexity.png)
+[REGION:lightbox]
+[![](SC_MirrorComplexity.png)(w:450 h:681)](SC_MirrorComplexity.png)
+[/REGION]
 
 _上記の **Shader Complexity** モードは、高品質のマテリアルが他のシェーダーよりも高負荷であることを示します。緑の濃さは、シェーダーが高負荷であることを示しています。_
 
@@ -423,7 +427,7 @@ _上記の **Shader Complexity** モードは、高品質のマテリアルが�
 * シェーダーの演算処理 (ば不明瞭なレイヤーの無効化など)
 	* 最適化の検証に **[Shader Complexity]** (エディタでは **Alt+8** キー) モードと命令カウントの使用
 * テクスチャ ルックアップ (詳細なバンプマップ無し、など)
-* メモリ帯域 (テクスチャの使用を少なめにする、など)
+* メモリ帯域 (テクスチャを少なめに使用、など)
 	* 検証のために実際のハードウェアでプロファイリングしなくてはいけません
 
 
@@ -437,3 +441,105 @@ _上記の **Shader Complexity** モードは、高品質のマテリアルが�
 スケルタル メッシュには、Level of Details (LOD) モデルのスタティックレベルを設定することができます。コンソール変数 **_r.SkeletalMeshLODBias_** でグローバルに LOD レベルにバイアスをかけることが可能です。最初または 2 番目の LOD の品質によっては、このオプションを [Scalability] 設定に入れるといいかもしれません。上記の画像は、距離に基づいた LOD の拡張機能設定を示すものです。
 
 
+## グラス (草) とフォリッジの拡張機能
+
+グラス システムとフォリッジ システムの両方では、**拡張システム** を使ってパフォーマンスに及ぼす影響を減らすことができます。プロジェクトでこの機能を有効にするには、以下の手順を行います。 
+
+1. プロジェクトの **「Config」** フォルダを開いて、**DefaultScalability.ini** という名前の **.INI** を新規作成します。
+
+	![](FGC_Config_Location.png)
+
+1. 新規作成した **DefaultScalability.ini** ファイルを開いて、以下のコードの行を追加します。 
+
+		[FoliageQuality@0]
+		foliage.DensityScale=0
+		grass.DensityScale=0
+
+		[FoliageQuality@1]
+		foliage.DensityScale=0.4
+		grass.DensityScale=0.4
+
+		[FoliageQuality@2]
+		foliage.DensityScale=0.8
+		grass.DensityScale=0.8
+
+		[FoliageQuality@3]
+		foliage.DensityScale=1.0
+		grass.DensityScale=1.0
+
+	完了すると、「DefaultScalability.ini」ファイル内の情報は以下の画像と一致しているはずです。
+
+	![](FGC_Config_Info.png)
+
+1. **フォリッジ** の拡張設定が変更されると、スポーンされるフォリッジとランドスケープ グラスのスタティックメッシュの量がその設定に合わせて増減します。
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
+	[/REGION]
+
+[region:note]
+フォリッジ スタティックメッシュに拡張設定を使うには、**[Enable Density Scaling (密度のスケールを有効にする)]** オプションを有効にする必要があります。設定の詳細は [フォーリッジ インスタンス メッシュ](Engine\Foliage) を参照してください。
+[/region]
+
+<!-----
+[EXCERPT:FGS]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	FGS
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**スライダーをドラッグすると、フォリッジの拡張設定が、低、中、高、**Epic** に設定した場合のフォリッジのレンダリング量が表示されます。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](FGS_1.png)
+	![](FGS_2.png)
+	![](FGS_3.png)
+	![](FGS_4.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:FGS]
+-->
+
+<!--
+
+	[REGION:simpletable]
+	|FoliageQuality 0|FoliageQuality 1|
+	| --- | --- |
+	|[INCLUDE:#FoliageQuality@0]|[INCLUDE:#FoliageQuality@1]|
+
+	|FoliageQuality 2|FoliageQuality 3|
+	| --- | --- |
+	|[INCLUDE:#FoliageQuality@2]|[INCLUDE:#FoliageQuality@3]|
+	[/REGION]
+
+[EXCERPT:FoliageQuality@0]
+	[FoliageQuality@0]
+	foliage.DensityScale=0
+	grass.DensityScale=0
+[/EXCERPT:FoliageQuality@0]
+
+[EXCERPT:FoliageQuality@1]
+	[FoliageQuality@1]
+	foliage.DensityScale=0.4
+	grass.DensityScale=0.4
+[/EXCERPT:FoliageQuality@1]
+
+[EXCERPT:FoliageQuality@2]
+	[FoliageQuality@2]
+	foliage.DensityScale=0.8
+	grass.DensityScale=0.8
+[/EXCERPT:FoliageQuality@2]
+
+[EXCERPT:FoliageQuality@3]
+	[FoliageQuality@3]
+	foliage.DensityScale=1.0
+	grass.DensityScale=1.0
+[/EXCERPT:FoliageQuality@3]
+
+-->

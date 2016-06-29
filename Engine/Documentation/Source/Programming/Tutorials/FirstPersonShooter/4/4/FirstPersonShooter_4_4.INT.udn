@@ -23,7 +23,7 @@ Version: 4.11
 
 %Steps%
 
-During this step, you're going to add five states to the state graph, namely:
+During this step, we're going to add five states to the state graph, namely:
 
 *	Idle
 *	Run

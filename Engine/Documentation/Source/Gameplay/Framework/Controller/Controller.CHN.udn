@@ -2,7 +2,15 @@
 Title:控制器
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description: 对于玩家或AI实体来说，控制器就它们的大脑。
-
+Related: Gameplay\Framework\Controller\PlayerController
+Related: Gameplay\Framework\Controller\AIController
+Related: Gameplay\Framework\Pawn
+Related: Gameplay\Framework\Pawn\Character
+Version: 4.9
+type:reference
+parent:Gameplay/Framework
+order:4
+tags:Gameplay Framework
 
 
 [INCLUDE:Shared/Glossary/C/#Glossary_Controller_Class]

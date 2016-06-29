@@ -2,15 +2,17 @@ Availability:Public
 Title: Creating State Machines
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Guide to creating new State Machines for use in AnimGraphs of animation assets.
-version: 4.9
+version: 4.12
+related:Engine\Animation\StateMachines\EditingStateMachines
+related:Engine\Animation\StateMachines\TransitionRules
+related:Engine\Animation\AnimBlueprints
 
-[TOC(start:2)]
 
+Before actually creating your [**State Machine**](Engine\Animation\StateMachines\Overview), it is a good idea to take a little time and plan out exactly which states you will need, as well as the circumstances that will drive transitions between states. This will give you a solid plan of attack for not only the State Machine, but also the variables you will need to drive it and which animations will be a part of each state.
 
+Creating State Machines is done within the AnimGraph of an Animation Blueprint. 
 
-Before actually creating your **State Machine**, it is a good idea to take a little time and plan out exactly which states you will need, as well as the circumstances that will drive transitions between states. This will give you a solid plan of attack for not only the State Machine, but also the variables you will need to drive it and which animations will be a part of each state.
-
-Creating State Machines is done within the AnimGraph of an Animation Blueprint. Simply **Right-click** within the AnimGraph and choose **State Machines > New State Machine** from the context menu.
+**Right-click** within the AnimGraph and choose **State Machines > New State Machine** from the context menu.
 
 ![](CreateNewStateMachine.png)
 
@@ -20,7 +22,8 @@ Generally, it is a good idea to name your State Machine immediately after creati
 
 ![](LocomotionSMNode.png)
 
-When first created, a State Machine is blank and will give a warning about this. You can open it to define its states and transitions by **Double-clicking** it. This will open a new graph tab. This graph begins with nothing but an Entry point, which essentially kicks off the animation.
+When first created, a State Machine is empty and may give a warning about this. 
+You can open it to define its States and Transitions by **Double-clicking** it. This will open a new graph tab with nothing but an Entry point, which essentially kicks off the animation.
 
 
 ![](StateMachineEntryPoint.png)
@@ -47,7 +50,7 @@ Conduits are created in a similar manner, by either **Right-clicking** in the gr
 
 ## Creating Transition Rules
 
-**Transition Rules** are created automatically along the wires that connect States and Conduits. Graphically, Transition Rules appear as a small circular directional icon, like so:
+[**Transition Rules**](Engine\Animation\StateMachines\TransitionRules) are created automatically along the wires that connect States and Conduits. Graphically, Transition Rules appear as a small circular directional icon, like so:
 
 ![](NewTransitionRule.png)
 

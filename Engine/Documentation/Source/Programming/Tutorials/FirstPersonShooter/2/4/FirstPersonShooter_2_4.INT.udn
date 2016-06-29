@@ -63,15 +63,15 @@ During this step, we're going to add the ability for our character to look aroun
 
 Now it's time to add code to handle mouse input for turning and looking up. The `Character` base class defines the two necessary functions for us, namely:
 
-*	`AddYawInput`
-*	`AddPitchInput`
+*	`AddControllerYawInput`
+*	`AddControllerPitchInput`
 
 [REGION:note]
-If you want to perform additional processing, such as adding support for sensitivity or axis inversion, you could provide your own functions to adjust the input values before passing them to function; however, in this case, you'll bind your inputs directly to the `AddYawInput` and `AddPitchInput` functions.
+If you want to perform additional processing, such as adding support for sensitivity or axis inversion, you could provide your own functions to adjust the input values before passing them to function; however, in this case, you'll bind your inputs directly to the `AddControllerYawInput` and `AddControllerPitchInput` functions.
 [/REGION]
 
 1.	Add the following lines to the `SetupPlayerInputComponent` in `FPSCharacter.cpp`.
-		// set-up gameplay mouse bindings
+		// Set up "look" bindings.
 		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 
@@ -82,11 +82,11 @@ If you want to perform additional processing, such as adding support for sensiti
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// set up gameplay key bindings
+			// Set up "movement" bindings.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-		
-			// set up gameplay mouse bindings
+
+			// Set up "look" bindings.
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}

@@ -1,132 +1,132 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735410
 Availability:Public
-Title:Vertex Animation Tool
-Crumbs: %ROOT%, Engine, Engine/Animation
-Description: User guide for the 3D Max Vertex Animation tool set.
-Related: Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
-Related: Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
-Version: 4.8
+Title:顶点动画工具
+Crumbs:%ROOT%, Engine, Engine/Animation
+Description:3D Max 顶点动画工具集的用户指南。
+Related:Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
+Related:Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
+Version:4.8
 
 [TOC(start:2 end:3)]
 
-## Overview
-Storing complex animation data into 2D Textures or a meshes UV's is a great way to reduce animation overhead while still maintaining the required look and feel of the animation. 
-In the past you might have used [Morph Targets](Engine/Content/FBX/MorphTargets) to do the exact same thing, however this new method has a few advantages that Morph Targets do not.
-One of those advantages is allowing you to use complex animation data inside systems that would not otherwise be capable of utilizing Morph Targets like the Cascade Particle Editor.
-In the following documents we will cover how you can use this script to generate content for your UE4 projects.
+## 概述
+将复杂的动画数据存储在 2D 纹理中或网格 UV 中是在保持必要的动画外观和感觉前提下降低动画开销的好方法。 
+过去您可能使用 [变形目标](Engine/Content/FBX/MorphTargets) 做过同样的事，但是这个新方法有几个变形目标所不具备的优点。
+其中一个优点就是允许您在无法利用变形目标的系统（例如级联粒子编辑器）中使用复杂的动画数据。
+在下列文档中，我们将论述如何使用此脚本为您的 UE4 项目生成内容。
 
-## Prerequisites
-Before we can begin using the script there are few things to be aware of so you can get the best results possible when using this technique. 
+## 先决条件
+在我们开始使用脚本前您需要了解几点知识，这样才能在使用这种技术时获得尽可能好的结果。 
 
-### Script Location
+### 脚本位置
 [region:warning]
-This script is only available in Unreal Engine 4 (UE4) Version **4.8** or later.
+此脚本仅在虚幻引擎 4 (UE4) **4.8** 版及更高版本中提供。
 [/region]
 
-The Vertex Animation Script will be in the following location and is called **VertexAnimationTools.ms.**
+顶点动画脚本将位于下列位置，名为 **VertexAnimationTools.ms**。
 
 		4.8\Engine\Extras\3dsMaxScripts\VertexAnimationTools.ms
 
-### Tool Caveats
-While this tool is very good at reducing animation overhead by storing complex animation data into a texture, there are a few drawbacks to using the tool. 
-First of all the tool can only affect a maximum of **8192 vertices** in a single 2D Texture. 
-This is because the maximum Texture size a Texture can be for DirectX 11 is 8192 pixels in either the X or Y direction. 
-The tool generates the data in the Texture using the following formula. 
+### 关于工具的警告
+虽然此工具通过将复杂的动画数据存储到纹理中，可以非常有效地降低动画开销，但使用此工具也会带来几个缺点。 
+首先，此工具只能在一个 2D 纹理中最多影响 **8192 个顶点**。 
+这是因为对于 DirectX 11，纹理的最大大小是在 X 或 Y 方向为 8192 像素。 
+此工具使用下列公式生成纹理中的数据。 
 
-		Final texture resolution:  X = number of vertex in the mesh, Y = Number of frames captured.
+		最终纹理分辨率：X = 网格中的顶点数，Y = 捕获的帧数。
 
-Due to this limitation this tool is best suited for Visual Effects or ambient Static Meshes that require animations but might not justify using a complex animation rig to do so. 
-This tool will also **not work** with Skeletal Mesh Animations as the bone transforms are not available to the Material Editor.
-This means that if you want to affect the vertices of a Skeletal Mesh in a similar manner you will need to use [Morph Targets](Engine/Content/FBX/MorphTargets) instead.
+由于这一限制，此工具最适合用于需要动画但可能不宜使用复杂动画结构来实现的视觉效果或环境静态网格。 
+此工具也 **不适用于** 骨骼网格动画，因为材质编辑器不能使用骨骼转换。
+这意味着如果您想以类似的方式影响骨骼网格的顶点，需要使用 [变形目标](Engine/Content/FBX/MorphTargets)。
 
-### Vertex Animation Tools Break Down
-Inside of the Vertex Animation Tools you will find two entirely different methods for affecting the vertices of Static Meshes. 
-In the following section we will go over what these two methods are and how they differ from one another.
+### 顶点动画工具详解
+在顶点动画工具中，您将找到影响静态网格顶点的两种截然不同的方法。 
+下一节我们将说明这两种方法并讨论它们彼此的差异。
 
-* **Vertex Animation Tools:** The top section of the Vertex Animation Tools, called Vertex Animation Tools, is for generating a 2D Texture that will store the morph target vertex positions and normals.
+* **顶点动画工具（Vertex Animation Tools）：**顶点动画工具最上面的部分标为“顶点动画工具”（Vertex Animation Tools），用于生成将存储变形目标顶点位置和法线的 2D 纹理。
 
 	![](VAT_Tool_Breakdown_01.png)
 
-	|Property Name| Description|
+	|属性名称| 说明|
 	|-------------|------------|
-	|**Animation Options:** | Animation Options allows you to pick between using animation that was created using the Timeline in 3Ds Max or use individual Key Frame Meshes that were created in 3Ds Max or another 3D package like Maya or Blender and then exported out of that package frame by frame so the animation could then be re-constructed inside 3Ds Max.|
-	|**Process Animated Meshes:** | This button will process the animated meshes that are in the 3Ds Max scene, creating and then exporting the required Textures. |
-	|**Anim Start:** |This option defines the frame that the animation should start from. |
-	|**Anim End:** |This option defines the frame that the animation should end on. |
-	|**Frame Skip:** |This option allows you skip frames to try and save on Texture space. |
-	|**Process Selected Meshes:** |This option, only available if Key Frame Meshes is enabled, will process the selected Key Frame Meshes in the order that they were selected. |
+	|**动画选项（Animation Options）：**| “动画选项”（Animation Options）允许您选择是使用在 3Ds Max 中用时间轴创建的动画，还是使用在 3Ds Max 或其他 3D 软件包（例如 Maya 或 Blender）中创建然后从该软件包逐帧导出的各个关键帧网格，以便在 3Ds Max 中重新构建动画。|
+	|**处理动画网格（Process Animated Meshes）：**| 此按钮将处理 3Ds Max 场景中的动画网格，创建然后导出所需的纹理。|
+	|**动画开始（Anim Start）：**|此选项定义应该作为动画开头的帧。|
+	|**动画结束（Anim End）：**|此选项定义应该作为动画结尾的帧。|
+	|**跳帧（Frame Skip）:**|此选项允许您跳过若干帧以在纹理空间上尝试和保存。|
+	|**处理选定网格（Process Selected Meshes）：**|此选项仅在启用关键帧网格的情况下可用，它将按选择的先后顺序处理选定的关键帧网格。|
 
 
-* **Sequence Painter:** The Sequence Painter does something similar to the Vertex Animation Tool's but with one key difference, the information for the vertices positions is stored in the meshes UV's instead of a 2D Texture.
+* **序列描画器（Sequence Painter）：**序列描画器的作用与顶点动画工具相似，但有一个关键的不同，顶点的信息存储在网格 UV 中而不是 2D 纹理中。
 
 	![](VAT_Tool_Breakdown_02.png)
 
-	|Property Name| Description|
+	|属性名称| 说明|
 	|-------------|------------|
-	|**Paint Selection Sequence:** |This stores the information about the meshes Vertices inside of the meshes UVs instead of storing that data in a 2D Texture. |
+	|**描画选择序列（Paint Selection Sequence）：**|此选项在网格 UV 中存储关于网格顶点的信息，而不是将该数据存储在 2D 纹理中。|
 
-### 3Ds Max Version & Script Installation
-This tool has only be tested using **3Ds Max 2015**. 
-While it might be able to work with other 3Ds Max versions, none of them have been tested so use other version of 3Ds Max at your own risk.
-To install the script just drag it from its location in **4.8\Engine\Extras\3dsMaxScripts** right into the 3Ds Max viewport and the script will launch itself.
+### 3Ds Max 版本和脚本安装
+我们只使用 **3Ds Max 2015** 测试过此工具。 
+虽然它也许能够和其他 3Ds Max 版本配合工作，但我们尚未测试过任何其他版本，因此使用其他版本的 3Ds Max 请自负风险。
+要安装脚本，只需将脚本从它在 **4.8\Engine\Extras\3dsMaxScripts** 中的位置拖到 3Ds Max 视口中，然后脚本将自动启动。
 
 ![](VAT_Max_Install.gif)(convert:false)
 
 [region:tip]
-If you find that you are using this script a lot you can always add the script to one of the tool bars or quad menus. If you are unfamiliar how to do this the [Autodesk site has a very detailed walk through](http://knowledge.autodesk.com/support/3ds-max/learn-explore/caas/CloudHelp/cloudhelp/2015/ENU/3DSMax/files/GUID-A2CF8BAA-7B52-40A8-8C40-803B1AB5FC05-htm.html) that will explain how you go about doing this.
+如果您发现自己经常使用此脚本，可以将脚本添加到某个工具栏或者四向菜单中。如果您不清楚如何添加，[Autodesk 站点有非常详细的操作指南](http://knowledge.autodesk.com/support/3ds-max/learn-explore/caas/CloudHelp/cloudhelp/2015/ENU/3DSMax/files/GUID-A2CF8BAA-7B52-40A8-8C40-803B1AB5FC05-htm.html)，将为您说明如何操作。
 [/region]
 
-## 3Ds Max Unit Setup
-Before we can begin to use the tool we need to first ensure that the units of measurement 3Ds Max uses is setup to correctly match the units of measurement UE4 uses.
-This way we can ensure that the data the tool exports from 3Ds Max will work in the same manner inside UE4.
-Since UE4 uses Centimeters for its default unit of measurement we will need to ensure that 3Ds Max uses this as well and to change this we must do the following.
+## 3Ds Max 单位设置
+在我们开始使用工具前，首先需要确保将 3Ds Max 使用的计量单位设置为与 UE4 使用的计量单位相符。
+这样我们就能确保此工具从 3Ds Max 导出的数据在 UE4 中也能以同样的方式工作。
+由于 UE4 使用厘米作为其默认计量单位，我们需要确保 3Ds Max 也使用此单位，为了更改此设置，我们需要进行下列操作。
 
-1. First open up 3Ds Max 2015 and once loaded from the Main Toolbar select **Customize** > **Unit Setup**.
-1. Next click on **System Unit Setup** and change the **System Unit Setup** from Inches to **Centimeters** and then press the **OK** button.
-1. Finally change the **Display Unit Scale** to **Generic Units** and then press the **OK** button.
+1. 首先，打开 3Ds Max 2015，完成加载后从主菜单栏选择 **定制（Customize）** > **单位设置（Unit Setup）**。
+1. 然后单击 **系统单位设置（System Unit Setup）**，将 **系统单位设置（System Unit Setup）**从“英寸”（Inches）改为 **厘米（Centimeters）**，再按 **确定（OK）**按钮。
+1. 最后将 **显示单位刻度（Display Unit Scale）** 改为 **公制单位（Generic Units）**，并按 **确定（OK）**按钮。
 
 	![](VAT_3DsMax_Unit_Setup.gif)(convert:false)
 
 [region:note]
-It is extremely important that you **DO NOT** skip this step. Skipping this step could result in rendering errors when the content is imported into UE4 because UE4 and 3Ds Max's units are not the same.
+**不要** 跳过此步骤，这一点极其重要。如果跳过此步骤，将内容导入 UE4 中时可能因为 UE4 和 3Ds Max 的单位不同而导致渲染错误。
 [/region]
 
-## Tool Choices
-The Vertex Animation 3Ds Max script offers two different ways to store the vertex animation data. 
-One method will store the vertices positions in a 2D Texture while the other method will store the vertex position data in the UV's of the mesh. 
-Below you will find links that show you how to setup and use both methods.
+## 工具选择
+顶点动画 3Ds Max 脚本提供了两种不同的存储顶点动画数据方法。 
+一种方法在 2D 纹理中存储顶点位置，另一种方法在网格的 UV 中存储顶点位置数据。 
+在下面您将找到说明如何设置和使用这两种方法的链接。
 
-[**Key framed Method**](Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes) - This method uses individual key frames that can be exported from other 3D packages and imported into 3Ds Max. That information is saved to the meshes UVs.    
+[**关键帧方法**](Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes) - 此方法使用关键帧，它们可以从其他 3D 软件包导出，并导入 3Ds Max 中。信息保存在网格 UV 中。    
 
-[**Animation Timeline Method**](Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes) - This method uses the 3Ds Max animation timeline and the results are encoded into a 2D Texture.
+[**动画时间轴方法**](Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes) - 此方法使用 3Ds Max 动画时间轴，将结果编码为 2D 纹理。
 
  
-## Tips & Tricks
-To get the most out this technique, there are a few tips and tricks that you can follow which are outlined below. 
+## 提示与技巧
+要想充分发挥此技术的优点，您可以遵循下面概述的几条提示与技巧。 
 
-### Speeding Up the Animation Play Rate
-If you feel that the rate at which the animations are playing is to slow, you can use the **TimeWithSpeedVariable** Material Function to speed up the play rate.
-To do this just plugging the output of the **TimeWithSpeedVariable** into the **0-1 Animation** input if you are using the **MS_SequencePainter_SequenceFlibook** Material Function.
-If you are using the **MS_VertexAnimationTools_MorphTargets** Material Function plug the output of the **TimeWithSpeedVariable** into the **Morph Animations** input.
+### 提高动画播放速率
+如果您感到动画播放速率太慢，可以使用 **TimeWithSpeedVariable** 材质函数加快播放速率。
+要进行此操作，如果您使用 **MS_SequencePainter_SequenceFlibook** 材质函数，只需将 **TimeWithSpeedVariable** 的输出连接到 **0-1 动画（0-1 Animation）**输入。
+如果您使用 **MS_VertexAnimationTools_MorphTargets** 材质函数，请将 **TimeWithSpeedVariable** 的输出连接到 **变形动画（Morph Animations）**的输入。
 
 ![](VAT_SP_Speed_Up_Time.png)
 
-### Multiple Animated Meshes
-You can select multiple animated meshes at a time and the script will bake all of that data down to one mesh and one set of Textures. 
-This is very useful when working with characters that are made up of different parts. 
-Just select the parts that you want to use and the run the script like normal. 
-The script will then combine the pieces you selected and generate a new mesh from them along with the required 2D Textures.
+### 多个动画网格
+您可以一次选择多个动画网格，脚本会将所有数据烘焙到一个网格和一组纹理。 
+在处理由不同部件组成的角色时，此功能非常有用。 
+只需选择您需要使用的部件，然后照常运行脚本即可。 
+脚本将把您选择的部件组合起来，从而生成一个新网格以及所需的 2D 纹理。
 
-### Frame Skip
-Using the **Frame Skip** option that is under the **Vertex Animation Tools** section of the script will allow you to skip certain frames. 
-This is a very useful option as it allows you to reduce the final Texture size while still maintaining the look and feel of the original animation.
+### 跳帧
+使用脚本的 **顶点动画工具（Vertex Animation Tools）**部分的 **跳帧（Frame Skip）**选项可跳过某些帧。 
+这是一个非常有用的选项，因为通过它可以降低最终纹理大小，同时保留原动画的外观和感觉。
 
 ![](VAT_Frame_Skip.png)
 
-If we take a look at the example video below, we can see the Frame Skip feature in action. 
-The first Teapot you see in front of the word, Original, shows how the Teapot will animate using the full frame range. 
-The next Teapot, with the number 2 in front of it, shows how the teapot animates skipping every 2nd frame and so on.
- As you can see the last example, the effect will still maintain its look and feel even if you skip 10 frames. 
+看一看下面的示例视频，就能了解跳帧功能的实际运作。 
+您可以看到，在 Original 一词前面的茶壶显示了如何使用全帧范围生成动画。 
+下一个茶壶，也就是在数字 2 前面的那个，显示了每播一帧就跳过一帧的茶壶动画。以此类推。
+ 您可以看到在最后一个示例中，即使跳过 10 帧，效果仍然保持原来的外观和感觉。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -140,28 +140,28 @@ The next Teapot, with the number 2 in front of it, shows how the teapot animates
 	[/PARAMLITERAL]
 [/OBJECT]
 
-|Mesh Name /Number| Texture Size | Memory Savings|
+|网格名称/编号| 纹理大小 | 内存存储|
 |-----------------|--------------|---------------|
-|Original        |175 KB          |N/A           |
+|Original        |175 KB          |不适用           |
 |2               |59 KB           |116 KB        |
 |5               |30 KB           |145 KB        |
 |10              |21 KB           |154 KB        |
 
 
-## Technical Information
-The following section is for technical information about how the Vertex Animation script works. 
-Please note that this is here purely for reference or for people who would like to know more about how the script works in case they want to modify it. 
+## 技术信息
+下一节说明关于顶点动画脚本如何工作的技术信息。 
+请注意，这里提供这些信息仅供参考，或者面向希望进一步了解脚本如何工作以便修改的人。 
 
-### Limitations
-Vertex positional morph target information is stored in a 16 bit signed floating point file format. 
-A 32 bit image would be more precise but 16 should suffice for most FX work. 
-With that said, the offset vertex positions will be less precise as they move further away from their resting positions. 
+### 局限性
+顶点位置变形目标信息以 16 位带正负号浮点数文件格式存储。 
+32 位图像更精确，但 16 位已经足以应对大多数 FX 工作。 
+也就是说，偏移浮点位置离其静止位置越远，精度越低。 
 
-### Memory Usage
-The memory usage for each frame per vert is as follows :
+### 内存用量
+每帧每个顶点的内存使用量如下：
 
-* Vertex Offset Texture: 8 bytes per vertex per frame (each pixel)
-* Normal Texture: 4 bytes per vertex per frame (each pixel)
+* 顶点偏移纹理：每帧每个顶点（每个像素）8 字节
+* 法线纹理:每帧每个顶点（每个像素）4 字节
 
 
 

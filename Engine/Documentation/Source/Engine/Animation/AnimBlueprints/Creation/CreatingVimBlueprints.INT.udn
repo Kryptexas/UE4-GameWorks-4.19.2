@@ -2,22 +2,85 @@ Availability:Public
 Title:Animation Blueprint Creation
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:Guide to creating new Animation Blueprints from Skeleton assets
-version: 4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\AnimGraph
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\Interface
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Creation:title%](CreateAnimBP.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Creation:title%](CreateAnimBP.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## Creating an Animation Blueprint Asset from a Skeleton
+
+When creating a new Animation Blueprint, you will be asked to pick a valid [**Skeleton**](Engine/Animation/Skeleton) for it to target.
+
+1. Either **Right-click** in an empty space in the **Content Browser** or click the **Add New** button.
+
+	![](AddNewButton.png)
+
+1. On the context menu under **Create Advanced Asset**, click **Animation**.
+
+1. Click **Animation Blueprint**.
+
+	![](CE_create_NoSkel.png)
+
+1. You will then be prompted to specify which Skeletal to target for the Animation Blueprint, select one and click **OK**. 
+
+	![](PickSkeleton.png)
+
+	You are also given the ability to select a [**Parent Class**](Engine/Blueprints/UserGuide/Types/ClassBlueprint) for the Animation Blueprint to use. 
+	Most of the time you will not need to select one and can use the default class, however based on your circumstances, you can choose one if you need to. 
+
+1. The new asset will automatically be created in the **Content Browser**. 
+	
+	![](NewAnimBPCreated.png)
 
 
-[TOC (start:2 end:3)]
 
 
 
-You can create an Animation Blueprint in one of two ways:
-* Targeting a specific Skeletal Mesh asset.
-* Not associating with a specific Skeletal Mesh asset.
+## Creating an Animation Blueprint from a Skeletal Mesh
 
-## Creating an Animation Blueprint Targeting a Skeletal Mesh
+You can also create an Animation Blueprint that targets a specific [**Skeletal Mesh**](Engine/Content/Types/SkeletalMeshes) asset. 
 
-You can create an Animation Blueprint that targets a specific Skeletal Mesh asset by doing the following:
-
-1. **Right-click** on the Skeletal Mesh asset you want the Animation Blueprint to target and click **Create** > **Anim Assets** > **Anim Blueprint**.
+1. **Right-click** on the Skeletal Mesh you want the Animation Blueprint to target and click **Create** > **Anim Assets** > **Anim Blueprint**.
 
 	![Create Animation Blueprint - Menu](CE_create_menu.png)
 
@@ -32,17 +95,3 @@ You can create an Animation Blueprint that targets a specific Skeletal Mesh asse
 1. If you are not happy with the default location, drag the new Animation Blueprint to another folder.
 
 	![Create Animation Blueprint - Change Location](CE_create_move.png)(convert:false)
-
-## Creating an Animation Blueprint Not Associated with a Skeletal Mesh
-
-You can also create an Animation Blueprint that is not yet associated with a specific Skeletal Mesh asset.  To do so, do the following:
-
-1. Either **Right-click** in an empty space in the **Content Browser** or click the **New Asset** button.
-
-1. On the context menu that appears, click **Animation**.
-
-1. Click **Animation Blueprint**.
-
-	![](CE_create_NoSkel.png)
-
-You can then rename and/or move your new Animation Blueprint by following the steps in the previous section on this page.

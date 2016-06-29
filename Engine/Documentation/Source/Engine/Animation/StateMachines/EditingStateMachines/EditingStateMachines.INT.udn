@@ -2,14 +2,12 @@ Availability:Public
 Title: Editing State Machines
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Guide to editing animation State Machines.
-version: 4.9
+version: 4.12
+related:Engine\Animation\StateMachines\CreatingStateMachines
+related:Engine\Animation\StateMachines\TransitionRules
+related:Engine\Animation\AnimBlueprints
 
-
-[TOC(start:2)]
-
-
-
-Although a State Machine serves as a convenient way to break down the flow of animation transitions in a Skeletal Mesh, the most important aspect of them is what actually happens within each node of a State Machine. With this in mind, it is important to remember the primary purposes of each of a State Machine's node types:
+Although a [**State Machine**](Engine\Animation\StateMachines\Overview) serves as a convenient way to break down the flow of animation transitions in a Skeletal Mesh, the most important aspect of them is what actually happens within each node of a State Machine. With this in mind, it is important to remember the primary purposes of each of a State Machine's node types:
 
 | **Node** | **Purpose** |
 | --- | --- |
@@ -21,31 +19,40 @@ Keeping this in mind will make it much easier to determine what types of nodes t
 
 ## Editing States
 
-A State's job is to produce a final animation or pose. This can be something as simple as a single AnimSequence, a BlendSpace, or any type of network so long as it produces a final animation or pose. 
+A State's job is to produce a final animation or pose. This can be something as simple as a single [**AnimSequence**](Engine/Animation/Sequences), a [**BlendSpace**](Engine/Animation/Blendspaces), or any type of network so long as it produces a final animation or pose. 
 
 ![](PlayAnimSequence.png)
 
+[REGION:caption]
+Above a single AnimSequence results in the Final Animation Pose. 
+[/REGION]
+
 ![](PlayBlendSpace.png) 
+
+[REGION:caption]
+Above a Blendspace is used to blend between different poses based on the value Speed. 
+[/REGION]
  
 ![](PlayBlendAnimation.png)
+
+[REGION:caption]
+Above a different AnimSequence is selected based on the value of the Boolean Is In Air?
+[/REGION]
 
 
 ### Adding Animation Elements
 
-To add an AnimSequence or BlendSpace into a State, you can drag & drop from the Persona **Asset Browser**, as well as **right-click** and choose the animation from the context menu.
+To add an AnimSequence or BlendSpace into a State, you can drag-and-drop from the Persona **Asset Browser**: 
 
-To drag and drop:
+![](DragDropAnimSeqState.png)(w:800)
 
-![](DragDropAnimSeqState.png)(w:505)
-
-To use the context menu:
+Or use the **Right-click** context menu and select an animation:
 
 ![](ContextMenuAnimSeqState.png)
 
 ### Automatic State Creation
 
-As a time saver, you can also drag an AnimSequence or BlendSpace into a State Machine (outside of a given state) and a State will automatically be created with the name of the asset, and will automatically consist of that asset feeding into the output result. 
-
+To automatically create a State in a State Machine, drag an AnimSequence or Blendspace asset into the graph. 
 
 ![](AutoStateCreationDrag.png)(w:505)
 
@@ -53,6 +60,7 @@ Once dragged in, the State is automatically created and named after the asset.
 
 ![](AutoStateCreation.png)(w:505)
 
-Inside, you can see that the animation asset has been connected to the result automatically.
+Inside, you can see that the animation asset has been connected to the Final Animation Pose result automatically.
 
 ![](AutoStateCreationInside.png)(w:505)
+

@@ -54,20 +54,20 @@ If you look inside the interface file (*.h) for the Character base class, you'll
 Character jumping is tied to the `bPressedJump` variable, so all we need to do is set that boolean to `true` when the jump action is pressed, and `false` when the jump action is released.
 You'll need to add the following two functions to accomplish this:
 
-*	`OnStartJump`
-*	`OnStopJump`
+*	`StartJump`
+*	`StopJump`
 
 Go back to Visual Studio to add code to your FPSCharacter class.
 
 1.	In `FPSCharacter.h`, add the following public function declarations:
 
-		// sets jump flag when key is pressed
+		// Sets jump flag when key is pressed.
 		UFUNCTION()
-		void OnStartJump();
-		
-		// clears jump flag when key is released
+		void StartJump();
+
+		// Clears jump flag when key is released.
 		UFUNCTION()
-		void OnStopJump();
+		void StopJump();
 
 1.	`FPSCharacter.h` should now look like the following:
 
@@ -96,42 +96,40 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 			// Called to bind functionality to input
 			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 		
-			// handles moving forward and backward
+			// Handles input for moving forward and backward.
 			UFUNCTION()
 			void MoveForward(float Value);
-		
-			// handles moving right and left
+
+			// Handles input for moving right and left.
 			UFUNCTION()
 			void MoveRight(float Value);
-		
-			// sets jump flag when key is pressed
+
+			// Sets jump flag when key is pressed.
 			UFUNCTION()
-			void OnStartJump();
-			
-			// clears jump flag when key is released
+			void StartJump();
+
+			// Clears jump flag when key is released.
 			UFUNCTION()
-			void OnStopJump();
+			void StopJump();
 		};
 
 1.	In `FPSCharacter.cpp`, add the following function definitions:
 
-		//Function setting the jump flag
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//Function clearning the jump flag
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 		{
 			bPressedJump = false;
 		}
 
-1.	Add the following code to `SetupPlayerInputComponent` to bind your Jump action to the newly written functions:
+1.	Now, add the following code to `SetupPlayerInputComponent` to bind your Jump action to the newly written functions:
 
-		// set-up jump action bindings
-		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+		// Set up "action" bindings.
+		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 
 1.	`FPSCharacter.cpp` should now look like the following:
 
@@ -153,15 +151,10 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -177,43 +170,39 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// set up gameplay key bindings
+			// Set up "movement" bindings.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
-			// set up gameplay mouse bindings
+			// Set up "look" bindings.
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
-			// set up jump action bindings
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+			// Set up "action" bindings.
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// find out which way is forward
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// find out which way is right
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// Find out which way is "right" and record that the player wants to move that way.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 		
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 		{
 			bPressedJump = false;
 		}

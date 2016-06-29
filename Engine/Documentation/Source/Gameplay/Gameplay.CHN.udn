@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2740161
 Title: 游戏性指南
 Crumbs:%ROOT%
 Description:供程序员和可视化脚本设计师使用的游戏功能概述和示例。
@@ -46,7 +46,7 @@ order:6
 [/OBJECT]
 [/VAR]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -62,7 +62,7 @@ order:6
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -73,12 +73,7 @@ order:6
 		在虚幻引擎4中，伴随预制操作的有多个类，可以帮助您启动游戏。 您可以阅读更多关于这些编译块的内容，并了解其在框架概述或快速引用中是如何运行的，或直接跳转到特定的类页面以获得更多信息。
 	[/PARAM]
 	[PARAM:links]
-		* [框架概述](Gameplay/Framework "%Gameplay/Framework:description%")
-		* [快速引用](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
-		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
-		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
-		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
-		* [](Gameplay/Framework/Camera "%Gameplay/Framework/Camera:description%")
+	[DIR(output:"listbutton" type:"reference" tags:"Gameplay Framework" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
@@ -119,7 +114,7 @@ order:6
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -130,25 +125,7 @@ order:6
 		这个部分提供了如何生成一些最常见的游戏情节的按部就班的指南。 无论是需要了解如何生成敌人或在游戏中的可拾取物、变更相机角度或设置玩家输入；您都可以从这些页面中找到以蓝图和C++两者所编写的示例设置。
 	[/PARAM]
 	[PARAM:links]
-		* [生成/销毁Actors](Gameplay\HowTo\SpawnAndDestroyActors)
-		* [重新生成 (已销毁对象)](Gameplay\HowTo\RespawnPlayer)
-		* [控制Pawns](Gameplay\HowTo\PossessPawns)
-		* [使用光线投射 (追溯)](Gameplay\HowTo\UseRaycasts)
-		* [引用Actors](Gameplay\HowTo\ReferenceAssets)
-		* [使用计时器](Gameplay\HowTo\UseTimers)
-		* [设置游戏模式](Gameplay\HowTo\SettingUpAGameMode)
-		* [设置玩家输入](Gameplay\HowTo\SetUpInput)
-		* [设置Actor上的输入](Gameplay\HowTo\ActorInput)
-		* [设置角色移动](Gameplay\HowTo\CharacterMovement)
-		* [在您的场景中搜寻Actors](Gameplay\HowTo\FindingActors)
-		* [使用相机](Gameplay\HowTo\UsingCameras)
-		* [添加组件](Gameplay\HowTo\AddingComponents)
-		* [使用OnHit事件](Gameplay\HowTo\UseOnHit)
-			* **网络**
-			* [复制Actors](Gameplay\HowTo\Networking\ReplicateActor)
-			* [复制函数](Gameplay\HowTo\Networking\ReplicateFunction)
-			* [复制变量](Gameplay\HowTo\Networking\ReplicateVariable)
-			* [测试多人玩家](Gameplay\HowTo\Networking\TestMultiplayer)
+	[DIR(end:"3" type:"how-to" output:"listbutton" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 

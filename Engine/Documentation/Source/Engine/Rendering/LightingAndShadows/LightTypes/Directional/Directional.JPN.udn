@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2683557
+﻿INTSourceChangelist:2954984
 Availability:Public
 Title:指向性ライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -55,11 +55,6 @@ Version:4.9
 [EXCERPT:Intro]
 **指向性ライト** ははるか遠くにある大量の光源から放出されるライトをシミュレートします。つまりこのライトから投影されるシャドウは全て平行になるため、太陽光のシミュレーションに理想的な選択肢です。指向性ライト を配置する場合、以下の 3 つの可動設定のいずれかを設定できます。
 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightStationary.png)(w:150 convert:false)
@@ -72,11 +67,6 @@ Version:4.9
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightMove.png)(w:150 convert:false)
@@ -86,16 +76,7 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 下図で、天井の空いた部分からキャストされている日光が分かります。 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -126,7 +107,7 @@ Version:4.9
 
 ## 指向性ライトのプロパティ
 
-指向性ライト のプロパティは、Light、Light Shafts、Lightmass、Light Function、および Cascaded Shadow Maps の 5 つのカテゴリに分類されます。
+指向性ライト のプロパティは、Light、Light Shafts、Lightmass、Light Function、および Cascaded Shadow Maps の 5 つに分類されます。
 
 
 ### Light

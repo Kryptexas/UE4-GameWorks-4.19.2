@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3020369
 Availability:Docs
 Title:2.5 - キャラクターのジャンプを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -55,24 +55,24 @@ Character 基本クラスの interface ファイル (*.h) 内を見ると、ジ�
 キャラクターのジャンプは、`bPressedJump` 変数に結び付けられているため、行うべきことは、ジャンプ アクションが押された場合に、その boolean 値を `true` に設定するだけです。
 これを実行するには以下の 2 つの関数を追加する必要があります。
 
-*	`OnStartJump`
-*	`OnStopJump`
+*	`StartJump`
+*	`StopJump`
 
 FPSCharacter クラスにコードを追加するには、Visual Studio に戻ります。
 
 1.	`FPSCharacter.h` で、以下のパブリック関数宣言を追加します。
 
-		// キー押下時のジャンプフラグを設定
+		// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 		UFUNCTION()
-		void OnStartJump();
-		//キー解放時のジャンプフラグをクリア
+		void StartJump();
 
+		// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 		UFUNCTION()
-		void OnStopJump();
+		void StopJump();
 
 1.	`FPSCharacter.h` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Character.h"
@@ -85,135 +85,124 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 			GENERATED_BODY()
 		public:
 
-			// このキャラクターのプロパティのデフォルト値を設定
+			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定) 
 			AFPSCharacter();
-		// ゲーム開始時またはスポーン時に呼ばれます。
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
 
 			virtual void BeginPlay() override;
-			// フレームごとに呼ばれます。
+			// Called every frame (フレームごとに呼ばれます) 
 
 			virtual void Tick( float DeltaSeconds ) override;
-		// 機能と入力をバインドするために呼ばれます。
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
 
 			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		// 前後方向の移動を処理します。
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 
 			UFUNCTION()
 			void MoveForward(float Value);
-		// 左右の移動を処理します。
 
+			// Handles input for moving right and left. (左右の移動の入力を処理) 
 			UFUNCTION()
 			void MoveRight(float Value);
-		// キー押下時のジャンプフラグを設定
 
+			// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 			UFUNCTION()
-			void OnStartJump();
-			//キー解放時のジャンプフラグをクリア
+			void StartJump();
 
+			// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 			UFUNCTION()
-			void OnStopJump();
+			void StopJump();
 		};
 
 1.	`FPSCharacter.cpp` で、以下の関数定義を追加します。
 
-		//ジャンプ フラグを設定する関数
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
-		//ジャンプ フラグをクリアする関数
+		void AFPSCharacter::StopJump()
 
-		void AFPSCharacter::OnStopJump()
 		{
 			bPressedJump = false;
 		}
 
 1.	以下のコードを `SetupPlayerInputComponent` に追加し、ジャンプ アクションを新しく記述した関数にバインドします。
 
-		// ジャンプ アクションのバインドのセットアップ
-		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
+		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
 
 		#include "FPSCharacter.h"
-		// デフォルト値を設定
+		// Sets default values (デフォルト値を設定) 
 
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	// このキャラクターがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
+		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
 		}
 
-		// ゲーム開始時またはスポーン時に呼ばれます。
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
 
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			const int32 Key = -1;
-
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //秒
-		if (GEngine != nullptr)
+			if (GEngine)
 
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+				// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+			}
 		}
-
-		}
-		// フレームごとに呼ばれます。
+		// Called every frame (フレームごとに呼ばれます) 
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
 		}
 
-		// 機能と入力をバインドするために呼ばれます。
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
 
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-		// ゲームプレイのキーバインド設定
+		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-		// ゲームプレイのマウス バインドのセットアップ。
+		// Set up "look" bindings. (look のバインディングをセットアップ) 
 
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-		// ジャンプ アクションのバインドのセットアップ
+		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
 
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		void AFPSCharacter::MoveForward(float Value)
 
 		{
-			// 前進方向の確認
-			FRotator Rotation = Controller->GetControlRotation();
-			// その方向へ動きを追加
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way. (前進方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		void AFPSCharacter::MoveRight(float Value)
 
 		{
-			// 右方向の確認
-			FRotator Rotation = Controller->GetControlRotation();
-			// その方向へ動きを追加
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way. (右方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 
 		{
 			bPressedJump = true;
 		}
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 
 		{
 			bPressedJump = false;

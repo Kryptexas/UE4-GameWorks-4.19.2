@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3012463
 Availability:Public
 Title:1 - 必要な設定
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -27,8 +27,11 @@ checkpoint: editorqs
 
 %Steps%
 
-まず最初に、このガイドで作業する [プロジェクト](Engine/Basics/Projects) を作成する必要があります。以降のステップでは、アンリアル エンジン 4 の [プロジェクト ブラウザ](Engine/Basics/Projects/Browser) を使ってプロジェクトを作成していきます。 
-このステップを終えると、プロジェクトをさらにビルドできるテンプレートができあがります。  
+まず最初に、このガイドで作業する [プロジェクト](Engine/Basics/Projects) を作成する必要があります。 
+以降のステップでは、アンリアル エンジン 4 の [プロジェクト ブラウザ](Engine/Basics/Projects/Browser) を使ってプロジェクトを作成していきます。
+このステップを終えると、プロジェクトをさらにビルドできるテンプレートができあがります。
+
+
 
 ## ステップ
 

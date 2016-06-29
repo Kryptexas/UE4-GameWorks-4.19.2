@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2931280
+﻿INTSourceChangelist:3020369
 Availability:Docs
 Title:2.4 - マウスによるカメラ制御の実装
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -64,15 +64,15 @@ Version:4.11
 
 回転とルックアップのためにマウス入力を処理するコードを追加します。`Character` 基本クラスは、以下の 2 つの必須関数を定義します。
 
-*	`AddYawInput`
-*	`AddPitchInput`
+*	`AddControllerYawInput`
+*	`AddControllerPitchInput`
 
 [REGION:note]
-感度や軸反転のサポートなど追加の処理が必要な場合、関数へ渡す前に値を調整する独自の関数を使用できますが、その場合、入力を `AddYawInput` 関数と `AddPitchInput` 関数に直接バインドさせます。
+感度や軸反転のサポートなど追加の処理が必要な場合、関数へ渡す前に値を調整する独自の関数を使用できますが、その場合、入力を `AddControllerYawInput` 関数と `AddControllerPitchInput` 関数に直接バインドさせます。
 [/REGION]
 
 1.	以下の行を「`FPSCharacter.cpp`」ファイルの `SetupPlayerInputComponent` へ追加します。
-		// ゲームプレイのマウス バインドのセットアップ
+		// Set up "look" bindings. (look のバインディングをセットアップ) 
 		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 
@@ -82,12 +82,12 @@ Version:4.11
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-		// ゲームプレイのキーバインドのセットアップ
 
+		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 
-		// ゲームプレイのマウス バインドのセットアップ
+			// Set up "look" bindings. (look のバインディングをセットアップ) 
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}

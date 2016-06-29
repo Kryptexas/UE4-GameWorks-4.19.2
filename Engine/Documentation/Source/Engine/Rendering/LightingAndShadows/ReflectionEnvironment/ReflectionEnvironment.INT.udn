@@ -48,9 +48,8 @@ Version: 4.12
 [EXCERPT:ReflectionEnv001]
 The **Reflection Environment** feature provides efficient glossy reflections in every area of the level. Many 
 important materials like metals rely on having reflections in all directions, which the Reflection Environment 
-provides. It is targeted toward consoles and mid spec PC, so it must run very fast.  It does not provide reflections 
-of dynamic objects or sharp reflections, those will need to be achieved by complementing the Reflection Environment 
-with other reflection techniques, such as Screen Space Reflections.
+provides. It is targeted toward consoles and mid spec PC, so it must run very fast.  Support for reflections 
+of dynamic objects or sharp reflections is supported but will require addational memory overhead. 
 [/EXCERPT:ReflectionEnv001]
 
 [REGION:fullwidth]
@@ -165,7 +164,7 @@ While the default reflection quality settings strike a good balance between perf
 
 ### High Precision Static Mesh Vertex Normal and Tangent Encoding
 
-The single most important factor in achieving high quality reflections is how accurately the vertex normal and tangent can be represented. We added the option to encode normals and tangents as 16 bits per channel vectors. This allows developers to make the trade off between higher quality and how much additional memory is used encoding vertex buffers. You can enable High Precision Static Mesh Vertex Normal and Tangent Encoding in your project by doing the following:
+An important factor in achieving high quality reflections is how accurately the vertex normal and tangent can be represented. Very high density meshes may lead to adjacent vertices quantizing to the same vertex normal and tangent values. This can lead to blocky jumps in normal orientation. We added the option to encode normals and tangents as 16 bits per channel vectors. This allows developers make the trade off between higher quality and how much additional memory is used encoding vertex buffers. You can enable High Precision Static Mesh Vertex Normal and Tangent Encoding in your project by doing the following:
 
 1. Double-click on a Static Mesh in the **Content Browser** to open it up in the **Static Mesh Editor**.
 
@@ -187,16 +186,21 @@ The single most important factor in achieving high quality reflections is how ac
 	[![](SM_HP_Vertex_Normals_02.png)(w:400 h:350)](SM_HP_Vertex_Normals_02.png)
 	[/REGION]
 
-Once the option has been enabled, your view will automatically update to reflect the changes. Please note that the effect of the changes might be hard to notice as they are very subtle. In the image comparison below you will notice that there is a slight difference in the way the reflection is mapped to the sphere\ Static Mesh when High Precision Vertex Normals are off and on. 
+Once the option has been enabled, your view will automatically update to reflect the changes. Note that the quality of the reflection that is viewed is directly related to how densely tessellated the Static Mesh is. Static Meshes that have less tessellation will have more stretching artifacts in the reflection than Static Meshes that have more tessellation.     
 
 [OBJECT:ComparisonSlider]
 [PARAM:before]
-![High Precision Vertex Normal Off](SM_HP_Vertex_Normals_Off.png)(h:600)
+![High Precision Vertex Normal Off](SM_HP_Vertex_Normals_Off.png)(h:580)
 [/PARAM]
 [PARAM:after]
-![High Precision Vertex Normal On](SM_HP_Vertex_Normals_On.png)(h:600)
+![High Precision Vertex Normal On](SM_HP_Vertex_Normals_On.png)(h:580)
 [/PARAM]
 [/OBJECT]
+
+[REGION:lightbox]
+[![](SM_HP_Vertex_Normals_Wireframe.png)(w:582 h:580)](SM_HP_Vertex_Normals_Wireframe.png)
+[/REGION]
+	
 
 ### High Precision GBuffer Normal Encoding
 
@@ -218,7 +222,7 @@ Enabling the High Precision GBuffer Normal Encoding option will allow the GBuffe
 	Keep in mind that this encoding requires increased GPU memory and enabling this will have a direct impact on your project's performance.
 	[/region]
 
-1. Since changing the GBuffer format does not require you to restart the Editor, you can quickly change between the different GBuffer formats to see the impact they have on the reflection visuals. In the image below we can see how changing the GBuffer format from the Default to High Precision Normals changes the look and quality of the reflection.
+1. Since changing the GBuffer format does not require you to restart the Editor, so you can quickly change between the different GBuffer formats to see the impact they will have on the reflection visuals. In the image below we can see how changing the GBuffer format from the Default to High Precision Normals changes the look and quality of the reflection.
 
 	[OBJECT:ComparisonSlider]
 	[PARAM:before]

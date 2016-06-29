@@ -1,20 +1,50 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2666099
 Availability:Public
-Title:Non-Uniform Scale Animation
-Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Overview of how non-uniform scale animations can be used.
-
-## Overview
-The animation system in Unreal Engine 4 does support non-uniform scale animations. When importing an animation, if scale exists, it is automatically imported without the need for setting additional options. For memory conservation, the engine does not save scale for all animations and only saves it if the animation has a scale that is not 1. 
-
-For examples, see the videos below. 
-
-[REGION:lightbox]
-[![](AngryChest.png)(w:300 h:200)](AngryChest.wmv) [![](CastSpell.png)(w:300 h:200)](CastSpell.wmv) [![](Trooper.png)(w:300 h:200)](Trooper.wmv)
-[/REGION]
+Title:非统一比例动画
+Crumbs:%ROOT%, Engine, Engine/Animation
+Description:关于如何使用非统一比例动画的概述。
+version:4.9
 
 
-**Click to watch playback of each video**
+虚幻引擎 4 中的动画系统支持非统一比例动画。在导入动画时，如果存在比例，会自动导入，不需要设置其他选项。为了节省内存，引擎不会保存所有动画的比例，只保存不等于 1 的动画比例。 
 
-Refer to the [FBX Animation Pipeline](Engine\Content\FBX\Animations) page for more information on importing FBX Animations. 
+请查看下面的视频示例。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kokp5ux-Jok
+[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Od5WGC9_bBo
+[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+sh5DTeWRE0A
+[/PARAMLITERAL]
+[/OBJECT]
+
+请参见 [FBX 动画管道](Engine\Content\FBX\Animations) 页面了解关于导入 FBX 动画的更多信息。 
 

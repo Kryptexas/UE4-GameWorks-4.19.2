@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2684616
 Availability:Public
 Title:3.创建项目
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
-Description:Start a template project
+Description: 从一个模板项目开始
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,21 +23,25 @@ Description:Start a template project
 [/VAR]
 
 
-
+接下来我们将要创建一个新项目用来测试安卓的部署。
+这个项目是一个基于 Blueprint Third Person 模板的蓝图项目。
 
 %Steps%
 
 
-1.	创建新项目。在此我们将测试一个基于蓝图的项目。如果先从 C++ 项目开始，然后进行编译，则以下步骤是相同的。  
+1. 从 **虚幻项目浏览器** 中，根据以下步骤创建一个蓝图项目。
+* 选择第三人称模板
+* 目标硬件设置为 Mobile / Tablet
+* 选择图形等级为 Scalable 3D or 2D
+* 不要包括初始资源
+* 将项目命名为 AndroidProject
 
 ![](new_android_project.png)
 
 
 [REGION:tip]
-请注意，我们没有在此项目中添加默认资源。
+虽然在这个例子中我们选择了这个模板，但其他仍和类型的项目、C++ 或者蓝图，都可以用来打包并部署到安卓设备上。
 [/REGION]
-
-
 
 
 

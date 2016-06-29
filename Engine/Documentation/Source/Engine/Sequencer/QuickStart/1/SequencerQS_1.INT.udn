@@ -29,6 +29,10 @@ Before we start crafting our scene, we will create some of the assets we'll need
 For the Editor Layout, feel free to experiment with the different options and choose the one that you feel most comfortable with. 
 After completing this section, our project will be ready to go and we can start creating our content. 
 
+[REGION:note]
+For the duration of this guide, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+[/REGION]
+
 ## Steps
 
 1. Inside your project from the Main Toolbar, click **Cinematics** then select **Add Level Sequence**. 
@@ -37,7 +41,7 @@ After completing this section, our project will be ready to go and we can start 
 
 	Creating a Level Sequence from the Cinematics drop-down menu will also automatically add it to the Level. 
 
-1.	In the **Save Asset As** window, create a new folder and name it **Master** then click **Save**. 
+1.	In the **Save Asset As** window, create a new folder called **Cinematics** and name your Level Sequence **Master**. 
 
 	![](SequencerQS_1_2.png)
 
@@ -61,7 +65,7 @@ After completing this section, our project will be ready to go and we can start 
 
 	![](SequencerQS_1_4.png)
 
-1.	In the Viewport window, click the **Viewport Options** button and under **Layout** select **Two Panes**. 
+1.	In the Viewport window, click the **Viewport Options** button and under **Layout** select the **Vertical Two Panes** option. 
 
 	![](SequencerQS_1_5.png)
 

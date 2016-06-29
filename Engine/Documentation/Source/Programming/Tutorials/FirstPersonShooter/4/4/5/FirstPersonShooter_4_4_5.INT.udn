@@ -23,7 +23,7 @@ Version: 4.11
 
 %Steps%
 
-During this step, you're going to set your jump loop to jump end transition.
+During this step, we're going to set your jump loop to jump end transition.
 
 1.	Return to the **Arms State Machine** graph and drag a wire from the **JumpLoop** state to the **JumpEnd** state.
 

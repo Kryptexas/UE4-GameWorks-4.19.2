@@ -44,7 +44,7 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 	This type of track is used to define the perspective (or camera) to shoot the scene from at any given time. 
 	When using the **Add Camera** button, the camera that is created is automatically assigned as the Camera Cut to use for you. 
 
-1.	Hold the **Right-mouse** button and use the **WASD** keys in the Viewport to move the camera to a position like below. 
+1.	In the right Viewport, hold the **Right-mouse** button and use the **WASD** keys to move the camera to a position like below. 
 
 	![](SequencerQS_2_2.png)
 
@@ -68,7 +68,9 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 	Since the Timeline is at 0 by default, we have initialized the position of the camera by adding the keyframe. 
 	When we scrub ahead and add another keyframe with the camera at a different position, the camera will move from one keyframe to the next over time.  
 
-1.	With the **CineCameraActor** selected, in the **Details** panel under **Focus Settings**, click the **Eye Dropper** icon. 
+1.	With the **CineCameraActor** selected, in the **Details** panel under **Current Camera Settings** expand **Focus Settings**.
+
+1.	Click the **Eye Dropper** icon next to **Manual Focus**. 
 
 	![](SequencerQS_2_6.png)
 
@@ -90,6 +92,14 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 1.	In the Cinematic Viewport, click the **To End** button to move the timeline to the end of the Sequence. 
 
 	![](SequencerQS_2_8b.png)
+
+	[REGION:warning]
+	As of 4.12.2 there is an issue when scrubbing the timeline with Spawnable Cameras. If you scrub the timeline to the end of the sequence, the camera will become despawned and will lose focus in the viewport. 
+	You can re-gain focus in the viewport by clicking the **To End** button and locking the viewport to the camera. 
+
+	![](LockCamera.png)
+
+	[/REGION]
 
 1.	In the left Viewport, move the camera up by holding **Right-mouse** and pressing the **Q** or **E** keys to move up or down. 
 

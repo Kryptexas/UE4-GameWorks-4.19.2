@@ -29,7 +29,7 @@ Now is a good time to compile our project so that we can see our code changes re
 
 	![](CompileProject.png)
 
-	_Since you started developing your project as a C++ project, you're able to compile your C++ code directly from the Unreal Editor._
+	_Since you started developing your project as a C++ project, you're able to compile your CPP code directly from the Unreal Editor._
 
 1.	Go ahead and click the **Play** button to enter Play in Editor (PIE) mode.
 

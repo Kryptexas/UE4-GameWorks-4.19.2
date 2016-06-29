@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2728286
+﻿INTSourceChangelist:3027057
 Availability:Public
 Title:Animation ブループリント
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,7 +10,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
-version:4.9
+version: 4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -32,68 +32,67 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
+[REGION:banner]
+![](AnimationBlueprint.png)
+[/REGION]
 
 
 [EXCERPT:Intro]
-**Animation ブループリント** は、基本的に専門化された [ブループリント](Engine/Blueprints) です。 
-そのグラフは、スケルタルメッシュのアニメーションを制御します。Animation ブループリントは、以下を行うことができます。すなわち、アニメーションのブレンディング、スケルトンのボーンを直接制御、および 
+**Animation ブループリント** は、基本的にそのグラフで、スケルタルメッシュのアニメーションを制御する 
+特殊な [**ブループリント**](Engine/Blueprints) です。Animation ブループリントは、以下を行うことができます。すなわち、アニメーションのブレンディング、スケルトンのボーンを直接制御、および 
 スケルタルメッシュの各フレームの最終ポーズを出力することができます。
 
-Controller は、プレイヤーの入力またはゲームプレイ環境に基づいた決定に従って 
-ポーン (またはキャラクター) の動きを指示します。各ポーンは、アニメートするために SkeletalMesh を参照し、 
-Animation ブループリントのインスタンスを持った SkeletalMesh コンポーネントを持ちます。Animation ブループリントは、2 つのグラフを通じて、所有する Pawn のプロパティへアクセス、 
-ブレンディング、ステートの遷移、または AnimMontages の操作、 
+コントローラーは、プレイヤーの入力またはゲームプレイ環境に基づいた決定に従って 
+ポーン (またはキャラクター) の動きを指示します。各ポーンは、アニメートするスケルタルメッシュを参照し、 
+Animation ブループリントのインスタンスを持った SkeletalMesh コンポーネントを持ちます。Animation ブループリントの 2 つのグラフを通じて以下を行うことができます。所有する Pawn のプロパティへアクセス、 
+ブレンディングやステートの遷移に使用する値の計算、または AnimMontages の操作、 
 AnimationSequences のブレンディングに基づいて SkeletalMesh の現在のポーズの計算、および 
 SkeletalControls から Skeleton を直接変形させることができます。
 [/EXCERPT:Intro]
 
-[REGION:tip]
-**Animation ブループリント** の簡単な例が、セクション 1.2 の [アニメーション のコンテンツ サンプル](Resources\ContentExamples\Animation) ページで実演されています。
+[REGION:note]
+**Animation ブループリント** の例のデモが、セクション 1.2 の [**アニメーションのコンテンツ サンプル**](Resources\ContentExamples\Animation) ページにあります。
+[/REGION]
+
+## Animation ブループリントを作成し、ナビゲートする
+
+Animation ブループリントがどのように機能するかに進む前に、その作成方法を理解し、 Animation ブループリントのインターフェースに慣れるとよいでしょう。 
+詳細については以下の各リンクを参照してください。 
+
+[REGION:topics half]
+%Engine\Animation\AnimBlueprints\Creation:TopicCompact%
+%Engine\Animation\AnimBlueprints\Interface:TopicCompact%
 [/REGION]
 
 ## Animation ブループリントで作業する
 
+Animation ブループリントを作成したら UI を操作できるので、まず、どの機能で作業するかを考えます。
+
 [EXCERPT:Graphs]
 Animation ブループリントには、2 つの主要コンポーネントがあります。 
 この 2 つが連動して、各フレームの最終アニメーションを作成します。**EventGraph** は、後で **AnimGraph** で使用可能な値を更新します。 
-この値を使用して、ステートマシン、ブレンドスペース、その他のノードを操作し、複数のアニメーション シーケンスやポーズのブレンディングを可能にし、動的なアニメーション駆動のエフェクトを起こす通知を 
+この値を使用して、ステートマシン、ブレンドスペース、その他のノードを操作し、複数のアニメーション シーケンスやポーズ間のブレンディングを可能にし、動的なアニメーション駆動のエフェクトを起こす通知を 
 別のシステムへ送信します。
 [/EXCERPT:Graphs]
 
-[OBJECT:IconSection]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints/EventGraph)
-	[/PARAM]
-	[PARAM:icon]
-		[![Event Graph](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/EventGraph)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints/EventGraph#Intro]
-	[/PARAM]
-[/OBJECT]
+各トピックの詳細については以下の各リンクを参照してください。 
 
-[OBJECT:IconSection]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints/AnimGraph)
-	[/PARAM]
-	[PARAM:icon]
-		[![Anim Graph](Engine/Animation/AnimBlueprints/AnimGraph/animgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/AnimGraph)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
-	[/PARAM]
-[/OBJECT]
+[REGION:topics half]
+%Engine\Animation\AnimBlueprints\EventGraph:TopicCompact%
+%Engine\Animation\AnimBlueprints\AnimGraph:TopicCompact%
+[/REGION]
+
 
 ## 子 Animation ブループリントで作業する
 
-キャラクターと Animation ブループリントを作成し、設定する場合、類似キャラクターが複数存在するが、異なるステートで全く違うアニメーションを持つことがあるかもしれません。こうしたキャラクターそれぞれに Animation ブループリントを作成するのではなく、既存の Animation ブループリントの **子 Animation ブループリント** を使用して、置換したいアニメーション アセットをオーバーライドすることができます。子 Animation ブループリントはその親から何もかもを継承します。また、**Asset Override Editor (アセット オーバーライド エディタ)** を使用してどのアニメーションをオーバーライドするかを指定することもできます。 
+キャラクターと Animation ブループリントを作成し、設定する場合、類似キャラクターが複数存在するが、異なるステートで全く違うアニメーションを持つことがあるかもしれません。こうしたキャラクターそれぞれに Animation ブループリントを作成するのではなく、既存の Animation ブループリントの **子 Animation ブループリント** を使用して、置換したいアニメーション アセットをオーバーライドすることができます。子 Animation ブループリントはその親から何もかもを継承しますが、**Asset Override Editor (アセット オーバーライド エディタ)** を使用してどのアニメーションをオーバーライドするかを指定することもできます。 
 
 例えば、ひとつは人間でもうひとつはオオカミ人間という 2 種類の人間の形をしたキャラクターがあるとします。両方とも歩く、走る、ジャンプ、這うなどができます。しかし、その動きは全く異なる可能性があります。こうした動きの間での移動のロジックは同じですが、動き自体は異なります。2 種類の Animation ブループリントを作成しても問題ありませんが、時間を短縮するために子 Animation ブループリントを作成してどのアニメーションをオーバーライドするかを選択することができます。 
 
 [REGION:note]
-子 Animation ブループリントを作成し、オーバーライドする例の説明については、[](Engine/Animation/AnimHowTo/AnimBPOverride) をご覧ください。
+子 Animation ブループリントを作成し、オーバーライドする例の説明については、 [**Animation ブループリントのオーバーライド**](Engine/Animation/AnimHowTo/AnimBPOverride) をご覧ください。
 [/REGION]
+
 
 
 

@@ -1,28 +1,29 @@
-﻿INTSourceChangelist:0
-Title: Setting Up the VR Editor from GitHub
-Description: Download and configure the Unreal Engine VR Editor Preview from GitHub.
+﻿INTSourceChangelist:2939982
+Title:从 GitHub 设置 VR 编辑器
+Description:从 GitHub 下载并配置虚幻引擎 VR 编辑器预览
 Crumbs:
-Availability: docs
-parent: Engine/Editor/VR/QuickStart
+Availability: public
+parent:Engine/Editor/VR
 type: howto
-order: 1
-tags: VR
-version: 4.11
+order:1
+tags:VR
+tags:GitHub
+version:4.11
 skilllevel: intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Editor/VR/QuickStart/Setup:title%](Engine/Editor/VR/QuickStart/Setup/worldinteraction.png)
+		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Editor/VR/QuickStart/Setup:title%
+		%Engine/Editor/VR/Setup:title%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/QuickStart/Setup]
+		[RELATIVE:Engine/Editor/VR/Setup]
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Editor/VR/QuickStart/Setup:description%
+		%Engine/Editor/VR/Setup:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -30,61 +31,45 @@ skilllevel: intermediate
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Editor/VR/QuickStart/Setup:title%](Engine/Editor/VR/QuickStart/Setup/worldinteraction.png)
+		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Editor/VR/QuickStart/Setup:title%
+		%Engine/Editor/VR/Setup:title%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/QuickStart/Setup]
+		[RELATIVE:Engine/Editor/VR/Setup]
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Editor/VR/QuickStart/Setup:description%
+		%Engine/Editor/VR/Setup:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
-[NAV]
-
 [EXCERPT:main]
 
-VR Editor is a preview feature for an upcoming release of Unreal Engine.  We've put the source code online early so you can try it out and give us feedback!
+VR 编辑器是虚幻引擎即将发布的预览功能。我们已提前将源代码上传到网络，敬请试用并未我们提供反馈！
 
-If you'd like, you can visit the Unreal Engine forums and send us feedback in the [Unreal Editor in VR](https://forums.unrealengine.com/showthread.php?99776-Unreal-Editor-in-VR-Official-megathread) thread.
+您可访问虚幻引擎论坛，在 [VR 中的虚幻编辑器](https://forums.unrealengine.com/showthread.php?99776-Unreal-Editor-in-VR-Official-megathread) 线程中为我们提供反馈。
 
-It's easy to download the source code and get the VR Editor up and running, but there are a few steps that you'll need to perform first.
+下载源代码并运行 VR 编辑器操作十分简单，但需要事先执行数个步骤。
 
-## Get the VR Editor Source Code
+## 获取 VR 编辑器源代码
 
-1. Login to GitHub and make sure your account is linked to your Epic Games account.  You can find information about that on the [Unreal Engine 4 GitHub Page](https://www.unrealengine.com/ue4-on-github).
-1. Navigate to the [Unreal Engine source repository](https://github.com/EpicGames/UnrealEngine) on GitHub
-1. Switch to the "dev-vr-Editor" branch using the drop down.
-1. Follow the instructions about [Getting Up and Running](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running).  You'll be downloading the Unreal Engine source for the VR Editor, along with installing prerequisites.  You'll also need to have the free version of [Visual Studio 2015](https://www.visualstudio.com/products/visual-studio-community-vs) installed.
+1. 登陆 GitHub，确定您的账户已连接上 Epic Games 账户。在 [虚幻引擎 4 GitHub 页面](https://www.unrealengine.com/ue4-on-github) 可查阅相关内容。
+1. 在 GitHub 上导航至 [虚幻引擎源代码库](https://github.com/EpicGames/UnrealEngine)
+1. 使用下拉菜单切换至“dev-vr-Editor”分支。
+1. 按 [开始运行](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running) 中的说明执行将开始下载 VR 编辑器的虚幻引擎源代码，以及安装必备条件。还需要安装 [Visual Studio 2015](https://www.visualstudio.com/products/visual-studio-community-vs) 免费版。
 
-[REGION:section]
-**Setting Up Unreal Engine VR Editor with Oculus Rift**
+## 用 VR 编辑器编译虚幻引擎
 
-1. **Acquire the latest SDK, runtime, and VR Editor UE4 plugins for Oculus Rift from your developer contacts at Oculus.**
-	
-	[REGION:note]
-	Epic is not permitted to distribute unreleased Oculus SDK files or plugin code.
-	[/REGION]
-
-1. Install the plugin, runtimes, and SDK files to the Unreal Engine directory, which will allow you to compile the engine with support for Oculus Rift and Touch controllers. 
-[/REGION]
-
-## Compile Unreal Engine with VR Editor
-
-1. Compile the engine normally as per the [setup instructions](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running) on GitHub.
-1. Run the editor!
-1. Execute the following file to start the editor:
+1. 依照 GitHub 上的 [设置说明](https://github.com/EpicGames/UnrealEngine/tree/dev-vr-editor#getting-up-and-running) 对引擎进行正常编译。
+1. 运行编辑器！
+1. 执行以下文件运行编辑器：
 
 	[UE4]\Engine\Binaries\Win64\UE4Editor.exe
 
 [REGION:note]
-If VR Mode fails to activate, check the Output Log window and look for "HMD" diagnostic messages.
+如 VR 模式未能启动，查看 Output Log 窗口中的“HMD”诊断信息。
 [/REGION]
 
 [/EXCERPT:main]
-
-[NAV]

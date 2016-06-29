@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3020369
 Availability:Docs
 Title:2.1- キャラクターを新規作成する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -45,56 +45,6 @@ Version:4.11
 	FPSCharacter クラスを作成したので、**Visual Studio** へ切り替えて、新規作成したクラスにコードを追加することができます。`FPSCharacter.h` と `FPSCharacter.cpp` が開き、アンリアル エンジンが新規クラスのために自動的にコードをコンパイルし、再読み込みします。
 	[/REGION]
 
-## Game Mode クラスを編集する
-
-ゲームプレイ開始時に FPSCharacter をデフォルトのポーンとして使用するように、まず **[GameMode]** を編集します。
-
-1.	**Solution Explorer** で、**FPSProject > Source > FPSProject** の順に展開します。
-
-	![](ExpandedSolutionExplorer.png)
-
-1.	`FPSProjectGameMode.cpp` をダブルクリックして、**FPSProjectGameMode** クラスのための実装ファイルを開きます。
-
-1.	`FPSProjectGameMode.cpp` 上部に `FPSCharacter` ヘッダーをインクルードします。
-
-		#include "FPSCharacter.h"
-
-1.	以下の行を `AFPSProjectGameMode` コンストラクタに追加します。
-
-		DefaultPawnClass = AFPSCharacter::StaticClass();
-
-1.	`FPSGameMode.cpp` は以下のようになります。
-
-		// Project Settings の Description ページに著作権情報を入力してください
-		#include "FPSProject.h"
-
-		#include "FPSProjectGameMode.h"
-		#include "FPSCharacter.h"
-		AFPSProjectGameMode::AFPSProjectGameMode()
-
-		{
-			DefaultPawnClass = AFPSCharacter::StaticClass();
-		}
-		void AFPSProjectGameMode::StartPlay()
-
-		{
-			Super::StartPlay();
-		StartMatch();
-
-		const int32 Key = -1;
-
-			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
-			FColor DisplayColor = FColor::Yellow;
-			float TimeToDisplay = 5.0f; //秒
-		if (GEngine != nullptr)
-
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-			}
-		}
-
-1.	Visual Studio に `FPSProjectGameMode.cpp` 実装ファイルを保存します。
-
 ## Character クラスを検証する
 
 1.	**Solution Explorer** で、**FPSProject > Source > FPSProject** の順に展開します。
@@ -105,62 +55,52 @@ Version:4.11
 
 1.	以下のコードの行を `BeginPlay()` 関数に追加して、 `FPSCharacter` クラスが使用されていることを検証します。
 
-		const int32 Key = -1;
-		static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-		FColor DisplayColor = FColor::Red;
-		float TimeToDisplay = 5.0f; //秒
-
-		if (GEngine != nullptr)
+		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-
+			// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 		}
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
+
 		#include "FPSProject.h"
-
 		#include "FPSCharacter.h"
-				// デフォルト値を設定
 
+				// Sets default values (デフォルト値を設定) 
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	//このポーンがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
+		 	//Set this character to call Tick() every frame. (このポーンがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
+
 		}
 
-		// ゲーム開始時またはスポーン時に呼ばれます
-
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			const int32 Key = -1;
 
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //秒
-		if (GEngine != nullptr)
-
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+				// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+			}
 		}
 
-		}
-		// フレームごとに呼ばれます
-
+		// Called every frame (フレームごとに呼ばれます) 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
+
 		}
 
-		// 機能と入力をバインドするために呼ばれます
-
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-		}
 
+		}
 
 1.	Visual Studio に `FPSCharacter` CPP ファイルを保存します。
 
@@ -173,6 +113,43 @@ Version:4.11
 1.	ビルド終了後にアンリアル エディタを開いて、新しくコンパイルした **FPSCharacter** クラスが **コンテンツ ブラウザ** で見えることを確認します。
 
 	![](FPSCharacterContentBrowser.png)
+
+## CPP FPS Character クラスをブループリントに拡張する
+
+CPP FPS Character クラスをブループリントに拡張します。C++ クラスのブループリントへの拡張についての詳細は、[](Gameplay/ClassCreation/CodeAndBlueprints) の
+リファレンス ページをご覧ください。
+
+1.	`FPSCharacter` クラスを右クリックして、**[C++ Class Actions]** メニューを開きます。
+
+	![](CPPClassActionsMenu.png)
+
+1.	**[Create Blueprint class based on FPSCharacter]** をクリックして **[Add Blueprint Class]** ダイアログ メニューを開きます。
+
+	![](CreateDerivedBPClass.png)
+
+1.	新しい Blueprint クラスに "BP_FPSCharacter" と名前を付けて、「Blueprints」フォルダを選択してから、**[Create Blueprint Class]** ボタンをクリックします。
+
+	![](AddBPClass.png)
+
+1.	ここまでで、新規作成した `BP_FPSCharacter` Blueprint クラスが「Blueprint」フォルダの中にあるはずです。
+
+	![](AddedBPClass.png)
+
+1.	`BP_FPSCharacter` ブループリントを保存してからブループリント エディタを閉じるようにします。
+
+## デフォルトの Pawn クラスを設定する
+
+新たに修正したゲームモードをブループリントに拡張したので、このステップでは、プロジェクトでデフォルトの **Pawn** として `BP_FPSCharacter` を使用するように設定する必要があります。
+
+1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリックします。
+
+1.	**[Project Settings]** タブの左側にある **[Project]** の見出しで、**[Maps & Modes]** をクリックします。
+
+1.	 **[Default Pawn]** のドロップダウン メニューで **[BP_FPSCharacter]** を選択します。
+
+	![](SettingFPSCharacter.png)
+
+1.	**[Project Settings]** メニューを閉じます。
 
 1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンをクリックします。ビューポートの左上隅に "Hello World, this is FPSGameMode!" と表示される黄色のテキストの下に "We are using FPSCharacter." が赤色のテキストで 5 秒間表示されるようになります。
 

@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2078918
+﻿INTSourceChangelist:2670963
 Availability:Public
-Title: 骨架资源 
+Title: 骨架（Skeleton）
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: 关于UE4中的骨架资源及如何把它应用到动画上的概述。
+version: 4.9
 
 [REGION:fullwidth]
 ![](SkeletonImage.png)
 [/REGION]
-
-## 概述
 
 在虚幻引擎4中，骨架是独立于骨架网格物体的资源。每个骨架网格物体需要一个和其相关联的骨架，而所有动画资源(比如动画序列、动画蒙太奇及混合空间)都是同该骨架相关联的，而不是同骨架网格物体相关联。
 

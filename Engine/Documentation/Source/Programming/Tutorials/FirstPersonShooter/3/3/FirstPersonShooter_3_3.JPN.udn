@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2953540
+﻿INTSourceChangelist:3020184
 Availability:Docs
 Title:3.3 - 発射物のコリジョンとライフタイムをセットアップする
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -37,7 +37,7 @@ Version:4.11
 
 1.	以下のコードを `FPSProjectile` コンストラクタに追加して、発射物の存続期間を設定します。
 
-		// die after 3 seconds (3 秒後に消滅)
+		// Die after 3 seconds. (3 秒後に消滅)
 		InitialLifeSpan = 3.0f;
 
 ## 発射物のコリジョン設定を編集する
@@ -79,16 +79,16 @@ Version:4.11
 		{
 		 	// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのアクタを設定) 必要がなければパフォーマンスを向上させるためにオフにすることができます。
 			PrimaryActorTick.bCanEverTick = true;
-		// use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
+		// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 
 			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 			CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
-		// set the sphere's collision radius (球体のコリジョン半径を設定します)
+		// Setthe sphere's collision radius (球体のコリジョン半径を設定します)
 
 			CollisionComponent->InitSphereRadius(15.0f);
 			// set the root component to be the collision component (ルート コンポーネントを collision コンポーネントに設定します)
 			RootComponent = CollisionComponent;
-		// use this component to drive this projectile's movement (このコンポーネントを使って発射物の動きを操作します)
+		// Use this component to drive this projectile's movement (このコンポーネントを使って発射物の動きを操作します)
 
 			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);

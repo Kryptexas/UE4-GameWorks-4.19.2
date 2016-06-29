@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3017899
 Availability:Public
-Title:6 - On Your Own!
+Title:6 応用編
 Crumbs:%ROOT%
-Description:This step offers some additional things to try with our sample scene and links to more documentation. 
+Description:サンプル シーンを使っていくつかの作業を試してみましょう。追加情報へのリンクも示します。 
 SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
@@ -12,12 +12,12 @@ checkpoint: editorqs
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
+		[前のステップ](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
+		[クイックスタート ホーム](Engine\Sequencer\QuickStart)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -26,17 +26,17 @@ checkpoint: editorqs
 
 %Steps%
 
-Now that you have created a sample cinematic with Sequencer, you can try several of the How-to's to add to this scene. 
+シーケンサーでサンプル シネマティックスを作成したので、このシーンにいくつかの操作を加えることができます。 
 
-Try some of the following on your own: 
+以下の操作を行ってみましょう。 
 
-* Try to fade the scene in/out use a [**Fade Track**](Engine/Sequencer/HowTo/TracksFade). 
-* Make the Character in the level walk using more [**Character Animation**](Engine/Sequencer/HowTo/CharacterAnimation).
-* Add Music from the **Content/StarterContent/Audio** folder with an [**Audio Track**](Engine\Sequencer\HowTo\TracksAudio). 
-* Add a [**Crane**](Engine\Sequencer\HowTo\CameraRigCrane) or [**Rail**](Engine\Sequencer\HowTo\CameraRigRail) shot to the scene. 
-* Cause the scene to enter slow motion with the [**Play Rate**](Engine\Sequencer\HowTo\TracksPlayRate) track. 
+* [**Fade トラック**](Engine/Sequencer/HowTo/TracksFade) を使ってシーンをフェードイン、フェードアウトさせてみましょう。 
+* [**キャラクターのアニメーション**](Engine/Sequencer/HowTo/CharacterAnimation) を使ってレベル内のキャラクターを歩かせてみましょう。
+* [**Audio トラック**](Engine\Sequencer\HowTo\TracksAudio) で、 **Content/StarterContent/Audio** フォルダから音楽を追加してみましょう。 
+* [**Crane**](Engine\Sequencer\HowTo\CameraRigCrane) または [**Rail**](Engine\Sequencer\HowTo\CameraRigRail) のショットをシーンに追加してみましょう。 
+* [**Play Rate**](Engine\Sequencer\HowTo\TracksPlayRate) トラックでシーンをスローモーションにしてみましょう。 
 
-Try to re-create a similar scene: 
+同様のシーンを再現してみましょう。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -49,6 +49,20 @@ Try to re-create a similar scene:
 88egahbLEWo
 [/PARAMLITERAL]
 [/OBJECT]
+
+オプションでシネマティックスを映像ファイルとして **ムービー出力** することができます。 
+
+1. **[Render Movie (ムービー出力)]** オプションをクリックします。 
+
+	![](ExportMovie.png)
+
+1. **[General]** で **[Output Directory]** を定義し、**[Capture Movie]** をクリックしてレンダリングを開始します。
+
+	![](ExportMovieB.png)
+
+	ムービー出力中にプレビュー ウィンドウが表示されて、終了すると閉じます。 
+
+
 
 %Steps%
 

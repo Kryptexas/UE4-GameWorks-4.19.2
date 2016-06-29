@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2984051
+﻿INTSourceChangelist:3007768
 Availability:Public
 Title:ペルソナのスケルトン ツリー
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -44,7 +44,7 @@ related:Engine/Animation/AnimationRetargeting
 
 1.  検索欄、ブレンド プロファイル、ボーンとソケット ボタン、詳細オプション
 1. ボーン階層リスト
-1. 移動の再ターゲット制御
+1. 平行移動リターゲット制御 (表示するには、スケルトン ツリーパネルの上部にある **[Show Advanced Options (詳細オプションを表示)]** を有効にします)
 
 
 ##検索欄、ボーン、ソケット ボタン

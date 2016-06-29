@@ -34,11 +34,11 @@ Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to 
 
 1.	In `FPSCharacter.h`, add the following function declarations under `SetupPlayerInputComponent`.
 
-		// handles moving forward and backward
+		// Handles input for moving forward and backward.
 		UFUNCTION()
 		void MoveForward(float Value);
 		
-		// handles moving right and left
+		// Handles input for moving right and left.
 		UFUNCTION()
 		void MoveRight(float Value);
 
@@ -71,11 +71,11 @@ Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to 
 			// Called to bind functionality to input
 			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 		
-			// handles moving forward and backward
+			// Handles input for moving forward and backward.
 			UFUNCTION()
 			void MoveForward(float Value);
 		
-			// handles moving right and left
+			// Handles input for moving right and left.
 			UFUNCTION()
 			void MoveRight(float Value);
 			
@@ -92,7 +92,7 @@ In a typical FPS control scheme, the character's movement axes are relative to t
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 			
-			// set up gameplay key bindings
+			// Set up "movement" bindings.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
@@ -105,10 +105,8 @@ In a typical FPS control scheme, the character's movement axes are relative to t
 
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// find out which way is forward
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 
@@ -116,20 +114,18 @@ In a typical FPS control scheme, the character's movement axes are relative to t
 
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// find out which way is right
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// Find out which way is "right" and record that the player wants to move that way.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 
 1.	`FPSCharacter.cpp` should now look like the following:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
-
+		
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
-		
+				
 		// Sets default values
 		AFPSCharacter::AFPSCharacter()
 		{
@@ -143,15 +139,10 @@ In a typical FPS control scheme, the character's movement axes are relative to t
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -167,26 +158,22 @@ In a typical FPS control scheme, the character's movement axes are relative to t
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// set up gameplay key bindings
+			// Set up "movement" bindings.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// find out which way is forward
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// find out which way is right
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// Find out which way is "right" and record that the player wants to move that way.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 

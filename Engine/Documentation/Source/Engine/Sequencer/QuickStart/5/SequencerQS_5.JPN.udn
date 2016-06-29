@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3017881
 Availability:Public
-Title:5 - Finishing Up - Shots & Takes
+Title:5 - ショットとテイクの仕上げ
 Crumbs:%ROOT%
-Description:In this step we use the Shot Track and create Takes as we wrap up our sample scene.
+Description:ショット トラックを使用して、テイクを作成し、サンプル シーンを完成させます。
 SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
@@ -12,118 +12,127 @@ checkpoint: editorqs
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\4 "%Engine\Sequencer\QuickStart\4:title%")
+		[前のステップ](Engine\Sequencer\QuickStart\4 "%Engine\Sequencer\QuickStart\4:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/QuickStart)
+		[クイックスタート ホーム](Engine/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\6 "%Engine\Sequencer\QuickStart\6:title%")
+		[次のステップ](Engine\Sequencer\QuickStart\6 "%Engine\Sequencer\QuickStart\6:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-In the previous steps we created our shots, now we will tie them together using the **Shot Track** which allows you to add Level Sequences along the timeline for playback. 
-We will also create a **Take** of one of those Shots, which will allow us to create a variant of that shot or use it as an additional Shot in the cinematic. 
+前のステップでは、ショットを作成しました。ここでは、 **Shot トラック** を使ってショットを結合し、再生用のタイムラインに沿ってレベル シーケンスを追加することができます。 
+ショットのひとつの **テイク** も作成することで、そのショットを変化させたものを作成したり、シネマティックスの追加のショットとして使用することができます。 
 
-At the end of this step, you will have created your own multi-shot cinematic with Sequencer! 
+このステップの最後まで進むと、シーケンサーで独自のマルチショット シネマティックスを作成できます。 
 
-## Steps
+## ステップ
 
-1. In the **Content Browser** open the **Master** Level Sequence. 
+1. **コンテンツ ブラウザ** で **[Master]** レベル シーケンスを開きます。 
 
 	![](SequencerQS_5_1.png)
 
-1. Inside the Level Sequence, click the **Add** button and select the **Shot Track**. 
+1. レベル シーケンスで **[Add]** ボタンをクリックし、**Shot トラック** を選択します。 
 
 	![](SequencerQS_5_2.png)
 
-1. Click the **+ Shot** button and add **Shot01** to the track. 
+1. **[+ Shot]** ボタンをクリックして **Shot_01** をトラックに追加します。 
 
 	![](SequencerQS_5_3.png)
 
-1. Add **Shot02** to the **Shot Track**. 
+1. **Shot02** を **Shot トラック** に追加します。 
 
 	![](SequencerQS_5_4.png)
 
-	Notice that Shot02 extends past the red maker (which is the end of playback range). 
-	You can drag the red marker to the end of Shot02 or automatically keep added sections within playback range by enabling the option in the **General Options** menu. 
+	Shot02 は赤いマーカー (再生範囲の終わり) を超えています。 
+	赤いマーカーを Shot02 の終わりまでドラッグするか、 **[General Options (一般オプション)]** メニューでオプションを有効にして追加したセクションが再生範囲内に自動的に入るようにします。 
 
-1. Click the **General Options** button then select **Keep Playback Range in Section Bounds**. 
+1. **[General Options]** ボタンをクリックし、**[Keep Playback Range in Section Bounds (再生範囲をセクションの領域内に収める)]** を選択します。 
 
 	![](SequencerQS_5_5.png)
 
-	This will push the end marker out for us anytime we add content and will ensure that everything is within playback range. 
+	これで、コンテンツを追加するたびにエンド マーカーが広がり全体が再生範囲内に入るようになります。 
 
-1. **Left-click** and drag **Shot02** down a level within the **Shot Track**. 
+1. **左クリック** し、**Shot トラック** 内で **Shot02** をレベルの下にドラッグします。 
 
 	![](SequencerQS_5_6.png)
 
-	You can click-and-drag Shots around and arrange them on a Shot Track. 
+	[REGION:tip]
+	ショットをドラッグして再生順を並べ替えたり、整理することができます。 
+	典型的なベストプラクティスは、同じひとつのトラックにすべてを置いたままにするのではなく、Shot トラック内でトラック間を切り替えて、どこでカットが発生するかを示すことです。 
 
-1. Click the **Lock Viewport** toggle button to lock the camera to the **Shot Track**. 
+	![](ShotCuts.png)
+
+	以下は、Shots トラック内で追加のトラックを使用しないで同じ数のショットにしたものです。 
+
+	![](ShotCutsB.png)
+	[/REGION]
+
+1. **[Lock Viewport (ビューポートのロック)]** 切り替えボタンをクリックして、カメラを **Shot トラック** にロックします。 
 
 	![](SequencerQS_5_7.png)
 
-	Like the **Camera Cuts** Camera Lock button, the Shot Track will only affect the Cinematic Viewport. 
+	**Camera Cuts** のカメラ ロック ボタンのように、Shot トラックはシネマティックス ビューポートだけに影響を及ぼします。 
 
-1. **Right-click** on **Shot02** then select the **New Take** option. 
+1. **Shot02** 上で右クリックして、**[New Take]** オプションを選択します。 
 
 	![](SequencerQS_5_8.png)
 
-	A **Duplicate Asset As** window will appear, click **Save**. 
+	**[Duplicate Asset As]** ウィンドウが表示されます。**Save** をクリックします。 
 
 	![](SequencerQS_5_9.png)
 
 	[REGION:note]
-	Takes are automatically named. You can change the naming convention in the [](Engine/UI/ProjectSettings) under **Level Sequences**.  
+	テイクに自動的に名前が付けられます。[](Engine/UI/ProjectSettings) の **Level Sequences** で命名規則を変更することができます。  
 	[/REGION]
 
-1.	**Right-click** on the newly created Shot and choose **New Take** again. 
+1.	新規に作成したショットを **右クリック** して、**[New Take]** を再度選択します。 
 
 	![](SequencerQS_5_10.png)
 
 	[REGION:note]
-	When creating a Take it does not delete the Level Sequence but creates a duplicate of it which you can then alter. 
-	Currently when creating a Take for the first time it replaces the Shot with the new Take (the original Shot still exists in the Content Browser but is not listed as a "Take" in the Takes Menu - see below). 
+	テイクを作成するとレベル シーケンスは削除されず、その複製が作成されて、それを変更することができます。 
+	現在、初めてテイクを作ると、ショットを新しいテイクと置き換えます (そのショットはコンテンツ ブラウザ内に存在しますが、[Takes] メニューで "Take" としてはリストされなくなります。以下参照)。 
 	[/REGION]
 
-1.	**Right-click** on the newly created shot and highlight **Takes**. 
+1.	新規に作成したショットを **右クリック** して、**[Takes]** をハイライトします。 
 
 	![](SequencerQS_5_11.png)
 
-	Above we are currently using **Take 3** in our cinematic. We can switch to Take 2 by select it from this menu. 
+	上の画面では、シネマティックスで **Take 3** を使用しています。このメニューから Take 2 を選択して切り替えることができます。 
 
-1.	**Double-click** on the **Shot0002_003** to open it, then **Left-click** drag to select and delete each of the keyframes within it. 
+1.	**Shot0002_003** 上で **ダブルクリック** して開きます。次に、**左クリック** しながらドラッグして、その中の各キーフレームを選択し、削除します。 
 
 	![](SequencerQS_5_12.png)
 
-	We are going to change the current camera movement to a different motion for this take. 
+	現在のカメラの動きを、このテイクでは別の動きに変更します。 
 
-1.	Lock the Viewport to the camera, the move it in near the character's face and press **S** to keyframe the position. 
+1.	ビューポートをカメラにロックして、キャラクターの顔の近くにカメラを動かし、**S** を押してその位置でキーフレームを作成します。 
 
 	![](SequencerQS_5_14.png)
 
-1.	In the **Details** panel for the camera, adjust the **Manual Focus Distance** then add a keyframe for the adjusted value. 
+1.	カメラの **[詳細]** パネルで、**Manual Focus Distance** を調整して、調整した値に対してキーフレームを追加します。 
 
 	![](SequencerQS_5_15.png)
 
-1.	Jump to the end of the sequence, the move the camera back away from the character and keyframe it. 
+1.	シーケンスの終わりまでジャンプして、キャラクターから離れるようにカメラを戻して、キーフレームを作成します。 
 
 	![](SequencerQS_5_16.png)
 
-1.	Click the **Master** breadcrumb to return to the **Master** Track. 
+1.	**Master** ブレッドクラムをクリックして、**Master** トラックに戻ります。 
 
 	![](SequencerQS_5_17.png)
 
 
-## End Result
+## 最終結果
 
-You should now have a two shot cinematic, however you can use different **Takes** from the Take Menu. 
+これで 2 つのショットのシネマティックスができましたが、 [Take] メニューから別の **Takes** を使用することができます。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -137,10 +146,10 @@ Z2E4lcodFww
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can also re-arrange the Shots by dragging them to new locations on the Shot Track. You can also add a Take as an additional Shot, giving you three Shots. 
-While this is only a small fraction of what is possible with Sequencer, it highlights some of the core aspects of the tool that you can use to craft your scenes. 
+Shot トラックでショットを新しい位置にドラッグして並べ替えることもできます。テイクを追加のショットとして加えて 3 つのショットにすることもできます。 
+これはシーケンサーでできることのごく一部にすぎませんが、独自のシーンを作成いただけるように、その中心部分に重点をおいて説明しました。 
 
-In the next and final step, you will find some "On Your Own" challenges you can attempt to add to this scene and links to additional documentation. 
+次の最終ステップでは、上記のシーンに追加していく「応用編」の課題と追加情報へのリンクを示します。 
 
 %Steps%
 

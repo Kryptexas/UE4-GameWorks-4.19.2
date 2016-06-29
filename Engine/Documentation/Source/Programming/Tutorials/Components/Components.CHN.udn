@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Components And Collision
+﻿INTSourceChangelist:2620109
+Availability:Public
+Title:组件和碰撞
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
-Description:Learn how Components can enable Pawns to interact with physics, use particle effects, and more.
+Description:了解组件如何使 Pawn 形成物理互动、使用粒子特效等。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +39,7 @@ Description:Learn how Components can enable Pawns to interact with physics, use 
 [/OBJECT]
 [/VAR]
 
-This tutorial will show you how to create Components, put them into a hierarchy, control them during gameplay, and use them to move your Pawn around a world that contains solid objects.
+此教程为您展示如何创建组件，将它们放入层级，在游戏进程中对它们进行控制，并使用它们在包含立体物的世界场景中移动 Pawn。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -57,7 +58,7 @@ This tutorial will show you how to create Components, put them into a hierarchy,
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

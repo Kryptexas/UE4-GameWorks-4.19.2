@@ -32,71 +32,19 @@ During this step, we're going to add a first person mesh to our character.
 
 1.	Switch back to Visual Studio and open `FPSCharacter.h` to add the following code:
 
-		// pawn mesh: FPS view (arms are only seen by self)
+		// First-person mesh (arms), visible only to the owning player.
 		UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		USkeletalMeshComponent* FPSMesh;
 
-1.	`FPSCharacter.h` should now look like the following:
+1.	Now, open `FPSCharacter.cpp`, go the constructor, and add the following code to create and configure the first person mesh:
 
-		// Fill out your copyright notice in the Description page of Project Settings.
-		
-		#pragma once
-		
-		#include "GameFramework/Character.h"
-		#include "FPSCharacter.generated.h"
-		
-		UCLASS()
-		class FPSPROJECT_API AFPSCharacter : public ACharacter
-		{
-			GENERATED_BODY()
-		
-		public:
-			// Sets default values for this character's properties
-			AFPSCharacter();
-		
-			// Called when the game starts or when spawned
-			virtual void BeginPlay() override;
-			
-			// Called every frame
-			virtual void Tick( float DeltaSeconds ) override;
-		
-			// Called to bind functionality to input
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		
-			// handles moving forward and backward
-			UFUNCTION()
-			void MoveForward(float Value);
-		
-			// handles moving right and left
-			UFUNCTION()
-			void MoveRight(float Value);
-		
-			// sets jump flag when key is pressed
-			UFUNCTION()
-			void OnStartJump();
-		
-			// clears jump flag when key is released
-			UFUNCTION()
-			void OnStopJump();
-		
-			// FPS camera
-			UPROPERTY(VisibleAnywhere)
-			UCameraComponent* FPSCameraComponent;
-		
-			// pawn mesh: FPS view (arms are only seen by self)
-			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FPSMesh;
-		};
-
-1.	Open `FPSCharacter.cpp` and add the following code to create and configure the first person mesh:
-
-		// create a first person mesh component
+		// Create a first person mesh component for the owning player.
 		FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-		// only the owning player sees this mesh
+		// Only the owning player sees this mesh.
 		FPSMesh->SetOnlyOwnerSee(true);
-		// attach the FPS mesh to the FPS camera
+		// Attach the FPS mesh to the FPS camera.
 		FPSMesh->AttachTo(FPSCameraComponent);
-		// disable some environmental shadowing to preserve the illusion of having a single mesh
+		// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 		FPSMesh->bCastDynamicShadow = false;
 		FPSMesh->CastShadow = false;
 
@@ -104,118 +52,12 @@ During this step, we're going to add a first person mesh to our character.
 	This code is also attaching the mesh to the camera and disabling some environmental shadowing.
 	Allowing the the camera-attahed arms to cast shadows would destroy the illusion of having a single mesh for the first person character.
 
-1.	Add the following code to `FPSCharacter.cpp` to hide the existing third-person mesh from the owning character:
+1.	Finally, add the following code to the constructor in `FPSCharacter.cpp` to hide the existing third-person mesh from the owning character:
 
-		// everyone but you can see the regular body mesh
+		// The owning player doesn't see the regular (third-person) body mesh.
 		GetMesh()->SetOwnerNoSee(true);
 
-1.	`FPSCharacter.cpp` should now look like the following:
-
-		// Fill out your copyright notice in the Description page of Project Settings.
-		
-		#include "FPSProject.h"
-		#include "FPSCharacter.h"
-		
-		// Sets default values
-		AFPSCharacter::AFPSCharacter()
-		{
-		 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-			PrimaryActorTick.bCanEverTick = true;
-		
-			// create a first person camera component
-			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-			// attach the camera component to our capsule component
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
-			// position the camera slightly above the eyes
-			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-			// allow the pawn to control rotation
-			FPSCameraComponent->bUsePawnControlRotation = true;
-		
-			// create a first person mesh component
-			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-			// only the owning player sees this mesh
-			FPSMesh->SetOnlyOwnerSee(true);
-			// attach the FPS mesh to the FPS camera
-			FPSMesh->AttachTo(FPSCameraComponent);
-			// disable some environmental shadowing to preserve the illusion of having a single mesh
-			FPSMesh->bCastDynamicShadow = false;
-			FPSMesh->CastShadow = false;
-			
-			// everyone but you can see the regular body mesh
-			GetMesh()->SetOwnerNoSee(true);
-		}
-		
-		// Called when the game starts or when spawned
-		void AFPSCharacter::BeginPlay()
-		{
-			Super::BeginPlay();
-			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
-			}
-		}
-		
-		// Called every frame
-		void AFPSCharacter::Tick( float DeltaTime )
-		{
-			Super::Tick( DeltaTime );
-		
-		}
-		
-		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
-		{
-			Super::SetupPlayerInputComponent(InputComponent);
-		
-			// set up gameplay key bindings
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-		
-			// set up gameplay mouse bindings
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-		
-			// set up jump action bindings
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-		}
-		
-		void AFPSCharacter::MoveForward(float Value)
-		{
-			// find out which way is forward
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-			AddMovementInput(Direction, Value);
-		}
-		
-		void AFPSCharacter::MoveRight(float Value)
-		{
-			// find out which way is right
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-			AddMovementInput(Direction, Value);
-		}
-		
-		void AFPSCharacter::OnStartJump()
-		{
-			bPressedJump = true;
-		}
-		
-		void AFPSCharacter::OnStopJump()
-		{
-			bPressedJump = false;
-		}
-
-1.	Save the `FPSCharacter` header (\*.h) and CPP (\*.cpp) files in Visual Studio.
+1.	Save the `FPSCharacter` header (\*.h) and implementation (\*.cpp) files in Visual Studio.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
@@ -223,8 +65,12 @@ During this step, we're going to add a first person mesh to our character.
 
 	![](BuildProject.png)
 
-1.	After the build finishes, open your **FPSProject** in Unreal Editor. At this point, your character mesh should not be visible inside the editor.
+1.	After the build finishes, open and run your **FPSProject** in PIE mode. 
 
+	![](HiddenMeshInGame.png)
+
+	At this point, your character mesh should not be visible inside the editor.
+	
 ## Building the Mesh Blueprint
 
 [REGION:note]
@@ -284,11 +130,169 @@ Before continuing, download and extract our sample mesh from the following link:
 
 ## Viewing the New Mesh In-Game
 
-1.	Click the **Play In** button in the **Level Editor Toolbar** to view the new mesh in-game.
+1.	Click the **Play** button in the **Level Editor Toolbar** to view the new mesh in-game.
 
 	![](NewMeshInGame.png)
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    code
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    Finished Section Code
+    [/PARAM]
+    [PARAM:content]
+		**FPSCharacter.h**
+			// Fill out your copyright notice in the Description page of Project Settings.
+			
+			#pragma once
+			
+			#include "GameFramework/Character.h"
+			#include "FPSCharacter.generated.h"
+			
+			UCLASS()
+			class FPSPROJECT_API AFPSCharacter : public ACharacter
+			{
+				GENERATED_BODY()
+			
+			public:
+				// Sets default values for this character's properties
+				AFPSCharacter();
+			
+				// Called when the game starts or when spawned
+				virtual void BeginPlay() override;
+				
+				// Called every frame
+				virtual void Tick( float DeltaSeconds ) override;
+			
+				// Called to bind functionality to input
+				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			
+				// Handles input for moving forward and backward.
+				UFUNCTION()
+				void MoveForward(float Value);
+			
+				// Handles input for moving right and left.
+				UFUNCTION()
+				void MoveRight(float Value);
+			
+				// Sets jump flag when key is pressed.
+				UFUNCTION()
+				void StartJump();
+			
+				// Clears jump flag when key is released.
+				UFUNCTION()
+				void StopJump();
+			
+				// FPS camera.
+				UPROPERTY(VisibleAnywhere)
+				UCameraComponent* FPSCameraComponent;
+			
+				// First-person mesh (arms), visible only to the owning player.
+				UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+				USkeletalMeshComponent* FPSMesh;
+			};
+
+		**FPSCharacter.cpp**
+			// Fill out your copyright notice in the Description page of Project Settings.
+			
+			#include "FPSProject.h"
+			#include "FPSCharacter.h"
+			
+			// Sets default values
+			AFPSCharacter::AFPSCharacter()
+			{
+			 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+				PrimaryActorTick.bCanEverTick = true;
+			
+				// Create a first person camera component.
+				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+				// Attach the camera component to our capsule component.
+				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				// Position the camera slightly above the eyes.
+				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+				// Allow the pawn to control camera rotation.
+				FPSCameraComponent->bUsePawnControlRotation = true;
+			
+				// Create a first person mesh component for the owning player.
+				FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+				// Only the owning player sees this mesh.
+				FPSMesh->SetOnlyOwnerSee(true);
+				// Attach the FPS mesh to the FPS camera.
+				FPSMesh->AttachTo(FPSCameraComponent);
+				// Disable some environmental shadowing to preserve the illusion of having a single mesh.
+				FPSMesh->bCastDynamicShadow = false;
+				FPSMesh->CastShadow = false;
+			
+				// The owning player doesn't see the regular (third-person) body mesh.
+				GetMesh()->SetOwnerNoSee(true);
+			}
+			
+			// Called when the game starts or when spawned
+			void AFPSCharacter::BeginPlay()
+			{
+				Super::BeginPlay();
+				
+				if (GEngine)
+				{
+					// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+				}
+			}
+			
+			// Called every frame
+			void AFPSCharacter::Tick( float DeltaTime )
+			{
+				Super::Tick( DeltaTime );
+			
+			}
+			
+			// Called to bind functionality to input
+			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+			{
+				Super::SetupPlayerInputComponent(InputComponent);
+			
+				// Set up "movement" bindings.
+				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			
+				// Set up "look" bindings.
+				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			
+				// Set up "action" bindings.
+				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			}
+			
+			void AFPSCharacter::MoveForward(float Value)
+			{
+				// Find out which way is "forward" and record that the player wants to move that way.
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+				AddMovementInput(Direction, Value);
+			}
+			
+			void AFPSCharacter::MoveRight(float Value)
+			{
+				// Find out which way is "right" and record that the player wants to move that way.
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+				AddMovementInput(Direction, Value);
+			}
+			
+			void AFPSCharacter::StartJump()
+			{
+				bPressedJump = true;
+			}
+			
+			void AFPSCharacter::StopJump()
+			{
+				bPressedJump = false;
+			}
+
+    [/PARAM]
+[/OBJECT]
 
 Congratulations! You've learned how to:
 

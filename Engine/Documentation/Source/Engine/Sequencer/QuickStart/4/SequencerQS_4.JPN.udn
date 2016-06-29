@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3017881
 Availability:Public
-Title:4 - Your Second Shot
+Title:4 - 2 つめのショット
 Crumbs:%ROOT%
-Description:In this step we create a second shot for our example cinematic. 
+Description:サンプル シネマティックスの 2 つめのショットを作成します。 
 SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
@@ -12,79 +12,79 @@ checkpoint: editorqs
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\3 "%Engine\Sequencer\QuickStart\3:title%")
+		[前のステップ](Engine\Sequencer\QuickStart\3 "%Engine\Sequencer\QuickStart\3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
+		[クイックスタート ホーム](Engine\Sequencer\QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
+		[次のステップ](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Our first shot is complete, now we will take what we have learned and create an additional shot for our scene. 
+最初のショットができたので、学んだことを使ってシーン用に追加のショットを作成します。 
 
-This time we will push the camera in from the front of our character in on their face. 
+今回はキャラクターの前面からその顔にカメラをプッシュインします。 
 
-## Steps
+## ステップ
 
-1.	In the **Content Browser**, select the **Shot01** Level Sequence then press **Shift+W** to duplicate it. 
+1.	**コンテンツ ブラウザ** で **Shot01** レベル シーケンスを選択し、 **Shift+W** キーを押して複製します。 
 
 	![](SequencerQS_4_1.png)
 
-	Our Shot01 already has most of the existing content we will want to also use in our second shot. 
+	Shot01 にはほとんどの既存コンテンツがあるため、2 つめのショットでも使用します。 
 
-1.	Inside **Shot02**, delete the existing **CineCameraActor** then click the **Add Camera** button. 
+1.	**Shot02** 内で、既存の **CineCameraActor** を削除してから **Add Camera** ボタンをクリックします。 
 
 	![](SequencerQS_4_2.png)
 
-	This will automatically assign it on the Camera Cuts track and enter the camera in Pilot Mode. 
+	これで、Camera Cuts トラックに自動的に割り当てられ、カメラがパイロット モードになります。 
 
-1.	Move the camera around to the front of the Skeletal Mesh Actor in the level. 
+1.	カメラをレベルの Skeletal Mesh アクタの前に移動します。 
 
 	![](SequencerQS_4_3.png)
 
-	The name of your CineCameraActor may differ from above which is perfectly fine. 
-	
-1.	Select the **CineCameraActor** track in Sequencer, then press **S** to add a keyframe the Camera's Transform.
+	CineCameraActor の名前は上のものとは異なることがありますが、問題ありません。 
+	1.	シーケンサーで **CineCameraActor** トラックを選択した状態で、**S** キーを押して、カメラのトランスフォームのキーフレームを追加します。
+
 
 	![](SequencerQS_4_3b.png)
 
-1.	In the **Details** panel for the camera, use the **Eye Dropper** to focus in on the character then add a keyframe. 
+1.	カメラの **[詳細]** パネルで、**スポイトアイコン** を使ってキャラクターにフォーカスして、キーフレームを追加します。 
 
 	![](SequencerQS_4_4.png)
 
-	Your value you might be different from above based on where you placed the camera. 
+	カメラをどこに配置したかによって上の値とは異なる値になることがあります。 
 
-1.	Use the **To End** button in the Cinematic Preview to jump to the end of the Sequence. 
+1.	シネマティックス プレビューで、**[To End]** ボタンを使ってシーケンスの終わりにジャンプします。 
 
-1.	Move the camera in on the character then add a keyframe (**S**) for the position. 
+1.	キャラクター上にカメラを移動して、その位置のキーフレーム (**S**) を追加します。 
 
 	![](SequencerQS_4_5.png)
 
-1.	In the **Details** panel for the camera, use the **Eye Dropper** to focus in on the character then add a keyframe. 
+1.	カメラの **[詳細]** パネルで、**スポイトアイコン** を使ってキャラクターにフォーカスして、キーフレームを追加します。 
 
 	![](SequencerQS_4_6.png)
 
-	You should have keyframes at the start for the initial position and focus value as well as at the end. 
+	最初の位置で開始するキーフレーム、最後にフォーカス値があるキーフレームがあります。 
 
-1.	You can use the **Camera Lock** toggle button on the **Camera Cuts** track to enable the Cinematic Preview. 
+1.	**Camera Cuts** トラック上で **Camera Lock** の切替ボタンを使ってシネマティックス プレビューを有効にします。 
 
 	![](SequencerQS_4_7.png)
 
 
-## End Result
+## 最終結果
 
-We have set up our second shot of our sequence where the camera starts from far away and pushes in on the character. 
+シーケンスの 2 番めのショットをセットアップしました。カメラは遠くから始まりキャラクター上にプッシュインします。 
 
-In our next step we will tie our shots together using the **Shot Track** in our Master Level Sequence. 
-We will also create a **Take** (or variation) of one of our shots that we can quickly swap in or out. 
-You will also see how we can arrange the order of shots in our scene as we get a little bit closer to finishing our sample scene. 
+次のステップでは、マスター レベル シーケンスで **Shot Track** を使ってショットを結合します。 
+ショットのひとつの **テイク** (すなわちバリエーション) も作成して、迅速にスワップイン、スワップアウトすることができます。 
+サンプルシーンがもうすぐ完成するのでシーン内のショットの順序を並び替えることもできます。 
 
 %Steps%
 

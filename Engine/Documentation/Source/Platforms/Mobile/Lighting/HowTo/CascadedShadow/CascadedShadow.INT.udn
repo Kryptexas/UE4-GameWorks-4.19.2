@@ -1,5 +1,5 @@
 Availability:Public
-Title:How To: Use Cascaded Shadows
+Title: Use Cascaded Shadows
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Setting up Cascaded Shadows for mobile games.
 Platform:Mobile
@@ -53,7 +53,7 @@ To use Dynamic Cascaded Shadow maps in your UE4 mobile project, you will need to
 	* **Num Dynamic Shadows Cascades:** 1
 	* **Insert Shadows For Movable Objects:** False
 	[region:note]
-	Make sure to use only the settings above as adjusting anything else might cause the CSM not to work.
+	The above settings are only suggestions so feel free to change and experiment with the values to find ones that will best fit your project. 
 	[/region]
 
 1. Inside of you project's level select any Static Meshes you want to receive CSM and in the **Details** panel under the **Mobile** section, enable the **Receive Combined Static and CSM Shadows from Stationary Lights** option.
@@ -106,3 +106,7 @@ To use Dynamic Cascaded Shadow maps in your UE4 mobile project, you will need to
 	[REGION:caption]
 	Click for full image.
 	[/REGION]
+
+	[region:note]
+	If you want shadows from Static Meshes placed in the environment to cast shadows on the character, you will need to change the **Mobility** settings on the Static Mesh from ***Static** to **Movable**.
+	[/region]

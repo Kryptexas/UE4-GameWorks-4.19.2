@@ -1,11 +1,12 @@
 ﻿INTSourceChangelist:0
-Availability:Docs
+Availability:Public
 Title: Blueprint Search
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:Getting the most out of searching in Blueprints, from indexing all Blueprints to advanced search syntax
 version: 4.11
-parent:Engine/Blueprints
-order:5
+parent:Engine/Blueprints/Workflow
+order:2
+
 
 ## Searching Blueprints
 
@@ -17,17 +18,17 @@ field populated with the name of the element as well as the MemberGuid of the el
 instances of that name in other parts of your project. 
 
 Searching is an asynchronous process, meaning it will not prevent you from using the editor as the search completes. You can also make multiple searches in different Blueprints at the same time. 
-It leverages the Derived Data Cache (DDC) for the searchable data, so when Blueprints are updated, their information is refreshed. 
+It leverages the Asset Registry for the searchable data, so the most recently indexed data is always with the asset file.
 
 By default, this tool searches your current Blueprint, but by unchecking the **Find in Current Blueprint Only** checkbox, you can search all Blueprints in the project. When Blueprints are not indexed in the system, it will inform you, as in the below image:
 
-![](IndexingPrompt.png)
+[REGION:lightbox]
+[![](IndexingPrompt.png)](IndexingPrompt.png)
+[/REGION]
 
-Indexing all is a slow process, as it loads all un-indexed Blueprints to cache searchable data. It is not recommended to index all Blueprints with unsaved data. However, no Blueprints have to be resaved as part of the indexing process. 
-If you click on **Index All** and are connected to the shared DDC, the indexing will be available to all users on the shared DDC. 
-
-When indexing un-indexed Blueprints while connected to source control, you can either check out all Blueprints to make the indexing permanent, or perform a temporary index that will last for your current Unreal Editor
-session.
+Clicking **Index All** results in an extremely slow process that will stall the editor, as it loads all un-indexed Blueprints and re-saves them to cache searchable data. If you do not 
+wish to re-save the content, or the content is protected by source control and cannot be checked out, it will simply load all Blueprint assets to cache the latest searchable data in memory. 
+However, if you do not re-save the content, **Index All** will need to be done each time you open the editor.
 
 ![](IndexingWarning.png)
 
@@ -35,7 +36,7 @@ session.
 ## Advanced Search Syntax
 
 Filters are an advanced search feature for targeting searches to specific subsets of data in Blueprints. 
-For example, you can isolate only Blueprints that have nodes named something specfic or properties with certain names and flags set.
+For example, you can isolate only Blueprints that have nodes named something specific or properties with certain names and flags set.
  These can be nested and combined to form advanced queries for very specific needs. Certain filters can only be used within other filters, but all filters can be used as a starting point. 
  Below is a non-exhaustive list of searchable tags and with what sort of data that are used for. All tags can be searched for without the use of filters.
  
@@ -46,7 +47,7 @@ An example search string is `Nodes(Name=Coin)`, which will find all nodes in the
 [REGION:plainlist]
 | Filter | Searchable Tags | Subfilters |
 | -------- | --------------| ------------|
-| Blueprints | [INCLUDE:#blueprinttags] | [INCLUDE:#blueprintsubfilters] |
+| Blueprint | [INCLUDE:#blueprinttags] | [INCLUDE:#blueprintsubfilters] |
 | [INCLUDE:#functionfilter] | [INCLUDE:#functiontags] | [INCLUDE:#functionsubfilters]|
 | Nodes | [INCLUDE:#nodetags] | Pins |
 | [INCLUDE:#pinfilter] | [INCLUDE:#pintags] | |

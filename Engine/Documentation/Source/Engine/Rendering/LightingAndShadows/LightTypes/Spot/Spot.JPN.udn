@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2683758
+﻿INTSourceChangelist:2954984
 Availability:Public
-Title:Spot Light（スポットライト）
+Title:スポットライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
-Description:Spot Light（スポットライト）の基礎
+Description:スポットライトの基礎
 Version:4.9
 
 [VAR:Topic]
@@ -52,9 +52,9 @@ Version:4.9
 
 
 [EXCERPT:Intro]
-**Spot Light (スポットライト)** はライトを一点からコーン (円錐) 形状に放出します。ユーザーは **Inner Cone Angle** と **Outer Cone Angle** の 2 つのライト形状を使用できます。ライトは Inner Cone Angle 内で最大輝度を放ちます。内半径から Outer Cone Angle へ移動するとフォールオフが発生し、半暗部を作成したりスポットライトの円盤型イルミネーション周りをソフトにします。ライトの半径によって、コーンの長さが決まります。簡単にいうと、懐中電灯のように機能したり、ステージを照らしたりします。 
+**スポットライト** はライトを一点からコーン (円錐) 形状に放出します。ユーザーは **Inner Cone Angle** と **Outer Cone Angle** の 2 つのライト形状を使用できます。ライトは Inner Cone Angle 内で最大輝度を放ちます。内半径から Outer Cone Angle へ移動するとフォールオフが発生し、半暗部を作成したりスポットライトの円盤型イルミネーション周りをソフトにします。ライトの半径によって、コーンの長さが決まります。簡単にいうと、懐中電灯のように機能したり、ステージを照らしたりします。 
 
-他のライトと同様に、Spot Light には次の 3 つの可動設定のいずれかを設定できます。 
+他のライトと同様に、スポットライトには次の 3 つの可動設定のいずれかを設定できます。 
 
 
 
@@ -65,14 +65,10 @@ Version:4.9
 	[PARAM:description]
 	**Static (静的)** - (左の画像) ゲーム中のライトの変更が不可能です。これは、最速のレンダリング方法であり、焼き付けたライティングを可能にします。
 
-	**Stationary (固定)** - (同じく左の画像) ライトは ライトマス で焼き付けられた静的ジオメトリからのシャドウイングと反射光のみを持ちます。この設定により、ゲーム中にライトのカラーと強度を変更することが可能となりますが、移動および部分的なライトの焼付けはできません。 
+	**Stationary (固定)** - (同じく左の画像) ライトは Lightmass で焼き付けられた静的ジオメトリからのシャドウイングと反射光のみを持ちます。この設定により、ゲーム中にライトのカラーと強度を変更することが可能となりますが、移動および部分的なライトの焼付けはできません。 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Intro]
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -83,11 +79,7 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
-以下はレベルに配置された **Spot Light** の 2 つの例であり、ライトの半径とコーン エフェクタを決定する方法を示します。
+以下はレベルに配置された **スポットライト** の 2 つの例であり、ライトの半径とコーン エフェクタを決定する方法を示します。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -99,20 +91,20 @@ Version:4.9
 [/OBJECT]
 
 
-_コーンのない Spot Light とコーン エフェクタのある Spot Light が表示されています。_
+左はライト半径を示すコーンのないスポットライト、右はコーン エフェクタを表示するスポットライトです。
 
 
-## Spot Light (スポットライト) のプロパティ
+## スポットライトのプロパティ
 
-Spot Light のプロパティは、Light、Light Profiles、Lightmass、および Light Function の 4 つのカテゴリに分類されます。 
+スポットライトのプロパティは、Light、Light Profiles、Lightmass、および Light Function の 4 つのカテゴリに分類されます。 
 
 ### Light
 プロパティ | 説明 |
 | -------- | ----------- |
 | **Intensity** | ライトが放つエネルギーの合計です。 |
 | **Light Color** | ライトが放つ色です。 |
-| **Inner Cone Angle** | Spot Light の内側のアングルの度数を設定します。 |
-**Inner Cone Angle** |  Spot Light の外側のアングルの度数を設定します。  |
+| **Inner Cone Angle** | スポットライトの内側のアングルの度数を設定します。 |
+**Inner Cone Angle** |  スポットライトの外側のアングルの度数を設定します。  |
 | **Attenuation Radius** | ライトの目に見える影響を結合します。|
 | **Source Radius** | 光源の球体の半径です。 |
 | **Source Length** | 光源の球体の長さです。 |
@@ -136,7 +128,7 @@ Spot Light のプロパティは、Light、Light Profiles、Lightmass、およ�
 | -------- | ----------- |
 | **IES Texture** | ライトプロファイルに使用した IES 「テクスチャ」です。アンリアルでは IES ファイルは ASCII ファイルで格納し、テクスチャを表現します。これらは画像ファイルではありません。 |
 | **Use IES Brightness** | _false_ の場合、ライトの生成量を決定するためにライトの Brightness (輝度) を使用します。_true_ の場合、ルーメン単位の IES ファイルの輝度を使用します (アンリアルのライトのデフォルト値よりもはるかに大きな数値です)。 |
-| **IES Brightness Scale** |シーンを大幅に超えることもあるため、IES 輝度の寄与をスケーリングします。 |
+| **IES Brightness Scale** | シーンを大幅に超えることもあるため、IES 輝度の寄与をスケーリングします。 |
 
 ### Lightmass
 プロパティ | 説明 |

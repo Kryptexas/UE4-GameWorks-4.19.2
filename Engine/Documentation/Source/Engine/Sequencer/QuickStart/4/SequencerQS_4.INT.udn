@@ -26,7 +26,7 @@ checkpoint: editorqs
 
 %Steps%
 
-Our first shot is complete, now we will take what we have learned and create an additional shot for our scene. 
+Now that you have completed your first shot, let's take what we have learned and create another!
 
 This time we will push the camera in from the front of our character in on their face. 
 
@@ -58,7 +58,7 @@ This time we will push the camera in from the front of our character in on their
 
 	![](SequencerQS_4_4.png)
 
-	Your value you might be different from above based on where you placed the camera. 
+	Your value might be different from above based on where you placed the camera. 
 
 1.	Use the **To End** button in the Cinematic Preview to jump to the end of the Sequence. 
 

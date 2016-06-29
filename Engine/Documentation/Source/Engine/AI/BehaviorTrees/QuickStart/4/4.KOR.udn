@@ -43,7 +43,7 @@ version: 4.9
 
 1. **Mesh** 컴포넌트가 파랑 애로우 컴포넌트가 가리키는 쪽을 향하도록 회전시킵니다.
 
-1. **디테일** 패널에서 **Animation** 케타고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 ThirdPerson_AnimBP 를 할당합니다.
+1. **디테일** 패널에서 **Animation** 카테고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 ThirdPerson_AnimBP 를 할당합니다.
 
 	![](assignAnimBP.png)
 

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2901558
-Availability:Public
+﻿INTSourceChangelist:2998495
+Availability:Docs
 Title:シーケンサーを有効にして開く
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:レベル シーケンス エディタとシーケンス レコーダー プラグインを有効にしてシーケンス エディタを開く方法を説明します。 
@@ -10,6 +10,11 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+
+<!--
+****** This is an outdated and no longer needed doc. *******
+-->
+
 
 [REGION:warning]
 これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。

@@ -21,7 +21,7 @@ This widget is used to display an in-game web browser that can host content from
 
 ![](WebBrowserWidget.png)(w:600)
 
-The Web Browser widget works not just for desktop machines but Android and iOS as well. 
+The Web Browser widget works not just for desktop machines, but for Android and iOS as well. 
 
 [REGION:raw]
 ![](Devices.png)
@@ -31,7 +31,7 @@ The Web Browser widget works not just for desktop machines but Android and iOS a
 Chromium is used for the web browser widget on desktop platforms while both iOS and Android use native WebKit controls aligned to match your UMG layout. This keeps executable size to a minimum and increases performance. 
 [/REGION]
 
-The Web Browser widget can be created through a Widget Blueprint or in C++ using Slate code and as mentioned above, is currently considered experimental so the feature will need to be enabled from **Edit** menu under **Plugins** menu. Under **Widgets** click **Enabled** on the **Web Browser** plugin to enable it. 
+The Web Browser widget can be created through a Widget Blueprint or in C++ using Slate code and, as mentioned above, is currently considered experimental so the feature will need to be enabled from **Edit** menu under **Plugins** menu. Under **Widgets**, click **Enabled** on the **Web Browser** plugin to enable it. 
 
 [REGION:lightbox]
 [![](PlugInWidget.png)](PlugInWidget.png)

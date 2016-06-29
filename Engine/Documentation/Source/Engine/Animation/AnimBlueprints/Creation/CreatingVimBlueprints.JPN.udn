@@ -1,49 +1,98 @@
-﻿INTSourceChangelist:2659659
+﻿INTSourceChangelist:3027057
 Availability:Public
 Title:Animation ブループリントの作成
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:Skeleton アセットから Animation ブループリントを新規作成してみましょう
-バージョン：4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\AnimGraph
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\Interface
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Creation:title%](CreateAnimBP.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Creation:title%](CreateAnimBP.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## スケルトンから Animation Blueprint アセットを作成する
+
+Animation ブループリントを新規作成する場合、ターゲットにする有効な [スケルトン](Engine/Animation/Skeleton) を選ぶことを求められます。
+
+1. **コンテンツ ブラウザ** の空のスペースを **右クリック** するか、**[Add New (新規追加)]** ボタンをクリックします。
+
+	![](AddNewButton.png)
+
+1. コンテキスト メニューの **[Create Advanced Asset]** で、**[Animation]** をクリックします。
+
+1. **[Animationブループリント]** をクリックします。
+
+	![](CE_create_NoSkel.png)
+
+1. Animation ブループリントがどのスケルタルをターゲットにするかを指定するように促されます。ひとつ選択して、 **OK** をクリックします。 
+
+	![](PickSkeleton.png)
+
+	Animation ブループリントが使用する [**親クラス**](Engine/Blueprints/UserGuide/Types/ClassBlueprint) を選択する機能もあります。 
+	ほとんどの場合、ひとつを選択する必要はなく、デフォルト クラスを使用可能です。ただし、各自の状況に応じて、必要に応じて選択することができます。 
+
+1. **コンテンツ ブラウザ** に、新規アセットが自動的に作成されます。 
+
+	![](NewAnimBPCreated.png)
 
 
-[TOC (start:2 end:3)]
 
 
 
-以下のいずれかの方法で _Animation ブループリント_ を作成します。
-* 特定の Skeletal Mesh アセットをターゲットにする。
-* 特定の Skeletal Mesh アセットには関連づけない。
+## スケルタル メッシュから Animation ブループリントを作成する
 
-## スケルタル メッシュをターゲットにして Animation ブループリントを作成する
+特定の [**Skeletal Mesh**](Engine/Content/Types/SkeletalMeshes) アセットをターゲットにして Animation ブループリントを作成するには、以下の操作を行います。 
 
-特定の Skeletal Mesh アセットをターゲットにして _Animation ブループリント_ を作成するには、以下の操作を行います。
-
-1. _Animation ブループリント_ のターゲットとしたい Skeletal Mesh アセットを右クリックをして、 **[Create (作成)]** > **[Anim Assets (アニメーションアセットを作成)]** > **[Anim Blueprint (Animブループリントを作成)]** を選択します。
+1. Animation ブループリントのターゲットとしたいスケルタルメッシュを **右クリック** して、 **[Create (作成)]** > **[Anim Assets (アニメーションアセットを作成)]** > **[Anim Blueprint (Animブループリントを作成)]** の順に選択します。
 
 	![Create Animation Blueprint - Menu](CE_create_menu.png)
 
-1. ターゲットの Skeletal Mesh アセットと同じフォルダに、名前変更が準備された状態で Animation ブループリント が作成されます。
+1. ターゲットの Skeletal Mesh アセットと同じフォルダに、名前変更可能な状態で Animation ブループリントが作成されます。
 
 	![Create Animation Blueprint - New](CE_create_new.png)
 
-1. 新しい Animation ブループリント の名前を設定して、 **[Enter]** を押します。
+1. 新しい Animation ブループリントの名前を設定して、 **[Enter]** を押します。
 
 	![Create Animation Blueprint - Rename](CE_create_name.png)
 
 1. デフォルトの場所に満足いかない場合は、新しい Animation ブループリントを別のフォルダへドラッグしてください。
 
 	![Create Animation Blueprint - Change Location](CE_create_move.png)(convert:false)
-
-## Skeletal Mesh アセットには関連づけないで Animation ブループリントを作成する
-
-特定の Skeletal Mesh アセットに関連づけずに Animation ブループリント を作成するには、以下を行います。そのためには、以下の作業を行ってください。
-
-1. **コンテンツ ブラウザ** の空のスペースを **右クリック** するか、**[New Asset (新規アセット)]** ボタンをクリックします。
-
-1. コンテキスト メニューが表示されたら、 **[Animation]** をクリックします。
-
-1. **[Animationブループリント]** をクリックします。
-
-	![](CE_create_NoSkel.png)
-
-新規の Animation ブループリントの名前変更または移動を行うには、さきほど説明した手順に従ってください。

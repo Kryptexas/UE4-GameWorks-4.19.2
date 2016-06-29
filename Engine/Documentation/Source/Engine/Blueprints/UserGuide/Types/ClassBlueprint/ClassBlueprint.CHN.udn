@@ -1,10 +1,13 @@
 ﻿INTSourceChangelist:2735432
 Availability:Public
 Title:蓝图类
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Anatomy
 Description:这些类蓝图定义了一种新类别或类型的Actor，就和其他类型的Actor的行为一样，这些Actor可作为实例进行放置。
 Version: 4.9
 SkillLevel: Beginner
+Parent:Engine/Blueprints/Anatomy
+Tags:Class Blueprints
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -140,4 +143,14 @@ _蓝图_ 是在虚幻编辑器中可视化地创建的，不需要书写代码�
 		
 _Data-Only Blueprints(仅包含数据的蓝图)_ 是在合并的属性编辑器中进行编辑的，但是也可以通过使用完整的 **蓝图编辑器** 来添加代码、 
 变量或组件，来将其转换为完整的 _蓝图_ 。
+
 [/EXCERPT:DataBlueprint]
+[REGION:note]
+Class Defaults can be accessed at runtime for data-only Blueprints through the **GetClassDefaults** Blueprint node. Please see the [Get Class Defaults](Engine\Blueprints\Editor\Modes\Defaults\DefaultsTab) for more information. 
+[/REGION]
+
+
+
+
+
+

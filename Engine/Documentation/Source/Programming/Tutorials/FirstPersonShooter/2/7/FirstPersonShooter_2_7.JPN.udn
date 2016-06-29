@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938865
+﻿INTSourceChangelist:3018072
 Availability:Docs
 Title:2.7 - カメラビューの変更
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -30,53 +30,56 @@ Version:4.11
 
 1.	Visual Studio に切り替えて、`FPSCharacter.h` を開き、以下のコードを追加します。
 
-		// FPS カメラ
+		// FPS camera (FPS カメラ)
 		UPROPERTY(VisibleAnywhere)
 		UCameraComponent* FPSCameraComponent;
 
 1.	`FPSCharacter.h` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings.(Project Settings の Description ページに著作権情報を入力してください)
 		#pragma once
 
 		#include "GameFramework/Character.h"
 
 		#include "FPSCharacter.generated.h"
+		
 		UCLASS()
-
 		class FPSPROJECT_API AFPSCharacter : public ACharacter
 		{
 			GENERATED_BODY()
+		
 		public:
 
-			// このキャラクターのプロパティのデフォルト値を設定
+			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定)
 			AFPSCharacter();
-		// ゲーム開始時またはスポーン時に呼ばれます。
+
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
 
 			virtual void BeginPlay() override;
-			// フレームごとに呼ばれます。
-
+			// Called every frame (フレームごとに呼ばれます) 
 			virtual void Tick( float DeltaSeconds ) override;
-		// 機能を入力にバインドするために呼ばれます。
+
+			// Called to bind functionality to input (機能を入力にバインドするために呼ばれます) 
 
 			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		// 前後方向の移動を処理します。
 
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 			UFUNCTION()
 			void MoveForward(float Value);
-		// 左右の移動を処理します。
 
+		// Handles input for moving right and left. (左右の移動の入力を処理) 
 			UFUNCTION()
 			void MoveRight(float Value);
-		// キー押下時のジャンプフラグを設定
 
+		// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 			UFUNCTION()
-			void OnStartJump();
-		// キー解放時のジャンプフラグをクリア
+			void StartJump();
 
+		// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 			UFUNCTION()
-			void OnStopJump();
-		// FPS カメラ
+			void StopJump();
+
+		// FPS camera (FPS カメラ)
 
 			UPROPERTY(VisibleAnywhere)
 			UCameraComponent* FPSCameraComponent;
@@ -84,110 +87,102 @@ Version:4.11
 
 1.	`FPSCharacter.cpp` を開いて次のコードをコンストラクタに追加します。
 
-		// first person camera コンポーネントを作成
+		// Create a first person camera component (first person camera コンポーネントを作成)
 		FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-		// camera コンポーネントを capsule コンポーネントにアタッチします。
+		// Attach the camera component to our capsule component (camera コンポーネントを capsule コンポーネントにアタッチします)
 		FPSCameraComponent->AttachTo(GetCapsuleComponent());
 
 	前述のコードは、`UCameraComponent` を作成し、それをキャラクターの`CapsuleComponent` にアタッチします。
 
 1.	以下のコードをコンストラクタに記述したブロックの下に追加します。
 
-		// 目の高さより少し上にカメラを設定
+		// Position the camera slightly above the eyes (目の高さより少し上にカメラを設定)
 		FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-		// ポーンが回転を制御できるようにします。
-		FirstPersonCameraComponent->bUsePawnControlRotation = true;
+		// Allow the pawn to control camera rotation. (ポーンがカメラの回転を制御できるようにします)
+		FPSCameraComponent->bUsePawnControlRotation = true;
 
 	このコードは、カメラの位置をキャラクターの目の位置より少し高めに調整します。
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Project Settings の Description ページに著作権情報を入力してください。
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+
 		#include "FPSProject.h"
-
 		#include "FPSCharacter.h"
-		// デフォルト値を設定
 
+		// Sets default values (デフォルト値を設定)
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	// このキャラクターがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
+		 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.(このキャラクターがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます)
 			PrimaryActorTick.bCanEverTick = true;
-		// first person camera コンポーネントを作成
 
+		// Create a first person camera component (first person camera コンポーネントを作成)
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-			// camera コンポーネントを capsule コンポーネントにアタッチします。
+			// Attach the camera component to our capsule component (camera コンポーネントを capsule コンポーネントにアタッチします)
 			FPSCameraComponent->AttachTo(GetCapsuleComponent());
-			// 目の高さより少し上にカメラを設定
+
+			// Position the camera slightly above the eyes (目の高さより少し上にカメラを設定)
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-			// ポーンが回転を制御できるようにします。
+			// Allow the pawn to control camera rotation. (ポーンがカメラの回転を制御できるようにします)
 			FPSCameraComponent->bUsePawnControlRotation = true;
 		}
-		// ゲーム開始時またはスポーン時に呼ばれます。
+
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
 
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-			const int32 Key = -1;
-
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //秒
-		if (GEngine != nullptr)
-
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
+				// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+			}
 		}
 
-		}
-		// フレームごとに呼ばれます。
+		// Called every frame (フレームごとに呼ばれます) 
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
 		}
 
-		// 機能を入力にバインドするために呼ばれます。
+		// Called to bind functionality to input (機能を入力にバインドするために呼ばれます) 
 
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-		// ゲームプレイのキーバインドのセットアップ
 
+		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-		// ゲームプレイのマウス バインドのセットアップ
-
+		// Set up "look" bindings. (look のバインディングをセットアップ) 
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-		// ジャンプ アクションのバインドのセットアップ
 
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		void AFPSCharacter::MoveForward(float Value)
 
 		{
-			// 前進方向の確認
-			FRotator Rotation = Controller->GetControlRotation();
-			// その方向へ動きを追加
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way. (前進方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		void AFPSCharacter::MoveRight(float Value)
 
 		{
-			// 右方向の確認
-			FRotator Rotation = Controller->GetControlRotation();
-			// その方向へ動きを追加
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// Find out which way is "forward" and record that the player wants to move that way. (右方向を確認し、プレイヤーがそちらの方向に移動するように記録) 
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 
 		{
 			bPressedJump = true;
 		}
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 
 		{
 			bPressedJump = false;
@@ -205,9 +200,9 @@ Version:4.11
 
 	![](BuildProject.png)
 
-1.	ビルドが終了したらアンリアル エディタでご自身の **FPSProject** を開きます。
+1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
 
-1.	レベル エディタのツールバーで、**[Play (プレイ)]** ボタンを **クリック** します。
+1.	**レベル エディタのツールバー** で、[Play (プレイ)] ボタンをクリックします。
 
 	![](NewCameraComponent.png)
 

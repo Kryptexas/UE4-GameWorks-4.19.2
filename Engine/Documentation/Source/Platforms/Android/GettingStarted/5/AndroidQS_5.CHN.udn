@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2700000
 Availability:Public
 Title:5.打包游戏
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Package your game for installation.
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]

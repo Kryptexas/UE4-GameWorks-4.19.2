@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:0
-Title: Universal Gizmo
-Description: Transform widget designed for moving, rotating, and scaling Actors in VR.
+﻿INTSourceChangelist:2911160
+Title:Universal Gizmo
+Description:用于在 VR 中移动、旋转和缩放 Actor 的变形控件。
 Crumbs:
-Availability: docs
-parent: Engine/Editor/VR
+Availability: public
+parent:Engine/Editor/VR
 type: reference
-order: 4
-tags: VR
-version: 4.11
+order:4
+tags:VR
+version:4.11
 skilllevel: intermediate
 
 [VAR:Topic]
@@ -44,14 +44,17 @@ skilllevel: intermediate
 [/OBJECT]
 [/VAR]
 
-The **Universal Gizmo** is a transform widget designed for moving, rotating, and scaling Actors when working in VR mode. 
+**Universal Gizmo** 是一个变形控件，用于在 VR 模式中工作时移动、旋转和缩放 Actor。 
 
 ![](universalgizmo.png)(w:400)
 
-The elements of the Universal Gizmo are colored Red, Green, and Blue representing the X, Y, and Z axes, respectively.
+Universal Gizmo 的元素为红色、绿色和蓝色，分别代表 X、Y 和 Z 轴。
 
-| Action | Manipulator | Usage |
+| 操作 | 操作器 | 用法 |
 | --- | --- | --- |
-| Translate | ![](universalgizmo_move.png)(w:64) | Aim the controller at one of the translation manipulators and squeeze the Trigger to grab it. Move the controller to move the selected Actor(s) along an axis. |
-| Rotate | ![](universalgizmo_rotate.png)(w:64) | Aim the controller at one of the rotation manipulators and squeeze the Trigger to grab it. Move the controller to rotate the selected Actor(s) around an axis. |
-| Scale | ![](universalgizmo_scale.png)(w:64) | Aim the controller at one of the scale manipulators and squeeze the Trigger to grab it. Move the controller to scale the selected Actor(s) along an axis. |
+| **平移** | ![](universalgizmo_move.png)(w:192) | 将控制器对准其中一个平移操作器，半按下 **扳机键** 进行抓取。移动控制器，使选中的 Actor(s) 沿轴移动。 |
+| **平移面** | ![](universalgizmo_moveplane.png)(w:192) | 将控制器对准其中一个平移面操作器，半按下 **扳机键** 进行抓取。移动控制器，使选中的 Actor(s) 沿平面（两轴）移动。 |
+| **旋转** | ![](universalgizmo_rotate.png)(w:192) | 将控制器对准其中一个旋转操作器，半按下 **扳机键** 进行抓取。移动控制器，沿轴旋转选中的 Actor(s)。 |
+| **缩放** | ![](universalgizmo_scale.png)(w:192) | 将控制器对准其中一个缩放操作器，半按下 **扳机键** 进行抓取。移动控制器，沿 Y 轴缩放选中的 Actor(s)。 |
+| **均匀缩放** | ![](universalgizmo_uniformscale.png)(w:192) | 将控制器对准其中一个拉伸操作器，半按下 **扳机键** 进行抓取。移动控制器，沿所有轴均匀缩放选中的 Actor(s)。 |
+| **拉伸** | ![](universalgizmo_stretch.png)(w:192) | 将控制器对准其中一个拉伸操作器，半按下 **扳机键** 进行抓取。移动控制器，沿所有轴对选中的 Actor(s) 进行非均匀缩放。同时保持固定朝向对角。 |

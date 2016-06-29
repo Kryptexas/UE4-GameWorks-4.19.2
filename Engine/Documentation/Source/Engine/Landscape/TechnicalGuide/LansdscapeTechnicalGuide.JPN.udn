@@ -1,7 +1,8 @@
-﻿Availability:Public
-Title:ランドスケープのテクニカルガイド
+﻿INTSourceChangelist:3017813
+Availability:Public
+Title:ランドスケープのテクニカル ガイド
 Crumbs: %ROOT%, Engine, Engine/Landscape
-Description:ランドスケープのテクニカル設定
+Description:ランドスケープの技術的な設定
 version:4.9
 
 [VAR:TopicCompact]
@@ -28,7 +29,7 @@ version:4.9
 
 
 
-ランドスケープ システムで最高のパフォーマンスを実現するには、順守すべき特定の技術的制約があります。以下のドキュメントでは、こうした制約について説明すると共に、ランドスケープで美しさとパフォーマンスとの間で最適な均衡をとることができるように重要な情報を示します。 
+ランドスケープ システムで最高のパフォーマンスを実現するには、特定の技術的制約に順守する必要があります。以下のドキュメントでは、こうした制約について説明すると共に、ランドスケープで美しさとパフォーマンスとの間で最適な均衡をとることができるように重要な情報を示します。 
 
 
 ## 技術的な詳細
@@ -36,7 +37,7 @@ version:4.9
 
 始めの頃は、ランドスケープの有効なサイズが、必ずしもただちに分かるとは限りません。高さマップの有効なサイズを判断できるようになるには (またそれ以上に、最適なサイズを判断できるようになるには)、ランドスケープの基本的なアーキテクチャに精通する必要があります。メモリおよびパフォーマンス上の効率を損なうことなく、巨大なテレインを実現できるシステムを構築するには、アーキテクチャによる暗黙の制限が、ハイトマップのサイズに対して課せられることになります。つまり、サイズには有効なものもあれば、無効なものもあるのです。アンリアル エンジンの過去のテレインシステムでは、まったく制限がないか (あらゆるサイズが有効であり、機能した)、あるいは、制限があってもかなり単純なものでした (2 つの高さマップの平方のみが許されていた)。ランドスケープの高さマップに課せられる制限は、これよりも複雑で厳格なものです。
 
-Landscape アクタは、各セクションが何を行うかが簡単にわかるように色分けされています。ランドスケープのエッジは 黄色、各コンポーネントのエッジは 明るい緑、セクションのエッジ (2x2 セクションの場合) は 普通の緑、ランドスケープの個々のクワッドは 深緑 でハイライトされます。
+Landscape アクタは、各セクションが何を行うかが簡単にわかるように色分けされています。ランドスケープのエッジは黄色、各コンポーネントのエッジは明るい緑、セクションのエッジ (2x2 セクションの場合) は普通の緑、ランドスケープの個々のクワッドは深緑でハイライトされます。
 
 | カラー: |Landscape コンポーネント|
 |---|---|
@@ -106,7 +107,7 @@ Landscape アクタは、各セクションが何を行うかが簡単にわか�
 | --------- | --- | ------- | ------- | ------------ |
 | 8129x8129 | 127 | 4 (2x2) | 254x254 | 1024 (32x32) |
 | 4033x4033 | 63  | 4 (2x2) | 126x126 | 1024 (32x32) |
-| 127x127   | 63  | 4 (2x2) | 126x126 | 1            |
+| 2017x2017 | 63  | 4 (2x2) | 126x126 | 256 (16x16)  |
 | 1009x1009 | 63  | 4 (2x2) | 126x126 | 64 (8x8)     |
 | 1009x1009 | 63  | 1       | 63x63   | 256 (16x16)  |
 | 505x505   | 63  | 4 (2x2) | 126x126 | 16 (4x4)     |
@@ -117,9 +118,9 @@ Landscape アクタは、各セクションが何を行うかが簡単にわか�
 | 127x127   | 63  | 1       | 63x63   | 4 (2x2)      |
 
 
-## レイヤのデバッグ モード
+## レイヤーのデバッグ モード
 
-**Layer Debug** モードは、特定レイヤのウェイトをビューポートのランドスケープ上で視覚化できるようにします。Landscape Visualizers の配下にあるビューポートの [View] メニューで **Layer Debug** モードを有効化できます。ビューポートのランドスケープ関連のビューモードの情報については、[Landscape Visualizers](Engine/UI/LevelEditor/Viewports/ViewModes\#LandscapeVisualizers) を参照してください。
+**Layer Debug** モードは、特定レイヤーのウェイトをビューポートのランドスケープ上で視覚化できるようにします。Landscape Visualizers の配下にあるビューポートの [View (表示)] メニューで **Layer Debug** モードを有効化できます。ビューポートのランドスケープ関連のビューモードの情報については、[Landscape Visualizers](Engine/UI/LevelEditor/Viewports/ViewModes\#LandscapeVisualizers) を参照してください。
 
 Layer Debug モードが有効な場合、各カラーチャンネルを選択できるラジオ ボタンがターゲット レイヤーと共にリストに表示されます。
 
@@ -130,6 +131,257 @@ Layer Debug モードが有効な場合、各カラーチャンネルを選択�
 ![Landscape_Target_Debug_Demo.png](Landscape_Target_Debug_Demo.png)
 
 [/EXCERPT:RecommendedLSS]
+
+## ランドスケープ コリジョン 
+アンリアル エンジン (UE4) のランドスケープ システムは、シンプルおよび複雑なランドスケープ コリジョン メッシュに対する複雑度を指定することができます。さらに、これらの設定をランドスケープ全体、あるいは個々のランドスケープ コンポーネントに指定して、ランドスケープをサポートするプラットフォームでの使用を可能にします。以下の操作ガイドでは、このシステムの使用方法、および UE4 プロジェクトでこの機能を使う前に知っておくべき関連情報を説明します。
+
+[region:note]
+このサンプルでは Landscape Mountains プロジェクトを使用します。UE4 ランチャーの [Learn (学習)] タブに入っています。
+[/region]
+
+### Collision Mip Level
+
+レベル内に配置されているランドスケープ アクタを選択し **[Details (詳細)]** パネルの **[Collision (コリジョン)]** セクションを開きます。**[Collision Mip Level]** と **[Simple Collision Mip Level]** という 2 つの設定があります。
+
+
+* **Collision Mip Level:** Collision Mip Level は、ランドスケープに使用されている **Complex** コリジョンの複雑度を設定します。Collision Mip Level をデフォルトの **0** に設定すると、メモリ負荷は大きいですが、高精度のランドスケープ コリジョンが行われます。最大値の **5** に設定すると、ランドスケープ コリジョンの負荷は軽減されますが、コリジョンの精度は落ちます。
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Landscape\TechnicalGuide\#VC]
+	[/REGION]
+
+
+* **Simple Collision Mip Level:** Simple Collision Mip Level は、ランドスケープに使用されている **Simple** コリジョンの複雑度を設定します。Simple Collision Mip Level をデフォルトの **0** に設定すると、メモリ負荷は大きいですが、高精度のランドスケープ コリジョンが行われます。最大値の **5** に設定すると、ランドスケープ コリジョンの負荷は軽減されますが、コリジョンの精度は落ちます。
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Landscape\TechnicalGuide\#PC]
+	[/REGION]
+
+### コリジョン ミップ レベルの表示 
+
+コリジョン ビューモードを使って [Simple Collision Mip Level] オプションまたは [Collision Mip Level] オプションの値を変更すると、ランドスケープ コリジョン メッシュがどうなるか確認できます。ビューポートでコリジョン ビュー モードを表示させるには、エディタ ビューポートの **[View Mode (ビューモード メニュー)]** メニューの上にあるドロップダウン リストから **[Collision (コリジョン)]** セクションを選び、**[Player Collision (プレイヤー コリジョン)]** オプション、または **[Visibility (可視性)]** オプションを選びます。
+
+[REGION:lightbox]
+[![](LSC_00.png)(w:524 h:303)](LSC_00.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+
+* **Player Collision:** **[Player Collision]** ビュー モードでは、Simple Collision Mip Level の見え方を表示します。 
+
+	[REGION:lightbox]
+	[![](CML_Player_Collision.png)(w:524 h:303)](CML_Player_Collision.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+* **Visibility Collision:** [Visibility Collision] ビュー モードでは、Complex Collision Mip Level の見え方を表示します。
+
+	[REGION:lightbox]
+	[![](CML_Vis_Collision.png)(w:524 h:303)](CML_Vis_Collision.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+### Landscape Collision Mip Level の調整
+
+シンプルおよび複雑なランドスケープ コリジョンの複雑度の増減を調整するには、以下の手順に従います。
+
+1. エディタ ビューポートでランドスケープ テレインを選択し、**[Details (詳細)]** パネルで **[Collision (コリジョン)]** セクションを展開します。
+
+	[REGION:lightbox]
+	[![](LSC_01.png)(w:524 h:303)](LSC_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. **[Collision (コリジョン)]** セクションの **[Collision Mip Level]** オプションの値を **0** から **5** に変更し **[Enter]** キーを押して変更を適用します。 
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Collision Mip Level 0](LSC_03.png)(w:787 h:455)
+		[/PARAM]
+		[PARAM:after]
+		![Collision Mip Level 5](LSC_02.png)(w:787 h:455)
+		[/PARAM]
+	[/OBJECT]
+
+	[REGION:caption]
+	レベル内のグレーのコリジョン メッシュに変更が反映されて自動的にアップデートされるのが分かります。
+	[/REGION]
+
+### Mixing Collision Mip Level オプション 
+
+シンプルあるいは複雑なランドスケープ コリジョン メッシュの複雑度は、パフォーマンスと精度がちょうどよいバランスになるように個別に増減させることができます。プロジェクトでこの操作を行うには、以下の手順に従います。
+
+1. ランドスケープを選択して **[Details (詳細)]** パネルで **[Collision (コリジョン)]** セクションを展開します。
+
+	[REGION:lightbox]
+	[![](LSC_01.png)(w:524 h:303)](LSC_01.png)
+	[/REGION]
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. **[Collision Mip Level]** の値は **0** のままにして、**[Simple Collision Mip Level]** を **2** にします。
+
+	[REGION:lightbox]
+	[![](LSC_04.png)(w:524 h:303)](LSC_04.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. **Collision Mip Level** と **Simple Collision Mip Level** の異なる値を別の値にするとランドスケープ コリジョンがどうなるのか、以下の比較画面を見るとわかります。
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Player Collision 2](Player_Collision.png)(w:719 h:407)
+		[/PARAM]
+		[PARAM:after]
+		![Visibility Collision 0](Vis_Collision.png)(w:719 h:407)
+		[/PARAM]
+	[/OBJECT]
+
+	[region:note]
+	**[Collision Mip Level]** の値は 0 のままにして、**[Simple Collision Mip Level]** には 1 か 2 を設定します。設定値を高くすると、プレイヤーとコリジョン間に不一致が見え始めます。
+	[/region]
+
+
+### Collision Mip Level Per Landscape コンポーネントの設定
+
+ランドスケープ コンポーネントに個別に Collision Mip Level collision 設定を行うと、プレイ不可能なレベルのエリアでランドスケープ コリジョンの複雑度をもっと下げることができます。プロジェクトでこの機能を使用するには、以下の手順を行います。
+
+1. **[Modes (モード)]** パネルで [Landscape] オプションをクリックして **[Manage]** モードが選択されていることを確認してください。
+
+	[REGION:lightbox]
+	[![](CC_01.png)(w:524 h:303)](CC_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. **マウスの左ボタン** でランドスケープ コンポーネントをいくつかクリックして選択します。色が少し赤く変われば、ランドスケープ コンポーネントは正常に選択されています。
+
+	[REGION:lightbox]
+	[![](CC_02.png)(w:524 h:303)](CC_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. **[Details (詳細)]** パネルの **[Landscape Component]** セクションを展開して、**[Collision Mip Level]** と **[Simple Collision Mip Level]** を両方とも **5** に変更します。
+
+	[REGION:lightbox]
+	[![](CC_03.png)(w:524 h:303)](CC_03.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+
+
+<!-----
+[EXCERPT:VC]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	6
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	VC
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**スライダーをドラッグすると、Collision Mip Level の設定を 0 から 5 にした場合の変化が表示されます。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](VC_1.png)
+	![](VC_2.png)
+	![](VC_3.png)
+	![](VC_4.png)
+	![](VC_5.png)
+	![](VC_6.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:VC]
+-->
+
+<!-----
+[EXCERPT:PC]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	6
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	PC
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**スライダーをドラッグすると、Simple Collision Mip Level の設定を 0 から 5 にした場合の変化が表示されます。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](PC_1.png)
+	![](PC_2.png)
+	![](PC_3.png)
+	![](PC_4.png)
+	![](PC_5.png)
+	![](PC_6.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:PC]
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -68,7 +68,11 @@ Skilllevel:Intermediate
 强烈推荐在安装 Android Works 时应当先关闭虚幻编辑器和启动器，以免安装过程产生错误。
 [/region]
 
-1. 导航到 TADP 安装文件夹：
+1. 打开 **Engine** > **Extras** > **Android** 目录
+	[region:note]
+	Android Works 安装包需要先完整安装 Visual Studio。支持的 VS 版本包括 2010，2012 或 2013（不包括 2015）。
+	[/region]
+
 	| 安装类型 | 位置 |
 	| ------------ | ---------|
 	| 二进制 | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
