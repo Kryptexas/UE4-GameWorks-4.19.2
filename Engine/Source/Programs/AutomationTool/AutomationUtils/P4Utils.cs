@@ -2620,7 +2620,7 @@ namespace AutomationTool
 		/// Lists immediate sub-directories of the specified directory.
 		/// </summary>
 		/// <param name="CommandLine"></param>
-		/// <returns>List of sub-directories of the specified direcories.</returns>
+		/// <returns>List of sub-directories of the specified directories.</returns>
 		public List<string> Dirs(string CommandLine)
 		{
 			CheckP4Enabled();
@@ -2637,6 +2637,39 @@ namespace AutomationTool
 				if (!Line.Contains("no such file"))
 				{
 					Result.Add(Line);
+				}
+			}
+			return Result;
+		}
+
+		/// <summary>
+		/// Lists files of the specified directory non-recursively.
+		/// </summary>
+		/// <param name="CommandLine"></param>
+		/// <returns>List of files in the specified directory.</returns>
+		public List<string> Files(string CommandLine)
+		{
+			CheckP4Enabled();
+			string FilesCmdLine = String.Format("files {0}", CommandLine);
+			ProcessResult P4Result = P4(FilesCmdLine, AllowSpew: false);
+			if (P4Result != 0)
+			{
+				throw new AutomationException("{0} failed.", FilesCmdLine);
+			}
+			List<string> Result = new List<string>();
+			string[] Lines = P4Result.Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+			Regex OutputSplitter = new Regex(@"(?<filename>.+)#\d+ \- (?<action>[a-zA-Z]+) .+");
+			foreach (string Line in Lines)
+			{
+				if (!Line.Contains("no such file") && OutputSplitter.IsMatch(Line))
+				{
+					Match RegexMatch = OutputSplitter.Match(Line);
+					string Filename = RegexMatch.Groups["filename"].Value;
+					string Action = RegexMatch.Groups["action"].Value;
+					if (Action != "delete")
+					{
+						Result.Add(Filename);
+					}
 				}
 			}
 			return Result;

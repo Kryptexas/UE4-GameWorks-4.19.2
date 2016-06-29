@@ -1524,7 +1524,7 @@ public partial class GUBP : BuildCommand
             {
                 if (BuildProductToNodeMap.ContainsKey(Product))
                 {
-                    throw new AutomationException("Overlapping build product: {0} and {1} both produce {2}", BuildProductToNodeMap[Product].ToString(), NodeToDo.Name, Product);
+                    throw new AutomationException("Overlapping build product: {0} and {1} both produce {2}", BuildProductToNodeMap[Product].Name, NodeToDo.Name, Product);
                 }
                 BuildProductToNodeMap.Add(Product, NodeToDo);
             }

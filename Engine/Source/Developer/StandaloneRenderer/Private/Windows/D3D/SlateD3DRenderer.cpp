@@ -195,16 +195,16 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-	TRefCountPtr<IDXGIDevice> DXGIDevice;
-	HRESULT Hr = GD3DDevice->QueryInterface( __uuidof(IDXGIDevice), (void**)DXGIDevice.GetInitReference() );
+	TRefCountPtr<IDXGIDevice1> DXGIDevice;
+	HRESULT Hr = GD3DDevice->QueryInterface( __uuidof(IDXGIDevice1), (void**)DXGIDevice.GetInitReference() );
 	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
 
-	TRefCountPtr<IDXGIAdapter> DXGIAdapter;
-	Hr = DXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)DXGIAdapter.GetInitReference() );
+	TRefCountPtr<IDXGIAdapter1> DXGIAdapter;
+	Hr = DXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)DXGIAdapter.GetInitReference() );
 	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
 
-	TRefCountPtr<IDXGIFactory> DXGIFactory;
-	Hr = DXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)DXGIFactory.GetInitReference());
+	TRefCountPtr<IDXGIFactory1> DXGIFactory;
+	Hr = DXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)DXGIFactory.GetInitReference());
 	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
 
 	FSlateD3DViewport Viewport;

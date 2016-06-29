@@ -467,15 +467,6 @@ namespace EpicGames.MCP.Automation
 			/// </summary>
 			public bool bPreviewCompactify;
 			/// <summary>
-			/// The full list of manifest files in the compactify directory that we wish to keep; all others will be deleted.
-			/// </summary>
-			public string[] ManifestsToKeep;
-			/// <summary>
-			/// A filename (relative to the compactify directory) which contains a list of manifests to keep, one manifest per line.
-			/// N.b. If ManifestsToKeep is specified, then this option is ignored.
-			/// </summary>
-			public string ManifestsToKeepFile;
-			/// <summary>
 			/// Patch data files modified within this number of days will *not* be deleted, to ensure that any patch files being written out by a.
 			/// patch generation process are not deleted before their corresponding manifest file(s) can be written out.
 			/// NOTE: this should be set to a value larger than the expected maximum time that a build could take.
@@ -831,7 +822,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="Contents">A byte array containing the data to write.</param>
 		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
         /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
 		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
@@ -847,7 +838,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="Contents">A byte array containing the data to write.</param>
 		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
         /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
 		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
@@ -860,7 +851,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="SourceFilePath">The full path of the file to upload.</param>
 		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
         /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
 		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
@@ -876,7 +867,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="SourceFilePath">The full path of the file to upload.</param>
 		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
         /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
 		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
@@ -930,13 +921,73 @@ namespace EpicGames.MCP.Automation
 		abstract public void DeleteFolder(string Container, string FolderIdentifier);
 
 		/// <summary>
-		/// Retrieves a list of files from the cloud storage provider
+		/// Retrieves a list of folders from the cloud storage provider
+		/// </summary>
+		/// <param name="Container">The name of the container from which to list folders.</param>
+		/// <param name="Prefix">A string to specify the identifer that you want to list from. Typically used to specify a relative folder within the container to list all of its folders. Specify null to return folders in the root of the container.</param>
+		/// <param name="Options">An action which acts upon an options object to configure the operation. See ListOptions for more details.</param>
+		/// <returns>An array of paths to the folders in the specified container and matching the prefix constraint.</returns>
+		public string[] ListFolders(string Container, string Prefix, Action<ListOptions> Options)
+		{
+			ListOptions Opts = new ListOptions();
+			if (Options != null)
+			{
+				Options(Opts);
+			}
+			return ListFolders(Container, Prefix, Opts);
+		}
+
+		/// <summary>
+		/// Retrieves a list of folders from the cloud storage provider
+		/// </summary>
+		/// <param name="Container">The name of the container from which to list folders.</param>
+		/// <param name="Prefix">A string to specify the identifer that you want to list from. Typically used to specify a relative folder within the container to list all of its folders. Specify null to return folders in the root of the container.</param>
+		/// <param name="Options">An options object to configure the operation. See ListOptions for more details.</param>
+		/// <returns>An array of paths to the folders in the specified container and matching the prefix constraint.</returns>
+		abstract public string[] ListFolders(string Container, string Prefix, ListOptions Options);
+
+		/// <summary>
+		/// DEPRECATED. Retrieves a list of files from the cloud storage provider.  See overload with ListOptions for non-deprecated use.
 		/// </summary>
 		/// <param name="Container">The name of the folder or container from which to list files.</param>
 		/// <param name="Prefix">A string with which the identifier or filename should start. Typically used to specify a relative directory within the container to list all of its files recursively. Specify null to return all files.</param>
 		/// <param name="Recursive">Indicates whether the list of files returned should traverse subdirectories</param>
+		/// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
 		/// <returns>An array of paths to the files in the specified location and matching the prefix constraint.</returns>
-		abstract public string[] ListFiles(string Container, string Prefix = null, bool bRecursive = true, bool bQuiet = false);
+		public string[] ListFiles(string Container, string Prefix = null, bool bRecursive = true, bool bQuiet = false)
+		{
+			return ListFiles(Container, Prefix, opts =>
+			{
+				opts.bRecursive = bRecursive;
+				opts.bQuiet = bQuiet;
+			});
+		}
+
+		/// <summary>
+		/// Retrieves a list of files from the cloud storage provider
+		/// </summary>
+		/// <param name="Container">The name of the container from which to list folders.</param>
+		/// <param name="Prefix">A string to specify the identifer that you want to list from. Typically used to specify a relative folder within the container to list all of its folders. Specify null to return folders in the root of the container.</param>
+		/// <param name="Options">An action which acts upon an options object to configure the operation. See ListOptions for more details.</param>
+		/// <returns>An array of paths to the folders in the specified container and matching the prefix constraint.</returns>
+		public string[] ListFiles(string Container, string Prefix, Action<ListOptions> Options)
+		{
+			ListOptions Opts = new ListOptions();
+			if (Options != null)
+			{
+				Options(Opts);
+			}
+			return ListFiles(Container, Prefix, Opts);
+		}
+
+		/// <summary>
+		/// Retrieves a list of files from the cloud storage provider.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which to list files.</param>
+		/// <param name="Prefix">A string with which the identifier or filename should start. Typically used to specify a relative directory within the container to list all of its files recursively. Specify null to return all files.</param>
+		/// <param name="Options">An options object to configure the operation. See ListOptions for more details.</param>
+		/// <returns>An array of paths to the files in the specified location and matching the prefix constraint.</returns>
+		abstract public string[] ListFiles(string Container, string Prefix, ListOptions Options);
 
 		/// <summary>
 		/// Sets one or more items of metadata on an object in cloud storage
@@ -965,16 +1016,24 @@ namespace EpicGames.MCP.Automation
 		/// <summary>
 		/// Updates the timestamp on a particular file in cloud storage to the current time.
 		/// </summary>
-		/// <param name="Container">The identifier of filename of the file to touch.</param>
+		/// <param name="Container">The name of the container in which the file is stored.</param>
 		/// <param name="Identifier">The identifier of filename of the file to touch.</param>
 		abstract public void TouchFile(string Container, string Identifier);
 
 		/// <summary>
-		/// Copies chunks from a staged location to cloud storage.
+		/// Copies manifest and chunks from a staged location to cloud storage.
 		/// </summary>
-		/// <param name="Container">The name of the folder or container in which to store files.</param>
+		/// <param name="Container">The name of the container in which to store files.</param>
 		/// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
 		abstract public void CopyChunksToCloudStorage(string Container, BuildPatchToolStagingInfo StagingInfo);
+
+		/// <summary>
+		/// Copies manifest and its chunks from a specific path to a given target folder in the cloud.
+		/// </summary>
+		/// <param name="Container">The name of the container in which to store files.</param>
+		/// <param name="RemoteCloudDir">The path within the container that the files should be stored in.</param>
+		/// <param name="ManifestFilePath">The full path of the manifest file to copy.</param>
+		abstract public void CopyChunksToCloudStorage(string Container, string RemoteCloudDir, string ManifestFilePath);
 
 		/// <summary>
 		/// Verifies whether a manifest for a given build is in cloud storage.
@@ -995,6 +1054,34 @@ namespace EpicGames.MCP.Automation
 			/// Set to true if the write succeeds, false otherwise.
 			/// </summary>
 			public bool bSuccess { get; set; }
+		}
+
+		/// <summary>
+		/// Encapsulates options used when listing files or folders using ListFiles and ListFolders
+		/// </summary>
+		public class ListOptions
+		{
+			public ListOptions()
+			{
+				bQuiet = false;
+				bRecursive = false;
+				bReturnURLs = true;
+			}
+
+			/// <summary>
+			/// If set to true, all log output for the operation is suppressed. Defaults to false.
+			/// </summary>
+			public bool bQuiet { get; set; }
+
+			/// <summary>
+			/// Indicates whether the list of files returned should traverse subfolders. Defaults to false.
+			/// </summary>
+			public bool bRecursive { get; set; }
+
+			/// <summary>
+			/// If true, returns the full URL to the listed objects. If false, returns their identifier within the container. Defaults to true.
+			/// </summary>
+			public bool bReturnURLs { get; set; }
 		}
 	}
 }

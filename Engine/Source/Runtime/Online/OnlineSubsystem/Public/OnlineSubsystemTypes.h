@@ -1006,6 +1006,27 @@ public:
 	int32 Count;
 };
 
+/**
+ * Info for a response with paged results
+ */
+class FOnlinePagedResult
+{
+public:
+	FOnlinePagedResult()
+		: Start(0)
+		, Count(0)
+		, Total(0)
+	{}
+	virtual ~FOnlinePagedResult() {}
+
+	/** Starting entry */
+	int32 Start;
+	/** Number returned */
+	int32 Count;
+	/** Total available */
+	int32 Total;
+};
+
 /** Locale and country code */
 class FRegionInfo
 {

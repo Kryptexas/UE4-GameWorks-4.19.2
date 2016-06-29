@@ -404,9 +404,9 @@ public:
 	FConfigSection* GetSectionPrivate( const TCHAR* Section, bool Force, bool Const, const FString& Filename );
 	void SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value, const FString& Filename );
 	void SetText( const TCHAR* Section, const TCHAR* Key, const FText& Value, const FString& Filename );
-	void RemoveKey( const TCHAR* Section, const TCHAR* Key, const FString& Filename );
-	void EmptySection( const TCHAR* Section, const FString& Filename );
-	void EmptySectionsMatchingString( const TCHAR* SectionString, const FString& Filename );
+	bool RemoveKey( const TCHAR* Section, const TCHAR* Key, const FString& Filename );
+	bool EmptySection( const TCHAR* Section, const FString& Filename );
+	bool EmptySectionsMatchingString( const TCHAR* SectionString, const FString& Filename );
 
 	/**
 	 * Retrieve a list of all of the config files stored in the cache

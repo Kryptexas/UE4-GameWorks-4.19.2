@@ -288,6 +288,7 @@ public:
 	 */
 	virtual bool IsChatAllowed(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId) const = 0;
 
+
 	/**
 	 * Get cached list of rooms that have been joined
 	 * 

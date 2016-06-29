@@ -244,7 +244,10 @@ FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( bIsPressed && IsEnabled() && ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() ) )
+	const bool bMustBePressed = ClickMethod == EButtonClickMethod::DownAndUp;
+	const bool bMeetsPressedRequirements = (!bMustBePressed || (bIsPressed && bMustBePressed));
+
+	if (bMeetsPressedRequirements && IsEnabled() && ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() ) )
 	{
 		Release();
 
