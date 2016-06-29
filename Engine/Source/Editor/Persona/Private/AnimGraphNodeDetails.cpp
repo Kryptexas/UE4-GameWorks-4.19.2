@@ -24,6 +24,7 @@
 #include "Animation/BlendProfile.h"
 #include "SBlendProfilePicker.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
+#include "Animation/AnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
