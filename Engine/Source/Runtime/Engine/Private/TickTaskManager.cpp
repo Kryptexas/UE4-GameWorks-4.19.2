@@ -1338,10 +1338,13 @@ public:
 		
 		int32 NumWorkerThread = 0;
 		bool bConcurrentQueue = false;
+#if !PLATFORM_WINDOWS
+		// the windows scheduler will hang for seconds trying to do this algorithm, threads starve even though other threads are calling sleep(0)
 		if (!FTickTaskSequencer::SingleThreadedMode())
 		{
 			bConcurrentQueue = !!CVarAllowConcurrentQueue.GetValueOnGameThread();
 		}
+#endif
 
 		if (!bConcurrentQueue)
 		{
