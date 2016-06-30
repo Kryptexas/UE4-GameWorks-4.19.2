@@ -32,8 +32,8 @@ public:
 	bool ValidateActorSpawning(class FKismetCompilerContext& CompilerContext, bool bGenerateErrors);
 	bool ValidateActorArraySpawning(class FKismetCompilerContext& CompilerContext, bool bGenerateErrors);
 
-	UPROPERTY(Transient)
-	TArray<FString> SpawnParmPins;
+	UPROPERTY()
+	TArray<FString> SpawnParamPins;
 
 	static void RegisterSpecializedTaskNodeClass(TSubclassOf<UK2Node_LatentGameplayTaskCall> NodeClass);
 protected:

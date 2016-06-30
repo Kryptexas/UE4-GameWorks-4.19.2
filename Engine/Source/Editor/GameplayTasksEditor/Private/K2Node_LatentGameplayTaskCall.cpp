@@ -170,7 +170,7 @@ void UK2Node_LatentGameplayTaskCall::CreatePinsForClass(UClass* InClass)
 
 	const UObject* const ClassDefaultObject = InClass->GetDefaultObject(false);
 
-	SpawnParmPins.Empty();
+	SpawnParamPins.Empty();
 
 	// Tasks can hide spawn parameters by doing meta = (HideSpawnParms="PropertyA,PropertyB")
 	// (For example, hide Instigator in situations where instigator is not relevant to your task)
@@ -207,7 +207,7 @@ void UK2Node_LatentGameplayTaskCall::CreatePinsForClass(UClass* InClass)
 
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
-			SpawnParmPins.Add(Pin->PinName);
+			SpawnParamPins.Add(Pin->PinName);
 
 			if (ClassDefaultObject && Pin && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
@@ -237,7 +237,7 @@ void UK2Node_LatentGameplayTaskCall::PinDefaultValueChanged(UEdGraphPin* Changed
 		//ResultPin->BreakAllPinLinks();
 
 		// Remove all pins related to archetype variables
-		for (const FString& OldPinReference : SpawnParmPins)
+		for (const FString& OldPinReference : SpawnParamPins)
 		{
 			UEdGraphPin* OldPin = FindPin(OldPinReference);
 			if(OldPin)
@@ -246,7 +246,7 @@ void UK2Node_LatentGameplayTaskCall::PinDefaultValueChanged(UEdGraphPin* Changed
 				Pins.Remove(OldPin);
 			}
 		}
-		SpawnParmPins.Empty();
+		SpawnParamPins.Empty();
 
 		UClass* UseSpawnClass = GetClassToSpawn();
 		if (UseSpawnClass != NULL)
@@ -408,7 +408,7 @@ bool UK2Node_LatentGameplayTaskCall::ValidateActorArraySpawning(class FKismetCom
 bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn, const UEdGraphSchema_K2* Schema, class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UEdGraphPin*& LastThenPin, UEdGraphPin* SpawnedActorReturnPin)
 {
 	bool bIsErrorFree = true;
-	for (const FString& OldPinReference : SpawnParmPins)
+	for (const FString& OldPinReference : SpawnParamPins)
 	{
 		UEdGraphPin* SpawnVarPin = FindPin(OldPinReference);
 		const bool bHasDefaultValue = SpawnVarPin && (!SpawnVarPin->DefaultValue.IsEmpty() || !SpawnVarPin->DefaultTextValue.IsEmpty() || SpawnVarPin->DefaultObject);

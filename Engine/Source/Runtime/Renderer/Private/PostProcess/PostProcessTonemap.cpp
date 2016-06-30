@@ -1342,6 +1342,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	case 11: SetShaderTempl<11>(Context, bDoEyeAdaptation); break;
 	case 12: SetShaderTempl<12>(Context, bDoEyeAdaptation); break;
 	case 13: SetShaderTempl<13>(Context, bDoEyeAdaptation); break;
+	case 14: SetShaderTempl<14>(Context, bDoEyeAdaptation); break;
 	default:
 		check(0);
 	}
