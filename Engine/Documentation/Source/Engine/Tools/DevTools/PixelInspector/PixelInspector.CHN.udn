@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:0
-Availability:Public
+Availability:Docs
 Title:Pixel Inspector
 Crumbs: %ROOT%, Engine
 Description:The Pixel Inspector shows you what is happening in the various parts of the GBuffer at a given pixel.

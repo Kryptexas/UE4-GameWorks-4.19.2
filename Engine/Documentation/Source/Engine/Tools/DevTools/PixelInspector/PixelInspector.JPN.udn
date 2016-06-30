@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:3029270
-Availability:Public
+Availability:Docs
 Title:Pixel Inspector
 Crumbs: %ROOT%, Engine
 Description:Pixel Inspector は、任意のピクセルの GBuffer の様々な部分を調査し結果を表示します。
