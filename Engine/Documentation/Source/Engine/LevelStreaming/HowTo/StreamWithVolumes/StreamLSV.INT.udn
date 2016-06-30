@@ -1,4 +1,4 @@
-Availability: Public
+Availability: Docs
 Title:Stream Sublevels with Level Streaming Volumes
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to use volumes to control the streaming of Levels based on the player's viewpoint.

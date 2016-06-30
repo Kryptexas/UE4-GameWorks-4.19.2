@@ -1,4 +1,4 @@
-Availability: Public
+Availability: Docs
 Title:Level Streaming How-Tos
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to dynamically stream in levels using Level Streaming Volumes, Blueprints, and C++ code
