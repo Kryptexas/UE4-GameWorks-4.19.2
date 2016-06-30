@@ -1,4 +1,4 @@
-Availability: Public
+Availability: Docs
 Title:Level Streaming Overview
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:Streaming Levels can be loaded with Level Streaming Volumes or programmatically with Blueprints or C++.
