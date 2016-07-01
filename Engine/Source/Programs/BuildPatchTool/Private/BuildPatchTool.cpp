@@ -18,9 +18,9 @@ public:
 	{
 #if PLATFORM_WINDOWS
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-		printf( "\n%ls", *FOutputDevice::FormatLogLine( Verbosity, Category, V, GPrintLogTimes ) );
+		printf( "\n%ls", *FOutputDeviceHelper::FormatLogLine( Verbosity, Category, V, GPrintLogTimes ) );
 #else
-		wprintf( TEXT( "\n%s" ), *FOutputDevice::FormatLogLine( Verbosity, Category, V, GPrintLogTimes ) );
+		wprintf( TEXT( "\n%s" ), *FOutputDeviceHelper::FormatLogLine( Verbosity, Category, V, GPrintLogTimes ) );
 #endif
 		fflush( stdout );
 #endif
