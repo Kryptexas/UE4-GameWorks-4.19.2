@@ -554,7 +554,11 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 	TMap<FGuid, FChunkInfoData> ChunkInfoMap;
 	TMap<FGuid, int64> ChunkFileSizes = CloudEnumeration->GetChunkFileSizes();
 	ChunkWriter.GetChunkFilesizes(ChunkFileSizes);
-	ChunkInventory.Append(CloudEnumeration->GetChunkInventory());
+	for (const TPair<uint64, TSet<FGuid>>& ChunkInventoryPair : CloudEnumeration->GetChunkInventory())
+	{
+		TSet<FGuid>& ChunkSet = ChunkInventory.FindOrAdd(ChunkInventoryPair.Key);
+		ChunkSet = ChunkSet.Union(ChunkInventoryPair.Value);
+	}
 	ChunkShaHashes.Append(CloudEnumeration->GetChunkShaHashes());
 	bool bFoundAllChunkInfo = true;
 	for (const TPair<uint64, TSet<FGuid>>& ChunkInventoryPair : ChunkInventory)
