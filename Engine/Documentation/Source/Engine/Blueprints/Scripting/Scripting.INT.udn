@@ -1,8 +1,8 @@
 Availability:Public
 Title: Basic Scripting
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
-version: 4.9
+Description: Get a general overview of the variables and execution flow of the BLueprints visual scripting system.
+version: 4.12
 parent:Engine/Blueprints
 
 [VAR:Topic]
@@ -44,45 +44,35 @@ parent:Engine/Blueprints
 [/OBJECT]
 [/VAR]
 
+Blueprints provide a visual approach to a scripting language. As such, the system shares many of the nuances of a standard written scripting language, such as data typed variables, arrays, structs, etc. 
+Execution flow also works as it does in a typical scripting language, although Blueprints require explicit linear execution for each node. Each of the pages below go into more detail about 
+different variable types, working with those variables, and execution of nodes within the graph. 
 
-
-## Data Types
+## Variables
 
 Variables can be created in a variety of different types, including data types such as Boolean, integer, and float. They are color-coded for easy identification within your Blueprint.
+Blueprint variables can also be reference types for holding things like Objects, Actors, and Classes. 
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Data Types")]
+[DIR(output:"listbutton" parent:"Engine/Blueprints" tags:"Data Types")]
 
 ## Execution Flow
 
 In Blueprints, the first node to execute is an event, and then execution flows through the white execution wire from left to right. You can visualize the execution flow
 while your game is running in the editor, which can help with debugging. Data also flows through wires colored to match the variable types. Input pins are evaluated
-when the node executes, tracing the data wires back from right to left until the final  result is calculated and supplied to the node.
+when the node executes, tracing the data wires back from right to left until the final result is calculated and supplied to the node.
+
+Nodes with execution pins (impure nodes) store the values of their output pins when they execute, while nodes without execution pins (pure nodes) reevaluate their outputs
+every time a node connected to their outputs executes. 
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Execution Flow")]
 
 ## Arrays & Structures
 
-The basic data types available in Blueprints can be organized into arrays and structures for more complex systems. 
+Arrays and structures are collections of multiple data types. They are available for more complex systems, and help with keeping like information together and streamlining processing of larger amounts of information.
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
 <!--
 Structs
--->
-
-## Handling Objects and Actors
-
-Blueprint variables can also be reference types for holding things like Objects, Actors, and Classes. 
-
-[DIR(output:"listbutton" tags:"Handling Objects and Actors")]
-
-
-<!--
-References (pointers)
-Set and Get an Actor Reference	Engine/Blueprints/BP_HowTo/ActorReference
-Validity
-Casting
-Blueprint Casting	Engine/Blueprints/BP_HowTo/Casting
-Casting	Engine/Blueprints/UserGuide/CastNodes
 -->
 

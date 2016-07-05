@@ -2,6 +2,7 @@ Availability: Docs
 Title:Level Streaming How-Tos
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to dynamically stream in levels using Level Streaming Volumes, Blueprints, and C++ code
+Version: 4.12
 parent:Engine/LevelStreaming
 order:10
 tags:Level Streaming
@@ -9,7 +10,8 @@ tags:Level Streaming
 [TOC]
 
 
-These three how-tos all solve the following scenario, and have a shared set of steps to load in the two Levels you are going to work with. Follow these steps, then select the how-to you want to continue with.
+These three how-tos all solve the following scenario, and have a shared set of steps to load in the two Levels you are going to work with. Follow these steps, then select the how-to 
+you want to continue with.
 
 [EXCERPT:LevelStreamScenario]
 ## Level Streaming Scenario
@@ -29,7 +31,8 @@ will be loaded and visible.
 
 ![](StreamingLevelVisible.png)(w:500)
 
-As part of the setup, we have two levels, **SunTemple_Persistent** and **SunTemple_Streaming**. Our **Player Start** is in **SunTemple_Persistent**, and our player in the game is represented by a _Character_.
+As part of the setup, we have two levels, **SunTemple_Persistent** and **SunTemple_Streaming**. Our **Player Start** is in **SunTemple_Persistent**, and our player in the game is 
+represented by a _Character_.
 
 1. Open **SunTemple_Persistent** in the **Content Browser**.
 

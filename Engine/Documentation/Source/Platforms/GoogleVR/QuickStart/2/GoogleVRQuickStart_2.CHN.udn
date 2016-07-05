@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2983084
 Availability:Public
-Title:2. Google VR Project Setup
+Title:2.Google VR 项目设置
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Setting up a UE4 project Google VR project.
+Description:设置用于 Google VR 的 UE4 项目。
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.12
+Skilllevel:Intermediate
+Version:4.12
 Parent:Platforms/GoogleVR/QuickStart
 order:2
 type:step
@@ -14,29 +14,29 @@ tags:Google VR
 
 [NAV]
 
- In this part of the Google VR Quick Start, we will go over setting up your UE4 project so that it can be used with Google VR.
+ 该部分讲解如何设置 UE4 项目，使其可用于 Google VR。
 
-1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Edit** tab and select the **Plugins** menu item.
+1. UE4 编辑器加载后，打开 **主工具栏** 中的 **Edit** 标签，并选择 **Plugins** 菜单项。
 
 	![](GVRQS_Pligin_Menu_00.png)
 
-1. Inside of the Plugins menu, go the **Virtual Reality** section and make sure that **Google VR** is enabled.
+1. 前往 Plugins 菜单的 **Virtual Reality** 部分，确认 **Google VR** 已启用。
 
 	![](GVRQS_Pligin_GVR_Enabled_00.png)
 
     [region:note]
-    The Google VR plugin should be enabled by default. If it is not enabled, it can be enabled by clicking on the checkmark box next to **Enabled**. When you do this will be prompted to restart the UE4 Editor so that the changes can take place. Failing to re-start the UE4 editor after enabling the Google VR plugin could result in the plugin not working correctly.
+    Google VR 插件为默认启用。如未启用，点击 **Enabled** 旁的勾选框即可启用。执行此操作后将弹出提示重启 UE4 编辑器，使变更生效。启用 Google VR 插件后如未重启 UE4 编辑器，可能导致插件无法正常使用。
     [/region]
 
-1. Inside of the **Content Browser** create a new Material, named **MAT_Floor** and open it up by double-clicking on it.
+1. 在 **Content Browser** 中新建一个名为 **MAT_Floor** 的材质，然后双击打开。
 
 	![](GVRQS_Floor_Material_00.png)
 
-1. Inside the Material Graph, add a **Constant** Material Expression node with a value of **0.5** and plug it's output into the **Base Color** input and then press the **Apply** button to compile the Material.
+1. 在材质图表中添加一个数值为 **0.5** 的 **常量** 材质表现节点，并将其输出插入 **Base Color** 输入，然后按下 **Apply** 键编译材质。
 
 	![](GVRQS_Floor_Material_Setup_00.png)
 
-1. Drag the **Mat_Floor** Material from the Content Browser to the **Floor** static mesh that is placed in the level to apply the Material to the Static Mesh.
+1. 将 **Mat_Floor** 材质从内容浏览器拖动到放置在关卡中的 **Floor** 静态网格体，完成材质应用。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -50,36 +50,36 @@ tags:Google VR
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. From the Main Toolbar, select the **File** option and then click on the **Save** option to bring up the **Save Level As** window.
+1. 选择主工具栏的 **File** 选项，然后点击 **Save** 选项呼出 **Save Level As** 窗口。
 
 	![](GVRQS_Save_Level_00.png)
 
-1. From the **Save Level As** window under the **Name** section, name the level **EntryLevel** and then press the **Save** button.
+1. 在 **Save Level As** 窗口下的 **Name** 部分中将关卡命名为 **EntryLevel**，并按下 **Save** 按钮。
 
 	![](GVRQS_Save_Level_01.png)
 
-1. Back on the **Main Toolbar** select the **Edit** menu option and then select the **Project Settings** menu option.
+1. 返回 **主工具栏** 选择 **Edit**，然后选择 **Project Settings**。
 
 	![](GVRQS_Project_Settings_00.png)
 
-1. From the Project Settings menu go to the **Maps & Modes** section and under the **Default Maps** section, change the **Editor Startup Map** and **Game Default Map** to the EntryLevel map to make sure that the EntryLevel map is the map that will be loaded when the project is run.
+1. 在 Project Settings 菜单 **Maps & Modes** 部分中的 **Default Maps** 下，将 **Editor Startup Map** 和 **Game Default Map** 改为 EntryLevel 地图，以便项目运行时对其进行加载。
 
 	![](GVRQS_Select_Level_00.png)
 
-1. Back in the Project Settings, under the **Target Hardware** section, make sure that **Target Hardware** class has been set to **Mobile / Tablet** and the graphics level set to **Scalable 3D or 2D**. 
+1. 返回 Project Settings 的 **Target Hardware** 部分，将 **Target Hardware** 设为 **Mobile / Tablet**、画面品质设为 **Scalable 3D or 2D**。 
 
 	![](GVRQS_Target_Hardware_00.png)
 
 	[region:note]
-	If you see the **Restart Editor** button under the **Pending Changes** section make sure to press it to re-start the editor so the changes that are made will be applied. Failing to do this could result in your project not working with Google VR.
+	如 **Pending Changes** 中存在 **Restart Editor** 按钮，必须将其按下重启编辑器，应用已执行的变更。如未执行此操作，项目可能无法在 Google VR 上运行。
 	![](GVRQS_Target_Hardware_01.png)
 	[/region]
 
-1. In the **Rendering** section make sure that **Mobile HDR** is disabled as this is necessary for correct stereoscopic rendering.
+1. 将 **Rendering** 下的 **Mobile HDR** 禁用，因其只用于正确的立体渲染。
 
 	![](GVRQS_Moile_HDR_Off_00.png)
 
-1. Under the **Input** section in the **Mobile** category, remove the **DefaultVirtualJoysticks** from the **Default Touch Interface** by clicking on the small white triangle next to the DefaultVirtualJoysticks and selecting the **Clear** option from the drop-down list.
+1. 在 **Input** 部分的 **Mobile** 类目中，从 **Default Touch Interface** 中移除 **DefaultVirtualJoysticks** - 点击 DefaultVirtualJoysticks 旁的白色小三角形，然后从下拉菜单中选择 **Clear** 即可。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -93,23 +93,23 @@ tags:Google VR
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. In the **Platforms** section under the **Android** section press the **Configure Now** button in the **APKPackaging** and **Google Play Services** sections to ensure that our project can .
+1. 在 **Platforms** 的 **Android** 中，按下 **APKPackaging** 和 **Google Play Services** 部分的 **Configure Now** 按钮，
 
 	![](GVRQS_Config_Now_00.png)
 
-1. Under the **APKPackaging** section change the **Minimum SDK Version** and **Target SDK Version** to **21** and enable the **Enable FullScreen Immersive on KitKat and above devices** option to hide any on-screen buttons that would otherwise be visible when the project is viewed in a VR headset.
+1. 在 **APKPackaging** 部分中，将 **Minimum SDK Version** 和 **Target SDK Version** 改为 **21** 并启用 **Enable FullScreen Immersive on KitKat and above devices** 选项，将屏幕上的按钮隐藏，否则通过 VR 头戴设备观看项目时将看到这些按钮。
 
 	![](GVRQS_SDK_Version_00.png)
 
-1. In the **Advanced APKPackaging** section and enable the **Configure GoogleVR for sustained performance mode** option.
+1. 启用 **Advanced APKPackaging** 部分中的 **Configure GoogleVR for sustained performance mode** 选项。
 
 	![](GVRQS_GoogleVR_Options_00.png)
 
-	* **Sustained Performance:** Puts the device into sustained performance mode, which throttles performance to a level where the performance will not overheat the device, causing vastly decreased performance.  It is recommended that you enable this for apps that are meant to be run for significant periods of time.
+	* **Sustained Performance:**将设备设为持久性能模式，对性能进行控制，使性能不会因为设备过热而大幅降低。如 app 运行时间较长，推荐将此选项开启。
 
-1. In the **Android SDK** section under the **SDKConfig** section set both the **SDK API Level** and **NDK API Level** to **android-21** instead of their defaults to ensure that your project will be compiled against the most recent Android SDK.
+1. 在 **Android SDK** 的 **SDKConfig** 中，将 **SDK API Level** 和 **NDK API Level** 从默认值改为 **android-21**，用最新安卓 SDK 进行项目编译。
 
 	![](GVRQS_Android_SDK_Options_00.png)
 
-In the next section of the Google VR Quick Start, we will go over what you have to do to package your UE4 project so it will run on a Google VR device.
+下一部分讲解如何打包 UE4 项目，使其在 Google VR 设备上运行。
 [NAV]

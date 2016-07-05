@@ -1,7 +1,7 @@
 Availability:Public
-Title: Working with Blueprints
+Title: Blueprint Workflow Tools
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
+Description: Tools like commenting and breakpoints enable you to follow the flow of your code and make notes for yourself or teammates working with the same system.
 version: 4.9
 parent:Engine/Blueprints
 order:3

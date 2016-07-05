@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2677192
-Availability:Public
-Title:ライトマスの基礎
+﻿Availability:Public
+Title:Lightmass の基礎
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:ライトマスの概要説明
+Description:Lightmass の概要説明
 SkillLevel:Beginner
 Version:4.9
 
@@ -74,21 +73,21 @@ Version:4.9
 	![](LI_SLComplete.png)
 
 
-これで終わりです。ライト数、[Quality] モード、レベルのサイズ、lightmass Importance Volume 内にどの部分が含まれるか、Swarm クライアントが使用するために他のコンピュータが利用可能であるか次第では、このプロセスは数分もしくは大幅に時間を要する場合があります。
+これで終わりです。ライト数、品質モード、レベルのサイズ、lightmass Importance Volume に含まれる部分、Swarm クライアント用に使用するコンピュータの可用性によって、このプロセスの所要時間は数分から長時間の範囲で変動します。
 
 ## Quality モード
 
 ![](LMBuild_001.png)
 
-これらのプリセットはすべて時間に対比した品質です。**[Preview (プレビュー)]** 設定は素早くレンダリングしてベイクした大部分の直接光をだいたい満足のいく形で表現します。**[Production (プロダクション)]** 設定では、レンダリングは遅くなりますが、様々なライト漏れエラーを訂正すると同時にさらに現実的な外観になります。
+これらのプリセットはすべて、品質と時間のトレードオフです。**[Preview (プレビュー)]** 設定は、素早くレンダリングしてベイクした直接光の大部分をおおよそ満足のいくレベルで表示します。**[Production (プロダクション)]** 設定は、レンダリングは遅くなりますが、様々なライト漏れエラーを訂正して現実的な外観にします。
 
-* **Production** - 最高の見栄えです。しばらく時間がかかります。
-* **High** -良い見栄えです。いくらか時間がかかります。
-* **Medium** - 良い見栄えです。計算に多少時間がかかります。
-* **Preview** - 全体的な概要は得られます。少なくとも高速です。
+* **Production** - 時間はかかりますが、とてもきれいな外観です。
+* **High** -少し時間がかかりますが、きれいな外観です。
+* **Medium** - 計算に多少時間がかかります。良い外観です。
+* **Preview** - すぐに完了します。全体的な感じはつかめます。
 
 
-これらは単なるプリセットです。ゲームに適したライティングへ調整が可能な数多くの設定を利用出来ます。**ライトマス** 設定を微調整する詳しい情報については、[ライトマス](Engine/Rendering/LightingAndShadows/Lightmass) のドキュメントを参照してください。
+これらは単なるプリセットです。ゲームに適したライティングに調整する、さまざまな設定を利用できます。**ライトマス** 設定を微調整する詳しい情報については、[ライトマス](Engine/Rendering/LightingAndShadows/Lightmass) のドキュメントを参照してください。
 
 
 

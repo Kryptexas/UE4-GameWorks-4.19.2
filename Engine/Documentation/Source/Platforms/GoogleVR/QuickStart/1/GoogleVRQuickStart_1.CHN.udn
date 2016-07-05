@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2983084
 Availability:Public
-Title:1. Google VR Project Creation
+Title:1.Google VR 项目创建
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Creating a UE4 project that can be used with Google VR.
+Description:创建用于 Google VR 的 UE4 项目。
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.12
+Skilllevel:Intermediate
+Version:4.12
 Parent:Platforms/GoogleVR/QuickStart
 order:1
 type:step
@@ -14,17 +14,17 @@ tags:Google VR
 
 [NAV]
 
- In this part of the Google VR Quick Start, we will go over how to create a new UE4 project that has the best settings for Google VR development.
+ 该部分讲述如何新建一个拥有最佳设置、便于进行 Google VR 开发的 UE4 项目。
 
-1. From the UE4 Launcher make sure that you have UE4 version **4.12** or later downloaded and installed then press the **Launch** button to open the **Unreal Project Browser**.
+1. 在 UE4 Launcher 中下载并安装 UE4 **4.12** 或更新版本，然后按下 **Launch** 按钮打开 **虚幻项目浏览器**。
 
 	![](GVRQS_Launcher_00.png)
 
-1. In the Unreal Project Browser, go to the **New Project** section and select the **Blueprint** base project option.
+1. 在虚幻项目浏览器中，前往 **New Project** 部分并选择 **Blueprint** 基础项目选项。
 	
 	![](GVRQS_New_Project_Options_00.png)
 
-1. Due to the demanding rendering requirements of VR in general, it is best to start out any new UE4 VR project with the following settings to ensure that your project will run at the correct frame rate right from the start. 
+1. 由于 VR 总体渲染要求较高，建议以下列设置开始 UE4 VR 新项目，确保项目以正确的帧率运行。 
 
 	![](GVRQS_New_Project_Options_01.png)
 	* **Blank Project**
@@ -32,17 +32,17 @@ tags:Google VR
 	* **Scalable 3D / 2D**
 	* **No Starter Content**
 
-1. Set the location where the project will be created and also give the project a name. 
+1. 设置项目创建路径并为项目命名。 
 
 	![](GVRQS_New_Project_Options_02.png)
 
-	* For this example the project name will be **GVR_QS**. 
+	* 此例中的项目命名为 **GVR_QS**。 
 
-1. Finally, press the **Create Project** button that is located in the lower right-hand corner to create the project.
+1. 最后按下右下角的 **Create Project** 按钮创建项目。
 
 	![](GVRQS_New_Project_Options_03.png)
 
-In the next section of the Google VR Quick Start, we will go over all the needed project settings to ensure that your UE4 project will work with Google VR.
+Google VR 快速入门的下一部分将说明确保 UE4 项目可用于 Google VR 的全部必要项目设置。
 
 [NAV]
 

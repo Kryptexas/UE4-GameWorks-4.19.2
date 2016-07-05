@@ -1,28 +1,35 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2940199
 Availability:Public
-Title: Getting Started: Developing Linux Projects
+Title:准备开始：开发 Linux 项目
 Crumbs:%ROOT%, Platforms, Platforms/Linux
-Description:Setting up for development for the Linux platform.
+Description:进行 Linux 平台的开发设置。
+Version:4.9
+SkillLevel:Advanced
+type:quickstart
+parent:Platforms/Linux
+tags:Linux
 
-%Globals:BinarySourceSelectVar%
+<!--- %Globals:BinarySourceSelectVar% --->
 
 [TOC(start:2 end:3)]
 
-## Why cross-compilation
+## 为什么选择交叉编译
 
-Cross-compilation was chosen in order to make it easier for game developers (who tend to have Windows-centric workflow) to target Linux. At the moment, this is only supported for Windows, Mac users currently have to resort to [native compilation](https://wiki.unrealengine.com/Building_On_Linux). We support and test Linux-x86_64, but we provide the libraries and the toolchain (clang-3.5.0-arm) which allow you to compile for Linux ARM as well (original Raspberry Pi and up), although this will require you to make a (minor) code change in UBT.
+为便于游戏开发者（通常熟悉以 Windows 为中心的工作流）针对 Linux 进行开发，因此选择交叉编译。当前只支持 Windows，Mac 用户须使用 [本地编译](https://wiki.unrealengine.com/Building_On_Linux)。我们支持并测试 Linux-x86_64，但也提供库和工具链（clang-3.5.0-arm）便于您进行 Linux ARM 编译（原始 Raspberry Pi 和 up）。需要在 UBT 中进行（少量）代码修改。
 
-From this point on we assume that you are targeting x86_64 Linux; although the most of below will apply to compiling for ARM as well (except for the different toolchain). Note that you can [build your own](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) toolchain if you want different versions of the tools or want to target a different architecture.
+我们将假定您以 x86_64 Linux 为目标，但以下的大部分方法也适用于 ARM 的编译（除工具链不同外）。如您需要不同版本的工具或需要针对不同的构架，可 [自行编译](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) 工具链。
 
-## Setting up the toolchain 
+## 设置工具链 
 
-Add an environment variable (Control Panel->System->Advanced system settings->Advanced->Environment variables) named LINUX_ROOT, value of which is the absolute path to your toolchain, without trailing backslash:
+添加一个名为 LINUX_ROOT 的环境变量（Control Panel->System->Advanced system settings->Advanced->Environment variables），此变量的数值为工具链的绝对路径（不带最后的反斜线）：
 
+[REGION:raw]
 ![](image00.png)
+[/REGION]
 
-After you made sure that variable is set, regenerate UE4 project files (using GenerateProjectFiles.bat) and restart Visual Studio. After this, you should have "Linux" available among Win32/Win64 configurations, and you should be able to cross-compile for it.
+确定变量已设置后，重新生成 UE4 项目文件（使用 GenerateProjectFiles.bat）并重启 Visual Studio。操作完成后，“Linux”在 Win32/Win64 配置中可用，可对其进行交叉编译。
 
-## Setting up packaging for Linux
+## 设置 Linux 的打包
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -53,55 +60,55 @@ After you made sure that variable is set, regenerate UE4 project files (using Ge
 [/OBJECT]
 
 [VAR:source]
-For packaging for Linux platform you will need to build the following targets:
+需要编译以下目标，以便进行 Linux 平台打包：
 
-For Linux:
+Linux：
 
 * CrashReportClient
-* UE4Game (if you project is content-only, otherwise just build your project)
+* UE4Game（项目为纯内容型。否则编译项目即可）
 
-For Windows:
+Windows：
 
-* The editor itself (this is needed to get Linux target modules built, so that Unreal Editor and Unreal Frontend know how to cook/package games for Linux).
-* UnrealPak and ShaderCompileWorker (you probably have those built anyway, but mentioning it for completeness).
+* 编辑器自身（它为编译 Linux 目标模块所必需，以便让虚幻编辑器和虚幻前端了解如何进行 Linux 游戏的烘焙/打包）。
+* UnrealPak 和 ShaderCompileWorker（您也许已将它们编译，再次提及以防遗漏）。
 
 [/VAR]
 
 [VAR:binary]
-Note that binary release can only package content-only projects. If you want to package a code-based project for Linux (or a project that has non-default third party plugins), you will have to set up a source build. Otherwise, if you are fine with content-only, there are no need to build anything as Linux binaries of UE4Game and CrashReportClient are bundled.
+注意：二进制发布只能打包纯内容型项目。如要打包 Linux 的代码项目（或拥有非默认第三方插件的项目），需设置一个 source build。如项目为纯内容型，便无需进行编译，因为 UE4Game 和 CrashReportClient 的 Linux 二进制文件为 bundle。
 [/VAR]
 
-## Packaging for Linux
+## Linux 打包
 
-The easiest way to package a project is to open it in the editor and then using File->Package To->Linux (assuming that you have a cross-toolchain installed in the previous step and Linux target modules are built for the editor in question - if you don't see Linux in the list, then it's likely that one of the former is not true - see above). After some time (which depends on the project in question and is rather short for sample project) you will have game assets and binaries in the directory you chose to package to.
+打包项目的最简易方法：将其在编辑器中打开，然后使用 File->Package To->Linux（假定在之前的步骤中已安装交叉工具链，Linux 目标模块已针对此编辑器进行编译 - 如列表中没有 Linux，则以上步骤中可能存在问题）。一段时间后（时长取决于使用的项目，样本项目耗时较短）选定的打包目录中便会出现游戏资源和二进制文件。
 
-The details of the packaging process can be seen by clicking the "Show Output Log" link. If this process fails with error message "unable to find UnrealPak or ShaderCompileWorker" see above about building them for the host (windows) platform.
+点击“Show Output Log”链接即可查看打包过程详情。如出现错误信息“unable to find UnrealPak or ShaderCompileWorker”，须查阅上文中针对 host（windows）平台进行编译的部分。
 
-Scp or otherwise copy it to a target machine (mounting a Samba share - if you know how to do that - may be better if target machine is low on disk space, this also reduces iteration times), chmod +x the target executable (which will be located in LinuxNoEditor/<ProjectName>/Binaries/Linux/ directory) and run it.
+执行 scp 命令或将其复制到目标电脑（如您了解如何操作，加载 Samba share。目标电脑磁盘空间较低为佳，可减少迭代次数），对目标可执行文件（存放在 LinuxNoEditor/<ProjectName>/Binaries/Linux/ 目录下）执行 chmod +x 命令并运行该文件。
 
-### Changes for Linux-ARM platforms
+### 针对 Linux-ARM 平台进行修改
 
-If you are using the Linux-ARM cross compile toolchain before running GenerateProjectFiles.bat below edit the following file in the UE4 source code: 
+如您使用的是 Linux-ARM 交叉编译工具链，在运行 GenerateProjectFiles.bat 之前需要在 UE4 源代码中对以下文件进行编辑： 
 
 .../UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Linux/UEBuildLinux.cs 
 
-by commenting out the following line: 
+注释掉以下代码行： 
 
 static private string DefaultArchitecture = "x86_64-unknown-linux-gnu"; 
 
-and un-commenting the linux-arm architecture line just below it: 
+然后注释掉下方的 linux-arm 代码行： 
 
 //static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
 
-An additional step is required for the packaged project to be runnable on Linux-ARM platforms. Assuming the packaged project is located at \foo\bar\SunTemple_Linux open the following location:
+还需额外执行一个步骤，使打包项目可在 Linux-ARM 平台上运行。假定打包项目保存在 \foo\bar\SunTemple_Linux 路径下，打开以下路径：
 
 \foo\bar\SunTemple_Linux\LinuxNoEditor\Engine\Binaries\Linux 
 
-and replace libopenal.so.1 with the version from: 
+并用以下路径中的版本替换 libopenal.so.1： 
 
 ...\UnrealEngine\Engine\Source\ThirdParty\OpenAL\1.15.1\lib\Linux\arm-unknown-linux-gnueabihf\libopenal.so 
 
-where ...\UnrealEngine is the location of the UE4 source code. Please be sure to rename libopenal.so to libopenal.so.1.
+其中，“...\UnrealEngine”是 UE4 源代码的路径。须将 libopenal.so 重命名为 libopenal.so.1。
 
-Now the project can be copied over to the target machine, chmod+x the target executable and run it as instructed above.
+现在即可把项目拷贝到目标电脑，对目标可执行文件执行 chmod+x 命令，并按上述方法运行此文件。
 

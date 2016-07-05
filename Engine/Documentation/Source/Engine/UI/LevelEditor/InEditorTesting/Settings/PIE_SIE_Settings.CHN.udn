@@ -1,34 +1,35 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2693435
 Availability:Public
-Title:Play In Editor Settings
-Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
-Description:Set up window sizes and other options for the Play-In feature
+Title:“在编辑器中游戏”设置
+Crumbs:%ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
+Description:设置“游戏位置”功能的窗口大小和其他选项
+Version:4.9
 
 [TOC(start:2)]
-The **Play** settings panel can be opened two different ways:
+**游戏（Play）**设置面板可通过两种不同方式打开：
 
-* The **Play** settings panel can be opened clicking **Edit** > **Editor Preferences**...
+* **游戏（Play）**设置面板可通过单击 **编辑（Edit）** > **编辑器首选项（Editor Preferences）**来打开...
 
 	![](PIE_settings.png) 
 
-	Then, select the **Play** section of the Editor Preferences window.
+	然后，选择“编辑器首选项”（Editor Preferences）窗口的 **游戏（Play）**部分。
 
 	![](PIE_Settings_Preferences.png)
 
-* Or you can open it by clicking on **Advanced Settings...** at the bottom of the **Play** dropdown menu.
+* 您也可通过单击 **游戏（Play）**下拉菜单底部的 **高级设置...（Advanced Settings...）**来打开该面板。
 
 	![](PIE_settings_buttonmenu.png)
 
-## Play In Editor
+## 在编辑器中游戏
 
-The **Play In Editor** settings allow you to change the mouse control behavior when in a **Play In Editor** session. These settings only apply for _Play In Editor_ sessions that display in the **Level Viewport**.
-As a result, there are no default window sizes to set.
+**在编辑器中游戏（Play In Editor）**设置允许您更改 **在编辑器中游戏** 会话中的鼠标控制行为。这些设置仅应用于显示在 **关卡视口** 中的 _在编辑器中游戏_ 会话。
+因此，没有可设置的默认窗口大小。
 
-| Setting | Description |
+| 设置 | 说明 |
 | ------- | ------------|
-| Game Gets Mouse Control | %doxygen:ULevelEditorPlaySettings::GameGetsMouseControl% |
-| Show Mouse Control Label |%doxygen:ULevelEditorPlaySettings::ShowMouseControlLabel% |
-| Mouse Control Label Position |%doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition%  |
+| 游戏获取鼠标控制权（Game Gets Mouse Control）| %doxygen:ULevelEditorPlaySettings::GameGetsMouseControl% |
+| 显示鼠标控制标签（Show Mouse Control Label） |%doxygen:ULevelEditorPlaySettings::ShowMouseControlLabel% |
+| 鼠标控制标签位置（Mouse Control Label Position） |%doxygen:ULevelEditorPlaySettings::MouseControlLabelPosition%  |
 
 <!--
 [EXCERPT:GameGetsMouseControl]
@@ -45,26 +46,26 @@ As a result, there are no default window sizes to set.
 
 -->
 
-## Play in New Window
+## 在新窗口中游戏
 
-When starting a _Play In Editor_ session that displays in a new window, these settings determine the size and starting position of the new window that appears.
+启动要在新窗口中显示的 _在编辑器中游戏_ 会话时，这些设置确定所显示的新窗口的大小和开始位置。
 
-| Setting | Description |
+| 设置 | 说明 |
 | ------- | ------------|
-| New Window Size (in pixels)|  [INCLUDE:#NewWindowSize] |
-| New Window Position (in pixels) | [INCLUDE:#NewWindowPosition] |
+| 新窗口大小（像素）（New Window Size (in pixels)）|  [INCLUDE:#NewWindowSize] |
+| 新窗口位置（像素）（New Window Position (in pixels)） | [INCLUDE:#NewWindowPosition] |
 
 
 <!--
 [EXCERPT:NewWindowSize]
-Sets the width and height of floating Play in Editor windows (in pixels):
+设置浮动的“在编辑器中游戏”（Play in Editor）窗口的宽度和高度（像素）：
 * %doxygen:ULevelEditorPlaySettings::NewWindowWidth% 
 * %doxygen:ULevelEditorPlaySettings::NewWindowHeight% 
-* Pick from a list of common window sizes, including settings for devices like phones and tablets. 
+* 从常用窗口大小（包括电话和平板电脑等设备的设置）的列表中进行选择。 
 [/EXCERPT]
 
 [EXCERPT:NewWindowPosition]
-Sets the screen coordinates for the top-left corner of floating Play In Editor windows (in pixels):
+设置浮动的“在编辑器中游戏”（Play in Editor）窗口的左上角屏幕坐标（像素）：
 * %doxygen:ULevelEditorPlaySettings::NewWindowPosition% 
 * %doxygen:ULevelEditorPlaySettings::CenterNewWindow% 
 [/EXCERPT]
@@ -72,44 +73,44 @@ Sets the screen coordinates for the top-left corner of floating Play In Editor w
 -->
 
 
-## Play in Standalone Game
+## 在独立游戏中游戏
 
-When starting a _Play In Editor_ session that displays in a standalone game window, these settings determine the size and starting position of the new window that appears. There are also options that allow you
-to pass additional command line settings on to the game client.
+启动要在独立游戏窗口中显示的 _在编辑器中游戏_ 会话时，这些设置确定所显示的新窗口的大小和开始位置。另外，还可通过一些选项
+将其他命令行设置传递给游戏用户端。
 
-| Setting | Description |
+| 设置 | 说明 |
 | ------- | ------------|
-| Standalone Window Size (in pixels) | [INCLUDE:#StandaloneWindowSize] |
-| Client Command Line Options | [INCLUDE:#ClientCommandLineOptions]| 
+| 独立窗口大小（像素）（Standalone Window Size (in pixels)） | [INCLUDE:#StandaloneWindowSize] |
+| 用户端命令行选项（Client Command Line Options） | [INCLUDE:#ClientCommandLineOptions]| 
 
 <!--
 [EXCERPT:StandaloneWindowSize]
-Sets the width and height of standalone game windows (in pixels):
+设置独立游戏窗口的宽度和高度（像素）：
 * %doxygen:ULevelEditorPlaySettings::StandaloneWindowWidth% 
 * %doxygen:ULevelEditorPlaySettings::StandaloneWindowHeight% 
-* Pick from a list of common window sizes, including settings for devices like phones and tablets. 
+* 从常用窗口大小（包括电话和平板电脑等设备的设置）的列表中进行选择。 
 [/EXCERPT]
 
 [EXCERPT:ClientCommandLineOptions]
-Generates a command line for additional settings that will be passed to the game clients:
+针对要传递给游戏用户端的其他设置，生成一个命令行：
 * %doxygen:ULevelEditorPlaySettings::AdditionalLaunchParameters% 
 [/EXCERPT]
 
 -->
 
-## Multiplayer Options
+## 多玩家选项
 
-These are basic and advanced options for [networked _Play In Editor_ testing](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor). In addition to the number of players and dedicated server options
-from the **Play In** dropdown menu, there are settings for URL parameters, gamepad routing, and reverting to the multiple-process testing method.
+[联网 _在编辑器中游戏_ 测试](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor) 有一些基本选项和高级选项。除了
+**游戏位置（Play In）**下拉菜单中的玩家数目和专用服务器选项以外，还有用于 URL 参数、游戏手柄布线和恢复为多进程测试方法的相关设置。
 
 [EXCERPT:NetworkPIESettings]
-| Setting | Description |
+| 设置 | 说明 |
 | ------- | ------------|
-| Number of Players | [INCLUDE:#PlayNumberOfClients] |
-| Server Game Options | [INCLUDE:#AdditionalServerGameOptions]|
-| Run Dedicated Server |[INCLUDE:#PlayNetDedicated] |
-| Route 1st Gamepad to 2nd Client | [INCLUDE:#RouteGamepadToSecondWindow]|
-| Use Single Process |[INCLUDE:#RunUnderOneProcess] |
+| 玩家数目（Number of Players） | [INCLUDE:#PlayNumberOfClients] |
+| 服务器游戏选项（Server Game Options） | [INCLUDE:#AdditionalServerGameOptions]|
+| 运行专用服务器（Run Dedicated Server） |[INCLUDE:#PlayNetDedicated] |
+| 将第一个游戏手柄连接到第二个用户端（Route 1st Gamepad to 2nd Client）| [INCLUDE:#RouteGamepadToSecondWindow]|
+| 使用单个进程（Use Single Process） |[INCLUDE:#RunUnderOneProcess] |
 
 <!--
 [EXCERPT:PlayNumberOfClients]

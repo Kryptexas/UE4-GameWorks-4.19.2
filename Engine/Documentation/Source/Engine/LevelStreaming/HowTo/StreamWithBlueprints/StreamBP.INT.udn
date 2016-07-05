@@ -50,8 +50,8 @@ For this scenario, we want to stream the second level in once the **Character** 
 
 	![](FinalLoadBP.png)
 
-1. Place your **LevelStreamer** Blueprint into your level, and adjust the placement and scale until it encompasses the part of the persistent world you want your **Character** to be in to begin streaming, as well 
-as the entire walkable volume where the streaming level will be.
+1. Place your **LevelStreamer** Blueprint into your level, and adjust the placement and scale until it encompasses the part of the persistent world you want your **Character** to be 
+in to begin streaming, as well as the entire walkable volume where the streaming level will be.
 
 1. Enter **SunTemple_Streaming** as the **Level to Stream**. 
 

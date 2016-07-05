@@ -49,13 +49,16 @@ order:1
 
 [TOC (start:2)]
 
-[EXCERPT:BlueprintIntro]
-**Blueprints** are special assets that provide an intuitive, node-based interface that can be used to create new types of Actors 
-and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from within 
-Unreal Editor without ever needing to write a line of code.
-[/EXCERPT:BlueprintIntro]
+[EXCERPT:Intro]
+The **Blueprints Visual Scripting** system in Unreal Engine is a complete gameplay scripting system based on the concept of using 
+a node-based interface to create gameplay elements from within Unreal Editor. As with many common scripting languages, it is used to define object-oriented (OO) classes or objects in the engine. 
+As you use UE4, you'll often find that objects defined using Blueprint are colloquially referred to as just "Blueprints." 
 
-For more detailed overview information about Blueprints, including types of Blueprints, Blueprint anatomy, and a discussion of how Blueprints relate to UE3's Kismet and UnrealScript, see [](Engine/Blueprints\Overview).
+This system is extremely flexible and powerful as it provides the ability for designers to use virtually the full range of concepts and tools generally only available to programmers. In addition,
+Blueprint-specific markup available in Unreal Engine's C++ implementation enables programmers to create baseline systems that can be extended by designers.
+[/EXCERPT:Intro]
+
+For more detailed overview information about Blueprints, including Blueprint anatomy and a discussion of how Blueprints relate to UE3's Kismet and UnrealScript, see [](Engine/Blueprints\Overview).
 
 
 ## How Do Blueprints Work?
@@ -142,15 +145,6 @@ You have read about Level Blueprints and Blueprint Classes, listed below are a h
 	[/PARAM]
 [/OBJECT]
 
-##Blueprint Samples and Tutorials
-
-Below are additional resources you can use to learn more about the Blueprint system. 
-
-* [](Resources/Showcases/BlueprintExamples)
-* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
-* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
-
-
 ## Blueprint Editors and Graphs
 
 Whether you are building a Level Blueprint or a Blueprint Class, you will be using [Blueprint Elements](Engine/Blueprints\UserGuide) assembled in a [Blueprint Editor](Engine/Blueprints/Editor).  
@@ -162,5 +156,16 @@ Whether you are building a Level Blueprint or a Blueprint Class, you will be usi
 
 Different types of **Blueprint Editor** are available depending on the type of Blueprint you are working with. The core feature of most **Blueprint Editors** is the **Graph** mode, with its central **Graph** tab 
 for laying out the network of your Blueprint.  
+
+##Blueprint Samples and Tutorials
+
+Below are additional resources you can use to learn more about the Blueprint system. 
+
+* [](Resources/Showcases/BlueprintExamples)
+* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
+* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+
+
+
 
 

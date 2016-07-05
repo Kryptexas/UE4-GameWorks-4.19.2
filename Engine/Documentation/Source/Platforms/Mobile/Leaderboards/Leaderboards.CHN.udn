@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
-Title: Using Mobile Service Leaderboards
-Description:Using leaderboards in your game.
+﻿INTSourceChangelist:2940199
+Title:使用移动服务排行榜
+Description:在游戏中使用排行榜。
 Crumbs:
 Availability:Public
 parent:Platforms/Mobile
@@ -42,7 +42,7 @@ tags:mobile
 [/OBJECT]
 [/VAR]
 
-Leaderboards enable you to track and display high scores for players on a per-platform basis. This lets players compete for bragging rights and helps to build community.
+通过排行榜可追踪并显示平台上玩家的高分。排行榜将会形成玩家之间的竞争，有助于社区的构建。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -56,9 +56,9 @@ Leaderboards enable you to track and display high scores for players on a per-pl
 	[/PARAMLITERAL]
 [/OBJECT]
 
-## Configuration
+## 配置
 
-See the appropriate platform-specific page below for details on configuring leaderboards for each platform:
+在下方页面中查看在每个平台上进行排行榜配置的详细内容：
 
 [REGION:buttonlist]
 * [](Platforms/Android/Leaderboards)
@@ -66,35 +66,35 @@ See the appropriate platform-specific page below for details on configuring lead
 [/REGION]
 
 [EXCERPT:Usage]
-## Reading from a Leaderboard
+## 从排行榜读取
 
-The **Read Leaderboard Integer** node will request from the platform's game service (currently iOS Game Center, or Google Play Services), the value stored on the given **Stat Name** for the provided **Player Controller**.
+**Read Leaderboard Integer** 节点将从平台的游戏服务（当前为 iOS Game Center 或 Google Play Services）请求存储在特定 **Player Controller** 的给定 **Stat Name** 上的数值。
 
-Note that it is a **latent** node, and thusly has a number of execution output pins. The top most is a "pass through," that works like any other execution output pin. The other two pins (**On Success**, and **On Failure**) will execute when the online service returns (or fails to return) a value. The value of **Leaderboard Value** before a successful return (or if the service fails to get a response) will be `0`.
+它是 **隐藏** 节点，因此拥有多个执行输出引脚。最上方的是“pass through”，功能与其他执行输出引脚相似。在线服务返回数值（或返回数值失败）后，其他两个引脚（**On Success** 和 **On Failure**）将执行。在成功返回前（或者服务获取反馈失败），**Leaderboard Value** 的数值为 `0`。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **Global Game Instance** Blueprint in the Unreal Match 3 sample game. In these few nodes we're calling the **Read Leaderboard Integer** node for the Player Controller at Player Index 0 on the Stat Name (Leaderboard) "Match3HighScore":
+下图取自 Unreal Match 3 示例游戏的 **Global Game Instance** 蓝图。在这几个节点中，我们对 Stat Name（排行榜）“Match3HighScore”上 Player Index 0 处的 Player Controller 调用 **Read Leaderboard Integer** 节点。
 
 ![](readLeaderboard.png)
 
-## Writing to a Leaderboard
+## 写入排行榜
 
-The **Write Leaderboard Integer** node will send the given integer **Stat Value** to the leaderboard specified in **Stat Name** for the provided **Player Controller**.
+**Write Leaderboard Integer** 将把给定整数 **Stat Value** 发送到特定 **Player Controller** 的 **Stat Name** 中指定的排行榜。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **VictoryScreen** Blueprint in the Unreal Match 3 sample game. When the victory (or defeat) screen is shown, it will check to see if on load Unreal Match 3 was able to retrieve a high score, then if it was able to it will submit the latest high score to the leaderboard. There is some additional checking before this to see if the new highscore is more than the one that was pulled during the app startup, but even if that wasn't there, the iOS and Android leaderboard systems will only accept values greater than what they currently store.
+下图取自 Unreal Match 3 示例游戏的 **VictoryScreen** 蓝图。胜利（或失败）画面显示时，将会检查加载的 Unreal Match 3 是否可获取高分；如可获取，则将把最新高分提交到排行榜。在执行此检查前会先执行一些额外检查，确定新高分是否高于 app 启动时拉取的高分；即使不存在此高分，iOS 和安卓排行榜也只接受大于当前保存数值的新数值。
 
 ![](writeLeaderboard.PNG)
 
-## Showing the Platform Specific Leadboard
+## 显示平台特有的排行榜
 
-The **Show Platform Specific Leaderboard Screen** will show the leaderboard specified by **Category Name** on the device.
+**Show Platform Specific Leaderboard Screen** 将在设备上显示由 **Category Name** 指定的排行榜。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **GameOverButtons** Blueprint Widget in the Unreal Match 3 sample game. When the **ShowScores** button is pressed, the game will attempt to show the leaderboard.
+下图取自 Unreal Match 3 示例游戏的 **GameOverButtons** 蓝图控件。按下 **ShowScores** 按钮后，游戏将显示排行榜。
 
 ![](showLeaderboard.png)
 

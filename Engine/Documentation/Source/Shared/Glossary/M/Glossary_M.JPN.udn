@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2620017
-Title:M
+﻿Title:M
 Crumbs:Shared/Glossary
 Description:
 Availability:NoPublish
@@ -79,11 +78,11 @@ Mobility
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Mobility]
-**Mobility** は、Static Mesh アクタと Light アクタのプロパティです。Mobility プロパティの設定は、 **[Details (詳細)]** パネルで行います。ゲームプレイ中のアクタの可動性を決定します。さらに、ライト アクタの場合、Mobility プロパティによってライトとシャドウ キャストのタイプが決まります。可動性のプロパティ設定には、Static (静的)、Stationary (固定) (ライト アクタのみ)、およびMovable (ムーバブル)があります。
+**Mobility** は、Static Mesh アクタと Light アクタのプロパティです。Mobility プロパティの設定は、 **[Details (詳細)]** パネルで行います。ゲームプレイ中のアクタの可動性を決定します。さらに、ライト アクタの場合、Mobility プロパティによってライトとシャドウ キャストのタイプが決まります。可動性のプロパティ設定には、Static (静的)、Stationary (固定) (ライト アクタのみ)、およびMovable (可動)があります。
 
 ワールド アウトライナーでは、アクタの可動性設定が、色の付いた小さなドットで左側に表示されます。オレンジは Movable、黄色は Stationary、ドットがないものは Static です。
 
-[Movable] に設定されているアクタは、用途が非常に広くなりますが、パフォーマンス ヒットが最も高くなります。[Static] に設定されているアクタは、用途は非常に狭くなりますが、パフォーマンス ヒットが最も低くなります。
+[Movable] 設定のアクタは、非常に幅広い用途に使用できますが、パフォーマンス ヒットが最も多くなります。[Static] 設定のアクタは、用途は非常に狭くなりますが、パフォーマンス ヒットが最も少なくなります。
 [/EXCERPT:Glossary_Mobility]
 
 	[/PARAM]
@@ -112,17 +111,17 @@ Movable
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Movable]
-**Movable** は、可動性のプロパティ設定の 1 つです。この設定は、スタティックメッシュとライトアクタ両方に適用することができます。
+**Movable** は、可動性のプロパティ設定の 1 つです。この設定は、スタティックメッシュとライトアクタの両方への適用が可能です。
 
 **Movable Static Mesh アクタ** は、ゲームプレイ中に移動可能であり、他のアクタと相互に作用することができます。
 
 [EXCERPT:Glossary_Movable_Lights]
-**Movable Lights (可動ライト)** は、ゲーム内で移動や変更が可能なライトです。典型的な用途としては、車のヘッドライト、懐中電灯、風に揺れる照明器具などが挙げられます。Movable Lights は完全に動的です。従って現時点では間接光をサポートしていません。Movable lights はシーン全体で動的シャドウを使用します。結果として、Stationary light と比べて、シャドウをキャストする Movable lights は 20 倍の負荷がかかります。
+**Movable Lights (可動ライト)** は、ゲーム内で移動や変更が可能なライトです。典型的な用途としては、車のヘッドライト、懐中電灯、風に揺れる照明器具などが挙げられます。Movable Light (可動ライト) は完全に動的です。従って現時点では間接光をサポートしていません。Movable Light (可動ライト) はシーン全体に動的シャドウを使用します。結果、Movable Light (可動ライト) でシャドウをキャストする負荷は、Stationary light (固定ライト) の 20 倍になります。
 
-3 つのライトの可動性の中で、Movable lights は、品質は普通、可変性は最大、パフォーマンス負荷が最大になります。
+Movable Light (可動ライト) を 3 種類の Mobility プロパティで比較すると、品質は 2 番目、可変性は最も高く、パフォーマンス負荷も最も高くなります。
 [/EXCERPT:Glossary_Movable_Lights]
 
-Movable Lights は、位置、回転、カラー、輝度、フォールオフ、半径、そして他のほぼ全てのプロパティを変更することができます。
+Movable Light (可動ライト) は、位置、回転、カラー、輝度、フォールオフ、半径、そして他のほぼ全てのプロパティを変更することができます。
 [/EXCERPT:Glossary_Movable]
 
 	[/PARAM]

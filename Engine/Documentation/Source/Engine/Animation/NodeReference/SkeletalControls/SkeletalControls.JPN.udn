@@ -1,197 +1,22 @@
-﻿INTSourceChangelist:3004607
+﻿INTSourceChangelist:3026918
 Availability:Public
 Title:スケルタル制御
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:ターゲット スケルトンのボーンを直接操作し、ソルバを適用できるアニメーション ノード
-version:4.9
+version: 4.12
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
 [/REGION]
 
 [EXCERPT:Intro]
-**SkeletalControls (スケルタル制御)** (SkelControls とも呼ばれます) を使用すると、スケルトン内のボーンを直接制御することができます。個々のボーンの制御、IK チェーンの作成などのために 
+**SkeletalControls (スケルタル制御)** (**SkelControls** とも呼ばれます) を使用すると、スケルトン内のボーンを直接制御することができます。個々のボーンの制御、IK チェーンの作成などのために 
 Animation ブループリント内で使用します。下層スケルトンを直接制御することで、 
-プロシージャルで動的に動くアニメーションを作成することができます。あるボーンの変形を別のボーンを動かすために使用したり、 
+プロシージャルで動的に動くアニメーションを作成することができます。あるボーンの **トランスフォーム** を別のボーンを動かすために使用したり、 
 通常の歩くアニメーションの再生中に、トレースを使用してキャラクターの足と地面を 
-同調させることができます。アニメーション シーケンスで適用したボーン変形を微調整したり、 
+同調させることができます。アニメーション シーケンスで適用したボーンのトランスフォームを微調整したり、 
 完全にオーバーライドするために、どのような種類の修正でも使用できます。
 [/EXCERPT:Intro]
-
-[TOC(start:2 end:2)]
-
-## AnimDynamics
-
-**AnimDynamics** ノードは、小さなソルバーです。Skeletal Mesh アセット用の物理ベースのセカンダリ アニメーションを提供するために使用することができます。 
-キャラクターが動くと揺れたり、動いたりするネックレス、ブレスレット、荷物、ワイヤー、ヘア、クロスなどのアイテムがあれば、このノードを使ってそうした動きを処理することができます。 
-
-
-
-AnimDynamics は非常に軽い実装で LOD (Level of Detail) やその他のアニメーション設定でオンオフできます。処理は [**AnimGraph**](Engine/Animation/AnimBlueprints/AnimGraph) でのアニメーション処理中に行われ、単純なクイック ソルバーになるように作られているため、考慮すべき制約がいくつかあります。 
-
-* 動的ボーンはボックスで表され、その部分の慣性を計算するときだけ使われます。 
-* コリジョンは計算されませんが、コンストレイントを使用して動きを制限することができます。 
-
-AnimDynamics は、Linear、 Angular、 Planar のコンストレイントをサポートします。Linear コンストレイントと Angular のコンストレイントは、スプリングによって操作され、より弾むような感覚が得られます。一方、Planar コンストレイントはその部分が交差しない平面で使われます。
-
-チェーンもサポートされます。キャラクターの開始と終了のボーンが選択可能であり、こうしたリンクに対してチェーンが生成されます。これは単一ボディの動的ボーンよりもはるかに負荷が高くなります。リンクされたコンストレイントをソルブする必要があり、正しく収束するするために多くのイタレーションが必要になるからです (イタレーションのカウントもノード毎に設定可能)。 
-
-以下は AnimDynamics を使用したチェーンの例です。 
-
-![](AnimDynamicsChain.gif)(convert:false)
-
-[REGION:caption]
-このオプションを有効にするには、AnimDynamics ノードの [Details (詳細)] パネルにある**[Chain]** チェックボックスにチェックをいれます。 
-[/REGION]
-
-ボディがある場所とそのサイズを示すビジュアル化のレイヤーがあります。
-
-![](AnimDynamicsVisualization.png)
-
-以下は角度の制限のビジュアライザーを示した例です。
-
-![](AnimDynamicsaAngular.png)
-
-[REGION:caption]
-これらは、AnimDynamics ノードを選択した状態で **[Details]** パネルから設定することができます。
-[/REGION]
-
-AnimDynamics のコア アプリケーションは **[Details]** パネルの **[Setup]** と **[Constraint]** のセクションにあります。 
-
-![](SetupConstraints.png)
-
-この 2 つのエリアで必要とする動きにするために値を微調整します。**Bound Bone** はノードによって影響を受けるボーンです。**Box Extents** セクションは、慣性を生じ、動きを操作するボリュームを作成するために使用します。 
-
-例えば、スローな前後の動きにしたい場合、非常に高く若干幅広のボックスを必要としますが、少し動きを増やしたいが移動後にある位置に落ち着かせたい場合は、低くより幅が広いボックスを作成します。 
-
-**Local Joint Offset** は、コンストレイントをアタッチするために使用するオフセットで、回転の基点を決めます。これを 0 のままにすると、どこから回転してよいかわからないため、何も動かない場合があります。必要な動きになるまでこの値を調整します。
-
-[Constraint] のセクションで、動きの範囲を定義することができます。この範囲は、ビジュアライザーで確認できます。0 のままにすると何も影響がなく、そこに値を入力すると移動先、移動元の範囲になります。 
-
-映像による AnimDynamics の概要、ヒントとコツ、**Paragon** でのユース ケースについては、以下の AnimDynamics Twitch Stream をご覧ください。 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-5h5CvZEBBWo
-[/PARAMLITERAL]
-[/OBJECT]
-
-開始するには、**Animation ブループリント** の AnimGraph 内で **AnimDynamics** ノードを作成します。ひとつの動的ボーン毎または連続する動的チェーンに対してひとつのノードを作ります。すべてのビジュアル化、コンストレイント、ボディ、およびシミュレーションの設定は、各ノードで設定されます。 
-
-![](AnimDynamicsNode.png)
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **External Force** | チェックを入れた場合 (ワールド空間で指定)、シミュレーションですべてのボディに適用する外部の力です。 |
-| **Component Pose** | 変形させる入力ポーズ |
-| **Alpha** | スケルタル制御で適用される変形の重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をした変形に対し最大限の重み付けをします。|
-| [REGION:tablesection]**出力ピン**[/REGION] ||
-| Pose (Blank) | 変形適用後の最終ポーズ |
-
-[REGION:note]
-AnimDyamicsの使用手順については、[**動的アニメーションを作成する**](Engine\Animation\AnimHowTo\AnimDynamics) をご覧ください。 
-[/REGION]
-
-## 回転の割合の適用
-
-**Apply a Percentage of Rotation** 制御は、スケルトン内の別のボーンの指定された割合の回転で、 
-ターゲットボーンを回転させます。
-
-![Apply Percentage of Rotation](node_applypercent.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**Multiplier (乗数)**[/REGION] ||
-| **Target Bone** | 制御するターゲット ボーンの名前です。修正をするメインのボーン チェーンです。 |
-| **Source Bone** | そこから変形データを受け取るソースボーンの名前です。 |
-| **Rotation Axis To Refer** | 「回転」を制御する軸 (X, Y, Z) です。|
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Multiplier** | ターゲット ボーンに適用するソース ボーンの回転の割合を表す浮動小数点値です。 [INCLUDE:#Multiplier] |
-
-<!--
-[EXCERPT:Multiplier]
-[REGION:simpletable]
-| 値 | 効果 |
-| ----- | ------ |
-| 0.0 | ソース ボーンの回転データはターゲット ボーンに適用されません。 |
-| 1.0 | ソース ボーンのすべての回転データがターゲット ボーンに適用されます。 |
-[/REGION] 
-[/EXCERPT:Multiplier]
--->
-
-## ボーン駆動型コントローラー
-
-この **Bone Driven Controller (ボーン駆動型コントローラー)** 機能では、"Driver (駆動する)" ボーンがひとつ以上の “Driven (駆動される)” ボーンのモーションに動的に影響を与えます。これは、アクセサリがアタッチされているキャラクターで役立ちます。多くのブレンドが使用される場合でも、アニメーション中にジオメトリが交差するのを防ぐことができるからです。 
-
-"Driver" 値を直接 **Multiplier (乗数)** で設定するか、全く新しい範囲に再マッピングすることができます。または **Curve** アセットを使用してモーションを駆動することができます。カーブの使用は通常、最適なアプローチです。リアルタイムで変化をみながら反応を自然に定義し、ポイント / 接線をインタラクティブに微調整できるからです。  
-
-下の例ではアタッチされているアクセサリ (緑色部分) にはオーサリングされているアニメーションは存在しません。キャラクターの大腿部の骨の機能として 2 つの軸で駆動されています。これはすべてランタイムに計算されるため、手動でオーサリングされた微調整がなくてもアニメーションのブレンドはここでは非常にうまく機能します。 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-CDG4WcQ7cIY
-[/PARAMLITERAL]
-[/OBJECT]
-
-![Bone Driven Controller](BoneDrivenController.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**ソース (ドライバー)**[/REGION] ||
-| **Source Bone** | コントローラー入力として使用するボーン |
-| **Source Component** | 入力として使用する Transform コンポーネント  |
-| [REGION:tablesection]**マッピング**[/REGION] ||
-| **Driving Curve** | ソース属性から存在する場合は駆動される属性をマッピングするために使用するカーブ (存在しない場合は Multiplier を使用) |
-| **Remap Source** | ドライバー値をクランプし、スケーリング前に再マッピングするかを設定します。 |
-| **Multiplier** | 入力値に適用する乗数 (カーブを使用する場合は無視されます)。 |
-| [REGION:tablesection]**目的位置 (駆動)**[/REGION] ||
-| **Target Bone** | コントローラー入力を使用して操作するボーン |
-| **Target Component Space** | 使用した Parent Bone Space (親ボーン空間) [INCLUDE:#LocationSpace] |
-| **Modification Mode** | 駆動先のコンポーネントに加える変更のタイプを設定します。 [INCLUDE:#ModificationSettings]  |
-| [REGION:tablesection]**設定**[/REGION] ||
-| **(As Pin) Alpha** | ノード上のアルファ ピンの表示を有効/無効にします。 |
-| **Alpha Scale Bias**| 最小および最大の入力スケール値を設定します。 |
-
-
-<!--
-[EXCERPT:LocationSpace]
-[REGION:simpletable]
-| 値 | 効果 |
-| ----- | ------ |
-| **Translation** | ターゲット ボーン上の平行移動の XYZ 成分 |
-| **Rotation** | ターゲット ボーン上の回転の XYZ 成分 |
-| **Rotation** | ターゲット ボーン上のスケーリングの XYZ 成分 |
-[/REGION] 
-[/EXCERPT:LocationSpace]
--->
-
-<!--
-[EXCERPT:ModificationSettings]
-[REGION:simpletable]
-| 値 | 効果 |
-| ----- | ------ |
-| **Add to Input** | 入力成分値に駆動値を追加します。 |
-| **Replace Component** | 入力成分値を駆動値と置き換えます。 |
-| **Add to Ref Pose** | 駆動値を参照ポーズ値に追加します。 |
-[/REGION] 
-[/EXCERPT:ModificationSettings]
--->
 
 
 ## 共通のピンとプロパティ
@@ -201,126 +26,59 @@ CDG4WcQ7cIY
 | ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Component Pose** | 変形させる入力ポーズ |
-| **Alpha** | スケルタル制御で適用される変形の重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をした変形に対し最大限の重み付けをします。|
+| **Component Pose** | トランスフォームさせる入力ポーズです。 |
+| **Alpha** | スケルタル制御で適用されるトランスフォームの重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をしたトランスフォームに対し最大限の重み付けをします。|
 | [REGION:tablesection]**出力ピン**[/REGION] ||
-| Pose (Blank) | 変形適用後の最終ポーズ |
+| **Pose (Blank)** | トランスフォーム適用後の最終ポーズ |
 
 ## コンポーネント空間
 
 [INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
 
+[REGION:note]
 SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animation/NodeReference/SpaceConversion) をご覧ください。
+[/REGION]
 
+## Skeletal Control ノード
 
-## ボーンのコピー
+以下は、AnimGraph 内の各 Skeletal Control ノードについての情報を示したページへのリンクです。 
 
-**Copy Bone** 制御は、変形データまたはそのコンポーネントがあればコピーします。例えばあるボーンから別のボーンへ 
-平行移動、回転、またはスケーリングのデータをコピーします。
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	Skeletal Control
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics "%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation "%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController "%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")		
+	[/PARAM]
+[/OBJECT]
 
-![Apply Percentage of Rotation](node_copybone.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**コピー**[/REGION] ||
-| **Target Bone** | 変形データをコピーするターゲット ボーンの名前です。| 
-| **Source Bone** | そこから変形データを受け取るソースボーンの名前です。 |
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Copy Translation** | ソースボーンの変形データのTranslation (平行移動) 成分をコピーするか否かを指定する bool 値です。 |
-| **Copy Rotation** | ソースボーンの変形データの Rotation (回転) 成分をコピーするか否かを指定する bool 値です。 |
-| **Copy Scale** | ソースボーンの変形データの Scale (スケーリング) 成分をコピーするか否かを指定する bool 値です。 |
-
-## スプリング コントローラー
-
-**スプリング コントローラー** は、ボーンが参照ポーズ位置から伸縮できる距離の制限や、 
-反対方向へ力を加えるスプリング ソルバを適用します。
-
-![Apply Percentage of Rotation](node_springcontroller.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**Spring**[/REGION] ||
-| **Spring Bone** | スプリング ソルバを適用するボーンの名前です。 |
-| **Limit Displacement** | 有効時は、スプリング ソルバが適用されます。|
-| **Max Displacement** | ボーンが伸縮できる最大距離です。 |
-| **Spring Stiffness** | スプリングによって適用される力の量の乗数です。値が大きくなると、ボーンを変位させるために高いボーンのべロシティ (速度) を必要とし、最終的により大きな力を適用することになります。 |
-| **Spring Damping** | スプリングで取り除いたボーンのベロシティの量です。 |
-| **Error Reset Thresh** | 変位の閾値。スプリングがこの値以上に伸縮した場合、アクタのテレポートなど突然発生する大きな変位を避けるためにリセットします。 |
-| **No ZSpring** | 有効になると、Z 軸の変位はスプリングによって無視されて、常に正しくなります。|
-
-
-## ボーンの変形 (修正) 
-
-![Apply Percentage of Rotation](node_modifybone.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**スケルタル制御**[/REGION] ||
-| **Bone To Modify** | 変形データを修正するターゲット ボーンの名前です。 |
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Translation** | ターゲット ボーンに適用する平行移動データを指定するベクター値です。 |
-| **Rotation** | ターゲット ボーンに適用する回転データを指定する Rotator (ローテータ) です。 |
-| **Scale** | ターゲット ボーンに適用するスケーリング データを指定するベクター値です。 |
-
-## ツイスト補正
-
-**Twist Corrective** ノードは、あるボーンの他のボーンに対するツイストに基づいて **Morph Targets** などのカーブ値を操作します。例えば、首を右または左にひねりすぎた場合は、モーフターゲットを首に適用することで見た目が自然になります。 
-
-![](ExampleImage.png)
-
-ボーン名とローカル軸を使用して、**Base Frame** と **Twist Frame** を指定して、**Twist Normal** をツイストの軸に指定することができます。 
-
-例えば、Y 軸にそって右側へのツイストをチェックしたい場合は、法線は (0, 1, 0) になります。または、Y 軸にそって左側へのツイストをチェックしたい場合は、法線は (0, -1, 0)になります。例えば、Z 軸にそって上/中央へのツイストをチェックしたい場合は、法線は(0, 0, 1) になります。この角度は、その平面とツイスト フレームとの間で計算されます。
-
-範囲 **[Max Angle in Degree (最大角度)]** の Angle Delta は、名前を付けたカーブを使用して **[Mapped Range Min]** と **[Mapped Range Max]** にマッピングされます。 
-
-![](TwistDetails.png)
-
-**Animation ブループリント** の **AnimGraph** に Twist Corrective ノードを追加することができます。 
-
-![](TwistCorrective.png)
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Component Pose** | 変形させる入力ポーズ |
-| **Alpha** | スケルタル制御で適用される変形の重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をした変形に対し最大限の重み付けをします。|
-| [REGION:tablesection]**出力ピン**[/REGION] ||
-| Pose (Blank) | 変形適用後の最終ポーズ |
-
-
-## Two Bone IK
-
-**[Two Bone IK]** 制御は、キャラクターの手足など 3 ジョイントのチェーンにインバースキネマティクス (IK) ソルバを適用します
-
-![Apply Percentage of Rotation](node_twobone.png)
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| [REGION:tablesection]**IK**[/REGION] ||
-| **IK Bone** | IK ソルバを適用するボーンの名前です。これはボーンチェーンの最終ボーンになります。例えば、足首や手首のボーンです。 |
-| [REGION:tablesection]**伸縮制限 **[/REGION] ||
-| **X** | 手足の最大強度 (Max Limb Length) の比率。ボーンをいつスケーリングするかを設定する場合に使用します。 |
-| **Y** | Translation コンポーネントの最大スケーリング許容量。 |
-| **Allow Stretching** | true の場合、ボーンは伸縮可能になります。 |
-| [REGION:tablesection]**エンド エフェクタ**[/REGION] ||
-| **Effector Space Bone Name** | Effector Location Space が BCS_BoneSpace に設定される場合に、エフェクタの位置として使用するボーンの名前です。 |
-| **Take Rotation from Effector Space** | 有効になると、エフェクタ (コンポーネント、親、またはボーン) の回転は IK Bone へ適用されます。 |
-| **Maintain Effector Rel Rot** | 有効になると、IK Bone はエフェクタに対して相対的な回転を維持します。 [REGION:note]この設定は [Take Rotation from Effector Space] が有効になるとオーバーライドされます。[/REGION] |
-| **Effector Location Space** | Effector Location の参照フレームです。 [INCLUDE:#LocationSpace] |
-| [REGION:tablesection]**Join Target**[/REGION] ||
-| **Joint Target Location Space** | Joint Target Location の参照フレームです。 [INCLUDE:#LocationSpace] |
-| **Joint Target Space Bone Name** | Joint Target Location Space が BCS_BoneSpace に設定された場合に、ジョイントのターゲット位置として使用するボーンの名前です。 |
-
-| ピン | 説明 |
-| --- | ----------- |
-| [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Effector Location** | Effector Location Space でエフェクタの位置を指定するベクター値です。 |
-| **Joint Target Location** | Joint Target Location Space でジョイント ターゲットの位置を指定するベクター値です。 |
-
+<!--
+[REGION:topics third]
+%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\CopyBone:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\LookAt:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\SpringController:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TransformBone:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TrailController:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:TopicCompact%
+[/REGION]
+-->

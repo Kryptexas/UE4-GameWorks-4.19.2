@@ -54,8 +54,8 @@ creating, saving, and opening Levels, and this guide will cover the basics.
 
 ## Creating Levels
 
-You can create a new Level in the **Content Browser** in the same way that you would [create other assets](Engine/Content/Browser/UserGuide/BrowserAssetCreation#addingassets) like Blueprint Classes, Materials, or Particle Systems. However, 
-because Levels are also how you lay out and organize your project, you can create them from the **File** menu as well. 
+You can create a new Level in the **Content Browser** in the same way that you would [create other assets](Engine/Content/Browser/UserGuide/BrowserAssetCreation#addingassets) 
+like Blueprint Classes, Materials, or Particle Systems. However, because Levels are also how you lay out and organize your project, you can create them from the **File** menu as well. 
 
 1. Open the **File** menu. 
 

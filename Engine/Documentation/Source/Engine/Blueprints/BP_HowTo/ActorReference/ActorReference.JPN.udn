@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3035989
 Availability:Public
 Title:アクタ リファレンスの設定と取得
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -9,7 +9,7 @@ skilllevel:Intermediate
 type:howto
 parent:Engine/Blueprints/BP_HowTo
 order:1
-tags:Handling Objects and Actors
+tags:Data Types
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
@@ -18,7 +18,7 @@ tags:Handling Objects and Actors
 [REGION:note]
 このサンプルでは **Starter Content** を有効にした新しい **Blueprint Third Person Template** を使用しています。
 [/REGION]
-1. **[Modes]** メニューの **[Basic] ** タブにある **Box Trigger** をレベル内にドラッグします。 
+1. **[Modes]** メニューの **[Basic (基本)] ** タブにある **Box Trigger** をレベル内にドラッグします。 
 
 	![](1AddTriggerBox.png)
 
@@ -32,11 +32,11 @@ tags:Handling Objects and Actors
 
 1. ブループリントに名前を付けて **[Create Blueprint (ブループリントを作成)]** を選択します (**ブループリント エディタ** が開きます)。 
 
-1. ブループリント エディタの **[MyBlueprint]** ウィンドウで、 **[Add Variable (変数を追加)]** ボタンをクリックします。 
+1. ブループリント エディタの **[MyBlueprint]** ウィンドウで、**[Add Variable (変数を追加)]** ボタンをクリックします。 
 
 	![](3AddVariable.png)	
 
-1. 変数の **[Details]** パネルで **[Variable Type (変数の種類)]** をクリックし **[Object Reference (オブジェクト リファレンス)]** から **[Actor]** を選択します。 
+1. 変数の **[Details (詳細)]** パネルで **[Variable Type (変数の種類)]** をクリックし **[Object Reference (オブジェクト リファレンス)]** から **[Actor]** を選択します。 
 
 	![](4VariableType.png)
 
@@ -46,7 +46,7 @@ tags:Handling Objects and Actors
 
 	![](5NameVariable.png)
 
-	これは、メイン エディタ ウィンドウの **[Details]** ペインを使って、このブループリントの外部でのアクセスと設定を可能にする変数が **Public** に対して設定されたことを表します。ブループリントに戻らずに変数を修正したい場合に便利です。 
+	これは、メイン エディタ ウィンドウの **[Details (詳細)]** ペインを使って、このブループリントの外部でのアクセスと設定を可能にする変数が **Public** に対して設定されたことを表します。ブループリントに戻らずに変数を修正したい場合に便利です。 
 
 1. 変数の実行内容や用途の **ツールチップ** として表示させるテキストを入力することもできます。 
 
@@ -84,7 +84,7 @@ tags:Handling Objects and Actors
 
 1. レベル内の **[Box Trigger]** をクリックします。
 
-1. **[Details (詳細)]** パネルで、 **[Target Actor]** の下の **[None]** ボックスをクリックし、「**Shape** 」(または追加したアクタの名前) を検索します。
+1. **[Details (詳細)]** パネルの **[Target Actor (ターゲット アクタ)]** の下にある **[None]** ボックスをクリックし、「**Shape** 」(または追加したアクタの名前) を検索します。
 
 	![](10DropDownSelection.png)
 
@@ -100,7 +100,7 @@ tags:Handling Objects and Actors
 
 	![](11ActorSelected.png)
 
-1. アクタを選ぶと、 **Target Actor** 変数が **[Details]** パネルで選択されたアクタに更新されます。 
+1. アクタを選ぶと、 **Target Actor** 変数が **[Details (詳細)]** パネルで選択されたアクタに更新されます。 
 
 	![](13ActorSelected.png)
 
@@ -130,7 +130,7 @@ tags:Handling Objects and Actors
 
 	現在のターゲットの変形への追加が可能になります (現在位置からの移動が可能になります)。 
 
-1. ノードを以下のように接続し、 **Add Actor Local Offset** ノードの **Z** 値を **500.0** に設定します。 
+1. ノードを以下のように接続し、**Add Actor Local Offset** ノードの **Z** 値を **500.0** に設定します。 
 
 	![](17AddZValue.png)
 
@@ -140,11 +140,11 @@ tags:Handling Objects and Actors
 
 	![](selectTriggerBox.png)
 
-	**[Component]** ウィンドウが表示されない場合は、 **[Window]** メニュー オプションから有効にすることができます。 
+	**[Component]** ウィンドウが表示されない場合は**[Window]** メニュー オプションから有効にすることができます。 
 
 	![](enableComponentWindow.png)
 
-1.	トリガーボックスの **[Details]** パネルで、**[Rendering]** の下にある **[Actor Hidden In Game (インゲームでアクタを非表示にする)]** オプションのチェックを外します。 
+1.	トリガーボックスの **[Details (詳細)]** パネルの **[Rendering]** の下にある **[Actor Hidden In Game (インゲームでアクタを非表示にする)]** オプションのチェックを外します。 
 
 	![](19ActorHiddenInGame.png)
 
@@ -158,7 +158,7 @@ tags:Handling Objects and Actors
 
 1.	メイン エディタ ウィンドウのレベル ビューポートにある **Box Trigger** ブループリントをクリックします。 
 
-1.	**[Box Trigger]** の **[Details]** パネルの **[Target Actor]** の隣にあるスポイト ツールをクリックします。 
+1.	**[Box Trigger]** の **[Details (詳細)]** パネルの **[Target Actor (ターゲット アクタ)]** の隣にあるスポイト ツールをクリックします。 
 
 	![](11PickActor.png)
 

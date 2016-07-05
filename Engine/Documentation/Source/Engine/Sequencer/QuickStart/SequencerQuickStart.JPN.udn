@@ -1,38 +1,97 @@
-﻿INTSourceChangelist:2901521
-Availability:Docs
+﻿INTSourceChangelist:3013123
+Availability:Public
 Title:シーケンサー クイック スタート
 Crumbs: %ROOT%, Engine
 Description:UE4 でシーケンサー エディタの作業を開始するためのガイドです。 
 Navigation:topic
 parent:Engine/Sequencer
 order:1
-Version:4.11
-Related:Engine/Sequencer/Overview
-Related:Engine\Sequencer\ReferenceEditor
-Related:Engine\Sequencer\HowTo
+Version: 4.12
 
 
-[REGION:warning]
-これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](sequencerQS_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Sequencer/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](sequencerQS_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Sequencer/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Z2E4lcodFww
+[/PARAMLITERAL]
+[/OBJECT]
+
+_このガイドを終える頃には、上図のようなシーンが出来上がります。_
+
+## 目標
+
+このガイドでは、UE4 でシネマティックス作成の基礎を学びます。 
+
+シーケンサーを初めて使う場合には、このガイドがお勧めです。 
+
+## 目的
+
+このチュートリアルでは以下を習得します。
+
+*	レベル シーケンスの作成方法
+*	シネマティックス プレビューを有効にする方法 
+*	ショットにカメラを追加し移動する方法
+*	キャラクターにアニメーションを適用する方法 
+*	カメラのフォーカス設定を変更する方法
+*	シネマティックスのショットとテイクの作成と使用の方法
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ステップ
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"Engine/Sequencer/QuickStart" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[クリックして開始](Engine/Sequencer/QuickStart/1 "%Engine/Sequencer/QuickStart/1:title%")
 [/REGION]
-
-シーケンサーは、[**マチネ**](Engine\Matinee\) の後継であり、特殊なマルチ トラック エディタを通してインゲームのシネマティックスを作成する機能があります。 
-**レベル シーケンス** を作成し **トラック** を追加することで、各トラックの構成を定義し、それによりシーケンスの内容を決めることができます。 
-トラックには、アニメーション (キャラクターをアニメートするため)、トランスフォーム (カメラなどをシーン内で動かす) 、オーディオ (音楽やサウンド エフェクトを含むため) などがあります。 
-
-このページでは、UE4 内の **シーケンサー** エディタの基本について説明します。 
-
-[REGION:note]
-シーケンサーは、まだ開発の初期段階であり、利用するには有効にしなければなりません。詳細は [](Engine\Sequencer\HowTo\EnableSequencer) のページをご覧ください。 
-[/REGION]
-
-##レベル シーケンス
-
-**Level Sequence** アセットは、**Matinee アクタ** と類似しており、シーケンサーで作業を始める前に作成しなければなりません。 
-
-作成するには、**ツールバー** の **シネマティックス** から、または **コンテンツ ブラウザ** から行います。 
-
-
 
 
 

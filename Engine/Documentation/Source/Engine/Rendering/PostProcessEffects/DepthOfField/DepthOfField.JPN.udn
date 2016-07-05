@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2832095
+﻿INTSourceChangelist:2957999
 Availability:Public
 Title: 被写界深度
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
@@ -48,7 +48,7 @@ Circle DoF は一番最近追加され、現実世界のカメラにより近づ
 パフォーマンスは非常によく (Bokeh DoFより遥かに) 品質、特に遷移の品質が優れています。
 
 Circle DoF のデフォルトは、かなり貧弱な設定になっています。最大のエフェクトを得るために、設定を調整することができます。大きなボケに対しては絞り値を低くして、オブジェクトに近づいて、視野角を低い設定にします。
-いろいろな焦点距離を試してみてください。
+理想としては焦点面 (focal plane) の正面か後ろでシーンのコンテンツの焦点をぼかすために、集束距離 (focal distance) を使います。VisualizeDepthOfField 表示フラグを使うと、正しい設定が見つかりやすい場合があります。
 
 [/EXCERPT:DepthOfField_Circle]
 
