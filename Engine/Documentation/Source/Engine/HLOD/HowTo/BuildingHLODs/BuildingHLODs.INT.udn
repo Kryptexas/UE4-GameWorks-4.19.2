@@ -10,6 +10,10 @@ To build your Hierarchical Level of Detail (HLOD) Meshes, there are 2 major step
 
 For each LOD level you'll need to specify the settings for that LOD (such as 
 
+[REGION:warning]
+HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+[/REGION]
+
 ## Steps
 
 Below are the steps to generate your HLOD meshes broken into 2 major sections: Generate Clusters and Generate Proxy Meshes.
@@ -42,7 +46,7 @@ To visualize how the generated clusters work in the editor you can use the "Forc
 
 ![image alt text](Engine/HLOD/Overview/image_8.png)(h:17 w:624 convert:false)
 
-Should you run into any issues you don’t like with the generated cluster you can expand the specified cluster and select the offending static mesh actor. By right-clicking on the actor you have the option to Remove or Exclude it from the generation of the cluster. 
+Should you run into any issues you don’t like with the generated cluster you can expand the specified cluster and select the offending static mesh actor. You can then click and drag it to another cluster or by right-clicking on the actor you have the option to **Remove** or **Exclude** it from the generation of the cluster. 
 
 ![image alt text](Engine/HLOD/Overview/image_9.png)(h:101 w:392 convert:false)
 

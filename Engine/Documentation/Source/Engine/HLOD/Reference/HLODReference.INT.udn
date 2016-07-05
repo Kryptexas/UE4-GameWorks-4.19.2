@@ -5,6 +5,10 @@ availability:docs
 
 This page details the buttons and properties that exist on the Hierarchical LOD Outliner.
 
+[REGION:warning]
+HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+[/REGION]
+
 ## Property and Interface Reference
 
 ![HLOD Outliner Fully Expanded](image_2.png)
@@ -49,9 +53,9 @@ Below, broken out by major section, are the properties that can be found in a **
 | **Merge Physics Data:** || Whether to merge the collision primitives when combining the actors. |
 | **Merge Materials** || Whether to merge source materials into one flat material. |
 | [REGION:tablesection]**[Material Settings See Below](#materialsettings)**[/REGION] |||
-| **Bake Vertex Data ** || This will bake any vertex data found into the LOD. |
-| **Calculate Correct LODModel** || Calculates the correct LOD Model. |
-| **Export Specific LOD** || Exports the specified LOD. |
+| **Bake Vertex Data ** || Incorporates painted vertex colours into model/baked out material. |
+| **Calculate Correct LODModel** || Calculates the correct LOD model based upon the screen size value (similar to how regular LODs are determined for static meshes in the editor/game). |
+| **Export Specific LOD** || Forces the system to pick the given LOD level for all models (if the LOD level exists, otherwise picks the maximum closest value). |
 
 ### Material Settings
 
@@ -96,7 +100,7 @@ Texture Sizing Type Description
 | Type | %spacer2% | Description |
 | --- | :---: | :--- |	
 | **Use TextureSize for all material properties** || Will use the value entered into **Texture Size** for sizing. |
-| **Use automatically biased texture sizes based on TextureSize** || Will use the value entered into **Texture Size**, but bias it based on usage. |
+| **Use automatically biased texture sizes based on TextureSize** || This creates a biased set of **{normal:diffuse:otherproperties}** textures using the ratio of **{1:0.5:0.25}** so if the texture size is set to 512 it will output a 512 normal map, 256 diffuse map and 128 map for roughness specular etc (diffuse is clamped to 32x32 and roughness specular etc to 16x16 |
 | **Use per property manually overridden texture sizes** || Enables the per texture overrides, and uses those values instead of **Texture Size**. |
 | **Use Simplygon’s automatic texture sizing** || Uses **Simplygon's** sizing. |
 [/REGION]
