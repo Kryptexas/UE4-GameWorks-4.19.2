@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3023193
 Availability:Public
-Title:Transform Bone
+Title:ボーンのトランスフォーム
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes the Transform (Modify) Bone control which can be used to modify the transform of a specified bone. 
+Description:指定したボーンのトランスフォームを修正するために使用できるTransform Modify Bone 制御について説明します。 
 version: 4.12
 
 [VAR:Topic]
@@ -39,11 +39,11 @@ version: 4.12
 [/OBJECT]
 [/VAR]
 
-The **Transform (Modify) Bone** control can be used to modify the transform of a specified bone. 
+**Transform (Modify) Bone** 制御は、指定したボーンのトランスフォームを修正するために使用できます。 
 
 ![](node_modifybone.png)
 
-Below we use two Transform Modify Bone controllers to affect the Spine and Neck of our character. 
+以下では、2 つの Transform Modify Bone コントローラーを使ってキャラクターの脊髄と首に影響を与えます。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -57,20 +57,20 @@ Below we use two Transform Modify Bone controllers to affect the Spine and Neck 
 [/PARAMLITERAL]
 [/OBJECT]
 
-We can use variables to drive the changes in Translation, Rotation or Scale on the Transform Modify Bone to affect our character.
-In the video above, the **Rotation Value** variable drives the rotation of the **MF_Spine_01** and **b_MF_Neck** Bones in our character. 
-The scale of our character is also driven by a float variable (**Scale Multiplier**) which affects the spine of our character, increase/decreases the size of the bone and scaling our character. 
+変数を使って Transform Modify Bone の平行移動、回転、スケーリングの変更を操作し、キャラクターに影響を与えます。
+上の動画では **Rotation Value** 変数によってキャラクターの **MF_Spine_01** および **b_MF_Neck** のボーンの回転を操作しています。 
+キャラクターのスケーリングも float 値 (**Scale Multiplier**) で操作され、キャラクターの脊髄に影響を与え、ボーンのサイズやキャラクターのスケーリングを増減させます。 
 
 
-| Property | Description |
+| プロパティ | 説明 |
 | -------- | ----------- |
-| [REGION:tablesection]**Skeletal Control**[/REGION] ||
-| **Bone To Modify** | Name of the target bone to modify the Transform of. |
+| [REGION:tablesection]**スケルタル コントロール**[/REGION] ||
+| **Bone To Modify** | トランスフォーム データを修正するターゲット ボーンの名前です。 |
 
-| Pin | Description |
+| ピン | 説明 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Translation** | A Vector specifying the Translation to apply to the target bone. |
-| **Rotation** | A Rotator specifying the Rotation to apply to the target bone. |
-| **Scale** | A Vector specifying the Scale to apply to the target bone. |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Translation** | ターゲット ボーンに適用する平行移動データを指定するベクター値です。 |
+| **Rotation** | ターゲット ボーンに適用する回転データを指定する Rotator (ローテータ) です。 |
+| **Scale** | ターゲット ボーンに適用するスケーリング データを指定するベクター値です。 |
 

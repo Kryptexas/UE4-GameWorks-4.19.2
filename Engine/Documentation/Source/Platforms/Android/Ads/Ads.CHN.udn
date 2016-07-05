@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:0
-Title: Using Ad Mob In-Game Ads on Android
-Description:Using the AdMob in-game advertisement system on Android.
+﻿INTSourceChangelist:2945303
+Title:在安卓上使用 Ad Mob 游戏内置广告
+Description:在安卓上使用 AdMob 游戏内置广告系统。
 Crumbs:
 Availability:Public
+version:4.10
 Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:howto
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -41,33 +45,33 @@ Parent:Platforms/Android
 
 ![](Platforms/Mobile/Ads/AdMob.png)(w:240)
 
-## Configuration
+## 配置
 
-To configure your project to use the AdMob in-game advertisement system on Android:
+配置安卓项目，使用 AdMob 游戏内置广告系统的步骤：
 
-1. In the **Edit** menu in **Unreal Editor**, select **Project Setings** to view the configuration options for your project.
+1. 在 **虚幻编辑器** 的 **Edit** 菜单中选择 **Project Settings** 查看项目的配置选项。
 
-1. On the left, Select the **Platforms: Android** tab. 
+1. 选择左边的 **Platforms:Android** 标签。 
 
-1. In the **Google Play Services** section, check the **Enable Google Play Support** option.
+1. 勾选 **Google Play Services** 部分下的 **Enable Google Play Support** 选项。
 
-1. Enter the App ID for your game in the **Games App ID** field.
+1. 在 **Games App ID** 栏位中输入游戏的 App ID。
 
-1. Add an element to the **Ad Mob Ad Unit IDs** array for each AdMob ID you want to associate and enter the ID in the text box.
+1. 为每个需要关联的 AdMob ID 的 **Ad Mob Ad Unit Ids** 阵列添加元素，并在文本框中输入 ID。
 
-1. Enter your Google Play License Key in the **Google Play License Key** field.
+1. 在 **Google Play License Key** 栏位中输入 Google Play 授权码。
 
 	![image alt text](image_0.png)
 
-	All of these values are available in the Google Play Developer Console for your App and Game Services, or in the Google Ad Mob interface.
+	这些数值在应用程序和游戏服务的 Google Play Developer Console 中（或在 Google Ad Mob 界面中）可用。
 
-1. Finally, you'll need to add **com.android.vending.BILLING** to the **Extra Permissions** array in the **Advanced APKPackaging** section of the **Android** settings:
+1. 最后需要将 **com.android.vending.BILLING** 添加到 **Android** 设置 **Advanced APKPackaging** 部分中的 **Extra Permissions** 阵列：
 
 	![](extraPermissions.png)
 
-### C++ Projects
+### C++ 项目
 
-If you project is a C++ project you will also need to add the appropriate modules to your Target.cs file, for example:
+如项目为 C++ 项目，则需要为 Target.cs 文件添加合适的模块，例如：
 
 		...
 		if (Target.Platform == UnrealTargetPlatform.Android)
@@ -77,7 +81,7 @@ If you project is a C++ project you will also need to add the appropriate module
             ModuleNames.Add("AndroidAdvertising");
 		}
 
-Look at the Unreal Match 3 Target.cs file, `Match3\Source\Match3.Target.cs`, to see how this fits into the entire file.
+查看 Unreal Match 3 Target.cs 文件（`Match3\Source\Match3.Target.cs`），了解它如何融入整个文件。
 
 
 [INCLUDE:Platforms/Mobile/Ads#usage]

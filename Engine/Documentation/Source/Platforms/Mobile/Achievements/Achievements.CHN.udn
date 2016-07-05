@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
-Title: Using Mobile Service Achievements
-Description:Using Mobile Achievements to increase player engagement.
+﻿INTSourceChangelist:2940199
+Title:使用移动服务成就
+Description:通过移动平台成就提升玩家粘着度。
 Crumbs:
 Availability:Public
 Parent:Platforms/Mobile
@@ -42,7 +42,7 @@ tags:mobile
 [/OBJECT]
 [/VAR]
 
-Whether you are using them as goals to strive for, badges of honor, or simple story mile markers, **Achievements** are a great way to keep players engaged with your game.
+**成就** 可设定为努力达成的目标、荣誉的徽章，或只是单纯的游戏进度标志。无论如何，它们都能让玩家对游戏更为入迷。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -56,9 +56,9 @@ Whether you are using them as goals to strive for, badges of honor, or simple st
 	[/PARAMLITERAL]
 [/OBJECT]
 
-## Configuration
+## 配置
 
-See the appropriate platform-specific page below for details on configuring in-game advertisements for each platform:
+在下方页面中查看在每个平台上进行游戏内购配置的详细内容：
 
 [REGION:buttonlist]
 * [](Platforms/Android/Achievements)
@@ -67,55 +67,55 @@ See the appropriate platform-specific page below for details on configuring in-g
 
 
 [EXCERPT:Usage]
-## Caching your Achievements
+## 缓存成就
 
-**Cache Achievements** will request from the platform's game service the list of achievements and the values the current player has for said achievements. You'll be able to use the **Get Cached Achievement Value** if this node returns successfully.
+**Cache Achievements** 将从平台游戏服务请求成就列表，以及玩家拥有的成就数值。如此节点成功返回，即可使用 **Get Cached Achievement Value**。
 
-Note that it is a **latent** node, and thusly has a number of execution output pins. The top most is a "pass through," that works like any other execution output pin. The other two pins (**On Success**, and **On Failure**) will execute when the online service returns (or fails to return) a value. When the execution returns a success
+它是 **隐藏** 节点，因此拥有多个执行输出引脚。最上方的是“pass through”，功能与其他执行输出引脚相似。在线服务返回数值（或返回数值失败）后，其他两个引脚（**On Success** 和 **On Failure**）将执行。执行返回 success 时
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **Global Game Instance** Blueprint in the Unreal Match 3 sample game. After the user logs into the device's game platform (Game Center, Google Play), we run the **Cache Achievements** node and actually halt execution (by not having anything execute off the top output execution pin) at this point to give the service time to return all the achievements:
+下图取自 Unreal Match 3 示例游戏的 **Global Game Instance** 蓝图。用户登入设备的游戏平台（Game Center、Google Play）后，我们在此时将运行 **Cache Achievements** 节点并停止实际执行（使顶部输出执行引脚不进行执行），使服务有时间返回所有成就。
 
 ![](cacheAchievements.png)
 
-## Reading Values from your Achievements
+## 从成就读取数值
 
-The **Get Cached Achievement Progress** will return the progress of a given **Achievement ID** for the provided **Player Controller**, and only work if a **Cache Achievements** node was run earlier and returned successfully.
+**Get Cached Achievement Progress** 将返回特定 **Player Controller** 特定 **Achievement ID** 的进度，前提是之前已运行 **Cache Achievements** 节点并成功返回。
 
-For iOS Game Center, this value is actually a floored float, as they store it as an integer. A float is received for Google Play Services.
+对于 iOS Game Center 而言，该数值为一个底层浮点值，因为它们将其作为整数保存。为 Google Play 服务接收的是浮点值。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **Global Game Instance** Blueprint in the Unreal Match 3 sample game. Once the achievements are cached, we run through a loop pulling achievement names, as well as their target scores, from arrays, and do a quick comparison to any offline values found. We then accept the higher value of the service or the local values:
+下图取自 Unreal Match 3 示例游戏的 **Global Game Instance** 蓝图。成就被缓存后，我们通过一个循环从阵列中获取成就名称、以及它们的目标分数，并与找到的离线数值进行快速比较。然后接收服务较高的数值，或本地数值：
 
 ![](readAchievement.png)
 
-## Writing Values to your Achievements
+## 向成就写入数值
 
-The **Write Achievement Progress** will send a message up to the platform's achievement system to write a percentage (0.0% - 100.0%) based **Progress** to the provided achievement for the given user (**Player Controller** and **User Tag**). For "one off" achievements you will always pass in `100.0` for **Progress**, while for incremental achievements, you'll be passing in some lesser percentage until the user reaches `100.0` for that achievement.
+**Write Achievement Progress** 将从平台的成就系统发出消息，向特定用户的特定成就（**Player Controller** 和 **User Tag**）写入以百分比（0.0% - 100.0%）为基础的 **Progress**。对于“一次性解锁”的成就而言，**Progress** 传入的固定数值为 `100.0`；对于递增的成就而言，传入的百分比较低，直至数值达到 `100.0`。
 
-For iOS Game Center, this value is actually sent as an integer, as they only have 1-100 incremental achievements. A float is sent for Google Play Services.
+对 iOS Game Center 而言，此数值实际上会作为整数发送，因为只存在 1-100 递增的成就。为 Google Play 服务发送的是浮点值。
 
-Note that it is a **latent** node, and thusly has a number of execution output pins. The top most is a "pass through," that works like any other execution output pin. The other two pins (**On Success**, and **On Failure**) will execute when the online service returns (or fails to return) a value. When the execution returns a success the **Written Achievement Name**, **Written Progress**, and **Written User Tag** will return non-null values equal to what you passed into the node.
+它是 **隐藏** 节点，因此拥有多个执行输出引脚。最上方的是“pass through”，与其他执行输出引脚相似。在线服务返回数值（或返回数值失败）后，其他两个引脚（**On Success** 和 **On Failure**）将执行。执行返回 success 后，**Written Achievement Name**、**Written Progress** 和 **Written User Tag** 将返回等于传入节点的非空数值。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **Global Game Instance** Blueprint in the Unreal Match 3 sample game. There's a loop that compares the current achievement value to the metrics required to increase that achievement, and if progress has been made, the **Write Achievement** event is called:
+下图取自 Unreal Match 3 示例游戏的 **Global Game Instance** 蓝图。一个循环将对当前成就数值和增加成就所需的数字进行对比。如已有进度，则会调用 **Write Achievement** 事件：
 
 ![](writeAchievement.png)
 
 [REGION:note]
-This was done because latent nodes can't be used in Functions.
+执行此操作的原因是隐藏节点无法用于函数之中。
 [/REGION]
 
-## Showing the Platform Specific Achievement Screen
+## 显示平台特有的成就画面
 
-The **Show Platform Specific Achievement Screen** will show the achievements of the provided **Player Controller** for the current platform.
+**Show Platform Specific Achievement Screen** 将显示当前平台特定 **Player Controller** 的成就。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the **GameOverButtons** Blueprint Widget in the Unreal Match 3 sample game. When the **ShowAchievements** button is pressed, the game will attempt to show the achievement screen for the current platform.
+下图取自 Unreal Match 3 示例游戏的 **GameOverButtons** 蓝图控件。**ShowAchievements** 按钮按下后，游戏将显示当前平台的成就画面。
 
 ![](showAchievements.png)
 

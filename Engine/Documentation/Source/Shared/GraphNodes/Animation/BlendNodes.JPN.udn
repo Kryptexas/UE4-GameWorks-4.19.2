@@ -165,7 +165,7 @@ Spring Controller は、ボーンが参照ポーズ位置から伸ばすこと�
 
 [EXCERPT:UAnimGraphNode_TwoBoneIK]
 
-[Two Bone IK] 制御は、キャラクターの手足など 3D ジョイントチェーンにインバース キネマティクス (IK) ソルバを適用します
+[Two Bone IK] 制御は、キャラクターの手足など 3 つのジョイント チェーンにインバース キネマティクス (IK) ソルバを適用します
 
 [/EXCERPT:UAnimGraphNode_TwoBoneIK]
 

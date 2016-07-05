@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2975673
 Availability:Public
-Title:Oculus Rift Best Practices
+Title:Oculus Rift 最佳方法
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
-Description:Information over developing for Oculus Rift.
+Description:Oculus Rift 开发的信息。
 Navigation:platform
-Version: 4.11
+Version:4.11
 parent:Platforms/Oculus
 type:overview
 tags:VR
@@ -12,62 +12,56 @@ tags:Oculus Rift
 
 [TOC(start:2)]
 
-The Oculus Rift is a Head Mounted Display (HMD) which allows the user to deeply immerse themselves into the worlds and 
-games they are viewing or playing. The following guide will help to highlight some information that you need to know 
-about when developing content for the Oculus Rift and Unreal Engine 4 (UE4).
+Oculus Rift 是一种头戴显示器（HMD），可使用户在进行观看或游戏时获得身临其境的临场和游戏体验。此指南将讲述使用虚幻引擎 4（UE4）开发 Oculus Rift 所用内容的必需信息。
 
 
-## Oculus Rift Sanity Check
+## Oculus Rift 完整性检查
 
-Unreal Engine will automatically use an Oculus Rift if it is plugged in and the plug-in is enabled. If for some 
-reason the Oculus is not working first check that the plug-In is enabled. You can find the Plugin under Head Mounted 
-Displays that is under the [Plug-in](Programming/Plugins) menu.  
+虚幻引擎将自动使用插入电脑的 Oculus Rift（须启用插件）。出于某种原因，Oculus 不会执行首个检查，确定插件是否已启用。在 [Plug-in](Programming/Plugins) 菜单中的 Head Mounted Displays 下可找到插件。  
 
 [REGION:fullwidth]
 ![](T_VR_Plug-In_On_00.png)
 [/REGION]
 
-<!-- If that did not fix your issues the next thing to check is to make sure that the Oculus Rift has been detected. To 
-do this, you need to do the following steps:
+<!-- 如此操作并未解决问题，执行第二项检查，确认引擎是否已识别 Oculus Rift。
+执行下列操作确认识别：
 
-* First run a [Standalone Game](Engine/UI/LevelEditor/InEditorTesting/Settings#playinstandalonegame). 
-* Once the Standalone game has been started, bring up the Unreal Console by using the Backtick (`) key. 
-* Then type **showlog**.
-* Next type **ovrversion**.
-* The current LibOVR version and build date should be printed in the log window like in the following picture:
+* 首先运行一个 [Standalone 游戏](Engine/UI/LevelEditor/InEditorTesting/Settings#playinstandalonegame)。 
+* Standalone 游戏运行后，按下重音符键（`）呼出虚幻控制台。 
+* 输入 **showlog**。
+* 然后输入 **ovrversion**。
+* 当前的 LibOVR 版本和版本日期将被打印至日志窗口，与下图相似：
 	[REGION:fullwidth]
 	![](T_OculusRiftPluginVersionCheck.png)
 	[/REGION]
-* If the message **Command not recognized: ovrversion** is displayed instead check the following:
-	* That the plug-in is enabled. 
-	* That you are running UE4 on the Windows platform.
-	* That your Oculus Rift is plugged in.
-	* That your Oculus Rift is functioning correctly.
+* 如出现 **Command not recognized: ovrversion** 消息，执行下列检查：
+	* 插件已启用。 
+	* UE4 的运行系统为 Windows 。
+	* Oculus Rift 已插入。
+	* Oculus Rift 工作正常。
 
 [REGION:tip]
-If you do all of the above and it still does not work it could be that you have a hardware issues. If this happens to 
-you please contact [Oculus VR Support](https://support.oculus.com/help/oculus/885981024820727/?ref=hc_fnav). 
+如上述检查均无误但仍存在问题，则说明可能存在硬件问题。如出现此情况， 
+请联络 [Oculus VR 支持](https://support.oculus.com/help/oculus/885981024820727/?ref=hc_fnav)。 
 [/REGION]
 -->
 
-## Checking your work with the Oculus Rift
+## 在 Oculus Rift 中查看项目
 
-The Oculus Rift HMD will not work with any of the UE4 Editor viewports or the default Play In Editor(PIE) session. To view your project on the Rift you will need to use the **VR Preview** option. To access the VR Preview option you will need to do the following inside the UE4 Editor. 
+Oculus Rift HMD 不能在 UE4 编辑器视口或默认 Play In Editor（PIE）会话中使用。如要在 Rift 上查看项目，需使用**VR Preview** 选项。如要访问 VR Preview 选项，需在 UE4 编辑器中执行下列操作。 
 
-1. On the main Toolbar in the **Play** section, click on the small white triangle that is next to the Play button. 
+1. 在主工具栏的 **Play** 部分下，点击 Play 按钮旁的白色小三角形。 
 
 	![](Rift_Preview_00.png)
 
-1. From the dropdown menu, select the **VR Preview** option and then put your Rift on to view your project in VR.
+1. 从下拉菜单中选择 **VR Preview** 选项，戴上 Rift 之后即可在 VR 模式中查看项目。
 
 	![](Rift_Preview_01.png)
 
 	[region:note]
-	Once you have changed the play mode to the VR Preview option your project will always launch in VR, even when using shortcuts like **ALT + P**.  
+	在 VR Preview 选项中变更 play mode 后，项目将固定在 VR 模式下运行，即使使用 **ALT + P** 之类的快捷键同样如此。  
 	[/region]
 
-## Oculus Reference
+## Oculus 参考
 
-Oculus has put a great deal of time and energy into researching how to give the user the best VR experience possible when 
-using the Rift. If you have not done so already, it is highly recommend that you check out their [website]( https://developer.oculus.com/) 
-as there is a lot of useful information that will help you to develop and deliver the best VR user experience possible.
+Oculus 在研究中投入了大量时间和精力，致力于为 Rift 用户带来最佳的 VR 体验。强烈建议您访问他们的 [官方网站](https://developer.oculus.com/)，这里有大量实用信息，有助于您进行开发、实现最佳的 VR 用户体验。

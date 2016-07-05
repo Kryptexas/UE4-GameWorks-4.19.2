@@ -1,51 +1,59 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3023291
+Availability:Public
 Title:ステートマシーンの編集
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
-Description:アニメーション ステート マシーンの編集ガイド
-version: 4.9
+Description:アニメーションのステートマシーンの編集ガイド
+version: 4.12
+related:Engine\Animation\StateMachines\CreatingStateMachines
+related:Engine\Animation\StateMachines\TransitionRules
+related:Engine\Animation\AnimBlueprints
 
-
-[TOC(start:2)]
-
-
-
-ステートマシーンは、スケルタル メッシュ内で、ステートマシーンの各ノード内で何が実際に起こっているのかが最も重要な特徴となるアニメーション遷移のフローを細分化する場合に便利です。このことを踏まえて、ステートマシーンのそれぞれのノード タイプの主要な目的を覚えることが重要です。
+[**ステートマシーン**](Engine\Animation\StateMachines\Overview) は、スケルタルメッシュのアニメーション遷移のフローを細分化する便利な手段ですが、その中で最も重要な部分は、ステートマシーンの各ノード内で実際に何が起こるかということです。このことを踏まえて、ステートマシーンの各ノードの主な目的を覚えることが重要です。
 
 | **ノード** | **目的** |
 | --- | --- |
 | **State** | ポーズまたはアニメーション結果を出力します。 |
-| **Transition Rule** | アニメーションが 1 つのステートから別のステートへフローするかどうかを管理します。Boolean 値を用いてトランジションの実行を判断します。 |
-| **Conduit** | アニメーションのフローを管理するノードですが、遷移の原因を他の多くのステートとの間で共有することができます。Boolean 値を用いて遷移の実行を判断します。 |
+| **Transition Rule** | アニメーションが 1 つのステートから別のステートへフローするかどうかを管理します。Boolean 値を用いて遷移が起こるかを判断します。 |
+| **Conduit** | これもアニメーションのフローを管理するノードですが、遷移の原因を他の多くのステートとの間で共有することができます。Boolean 値を用いて遷移が起こるかを判断します。 |
 
-このことを理解しておくと、ステートマシーンの各部に配置するノードのタイプを容易に判断できるようになります。
+こうしたことを理解しておくと、ステートマシーンの各部に配置するノードのタイプを容易に判断できるようになります。
 
 ## ステートの編集
 
-ステートのジョブは最終的なアニメーションまたはポーズを作成することです。1 つの AnimSequence 、BlendSpace 、あるいは最終的なアニメーションやポーズが作り出されるタイプのすべてのネットワークと同じくらい簡単なことです。 
+ステートのジョブは最終的なアニメーションまたはポーズを作成することです。1 つの [**AnimSequence**](Engine/Animation/Sequences)、 [**ブレンドスペース**](Engine/Animation/Blendspaces)、あるいは最終的なアニメーションやポーズが作り出されるタイプのすべてのネットワークと同じくらい簡単なことです。 
 
 ![](PlayAnimSequence.png)
 
+[REGION:caption]
+上の図ではひとつの AnimSequence によって Final Animation Pose が得られました。 
+[/REGION]
+
 ![](PlayBlendSpace.png) 
+
+[REGION:caption]
+上の図ではブレンドスペースを使って、Speed の値に基づき様々なポーズ間でブレンドしています。 
+[/REGION]
  
 ![](PlayBlendAnimation.png)
+
+[REGION:caption]
+上の図では、Is In Air? の Boolean の値に基づき異なる AnimSequence が選択されています。
+[/REGION]
 
 
 ### アニメーション エレメントの追加
 
-ステートに AnimSequence または BlendSpace を追加するには、ペルソナの **アセット ブラウザ** からドラッグ＆ドロップするか、 **右クリック** してコンテキスト メニューからアニメーションを選択します。
+ステートに AnimSequence またはブレンドスペースを追加するには、ペルソナの **アセット ブラウザ** からドラッグ＆ドロップします。 
 
-ドラッグ＆ドロップの方法：
+![](DragDropAnimSeqState.png)(w:800)
 
-![](DragDropAnimSeqState.png)(w:505)
-
-コンテキスト メニューの使用方法：
+またはコンテキスト メニューを **右クリック** してアニメーションを選択します。
 
 ![](ContextMenuAnimSeqState.png)
 
 ### ステートの自動作成
 
-AnimSequence または BlendSpace をステートマシーン (あるステートの外側の) にドラッグすれば、ステートがアセットの名前で自動作成され、出力結果へ渡されるアセットで自動的に構成され、時間も節約できます。 
-
+ステートマシーンでステートを自動的に作成するには AnimSequence またはブレンドスペースをグラフにドラッグします。 
 
 ![](AutoStateCreationDrag.png)(w:505)
 
@@ -53,6 +61,7 @@ AnimSequence または BlendSpace をステートマシーン (あるステー�
 
 ![](AutoStateCreation.png)(w:505)
 
-内部でアニメーション アセットが結果に自動的に接続されているのが分かります。
+内部でアニメーション アセットが Final Animation Pose の結果に自動的に接続されているのが分かります。
 
 ![](AutoStateCreationInside.png)(w:505)
+

@@ -52,7 +52,7 @@ order:4
 
 ![](Level_Intro.png)
 
-When playing a video game, every object that you see or interact with in the world resides in what is known as a **Level**. In Unreal Engine 4 terms, a Level is made up of a 
+When playing a video game, every object that you see or interact with resides in what is known as a **Level**. In Unreal Engine 4 terms, a Level is made up of a 
 collection of Static Meshes, Volumes, Lights, Blueprints and more all working together to bring the desired experience to the player. Levels in UE4 can range in size from massive 
 terrain-based worlds to very small levels that contain a few Actors. 
 

@@ -30,8 +30,8 @@ For this scenario, we want to stream the second level in once the **Character** 
 		OverlapVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("OverlapVolume"));
 		RootComponent = OverlapVolume;
 
-1. Back in `LevelStreamerActor.h`, declare a protected OverlapBegins function, which will be bound to the BoxComponent's OnComponentBeginOverlap function. This binding means that OverlapBegins must be tagged with a 
-UFUNCTION macro, and must have the same signature as OnComponentBeginOverlap.
+1. Back in `LevelStreamerActor.h`, declare a protected OverlapBegins function, which will be bound to the BoxComponent's OnComponentBeginOverlap function. This binding means that 
+OverlapBegins must be tagged with a UFUNCTION macro, and must have the same signature as OnComponentBeginOverlap.
 		protected:
 	
 		UFUNCTION()
@@ -46,15 +46,14 @@ UFUNCTION macro, and must have the same signature as OnComponentBeginOverlap.
 
 		#include "Kismet/GameplayStatics.h"
 		
-1. Now you are ready to create your OverlapBegins functionality. In `LevelStreamerActor.cpp`, begin defining the function. Add an if statement to check if we have a world, which will allow us to get and check for our Character.
-You can use the GameplayStatics function `GetPlayerCharacter` to get the Character at index 0. 
+1. Now you are ready to create your OverlapBegins functionality. In `LevelStreamerActor.cpp`, begin defining the function. Add an if statement to check if we have a world, which 
+will allow us to get and check for our Character. You can use the GameplayStatics function `GetPlayerCharacter` to get the Character at index 0. 
 
 		void ALevelStreamerActor::OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 		{
 			if(GWorld)
 			{
-				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
-			
+				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);			
 			}
 		}
 
@@ -153,8 +152,8 @@ You can use the GameplayStatics function `GetPlayerCharacter` to get the Charact
 		}
 1. Compile your code, then switch back to the editor.
 
-1. Place your **LevelStreamer** Actor into your level, and adjust the placement and scale until it encompasses the part of the persistent world you want your **Character** to be in to begin streaming, as well 
-as the entire walkable volume where the streaming level will be.
+1. Place your **LevelStreamer** Actor into your level, and adjust the placement and scale until it encompasses the part of the persistent world you want your **Character** to be 
+in to begin streaming, as well as the entire walkable volume where the streaming level will be.
 
 1. Enter **SunTemple_Streaming** as the **Level to Stream**. 
 

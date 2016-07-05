@@ -12,7 +12,7 @@ Availability:NoPublish
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_safe_area]
-マチネにおける **セーフ フレーム** は表示のことです。ビューポートカメラの FOV で定義されて、シネマティックの最中に見ることができます。
+マチネで **セーフ フレーム** は表示を表します。ビューポートカメラの FOV で定義されて、シネマティックの最中に見ることができます。
 [/EXCERPT:Glossary_safe_area]
 
 	[/PARAM]
@@ -95,12 +95,12 @@ Static (静的)
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Static]
-**Static (スタティック)** は、3 つある潜在的な Mobility プロパティ設定の1つです。設定は、スタティックメッシュとライト コンポーネント両方に適用することができます。
+**Static (静的)** は、3 種類の Mobility プロパティ設定の1つです。設定は、スタティックメッシュとライト コンポーネント両方に適用することができます。
 
 [EXCERPT:Glossary_Static_Lights]
-**Static Light (静的ライト)** は、実行時の変更または移動は不可能なライトです。ライトマップ内部のみで計算され、一度処理がされるとパフォーマンスに影響を与えることはありません。可動オブジェクトは静的ライトとの統合が不可能なので、Static Light (静的ライト) の便利さが限定されます。
+**Static Light (静的ライト)** は、実行時に変更または移動ができないライトです。ライトマップ内部のみで計算され、一度処理されてしまうとパフォーマンスに影響を与えることはありません。可動オブジェクトは Static Light (静的ライト) との統合が不可能なので、Static Light (静的ライト) の便利さが限定されます。
 
-3 つのライトの可動性の中で、Static Light (静的ライト) は中間の品質、最高の可変性を持ち、パフォーマンス負荷は最も軽いです。
+Static Light (静的ライト) を 3 種類の Mobility プロパティで比較すると、品質は 2 番目、可変性は一番小さく、パフォーマンス負荷は最も軽いです。
 [/EXCERPT:Glossary_Static_Lights]
 
 [/EXCERPT:Glossary_Static]
@@ -130,17 +130,17 @@ Static (静的)
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
- Stationary （固定）
+Stationary (固定)
 	[/PARAM]
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Stationary]
-**Static (スタティック)** は、 3 つある潜在的な Mobility プロパティ設定の 1 つです。設定は、ライト コンポーネントに適用することができます。
+**Stationary (固定)** は、3 種類の Mobility プロパティ設定の 1 つです。設定は、ライト コンポーネントに適用することができます。
 
 [EXCERPT:Glossary_Stationary_Lights]
-**Stationary Lights (固定ライト)** は一ヶ所に固定されるライトですが、ライトの輝度や色などは変更することが可能です。これは、ゲームプレイ中にどんな方法でも変更が不可能な静的ライトとは異なる主な方法です。ただし、ランタイム時の輝度変更は、直接光のみに影響することに留意してください。間接 (反射) 光はライトマスに事前計算されるため、変更しません。
+**Stationary Lights (固定ライト)** は一ヶ所に固定されるライトですが、ライトの輝度や色などは変更することが可能です。ゲームプレイ中は絶対に変更ができない Static Light (静的ライト) とはこの部分で大きく異なります。ただし、ランタイム時に輝度を変更した場合は、直接光のみに影響するので留意してください。間接 (反射) 光はライトマスに事前計算されるため、変更しません。
 
-3 つのライトの可動性の中で、静的ライトは最高の品質、中程度の可変性を持ち、中程度のパフォーマンス負荷がかかります。
+Stationary light (固定ライト) を 3 種類の Mobility プロパティで比較すると、品質は最も良く、可変性は 2 番目、パフォーマンス負荷も 2 番目になります。
 [/EXCERPT:Glossary_Stationary_Lights]
 
 [/EXCERPT:Glossary_Stationary]

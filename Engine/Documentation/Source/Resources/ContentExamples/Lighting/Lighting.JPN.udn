@@ -1,18 +1,17 @@
-﻿INTSourceChangelist:2716638
-Availability:Public
+﻿Availability:Public
 Title:ライティングのコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:ライティングのコンテンツ サンプルで提供されるサンプルの概要
-Related:Engine/Rendering/LightingAndShadows/Basics
-Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
-Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
-Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
-Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
-Related:Engine/Rendering/LightingAndShadows/Lightmass
-Related:Engine/Rendering/LightingAndShadows/Shadows
-Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
-Related:Engine/Rendering/LightingAndShadows/LightMobility
-Version:4.9
+Related: Engine/Rendering/LightingAndShadows/Basics
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related: Engine/Rendering/LightingAndShadows/Lightmass
+Related: Engine/Rendering/LightingAndShadows/Shadows
+Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related: Engine/Rendering/LightingAndShadows/LightMobility
+Version: 4.9
 
 [REGION:banner]
 ![](Lighting_Header.png)(convert:false)
@@ -52,7 +51,7 @@ Version:4.9
 [TOC(start:2 end:2)]
 
 
-Content Examples プロジェクトの中にある **Lighting** マップでは、アンリアル エンジン 4 で使用できる様々なライトのタイプに加え lit 環境をより現実的に作成しやすく調整する設定も説明します。 
+Content Examples プロジェクトの中にある **Lighting** マップでは、アンリアル エンジン 4 で使用できる様々なライトのタイプに加え、より本物に近い lit 環境が作成できるように調整可能な設定についても説明します。 
 マップは幾つかのセクションに分かれています。最初の 2 セクションではライトの種類と可動性、そして残りのセクションではシャドウイング、フォールオフ、高度なテクニックを紹介しています。 
 
 各サンプルの詳細は、それぞれの表の中にあるリンクを参照してください。 
@@ -83,17 +82,17 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 | ** [2.2 Stationary Light (固定ライト)](Resources\ContentExamples\Lighting\2_2)** |  は一ヶ所に固定されるライトですが、**Static Lights (静的ライト)** とは異なり、ライトの輝度や色などは変更することが可能です。|
 | ** [2.3 Movable Light (可動ライト)](Resources\ContentExamples\Lighting\2_3)** | ゲーム内で移動や変更が可能なライトです (車のヘッドライトや懐中電灯)。|
 
-### ライト機能＆ IES プロファイル
+### Light 関数と IES プロファイル
 
 ![](lighting_03.png)(w:640)
 
 | サンプル | 内容 |
 | ------- | ------------ |
 | ** [3.1 IES ライト プロファイル](Resources\ContentExamples\Lighting\3_1)** | Illuminating Engineering Society (IES) プロファイルは、現実のライティング結果を作成するための輝度やフォールオフのダイアグラム (照度データ) を作成する北米照明学会の標準手法です。
-| ** [3.2 ライト機能](Resources\ContentExamples\Lighting\3_2)** | ライトの密度をフィルタするために適用できるマテリアルです (アンリアル エンジン 4 は **ライト機能** を使用するウォール上に投影されます)。|
+| ** [3.2 Light 関数](Resources\ContentExamples\Lighting\3_2)** | ライトの密度をフィルタするために適用できるマテリアルです (アンリアル エンジン 4 は **Light 関数** を使用するウォール上に投影されます)。|
 
 
-### フォールオフ＆間接ライティング
+### フォールオフと間接ライティング
 
 ![](lighting_04.png)(w:640)
 
@@ -110,7 +109,7 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 | サンプル | 内容 |
 | ------- | ------------ |
 | **[5.1 Source Radius (静的ライト)](Resources\ContentExamples\Lighting\5_1)** | ソフトあるいはハード シャドウを **Static Light (静的ライト)** の Source Radius を調整して作成する方法を説明します。 |
-| **[5.2 Lightsource Radius](Resources\ContentExamples\Lighting\5_2)** | この例は **Static (固定)** または **Movable (可動)** ライト上に及ぼす **Source Radius** の影響とスペキュラ反射に与える影響を紹介します。 |
+| **[5.2 Lightsource Radius](Resources\ContentExamples\Lighting\5_2)** | この例は **Stationary (固定)** または **Movable (可動)** ライト上に及ぼす **Source Radius** の影響とスペキュラ反射に与える影響を紹介します。 |
 | **[5.3 Lightsource Length](Resources\ContentExamples\Lighting\5_3)** |  **Source Length** を使用してどのようにライトの反射形状が変更されるのかを説明します(蛍光照明器具からの反射)。 |
 | **[5.4 Min Roughness](Resources\ContentExamples\Lighting\5_4)** | 反射が強すぎるハイライトを **Min Roughness** 設定の調整でぼかす方法を実演します。 |
 
@@ -121,7 +120,7 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 | サンプル | 内容 |
 | ------- | ------------ |
 | **[6.1 Shadow Bias](Resources\ContentExamples\Lighting\6_1)** | 表面との接地感を持たせるようなオブジェクトのシャドウのキャスト方法を説明します。 |
-| **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | シャドウのエッジのシャープネスを強化する際に使用する設定です。 |
+| **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | シャドウのエッジをより鮮明にするための設定です。 |
 
 <!--
 [EXCERPT:RadiusNote]

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:0
-Title: Using iAd In-Game Ads on iOS
-Description:Using the iAd in-game advertisement system on iOS.
+﻿INTSourceChangelist:2940199
+Title:使用 iOS 的 iAd 游戏内广告
+Description:使用 iOS 的 iAd 游戏内广告系统。
 Crumbs:
 Availability:Public
 Parent:Platforms/iOS
+order:3
+type:howto
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -41,13 +43,13 @@ Parent:Platforms/iOS
 
 ![](Platforms/Mobile/Ads/iAd.png)(w:240)
 
-## Configuration
+## 配置
 
-All configuration for the iAd system is handled through the Apple ecosystem. See [Configuring Store Technologies](https://developer.apple.com/library/ios/documentation/LanguagesUtilities/Conceptual/iTunesConnect_Guide/Chapters/ConfiguringStoreTechnologies.html) for more information.
+iAd 的所有配置皆通过 Apple 生态系统处理。查看 [商店配置技术](https://developer.apple.com/library/ios/documentation/LanguagesUtilities/Conceptual/iTunesConnect_Guide/Chapters/ConfiguringStoreTechnologies.html) 中的详细内容。
 
-### C++ Projects
+### C++ 项目
 
-If you project is a C++ project you will also need to add the appropriate modules to your Target.cs file, for example:
+如项目为 C++ 项目，则需要为 Target.cs 文件添加合适的模块，例如：
 
 		...
 		if (Target.Platform == UnrealTargetPlatform.IOS)
@@ -58,6 +60,6 @@ If you project is a C++ project you will also need to add the appropriate module
 			ModuleNames.Add("MetalRHI");
 		}
 
-Look at the Unreal Match 3 Target.cs file, `Match3\Source\Match3.Target.cs`, to see how this fits into the entire file.
+查看 Unreal Match 3 Target.cs 文件（`Match3\Source\Match3.Target.cs`），了解它如何融入整个文件。
 
 [INCLUDE:Platforms/Mobile/Ads#usage]

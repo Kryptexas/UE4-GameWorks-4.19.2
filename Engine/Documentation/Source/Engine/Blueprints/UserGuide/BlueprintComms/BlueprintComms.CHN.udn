@@ -3,6 +3,51 @@ Availability:Public
 Title:管理蓝图通信
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:如何从另一个蓝图中应用一个蓝图的函数、事件及变量。
+related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+related:Engine/Blueprints/BP_HowTo/DirectBlueprintComs
+related:Engine/Blueprints/UserGuide/Variables
+related:Engine/Blueprints/UserGuide/Functions
+version: 4.9
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
 
 [TOC(start:2)]
 

@@ -1,24 +1,26 @@
-﻿INTSourceChangelist:0
-Title: Using In-App Purchases on iOS
-Description: Using in-app purchases to offer additional paid content for your iOS game.
+﻿INTSourceChangelist:2940199
+Title:使用 iOS 内购
+Description:利用内购为 iOS 游戏增加更多付费内容。
 Crumbs:
 Availability:Public
 Parent:Platforms/iOS
+order:1
+type:howto
 
 
-## Configuration
+## 配置
 
-1. Set up your in-app purchase in iTunes Connect:
+1. 在 iTunes Connect 中设置内购：
 
     [REGION:note]
-	Google Play requires the id to be all lowercase, and it's best to have the ID for iOS and Android match for ease of Blueprint setup.
+	Google Play 要求 id 全部为小写字母。为便于进行蓝图设置，最好使 iOS 和安卓 ID 相匹配。
 	[/REGION]
 
 	![image alt text](image_1.png)
 
-1. Make a note of the ID you use, as well as if the item is consumable or non-consumable.
+1. 记录使用的 ID，以及物品是否为消耗品。
 
-1. If you have a Blueprint project, you're set to go. If you have a code project and have not already set up your project to use online subsystems, add the following block to your project's Build.cs file: 
+1. 如项目为蓝图项目，则可直接开始。如项目为代码项目，尚未设置项目使用在线生态系统，则需要将以下代码块添加到项目的 Build.cs 文件中： 
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
@@ -26,7 +28,7 @@ Parent:Platforms/iOS
 			DynamicallyLoadedModuleNames.Add("OnlineSubsystemIOS");
 		}
 
-1. Edit [ProjectName]/Config/IOS/IOSEngine.ini:
+1. 编辑 [ProjectName]/Config/IOS/IOSEngine.ini：
 
 		[OnlineSubsystemIOS.Store]
 		bSupportsInAppPurchasing=True
@@ -34,11 +36,11 @@ Parent:Platforms/iOS
 
 [INCLUDE:Platforms/Mobile/InAppPurchases#usage]
 
-## Testing
+## 测试
 
-You can test with a build that you load onto the device yourself, as well as with a build uploaded to iTunes Connect. Any users testing the purchase must be Internal or External Testers in iTunes Connect, and must have accepted that invitation. You'll also need your custom provision. 
+可自行将版本载入设备（或上传至 iTunes Connect）进行测试。测试购买的用户必须是 iTunes Connect 中的内部或外部测试人员，且必须接受邀请。此外还需要自定义条款。 
 
-## Helpful Links
+## 实用链接
 
-* [Adding In-App Purchase to your iOS and OS X Applications (Banking info and certs)](https://developer.apple.com/library/ios/technotes/tn2259/_index.html)
-* [Creating In-App Purchase Products](https://developer.apple.com/library/ios/documentation/LanguagesUtilities/Conceptual/iTunesConnectInAppPurchase_Guide/Chapters/CreatingInAppPurchaseProducts.html)
+* [为 iOS 和 OS X 应用程序添加内购（银行信息和证书）](https://developer.apple.com/library/ios/technotes/tn2259/_index.html)
+* [打造内购产品](https://developer.apple.com/library/ios/documentation/LanguagesUtilities/Conceptual/iTunesConnectInAppPurchase_Guide/Chapters/CreatingInAppPurchaseProducts.html)

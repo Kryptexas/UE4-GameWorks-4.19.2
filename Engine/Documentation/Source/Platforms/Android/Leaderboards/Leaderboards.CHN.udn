@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:0
-Title: Using Google Play Services Leaderboards
-Description:Using leaderboards in your game.
+﻿INTSourceChangelist:2945303
+Title:使用 Google Play Services 排行榜
+Description:在游戏中使用排行榜。
 Crumbs:
 Availability:Public
+version:4.10
 Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:howto
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -41,36 +45,36 @@ Parent:Platforms/Android
 
 ![](Platforms\Mobile\Leaderboards\androidLeaderboard.png)(w:320 convert:false)
 
-## Configuration
+## 配置
 
-Please see [Leaderboards | Play Games Services | Google Developers](https://developers.google.com/games/services/common/concepts/leaderboards) for information on setting up the Google Play Game Services for your application.
+在 [排行榜 | Play Game Services | Google 开发者](https://developers.google.com/games/services/common/concepts/leaderboards) 中可查阅应用程序 Google Play Game Services 设置的内容。
 
-For your Unreal Project:
+针对虚幻项目进行的操作：
 
-1. In the **Edit** menu in **Unreal Editor**, select **Project Settings** to view the configuration options for your project.
+1. 在 **虚幻编辑器** 的 **Edit** 菜单中选择 **Project Settings** 查看项目的配置选项。
 
-1. On the left, Select the **Platforms: Android** tab. 
+1. 选择左边的 **Platforms:Android** 标签。 
 
-1. In the **Google Play Services** section, check the **Enable Google Play Support** option.
+1. 勾选 **Google Play Services** 部分下的 **Enable Google Play Support** 选项。
 
-1. Enter the App ID for your game in the **Games App ID** field.
+1. 在 **Games App ID** 栏位中输入游戏的 App ID。
 
-1. Enter your Google Play License Key in the **Google Play License Key** field.
+1. 在 **Google Play License Key** 栏位中输入 Google Play 授权码。
 
-1. Add an element to the **Leaderboard Map**.
+1. 添加元素到 **Leaderboard Map**。
 
-1. In the **Leaderboard Map** you'll need to enter a **Name** that is only used within your Unreal Project and the **Leaderboard ID** you set up in your Google Play Services.
+1. 在 **Leaderboard Map** 中，需要输入仅用于虚幻项目的 **Name** 和在 Google Play Services 中设置的 **Leaderboard ID**。
 
 	![](Platforms\Mobile\Leaderboards\androidSetup.png)
 
-	All of these values are available in the Google Play Developer Console for your App and Game Services.
+	应用程序和 Game Services 的这些数值保存在 Google Play Developer Console 中。
 
 [REGION:tip]
-Since the **Name** value in the achievement map is only a mapping for the Google Play Services **Leaderboard ID**, and iOS is directly referred to by their **Leaderboard Reference**, and if you are releasing on both Android and iOS platforms, enter the Leaderboard Reference from your iOS Game Center settings as your **Name** so you only have to call one node regardless of platform.
+成就映射中的 **Name** 数值只是 Google Play Services **Leaderboard ID** 的一个映射，且 iOS 由它们的 **Leaderboard Reference** 直接引用。如需在安卓和 iOS 两个平台上进行发布，可将来自 iOS Game Center 设置的 Leaderboard Reference 作为 **Name** 输入，之后只需调用一个节点即可（无论哪个平台）。
 [/REGION]
 
 [REGION:note]
-If you are planning to release your application on both Android and iOS devices, please see [](Platforms/iOS/Leaderboards) for addition information on setting up your leaderboards.
+如需在安卓和 iOS 两个平台上进行发布，请在 [](Platforms/iOS/Leaderboards) 中查阅排行榜设置的更多内容。
 [/REGION]
 
 [INCLUDE:Platforms/Mobile/Leaderboards#usage]

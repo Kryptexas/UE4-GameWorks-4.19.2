@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
-Title: Using In-Game Ads
-Description:Using in-game advertisements to monetize your game.
+﻿INTSourceChangelist:2940199
+Title:使用游戏内置广告
+Description:利用内置广告实现游戏盈利。
 Crumbs:
 Availability:Public
 parent:Platforms/Mobile
@@ -42,7 +42,7 @@ tags:mobile
 [/OBJECT]
 [/VAR]
 
-In-game advertisements enable you to display ads to players of your game on mobile platforms. This provides a means of monetizing your game while allowing it to remain completely free to the player.
+通过内置广告可以在移动平台上向游戏玩家展示广告。此方式可实现免费游戏的盈利。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -56,9 +56,9 @@ In-game advertisements enable you to display ads to players of your game on mobi
 	[/PARAMLITERAL]
 [/OBJECT]
 
-## Configuration
+## 配置
 
-See the appropriate platform-specific page below for details on configuring in-game advertisements for each platform:
+在下方页面中查看在每个平台上进行游戏内购配置的详细内容：
 
 [REGION:buttonlist]
 * [](Platforms/Android/Ads)
@@ -66,29 +66,29 @@ See the appropriate platform-specific page below for details on configuring in-g
 [/REGION]
 
 [EXCERPT:Usage]
-## Showing the Ad Banner
+## 展示广告横幅
 
-The **Show Ad Banner** function is used to display an ad banner in your game. Call it somewhere in the logic where you want to show an ad, such as when the main menu is shown.
+**Show Ad Banner** 函数用于在游戏中显示广告横幅。需要展示广告时（如显示主菜单时）在逻辑中进行调用即可。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the Unreal Match 3 sample game, which displays an ad banner when the victory/defeat screen is shown using the **Construct** event of that Widget Blueprint:
+下例取自 Unreal Match 3 示例游戏 - 使用控件蓝图的 **Construct** 事件在胜利/失败画面出现时展示广告横幅。
 
 ![](show_ad.png)
 
-See the [Show Ad Banner](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/ShowAdBanner/index.html) reference for more information on the node.
+如需了解节点的详细内容，请查阅 [展示广告横幅](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/ShowAdBanner/index.html) 文档。
 
-## Hiding the Ad Banner
+## 隐藏广告横幅
 
-The **Hide Ad Banner** functions hides the visible ad banner. Call it when you no longer want the ad to be displayed, such as when you exit the main menu.
+**Hide Ad Banner** 函数可隐藏广告横幅。无需显示广告时（如退出主菜单时）进行调用即可。
 
-**In Blueprints:**
+**在蓝图中：**
 
-The example below is from the Unreal Match 3 sample game, which hides the ad banner when the victory/defeat screen is exited using the **Destruct** event of that Widget Blueprint:
+下例取自 Unreal Match 3 示例游戏 - 使用控件蓝图的 **Destruct** 事件在胜利/失败画面出现时隐藏广告横幅。
 
 ![](hide_ad.png)
 
-See the [Hide Ad Banner](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/HideAdBanner/index.html) reference for more information on the node.
+如需了解节点的详细内容，请查阅 [隐藏广告横幅](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/HideAdBanner/index.html) 文档。
 
 [/EXCERPT:Usage]
 <!--

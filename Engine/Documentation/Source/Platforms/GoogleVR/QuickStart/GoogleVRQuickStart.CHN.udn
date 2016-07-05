@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:0
-Title:Google VR Quick Start
+﻿INTSourceChangelist:2983084
+Title:Google VR 快速入门
 Crumbs:%ROOT%, Platforms, Platforms/GoogleVR
-Description:Instructions on setting up and using Google VR
+Description:Google VR 的设置和使用说明。
 Availability:Public
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 parent:Platforms/GoogleVR
 type:quickstart
 tags:VR
 tags:Google VR
 
-The GoogleVR Quick Start will walk you through setting up your UE4 project to work with Google VR.
+Google VR 快速入门讲述如何设置 UE4 项目，使其可用于 Google VR。
 
 
 [OBJECT:TopicButtonList]
@@ -18,7 +18,7 @@ The GoogleVR Quick Start will walk you through setting up your UE4 project to wo
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

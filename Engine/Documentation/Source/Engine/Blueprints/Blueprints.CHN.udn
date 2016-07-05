@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3035989
 Availability:Public
-Title: 蓝图可视化脚本
+Title: 蓝图 - 可视化脚本
 Crumbs: %ROOT%, Engine
 Description:关于使用蓝图可视化脚本系统制作游戏的概述。
 version: 4.9
 parent:%ROOT%
 order:5
+social-image:bp_social_image.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -72,197 +73,147 @@ order:5
 
 
 [REGION:banner]
-![Blueprint](k2_banner.png)
+![](k2_banner.gif)
 [/REGION]
 
 [EXCERPT:Intro]
-虚幻引擎中的 **蓝图可视化脚本系统** 是一个完整的游戏脚本系统，其理念是 
-使用基于节点的界面从虚幻编辑器中创建游戏可玩性元素。该系统非常灵活且非常强大，因为它为 
-设计人员提供了一般仅供程序员使用的所有概念及工具。
+虚幻引擎中的 **蓝图 - 可视化脚本系统** 是一个完整的游戏脚本系统，
+其理念是，在虚幻编辑器中，使用基于节点的界面创建游戏可玩性元素。
+和其他一些常见的脚本语言一样，蓝图的用法也是通过定义在引擎中的面向对象的类或者对象。
+在使用虚幻 4 的过程中，常常会遇到在蓝图中定义的对象，并且这类对象常常也会被直接称为“蓝图（Blueprint）”。
+
+该系统非常灵活且非常强大，因为它为设计人员提供了一般仅供程序员使用的所有概念及工具。
+另外，在虚幻引擎的 C++ 实现上也为程序员提供用于蓝图功能的语法标记，
+通过这些标记，程序员能够很方便的创建一个基础系统，并交给策划进一步在蓝图中对这样的系统进行扩展。
 [/EXCERPT:Intro]
 
-通过使用 _蓝图_ ，设计人员几乎可以创作任何游戏元素的原型、以及实现或修改这些元素。
-
-* **Games（游戏）** - 创建游戏规则，调整游戏条件等。
-* **Players（玩家）** - 使用不同的网格物体、 _材质_ 或角色自定义来创建变种。
-* **Cameras（相机）** - 创建新相机视角的原型或者在游戏运行过程中动态地改变相机。
-* **Input（输入）** - 修改玩家操作，或允许玩家向道具传入输入。
-* **Items（道具）** - 武器、法术、掉落物、触发器等。
-* **Environments（环境）** - 创建随机的装置或者程序化地生成道具。
+## 新手入门
 
 [REGION:topics third]
-[EXCERPT:Topics]
-[OBJECT:Topic]
+%Engine/Blueprints/QuickStart:TopicCompact%
+%Engine/Blueprints/GettingStarted:TopicCompact%
+[OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](intro_topic.png)
+		![%Engine/Blueprints:title%](BPVid.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Blueprints/GettingStarted:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/GettingStarted:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/GettingStarted]
-	[/PARAM]
-[/OBJECT]
-%Engine/Blueprints/Overview:topic%
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor:title%](editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![Blueprint Node Reference](bp_api_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		蓝图节点参考指南
-	[/PARAM]
-	[PARAM:description]
-		涵盖了所有函数调用、事件及其他蓝图节点的完整参考指南。
+		Videos: Introduction to Blueprints (v4.8)
 	[/PARAM]
 	[PARAMLITERAL:path]
-		https://docs.unrealengine.com/latest/INT/BlueprintAPI/index.html
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO/EFXMW_UEDco/index.html
 	[/PARAMLITERAL]
 [/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Topics]
 [/REGION]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		指南
-	[/PARAM]
-	[PARAM:description]
-	[REGION:topics third]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-		![](blueprintcheatsheet.png)
-		[/PARAM]
-		[PARAM:title]
-			蓝图编辑器速查表
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-		![](BestPractices_Topic.png)
-		[/PARAM]
-		[PARAM:title]
-			蓝图最佳实践
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\BestPractices]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](UsingBPComms_Topic.png)
-		[/PARAM]
-		[PARAM:title]
-			使用蓝图通信
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-		[/PARAM]
-	[/OBJECT]
-	[OBJECT:TopicCompact]
-		[PARAM:image]
-			![](BPCommTopic.png)
-		[/PARAM]
-		[PARAM:title]
-			%Engine\Blueprints\HowTo:title%
-		[/PARAM]
-		[PARAM:path]
-		[RELATIVE:Engine\Blueprints\HowTo]
-		[/PARAM]
-	[/OBJECT]
-	[/REGION]
-	[/PARAM]
-[/OBJECT]
+## General Scripting
 
-[OBJECT:TopicList]
+[REGION:topics third]
+%Engine/Blueprints/Scripting:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints:title%](BlueprintEssentials.png)
+	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		视频指南
+		Videos: Blueprint Essentials
 	[/PARAM]
-	[PARAM:description]
-		[REGION:simplegallery]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-			cRhWc2kAhqI
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-			PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-			275
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playerurl]
-				https://wiki.unrealengine.com/Videos/Player
-			[/PARAMLITERAL]
-		[/OBJECT]
-		[/REGION]
-	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1ga2b_ZaJoaR5dLHOFw4-MMl/zaVY5A0hqiI/index.html
+	[/PARAMLITERAL]
 [/OBJECT]
+[/REGION]
+
+## Building Blueprints
+[REGION:topics third]
+%Engine/Blueprints/Anatomy:TopicCompact%
+%Engine/Blueprints/Workflow:TopicCompact%
+%Engine/Blueprints/BP_HowTo:TopicCompact%
+%Engine/Blueprints/UserGuide/CheatSheet:TopicCompact%
+%Engine/Blueprints/BestPractices:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Blueprint Video Tutorials](BPTutorials.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Blueprint Video Tutorials
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/Blueprints/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+## Blueprint Communication
+[REGION:topics third]
+%Engine\Blueprints\UserGuide\BlueprintCommsUsage:topiccompact%
+%Engine/Blueprints\HowTo:topiccompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Livestream: Blueprint Communications](CommStream.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Livestream: Blueprint Communications
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu/EM_HYqQdToE/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+%Engine\Blueprints\UserGuide\BlueprintComms:topiccompact%
+%Engine\Blueprints\UserGuide\EventDispatcher:topiccompact%
+%Engine/Blueprints/UserGuide/Types/Interface:topiccompact%
+[/REGION]
+
+## Doing More With Blueprints
+
+[REGION:topics third]
+%BlueprintAPI:TopicCompact%
+%Engine/Blueprints/Editor:TopicCompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Live Training Streams: Blueprints](BPLiveStream.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Live Training Streams: Blueprints
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://docs.unrealengine.com/latest/INT/Videos/PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu/index.html
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"guide")]
+
+
+<!--
+## Starting Out
+
+[DIR(end:"1" output:"topic" type:"quickstart" parent:"Engine/Blueprints")]
+
+## Reference
+
+[DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Blueprints")]
+
+## Guides
+
+[DIR(end:"1" output:"topic" type:"howto" parent:"Engine/Blueprints")]
+
+## Video Tutorials
+
+[REGION:simplegallery]
+[VideoLink(videoid:"EFXMW_UEDco" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"275")]
+[/REGION]
+-->

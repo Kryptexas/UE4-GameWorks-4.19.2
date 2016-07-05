@@ -1,22 +1,20 @@
-﻿INTSourceChangelist:2890438
+﻿INTSourceChangelist:2996736
 Availability:Public
 Title:シーンのフェードイン、フェードアウト
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:フェードトラックを使ってレベル シーケンスでフェードイン、フェードアウトする方法の例。
-Version:4.11
-SkillLevel:Beginner
+Description:レベル シーケンスでフェード トラックを使ってフェードイン、フェードアウトする方法の例。
+Version: 4.12
+SkillLevel: Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related:Engine/Sequencer/Overview
-Related:Engine\Sequencer\ReferenceEditor\
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
 
-[REGION:warning]
-これは現在開発中の機能であり、期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
-[/REGION]
 
-**レベル シーケンス** エディタ (略して **シーケンサー**) は、まだ開発の初期段階であり、利用するには有効にしなければなりません。 
-このガイドでは、シーケンサーがある場所、シーケンサー (および **シーケンス レコーダー**) を有効にする方法、シーケンサー エディタを開く方法を説明し、シネマティックスの作成を開始できるようにします。 
+シネマティックス内でシーンをフェードインまたはフェードアウトさせたい場合があるかもしれません。 
+最初にフェードインまたは最後にフェードアウトを選択したり、その間のショットでフェードアウトしたい場合は、シーケンサーの **Fade Track** を使って行うことができます。 
+このガイドでは小さなシーンを作って時間経過に伴いフェードインして短い一時停止後、そのシーンをフェードアウトします。 
 
 ## ステップ
 
@@ -24,7 +22,7 @@ Related:Engine\Sequencer\ReferenceEditor\
 この操作ガイドでは **Blueprint Third Person Template** を使います。ただし、必要に応じて他のプロジェクトを使用することもできます。 
 [/REGION]
 
-1.	[**シーケンサー**](Engine\Sequencer\HowTo\EnableSequencer) を有効にした状態で、**メイン ツールバー** から **[Cinematics (シネマティックス)]** をクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** をクリックします。 
+1.	メイン ツールバーから **[Cinematics (シネマティックス)]** をクリックし、[Add Level Sequence (レベル シーケンスを追加)] をクリックします。 
 
 	![](FadeTrack1.png)
 
@@ -38,15 +36,17 @@ Related:Engine\Sequencer\ReferenceEditor\
 
 	![](FadeTrack3.png)
 
-	値を 1.0 (すなわちフル ティント) に変更後、レベル ビューポートが黒くなります。
+	値を 1.0 (すなわちフル ティント) に変更すると、レベル ビューポートが黒くなります。
 
 	 ![](FadeTrack3b.png)
+
 
 1.	タイムライン マーカーを **50** に移動します。次に、その値を **0.0** に変更し、キーを追加します (**Enter** を押すか、**+** をクリックします)。 
 
 	![](FadeTrack4.png)
 
 	フェード値を 0 に戻した後、レベル ビューポートが通常通り表示されます (すなわちティントなし)。 
+
 
 	[REGION:tip]
 	**CTRL** キーを押しながら **マウス ホイール** を前後に動かすと、タイムラインをズームインまたはズームアウトすることができます。 
@@ -57,9 +57,10 @@ Related:Engine\Sequencer\ReferenceEditor\
 	![](FadeTrack5.png)
 
 1.	シーケンスをシミュレートするには、レベル ビューポートで、**[Play (プレイ)]** ボタンを クリックします。 
+
 ## 最終結果
 
-シーンが、1.0 (フル ティント) から0.0 (ティントなし) にフェードインし、 0.0 から 1.0 にフェードアウトします。 
+サンプルのシーンがフェードインして明るい状態が続いてからフェードアウトします。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -69,7 +70,7 @@ Related:Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-NGEPbKb0Mtw
+nA0GZlmbQww
 [/PARAMLITERAL]
 [/OBJECT]
 

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3020428
 Availability:Public
 Title:Two Bone IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how the Two Bone IK control can be used to apply IK to a 3-joint chain. 
+Description:Two Bone IK 制御を使って 3- ジョイント チェーンに IK を適用する方法について説明します。 
 version: 4.12
 
 [VAR:Topic]
@@ -41,11 +41,11 @@ version: 4.12
 
 
 
-The **Two Bone IK** control applies an Inverse Kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.
+**[Two Bone IK]** 制御は、キャラクターの手足など 3 つのジョイント チェーンにインバース キネマティクス (IK) ソルバを適用します。
 
 ![](node_twobone.png)
 
-Below a series of **Two Bone IK** controllers are used, along with [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting) to control how the character holds a weapon. 
+以下では [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting) と共に一連の **Two Bone IK** コントローラーを使ってキャラクターがどのように武器を持つかを制御します。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -59,40 +59,40 @@ JxzEo3wUSWw
 [/PARAMLITERAL]
 [/OBJECT]
 
-Variables are used to drive the **Join Target Location** properties on the controller for the **hand_l** and **hand_r** bones of our character. 
-By adjusting these values we can determine how the character holds the weapon without having to hand-animate different poses based on different characters. 
+変数を使ってキャラクターの **hand_l** ボーンと **hand_r** ボーンのコントローラー上の **[Join Target Location]** プロパティを操作します。 
+こうした値を調整することで、様々なキャラクターに基づき様々なポーズを手作業でアニメートすることなくキャラクターの武器の持ち方を決めることができます。 
 
-| Property | Description |
+| プロパティ | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]**IK**[/REGION] ||
-| **IK Bone** | Name of the bone to apply the IK solver to. This should be the bone at the end of the bone chain, i.e. the ankle or wrist bone. |
-| [REGION:tablesection]**Stretch Limits**[/REGION] ||
-| **X** | The ratio of the Max Limb Length, which is used to determine when to scale the bones. |
-| **Y** | The maximum allowable amount of scaling of the translation component. |
-| **Allow Stretching** | If true, allows the bones to be stretched. |
-| [REGION:tablesection]**End Effector**[/REGION] ||
-| **Effector Space Bone Name** | The name of the bone to use as the effector location when Effector Location Space is set to BCS_BoneSpace. |
-| **Take Rotation from Effector Space** | If enabled, the Rotation of the effector (component, parent, or bone) is applied to the IK Bone.  |
-| **Maintain Effector Rel Rot** | If enabled, the IK Bone will maintain its Rotation relative to the effector. [REGION:note]This is overridden when Take Rotation from Effector Space is enabled.[/REGION] |
-| **Effector Location Space** | The reference frame for the Effector Location. [INCLUDE:#LocationSpace] |
+| **IK Bone** | IK ソルバを適用するボーンの名前です。これはボーン チェーンの最終ボーンになります。例えば、足首や手首のボーンです。 |
+| [REGION:tablesection]**伸縮制限 **[/REGION] ||
+| **X** | 手足の最大強度 (Max Limb Length) の比率。ボーンをいつスケーリングするかを設定する場合に使用します。 |
+| **Y** | Translation コンポーネントの最大スケーリング許容量。 |
+| **Allow Stretching** | true の場合、ボーンは伸縮可能になります。 |
+| [REGION:tablesection]**エンド エフェクタ**[/REGION] ||
+| **Effector Space Bone Name** | Effector Location Space が BCS_BoneSpace に設定される場合に、エフェクタの位置として使用するボーンの名前です。 |
+| **Take Rotation from Effector Space** | 有効になると、エフェクタ (コンポーネント、親、またはボーン) の回転は IK Bone へ適用されます。 |
+| **Maintain Effector Rel Rot** | 有効になると、IK Bone はエフェクタに対して相対的な回転を維持します。 [REGION:note]この設定は [Take Rotation from Effector Space] が有効になるとオーバーライドされます。[/REGION] |
+| **Effector Location Space** | Effector Location の参照フレームです。 [INCLUDE:#LocationSpace] |
 | [REGION:tablesection]**Join Target**[/REGION] ||
-| **Joint Target Location Space** | The reference frame for the Joint Target Location. [INCLUDE:#LocationSpace] |
-| **Joint Target Space Bone Name** | The name of the bone to use as the joint target location when Joint Target Location Space is set to BCS_BoneSpace. |
+| **Joint Target Location Space** | Joint Target Location の参照フレームです。 [INCLUDE:#LocationSpace] |
+| **Joint Target Space Bone Name** | Joint Target Location Space が BCS_BoneSpace に設定された場合に、ジョイントのターゲット位置として使用するボーンの名前です。 |
 
-| Pin | Description |
+| ピン | 説明 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Effector Location** | A Vector specifying the location effector in the Effector Location Space. |
-| **Joint Target Location** | A Vector specifying the location joint target in the Joint Target Location Space. |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Effector Location** | Effector Location Space でエフェクタの位置を指定するベクター値です。 |
+| **Joint Target Location** | Joint Target Location Space でジョイント ターゲットの位置を指定するベクター値です。 |
 
 <!--
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
-| Value | Effect |
+| 値 | 効果 |
 | ----- | ------ |
-| **Translation** | The XYZ component of translation on the target bone. |
-| **Rotation** | The XYZ component of rotation on the target bone. |
-| **Scale** | The XYZ component of scale on the target bone. |
+| **Translation** | ターゲット ボーン上の平行移動の XYZ 成分 |
+| **Rotation** | ターゲット ボーン上の回転の XYZ 成分 |
+| **Rotation** | ターゲット ボーン上のスケーリングの XYZ 成分 |
 [/REGION] 
 [/EXCERPT:LocationSpace]
 -->

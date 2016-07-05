@@ -1,21 +1,25 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2940199
 Availability:Public
-Title:Samsung Gear VR Global Menu
+Title:三星 Gear VR 全局菜单（Global Menu）
 Crumbs:%ROOT%, Platforms
-Description:How to setup your Gear VR project to access the global menu.
+Description:如何进行 Gear VR 项目设置，以访问全局菜单。
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
-prereq: Engine\Blueprints\GettingStarted
+Skilllevel:Intermediate
+Version:4.8
+prereq:Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
-In order for your Gear VR project to be accepted to the Oculus store there are certain requirements that your project must adhere to. 
-One of these requirements is that at any point while someone is using your project they need to be able to access the Gear VR Global Menu when they hold down the back button for more than 0.75 seconds. 
-In the following Quick Start we will cover everything you need to know so the user can enable the Gear VR Global menu in your projects.
+为保证 Oculus 商店接受您的 Gear VR 项目，必须遵循数条要求。 
+要求之一：用户使用项目时在任何时候按下 back 键超过 0.75 秒，均可访问 Gear VR 全局菜单（Global Menu）。 
+以下快速入门教程将讲述所有须知事项，以保证用户可在您的项目中使用 Gear VR 全局菜单。
 
 [region:note]
-Please note that the following Quick Start will work on any project that is setup for Gear VR. 
-If you have no done so already please make sure to check out the Gear [VR Quick Start](Platforms\GearVR\QuickStart) for detailed information on how to get a project up and running with Gear VR.
+注意：以下快速入门适用于所有针对 Gear VR 进行设置的项目。 
+如您尚未查阅 [VR 快速入门](Platforms\GearVR\QuickStart) 中进行项目设置并在 Gear VR 中运行的详细说明，请务必进行阅读。
 [/region]
 
 [OBJECT:TopicButtonList]
@@ -23,7 +27,7 @@ If you have no done so already please make sure to check out the Gear [VR Quick 
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

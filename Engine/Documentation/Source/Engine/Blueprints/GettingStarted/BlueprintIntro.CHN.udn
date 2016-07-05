@@ -1,16 +1,39 @@
-﻿INTSourceChangelist:2085921
+﻿INTSourceChangelist:3035989
 Availability:Public
 Title: 蓝图简介
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: 关于蓝图的概述，介绍了它们是什么及它们如何工作。
+Description: 如果您刚开始学习使用蓝图，这里介绍了它是什么及它是如何工作的。
+version: 4.9
+parent:Engine/Blueprints
+order:1
+
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](blueprint_topic.png)
+		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
 	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/GettingStarted:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/GettingStarted:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/GettingStarted]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/GettingStarted:title%
@@ -25,21 +48,26 @@ Description: 关于蓝图的概述，介绍了它们是什么及它们如何工�
 [/VAR]
 
 
-[TOC(start:2)]
+[TOC (start:2)]
 
-## 概述
+[EXCERPT:Intro]
+虚幻引擎中的 **蓝图 - 可视化脚本系统** 是一个完整的游戏脚本系统，
+其理念是，在虚幻编辑器中，使用基于节点的界面创建游戏可玩性元素。
+和其他一些常见的脚本语言一样，蓝图的用法也是通过定义在引擎中的面向对象的类或者对象。
+在使用虚幻 4 的过程中，常常会遇到在蓝图中定义的对象，并且这类对象常常也会被直接称为“蓝图（Blueprint）”。
 
-[EXCERPT:BlueprintIntro]
-**Blueprints（蓝图）**  是特殊类型的资源，提供一种直观的、基于节点的界面，以用于创建新类型的Actor 
-及关卡脚本事件；它为关卡设计师和游戏开发人员提供了一种在虚幻编辑器中快速创建及迭代游戏可玩性 
-的工具，而且一行代码都不需要书写。
-[/EXCERPT:BlueprintIntro]
+该系统非常灵活且非常强大，因为它为设计人员提供了一般仅供程序员使用的所有概念及工具。
+另外，在虚幻引擎的 C++ 实现上也为程序员提供用于蓝图功能的语法标记，
+通过这些标记，程序员能够很方便的创建一个基础系统，并交给策划进一步在蓝图中对这样的系统进行扩展。
+[/EXCERPT:Intro]
 
-关于蓝图的更多概述信息，包括蓝图类型、蓝图剖析及关于蓝图同虚幻引擎3中的Kismet及UnrealScript的关系的探讨，请参照[](Engine/Blueprints\Overview)页面。
+关于蓝图的更多概述信息，包括蓝图类型、蓝图剖析及关于蓝图同虚幻引擎 3 中的 Kismet 及 UnrealScript 的关系的探讨，
+请参照 [](Engine/Blueprints\Overview) 页面。
 
 
-## 蓝图的工作原理?
-从蓝图的基本形式上讲， _蓝图_ 是针对您游戏添加的可视化脚本。通过使用 _连线_ 把 _节点_ 、 _事件_ 、 _函数_ 及 _变量_ 连接到一起，它可以创建复杂的游戏性元素。
+## 蓝图的工作原理？
+从蓝图的基本形式上讲，_蓝图_ 是针对您游戏添加的可视化脚本。通过使用 _连线_ 把 _节点_ 、 _事件_ 、 _函数_ 及 _变量_ 连接到一起，
+它可以创建复杂的游戏性元素。
 
 _蓝图_ 通过各种用途的 _节点_ 构成图表来进行工作，这些节点包括针对蓝图每个实例的对象构建、独立的函数、一般的游戏性事件，从而实现各种行为及其他功能。
 
@@ -48,7 +76,7 @@ _蓝图_ 通过各种用途的 _节点_ 构成图表来进行工作，这些节�
 
 您将应用的最常见的 _蓝图_ 类型是 _Level Blueprints（关卡蓝图）_ 和 _Class Blueprints（类蓝图）_ 。
 
-这仅是其中的两种[蓝图类型](Engine/Blueprints/UserGuide/Types)，还有[蓝图宏](Engine/Blueprints/UserGuide/Types/MacroLibrary)和[蓝图接口](Engine/Blueprints/UserGuide/Types/Interface)。
+这仅是其中的两种 [蓝图类型](Engine/Blueprints/UserGuide/Types)，还有 [蓝图宏](Engine/Blueprints/UserGuide/Types/MacroLibrary) 和 [蓝图接口](Engine/Blueprints/UserGuide/Types/Interface)。
 
 [OBJECT:TopicList]
 	[PARAM:title]
@@ -58,19 +86,19 @@ _蓝图_ 通过各种用途的 _节点_ 构成图表来进行工作，这些节�
 		[REGION:lightbox]
 		[![](Engine/Blueprints/GettingStarted/Level_Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 
 		[/REGION]
-		_关卡蓝图_ 的作用和虚幻引擎3中的Kismet的作用一样，并且具有同样的功能。每个关卡具有其自己的 _关卡蓝图_ ，它可以引用及操作关卡中的Actor，使用Matinee Actor控制过场动画，并管理类似于关卡动态载入、检查点及其他关卡相关的系统。_关卡蓝图_ 还可以和放置在关卡中的 _类蓝图_ （请参照下面的部分获得相关示例）进行交互，比如读取或设置任何变量、触发它们可能包含的自定义事件。
+		_关卡蓝图_ 的作用和虚幻引擎 3 中的 Kismet 的作用一样，并且具有同样的功能。每个关卡具有其自己的 _关卡蓝图_ ，它可以引用及操作关卡中的 Actor，使用 Matinee Actor 控制过场动画，并管理类似于关卡动态载入、检查点及其他关卡相关的系统。_关卡蓝图_ 还可以和放置在关卡中的 _类蓝图_ （请参照下面的部分获得相关示例）进行交互，比如读取或设置任何变量、触发它们可能包含的自定义事件。
 	[/PARAM]
 [/OBJECT]
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		[类蓝图](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+		[蓝图类](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
 	[/PARAM]
 	[PARAM:description]
 		[REGION:lightbox]
 		[![](Engine/Blueprints/GettingStarted/Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
 		[/REGION]
-		_类蓝图_ 非常适合于制作交互式的资源，比如门、开关、可收集的道具及可破坏的景观。在上面的图片中，按钮和每个门都是独立的 _蓝图_ ，包含了对玩家重叠事件做出反应的必要脚本，使得它们可以产生动画、播放音效、改变材质(比如，当按下按钮时变亮)。
+		_蓝图类_ 非常适合于制作交互式的资源，比如门、开关、可收集的道具及可破坏的景观。在上面的图片中，按钮和每个门都是独立的 _蓝图_ ，包含了对玩家重叠事件做出反应的必要脚本，使得它们可以产生动画、播放音效、改变材质(比如，当按下按钮时变亮)。
 		
 		在该示例中，按下按钮激活了门 _蓝图_ 中的一个事件，使得门打开，但是门既可以通过其他类型的 _蓝图_ 激活，也可以通过 _关卡蓝图_ 序列激活。由于 _蓝图_ 的自包含特性，所以您可以通过这种方式构建蓝图，把它们放置到关卡中，它们就可以正常运作了，仅需要少量设置。这也意味着编辑整个项目中都在使用的一个 _蓝图_ 将会更新蓝图的每个实例。
 	[/PARAM]
@@ -109,33 +137,16 @@ _蓝图_ 通过各种用途的 _节点_ 构成图表来进行工作，这些节�
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		创建HUD
+		创建 HUD
 	[/PARAM]
 	[PARAM:description]
 		![](Create_HUDs.png)
 
-		_蓝图_ 脚本也可以用于创建游戏的HUD，这和 _类蓝图_ 类似，因为它可以包含事件序列和变量，但是它会被分配给您的项目的 _GameMode(游戏模式)_  资源，而不是直接添加到关卡中。
+		_蓝图_ 脚本也可以用于创建游戏的 HUD，这和 _类蓝图_ 类似，因为它可以包含事件序列和变量，但是它会被分配给您的项目的 _GameMode(游戏模式)_  资源，而不是直接添加到关卡中。
 
-		您可以设置一个HUD来从其他 _蓝图_ 中读取变量，并使用这些变量来显示一个生命值条、更新分数、显示目标标记等。您还可以使用HUD给类似于可以点击的按钮或手游中可以对触摸输入做出反应的按钮添加命中区域。
+		您可以设置一个 HUD 来从其他 _蓝图_ 中读取变量，并使用这些变量来显示一个生命值条、更新分数、显示目标标记等。您还可以使用HUD给类似于可以点击的按钮或手游中可以对触摸输入做出反应的按钮添加命中区域。
 
-		上面图片中的所有示例都存在于虚幻引擎4的示例内容中，所以如果您想仔细查看相关内容，您可以在 **Content Examples** 、 **Shooter Game** 和 **Swing Ninja** 中找到它。
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicList]
-	[PARAM:icon]
-	![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		蓝图示例和指南
-	[/PARAM]
-	[PARAM:description]
-		以下是一些额外资源，以便您可以了解关于 _蓝图_ 系统的更多内容。
-	[/PARAM]
-	[PARAM:links]
-		* [](Resources/Showcases/BlueprintExamples)
-		* [电梯蓝图指南](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
-		* [能力增强蓝图指南](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+		上面图片中的所有示例都存在于虚幻引擎 4 的示例内容中，所以如果您想仔细查看相关内容，您可以在 **Content Examples** 、 **Shooter Game** 和 **Swing Ninja** 中找到它。
 	[/PARAM]
 [/OBJECT]
 
@@ -151,4 +162,13 @@ _蓝图_ 通过各种用途的 _节点_ 构成图表来进行工作，这些节�
 
 根据您所应用的 _蓝图_ 类型的不同，有各种不同类型的 **蓝图编辑器** 。大部分 **蓝图编辑器** 的核心功能都是 **图表** 模式，通过使用其核心的 **图表** 选卡 
 可以布局您的 _蓝图_ 网络。
+
+## 蓝图的示例和教学
+
+下面还有一些额外的资源可供用于学习蓝图系统。
+
+* [](Resources/Showcases/BlueprintExamples)
+* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
+* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+
 

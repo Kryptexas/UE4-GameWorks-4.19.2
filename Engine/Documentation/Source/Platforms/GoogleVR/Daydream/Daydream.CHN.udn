@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2983084
 Availability:Public
-Title:Google VR and Daydream Devices
+Title:Google VR 和 Daydream 设备
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Which Google VR features are specific to Daydream devices.
+Description:Daydream 设备特有的 Google VR 功能。
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.12
+Skilllevel:Intermediate
+Version:4.12
 parent:Platforms/GoogleVR
 type:overview
 tags:VR
@@ -13,65 +13,65 @@ tags:Google VR
 tags:Daydream
 
 
-## Overview
-While Google VR can work for almost any Android based device, there are certain features that will only work with Daydream devices. In the following section, we will take a look at these features and what you have to do to use them in your projects.
+## 总览
+Google VR 支持几乎所有安卓设备，但只有特定功能支持 Daydream 设备。以下部分将介绍这些功能，以及如何在项目中使用这些功能。
 
 ### Android NDK 11c
-In Order to access the full functionality, Daydream offers you need to download, install Android NDK version 11c. You can download the appropriate version of NDK 11c using the following link.
+访问 Daydream 全部功能须下载并安装 Android NDK version 11c。可通过以下链接安装正确的 NDK 11c 版本。
 
 * [https://developer.android.com/ndk/downloads/index.html](https://developer.android.com/ndk/downloads/index.html)
 
-Once downloaded and installed you will need to point UE4 to the new NDK files by going to the **Android SDK** > **SDKConfig** section and changing the NDK path to the new NDK 11c install location. 
+完成下载和安装后，需要将 UE4 指向新的 NDK 文件 - 前往 **Android SDK** > **SDKConfig**，将 NDK 路径改为新的 NDK 11c 安装路径。 
 
 ![](GDaydream_New_NDK_00.png)
 
 ### Scanline Racing
-Scanline Racing is a feature specific to Daydream devices that when enabled helps to reduce latency in your VR project. To enable Scanline Racing in your Google VR project for Daydream devices you will need to do the following.
+Scanline Racing 是 Daydream 设备的一项特有功能，启用后有助于降低 VR 项目中的延迟。执行以下操作即可在 Google VR 项目中启用 Daydream 设备的 Scanline Racing 功能。
 
-1. Open up your **Project Settings** and go to **Platforms** > **Android**.
+1. 打开 **Project Settings**，前往 **Platforms** > **Android**。
 
 	![](GDaydream_Arm64_Support_00.png)
 
-1. Under the **Build** section enable **Support arm64[aka arm64-v8a]** by clicking on the checkmark box next to its name.
+1. 在 **Build** 部分中，点击 **Support arm64[aka arm64-v8a]** 旁的勾选框将其启用。
 
 	![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
 
 	[region:note]
-    Enabling this will add significant time to your first cook as the arm64 libraries need to be compiled.
+    启用此项后将极大增加首次烘焙的时间（因为需要对 arm64 库进行编译）。
     [/region]
 
-1. Then under the **Advanced APKPackaging** section and enable the **Configure GoogleVR for low-latency rendering mode (scanline racing)** by clicking on the checkmark box next to its name.
+1. 然后在 **Advanced APKPackaging** 部分中，点击 **Configure GoogleVR for low-latency rendering mode (scanline racing)** 旁的勾选框将其启用。
 
 	![](GDaydream_Scanline_Racing_Support_00.png)
 
-Then next time you cook your UE4 project and deploy it to your Daydream device low latency rendering will be enabled.
+烘焙 UE4 项目并部署到 Daydream 设备后，低延迟渲染将启用。
 
-### Motion Controllers
-Working with Motion Controllers for Daydream devices is much like working with Motion Controllers for the HtC Vive or Oculus Rift. To quickly add Motion Controller functionality to your UE4 Daydream project you need to do the following.
+### 运动控制器
+Daydream 运动控制器的使用方法与 HTC Vive 或 Oculus Rift 相同。执行以下操作，将运动控制器功能快速添加到 UE4 Daydream 项目。
 
 [region:note]
-For a more in-depth look at how to use Motion Controllers in UE4, make sure to check out the [Offical Motion Controller Documents](https://docs.unrealengine.com/latest/INT/Platforms/VR/MotionController/) page for more information.
+如需了解在 UE4 中使用运动控制器的详细方法，请查阅 [官方运动控制器文档](https://docs.unrealengine.com/latest/INT/Platforms/VR/MotionController/) 页面。
 [/region]
 
-1. Open up your Player Pawn and search for Motion Controller Component from the **Add Components** list add the following items.
+1. 打开玩家 Pawn，从 **Add Components** 列表中搜索运动控制器组件，添加以下项目。
 
-	* Motion Controller Component
-	* Static Mesh Component with Static Mesh
+	* 运动控制器组件
+	* 带静态网格体的静态网格体组件
 	
 	[region:lightbox] 
 	[![](GVRQS_Daydream_MC_Setup_00.png)(w:700)](GVRQS_Daydream_MC_Setup_00.png)
 	[/region]
 
-1. Next in the Event Graph use the Motion Contorler Blueprint functions to interact with the buttons on the Motion Controllers.
+1. 之后，在事件图表中使用运动控制器蓝图函数，与运动控制器的按键形成互动。
 	
 	![](Platforms\VR\MotionController\Working_With_MC.png)
 
-## Training Streams
+## 培训视频
 
 [REGION:topics third]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	Setting Up Motion Controllers
+	设置运动控制器
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	6ALnsdQnkVQ
@@ -79,7 +79,7 @@ For a more in-depth look at how to use Motion Controllers in UE4, make sure to c
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	Creating Interactions in VR With Motion Controllers Part 1
+	创建使用运动控制器的 VR 互动：第一部分
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	eRNtgFo6iU0
@@ -87,7 +87,7 @@ For a more in-depth look at how to use Motion Controllers in UE4, make sure to c
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-		Creating Interactions in VR With Motion Controllers Part 2
+		创建使用运动控制器的 VR 互动：第二部分
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	utOahIZgKgc

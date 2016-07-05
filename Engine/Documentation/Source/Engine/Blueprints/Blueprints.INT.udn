@@ -76,8 +76,11 @@ social-image:bp_social_image.png
 
 [EXCERPT:Intro]
 The **Blueprints Visual Scripting** system in Unreal Engine is a complete gameplay scripting system based on the concept of using 
-a node-based interface to create gameplay elements from within Unreal Editor. This system is extremely flexible and powerful as it 
-provides the ability for designers to use virtually the full range of concepts and tools generally only available to programmers.
+a node-based interface to create gameplay elements from within Unreal Editor. As with many common scripting languages, it is used to define object-oriented (OO) classes or objects in the engine. 
+As you use UE4, you'll often find that objects defined using Blueprint are colloquially referred to as just "Blueprints." 
+
+This system is extremely flexible and powerful as it provides the ability for designers to use virtually the full range of concepts and tools generally only available to programmers. In addition,
+Blueprint-specific markup available in Unreal Engine's C++ implementation enables programmers to create baseline systems that can be extended by designers.
 [/EXCERPT:Intro]
 
 ## Getting Started
@@ -126,6 +129,7 @@ provides the ability for designers to use virtually the full range of concepts a
 %Engine/Blueprints/Anatomy:TopicCompact%
 %Engine/Blueprints/Workflow:TopicCompact%
 %Engine/Blueprints/BP_HowTo:TopicCompact%
+%Engine/Blueprints/UserGuide/CheatSheet:TopicCompact%
 %Engine/Blueprints/BestPractices:TopicCompact%
 [OBJECT:TopicCompact]
 	[PARAM:image]

@@ -1,7 +1,55 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2680000
+Availability:Public
 Title:事件调度器
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 允许类蓝图向关卡蓝图报告其状态。
+related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
+related:Engine/Blueprints/UserGuide/BlueprintComms
+version: 4.9
+<!--related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+Commented out due to page not being published publicly-->
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/EventDispatcher:title%](Engine/Blueprints/UserGuide/event_dispatcher_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/EventDispatcher:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/EventDispatcher:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventDispatcher]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/EventDispatcher:title%](Engine/Blueprints/UserGuide/event_dispatcher_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/EventDispatcher:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/EventDispatcher:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventDispatcher]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
 
 [EXCERPT:Intro]
 通过向 **Event Dispatcher（事件调度器）** 绑定一个或多个事件，您可以在调用该事件调度器后触发所有事件。这些事件可以在类蓝图中进行绑定，但
@@ -64,47 +112,42 @@ Description: 允许类蓝图向关卡蓝图报告其状态。
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![](event_dispatcher_call_node.png)](Engine/Blueprints\UserGuide\EventDispatcher\Calling)
+		[![](event_dispatcher_call_node.png)](Engine/Blueprints/UserGuide/EventDispatcher/Calling)
 	[/PARAM]
 	[PARAM:title]
-		[](Engine/Blueprints\UserGuide\EventDispatcher\Calling)
+		[](Engine/Blueprints/UserGuide/EventDispatcher/Calling)
 	[/PARAM]
 	[PARAM:description]
-		[INCLUDE:Engine/Blueprints\UserGuide\EventDispatcher\Calling#Intro]
+		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/Calling#Intro]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![](bind_node.png)](Engine/Blueprints\UserGuide\EventDispatcher\BindingAndUnbinding)
+		[![](bind_node.png)](Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding)
 	[/PARAM]
 	[PARAM:title]
-		[](Engine/Blueprints\UserGuide\EventDispatcher\BindingAndUnbinding)
+		[](Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding)
 	[/PARAM]
 	[PARAM:description]
-		[INCLUDE:Engine/Blueprints\UserGuide\EventDispatcher\BindingAndUnbinding#Intro]
+		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding#Intro]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![](dispatcher_event.png)](Engine/Blueprints\UserGuide\EventDispatcher\CreatingEvents)
+		[![](dispatcher_event.png)](Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents)
 	[/PARAM]
 	[PARAM:title]
-		[](Engine/Blueprints\UserGuide\EventDispatcher\CreatingEvents)
+		[](Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents)
 	[/PARAM]
 	[PARAM:description]
-		[INCLUDE:Engine/Blueprints\UserGuide\EventDispatcher\CreatingEvents#Intro]
+		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents#Intro]
 	[/PARAM]
 [/OBJECT]
 
-## 参考指南链接
 
-请参照以下链接来查看关于 **蓝图通信** 方面的其他文档： 
 
-* 关于 **蓝图通信指南** 的更多信息，请参照： [**蓝图通信应用**](Engine\Blueprints\UserGuide\BlueprintCommsUsage)页面。
 
-* 关于 **如何设置不同的蓝图通信** 的更多信息，请参照： [**如何应用蓝图通信**](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo)页面。
 
-* 关于 **蓝图接口** 的更多信息，请参照： [**实现蓝图接口**](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces)。
 
-* 关于 **直接蓝图通信** 的更多信息，请参照： [**直接蓝图通信**](Engine\Blueprints\UserGuide\BlueprintComms)。
+
 
