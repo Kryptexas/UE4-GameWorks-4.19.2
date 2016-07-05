@@ -6,25 +6,12 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:2
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\1 "%Engine\Sequencer\QuickStart\1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\3 "%Engine\Sequencer\QuickStart\3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 With our project ready to go, in this step we will create the first shot in our cinematic. 
 We'll add a camera to that shot and generate movement as well as see how to adjust the focus of a camera through **Camera Settings**. 
@@ -41,8 +28,7 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 
 	![](SequencerQS_2_1b.png)
 
-	This type of track is used to define the perspective (or camera) to shoot the scene from at any given time. 
-	When using the **Add Camera** button, the camera that is created is automatically assigned as the Camera Cut to use for you. 
+	This type of track is used to define the perspective (or camera) to shoot the scene from at any given time. When using the **Add Camera** button, the camera that is created is automatically assigned as the Camera Cut to use for you. 
 
 1.	In the right Viewport, hold the **Right-mouse** button and use the **WASD** keys to move the camera to a position like below. 
 
@@ -60,21 +46,13 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 
 	Notice how the Active Viewport is the one the camera is locked to when clicking the Unlock/Lock Camera button. 
 
-1.	With the **CineCameraActor** selected in **Sequencer**, press the **S** key. 
+1.	With the **CineCameraActor** selected in **Sequencer**, press the **S** key. This is a [**Workflow Shortcut**](Engine\Sequencer\Workflow\CheatSheet\) that can be used to add a keyframe for the currently selected Actor's Transform (Location, Rotation and Scale). Since the Timeline is at 0 by default, we have initialized the position of the camera by adding the keyframe. When we scrub ahead and add another keyframe with the camera at a different position, the camera will move from one keyframe to the next over time.
 
-	![](SequencerQS_2_5.png)
+	![](SequencerQS_2_5.png)  
 
-	This is a [**Workflow Shortcut**](Engine\Sequencer\Workflow\CheatSheet\) that can be used to add a keyframe for the currently selected Actor's Transform (Location, Rotation and Scale). 
-	Since the Timeline is at 0 by default, we have initialized the position of the camera by adding the keyframe. 
-	When we scrub ahead and add another keyframe with the camera at a different position, the camera will move from one keyframe to the next over time.  
-
-1.	With the **CineCameraActor** selected, in the **Details** panel under **Current Camera Settings** expand **Focus Settings**.
-
-1.	Click the **Eye Dropper** icon next to **Manual Focus**. 
+1.	With the **CineCameraActor** selected, in the **Details** panel under **Current Camera Settings** expand **Focus Settings** and click the **Eye Dropper** icon next to **Manual Focus** to set the focus depth based on the scene sample location we provide. 
 
 	![](SequencerQS_2_6.png)
-
-	This will allow us to set the focus depth based on the scene sample location we provide. 
 
 1.	In the left Viewport, move the **Eye Dropper** icon over the character in the level and **Left-click** to select it. 
 
@@ -82,20 +60,16 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 
 	After clicking, the character will come into focus. 
 
-1.	With the scene sampled, click the **Add Key** button next to the **Manual Focus Distance** property. 
+1.	With the scene sampled, click the **Add Key** button next to the **Manual Focus Distance** property. This will add a key for the value of the property to the open Level Sequence. Any properties that have an **Add Key** icon, you can click on with a Level Sequence open to keyframe the value of the property in Sequencer. 
 
 	![](SequencerQS_2_8.png)
-
-	This will add a key for the value of the property to the open Level Sequence. 
-	Any properties that have an **Add Key** icon, you can click on with a Level Sequence open to keyframe the value of the property in Sequencer. 
 
 1.	In the Cinematic Viewport, click the **To End** button to move the timeline to the end of the Sequence. 
 
 	![](SequencerQS_2_8b.png)
 
 	[REGION:warning]
-	As of 4.12.2 there is an issue when scrubbing the timeline with Spawnable Cameras. If you scrub the timeline to the end of the sequence, the camera will become despawned and will lose focus in the viewport. 
-	You can re-gain focus in the viewport by clicking the **To End** button and locking the viewport to the camera. 
+	As of 4.12.2 there is an issue when scrubbing the timeline with Spawnable Cameras. If you scrub the timeline to the end of the sequence, the camera will become despawned and will lose focus in the viewport. You can re-gain focus in the viewport by clicking the **To End** button and locking the viewport to the camera. 
 
 	![](LockCamera.png)
 
@@ -120,11 +94,8 @@ We'll add a camera to that shot and generate movement as well as see how to adju
 
 ## End Result
 
-The camera work for our first shot of our cinematic is complete! 
-We added a camera to our shot and assigned a **Camera Cuts** track to indicate what camera to shoot from, we added some camera movement for the shot and adjusted camera settings so our character is in focus. 
+The camera work for our first shot of our cinematic is complete! We added a camera to our shot and assigned a **Camera Cuts** track to indicate what camera to shoot from, we added some camera movement for the shot and adjusted camera settings so our character is in focus. 
 
 In the next step, we will add and animate a character and preview the end result of our first shot. 
 
-%Steps%
-
-
+[NAV]
