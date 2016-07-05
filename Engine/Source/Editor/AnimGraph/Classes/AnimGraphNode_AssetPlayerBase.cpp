@@ -6,9 +6,12 @@
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_SequencePlayer.h"
+#include "AnimGraphNode_SequenceEvaluator.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
+#include "AnimGraphNode_BlendSpaceEvaluator.h"
 #include "AnimGraphNode_PoseBlendNode.h"
+#include "AnimGraphNode_PoseByName.h"
 
 bool IsAimOffsetBlendSpace(const UClass* BlendSpaceClass)
 {
@@ -42,5 +45,31 @@ UClass* GetNodeClassForAsset(const UClass* AssetClass)
 		return UAnimGraphNode_PoseBlendNode::StaticClass();
 	}
 	return nullptr;
+}
+
+bool SupportNodeClassForAsset(const UClass* AssetClass, const UClass* NodeClass)
+{
+	// we don't want montage to show up, so not checking AnimSequenceBase
+	if (AssetClass->IsChildOf(UAnimSequence::StaticClass()) || AssetClass->IsChildOf(UAnimComposite::StaticClass()))
+	{
+		return (UAnimGraphNode_SequencePlayer::StaticClass() == NodeClass || UAnimGraphNode_SequenceEvaluator::StaticClass() == NodeClass);
+	}
+	else if (AssetClass->IsChildOf(UBlendSpaceBase::StaticClass()))
+	{
+		if (IsAimOffsetBlendSpace(AssetClass))
+		{
+			return (UAnimGraphNode_RotationOffsetBlendSpace::StaticClass() == NodeClass);
+		}
+		else
+		{
+			return (UAnimGraphNode_BlendSpacePlayer::StaticClass() == NodeClass || UAnimGraphNode_BlendSpaceEvaluator::StaticClass() == NodeClass);
+		}
+	}
+	else if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return (UAnimGraphNode_PoseBlendNode::StaticClass() == NodeClass || UAnimGraphNode_PoseByName::StaticClass() == NodeClass);
+	}
+	
+	return false;
 }
 

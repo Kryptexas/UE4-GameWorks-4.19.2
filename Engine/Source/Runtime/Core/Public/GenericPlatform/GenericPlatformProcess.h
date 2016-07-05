@@ -200,15 +200,15 @@ struct CORE_API FGenericPlatformProcess
 	 */
 	static void SetThreadAffinityMask( uint64 AffinityMask );
 
-	/**
-	 * Allow the platform to do anything it needs for game or render thread (this would use the NamedThreads enum if we could forward declare the enum).
-	 *
-	 * @param bIsRenderThread true if setting up the render thread, false for the game thread.
-	 */
-	static void SetupGameOrRenderThread(bool bIsRenderThread)
-	{
-	}
-	
+	/** Allow the platform to do anything it needs for game thread */
+	static void SetupGameThread() { }
+
+	/** Allow the platform to do anything it needs for render thread */
+	static void SetupRenderThread() { }
+
+	/** Allow the platform to do anything it needs for audio thread */
+	static void SetupAudioThread() { }
+
 	/** Get startup directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR* BaseDir();
 

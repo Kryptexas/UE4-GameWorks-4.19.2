@@ -29,9 +29,12 @@ class SAnimEditorBase : public SCompoundWidget, public FGCObject
 public:
 	SLATE_BEGIN_ARGS( SAnimEditorBase )
 		: _Persona()
+		, _DisplayAnimInfoBar(true)
 		{}
 
 		SLATE_ARGUMENT( TSharedPtr<FPersona>, Persona )
+
+		SLATE_ARGUMENT( bool, DisplayAnimInfoBar )
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);

@@ -33,9 +33,13 @@ struct CORE_API FIOSPlatformProcess : public FGenericPlatformProcess
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
 	static bool CanLaunchURL(const TCHAR* URL);
 	static void SetRealTimeMode();
-	static void SetupGameOrRenderThread(bool bIsRenderThread);
+	static void SetupGameThread();
+	static void SetupRenderThread();
 	static void SetThreadAffinityMask(uint64 AffinityMask);
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
+
+private:
+	static void SetupThread(int Priority);
 };
 
 typedef FIOSPlatformProcess FPlatformProcess;

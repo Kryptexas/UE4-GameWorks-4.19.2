@@ -698,7 +698,7 @@ public:
 	/** A static map that is populated before loading a world from a package. This is so UWorld can look up its WorldType in ::PostLoad */
 	static TMap<FName, EWorldType::Type> WorldTypePreLoadMap;
 
-	/** Map of blueprints that are bieng debugged and the object instance they are debugging. */
+	/** Map of blueprints that are being debugged and the object instance they are debugging. */
 	typedef TMap<TWeakObjectPtr<class UBlueprint>, TWeakObjectPtr<UObject> > FBlueprintToDebuggedObjectMap;
 
 	/** Return the array of objects currently bieng debugged. */
@@ -941,8 +941,9 @@ public:
 	/** An array of post processing volumes, sorted in ascending order of priority.					*/
 	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
 
-	/** Pointer to the higest priority audio volumes, each volume has a reference to the next lower priority volume creating a linked list of prioritized audio volumes in descending order */
-	TAutoWeakObjectPtr<class AAudioVolume> HighestPriorityAudioVolume;
+	/** Set of AudioVolumes sorted by  */
+	// TODO: Make this be property UPROPERTY(Transient)
+	TSet<class AAudioVolume*> AudioVolumes;
 
 	/** Handle to the active audio device for this world. */
 	uint32 AudioDeviceHandle;
@@ -2687,6 +2688,9 @@ public:
 	 * @return							If the settings came from an audio volume, the audio volume object is returned.
 	 */
 	class AAudioVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
+
+	/** Returns the audio device handle for this world.*/
+	uint32 GetAudioDeviceHandle() const { return AudioDeviceHandle; }
 
 	/** Sets the audio device handle to the active audio device for this world.*/
 	void SetAudioDeviceHandle(const uint32 InAudioDeviceHandle);

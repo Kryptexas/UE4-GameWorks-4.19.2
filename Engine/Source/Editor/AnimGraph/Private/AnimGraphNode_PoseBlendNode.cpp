@@ -4,12 +4,40 @@
 
 #include "CompilerResultsLog.h"
 #include "GraphEditorActions.h"
+#include "EditorCategoryUtils.h"
+#include "AssetRegistryModule.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"
+#include "BlueprintNodeSpawner.h"
 #include "AnimGraphNode_PoseBlendNode.h"
 
+#define LOCTEXT_NAMESPACE "PoseBlendNode"
+
+// Action to add a pose asset blend node to the graph
+struct FNewPoseBlendNodeAction : public FEdGraphSchemaAction_K2NewNode
+{
+protected:
+	FAssetData AssetInfo;
+public:
+	FNewPoseBlendNodeAction(const FAssetData& InAssetInfo, FText Title)
+		: FEdGraphSchemaAction_K2NewNode(LOCTEXT("PoseAsset", "PosetAssets"), Title, TEXT("Evaluates curves to produce a pose from pose asset"), 0, FText::FromName(InAssetInfo.ObjectPath))
+	{
+		AssetInfo = InAssetInfo;
+
+		UAnimGraphNode_PoseBlendNode* Template = NewObject<UAnimGraphNode_PoseBlendNode>();
+		NodeTemplate = Template;
+	}
+
+	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override
+	{
+		UAnimGraphNode_PoseBlendNode* SpawnedNode = CastChecked<UAnimGraphNode_PoseBlendNode>(FEdGraphSchemaAction_K2NewNode::PerformAction(ParentGraph, FromPin, Location, bSelectNewNode));
+		SpawnedNode->Node.PoseAsset = Cast<UPoseAsset>(AssetInfo.GetAsset());
+
+		return SpawnedNode;
+	}
+};
 /////////////////////////////////////////////////////
 // UAnimGraphNode_PoseBlendNode
-
-#define LOCTEXT_NAMESPACE "PoseBlendNode"
 
 UAnimGraphNode_PoseBlendNode::UAnimGraphNode_PoseBlendNode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -64,10 +92,147 @@ FText UAnimGraphNode_PoseBlendNode::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return CachedNodeTitle;
 }
 
-// void UAnimGraphNode_PoseBlendNode::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
-// {
-// 	// Intentionally empty; you can drop down a regular sequence player and convert into a sequence evaluator in the right-click menu.
-// }
+void UAnimGraphNode_PoseBlendNode::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto LoadedAssetSetup = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UPoseAsset> PoseAssetPtr)
+	{
+		UAnimGraphNode_PoseBlendNode* PoseBlendNodeNode = CastChecked<UAnimGraphNode_PoseBlendNode>(NewNode);
+		PoseBlendNodeNode->Node.PoseAsset = PoseAssetPtr.Get();
+	};
+
+	auto UnloadedAssetSetup = [](UEdGraphNode* NewNode, bool bIsTemplateNode, const FAssetData AssetData)
+	{
+		UAnimGraphNode_PoseBlendNode* PoseBlendNodeNode = CastChecked<UAnimGraphNode_PoseBlendNode>(NewNode);
+		if (bIsTemplateNode)
+		{
+			AssetData.GetTagValue("Skeleton", PoseBlendNodeNode->UnloadedSkeletonName);
+		}
+		else
+		{
+			UPoseAsset* PoseAsset = Cast<UPoseAsset>(AssetData.GetAsset());
+			check(PoseAsset != nullptr);
+			PoseBlendNodeNode->Node.PoseAsset = PoseAsset;
+		}
+	};
+
+	const UObject* QueryObject = ActionRegistrar.GetActionKeyFilter();
+	if (QueryObject == nullptr)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		// define a filter to help in pulling UPoseAsset asset data from the registry
+		FARFilter Filter;
+		Filter.ClassNames.Add(UPoseAsset::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		// Find matching assets and add an entry for each one
+		TArray<FAssetData> PoseAssetList;
+		AssetRegistryModule.Get().GetAssets(Filter, /*out*/PoseAssetList);
+
+		for (auto AssetIt = PoseAssetList.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;
+
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			if (Asset.IsAssetLoaded())
+			{
+				TWeakObjectPtr<UPoseAsset> PoseAsset = Cast<UPoseAsset>(Asset.GetAsset());
+				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, PoseAsset);
+				NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(PoseAsset->GetFName()));
+			}
+			else
+			{
+				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(UnloadedAssetSetup, Asset);
+				NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName));
+			}
+			ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
+		}
+	}
+	else if (const UPoseAsset* PoseAsset = Cast<UPoseAsset>(QueryObject))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+
+		TWeakObjectPtr<UPoseAsset> PoseAssetPtr = PoseAsset;
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, PoseAssetPtr);
+		NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(PoseAsset->GetFName()));
+
+		ActionRegistrar.AddBlueprintAction(QueryObject, NodeSpawner);
+	}
+	else if (QueryObject == GetClass())
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		// define a filter to help in pulling UPoseAsset asset data from the registry
+		FARFilter Filter;
+		Filter.ClassNames.Add(UPoseAsset::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		// Find matching assets and add an entry for each one
+		TArray<FAssetData> PoseAssetList;
+		AssetRegistryModule.Get().GetAssets(Filter, /*out*/PoseAssetList);
+
+		for (auto AssetIt = PoseAssetList.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;
+			if (Asset.IsAssetLoaded())
+			{
+				continue;
+			}
+
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(UnloadedAssetSetup, Asset);
+			NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName));
+			ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
+		}
+	}
+}
+
+FText UAnimGraphNode_PoseBlendNode::GetTitleGivenAssetInfo(const FText& AssetName)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("AssetName"), AssetName);
+
+	return FText::Format(LOCTEXT("PoseAssetNodeTitle", "Evaluate Pose {AssetName}"), Args);
+}
+
+bool UAnimGraphNode_PoseBlendNode::IsActionFilteredOut(class FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	for (UBlueprint* Blueprint : FilterContext.Blueprints)
+	{
+		if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+		{
+			if (Node.PoseAsset)
+			{
+				if (Node.PoseAsset->GetSkeleton() != AnimBlueprint->TargetSkeleton)
+				{
+					// PoseAsset does not use the same skeleton as the Blueprint, cannot use
+					bIsFilteredOut = true;
+					break;
+				}
+			}
+			else
+			{
+				FAssetData SkeletonData(AnimBlueprint->TargetSkeleton);
+				if (UnloadedSkeletonName != SkeletonData.GetExportTextName())
+				{
+					bIsFilteredOut = true;
+					break;
+				}
+			}
+		}
+		else
+		{
+			// Not an animation Blueprint, cannot use
+			bIsFilteredOut = true;
+			break;
+		}
+	}
+	return bIsFilteredOut;
+}
+
+FText UAnimGraphNode_PoseBlendNode::GetMenuCategory() const
+{
+	return LOCTEXT("PoseAssetCategory_Label", "Poses");
+}
 
 void UAnimGraphNode_PoseBlendNode::SetAnimationAsset(UAnimationAsset* Asset)
 {
@@ -86,28 +251,13 @@ void UAnimGraphNode_PoseBlendNode::ValidateAnimNodeDuringCompilation(class USkel
 	else
 	{
 		USkeleton* SeqSkeleton = Node.PoseAsset->GetSkeleton();
-		if (SeqSkeleton&& // if anim sequence doesn't have skeleton, it might be due to anim sequence not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
+		if (SeqSkeleton&& // if PoseAsset doesn't have skeleton, it might be due to PoseAsset not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!SeqSkeleton->IsCompatible(ForSkeleton))
 		{
 			MessageLog.Error(TEXT("@@ references poseasset that uses different skeleton @@"), this, SeqSkeleton);
 		}
 	}
 }
-
-// potentially in the future, give options for the pose name?
-// void UAnimGraphNode_PoseBlendNode::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
-// {
-// 	if (!Context.bIsDebugging)
-// 	{
-// 		// add an option to convert to a regular sequence player
-// 		Context.MenuBuilder->BeginSection("AnimGraphNodePoseByName", NSLOCTEXT("A3Nodes", "PoseByNameHeading", "Sequence Evaluator"));
-// 		{
-// 			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().OpenRelatedAsset);
-// 			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ConvertToSeqPlayer);
-// 		}
-// 		Context.MenuBuilder->EndSection();
-// 	}
-// }
 
 bool UAnimGraphNode_PoseBlendNode::DoesSupportTimeForTransitionGetter() const
 {

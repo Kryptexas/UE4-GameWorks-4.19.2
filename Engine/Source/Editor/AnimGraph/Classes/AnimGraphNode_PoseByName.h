@@ -18,6 +18,7 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
+	virtual FText GetMenuCategory() const override;
 	// End of UEdGraphNode
 
 	// UAnimGraphNode_Base interface
@@ -32,6 +33,7 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 
 	// UK2Node interface
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	//virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 

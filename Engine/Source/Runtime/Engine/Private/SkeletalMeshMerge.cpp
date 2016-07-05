@@ -25,12 +25,14 @@ FSkeletalMeshMerge::FSkeletalMeshMerge(USkeletalMesh* InMergeMesh,
 									   const TArray<USkeletalMesh*>& InSrcMeshList, 
 									   const TArray<FSkelMeshMergeSectionMapping>& InForceSectionMapping,
 									   int32 InStripTopLODs,
-                                       EMeshBufferAccess InMeshBufferAccess)
+                                       EMeshBufferAccess InMeshBufferAccess,
+									   FSkelMeshMergeUVTransforms* InSectionUVTransforms)
 :	MergeMesh(InMergeMesh)
 ,	SrcMeshList(InSrcMeshList)
 ,	StripTopLODs(InStripTopLODs)
 ,   MeshBufferAccess(InMeshBufferAccess)
 ,	ForceSectionMapping(InForceSectionMapping)
+,	SectionUVTransforms(InSectionUVTransforms)
 {
 	check(MergeMesh);
 }
@@ -324,10 +326,17 @@ void FSkeletalMeshMerge::GenerateNewSectionArray( TArray<FNewSectionInfo>& NewSe
 						// check to see if the newly merged bonemap is still within the bone limit for GPU skinning
 						if( TempMergedBoneMap.Num() <= MaxGPUSkinBones )
 						{
+							TArray<FTransform> SrcUVTransform;
+							if (SectionUVTransforms != nullptr && MeshIdx < SectionUVTransforms->UVTransformsPerMesh.Num())
+							{
+								SrcUVTransform = SectionUVTransforms->UVTransformsPerMesh[MeshIdx];
+							}
+
 							// add the source section as a new merge entry
 							FMergeSectionInfo& MergeSectionInfo = *new(NewSectionInfo.MergeSections) FMergeSectionInfo(
 								SrcMesh,
-								&SrcLODModel.Sections[SectionIdx]
+								&SrcLODModel.Sections[SectionIdx],
+								SrcUVTransform
 								);
 							// keep track of remapping for the existing chunk's bonemap 
 							// so that the bone matrix indices can be updated for the vertices
@@ -351,10 +360,17 @@ void FSkeletalMeshMerge::GenerateNewSectionArray( TArray<FNewSectionInfo>& NewSe
 					FNewSectionInfo& NewSectionInfo = *new(NewSectionArray) FNewSectionInfo(Material,MaterialId);
 					// initialize the merged bonemap to simply use the original chunk bonemap
 					NewSectionInfo.MergedBoneMap = DestChunkBoneMap;
+
+					TArray<FTransform> SrcUVTransform;
+					if (SectionUVTransforms != nullptr && MeshIdx < SectionUVTransforms->UVTransformsPerMesh.Num())
+					{
+						SrcUVTransform = SectionUVTransforms->UVTransformsPerMesh[MeshIdx];
+					}
 					// add a new merge section entry
 					FMergeSectionInfo& MergeSectionInfo = *new(NewSectionInfo.MergeSections) FMergeSectionInfo(
 						SrcMesh,
-						&SrcLODModel.Sections[SectionIdx]);
+						&SrcLODModel.Sections[SectionIdx],
+						SrcUVTransform);
 					// since merged bonemap == chunk.bonemap then remapping is just pass-through
 					MergeSectionInfo.BoneMapToMergedBoneMap.Empty( DestChunkBoneMap.Num() );
 					for( int32 i=0; i < DestChunkBoneMap.Num(); i++ )
@@ -533,7 +549,13 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				uint32 LODNumTexCoords = SrcLODModel.VertexBufferGPUSkin.GetNumTexCoords();
 				for( uint32 UVIndex = 0; UVIndex < LODNumTexCoords && UVIndex < MAX_TEXCOORDS; ++UVIndex )
 				{
-					DestVert.UVs[UVIndex] = SrcLODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertIdx,UVIndex);
+					FVector2D UVs = SrcLODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertIdx,UVIndex);
+					if (UVIndex < (uint32)MergeSectionInfo.UVTransforms.Num())
+					{
+						auto Transformed = MergeSectionInfo.UVTransforms[UVIndex].TransformPosition(FVector(UVs, 1.f));
+						UVs = FVector2D(Transformed.X, Transformed.Y);
+					}
+					DestVert.UVs[UVIndex] = UVs;
 				}
 
 				if( TotalNumUVs < LODNumTexCoords )

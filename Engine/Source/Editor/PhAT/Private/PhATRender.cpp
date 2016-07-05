@@ -6,6 +6,7 @@
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -71,9 +72,9 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 	PDI->DrawPoint(SharedData->LastClickOrigin, FLinearColor(1, 0, 0), 5, SDPG_Foreground);
 #endif
 	// Draw bodies
-	for (int32 i = 0; i <PhysicsAsset->BodySetup.Num(); ++i)
+	for (int32 i = 0; i <PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 	{
-		int32 BoneIndex = GetBoneIndex(PhysicsAsset->BodySetup[i]->BoneName);
+		int32 BoneIndex = GetBoneIndex(PhysicsAsset->SkeletalBodySetups[i]->BoneName);
 
 		// If we found a bone for it, draw the collision.
 		// The logic is as follows; always render in the ViewMode requested when not in hit mode - but if we are in hit mode and the right editing mode, render as solid
@@ -84,7 +85,7 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 			FVector VectorScale(Scale);
 			BoneTM.RemoveScaling();
 
-			FKAggregateGeom* AggGeom = &PhysicsAsset->BodySetup[i]->AggGeom;
+			FKAggregateGeom* AggGeom = &PhysicsAsset->SkeletalBodySetups[i]->AggGeom;
 
 			for (int32 j = 0; j <AggGeom->SphereElems.Num(); ++j)
 			{
@@ -371,7 +372,7 @@ void UPhATEdSkeletalMeshComponent::DrawCurrentInfluences(FPrimitiveDrawInterface
 
 FTransform UPhATEdSkeletalMeshComponent::GetPrimitiveTransform(FTransform& BoneTM, int32 BodyIndex, EKCollisionPrimitiveType PrimType, int32 PrimIndex, float Scale)
 {
-	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
+	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[BodyIndex];
 	FVector Scale3D(Scale);
 
 	FTransform ManTM = FTransform::Identity;
@@ -423,7 +424,7 @@ FTransform UPhATEdSkeletalMeshComponent::GetPrimitiveTransform(FTransform& BoneT
 
 FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollisionPrimitiveType PrimitiveType, int32 PrimitiveIndex)
 {
-	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->BodySetup[ BodyIndex ];
+	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[ BodyIndex ];
 
 	if (!SharedData->bRunningSimulation && SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit && SharedData->GetSelectedConstraint())
 	{

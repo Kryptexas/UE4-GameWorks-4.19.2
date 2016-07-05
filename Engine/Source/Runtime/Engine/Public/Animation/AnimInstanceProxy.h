@@ -10,6 +10,7 @@
 
 struct FAnimNode_Base;
 struct FAnimNode_SaveCachedPose;
+struct FAnimNode_SubInput;
 
 /** Proxy object passed around during animation tree update in lieu of a UAnimInstance */
 USTRUCT(meta = (DisplayName = "Native Variables"))
@@ -32,6 +33,7 @@ public:
 		, bIsBeingDebugged(false)
 #endif
 		, RootNode(nullptr)
+		, SubInstanceInputNode(nullptr)
 		, SyncGroupWriteIndex(0)
 		, RootMotionMode(ERootMotionMode::NoRootMotionExtraction)
 		, bShouldExtractRootMotion(false)
@@ -182,7 +184,7 @@ public:
 	}
 
 	/** Get the current skeletal mesh component we are running on. Note that this will return nullptr outside of pre/post update */
-	USkeletalMeshComponent* GetSkelMeshComponent() 
+	USkeletalMeshComponent* GetSkelMeshComponent() const
 	{ 
 		// Skeleton is only available during update/eval. If you're calling this function outside of it, it will return null. 
 		// adding ensure here so that we can catch them earlier
@@ -276,6 +278,7 @@ public:
 	friend class UAnimInstance;
 	friend class UAnimSingleNodeInstance;
 	friend class USkeletalMeshComponent;
+	friend struct FAnimNode_SubInstance;
 
 protected:
 	/** Called when our anim instance is being initialized */
@@ -518,6 +521,9 @@ private:
 
 	/** Anim graph */
 	FAnimNode_Base* RootNode;
+
+	/** Subinstance input node if available */
+	FAnimNode_SubInput* SubInstanceInputNode;
 
 	/** List of saved pose nodes to process after the graph has been updated */
 	TArray<FAnimNode_SaveCachedPose*> SavedPoseQueue;

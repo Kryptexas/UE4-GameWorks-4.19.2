@@ -1419,7 +1419,7 @@ struct FLocalizedSubtitle
 	 * as the contents of the subtitle is commonly identical to what is spoken.
 	 */
 	UPROPERTY()
-	TArray<struct FSubtitleCue> Subtitles;
+	TArray<FSubtitleCue> Subtitles;
 
 	/** true if this sound is considered to contain mature content. */
 	UPROPERTY()

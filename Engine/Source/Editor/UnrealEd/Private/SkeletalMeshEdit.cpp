@@ -988,6 +988,29 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 	return false;
 }
 
+bool ShouldImportCurve(FbxAnimCurve* Curve, bool bDoNotImportWithZeroValues)
+{
+	if (Curve && Curve->KeyGetCount() > 0)
+	{
+		if (bDoNotImportWithZeroValues)
+		{
+			for (int32 KeyIndex = 0; KeyIndex < Curve->KeyGetCount(); ++KeyIndex)
+			{
+				if (!FMath::IsNearlyZero(Curve->KeyGetValue(KeyIndex)))
+				{
+					return true;
+				}
+			}
+		}
+		else
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * DestSeq, const FString& FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
 	// @todo : the length might need to change w.r.t. sampling keys
@@ -1013,7 +1036,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		for (int32 CurveIdx=0; CurveIdx<DestSeq->RawCurveData.FloatCurves.Num(); ++CurveIdx)
 		{
 			auto& Curve = DestSeq->RawCurveData.FloatCurves[CurveIdx];
-			if (Curve.GetCurveTypeFlag(ACF_DrivesMorphTarget))
+			if (Curve.GetCurveTypeFlag(ACF_DriveMorphTarget))
 			{
 				DestSeq->RawCurveData.FloatCurves.RemoveAt(CurveIdx, 1, false);
 				--CurveIdx;
@@ -1059,14 +1082,18 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							}
 
 							FbxAnimCurve* Curve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, (FbxAnimLayer*)CurAnimStack->GetMember(0));
-							if (Curve && Curve->KeyGetCount() > 0)
+							if (ShouldImportCurve(Curve, ImportOptions->bDoNotImportCurveWithZero))
 							{
 								FFormatNamedArguments Args;
 								Args.Add(TEXT("BlendShape"), FText::FromString(ChannelName));
 								const FText StatusUpate = FText::Format(LOCTEXT("ImportingMorphTargetCurvesDetail", "Importing Morph Target Curves [{BlendShape}]"), Args);
 								GWarn->StatusUpdate(NodeIndex + 1, NodeArray.Num(), StatusUpate);
 								// now see if we have one already exists. If so, just overwrite that. if not, add new one. 
-								ImportCurveToAnimSequence(DestSeq, *ChannelName, Curve,  ACF_DrivesMorphTarget | ACF_TriggerEvent, AnimTimeSpan, 0.01f /** for some reason blend shape values are coming as 100 scaled **/);
+								ImportCurveToAnimSequence(DestSeq, *ChannelName, Curve,  ACF_DriveMorphTarget | ACF_DriveAttribute, AnimTimeSpan, 0.01f /** for some reason blend shape values are coming as 100 scaled **/);
+							}
+							else
+							{
+								UE_LOG(LogFbx, Warning, TEXT("CurveName(%s) is skipped because it only contains invalid values."), *ChannelName);
 							}
 						}
 					}
@@ -1103,7 +1130,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 						FbxAnimCurve * AnimCurve = CurveNode->GetCurve(ChannelIndex);
 						FString ChannelName = CurveNode->GetChannelName(ChannelIndex).Buffer();
 
-						if (AnimCurve)
+						if (ShouldImportCurve(AnimCurve, ImportOptions->bDoNotImportCurveWithZero))
 						{
 							FString FinalCurveName;
 							if (TotalCount == 1)
@@ -1124,7 +1151,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							// first let them override material curve if required
 							if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
 							{
-								CurveFlags |= ACF_DrivesMaterial;
+								CurveFlags |= ACF_DriveMaterial;
 							}
 							else
 							{
@@ -1134,26 +1161,18 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 									int32 TotalSuffix = Suffix.Len();
 									if (CurveName.Right(TotalSuffix) == Suffix)
 									{
-										CurveFlags |= ACF_DrivesMaterial;
+										CurveFlags |= ACF_DriveMaterial;
 										break;
 									}
 								}
 							}
 
-							// apply naming convention for pose curve
-							for (const auto& Suffix : ImportOptions->PoseCurveSuffixes)
-							{
-								int32 TotalSuffix = Suffix.Len();
-								if (ChannelName.Right(TotalSuffix) == Suffix)
-								{
-									CurveFlags |= ACF_DrivesPose;
-									break;
-								}
-							}
-
 							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan);
 						}
-											
+						else
+						{
+							UE_LOG(LogFbx, Log, TEXT("CurveName(%s) is skipped because it only contains invalid values."), *CurveName);
+						}
 					}
 				}
 

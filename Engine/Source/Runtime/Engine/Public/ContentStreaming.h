@@ -524,14 +524,14 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 *
 	 * @param StreamingManager	Streaming manager to add
 	 */
-	void AddStreamingManager( IStreamingManager* StreamingManager );
+	ENGINE_API void AddStreamingManager( IStreamingManager* StreamingManager );
 
 	/**
 	 * Removes a streaming manager from the array of managers to route function calls to.
 	 *
 	 * @param StreamingManager	Streaming manager to remove
 	 */
-	void RemoveStreamingManager( IStreamingManager* StreamingManager );
+	ENGINE_API void RemoveStreamingManager( IStreamingManager* StreamingManager );
 
 	/**
 	 * Sets the number of iterations to use for the next time UpdateResourceStreaming is being called. This 

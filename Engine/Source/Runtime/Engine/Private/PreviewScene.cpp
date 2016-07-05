@@ -123,10 +123,7 @@ void FPreviewScene::RemoveComponent(UActorComponent* Component)
 
 void FPreviewScene::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	for( int32 Index = 0; Index < Components.Num(); Index++ )
-	{
-		Collector.AddReferencedObject( Components[ Index ] );
-	}
+	Collector.AddReferencedObjects( Components );
 	Collector.AddReferencedObject( DirectionalLight );
 	Collector.AddReferencedObject( PreviewWorld );
 }

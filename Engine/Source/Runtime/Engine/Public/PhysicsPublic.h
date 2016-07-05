@@ -10,7 +10,7 @@
 #include "PhysxUserData.h"
 #include "DynamicMeshBuilder.h"
 #include "LocalVertexFactory.h"
-#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
 /**
  * Physics stats
  */
@@ -225,11 +225,17 @@ namespace SleepEvent
 
 }
 
+/** Builder to allow overriding the sim event callback. */
+typedef class FPhysXSimEventCallback* (CreateSimEventCallbackFn)(class FPhysScene* PhysScene, int32 SceneType);
+
 /** Container object for a physics engine 'scene'. */
 
 class FPhysScene
 {
 public:
+	/** If the function is set it will be used to create the sim event callback. Otherwise FPhysXSimEventCallback will be used. */
+	ENGINE_API static CreateSimEventCallbackFn* CreateSimEventCallback;
+
 	/** Indicates whether the async scene is enabled or not. */
 	bool							bAsyncSceneEnabled;
 
@@ -531,10 +537,10 @@ public:
 	}
 
 	/** Adds to queue of skelmesh we want to add to collision disable table */
-	void DeferredAddCollisionDisableTable(uint32 SkelMeshCompID, TMap<struct FRigidBodyIndexPair, bool> * CollisionDisableTable);
+	ENGINE_API void DeferredAddCollisionDisableTable(uint32 SkelMeshCompID, TMap<struct FRigidBodyIndexPair, bool> * CollisionDisableTable);
 
 	/** Adds to queue of skelmesh we want to remove from collision disable table */
-	void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
+	ENGINE_API void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
 
 #if WITH_APEX
 	/** Adds a damage event to be fired when fetchResults is done */

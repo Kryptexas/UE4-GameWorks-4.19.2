@@ -1086,13 +1086,17 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 			if(!PropertyBase && AnimBlueprintGeneratedClass)
 			{
 				// are we linked to an anim graph node?
+				UProperty* LinkedProperty = Property;
 				const UAnimGraphNode_Base* Node = Cast<UAnimGraphNode_Base>(WatchPin->GetOuter());
 				if(Node == nullptr && WatchPin->LinkedTo.Num() > 0)
 				{
-					Node = Cast<UAnimGraphNode_Base>(WatchPin->LinkedTo[0]->GetOuter());
+					const UEdGraphPin* LinkedPin = WatchPin->LinkedTo[0];
+					// When we change Node we *must* change Property, so it's still a sub-element of that.
+					LinkedProperty = FKismetDebugUtilities::FindClassPropertyForPin(Blueprint, LinkedPin);
+					Node = Cast<UAnimGraphNode_Base>(LinkedPin->GetOuter());
 				}
 
-				if(Node)
+				if(Node && LinkedProperty)
 				{
 					UStructProperty* NodeStructProperty = Cast<UStructProperty>(FKismetDebugUtilities::FindClassPropertyForNode(Blueprint, Node));
 					if (NodeStructProperty)
@@ -1102,7 +1106,7 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 							if (NodeProperty == NodeStructProperty)
 							{
 								void* NodePtr = NodeProperty->ContainerPtrToValuePtr<void>(ActiveObject);
-								Property->ExportText_InContainer(/*ArrayElement=*/ 0, /*inout*/ OutWatchText, NodePtr, NodePtr, /*Parent=*/ ActiveObject, PPF_PropertyWindow|PPF_BlueprintDebugView);
+								LinkedProperty->ExportText_InContainer(/*ArrayElement=*/ 0, /*inout*/ OutWatchText, NodePtr, NodePtr, /*Parent=*/ ActiveObject, PPF_PropertyWindow|PPF_BlueprintDebugView);
 								return EWTR_Valid;
 							}
 						}

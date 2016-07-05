@@ -17,6 +17,8 @@ class FMaterialRenderProxy;
 class FPrimitiveDrawInterface;
 class FMaterialRenderProxy;
 
+DECLARE_DELEGATE_OneParam(FOnConstraintBroken, int32 /*ConstraintIndex*/);
+
 /** Container for properties of a physics constraint that can be easily swapped at runtime. This is useful for switching different setups when going from ragdoll to standup for example */
 USTRUCT()
 struct ENGINE_API FConstraintProfileProperties
@@ -100,10 +102,6 @@ struct ENGINE_API FConstraintInstance
 
 	/** Indicates position of this constraint within the array in SkeletalMeshComponent. */
 	int32 ConstraintIndex;
-
-	/** The component that created this instance. */
-	UPROPERTY()
-	USceneComponent* OwnerComponent;
 
 #if WITH_PHYSX
 	/** Internal use. Physics-engine representation of this constraint. */
@@ -434,7 +432,12 @@ public:
 	void SetLinearLimitSize(float NewLimitSize);
 
 	/** Create physics engine constraint. */
-	void InitConstraint(USceneComponent* Owner, FBodyInstance* Body1, FBodyInstance* Body2, float Scale);
+	void InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, UObject* DebugOwner, FOnConstraintBroken InConstraintBrokenDelegate = FOnConstraintBroken());
+
+#if WITH_PHYSX
+	/** Create physics engine constraint using physx actors. */
+	void InitConstraintPhysX_AssumesLocked(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene, float InScale, FOnConstraintBroken InConstraintBrokenDelegate = FOnConstraintBroken());
+#endif
 
 	/** Terminate physics engine constraint */
 	void TermConstraint();
@@ -549,6 +552,8 @@ private:
 
 	void UpdateBreakable();
 	void UpdateDriveTarget();
+
+	FOnConstraintBroken OnConstraintBrokenDelegate;
 
 public:
 

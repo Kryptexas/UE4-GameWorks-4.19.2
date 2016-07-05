@@ -1654,12 +1654,12 @@ UObject* USoundFactory::FactoryCreateBinary
 		// if the sound already exists, remember the user settings
 		USoundWave* ExistingSound = FindObject<USoundWave>( InParent, *Name.ToString() );
 
-		// TODO - Audio Threading. This needs to be sent to the audio device and wait on stopping the sounds
 		TArray<UAudioComponent*> ComponentsToRestart;
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 		if (AudioDeviceManager && ExistingSound)
 		{
-			AudioDeviceManager->StopSoundsUsingResource(ExistingSound, ComponentsToRestart);
+			// Will block internally on audio thread completing outstanding commands
+			AudioDeviceManager->StopSoundsUsingResource(ExistingSound, &ComponentsToRestart);
 		}
 
 		bool bUseExistingSettings = bSoundFactorySuppressImportOverwriteDialog;

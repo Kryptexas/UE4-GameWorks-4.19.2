@@ -132,7 +132,7 @@ FBox UPhysicsConstraintComponent::GetBodyBoxInternal(EConstraintFrame::Type Fram
 			if(BoneIndex != INDEX_NONE && BodyIndex != INDEX_NONE)
 			{	
 				const FTransform BoneTransform = SkelComp->GetBoneTransform(BoneIndex);
-				ResultBox = PhysicsAsset->BodySetup[BodyIndex]->AggGeom.CalcAABB(BoneTransform);
+				ResultBox = PhysicsAsset->SkeletalBodySetups[BodyIndex]->AggGeom.CalcAABB(BoneTransform);
 			}
 		}
 	}
@@ -187,6 +187,12 @@ FBodyInstance* UPhysicsConstraintComponent::GetBodyInstance(EConstraintFrame::Ty
 }
 
 
+/** Wrapper that calls our constraint broken delegate */
+void UPhysicsConstraintComponent::OnConstraintBrokenWrapper(int32 ConstraintIndex)
+{
+	OnConstraintBroken.Broadcast(ConstraintIndex);
+}
+
 void UPhysicsConstraintComponent::InitComponentConstraint()
 {
 	// First we convert world space position of constraint into local space frames
@@ -195,7 +201,8 @@ void UPhysicsConstraintComponent::InitComponentConstraint()
 	// Then we init the constraint
 	FBodyInstance* Body1 = GetBodyInstance(EConstraintFrame::Frame1);
 	FBodyInstance* Body2 = GetBodyInstance(EConstraintFrame::Frame2);
-	ConstraintInstance.InitConstraint(this, Body1, Body2, GetConstraintScale());
+
+	ConstraintInstance.InitConstraint(Body1, Body2, GetConstraintScale(), this, FOnConstraintBroken::CreateUObject(this, &UPhysicsConstraintComponent::OnConstraintBrokenWrapper));
 }
 
 void UPhysicsConstraintComponent::TermComponentConstraint()

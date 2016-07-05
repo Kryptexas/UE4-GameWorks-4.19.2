@@ -703,8 +703,8 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	const bool bDetailModeAllowsRendering = (DetailMode <= GetCachedScalabilityCVars().DetailMode);
 	const bool bIsVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
 
-	const bool bHasPhysBodies = PhysicsAsset && PhysicsAsset->BodySetup.Num();
-	const bool bMasterHasPhysBodies = MasterPhysicsAsset && MasterPhysicsAsset->BodySetup.Num();
+	const bool bHasPhysBodies = PhysicsAsset && PhysicsAsset->SkeletalBodySetups.Num();
+	const bool bMasterHasPhysBodies = MasterPhysicsAsset && MasterPhysicsAsset->SkeletalBodySetups.Num();
 
 	// if not visible, or we were told to use fixed bounds, use skelmesh bounds
 	if ( (!bIsVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 

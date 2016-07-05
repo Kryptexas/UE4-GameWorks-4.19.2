@@ -2949,7 +2949,7 @@ void UKismetSystemLibrary::RetriggerableDelay(UObject* WorldContextObject, float
 	}
 }
 
-void UKismetSystemLibrary::MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo)
+void UKismetSystemLibrary::MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, bool bForceShortestRotationPath, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo)
 {
 	if (UWorld* World = ((Component != NULL) ? Component->GetWorld() : NULL))
 	{
@@ -2965,7 +2965,7 @@ void UKismetSystemLibrary::MoveComponentTo(USceneComponent* Component, FVector T
 			if (MoveAction == EMoveComponentAction::Move)
 			{
 				// Only act on a 'move' input if not running
-				Action = new FInterpolateComponentToAction(OverTime, LatentInfo, Component, bEaseOut, bEaseIn);
+				Action = new FInterpolateComponentToAction(OverTime, LatentInfo, Component, bEaseOut, bEaseIn, bForceShortestRotationPath);
 
 				Action->TargetLocation = TargetRelativeLocation;
 				Action->TargetRotation = TargetRelativeRotation;

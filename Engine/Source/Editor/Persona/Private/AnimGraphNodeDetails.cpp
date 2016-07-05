@@ -240,10 +240,11 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, const UClass* NodeToFilterFor ) const
 {
 	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
-	if (*SkeletonName == TargetSkeletonName)
+	if ((SkeletonName != nullptr) && (*SkeletonName == TargetSkeletonName))
 	{
 		const UClass* AssetClass = AssetData.GetClass();
-		if (NodeToFilterFor == GetNodeClassForAsset(AssetClass))
+		// If node is an 'asset player', only let you select the right kind of asset for it
+		if (!NodeToFilterFor->IsChildOf(UAnimGraphNode_AssetPlayerBase::StaticClass()) || SupportNodeClassForAsset(AssetClass, NodeToFilterFor))
 		{
 			return false;
 		}
@@ -516,8 +517,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 
 		HeaderRow.ValueContent()
 		[
-			SNew(SBoneSelectionWidget)
-			.Skeleton(TargetSkeleton)
+			SNew(SBoneSelectionWidget, TargetSkeleton)
 			.Tooltip(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)

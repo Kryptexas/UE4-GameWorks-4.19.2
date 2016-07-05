@@ -81,7 +81,7 @@ FORCEINLINE void operator&=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)		
 FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest | Arg); }
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*, NewVolume);
-
+DECLARE_EVENT_ThreeParams(USceneComponent, FTransformUpdated, USceneComponent* /*UpdatedComponent*/, EUpdateTransformFlags /*UpdateTransformFlags*/, ETeleportType /*Teleport*/);
 
 /**
  * A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities.
@@ -748,6 +748,8 @@ public:
 	/** Delegate that will be called when PhysicsVolume has been changed **/
 	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume, meta=(DisplayName="Physics Volume Changed"))
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
+
+	FTransformUpdated TransformUpdated;
 
 	//~ Begin ActorComponent Interface
 	virtual void OnRegister() override;

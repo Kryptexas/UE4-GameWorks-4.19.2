@@ -142,40 +142,113 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 		}
 		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
 		{
-#if WITH_EDITORONLY_DATA
+			const TArray<FSmartName>& PoseNames = PoseAsset->GetPoseNames();
+
+			int32 TotalPoses = PoseNames.Num();
+			FAnimExtractContext ExtractContext;
+			ExtractContext.PoseCurves.AddZeroed(TotalPoses);
+
 			USkeleton* MySkeleton = PoseAsset->GetSkeleton();
- 			for (auto Iter=PreviewPoseOverride.CreateConstIterator(); Iter; ++Iter)
+ 			for (auto Iter=PreviewCurveOverride.CreateConstIterator(); Iter; ++Iter)
  			{
  				const FName& Name = Iter.Key();
 				const float Value = Iter.Value();
 				
- 				FSmartNameMapping::UID CurveUID = MySkeleton->GetUIDByName(USkeleton::AnimCurveMappingName, Name);
- 
- 				if (CurveUID != FSmartNameMapping::MaxUID)
- 				{
-					Output.Curve.Set(CurveUID, Value, ACF_DrivesPose);
- 				}
+				FSmartName PoseName;
+				
+				if (MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, Name, PoseName))
+				{
+					int32 PoseIndex = PoseNames.Find(PoseName);
+					if (PoseIndex != INDEX_NONE)
+					{
+						ExtractContext.PoseCurves[PoseIndex] = Value;
+					}
+				}
  			}
-#endif 
-			if (PoseAsset->IsValidAdditive())
-			{
-				FAnimExtractContext ExtractContext;
 
-				PoseAsset->GetBaseAnimationPose(Output.Pose, Output.Curve, ExtractContext);
-				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, ExtractContext);
-			}
-			else
-			{
-				// @todo : what do we do for ingame? I think in game, we should just allow to load anim sequence with curves
-				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
-			}
+ 			if (PoseAsset->IsValidAdditive())
+ 			{
+ 				PoseAsset->GetBaseAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
+
+				FCompactPose AdditivePose;
+				FBlendedCurve AdditiveCurve;
+				AdditivePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
+				AdditiveCurve.InitFrom(Output.Curve);
+				float Weight = PoseAsset->GetAnimationPose(AdditivePose, AdditiveCurve, ExtractContext);
+				FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditivePose, Output.Curve, AdditiveCurve, 1.f, EAdditiveAnimationType::AAT_LocalSpaceBase);
+ 			}
+ 			else
+ 			{
+ 				PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, ExtractContext);
+ 			}
 		}
 
 #if WITH_EDITORONLY_DATA
+		USkeleton* MySkeleton = CurrentAsset->GetSkeleton();
+		for (auto Iter = PreviewCurveOverride.CreateConstIterator(); Iter; ++Iter)
+		{
+			const FName& Name = Iter.Key();
+			const float Value = Iter.Value();
+
+			FSmartName PreviewCurveName;
+
+			// @fixme : this is temporary
+			if (MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, Name, PreviewCurveName))
+			{
+				Output.Curve.Set(PreviewCurveName.UID, Value, ACF_EditorPreviewCurves);
+
+			}
+		}
+
 		// if it has preview pose asset, we have to handle that after we do all animation
 		if (const UPoseAsset* PoseAsset = CurrentAsset->PreviewPoseAsset)
 		{
-			PoseAsset->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext());
+			// if skeleton doesn't match it won't work
+			if (PoseAsset->GetSkeleton() == MySkeleton)
+			{
+				const TArray<FSmartName>& PoseNames = PoseAsset->GetPoseNames();
+
+				int32 TotalPoses = PoseNames.Num();
+				FAnimExtractContext ExtractContext;
+				ExtractContext.PoseCurves.AddZeroed(TotalPoses);
+
+				for (const auto& PoseName : PoseNames)
+				{
+					if (PoseName.UID != FSmartNameMapping::MaxUID)
+					{
+						int32 PoseIndex = PoseNames.Find(PoseName);
+						if (PoseIndex != INDEX_NONE)
+						{
+							ExtractContext.PoseCurves[PoseIndex] = Output.Curve.Get(PoseName.UID);
+						}
+					}
+				}
+
+				if (PoseAsset->IsValidAdditive())
+				{
+					FCompactPose AdditivePose;
+					FBlendedCurve AdditiveCurve;
+					AdditivePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
+					AdditiveCurve.InitFrom(Output.Curve);
+					float Weight = PoseAsset->GetAnimationPose(AdditivePose, AdditiveCurve, ExtractContext);
+					FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditivePose, Output.Curve, AdditiveCurve, 1.f, EAdditiveAnimationType::AAT_LocalSpaceBase);
+				}
+				else
+				{
+					FPoseContext CurrentPose(Output);
+					FPoseContext SourcePose(Output);
+
+					SourcePose = Output;
+
+					if (PoseAsset->GetAnimationPose(CurrentPose.Pose, CurrentPose.Curve, ExtractContext))
+					{
+						TArray<float> BoneWeights;
+						BoneWeights.AddZeroed(CurrentPose.Pose.GetNumBones());
+						// once we get it, we have to blend by weight
+						FAnimationRuntime::BlendTwoPosesTogetherPerBone(CurrentPose.Pose, SourcePose.Pose, CurrentPose.Curve, SourcePose.Curve, BoneWeights, Output.Pose, Output.Curve);
+					}
+				}
+			}
 		}
 #endif // WITH_EDITORONLY_DATA
 	}
@@ -300,15 +373,15 @@ void FAnimSingleNodeInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, floa
 	FAnimInstanceProxy::PreUpdate(InAnimInstance, DeltaSeconds);
 #if WITH_EDITOR
 	// @fixme only do this in pose asset
-	// copy data to PreviewPoseOverride
-	TMap<FName, float> PoseCurveList;
-
-	InAnimInstance->GetAnimationCurveList(ACF_DrivesPose, PoseCurveList);
-
-	if (PoseCurveList.Num() > 0)
-	{
-		PreviewPoseOverride.Append(PoseCurveList);
-	}
+// 	// copy data to PreviewPoseOverride
+// 	TMap<FName, float> PoseCurveList;
+// 
+// 	InAnimInstance->GetAnimationCurveList(ACF_DrivesPose, PoseCurveList);
+// 
+// 	if (PoseCurveList.Num() > 0)
+// 	{
+// 		PreviewPoseOverride.Append(PoseCurveList);
+// 	}
 #endif // WITH_EDITOR
 }
 void FAnimSingleNodeInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
@@ -326,10 +399,10 @@ void FAnimSingleNodeInstanceProxy::ClearObjects()
 	CurrentAsset = nullptr;
 }
 
-void FAnimSingleNodeInstanceProxy::SetPreviewPoseOverride(const FName& PoseName, float Value)
+void FAnimSingleNodeInstanceProxy::SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero)
 {
-	float *CurveValPtr = PreviewPoseOverride.Find(PoseName);
-	bool bShouldAddToList = FPlatformMath::Abs(Value) > ZERO_ANIMWEIGHT_THRESH;
+	float *CurveValPtr = PreviewCurveOverride.Find(PoseName);
+	bool bShouldAddToList = bRemoveIfZero == false || FPlatformMath::Abs(Value) > ZERO_ANIMWEIGHT_THRESH;
 	if (bShouldAddToList)
 	{
 		if (CurveValPtr)
@@ -340,15 +413,15 @@ void FAnimSingleNodeInstanceProxy::SetPreviewPoseOverride(const FName& PoseName,
 		}
 		else
 		{
-			PreviewPoseOverride.Add(PoseName, Value);
+			PreviewCurveOverride.Add(PoseName, Value);
 		}
 	}
 	// if less than ZERO_ANIMWEIGHT_THRESH
 	// no reason to keep them on the list
-	else
+	else 
 	{
 		// remove if found
-		PreviewPoseOverride.Remove(PoseName);
+		PreviewCurveOverride.Remove(PoseName);
 	}
 }
 
@@ -399,7 +472,7 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
-	PreviewPoseOverride.Reset();
+	PreviewCurveOverride.Reset();
 #endif
 
 	

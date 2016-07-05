@@ -1271,53 +1271,40 @@ void UWorld::IssueEditorLoadWarnings()
 
 AAudioVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* OutReverbSettings, FInteriorSettings* OutInteriorSettings )
 {
-	// Find the highest priority volume encompassing the current view location. This is made easier by the linked
-	// list being sorted by priority. @todo: it remains to be seen whether we should trade off sorting for constant
-	// time insertion/ removal time via e.g. TLinkedList.
-	AAudioVolume* Volume = HighestPriorityAudioVolume;
-	while( Volume )
+	// Find the highest priority volume encompassing the current view location.
+	for (AAudioVolume* Volume : AudioVolumes)
 	{
 		// Volume encompasses, break out of loop.
-		if (Volume->bEnabled && Volume->EncompassesPoint(ViewLocation))
+		if (Volume->GetEnabled() && Volume->EncompassesPoint(ViewLocation))
 		{
-			break;
-		}
-		// Volume doesn't encompass location, further traverse linked list.
-		else
-		{
-			Volume = Volume->NextLowerPriorityVolume;
+			if( OutReverbSettings )
+			{
+				*OutReverbSettings = Volume->GetReverbSettings();
+			}
+
+			if( OutInteriorSettings )
+			{
+				*OutInteriorSettings = Volume->GetInteriorSettings();
+			}
+			return Volume;
 		}
 	}
 
-	if( Volume )
+	// If first level is a FakePersistentLevel (see CommitMapChange for more info)
+	// then use its world info for reverb settings
+	AWorldSettings* CurrentWorldSettings = GetWorldSettings(true);
+
+	if( OutReverbSettings )
 	{
-		if( OutReverbSettings )
-		{
-			*OutReverbSettings = Volume->Settings;
-		}
-
-		if( OutInteriorSettings )
-		{
-			*OutInteriorSettings = Volume->AmbientZoneSettings;
-		}
+		*OutReverbSettings = CurrentWorldSettings->DefaultReverbSettings;
 	}
-	else
+
+	if( OutInteriorSettings )
 	{
-		// If first level is a FakePersistentLevel (see CommitMapChange for more info)
-		// then use its world info for reverb settings
-		AWorldSettings* CurrentWorldSettings = GetWorldSettings(true);
-
-		if( OutReverbSettings )
-		{
-			*OutReverbSettings = CurrentWorldSettings->DefaultReverbSettings;
-		}
-
-		if( OutInteriorSettings )
-		{
-			*OutInteriorSettings = CurrentWorldSettings->DefaultAmbientZoneSettings;
-		}
+		*OutInteriorSettings = CurrentWorldSettings->DefaultAmbientZoneSettings;
 	}
-	return Volume;
+
+	return nullptr;
 }
 
 void UWorld::SetAudioDeviceHandle(const uint32 InAudioDeviceHandle)

@@ -427,7 +427,7 @@ public:
 	virtual uint32 Run(void) override
 	{
 		FMemory::SetupTLSCachesOnCurrentThread();
-		FPlatformProcess::SetupGameOrRenderThread(true);
+		FPlatformProcess::SetupRenderThread();
 
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )

@@ -66,6 +66,8 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROU
 static int16 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
 
+CreateSimEventCallbackFn* FPhysScene::CreateSimEventCallback;
+
 EPhysicsSceneType FPhysScene::SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const
 {
 #if WITH_PHYSX
@@ -1670,7 +1672,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysxUserData = FPhysxUserData(this);
 
 	// Create sim event callback
-	SimEventCallback[SceneType] = new FPhysXSimEventCallback(this, SceneType);
+	SimEventCallback[SceneType] = CreateSimEventCallback ? (*CreateSimEventCallback)(this, SceneType) : new FPhysXSimEventCallback(this, SceneType);
 
 	// Include scene descriptor in loop, so that we might vary it with scene type
 	PxSceneDesc PSceneDesc(GPhysXSDK->getTolerancesScale());

@@ -59,7 +59,7 @@ class UAnimSequenceBase : public UAnimationAsset
 
 	/** Returns the total play length of the montage, if played back with a speed of 1.0. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	virtual float GetPlayLength();
+	ENGINE_API virtual float GetPlayLength();
 
 	/** Sort the Notifies array by time, earliest first. */
 	ENGINE_API void SortNotifies();	
@@ -70,7 +70,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (DeltaTime<0).
 	 * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
 	 */
-	void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
+	ENGINE_API void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
@@ -88,10 +88,10 @@ class UAnimSequenceBase : public UAnimationAsset
 	virtual int32 GetNumberOfFrames() const;
 
 	/** Get the frame number for the provided time */
-	virtual int32 GetFrameAtTime(const float Time) const;
+	ENGINE_API virtual int32 GetFrameAtTime(const float Time) const;
 
 	/** Get the time at the given frame */
-	virtual float GetTimeAtFrame(const int32 Frame) const;
+	ENGINE_API virtual float GetTimeAtFrame(const int32 Frame) const;
 	
 	// @todo document
 	ENGINE_API void InitializeNotifyTrack();
@@ -100,7 +100,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	ENGINE_API void ClampNotifiesAtEndOfSequence();
 
 	/** Calculates what (if any) offset should be applied to the trigger time of a notify given its display time */ 
-	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const;
+	ENGINE_API virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const;
 
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	
@@ -115,7 +115,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	ENGINE_API virtual void RefreshCacheData();
 
 	//~ Begin UAnimationAsset Interface
-	virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
+	ENGINE_API virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
 
 	void TickByMarkerAsFollower(FMarkerTickRecord &Instance, FMarkerTickContext &MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const;
 
@@ -138,7 +138,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	ENGINE_API virtual void GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const PURE_VIRTUAL(UAnimSequenceBase::GetAnimationPose, );
 	
 	DEPRECATED(4.11, "This function is deprecated, please use HandleAssetPlayerTickedInternal")
-	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const;
+	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const;
 
 	virtual void HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const;
 
@@ -182,7 +182,7 @@ public:
 
 #endif
 	// return true if anim notify is available 
-	virtual bool IsNotifyAvailable() const;
+	ENGINE_API virtual bool IsNotifyAvailable() const;
 
 protected:
 	template <typename DataType>

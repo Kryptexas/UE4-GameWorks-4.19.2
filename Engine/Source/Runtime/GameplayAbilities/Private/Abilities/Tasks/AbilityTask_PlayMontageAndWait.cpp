@@ -183,7 +183,7 @@ bool UAbilityTask_PlayMontageAndWait::StopPlayingMontage()
 			&& AbilitySystemComponent->GetCurrentMontage() == MontageToPlay)
 		{
 			// Unbind delegates so they don't get called as well
-			FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(*MontageToPlay);
+			FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(MontageToPlay);
 			if (MontageInstance)
 			{
 				MontageInstance->OnMontageBlendingOutStarted.Unbind();

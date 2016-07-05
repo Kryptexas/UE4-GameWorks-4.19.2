@@ -243,7 +243,42 @@ void FAnimationRuntime::BlendTwoPosesTogether(
 
 	// Ensure that all of the resulting rotations are normalized
 	ResultPose.NormalizeRotations();
-	ResultCurve.Blend(SourceCurve1, SourceCurve2, 1.f - WeightOfPose1);
+	ResultCurve.Lerp(SourceCurve1, SourceCurve2, 1.f - WeightOfPose1);
+}
+
+void FAnimationRuntime::BlendTwoPosesTogetherPerBone(
+	const FCompactPose& SourcePose1,
+	const FCompactPose& SourcePose2,
+	const FBlendedCurve& SourceCurve1,
+	const FBlendedCurve& SourceCurve2,
+	const TArray<float> WeightsOfSource2,
+	/*out*/ FCompactPose& ResultPose,
+	/*out*/ FBlendedCurve& ResultCurve)
+{
+	
+	for (FCompactPoseBoneIndex BoneIndex : ResultPose.ForEachBoneIndex())
+	{
+		const float BlendWeight = WeightsOfSource2[BoneIndex.GetInt()];
+		if (FAnimationRuntime::IsFullWeight(BlendWeight))
+		{
+			ResultPose[BoneIndex] = SourcePose2[BoneIndex];
+		}
+		// if it doens't have weight, take source pose 1
+		else if (FAnimationRuntime::HasWeight(BlendWeight))
+		{
+			BlendTransform<ETransformBlendMode::Overwrite>(SourcePose1[BoneIndex], ResultPose[BoneIndex], 1.f - BlendWeight);
+			BlendTransform<ETransformBlendMode::Accumulate>(SourcePose2[BoneIndex], ResultPose[BoneIndex], BlendWeight);
+		}
+		else
+		{
+			ResultPose[BoneIndex] = SourcePose1[BoneIndex];
+		}
+	}
+
+	// Ensure that all of the resulting rotations are normalized
+	// @fixme: this has to be fixed with name mapping to joint in the future
+	ResultPose.NormalizeRotations();
+	ResultCurve.Lerp(SourceCurve1, SourceCurve2, 1.f);
 }
 
 template <int32 TRANSFORM_BLEND_MODE>
@@ -446,7 +481,11 @@ void FAnimationRuntime::ConvertTransformToAdditive(FTransform& TargetTransform, 
 {
 	TargetTransform.SetRotation(TargetTransform.GetRotation() * BaseTransform.GetRotation().Inverse());
 	TargetTransform.SetTranslation(TargetTransform.GetTranslation() - BaseTransform.GetTranslation());
-	TargetTransform.SetScale3D(TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal(BaseTransform.GetScale3D()));
+	// additive scale considers how much it grow or lower
+	// in order to support blending between different additive scale, we save [(target scale)/(source scale) - 1.f], and this can blend with 
+	// other delta scale value
+	// when we apply to the another scale, we apply scale * (1 + [additive scale])
+	TargetTransform.SetScale3D(TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal(BaseTransform.GetScale3D()) - 1.f);
 	TargetTransform.NormalizeRotation();
 }
 
@@ -512,18 +551,18 @@ void FAnimationRuntime::AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose,
 {
 	if (Weight > ZERO_ANIMWEIGHT_THRESH)
 	{
+		const ScalarRegister VBlendWeight(Weight);
 		if (Weight >= (1.f - ZERO_ANIMWEIGHT_THRESH))
 		{
 			// fast path, no need to weight additive.
 			for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
 			{
-				BasePose[BoneIndex].Accumulate(AdditivePose[BoneIndex]);
+				BasePose[BoneIndex].AccumulateWithAdditiveScale(AdditivePose[BoneIndex], VBlendWeight);
 			}
 		}
 		else
 		{
 			// Slower path w/ weighting
-			const ScalarRegister VBlendWeight(Weight);
 			for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
 			{
 				// copy additive, because BlendFromIdentityAndAccumulate modifies it.

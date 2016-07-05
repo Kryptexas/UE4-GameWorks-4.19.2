@@ -294,9 +294,20 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(Latent, LatentInfo="LatentInfo", WorldContext="WorldContextObject", Duration="0.2", Keywords="sleep"), Category="Utilities|FlowControl")
 	static void RetriggerableDelay(UObject* WorldContextObject, float Duration, FLatentActionInfo LatentInfo);
 
-	/** Interpolate a component to the specified relative location and rotation over the course of OverTime seconds. */
+	/*
+	 * Interpolate a component to the specified relative location and rotation over the course of OverTime seconds. 
+	 * @param Component						Component to interpolate
+	 * @param TargetRelativeLocation		Relative target location
+	 * @param TargetRelativeRotation		Relative target rotation
+	 * @param bEaseOut						if true we will ease out (ie end slowly) during interpolation
+	 * @param bEaseIn						if true we will ease in (ie start slowly) during interpolation
+	 * @param OverTime						duration of interpolation
+	 * @param bForceShortestRotationPath	if true we will always use the shortest path for rotation
+	 * @param MoveAction					required movement behavior @see EMoveComponentAction
+	 * @param LatentInfo					The latent action
+	 */
 	UFUNCTION(BlueprintCallable, meta=(Latent, LatentInfo="LatentInfo", WorldContext="WorldContextObject", ExpandEnumAsExecs="MoveAction", OverTime="0.2"), Category="Components")
-	static void MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo);
+	static void MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, bool bForceShortestRotationPath, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo);
 
 	// --- Timer functions with delegate input ----------
 

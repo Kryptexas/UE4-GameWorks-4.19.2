@@ -76,21 +76,21 @@ namespace FPathFollowingResultFlags
 	const Type OffPath = (1 << 2);
 
 	/** Aborted (EPathFollowingResult::Aborted) */
-	const Type ExternalCancel = (1 << 3);
+	const Type UserAbort = (1 << 3);
 
-	/** External cancel: owner no longer wants to move */
+	/** Abort details: owner no longer wants to move */
 	const Type OwnerFinished = (1 << 4);
 
-	/** External cancel: path is no longer valid */
+	/** Abort details: path is no longer valid */
 	const Type InvalidPath = (1 << 5);
 
-	/** External cancel: unable to move */
+	/** Abort details: unable to move */
 	const Type MovementStop = (1 << 6);
 
-	/** External cancel: new movement request was received */
+	/** Abort details: new movement request was received */
 	const Type NewRequest = (1 << 7);
 
-	/** External cancel: blueprint MoveTo function was called */
+	/** Abort details: blueprint MoveTo function was called */
 	const Type ForcedScript = (1 << 8);
 
 	/** Finish details: never started, agent was already at goal */
@@ -99,7 +99,7 @@ namespace FPathFollowingResultFlags
 	/** Can be used to create project specific reasons */
 	const Type FirstGameplayFlagShift = 10;
 
-	const Type ExternalCancelFlagMask = ~(Success | Blocked | OffPath);
+	const Type UserAbortFlagMask = ~(Success | Blocked | OffPath);
 
 	FString ToString(uint16 Value);
 }
@@ -117,7 +117,7 @@ struct AIMODULE_API FPathFollowingResult
 
 	bool IsSuccess() const { return HasFlag(FPathFollowingResultFlags::Success); }
 	bool IsFailure() const { return !HasFlag(FPathFollowingResultFlags::Success); }
-	bool IsSkipped() const { return HasFlag(FPathFollowingResultFlags::ExternalCancel | FPathFollowingResultFlags::NewRequest); }
+	bool IsInterrupted() const { return HasFlag(FPathFollowingResultFlags::UserAbort | FPathFollowingResultFlags::NewRequest); }
 	
 	FString ToString() const;
 };

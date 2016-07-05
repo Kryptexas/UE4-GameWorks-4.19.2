@@ -503,6 +503,7 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTr
 				//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_OnUpdateTransform);
 				OnUpdateTransform(UpdateTransformFlags, Teleport);
 			}
+			TransformUpdated.Broadcast(this, UpdateTransformFlags, Teleport);
 
 			// Flag render transform as dirty
 			MarkRenderTransformDirty();

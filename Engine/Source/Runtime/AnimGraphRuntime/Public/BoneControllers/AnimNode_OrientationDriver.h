@@ -6,29 +6,26 @@
 #include "AnimNode_OrientationDriver.generated.h"
 
 /** One named parameter being driven by the orientation of a bone. */
-USTRUCT()
 struct FOrientationDriverParam
 {
-	GENERATED_BODY()
+	/** Information about this curve (name etc) */
+	FAnimCurveParam ParamInfo;
 
-	UPROPERTY(EditAnywhere, Category = Param)
-	FName ParameterName;
-
-	UPROPERTY(EditAnywhere, Category = Param)
-	float ParameterValue;
+	/** Value of this parameter */
+	float ParamValue;
 };
 
 /** One target pose for the bone, with parameters to drive bone approaches this orientation. */
-USTRUCT()
-struct FOrientationDriverPose
+struct FOrientationDriverPoseInfo
 {
-	GENERATED_BODY()
+	/** Name of pose, from PoseAsset */
+	FName PoseName;
 
-	UPROPERTY(EditAnywhere, Category = Pose)
+	/** Rotation of source bone in this pose, from PoseAsset */
 	FQuat PoseQuat;
 
-	UPROPERTY(EditAnywhere, Category = Pose)
-	TArray<FOrientationDriverParam> DrivenParams;
+	/** Distance to nearest pose */
+	float NearestPoseDist;
 
 	/** Last weight calculated for this pose. */
 	float PoseWeight;
@@ -36,7 +33,7 @@ struct FOrientationDriverPose
 	/** Last distance calculated from this pose */
 	float PoseDistance;
 
-	FOrientationDriverPose()
+	FOrientationDriverPoseInfo()
 	: PoseQuat(FQuat::Identity)
 	{}
 };
@@ -60,6 +57,17 @@ struct FOrientationDriverParamSet
 	void ClearParams();
 };
 
+/** Orientation aspect used to drive interpolation */
+UENUM()
+enum class EOrientationDriverType : uint8
+{
+	/** Consider full rotation for interpolation */
+	SwingAndTwist,
+
+	/** Consider only swing for interpolation */
+	SwingOnly,
+};
+
 /** RBF based orientation driver */
 USTRUCT()
 struct ANIMGRAPHRUNTIME_API FAnimNode_OrientationDriver : public FAnimNode_SkeletalControlBase
@@ -70,16 +78,31 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_OrientationDriver : public FAnimNode_Skele
 	UPROPERTY(EditAnywhere, Category = OrientationDriver)
 	FBoneReference SourceBone;
 
-	/** Set of target poses, which include parameters to drive. */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver)
-	TArray<FOrientationDriverPose> Poses;
-
 	/** Scaling of radial basis, applied to max distance between poses */
 	UPROPERTY(EditAnywhere, Category = OrientationDriver, meta = (ClampMin = "0.01"))
 	float RadialScaling;
 
+	/** PoseAsset used as source of  */
+	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	UPoseAsset* PoseSource;
+
+	/** Should we consider the mesh ref pose of SourceBone as a 'neutral' pose (zero curves)   */
+	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	bool bIncludeRefPoseAsNeutralPose;
+
+	/** Type of orientation for driving parameter  */
+	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	EOrientationDriverType Type;
+
+	/** Axis to use when Type is SwingOnly */
+	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	TEnumAsByte<EBoneAxis> TwistAxis;
+
 	/** Previous set of interpolated params, kept for debugging */
 	FOrientationDriverParamSet ResultParamSet;
+
+	/** Cached set of info for each pose */
+	TArray<FOrientationDriverPoseInfo> PoseInfos;
 
 	// FAnimNode_Base interface
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
@@ -94,15 +117,18 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_OrientationDriver : public FAnimNode_Skele
 	// End of FAnimNode_SkeletalControlBase interface
 
 	/** Find max distance between any of the poses */
-	void UpdateMaxDistanceBetweenPoses();
+	void UpdateCachedPoseInfo(const FQuat& RefQuat);
+
+	/** Util to return unit vector for curent twist axis */
+	FVector GetTwistAxisVector();
+	/** Util to find distance between 2 quats, using Type and TwistAxis settings */
+	float FindDistanceBetweenPoses(const FQuat& A, const FQuat& B);
+
 
 protected:
 
-	/** Is MaxDistanceBetweenPoses up to date */
-	bool bMaxDistanceUpToDate;
-
-	/** Maximum angular distance between poses in the Poses array */
-	float MaxDistanceBetweenPoses;
+	/** Is cached info up to date */
+	bool bCachedPoseInfoUpToDate;
 
 	// FAnimNode_SkeletalControlBase protected interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;

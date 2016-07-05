@@ -30,12 +30,15 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/ConstraintUtils.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/Selection.h"
 #include "Engine/StaticMesh.h"
 #include "EngineLogs.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PersonaModule.h"
 #include "Animation/AnimSequence.h"
+
+#include "STextComboBox.h"
 
 const FName PhATAppIdentifier = FName(TEXT("PhATApp"));
 
@@ -81,6 +84,7 @@ public:
 
 static const FName PhATPreviewViewportName("PhAT_PreviewViewport");
 static const FName PhATPropertiesName("PhAT_Properties");
+static const FName PhATPhysicsAssetPropertiesName("PhAT_PhysicsAssetProperties");
 static const FName PhATHierarchyName("PhAT_Hierarchy");
 
 
@@ -101,6 +105,11 @@ void FPhAT::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManage
 		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
+
+	InTabManager->RegisterTabSpawner(PhATPhysicsAssetPropertiesName, FOnSpawnTab::CreateSP(this, &FPhAT::SpawnTab, PhATPhysicsAssetPropertiesName))
+		.SetDisplayName(LOCTEXT("PhysicsAssetPropertiesTab", "Physics Asset"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 
 	InTabManager->RegisterTabSpawner( PhATHierarchyName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATHierarchyName ) )
 		.SetDisplayName( LOCTEXT( "HierarchyTab", "Hierarchy" ) )
@@ -138,6 +147,15 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 			.Label(LOCTEXT( "PhATPropertiesTitle", "Details" ) )
 			[
 				Properties.ToSharedRef()
+			];
+	}
+	else if(TabIdentifier == PhATPhysicsAssetPropertiesName)
+	{
+		return SNew(SDockTab)
+			.Icon(FEditorStyle::GetBrush("PhAT.Tabs.Properties"))
+			.Label(LOCTEXT("PhATPhysicsAssetPropertiesTitle", "Physics Asset"))
+			[
+				PhysAssetProperties.ToSharedRef()
 			];
 	}
 	else if (TabIdentifier == PhATHierarchyName)
@@ -338,7 +356,7 @@ void FPhAT::SetPropertiesSelection(UObject* Obj, FPhATSharedData::FSelection * B
 
 			if (!bFound && (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit))
 			{
-				int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[Body->Index]->BoneName);
+				int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[Body->Index]->BoneName);
 				for (int32 ItemIdx = 0; ItemIdx < TreeElements.Num(); ++ItemIdx)
 				{
 					FPhATTreeInfo& Info = *TreeElements[ItemIdx];
@@ -382,7 +400,7 @@ bool TreeElemSelected(FTreeElemPtr TreeElem, TSharedPtr<FPhATSharedData> SharedD
 		{
 			for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 			{
-				if (SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index]->BoneName == (*TreeElem).Name)
+				if (SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[i].Index]->BoneName == (*TreeElem).Name)
 				{
 					return true;
 				}
@@ -448,16 +466,16 @@ void FPhAT::RefreshHierachyTree()
 	// if next event is selecting a bone to create a new body, Fill up tree with bone names
 	if (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 	{
-		for (int32 i = 0; i < SharedData->PhysicsAsset->BodySetup.Num(); ++i)
+		for (int32 i = 0; i < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 		{
-			const int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[i]->BoneName);
+			const int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[i]->BoneName);
 			if (BoneIndex != INDEX_NONE)
 			{
-				const FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->BodySetup[i]->AggGeom;
+				const FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->SkeletalBodySetups[i]->AggGeom;
 
 				if (AggGeom.SphereElems.Num() + AggGeom.BoxElems.Num() + AggGeom.SphylElems.Num() + AggGeom.ConvexElems.Num() > 0)
 				{
-					TreeElements.Add(FTreeElemPtr(new FPhATTreeInfo(SharedData->PhysicsAsset->BodySetup[i]->BoneName, true, INDEX_NONE, BoneIndex)));
+					TreeElements.Add(FTreeElemPtr(new FPhATTreeInfo(SharedData->PhysicsAsset->SkeletalBodySetups[i]->BoneName, true, INDEX_NONE, BoneIndex)));
 				}
 			}
 		}
@@ -600,9 +618,9 @@ void FPhAT::PostUndo(bool bSuccess)
 
 void FPhAT::PostRedo( bool bSuccess )
 {
-	for (int32 BodyIdx=0; BodyIdx < SharedData->PhysicsAsset->BodySetup.Num(); ++BodyIdx)
+	for (int32 BodyIdx=0; BodyIdx < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++BodyIdx)
 	{
-		UBodySetup* Body = SharedData->PhysicsAsset->BodySetup[BodyIdx];
+		UBodySetup* Body = SharedData->PhysicsAsset->SkeletalBodySetups[BodyIdx];
 		
 		bool bRecreate = false;
 		for (int32 ElemIdx=0; ElemIdx < Body->AggGeom.ConvexElems.Num(); ++ElemIdx)
@@ -641,6 +659,9 @@ void FPhAT::CreateInternalWidgets()
 	Properties = PropertyModule.CreateDetailView( Args );
 	Properties->SetObject(SharedData->EditorSimOptions);
 	Properties->OnFinishedChangingProperties().AddSP(this, &FPhAT::OnFinishedChangingProperties);
+
+	PhysAssetProperties = PropertyModule.CreateDetailView(Args);
+	PhysAssetProperties->SetObject(SharedData->PhysicsAsset);
 
 	HierarchyControl = 
 	SNew(SBorder)
@@ -751,6 +772,98 @@ void FPhAT::ExtendToolbar()
 			return MenuBuilder.MakeWidget();
 		}
 
+		static TSharedRef< SWidget > FillPhysicalAnimationProfileOptions(TSharedRef<FUICommandList> InCommandList, TSharedPtr<FPhATSharedData> SharedData)
+		{
+			const bool bShouldCloseWindowAfterMenuSelection = true;
+			FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
+
+			const FPhATCommands& Commands = FPhATCommands::Get();
+
+			if(SharedData->PhysicsAsset)
+			{
+				TArray<FName> ProfileNames;
+				ProfileNames.Add(NAME_None);
+				ProfileNames.Append(SharedData->PhysicsAsset->GetPhysicalAnimationProfileNames(ProfileNames));
+				
+				for(FName ProfileName : ProfileNames)
+				{
+					FUIAction Action;
+					Action.ExecuteAction = FExecuteAction::CreateLambda( [SharedData, ProfileName]()
+					{
+						SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName = ProfileName;
+						for(USkeletalBodySetup* BS : SharedData->PhysicsAsset->SkeletalBodySetups)
+						{
+							if(FPhysicalAnimationProfile* Profile = BS->FindPhysicalAnimationProfile(ProfileName))
+							{
+								BS->CurrentPhysicalAnimationProfile = *Profile;
+							}
+						}
+					});
+
+					Action.GetActionCheckState = FGetActionCheckState::CreateLambda([SharedData, ProfileName]()
+					{
+						return SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName == ProfileName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					});
+
+					auto SearchClickedLambda = [ProfileName, SharedData]()
+					{
+						SharedData->SetSelectedBody(nullptr);	//clear selection
+						for(int32 BSIndex = 0; BSIndex < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++BSIndex)
+						{
+							const USkeletalBodySetup* BS = SharedData->PhysicsAsset->SkeletalBodySetups[BSIndex];
+							if(BS->FindPhysicalAnimationProfile(ProfileName))
+							{
+								SharedData->SetSelectedBodyAnyPrim(BSIndex, true);
+							}
+						}
+
+
+						return FReply::Handled();
+					};
+					
+					TSharedRef<SWidget> PhysAnimProfileButton = SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.f)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(ProfileName.ToString()))
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(2.f, 0.f, 0.f, 0.f)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+							.OnClicked_Lambda(SearchClickedLambda)
+							[
+								SNew(SBox)
+								.WidthOverride(MultiBoxConstants::MenuIconSize)
+								.HeightOverride(MultiBoxConstants::MenuIconSize)
+								.Visibility_Lambda([ProfileName](){ return ProfileName == NAME_None ? EVisibility::Collapsed : EVisibility::Visible; })
+								[
+									SNew(SImage)
+									.Image(FSlateIcon(FEditorStyle::GetStyleSetName(), "Symbols.SearchGlass").GetIcon())
+								]
+								
+							]
+						];
+
+
+					//MenuBuilder.AddMenuEntry( FText::FromString(ProfileName.ToString()), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::Check);
+					MenuBuilder.AddMenuEntry(Action, PhysAnimProfileButton, NAME_None, TAttribute<FText>(), EUserInterfaceActionType::Check);
+				}
+				
+				MenuBuilder.AddMenuSeparator();
+				//MenuBuilder.AddMenuEntry(Commands.EditPhysicalAnimations);
+
+			}
+
+			
+			return MenuBuilder.MakeWidget();
+		}
+
 		static TSharedRef< SWidget > FillEditMode(TSharedRef<FUICommandList> InCommandList)
 		{
 			const bool bShouldCloseWindowAfterMenuSelection = true;
@@ -764,8 +877,9 @@ void FPhAT::ExtendToolbar()
 			return MenuBuilder.MakeWidget();
 		}
 
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> PhATAnimation, FPhATSharedData::EPhATEditingMode InPhATEditingMode, FPhAT * Phat )
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> PhATAnimation, TSharedPtr<FPhATSharedData> SharedData, FPhAT * Phat )
 		{
+			const FPhATSharedData::EPhATEditingMode InPhATEditingMode = SharedData->EditingMode;
 			const FPhATCommands& Commands = FPhATCommands::Get();
 			TSharedRef<FUICommandList> InCommandList = Phat->GetToolkitCommands();
 
@@ -793,6 +907,7 @@ void FPhAT::ExtendToolbar()
 					true
 					);
 			}
+
 			ToolbarBuilder.EndSection();
 
 			//selected simulation
@@ -840,6 +955,23 @@ void FPhAT::ExtendToolbar()
 				ToolbarBuilder.EndSection();
 			}
 
+
+			FUIAction PhysicalAnimationProfileAction;
+			PhysicalAnimationProfileAction.GetActionCheckState = FGetActionCheckState::CreateLambda([SharedData]() { return SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName == NAME_None ? ECheckBoxState::Unchecked : ECheckBoxState::Checked; });
+
+			ToolbarBuilder.BeginSection("PhATPhysicalAnimation");
+			{
+				ToolbarBuilder.AddComboButton(
+					PhysicalAnimationProfileAction,
+					FOnGetContent::CreateStatic(&FillPhysicalAnimationProfileOptions, InCommandList, SharedData),
+					LOCTEXT("PhysicalAnimationProfile_Label", "Profile "),
+					LOCTEXT("PhysicalAnimationProfileToolTip", "Changes the Physical Animation profile"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.ImportAnimation"),
+					false
+					);
+			}
+			ToolbarBuilder.EndSection();
+
 			ToolbarBuilder.BeginSection("PhATPlayAnimation");
 			{
 				ToolbarBuilder.AddToolBarButton(Commands.PlayAnimation);
@@ -873,37 +1005,33 @@ void FPhAT::ExtendToolbar()
 	}
 
 	ToolbarExtender = MakeShareable(new FExtender);
-
-	TSharedRef<SWidget> PhATAnimation = SNew(SBox)		
-		.WidthOverride(250)
+	
+	TSharedRef<SWidget> PhATAnimation = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text( LOCTEXT( "PhATToolbarAnimation", "Animation: " ) )
-			]
-			+SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			[
-				SNew(SContentReference)
-				.WidthOverride(80.0f)
-				.AllowSelectingNewAsset(true)
-				.AssetReference(this, &FPhAT::GetSelectedAnimation)
-				.AllowedClass(UAnimSequence::StaticClass())
-				.OnShouldFilterAsset(this, &FPhAT::ShouldFilterAssetBasedOnSkeleton)
-				.OnSetReference(this, &FPhAT::AnimationSelectionChanged)
-				.IsEnabled(this, &FPhAT::IsToggleSimulation)
-			]
+			SNew(STextBlock)
+			.Text(LOCTEXT("PhATToolbarAnimation", "Animation: "))
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SContentReference)
+			.WidthOverride(80.0f)
+			.AllowSelectingNewAsset(true)
+			.AssetReference(this, &FPhAT::GetSelectedAnimation)
+			.AllowedClass(UAnimSequence::StaticClass())
+			.OnShouldFilterAsset(this, &FPhAT::ShouldFilterAssetBasedOnSkeleton)
+			.OnSetReference(this, &FPhAT::AnimationSelectionChanged)
+			.IsEnabled(this, &FPhAT::IsToggleSimulation)
 		];
 
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, PhATAnimation, SharedData->EditingMode, this)
+		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, PhATAnimation, SharedData, this)
 		);
 
 	AddToolbarExtender(ToolbarExtender);
@@ -1342,6 +1470,12 @@ void FPhAT::BindCommands()
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation)
 		);
 
+	/*ToolkitCommands->MapAction(
+		Commands.EditPhysicalAnimations,
+		FExecuteAction::CreateSP(this, &FPhAT::EditPhysicalAnimations),
+		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation)
+		);*/
+
 	// record animation
 	ToolkitCommands->MapAction(
 		Commands.RecordAnimation,
@@ -1355,6 +1489,11 @@ void FPhAT::BindCommands()
 void FPhAT::Mirror()
 {
 	SharedData->Mirror();
+}
+
+void FPhAT::EditPhysicalAnimations()
+{
+	
 }
 
 TSharedRef<ITableRow> FPhAT::OnGenerateRowForTree(FTreeElemPtr Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -1415,12 +1554,12 @@ void FPhAT::OnGetChildrenForTree(FTreeElemPtr Parent, TArray<FTreeElemPtr>& OutC
 {
 	if (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 	{
-		for (int32 i = 0; i < SharedData->PhysicsAsset->BodySetup.Num(); ++i)
+		for (int32 i = 0; i < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 		{
-			if (SharedData->PhysicsAsset->BodySetup[i]->BoneName == (*Parent).Name)
+			if (SharedData->PhysicsAsset->SkeletalBodySetups[i]->BoneName == (*Parent).Name)
 			{
-				int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[i]->BoneName);
-				FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->BodySetup[i]->AggGeom;
+				int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[i]->BoneName);
+				FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->SkeletalBodySetups[i]->AggGeom;
 
 				if (AggGeom.SphereElems.Num() + AggGeom.BoxElems.Num() + AggGeom.SphylElems.Num() + AggGeom.ConvexElems.Num() > 1)
 				{
@@ -1522,11 +1661,11 @@ void FPhAT::OnTreeSelectionChanged(FTreeElemPtr TreeElem, ESelectInfo::Type Sele
 		{
 			if (ObjIndex != INDEX_NONE)
 			{
-				for (int32 i = 0; i < SharedData->PhysicsAsset->BodySetup.Num(); ++i)
+				for (int32 i = 0; i < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 				{
-					if (SharedData->PhysicsAsset->BodySetup[i]->BoneName == (*SelectedElem).Name)
+					if (SharedData->PhysicsAsset->SkeletalBodySetups[i]->BoneName == (*SelectedElem).Name)
 					{
-						FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->BodySetup[i]->AggGeom;
+						FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->SkeletalBodySetups[i]->AggGeom;
 
 						//select all primitives
 						for(int32 j=0; j<AggGeom.BoxElems.Num(); ++j)
@@ -1853,7 +1992,7 @@ void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopy
 
 		for(int32 i=0; i<NewSelection.Num(); ++i)
 		{
-			UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[NewSelection[i].Index];
+			UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[NewSelection[i].Index];
 			EKCollisionPrimitiveType PrimitiveType;
 			if (bCopySelected)
 			{
@@ -1994,14 +2133,14 @@ void FPhAT::SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<
 	for(int32 i=0; i<Indices.Num(); ++i)
 	{
 		// Get the index of this body
-		UBodySetup* BaseSetup = SharedData->PhysicsAsset->BodySetup[Indices[i]];
+		UBodySetup* BaseSetup = SharedData->PhysicsAsset->SkeletalBodySetups[Indices[i]];
 		SharedData->PhysicsAsset->GetBodyIndicesBelow(BelowBodies, BaseSetup->BoneName, SharedData->EditorSkelMesh);
 	}
 
 	for (int32 i = 0; i < BelowBodies.Num(); ++i)
 	{
 		int32 BodyIndex = BelowBodies[i];
-		UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
+		UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[BodyIndex];
 		if (bMarkAsDirty)
 		{
 			BodySetup->Modify();
@@ -2061,9 +2200,9 @@ void FPhAT::OnChangeDefaultMesh()
 	{
 		// See if any bones are missing from the skeletal mesh we are trying to use
 		// @todo Could do more here - check for bone lengths etc. Maybe modify asset?
-		for (int32 i = 0; i <SharedData->PhysicsAsset->BodySetup.Num(); ++i)
+		for (int32 i = 0; i <SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 		{
-			FName BodyName = SharedData->PhysicsAsset->BodySetup[i]->BoneName;
+			FName BodyName = SharedData->PhysicsAsset->SkeletalBodySetups[i]->BoneName;
 			int32 BoneIndex = NewSkelMesh->RefSkeleton.FindBoneIndex(BodyName);
 			if (BoneIndex == INDEX_NONE)
 			{
@@ -2113,7 +2252,7 @@ void FPhAT::OnResetEntireAsset()
 		SharedData->SetSelectedConstraint(INDEX_NONE);	
 
 		// Empty current asset data.
-		SharedData->PhysicsAsset->BodySetup.Empty();
+		SharedData->PhysicsAsset->SkeletalBodySetups.Empty();
 		SharedData->PhysicsAsset->BodySetupIndexMap.Empty();
 		SharedData->PhysicsAsset->ConstraintSetup.Empty();
 
@@ -2150,7 +2289,7 @@ void FPhAT::OnResetBoneCollision()
 		const FScopedTransaction Transaction( NSLOCTEXT("PhAT", "ResetBoneCollision", "Reset Bone Collision") );
 		for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 		{
-			UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index];
+			UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[i].Index];
 			check(BodySetup);
 			BodySetup->Modify();
 
@@ -2186,9 +2325,9 @@ void FPhAT::OnApplyPhysicalMaterial()
 
 	if (SelectedPhysMaterial)
 	{
-		for (int32 BodyIdx=0; BodyIdx<SharedData->PhysicsAsset->BodySetup.Num(); BodyIdx++)
+		for (int32 BodyIdx=0; BodyIdx<SharedData->PhysicsAsset->SkeletalBodySetups.Num(); BodyIdx++)
 		{
-			UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[BodyIdx];
+			UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[BodyIdx];
 			BodySetup->Modify();
 			BodySetup->PhysMaterial = SelectedPhysMaterial;
 		}
@@ -2291,12 +2430,12 @@ bool FPhAT::IsInstanceProperties() const
 void FPhAT::FixPhysicsState()
 {
 	UPhysicsAsset * PhysicsAsset = SharedData->PhysicsAsset;
-	TArray<UBodySetup*> & BodySetup = PhysicsAsset->BodySetup;
+	TArray<USkeletalBodySetup*>& BodySetup = PhysicsAsset->SkeletalBodySetups;
 
 	if(!SharedData->bRunningSimulation)
 	{
 		PhysicsTypeState.Reset();
-		for(int32 i=0; i<SharedData->PhysicsAsset->BodySetup.Num(); ++i)
+		for(int32 i=0; i<SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 		{
 			PhysicsTypeState.Add(BodySetup[i]->PhysicsType);
 		}
@@ -2381,10 +2520,10 @@ void FPhAT::OnSelectedSimulation()
 	{
 
 		UPhysicsAsset * PhysicsAsset = SharedData->PhysicsAsset;
-		TArray<UBodySetup*> & BodySetup = PhysicsAsset->BodySetup;
+		TArray<USkeletalBodySetup*>& BodySetup = PhysicsAsset->SkeletalBodySetups;
 
 		//first we fix all the bodies
-		for(int32 i=0; i<SharedData->PhysicsAsset->BodySetup.Num(); ++i)
+		for(int32 i=0; i<SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 		{
 			BodySetup[i]->PhysicsType = PhysType_Kinematic;
 		}
@@ -2746,7 +2885,7 @@ void FPhAT::OnSetBodyPhysicsType( EPhysicsType InPhysicsType )
 		
 		for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 		{
-			UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index];
+			UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[i].Index];
 			BodySetup->Modify();
 			BodySetup->PhysicsType = InPhysicsType;
 		}
@@ -2758,7 +2897,7 @@ bool FPhAT::IsBodyPhysicsType( EPhysicsType InPhysicsType )
 {
 	for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 	{
-		UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index];
+		UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[i].Index];
 		if(BodySetup->PhysicsType == InPhysicsType)
 		{
 			return true;
@@ -2779,7 +2918,7 @@ void FPhAT::OnDeleteBody()
 
 		for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 		{
-			BodySetups.Add( SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index] );
+			BodySetups.Add( SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[i].Index] );
 		}
 
 		const FScopedTransaction Transaction( LOCTEXT( "DeleteBodies", "Delete Bodies" ) );
@@ -2804,7 +2943,7 @@ void FPhAT::OnDeleteAllBodiesBelow()
 
 	for (FPhATSharedData::FSelection SelectedBody : SharedData->SelectedBodies)
 	{
-		UBodySetup* BaseSetup = SharedData->PhysicsAsset->BodySetup[SelectedBody.Index];
+		UBodySetup* BaseSetup = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedBody.Index];
 		
 		// Build a list of BodySetups below this one
 		TArray<int32> BelowBodies;
@@ -2812,7 +2951,7 @@ void FPhAT::OnDeleteAllBodiesBelow()
 
 		for (const int32 BodyIndex : BelowBodies)
 		{
-			UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
+			UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[BodyIndex];
 			BodySetups.Add(BodySetup);
 		}
 	}
@@ -2910,7 +3049,7 @@ void FPhAT::OnFocusSelection()
 		{
 			if(SharedData->GetSelectedBody())
 			{
-				int32 BoneIdx = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[SharedData->GetSelectedBody()->Index]->BoneName);
+				int32 BoneIdx = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->GetSelectedBody()->Index]->BoneName);
 				FMatrix BoneTransform = SharedData->EditorSkelComp->GetBoneMatrix(BoneIdx);
 				FBoxSphereBounds Bounds(BoneTransform.GetOrigin(), FVector(20), 20);
 
@@ -3004,7 +3143,7 @@ void FPhAT::OnAssetSelectedFromStaticMeshAssetPicker( const FAssetData& AssetDat
 		SharedData->PhysicsAsset->Modify();
 
 		// Build a list of BodySetups below this one
-		UBodySetup* BaseSetup = SharedData->PhysicsAsset->BodySetup[SharedData->GetSelectedBody()->Index];
+		UBodySetup* BaseSetup = SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->GetSelectedBody()->Index];
 		BaseSetup->Modify();
 	
 		UStaticMesh* SM = Cast<UStaticMesh>(AssetData.GetAsset());
@@ -3063,14 +3202,14 @@ void FPhAT::OnSelectAll()
 		SharedData->SetSelectedBody(NULL);
 	
 		//go through every body and add every geom
-		for (int32 i = 0; i <PhysicsAsset->BodySetup.Num(); ++i)
+		for (int32 i = 0; i <PhysicsAsset->SkeletalBodySetups.Num(); ++i)
 		{
-			int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(PhysicsAsset->BodySetup[i]->BoneName);
+			int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(PhysicsAsset->SkeletalBodySetups[i]->BoneName);
 
 			// If we found a bone for it, add all geom
 			if (BoneIndex != INDEX_NONE)
 			{
-				FKAggregateGeom* AggGeom = &PhysicsAsset->BodySetup[i]->AggGeom;
+				FKAggregateGeom* AggGeom = &PhysicsAsset->SkeletalBodySetups[i]->AggGeom;
 
 				for (int32 j = 0; j <AggGeom->SphereElems.Num(); ++j)
 				{

@@ -212,7 +212,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 				if ( PhysicsAsset )
 				{
 					UE_LOG(LogPhysics, Warning, TEXT(" - # of BodySetup (%d), # of Bodies (%d), Invalid BodyIndex(%d)"), 
-						PhysicsAsset->BodySetup.Num(), Bodies.Num(), BodyIndex);
+						PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num(), BodyIndex);
 				}
 				continue;
 			}
@@ -535,11 +535,11 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		if (PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (!ensure(PhysicsAsset->BodySetup.Num() == Bodies.Num()))
+			if (!ensure(PhysicsAsset->SkeletalBodySetups.Num() == Bodies.Num()))
 			{
 				// related to TTP 280315
 				UE_LOG(LogPhysics, Warning, TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
-					*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->BodySetup.Num(), Bodies.Num());
+					*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num());
 				return;
 			}
 #endif
@@ -571,7 +571,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					// If we could not find it - warn.
 					if (BoneIndex == INDEX_NONE || BoneIndex >= GetNumSpaceBases())
 					{
-						const FName BodyName = PhysicsAsset->BodySetup[i]->BoneName;
+						const FName BodyName = PhysicsAsset->SkeletalBodySetups[i]->BoneName;
 						UE_LOG(LogPhysics, Log, TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName());
 					}
 					else
@@ -581,7 +581,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
 						if(!BoneTransform.IsValid())
 						{
-							const FName BodyName = PhysicsAsset->BodySetup[i]->BoneName;
+							const FName BodyName = PhysicsAsset->SkeletalBodySetups[i]->BoneName;
 							UE_LOG(LogPhysics, Warning, TEXT("UpdateKinematicBonesToAnim: Trying to set transform with bad data %s on PhysicsAsset '%s' in SkeletalMesh '%s' for bone '%s'"), *BoneTransform.ToHumanReadableString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName(), *BodyName.ToString());
 							BoneTransform.DiagnosticCheck_IsValid();	//In special nan mode we want to actually ensure
 

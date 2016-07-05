@@ -480,7 +480,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 			FBlendedHeapCurve BlendedCurve;
 			if (AnimCurves.Elements.Num() > 0 && PreviousAnimCurves.Elements.Num() == AnimCurves.Elements.Num())
 			{
-				BlendedCurve.Blend(PreviousAnimCurves, AnimCurves, BlendAlpha);
+				BlendedCurve.Lerp(PreviousAnimCurves, AnimCurves, BlendAlpha);
 			}
 			else
 			{

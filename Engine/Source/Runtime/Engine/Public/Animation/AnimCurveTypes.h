@@ -11,26 +11,26 @@
 enum EAnimCurveFlags
 {
 	// Used as morph target curve
-	ACF_DrivesMorphTarget	= 0x00000001,
+	ACF_DriveMorphTarget	= 0x00000001,
 	// Used as triggering event
-	ACF_TriggerEvent		= 0x00000002,
+	ACF_DriveAttribute		= 0x00000002,
 	// Is editable in Sequence Editor
 	ACF_Editable			= 0x00000004,
 	// Used as a material curve
-	ACF_DrivesMaterial		= 0x00000008,
+	ACF_DriveMaterial		= 0x00000008,
 	// Is a metadata 'curve'
 	ACF_Metadata			= 0x00000010,
 	// motifies bone track
 	ACF_DriveTrack			= 0x00000020,
 	// disabled, right now it's used by track
 	ACF_Disabled			= 0x00000040,
-	// pose curve
-	ACF_DrivesPose			= 0x00000080,
 
 	// default flag when created
-	ACF_DefaultCurve		= ACF_TriggerEvent | ACF_Editable,
+	ACF_DefaultCurve		= ACF_DriveAttribute | ACF_Editable,
 	// curves created from Morph Target
-	ACF_MorphTargetCurve	= ACF_DrivesMorphTarget
+	ACF_MorphTargetCurve	= ACF_DriveMorphTarget, 
+	// all editor preview curves - this will go away soon once skeleton contains curve types
+	ACF_EditorPreviewCurves	= ACF_DriveMorphTarget | ACF_DriveAttribute | ACF_DriveMaterial
 };
 
 /** UI representation of EAnimCurveFlags. This is used in Animation Nodes to set custom curves 
@@ -64,17 +64,17 @@ struct ENGINE_API FAnimCurveType
 
 		if (bMorphtarget)
 		{
-			OutFlags |= ACF_DrivesMorphTarget;
+			OutFlags |= ACF_DriveMorphTarget;
 		}
 
 		if (bEvent)
 		{
-			OutFlags |= ACF_TriggerEvent;
+			OutFlags |= ACF_DriveAttribute;
 		}
 
 		if (bMaterial)
 		{
-			OutFlags |= ACF_DrivesMaterial;
+			OutFlags |= ACF_DriveMaterial;
 		}
 
 		return OutFlags;
@@ -391,7 +391,7 @@ struct FBaseBlendedCurve
 	 * Blend (A, B) using Alpha, same as Lerp
 	 */
 	//@Todo curve flags won't transfer over - it only overwrites
-	void Blend(const FBaseBlendedCurve& A, const FBaseBlendedCurve& B, float Alpha)
+	void Lerp(const FBaseBlendedCurve& A, const FBaseBlendedCurve& B, float Alpha)
 	{
 		check(A.Num() == B.Num());
 		if (FMath::Abs(Alpha) <= ZERO_ANIMWEIGHT_THRESH)
@@ -418,7 +418,7 @@ struct FBaseBlendedCurve
 	/**
 	 * Blend with Other using Alpha, same as Lerp 
 	 */
-	void BlendWith(const FBaseBlendedCurve& Other, float Alpha)
+	void LerpTo(const FBaseBlendedCurve& Other, float Alpha)
 	{
 		check(Num() == Other.Num());
 		if (FMath::Abs(Alpha) <= ZERO_ANIMWEIGHT_THRESH)

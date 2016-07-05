@@ -608,6 +608,11 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 			// Tick the animation
 			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, bNeedsValidRootMotion);
 		}
+
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
+		}
 	}
 }
 
@@ -924,9 +929,9 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	if(PhysicsAsset)
 	{
 		TArray<FBoneIndexType> PhysAssetBones;
-		for(int32 i=0; i<PhysicsAsset->BodySetup.Num(); i++ )
+		for(int32 i=0; i<PhysicsAsset->SkeletalBodySetups.Num(); i++ )
 		{
-			int32 PhysBoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex( PhysicsAsset->BodySetup[i]->BoneName );
+			int32 PhysBoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex( PhysicsAsset->SkeletalBodySetups[i]->BoneName );
 			if(PhysBoneIndex != INDEX_NONE)
 			{
 				PhysAssetBones.Add(PhysBoneIndex);
@@ -1382,7 +1387,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		FillSpaceBases(SkeletalMesh, LocalAtoms, GetEditableSpaceBases());
 
 		// interpolate curve
-		EvaluationContext.Curve.BlendWith(CachedCurve, Alpha);
+		EvaluationContext.Curve.LerpTo(CachedCurve, Alpha);
 	}
 
 	if(AnimScriptInstance)
@@ -1498,9 +1503,16 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 		ValidateAnimation();
 #endif
 	
-		if (GetPhysicsAsset() != OldPhysAsset && IsPhysicsStateCreated())
+		if(IsPhysicsStateCreated())
 		{
-			RecreatePhysicsState();
+			if(GetPhysicsAsset() == OldPhysAsset)
+			{
+				UpdateBoneBodyMapping();
+			}
+			else
+			{
+				RecreatePhysicsState();
+			}
 		}
 
 		UpdateHasValidBodies();
@@ -2017,10 +2029,10 @@ float USkeletalMeshComponent::CalculateMass(FName BoneName)
 	}
 	else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
 	{
-		TArray<class UBodySetup*> * BodySetups = NULL;
-		if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
+		TArray<USkeletalBodySetup*>* BodySetups = nullptr;
+		if (UPhysicsAsset* PhysicsAsset = GetPhysicsAsset())
 		{
-			BodySetups = &PhysicsAsset->BodySetup;
+			BodySetups = &PhysicsAsset->SkeletalBodySetups;
 		}
 
 		if (BodySetups)
@@ -2410,10 +2422,10 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
 	if (PhysicsAsset && ComponentToWorld.GetScale3D().IsUniform())
 	{
-		const int32 MaxBodies = PhysicsAsset->BodySetup.Num();
+		const int32 MaxBodies = PhysicsAsset->SkeletalBodySetups.Num();
 		for (int32 Idx = 0; Idx < MaxBodies; Idx++)
 		{
-			UBodySetup* const BS = PhysicsAsset->BodySetup[Idx];
+			UBodySetup* const BS = PhysicsAsset->SkeletalBodySetups[Idx];
 			int32 const BoneIndex = BS ? GetBoneIndex(BS->BoneName) : INDEX_NONE;
 
 			if (BoneIndex != INDEX_NONE)

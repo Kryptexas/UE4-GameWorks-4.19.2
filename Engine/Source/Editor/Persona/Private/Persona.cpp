@@ -79,6 +79,7 @@
 
 #include "MessageLog.h"
 #include "SAdvancedPreviewDetailsTab.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
 
@@ -865,7 +866,52 @@ void FPersona::CreateAnimation(const TArray<UObject*> NewAssets, int32 Option)
 		}
 		else
 		{
-			// give warning
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToCreateAsset", "Failed to create asset"));
+		}
+	}
+}
+
+void FPersona::CreatePoseAsset(const TArray<UObject*> NewAssets, int32 Option)
+{
+	bool bResult = false;
+	if (NewAssets.Num() > 0)
+	{
+		USkeletalMeshComponent* MeshComponent = GetPreviewMeshComponent();
+		UAnimSequence* Sequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+
+		for (auto NewAsset : NewAssets)
+		{
+			UPoseAsset* NewPoseAsset = Cast<UPoseAsset>(NewAsset);
+			if (NewPoseAsset)
+			{
+				switch (Option)
+				{
+				case 0:
+					NewPoseAsset->AddOrUpdatePoseWithUniqueName(MeshComponent);
+					break;
+				case 1:
+					NewPoseAsset->CreatePoseFromAnimation(Sequence);
+					break;
+				}
+				
+				bResult = true;
+			}
+		}
+
+		// if it contains error, warn them
+		if (bResult)
+		{
+			OnAssetCreated(NewAssets);
+			
+			// if it created based on current mesh component, 
+			if (Option == 0)
+			{
+				PreviewComponent->PreviewInstance->ResetModifiedBone();
+			}
+		}
+		else
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToCreateAsset", "Failed to create asset"));
 		}
 	}
 }
@@ -912,6 +958,38 @@ void FPersona::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.EndSection();
 }
 
+void FPersona::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
+{
+	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+
+	Skeletons.Add(TargetSkeleton);
+
+	// create rig
+	MenuBuilder.BeginSection("CreatePoseAssetSubMenu", LOCTEXT("CreatePoseAssetSubMenuHeading", "Create PoseAsset"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CreatePoseAsset_CurrentPose", "From Current Pose"),
+			LOCTEXT("CreatePoseAsset_CurrentPose_Tooltip", "Create PoseAsset from current pose."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FPersona::CreatePoseAsset, 0), false),
+				FCanExecuteAction()
+				)
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CreatePoseAsset_CurrentAnimation", "From Current Animation"),
+			LOCTEXT("CreatePoseAsset_CurrentAnimation_Tooltip", "Create Animation from current animation."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FPersona::CreatePoseAsset, 1), false),
+				FCanExecuteAction::CreateSP(this, &FPersona::HasValidAnimationSequencePlaying)
+				)
+			);
+	}
+	MenuBuilder.EndSection();
+}
+
 TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) const
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
@@ -926,8 +1004,16 @@ TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) c
 				LOCTEXT("CreateAnimationSubmenu_ToolTip", "Create Animation for this skeleton"),
 				FNewMenuDelegate::CreateSP(this, &FPersona::FillCreateAnimationMenu),
 				false,
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.AssetActions.CreateAnimAsset")
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.AnimSequence")
 				);
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("CreatePoseAssetSubmenu", "Create PoseAsset"),
+			LOCTEXT("CreatePoseAsssetSubmenu_ToolTip", "Create PoseAsset for this skeleton"),
+			FNewMenuDelegate::CreateSP(this, &FPersona::FillCreatePoseAssetMenu),
+			false,
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PoseAsset")
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -1114,10 +1200,17 @@ void FPersona::SetDetailObject(UObject* Obj)
 	UpdateSelectionDetails(Obj, ForcedTitle);
 }
 
-UDebugSkelMeshComponent* FPersona::GetPreviewMeshComponent()
+UDebugSkelMeshComponent* FPersona::GetPreviewMeshComponent() const
 {
 	return PreviewComponent;
 }
+
+UAnimInstance* FPersona::GetPreviewAnimInstance() const
+{
+	UDebugSkelMeshComponent* DebugSkelComp = GetPreviewMeshComponent();
+	return (DebugSkelComp != nullptr) ? DebugSkelComp->GetAnimInstance() : nullptr;
+}
+
 
 void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 {

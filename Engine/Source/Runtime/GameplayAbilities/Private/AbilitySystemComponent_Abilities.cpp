@@ -2347,7 +2347,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			if ((CurrentSectionID == RepSectionID) && (FMath::Abs(CurrentPosition - RepAnimMontageInfo.Position) > MONTAGE_REP_POS_ERR_THRESH) && RepAnimMontageInfo.IsStopped == 0)
 			{
 				// fast forward to server position and trigger notifies
-				if (FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(*RepAnimMontageInfo.AnimMontage))
+				if (FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(RepAnimMontageInfo.AnimMontage))
 				{
 					MontageInstance->HandleEvents(CurrentPosition, RepAnimMontageInfo.Position, nullptr);
 					AnimInstance->TriggerAnimNotifies(0.f);

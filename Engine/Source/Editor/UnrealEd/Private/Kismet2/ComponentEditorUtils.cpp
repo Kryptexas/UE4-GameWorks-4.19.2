@@ -109,6 +109,10 @@ protected:
 		}
 		else if (AActor* NewActor = Cast<AActor>(NewObject))
 		{
+			if (USceneComponent* RootComponent = NewActor->GetRootComponent())
+			{
+				RootComponent->SetWorldLocationAndRotationNoPhysics(FVector(0.f),FRotator(0.f));
+			}
 			NewActor->GetComponents(ActorComponents);
 		}
 

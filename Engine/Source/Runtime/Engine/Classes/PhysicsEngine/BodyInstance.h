@@ -28,6 +28,12 @@ DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
   * Since this could be called many times by GetWorldTransform any expensive computations should be cached if possible.*/
 DECLARE_DELEGATE_TwoParams(FCalculateCustomProjection, const FBodyInstance*, FTransform&);
 
+/** Delegate for body initialization. Called at the end of FBodyInstance::InitBody.*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FBodyInstanceInit, const FBodyInstance*);
+
+/** Delegate for body termination. Called at the beginning of FBodyInstance::TermBody.*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FBodyInstanceTerm, const FBodyInstance*);
+
 #if WITH_PHYSX
 struct FShapeData;
 
@@ -158,6 +164,10 @@ USTRUCT()
 struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()
+
+	/** Body initialization and termination delegates.*/
+	static FBodyInstanceInit InitBodyDelegate;
+	static FBodyInstanceTerm TermBodyDelegate;
 
 	/** 
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 

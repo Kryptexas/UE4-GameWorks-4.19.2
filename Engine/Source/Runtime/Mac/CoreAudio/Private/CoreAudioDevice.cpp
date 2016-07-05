@@ -317,9 +317,10 @@ void FCoreAudioDevice::UpdateHardware()
 {
 	// Caches the matrix used to transform a sounds position into local space so we can just look
 	// at the Y component after normalization to determine spatialization.
-	const FVector Up = Listeners[0].GetUp();
-	const FVector Right = Listeners[0].GetFront();
-	InverseTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
+	const FListener& Listener = GetListeners()[0];
+	const FVector Up = Listener.GetUp();
+	const FVector Right = Listener.GetFront();
+	InverseTransform = FMatrix(Up, Right, Up ^ Right, Listener.Transform.GetTranslation()).InverseFast();
 
 	UpdateAUGraph();
 }

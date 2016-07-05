@@ -30,9 +30,9 @@ void USoundNodeLooping::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Nod
 	}
 
 #if !(NO_LOGGING || UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (bLoopIndefinitely && !ActiveSound.bWarnedAboutOrphanedLooping && ActiveSound.GetAudioComponent() == nullptr)
+	if (bLoopIndefinitely && !ActiveSound.bWarnedAboutOrphanedLooping && ActiveSound.GetAudioComponentID() == 0)
 	{
-		UE_LOG(LogAudio, Warning, TEXT("Detected orphaned looping sound '%s'."), *ActiveSound.Sound->GetName());
+		UE_LOG(LogAudio, Warning, TEXT("Detected orphaned looping sound '%s'."), *ActiveSound.GetSound()->GetName());
 		ActiveSound.bWarnedAboutOrphanedLooping = true;
 	}
 #endif
@@ -61,13 +61,13 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 	RETRIEVE_SOUNDNODE_PAYLOAD(sizeof(int32));
 	DECLARE_SOUNDNODE_ELEMENT(int32, CurrentLoopCount);
 
+	const bool bRequiresInitialization = (*RequiresInitialization) != 0;
+
 	// The looping node should be initialized, but we hit this check and need to get information about what sound cue is causing the issue.
-	// Suppressing the "needless deref" static analysis warning here since it is a false positive. * has higher precedence than == and thus it is needed.
-	CA_SUPPRESS(6269)
-	ensureMsgf((*RequiresInitialization == 0), TEXT("Sound looping finished but not initialized. SoundWave: %s, Sound: %s"), *InWaveInstance->GetName(), *ActiveSound.Sound->GetName());
+	ensureMsgf(!bRequiresInitialization, TEXT("Sound looping finished but not initialized. SoundWave: %s, Sound: %s"), *InWaveInstance->GetName(), *ActiveSound.GetSound()->GetName());
 
 	// Avoid the crash and continue...
-	if (!*RequiresInitialization)
+	if (!bRequiresInitialization)
 	{
 		if (bLoopIndefinitely || ++CurrentLoopCount < LoopCount)
 		{

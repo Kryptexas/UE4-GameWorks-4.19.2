@@ -417,7 +417,7 @@ void FSLESSoundSource::Update( void )
 		// Emulate the bleed to rear speakers followed by stereo fold down
 		Volume *= 1.25f;
 	}
-	Volume *= AudioDevice->PlatformAudioHeadroom;
+	Volume *= AudioDevice->GetPlatformAudioHeadroom();
 	Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	
 	const float Pitch = FMath::Clamp<float>(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH);

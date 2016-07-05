@@ -2588,29 +2588,31 @@ void AActor::PostEditImport()
 /** Util that sets up the actor's component hierarchy (when users forget to do so, in their native ctor) */
 static USceneComponent* FixupNativeActorComponents(AActor* Actor)
 {
-	TInlineComponentArray<USceneComponent*> SceneComponents;
-	Actor->GetComponents(SceneComponents);
-
 	USceneComponent* SceneRootComponent = Actor->GetRootComponent();
-	if ((SceneRootComponent == nullptr) && (SceneComponents.Num() > 0))
+	if (SceneRootComponent == nullptr)
 	{
-		UE_LOG(LogActor, Warning, TEXT("%s has natively added scene component(s), but none of them were set as the actor's RootComponent - picking one arbitrarily"), *Actor->GetFullName());
-	
-		// if the user forgot to set one of their native components as the root, 
-		// we arbitrarily pick one for them (otherwise the SCS could attempt to 
-		// create its own root, and nest native components under it)
-		for (USceneComponent* Component : SceneComponents)
+		TInlineComponentArray<USceneComponent*> SceneComponents;
+		Actor->GetComponents(SceneComponents);
+		if (SceneComponents.Num() > 0)
 		{
-			if ((Component == nullptr) ||
-				(Component->GetAttachParent() != nullptr) ||
-				(Component->CreationMethod != EComponentCreationMethod::Native))
+			UE_LOG(LogActor, Warning, TEXT("%s has natively added scene component(s), but none of them were set as the actor's RootComponent - picking one arbitrarily"), *Actor->GetFullName());
+	
+			// if the user forgot to set one of their native components as the root, 
+			// we arbitrarily pick one for them (otherwise the SCS could attempt to 
+			// create its own root, and nest native components under it)
+			for (USceneComponent* Component : SceneComponents)
 			{
-				continue;
-			}
+				if ((Component == nullptr) ||
+					(Component->GetAttachParent() != nullptr) ||
+					(Component->CreationMethod != EComponentCreationMethod::Native))
+				{
+					continue;
+				}
 
-			SceneRootComponent = Component;
-			Actor->SetRootComponent(Component);
-			break;
+				SceneRootComponent = Component;
+				Actor->SetRootComponent(Component);
+				break;
+			}
 		}
 	}
 
@@ -2626,7 +2628,7 @@ static void ValidateDeferredTransformCache()
 	// could happen if an actor is destroyed before FinishSpawning is called
 	for (auto It = GSpawnActorDeferredTransformCache.CreateIterator(); It; ++It)
 	{
-		TWeakObjectPtr<AActor> ActorRef = It.Key();
+		const TWeakObjectPtr<AActor>& ActorRef = It.Key();
 		if (ActorRef.IsValid() == false)
 		{
 			It.RemoveCurrent();
@@ -3780,8 +3782,8 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 	Result.PhysMaterial = ContactInfo.PhysMaterial[1];
 	Result.Actor = OtherInfo.Actor;
 	Result.Component = OtherInfo.Component;
-	Result.Item = MyInfo.BodyIndex;
-	Result.BoneName = MyInfo.BoneName;
+	Result.Item = OtherInfo.BodyIndex;
+	Result.BoneName = OtherInfo.BoneName;
 	Result.bBlockingHit = true;
 
 	NotifyHit(MyInfo.Component.Get(), OtherInfo.Actor.Get(), OtherInfo.Component.Get(), true, Result.Location, Result.Normal, RigidCollisionData.TotalNormalImpulse, Result);

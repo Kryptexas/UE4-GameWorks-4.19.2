@@ -334,7 +334,7 @@ public:
 	/** 
 	 * Handle any special requirements when the sound starts (e.g. subtitles)
 	 */
-	FWaveInstance* HandleStart( FActiveSound& ActiveSound, const UPTRINT WaveInstanceHash );
+	FWaveInstance* HandleStart( FActiveSound& ActiveSound, const UPTRINT WaveInstanceHash ) const;
 
 	/** 
 	 * This is only for DTYPE_Procedural audio. Override this function.
@@ -438,6 +438,18 @@ public:
 	 * @param OutChunkData	Address of pointer that will store data.
 	 */
 	void GetChunkData(int32 ChunkIndex, uint8** OutChunkData);
+
+private:
+
+	enum class ESoundWaveResourceState
+	{
+		NeedsFree,
+		Freeing,
+		Freed
+	};
+
+	ESoundWaveResourceState ResourceState;
+
 };
 
 

@@ -423,7 +423,7 @@ UBodySetup* USkeletalMeshComponent::GetBodySetup()
 				int32 BodyIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(i));
 				if (BodyIndex != INDEX_NONE)
 				{
-					return PhysicsAsset->BodySetup[BodyIndex];
+					return PhysicsAsset->SkeletalBodySetups[BodyIndex];
 				}
 			}
 		}
@@ -466,7 +466,7 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 		{
 			if (FBodyInstance* BodyInst = Bodies[BodyIdx])
 			{
-				if (UBodySetup * PhysAssetBodySetup = PhysAsset->BodySetup[BodyIdx])
+				if (UBodySetup * PhysAssetBodySetup = PhysAsset->SkeletalBodySetups[BodyIdx])
 				{
 					if (PhysAssetBodySetup->PhysicsType == EPhysicsType::PhysType_Default)
 					{
@@ -752,7 +752,7 @@ void USkeletalMeshComponent::SetEnableGravity(bool bGravityEnabled)
 		{
 			if (FBodyInstance* BodyInst = Bodies[BodyIdx])
 			{
-				if (UBodySetup * PhysAssetBodySetup = PhysAsset->BodySetup[BodyIdx])
+				if (UBodySetup * PhysAssetBodySetup = PhysAsset->SkeletalBodySetups[BodyIdx])
 				{
 					bool bUseGravityEnabled = bGravityEnabled;
 					
@@ -772,6 +772,11 @@ void USkeletalMeshComponent::SetEnableGravity(bool bGravityEnabled)
 bool USkeletalMeshComponent::IsGravityEnabled() const
 {
 	return BodyInstance.bEnableGravity;
+}
+
+void USkeletalMeshComponent::OnConstraintBrokenWrapper(int32 ConstraintIndex)
+{
+	OnConstraintBroken.Broadcast(ConstraintIndex);
 }
 
 DECLARE_CYCLE_STAT(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics);
@@ -821,10 +826,10 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	uint32 SkelMeshCompID = GetUniqueID();
 	PhysScene->DeferredAddCollisionDisableTable(SkelMeshCompID, &PhysicsAsset->CollisionDisableTable);
 
-	int32 NumBodies = PhysicsAsset->BodySetup.Num();
+	int32 NumBodies = PhysicsAsset->SkeletalBodySetups.Num();
 	if(Aggregate == NULL && NumBodies > RagdollAggregateThreshold && NumBodies <= AggregateMaxSize)
 	{
-		Aggregate = GPhysXSDK->createAggregate(PhysicsAsset->BodySetup.Num(), true);
+		Aggregate = GPhysXSDK->createAggregate(PhysicsAsset->SkeletalBodySetups.Num(), true);
 	}
 	else if(Aggregate && NumBodies > AggregateMaxSize)
 	{
@@ -837,7 +842,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	Bodies.AddZeroed(NumBodies);
 	for(int32 i=0; i<NumBodies; i++)
 	{
-		UBodySetup* PhysicsAssetBodySetup = PhysicsAsset->BodySetup[i];
+		UBodySetup* PhysicsAssetBodySetup = PhysicsAsset->SkeletalBodySetups[i];
 		Bodies[i] = new FBodyInstance;
 		FBodyInstance* BodyInst = Bodies[i];
 		check(BodyInst);
@@ -946,7 +951,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		// If we have 2, joint 'em
 		if(Body1 != NULL && Body2 != NULL)
 		{
-			ConInst->InitConstraint(this, Body1, Body2, Scale);
+			ConInst->InitConstraint(Body1, Body2, Scale, this, FOnConstraintBroken::CreateUObject(this, &USkeletalMeshComponent::OnConstraintBrokenWrapper));
 		}
 	}
 
@@ -1023,7 +1028,7 @@ void USkeletalMeshComponent::TermBodiesBelow(FName ParentBoneName)
 	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 	if(PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 	{
-		check(Bodies.Num() == PhysicsAsset->BodySetup.Num());
+		check(Bodies.Num() == PhysicsAsset->SkeletalBodySetups.Num());
 
 		// Get index of parent bone
 		int32 ParentBoneIndex = GetBoneIndex(ParentBoneName);
@@ -1142,7 +1147,7 @@ void USkeletalMeshComponent::SetAllMotorsAngularPositionDrive(bool bEnableSwingD
 		if( bSkipCustomPhysicsType )
 		{
 			int32 BodyIndex = PhysicsAsset->FindBodyIndex(Constraints[i]->JointName);
-			if( BodyIndex != INDEX_NONE && PhysicsAsset->BodySetup[BodyIndex]->PhysicsType != PhysType_Default)
+			if( BodyIndex != INDEX_NONE && PhysicsAsset->SkeletalBodySetups[BodyIndex]->PhysicsType != PhysType_Default)
 			{
 				continue;
 			}
@@ -1209,7 +1214,7 @@ void USkeletalMeshComponent::SetAllMotorsAngularVelocityDrive(bool bEnableSwingD
 		if( bSkipCustomPhysicsType )
 		{
 			int32 BodyIndex = PhysicsAsset->FindBodyIndex(Constraints[i]->JointName);
-			if( BodyIndex != INDEX_NONE && PhysicsAsset->BodySetup[BodyIndex]->PhysicsType != PhysType_Default )
+			if( BodyIndex != INDEX_NONE && PhysicsAsset->SkeletalBodySetups[BodyIndex]->PhysicsType != PhysType_Default )
 			{
 				continue;
 			}
@@ -1253,7 +1258,7 @@ void USkeletalMeshComponent::SetAllMotorsAngularDriveParams(float InSpring, floa
 		if( bSkipCustomPhysicsType )
 		{
 			int32 BodyIndex = PhysicsAsset->FindBodyIndex(Constraints[i]->JointName);
-			if( BodyIndex != INDEX_NONE && PhysicsAsset->BodySetup[BodyIndex]->PhysicsType != PhysType_Default )
+			if( BodyIndex != INDEX_NONE && PhysicsAsset->SkeletalBodySetups[BodyIndex]->PhysicsType != PhysType_Default )
 			{
 				continue;
 			}
@@ -1520,9 +1525,9 @@ void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 			DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("  Found Broken Constraint: (%d) %s"), JointBoneIndex, *PhysicsAsset->ConstraintSetup(ConstraintInstIndex)->JointName.ToString());)
 
 			// Get child bodies of this joint
-			for(int32 BodySetupIndex = 0; BodySetupIndex < PhysicsAsset->BodySetup.Num(); BodySetupIndex++)
+			for(int32 BodySetupIndex = 0; BodySetupIndex < PhysicsAsset->SkeletalBodySetups.Num(); BodySetupIndex++)
 			{
-				UBodySetup* PhysicsAssetBodySetup = PhysicsAsset->BodySetup[BodySetupIndex];
+				UBodySetup* PhysicsAssetBodySetup = PhysicsAsset->SkeletalBodySetups[BodySetupIndex];
 				int32 BoneIndex = GetBoneIndex(PhysicsAssetBodySetup->BoneName);
 				if( BoneIndex != INDEX_NONE && 
 					(BoneIndex == JointBoneIndex || SkeletalMesh->RefSkeleton.BoneIsChildOf(BoneIndex, JointBoneIndex)) )
@@ -1627,7 +1632,7 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 			OutWeldedBodies.Add(&BodyInstance);
 			if (PhysicsAsset)
 			{
-				if (UBodySetup * PhysicsAssetBodySetup = PhysicsAsset->BodySetup[BodyIdx])
+				if (UBodySetup * PhysicsAssetBodySetup = PhysicsAsset->SkeletalBodySetups[BodyIdx])
 				{
 					OutLabels.Add(PhysicsAssetBodySetup->BoneName);
 				}
@@ -1688,7 +1693,7 @@ int32 USkeletalMeshComponent::ForEachBodyBelow(FName BoneName, bool bIncludeSelf
 			FBodyInstance* BI = Bodies[BodyIndices[BodyIdx]];
 			if (bSkipCustomType)
 			{
-				if (UBodySetup* PhysAssetBodySetup = PhysicsAsset->BodySetup[BodyIdx])
+				if (UBodySetup* PhysAssetBodySetup = PhysicsAsset->SkeletalBodySetups[BodyIdx])
 				{
 					if (PhysAssetBodySetup->PhysicsType != EPhysicsType::PhysType_Default)
 					{
@@ -1853,16 +1858,36 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 	if(PhysicsAsset != NULL)
 	{
 		// For each body in physics asset..
-		for( int32 BodyIndex = 0; BodyIndex < PhysicsAsset->BodySetup.Num(); BodyIndex++ )
+		for( int32 BodyIndex = 0; BodyIndex < PhysicsAsset->SkeletalBodySetups.Num(); BodyIndex++ )
 		{
 			// .. find the matching graphics bone index
-			int32 BoneIndex = GetBoneIndex( PhysicsAsset->BodySetup[ BodyIndex ]->BoneName );
+			int32 BoneIndex = GetBoneIndex( PhysicsAsset->SkeletalBodySetups[ BodyIndex ]->BoneName );
 
 			// If we found a valid graphics bone, set the 'valid' flag
 			if(BoneIndex != INDEX_NONE)
 			{
 				bHasValidBodies = true;
 				break;
+			}
+		}
+	}
+}
+
+void USkeletalMeshComponent::UpdateBoneBodyMapping()
+{
+	// If we have a physics asset..
+	if (const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset())
+	{
+		// For each body in physics asset..
+		for (int32 BodyIndex = 0; BodyIndex < PhysicsAsset->SkeletalBodySetups.Num(); BodyIndex++)
+		{
+			// .. find the matching graphics bone index
+			int32 BoneIndex = GetBoneIndex(PhysicsAsset->SkeletalBodySetups[BodyIndex]->BoneName);
+			Bodies[BodyIndex]->InstanceBoneIndex = BoneIndex;
+
+			if (BoneIndex == INDEX_NONE)
+			{
+				//TODO: warn that body was found without corresponding bone
 			}
 		}
 	}
@@ -2016,7 +2041,7 @@ bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldP
 		int32 CurrentClosestBoneIndex = INDEX_NONE;
 		const UBodySetup* CurrentClosestBodySetup = nullptr;
 
-		for(const UBodySetup* BodySetupInstance : PhysicsAsset->BodySetup)
+		for(const UBodySetup* BodySetupInstance : PhysicsAsset->SkeletalBodySetups)
 		{
 			ClosestPointOnPhysicsAsset.Distance = FLT_MAX;
 			const FName BoneName = BodySetupInstance->BoneName;

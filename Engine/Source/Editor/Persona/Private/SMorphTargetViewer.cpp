@@ -276,7 +276,7 @@ float SMorphTargetListRow::GetWeight() const
 		{
 			// make sure if they have value that's not same as saved value
 			TMap<FName, float> MorphCurves;
-			AnimInstance->GetAnimationCurveList(ACF_DrivesMorphTarget, MorphCurves);
+			AnimInstance->GetAnimationCurveList(ACF_DriveMorphTarget, MorphCurves);
 			const float* CurrentValue = MorphCurves.Find(Item->Name);
 			if (CurrentValue && *CurrentValue != 0.f)
 			{

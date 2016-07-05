@@ -226,7 +226,7 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 	if (LinkedNode != NULL)
 	{
 #if ENABLE_ANIMNODE_POSE_DEBUG
-		CurrentPose.ResetToIdentity();
+		CurrentPose.ResetToAdditiveIdentity();
 #endif
 		LinkedNode->Evaluate(Output);
 #if ENABLE_ANIMNODE_POSE_DEBUG
@@ -427,7 +427,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 	}
 
 	// initialize copy records
-	for(auto& CopyRecord : CopyRecords)
+	for(FExposedValueCopyRecord& CopyRecord : CopyRecords)
 	{
 		UProperty* SourceProperty = AnimInstanceObject->GetClass()->FindPropertyByName(CopyRecord.SourcePropertyName);
 		check(SourceProperty);
@@ -467,13 +467,31 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			check(ArrayHelper.IsValidIndex(CopyRecord.DestArrayIndex));
 			CopyRecord.Dest = ArrayHelper.GetRawPtr(CopyRecord.DestArrayIndex);
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
-			CopyRecord.CachedDestContainer = AnimNode;
+
+			if(CopyRecord.bInstanceIsTarget)
+			{
+				CopyRecord.CachedDestContainer = AnimInstanceObject;
+			}
+			else
+			{
+				CopyRecord.CachedDestContainer = AnimNode;
+			}
 		}
 		else
 		{
 			CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode, CopyRecord.DestArrayIndex);
+			
+			if(CopyRecord.bInstanceIsTarget)
+			{
+				CopyRecord.CachedDestContainer = AnimInstanceObject;
+				CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, CopyRecord.DestArrayIndex);
+			}
+			else
+			{
+				CopyRecord.CachedDestContainer = AnimNode;
+			}
+
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
-			CopyRecord.CachedDestContainer = AnimNode;
 		}
 	}
 

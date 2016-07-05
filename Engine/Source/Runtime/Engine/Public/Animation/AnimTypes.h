@@ -21,6 +21,16 @@ namespace EAnimEventTriggerOffsets
 
 ENGINE_API float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type OffsetType);
 
+/** Enum for specifying a specific axis of a bone */
+UENUM()
+enum EBoneAxis
+{
+	BA_X UMETA(DisplayName = "X Axis"),
+	BA_Y UMETA(DisplayName = "Y Axis"),
+	BA_Z UMETA(DisplayName = "Z Axis"),
+};
+
+
 /** Enum for controlling which reference frame a controller is applied in. */
 UENUM()
 enum EBoneControlSpace

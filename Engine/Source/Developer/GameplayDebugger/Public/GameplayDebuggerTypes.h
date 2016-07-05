@@ -273,3 +273,24 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerInputHandler
 	bool IsValid() const;
 	FString ToString() const;
 };
+
+/** 
+ * Customizable key binding used by FGameplayDebuggerAddonBase (both categories and extensions)
+ * Intended to use only from addon's constructor!
+ * Check example in FGameplayDebuggerExtension_Spectator::FGameplayDebuggerExtension_Spectator() for details
+ */
+struct GAMEPLAYDEBUGGER_API FGameplayDebuggerInputHandlerConfig
+{
+	FName KeyName;
+	FGameplayDebuggerInputModifier Modifier;
+
+	FGameplayDebuggerInputHandlerConfig() : KeyName(NAME_None) {}
+	FGameplayDebuggerInputHandlerConfig(const FName ConfigName, const FName DefaultKeyName);
+	FGameplayDebuggerInputHandlerConfig(const FName ConfigName, const FName DefaultKeyName, const FGameplayDebuggerInputModifier& DefaultModifier);
+
+	static FName CurrentCategoryName;
+	static FName CurrentExtensionName;
+
+private:
+	void UpdateConfig(const FName ConfigName);
+};

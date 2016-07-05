@@ -390,11 +390,18 @@ AActor* AGameMode::FindPlayerStart_Implementation( AController* Player, const FS
 	// always pick StartSpot at start of match
 	if ( ShouldSpawnAtStartSpot(Player) )
 	{
-		return Player->StartSpot.Get();
+		if (AActor* PlayerStartSpot = Player->StartSpot.Get())
+		{
+			return PlayerStartSpot;
+		}
+		else
+		{
+			UE_LOG(LogGameMode, Error, TEXT("Error - ShouldSpawnAtStartSpot returned true but the Player StartSpot was null."));
+		}
 	}
 
 	AActor* BestStart = ChoosePlayerStart(Player);
-	if (BestStart == NULL)
+	if (BestStart == nullptr)
 	{
 		// no player start found
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));

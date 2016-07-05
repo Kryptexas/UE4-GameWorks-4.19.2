@@ -154,18 +154,20 @@ namespace ERootMotionMode
 }
 
 /** Animation Extraction Context */
-USTRUCT()
 struct FAnimExtractContext
 {
-	GENERATED_USTRUCT_BODY()
-
 	/** Is Root Motion being extracted? */
-	UPROPERTY()
 	bool bExtractRootMotion;
 
 	/** Position in animation to extract pose from */
-	UPROPERTY()
 	float CurrentTime;
+
+	/** 
+	 * Pose Curve Values to extract pose from pose assets. 
+	 * This is used by pose asset extraction 
+	 * This always has to match with pose # in the asset it's extracting from
+	 */
+	TArray<float> PoseCurves;
 
 	FAnimExtractContext()
 		: bExtractRootMotion(false)
@@ -183,6 +185,14 @@ struct FAnimExtractContext
 		: bExtractRootMotion(InbExtractRootMotion)
 		, CurrentTime(InCurrentTime)
 	{
+	}
+
+	FAnimExtractContext(TArray<float>& InPoseCurves)
+		: bExtractRootMotion(false)
+		, CurrentTime(0.f)
+		, PoseCurves(InPoseCurves)
+	{
+		// @todo: no support on root motion
 	}
 };
 
@@ -768,10 +778,10 @@ public:
 	ENGINE_API virtual TArray<FName>* GetUniqueMarkerNames() { return NULL; }
 
 	//~ Begin IInterface_AssetUserData Interface
-	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
-	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
+	ENGINE_API virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	ENGINE_API virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	ENGINE_API virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
 	//~ End IInterface_AssetUserData Interface
 
 	/**

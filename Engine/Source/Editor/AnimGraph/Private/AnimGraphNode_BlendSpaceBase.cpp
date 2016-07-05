@@ -113,4 +113,8 @@ void UAnimGraphNode_BlendSpaceBase::PostProcessPinName(const UEdGraphPin* Pin, F
 	Super::PostProcessPinName(Pin, DisplayName);
 }
 
+FText UAnimGraphNode_BlendSpaceBase::GetMenuCategory() const
+{
+	return LOCTEXT("BlendSpaceCategory_Label", "BlendSpaces");
+}
 #undef LOCTEXT_NAMESPACE

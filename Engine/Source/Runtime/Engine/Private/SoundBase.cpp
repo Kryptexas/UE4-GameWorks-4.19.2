@@ -81,6 +81,10 @@ bool USoundBase::IsLooping()
 	return (GetDuration() >= INDEFINITELY_LOOPING_DURATION); 
 }
 
+bool USoundBase::ShouldApplyInteriorVolumes() const
+{
+	return (SoundClassObject && SoundClassObject->Properties.bApplyAmbientVolumes);
+}
 
 USoundClass* USoundBase::GetSoundClass() const
 {

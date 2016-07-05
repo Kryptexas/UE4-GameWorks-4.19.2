@@ -23,13 +23,22 @@ public:
 	* Registers the audio device module to the audio device manager. The audio device
 	* module is responsible for creating platform-dependent audio devices.
 	*/
-	void RegisterAudioDeviceModule(class IAudioDeviceModule * AudioDeviceModuleInput);
+	void RegisterAudioDeviceModule(class IAudioDeviceModule* AudioDeviceModuleInput);
+
+	struct FCreateAudioDeviceResults
+	{
+		uint32 Handle;
+		uint8  bNewDevice:1;
+		FAudioDevice* AudioDevice;
+
+		FCreateAudioDeviceResults();
+	};
 
 	/**
 	* Creates and audio device instance internally and returns a
 	* handle to the audio device. Returns true on success.
 	*/
-	class FAudioDevice* CreateAudioDevice(uint32 & HandleOut, bool bCreateNewDevice);
+	bool CreateAudioDevice(bool bCreateNewDevice, FCreateAudioDeviceResults& OutResults);
 
 	/**
 	* Returns whether the audio device handle is valid (i.e. points to
@@ -72,11 +81,8 @@ public:
 	/** Tracks objects in the active audio devices. */
 	void AddReferencedObjects(FReferenceCollector& Collector);
 
-	/** Stops any sounds on any device using the given soundwave. */
-	void StopSoundsUsingWave(class USoundWave* InSoundWave);
-
 	/** Stops sounds using the given resource on all audio devices. */
-	void StopSoundsUsingResource(class USoundWave* InSoundWave, TArray<UAudioComponent*>& StoppedComponents);
+	void StopSoundsUsingResource(class USoundWave* InSoundWave, TArray<UAudioComponent*>* StoppedComponents = nullptr);
 
 	/** Registers the Sound Class for all active devices. */
 	void RegisterSoundClass(USoundClass* SoundClass);
@@ -118,10 +124,10 @@ public:
 	void TogglePlayAllDeviceAudio();
 
 	/** Gets whether or not all devices should play their audio. */
-	bool IsPlayAllDeviceAudio() const;
+	bool IsPlayAllDeviceAudio() const { return bPlayAllDeviceAudio; }
 
 	/** Is debug visualization of 3d sounds enabled */
-	bool IsVisualizeDebug3dEnabled() const;
+	bool IsVisualizeDebug3dEnabled() const { return bVisualize3dDebug; }
 
 	/** Toggles 3d visualization of 3d sounds on/off */
 	void ToggleVisualize3dDebug();
@@ -136,6 +142,9 @@ public:
 
 
 private:
+
+	/** Call back for garbage collector, ensures no processing is happening on the thread before collecting resources */
+	void OnPreGarbageCollect();
 
 	/** Returns index of the given handle */
 	uint32 GetIndex(uint32 Handle) const;

@@ -9,7 +9,17 @@
 #include "SSearchBox.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
+#include "SInlineEditableTextBlock.h"
+
+
 #define LOCTEXT_NAMESPACE "AnimPoseEditor"
+
+static const FName ColumnId_PoseNameLabel("Pose Name");
+static const FName ColumnID_PoseWeightLabel("Weight");
+static const FName ColumnId_CurveNameLabel("Curve Name");
+static const FName ColumnID_CurveValueLabel("Curve Value");
+
+const float MaxPoseWeight = 1.f;
 
 //////////////////////////////////////////////////////////////////////////
 // SPoseEditor
@@ -21,6 +31,7 @@ void SPoseEditor::Construct(const FArguments& InArgs)
 
 	SAnimEditorBase::Construct( SAnimEditorBase::FArguments()
 		.Persona(InArgs._Persona)
+		.DisplayAnimInfoBar(false)
 		);
 
  	EditorPanels->AddSlot()
@@ -37,89 +48,9 @@ SPoseEditor::~SPoseEditor()
 {
 }
 
-////////////////////////////////////
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-static const FName ColumnId_PoseNameLabel("Pose Name");
-static const FName ColumnID_PoseWeightLabel("Weight");
-static const FName ColumnId_CurveNameLabel("Curve Name");
-
-const float MaxPoseWeight = 1.f;
 
 //////////////////////////////////////////////////////////////////////////
 // SPoseListRow
-
-typedef TSharedPtr< FDisplayedPoseInfo > FDisplayedPoseInfoPtr;
-
-class SPoseListRow
-	: public SMultiColumnTableRow< FDisplayedPoseInfoPtr >
-{
-public:
-
-	SLATE_BEGIN_ARGS(SPoseListRow) {}
-
-	/** The item for this row **/
-	SLATE_ARGUMENT(FDisplayedPoseInfoPtr, Item)
-
-	/* The SPoseViewer that we push the morph target weights into */
-	SLATE_ARGUMENT(class SPoseViewer*, PoseViewer)
-
-	/* Widget used to display the list of animation curve */
-	SLATE_ARGUMENT(TSharedPtr<SPoseListType>, PoseListView)
-
-	/* Persona used to update the viewport when a weight slider is dragged */
-	SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView);
-
-	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
-
-private:
-
-	/**
-	* Called when the user changes the value of the SSpinBox
-	*
-	* @param NewWeight - The new number the SSpinBox is set to
-	*
-	*/
-	void OnPoseWeightChanged(float NewWeight);
-	/**
-	* Called when the user types the value and enters
-	*
-	* @param NewWeight - The new number the SSpinBox is set to
-	*
-	*/
-	void OnPoseWeightValueCommitted(float NewWeight, ETextCommit::Type CommitType);
-
-	/** Delegate to get labels root text from settings */
-	FText GetName() const;
-
-	/** Delegate to commit labels root text to settings */
-	void OnNameCommitted(const FText& InText, ETextCommit::Type InCommitType) const;
-
-	/**
-	* Returns the weight of this morph target
-	*
-	* @return SearchText - The new number the SSpinBox is set to
-	*
-	*/
-	float GetWeight() const;
-
-	bool CanChangeWeight() const;
-	/* The SPoseViewer that we push the morph target weights into */
-	SPoseViewer* PoseViewer;
-
-	/** Widget used to display the list of animation curve */
-	TSharedPtr<SPoseListType> PoseListView;
-
-	/** The name and weight of the morph target */
-	FDisplayedPoseInfoPtr	Item;
-
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
-};
 
 FText SPoseListRow::GetName() const
 {
@@ -135,43 +66,80 @@ void SPoseListRow::OnNameCommitted(const FText& InText, ETextCommit::Type InComm
 		FName NewName = FName(*InText.ToString());
 		FName OldName = Item->Name;
 
-		if (PoseViewer->ModifyName(OldName, NewName))
+		if (PoseViewerPtr.IsValid() && PoseViewerPtr.Pin()->ModifyName(OldName, NewName))
 		{
 			Item->Name = NewName;
 		}
 	}
 }
 
+bool SPoseListRow::OnVerifyNameChanged(const FText& InText, FText& OutErrorMessage)
+{
+	bool bVerifyName = false;
+
+	FName NewName = FName(*InText.ToString());
+
+	if (NewName == NAME_None)
+	{
+		OutErrorMessage = LOCTEXT("EmptyPoseName", "Poses must have a name!");
+	}
+
+	if (PoseViewerPtr.IsValid())
+	{
+		UPoseAsset* PoseAsset = PoseViewerPtr.Pin()->PoseAssetPtr.Get();
+		if (PoseAsset != nullptr)
+		{
+			if (PoseAsset->ContainsPose(NewName))
+			{
+				OutErrorMessage = LOCTEXT("NameAlreadyUsedByTheSameAsset", "The name is used by another pose within the same asset. Please choose another name.");
+			}
+			else
+			{
+				bVerifyName = true;
+			}
+		}
+	}
+
+	return bVerifyName;
+}
+
+
 void SPoseListRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 {
 	Item = InArgs._Item;
-	PoseViewer = InArgs._PoseViewer;
-	PoseListView = InArgs._PoseListView;
-	PersonaPtr = InArgs._Persona;
+	PoseViewerPtr = InArgs._PoseViewer;
+	FilterText = InArgs._FilterText;
 
 	check(Item.IsValid());
 
-	SMultiColumnTableRow< FDisplayedPoseInfoPtr >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+	SMultiColumnTableRow< TSharedPtr<FDisplayedPoseInfo> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
 
 TSharedRef< SWidget > SPoseListRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
 	if (ColumnName == ColumnId_PoseNameLabel)
 	{
-		return
-			SNew(SVerticalBox)
+		TSharedPtr< SInlineEditableTextBlock > InlineWidget;
 
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+		TSharedRef<SWidget> NameWidget =
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			.Padding(5.0f)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SEditableTextBox)
+				SAssignNew(InlineWidget, SInlineEditableTextBlock)
 				.Text(this, &SPoseListRow::GetName)
+				.HighlightText(FilterText)
 				.ToolTipText(LOCTEXT("PoseName_ToolTip", "Modify Pose Name - Make sure this name is unique among all curves per skeleton."))
+				.OnVerifyTextChanged(this, &SPoseListRow::OnVerifyNameChanged)
 				.OnTextCommitted(this, &SPoseListRow::OnNameCommitted)
-				.OnTextChanged(this, &SPoseListRow::OnNameCommitted, ETextCommit::Default)
 			];
+
+		Item->OnRenameRequested.BindSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
+
+		return NameWidget;
 	}
 	else 
 	{
@@ -201,11 +169,15 @@ void SPoseListRow::OnPoseWeightChanged(float NewWeight)
 {
 	Item->Weight = NewWeight;
 
-	PoseViewer->AddPoseOverride(Item->Name, Item->Weight);
-
-	if (PersonaPtr.IsValid())
+	if (PoseViewerPtr.IsValid())
 	{
-		PersonaPtr.Pin()->RefreshViewport();
+		TSharedPtr<SPoseViewer> PoseViewer = PoseViewerPtr.Pin();
+		PoseViewer->AddCurveOverride(Item->Name, Item->Weight);
+
+		if (PoseViewer->PersonaPtr.IsValid())
+		{
+			PoseViewer->PersonaPtr.Pin()->RefreshViewport();
+		}
 	}
 }
 
@@ -214,28 +186,7 @@ void SPoseListRow::OnPoseWeightValueCommitted(float NewWeight, ETextCommit::Type
 	if (CommitType == ETextCommit::OnEnter || CommitType == ETextCommit::OnUserMovedFocus)
 	{
 		float NewValidWeight = FMath::Clamp(NewWeight, -MaxPoseWeight, MaxPoseWeight);
-		Item->Weight = NewValidWeight;
-
-		PoseViewer->AddPoseOverride(Item->Name, Item->Weight);
-
-		TArray< TSharedPtr< FDisplayedPoseInfo > > SelectedRows = PoseListView->GetSelectedItems();
-
-		// ...then any selected rows need changing by the same delta
-		for (auto ItemIt = SelectedRows.CreateIterator(); ItemIt; ++ItemIt)
-		{
-			TSharedPtr< FDisplayedPoseInfo > RowItem = (*ItemIt);
-
-			if (RowItem != Item) // Don't do "this" row again if it's selected
-			{
-				RowItem->Weight = NewValidWeight;
-				PoseViewer->AddPoseOverride(RowItem->Name, RowItem->Weight);
-			}
-		}
-
-		if (PersonaPtr.IsValid())
-		{
-			PersonaPtr.Pin()->RefreshViewport();
-		}
+		OnPoseWeightChanged(NewValidWeight);
 	}
 }
 
@@ -246,61 +197,73 @@ float SPoseListRow::GetWeight() const
 
 bool SPoseListRow::CanChangeWeight() const
 {
-	return PoseViewer->IsBasePose(Item->Name) == false;
+	if (PoseViewerPtr.IsValid())
+	{
+		return PoseViewerPtr.Pin()->IsBasePose(Item->Name) == false;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 // SCurveListRow
-
-typedef TSharedPtr< FDisplayedCurveInfo > FDisplayedCurveInfoPtr;
-
-class SCurveListRow
-	: public SMultiColumnTableRow< FDisplayedCurveInfoPtr >
-{
-public:
-
-	SLATE_BEGIN_ARGS(SCurveListRow) {}
-
-	/** The item for this row **/
-	SLATE_ARGUMENT(FDisplayedCurveInfoPtr, Item)
-
-	/* Widget used to display the list of animation curve */
-	SLATE_ARGUMENT(TSharedPtr<SCurveListType>, CurveListView)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView);
-
-	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
-
-private:
-
-	/** Delegate to get labels root text from settings */
-	FText GetName() const;
-
-	/** The name and weight of the morph target */
-	FDisplayedCurveInfoPtr	Item;
-};
 
 FText SCurveListRow::GetName() const
 {
 	return (FText::FromName(Item->Name));
 }
 
+FText SCurveListRow::GetValue() const
+{
+	FText ValueText;
+	if (PoseViewerPtr.IsValid())
+	{
+		TSharedPtr<SPoseViewer> PoseViewer = PoseViewerPtr.Pin();
+
+		// Get pose asset
+		UPoseAsset* PoseAsset = PoseViewer->PoseAssetPtr.Get();
+		if (PoseAsset != nullptr)
+		{
+			// Get selected row (only show values if only one selected)
+			TArray< TSharedPtr<FDisplayedPoseInfo> > SelectedRows = PoseViewer->PoseListView->GetSelectedItems();
+			if (SelectedRows.Num() == 1)
+			{
+				TSharedPtr<FDisplayedPoseInfo> PoseInfo = SelectedRows[0];
+
+				// Get pose index that we have selected
+				int32 PoseIndex = PoseAsset->GetPoseIndexByName(PoseInfo->Name);
+				int32 CurveIndex = PoseAsset->GetCurveIndexByName(Item->Name);
+
+				float CurveValue = 0.f;
+				bool bSuccess = PoseAsset->GetCurveValue(PoseIndex, CurveIndex, CurveValue);
+
+				if (bSuccess)
+				{
+					ValueText = FText::FromString(FString::Printf(TEXT("%f"), CurveValue));
+				}
+			}
+		}
+	}
+	return ValueText;
+}
+
+
 void SCurveListRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 {
 	Item = InArgs._Item;
+	PoseViewerPtr = InArgs._PoseViewer;
 
 	check(Item.IsValid());
 
-	SMultiColumnTableRow< FDisplayedCurveInfoPtr >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+	SMultiColumnTableRow< TSharedPtr<FDisplayedCurveInfo> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
 
 TSharedRef< SWidget > SCurveListRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
 	// for now we have one colume
-//	if (ColumnName == ColumnId_CurveNameLabel)
+	if (ColumnName == ColumnId_CurveNameLabel)
 	{
 		return
 			SNew(SVerticalBox)
@@ -312,6 +275,20 @@ TSharedRef< SWidget > SCurveListRow::GenerateWidgetForColumn(const FName& Column
 			[
 				SNew(STextBlock)
 				.Text(this, &SCurveListRow::GetName)
+			];
+	}
+	else
+	{
+		return
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(this, &SCurveListRow::GetValue)
 			];
 	}
 }
@@ -329,52 +306,52 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 	if (PersonaPtr.IsValid())
 	{
 		PersonaPtr.Pin()->RegisterOnPreviewMeshChanged(FPersona::FOnPreviewMeshChanged::CreateSP(this, &SPoseViewer::OnPreviewMeshChanged));
-		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SPoseViewer::OnPostUndo));
+		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SPoseViewer::RefreshList));
+	}
+
+	if (PoseAssetPtr.IsValid())
+	{
+		PoseAssetPtr->RegisterOnAssetModifiedNotifier(UPoseAsset::FAssetModifiedNotifier::CreateSP(this, &SPoseViewer::RefreshList));
 	}
 
 	RefreshCachePreviewInstance();
 
 	ChildSlot
 	[
-		SNew(SVerticalBox)
+		SNew(SHorizontalBox)
 
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(2)
+		// Pose List
+		+SHorizontalBox::Slot()
+		.FillWidth(1)
+		.Padding(3)
 		[
-			SNew(STextBlock)
-			.Text(this, &SPoseViewer::GetTitleText)
-		]
+			SNew(SVerticalBox)
 
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0, 2)
-		[
-			SNew(SHorizontalBox)
-			// Filter entry
-			+ SHorizontalBox::Slot()
-			.FillWidth(1)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 2)
 			[
-				SAssignNew(NameFilterBox, SSearchBox)
-				.SelectAllTextWhenFocused(true)
-				.OnTextChanged(this, &SPoseViewer::OnFilterTextChanged)
-				.OnTextCommitted(this, &SPoseViewer::OnFilterTextCommitted)
+				SNew(SHorizontalBox)
+				// Filter entry
+				+ SHorizontalBox::Slot()
+				.FillWidth(1)
+				[
+					SAssignNew(NameFilterBox, SSearchBox)
+					.SelectAllTextWhenFocused(true)
+					.OnTextChanged(this, &SPoseViewer::OnFilterTextChanged)
+					.OnTextCommitted(this, &SPoseViewer::OnFilterTextCommitted)
+				]
 			]
-		]
 
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)		// This is required to make the scrollbar work, as content overflows Slate containers by default
-		[
-			SNew(SHorizontalBox)
-
-			+SHorizontalBox::Slot()
-			.FillWidth(1)
-			.Padding(5)
+			+ SVerticalBox::Slot()
+			.FillHeight(1)
+			.Padding(0, 2)
 			[
 				SAssignNew(PoseListView, SPoseListType)
 				.ListItemsSource(&PoseList)
 				.OnGenerateRow(this, &SPoseViewer::GeneratePoseRow)
 				.OnContextMenuOpening(this, &SPoseViewer::OnGetContextMenuContent)
+				.OnMouseButtonDoubleClick(this, &SPoseViewer::OnListDoubleClick)
 				.ItemHeight(22.0f)
 				.HeaderRow
 				(
@@ -384,12 +361,18 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 
 					+ SHeaderRow::Column(ColumnID_PoseWeightLabel)
 					.DefaultLabel(LOCTEXT("PoseWeightLabel", "Weight"))
-				)
+					)
 			]
+		]
 
-			+ SHorizontalBox::Slot()
-			.FillWidth(1)
-			.Padding(5)
+		// Curve List
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		.Padding(5)
+		[
+			SNew(SBorder)
+			.Padding(3)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder"))
 			[
 				SAssignNew(CurveListView, SCurveListType)
 				.ListItemsSource(&CurveList)
@@ -401,29 +384,17 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 					SNew(SHeaderRow)
 					+ SHeaderRow::Column(ColumnId_CurveNameLabel)
 					.DefaultLabel(LOCTEXT("CurveNameLabel", "Curve Name"))
+
+					+ SHeaderRow::Column(ColumnID_CurveValueLabel)
+					.DefaultLabel(LOCTEXT("CurveValueLabel", "Value"))
 				)
 			]
+
 		]
 	];
 
 	CreatePoseList();
 	CreateCurveList();
-}
-
-FText SPoseViewer::GetTitleText() const
-{
-	UObject* PreviewAsset = nullptr;
-
-	if (PersonaPtr.IsValid())
-	{
-		PreviewAsset = PersonaPtr.Pin()->GetPreviewAnimationAsset();
-		if (!PreviewAsset)
-		{
-			PreviewAsset = PersonaPtr.Pin()->GetAnimBlueprint();
-		}
-	}
-
-	return (PreviewAsset ? FText::FromString(PreviewAsset->GetName()) : LOCTEXT("PoseMeshNameLabel", "No Asset Present"));
 }
 
 void SPoseViewer::RefreshCachePreviewInstance()
@@ -469,10 +440,9 @@ TSharedRef<ITableRow> SPoseViewer::GeneratePoseRow(TSharedPtr<FDisplayedPoseInfo
 
 	return
 		SNew(SPoseListRow, OwnerTable)
-		.Persona(PersonaPtr)
 		.Item(InInfo)
-		.PoseViewer(this)
-		.PoseListView(PoseListView);
+		.PoseViewer(SharedThis(this))
+		.FilterText(GetFilterText());
 }
 
 TSharedRef<ITableRow> SPoseViewer::GenerateCurveRow(TSharedPtr<FDisplayedCurveInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable)
@@ -482,7 +452,7 @@ TSharedRef<ITableRow> SPoseViewer::GenerateCurveRow(TSharedPtr<FDisplayedCurveIn
 	return
 		SNew(SCurveListRow, OwnerTable)
 		.Item(InInfo)
-		.CurveListView(CurveListView);
+		.PoseViewer(SharedThis(this));
 }
 
 bool SPoseViewer::IsPoseSelected() const
@@ -490,6 +460,13 @@ bool SPoseViewer::IsPoseSelected() const
 	// @todo: make sure not to delete base Curve
 	TArray< TSharedPtr< FDisplayedPoseInfo > > SelectedRows = PoseListView->GetSelectedItems();
 	return SelectedRows.Num() > 0;
+}
+
+bool SPoseViewer::IsSinglePoseSelected() const
+{
+	// @todo: make sure not to delete base Curve
+	TArray< TSharedPtr< FDisplayedPoseInfo > > SelectedRows = PoseListView->GetSelectedItems();
+	return SelectedRows.Num() == 1;
 }
 
 bool SPoseViewer::IsCurveSelected() const
@@ -515,6 +492,19 @@ void SPoseViewer::OnDeletePoses()
 	PoseAssetPtr.Get()->DeletePoses(PosesToDelete);
 
 	CreatePoseList(NameFilterBox->GetText().ToString());
+}
+
+void SPoseViewer::OnRenamePose()
+{
+	TArray< TSharedPtr< FDisplayedPoseInfo > > SelectedRows = PoseListView->GetSelectedItems();
+	if (SelectedRows.Num() > 0)
+	{
+		TSharedPtr<FDisplayedPoseInfo> SelectedRow = SelectedRows[0];
+		if (SelectedRow.IsValid())
+		{
+			SelectedRow->OnRenameRequested.ExecuteIfBound();
+		}
+	}
 }
 
 void SPoseViewer::OnDeleteCurves()
@@ -597,12 +587,21 @@ TSharedPtr<SWidget> SPoseViewer::OnGetContextMenuContent() const
 
 	MenuBuilder.BeginSection("PoseAction", LOCTEXT("Poseaction", "Selected Item Actions"));
 	{
+		// Delete
 	 	Action = FUIAction( FExecuteAction::CreateSP( this, &SPoseViewer::OnDeletePoses ), 
 	 									FCanExecuteAction::CreateSP( this, &SPoseViewer::IsPoseSelected ) );
 	 	MenuLabel = LOCTEXT("DeletePoseButtonLabel", "Delete");
 	 	MenuToolTip = LOCTEXT("DeletePoseButtonTooltip", "Deletes the selected animation pose.");
 	 	MenuBuilder.AddMenuEntry(MenuLabel, MenuToolTip, FSlateIcon(), Action);
 
+		// Rename
+		Action = FUIAction(FExecuteAction::CreateSP(this, &SPoseViewer::OnRenamePose),
+			FCanExecuteAction::CreateSP(this, &SPoseViewer::IsSinglePoseSelected));
+		MenuLabel = LOCTEXT("RenamePoseButtonLabel", "Rename");
+		MenuToolTip = LOCTEXT("RenamePoseButtonTooltip", "Renames the selected animation pose.");
+		MenuBuilder.AddMenuEntry(MenuLabel, MenuToolTip, FSlateIcon(), Action);
+
+		// Paste
 		Action = FUIAction(FExecuteAction::CreateSP(this, &SPoseViewer::OnPastePoseNamesFromClipBoard, true),
 			FCanExecuteAction::CreateSP(this, &SPoseViewer::IsPoseSelected));
 		MenuLabel = LOCTEXT("PastePoseNamesButtonLabel", "Paste Selected");
@@ -632,12 +631,41 @@ TSharedPtr<SWidget> SPoseViewer::OnGetContextMenuContentForCurveList() const
 	return MenuBuilder.MakeWidget();
 }
 
+void SPoseViewer::OnListDoubleClick(TSharedPtr<FDisplayedPoseInfo> InItem)
+{
+	if(InItem.IsValid())
+	{
+		const float CurrentWeight = InItem->Weight;
+
+		// Clear all preview poses
+		for (TSharedPtr<FDisplayedPoseInfo>& Pose : PoseList)
+		{
+			Pose->Weight = 0.f;
+			AddCurveOverride(Pose->Name, 0.f);
+		}
+
+		// If current weight was already at 1.0, do nothing (we are setting it to zero)
+		if (!FMath::IsNearlyEqual(CurrentWeight, 1.f))
+		{
+			// Otherwise set to 1.0
+			InItem->Weight = 1.f;
+			AddCurveOverride(InItem->Name, 1.f);
+		}
+
+		// Force update viewport
+		if (PersonaPtr.IsValid())
+		{
+			PersonaPtr.Pin()->RefreshViewport();
+		}
+	}
+}
+
+
 void SPoseViewer::CreatePoseList(const FString& SearchText)
 {
 	PoseList.Empty();
 
-	UAnimInstance* AnimInstance = CachedPreviewInstance.IsValid() ? CachedPreviewInstance.Get() : nullptr;
-	if (AnimInstance && PoseAssetPtr.IsValid())
+	if (PoseAssetPtr.IsValid())
 	{
 		UPoseAsset* PoseAsset = PoseAssetPtr.Get();
 
@@ -658,10 +686,6 @@ void SPoseViewer::CreatePoseList(const FString& SearchText)
 				PoseList.Add(Info);
 			}
 		}
-		else
-		{
-			// else print somewhere no curves?
-		}
 	}
 
 	PoseListView->RequestListRefresh();
@@ -671,46 +695,45 @@ void SPoseViewer::CreateCurveList(const FString& SearchText)
 {
 	CurveList.Empty();
 
-	UAnimInstance* AnimInstance = CachedPreviewInstance.IsValid() ? CachedPreviewInstance.Get() : nullptr;
-	if (AnimInstance && PoseAssetPtr.IsValid())
+	if (PoseAssetPtr.IsValid())
 	{
 		UPoseAsset* PoseAsset = PoseAssetPtr.Get();
 
 		TArray<FSmartName> CurveNames = PoseAsset->GetCurveNames();
 		if (CurveNames.Num() > 0)
 		{
-			bool bDoFiltering = !SearchText.IsEmpty();
-
 			for (const auto& CurveSmartName : CurveNames)
 			{
 				FName CurveName = CurveSmartName.DisplayName;
-				if (bDoFiltering && !CurveName.ToString().Contains(SearchText))
-				{
-					continue; // Skip items that don't match our filter
-				}
 
 				TSharedRef<FDisplayedCurveInfo> Info = FDisplayedCurveInfo::Make(CurveName);
 				CurveList.Add(Info);
 			}
-		}
-		else
-		{
-			// else print somewhere no curves?
 		}
 	}
 
 	CurveListView->RequestListRefresh();
 }
 
-void SPoseViewer::AddPoseOverride(FName& Name, float Weight)
+void SPoseViewer::AddCurveOverride(FName& Name, float Weight)
 {
 	float& Value = OverrideCurves.FindOrAdd(Name);
 	Value = Weight;
+
+	if (CachedPreviewInstance.IsValid())
+	{
+		CachedPreviewInstance->SetPreviewCurveOverride(Name, Value, false);
+	}
 }
 
-void SPoseViewer::RemovePoseOverride(FName& Name)
+void SPoseViewer::RemoveCurveOverride(FName& Name)
 {
 	OverrideCurves.Remove(Name);
+
+	if (CachedPreviewInstance.IsValid())
+	{
+		CachedPreviewInstance->SetPreviewCurveOverride(Name, 0.f, true);
+	}
 }
 
 SPoseViewer::~SPoseViewer()
@@ -728,9 +751,14 @@ SPoseViewer::~SPoseViewer()
 		PersonaPtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
 	}
+
+	if (PoseAssetPtr.IsValid())
+	{
+		PoseAssetPtr->UnregisterOnAssetModifiedNotifier(this);
+	}
 }
 
-void SPoseViewer::OnPostUndo()
+void SPoseViewer::RefreshList()
 {
 	CreatePoseList(NameFilterBox->GetText().ToString());
 	CreateCurveList(NameFilterBox->GetText().ToString());
@@ -741,7 +769,7 @@ void SPoseViewer::ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const
 	for (auto Iter = OverrideCurves.CreateConstIterator(); Iter; ++Iter)
 	{
 		// @todo we might want to save original curve flags? or just change curve to apply flags only
-		AnimInstance->AddCurveValue(Iter.Key(), Iter.Value(), ACF_DrivesPose);
+		AnimInstance->AddCurveValue(Iter.Key(), Iter.Value(), ACF_DriveAttribute);
 	}
 }
 
@@ -777,7 +805,6 @@ bool SPoseViewer::ModifyName(FName OldName, FName NewName, bool bSilence)
 				// I think this might have to be delegate of the top window
 				if (PoseAssetPtr.Get()->ModifyPoseName(OldName, NewName, &ExistingUID) == false)
 				{
-					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NameAlreadyUsedByTheSameAsset", "The name is used by another pose within the same asset. Please choose another name."));
 					return false;
 				}
 			}
@@ -786,7 +813,6 @@ bool SPoseViewer::ModifyName(FName OldName, FName NewName, bool bSilence)
 				// I think this might have to be delegate of the top window
 				if (PoseAssetPtr.Get()->ModifyPoseName(OldName, NewName, nullptr) == false)
 				{
-					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NameAlreadyUsedByTheSameAsset", "The name is used by another pose within the same asset. Please choose another name."));
 					return false;
 				}
 			}
@@ -795,8 +821,8 @@ bool SPoseViewer::ModifyName(FName OldName, FName NewName, bool bSilence)
 			float* Value = OverrideCurves.Find(OldName);
 			if (Value)
 			{
-				AddPoseOverride(NewName, *Value);
-				RemovePoseOverride(OldName);
+				AddCurveOverride(NewName, *Value);
+				RemoveCurveOverride(OldName);
 			}
 
 			return true;

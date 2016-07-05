@@ -236,11 +236,12 @@ public:
 	}
 
 	// Sets every bone transform to Identity
-	void ResetToIdentity()
+	void ResetToAdditiveIdentity()
 	{
 		for (FTransform& Bone : this->Bones)
 		{
 			Bone.SetIdentity();
+			Bone.SetScale3D(FVector::ZeroVector);
 		}
 	}
 

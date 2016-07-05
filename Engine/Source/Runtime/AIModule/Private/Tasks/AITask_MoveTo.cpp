@@ -268,7 +268,7 @@ void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, const FPathFollow
 {
 	if (RequestID == MoveRequestID)
 	{
-		if (Result.IsSkipped() && !Result.HasFlag(FPathFollowingResultFlags::ForcedScript))
+		if (Result.HasFlag(FPathFollowingResultFlags::UserAbort) && Result.HasFlag(FPathFollowingResultFlags::NewRequest) && !Result.HasFlag(FPathFollowingResultFlags::ForcedScript))
 		{
 			UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log, TEXT("%s> ignoring OnRequestFinished, move was aborted by new request"), *GetName());
 		}

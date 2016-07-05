@@ -865,42 +865,14 @@ public:
 		DiagnosticCheckNaN_Scale3D();
 	}
 
-	/**
-	 * Accumulates another transform with this one, with an optional blending weight
-	 *
-	 * Rotation is accumulated additively, in the shortest direction (Rotation = Rotation +/- DeltaAtom.Rotation * Weight)
-	 * Translation is accumulated additively (Translation += DeltaAtom.Translation * Weight)
-	 * Scale3D is accumulated additively (Scale3D += DeltaAtom.Scale3D * Weight)
-	 *
-	 * @param DeltaAtom The other transform to accumulate into this one
-	 * @param Weight The weight to multiply DeltaAtom by before it is accumulated.
-	 */
-	FORCEINLINE void AccumulateWithShortestRotation(const FTransform& DeltaAtom, float Weight = 1.0f)
-	{
-		FTransform Atom(DeltaAtom * Weight);
-
-		// To ensure the 'shortest route', we make sure the dot product between the accumulator and the incoming child atom is positive.
-		if((Atom.Rotation | Rotation) < 0.f)
-		{
-			Rotation.X -= Atom.Rotation.X;
-			Rotation.Y -= Atom.Rotation.Y;
-			Rotation.Z -= Atom.Rotation.Z;
-			Rotation.W -= Atom.Rotation.W;
-		}
-		else
-		{
-			Rotation.X += Atom.Rotation.X;
-			Rotation.Y += Atom.Rotation.Y;
-			Rotation.Z += Atom.Rotation.Z;
-			Rotation.W += Atom.Rotation.W;
-		}
-
-		Translation += Atom.Translation;
-		Scale3D += Atom.Scale3D;
-
-		DiagnosticCheckNaN_All();
-	}
-
+	/** @note: Added template type function for Accumulate
+	  * The template type isn't much useful yet, but it is with the plan to move forward
+	  * to unify blending features with just type of additive or full pose
+	  * Eventually it would be nice to just call blend and it all works depending on full pose
+	  * or additive, but right now that is a lot more refactoring
+	  * For now this types only defines the different functionality of accumulate
+	  */
+	  
 	/**
 	 * Accumulates another transform with this one
 	 *
@@ -925,8 +897,8 @@ public:
 
 		checkSlow(IsRotationNormalized());
 	}
-
-   /** Accumulates another transform with this one, with a blending weight
+	
+	/** Accumulates another transform with this one, with a blending weight
 	*
 	* Let SourceAtom = Atom * BlendWeight
 	* Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation).
@@ -938,12 +910,12 @@ public:
 	* @param Atom The other transform to accumulate into this one
 	* @param BlendWeight The weight to multiply Atom by before it is accumulated.
 	*/
-	FORCEINLINE void Accumulate(const FTransform& Atom, float BlendWeight)
+	FORCEINLINE void Accumulate(const FTransform& Atom, float BlendWeight/* default param doesn't work since vectorized version takes ref param */)
 	{
 		FTransform SourceAtom(Atom * BlendWeight);
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
-		if(FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
+		if (FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
 		{
 			Rotation = SourceAtom.Rotation * Rotation;
 		}
@@ -954,6 +926,77 @@ public:
 		DiagnosticCheckNaN_All();
 	}
 
+	/**
+	 * Accumulates another transform with this one, with an optional blending weight
+	 *
+	 * Rotation is accumulated additively, in the shortest direction (Rotation = Rotation +/- DeltaAtom.Rotation * Weight)
+	 * Translation is accumulated additively (Translation += DeltaAtom.Translation * Weight)
+	 * Scale3D is accumulated additively (Scale3D += DeltaAtom.Scale3D * Weight)
+	 *
+	 * @param DeltaAtom The other transform to accumulate into this one
+	 * @param Weight The weight to multiply DeltaAtom by before it is accumulated.
+	 */
+	FORCEINLINE void AccumulateWithShortestRotation(const FTransform& DeltaAtom, float BlendWeight/* default param doesn't work since vectorized version takes ref param */)
+	{
+		FTransform Atom(DeltaAtom * BlendWeight);
+
+		// To ensure the 'shortest route', we make sure the dot product between the accumulator and the incoming child atom is positive.
+		if((Atom.Rotation | Rotation) < 0.f)
+		{
+			Rotation.X -= Atom.Rotation.X;
+			Rotation.Y -= Atom.Rotation.Y;
+			Rotation.Z -= Atom.Rotation.Z;
+			Rotation.W -= Atom.Rotation.W;
+		}
+		else
+		{
+			Rotation.X += Atom.Rotation.X;
+			Rotation.Y += Atom.Rotation.Y;
+			Rotation.Z += Atom.Rotation.Z;
+			Rotation.W += Atom.Rotation.W;
+		}
+
+		Translation += Atom.Translation;
+		Scale3D += Atom.Scale3D;
+
+		DiagnosticCheckNaN_All();
+	}
+
+	/** Accumulates another transform with this one, with a blending weight
+	*
+	* Let SourceAtom = Atom * BlendWeight
+	* Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation).
+	* Translation is accumulated additively (Translation += SourceAtom.Translation)
+	* Scale3D is accumulated assuming incoming scale is additive scale (Scale3D *= (1 + SourceAtom.Scale3D))
+	* 
+	* When we create additive, we create additive scale based on [TargetScale/SourceScale -1]
+	* because that way when you apply weight of 0.3, you don't shrink. We only saves the % of grow/shrink
+	* when we apply that back to it, we add back the 1, so that it goes back to it. 
+	* This solves issue where you blend two additives with 0.3, you don't come back to 0.6 scale, but 1 scale at the end 
+	* because [1 + [1-1]*0.3 + [1-1]*0.3] becomes 1, so you don't shrink by applying additive scale
+	*
+	* Note: Rotation will not be normalized! Will have to be done manually.
+	*
+	* @param Atom The other transform to accumulate into this one
+	* @param BlendWeight The weight to multiply Atom by before it is accumulated.
+	*/
+	FORCEINLINE void AccumulateWithAdditiveScale(const FTransform& Atom, float BlendWeight/* default param doesn't work since vectorized version takes ref param */)
+	{
+		const FVector DefaultScale(1.f);
+
+		FTransform SourceAtom(Atom * BlendWeight);
+		
+		// Add ref pose relative animation to base animation, only if rotation is significant.
+		if (FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
+		{
+			Rotation = SourceAtom.Rotation * Rotation;
+		}
+
+		Translation += SourceAtom.Translation;
+		Scale3D *= (DefaultScale + SourceAtom.Scale3D);
+
+		DiagnosticCheckNaN_All();
+	}
 	/**
 	 * Set the translation and Scale3D components of this transform to a linearly interpolated combination of two other transforms
 	 *
@@ -971,28 +1014,6 @@ public:
 
 		DiagnosticCheckNaN_Translate();
 		DiagnosticCheckNaN_Scale3D();
-	}
-
-	/**
-	 * Accumulates another transform with this one
-	 *
-	 * Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation)
-	 * Translation is accumulated additively (Translation += SourceAtom.Translation)
-	 * Scale3D is accumulated additively (Scale3D += SourceAtom.Scale3D)
-	 *
-	 * @param SourceAtom The other transform to accumulate into this one
-	 */
-	FORCEINLINE void AccumulateWithAdditiveScale3D(const FTransform& SourceAtom)
-	{
-		if(FMath::Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA)
-		{
-			Rotation = SourceAtom.Rotation * Rotation;
-		}
-
-		Translation += SourceAtom.Translation;
-		Scale3D += SourceAtom.Scale3D;
-
-		DiagnosticCheckNaN_All();
 	}
 
 	/**
@@ -1028,12 +1049,13 @@ public:
 	 */
 	FORCEINLINE static void BlendFromIdentityAndAccumulate(FTransform& FinalAtom, FTransform& SourceAtom, float BlendWeight)
 	{
-		const FTransform IdentityAtom = FTransform::Identity;
+		const  FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
+		const FVector DefaultScale(1.f);
 
 		// Scale delta by weight
 		if(BlendWeight < (1.f - ZERO_ANIMWEIGHT_THRESH))
 		{
-			SourceAtom.Blend(IdentityAtom, SourceAtom, BlendWeight);
+			SourceAtom.Blend(AdditiveIdentity, SourceAtom, BlendWeight);
 		}
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
@@ -1043,7 +1065,7 @@ public:
 		}
 
 		FinalAtom.Translation += SourceAtom.Translation;
-		FinalAtom.Scale3D *= SourceAtom.Scale3D;
+		FinalAtom.Scale3D *= (DefaultScale + SourceAtom.Scale3D);
 
 		FinalAtom.DiagnosticCheckNaN_All();
 

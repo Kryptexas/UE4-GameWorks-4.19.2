@@ -12,6 +12,7 @@
 #include "AudioComponentVisualizer.h"
 #include "RadialForceComponentVisualizer.h"
 #include "ConstraintComponentVisualizer.h"
+#include "PhysicalAnimationComponentVisualizer.h"
 #include "SpringArmComponentVisualizer.h"
 #include "SplineComponentVisualizer.h"
 #include "SplineMeshComponentVisualizer.h"
@@ -25,6 +26,7 @@
 #include "Components/AudioComponent.h"
 #include "PhysicsEngine/RadialForceComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/PrimitiveComponent.h"
@@ -39,6 +41,7 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(UAudioComponent::StaticClass()->GetFName(), MakeShareable(new FAudioComponentVisualizer));
 	RegisterComponentVisualizer(URadialForceComponent::StaticClass()->GetFName(), MakeShareable(new FRadialForceComponentVisualizer));
 	RegisterComponentVisualizer(UPhysicsConstraintComponent::StaticClass()->GetFName(), MakeShareable(new FConstraintComponentVisualizer));
+	RegisterComponentVisualizer(UPhysicalAnimationComponent::StaticClass()->GetFName(), MakeShareable(new FPhysicsAnimationComponentVisualizer));
 	RegisterComponentVisualizer(USpringArmComponent::StaticClass()->GetFName(), MakeShareable(new FSpringArmComponentVisualizer));
 	RegisterComponentVisualizer(USplineComponent::StaticClass()->GetFName(), MakeShareable(new FSplineComponentVisualizer));
 	RegisterComponentVisualizer(USplineMeshComponent::StaticClass()->GetFName(), MakeShareable(new FSplineMeshComponentVisualizer));

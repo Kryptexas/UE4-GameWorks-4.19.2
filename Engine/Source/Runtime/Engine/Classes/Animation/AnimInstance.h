@@ -31,10 +31,9 @@ struct FAnimInstanceProxy;
 UENUM()
 enum class EAnimCurveType : uint8 
 {
-	EventCurve,
+	AttributeCurve,
 	MaterialCurve, 
 	MorphTargetCurve, 
-	PoseCurve, 
 	// make sure to update MaxCurve 
 	MaxAnimCurveType
 };
@@ -93,7 +92,7 @@ struct ENGINE_API FA2CSPose : public FA2Pose
 
 private:
 	/** Pointer to current BoneContainer. */
-	const struct FBoneContainer * BoneContainer;
+	const struct FBoneContainer* BoneContainer;
 
 	/** Once evaluated to be mesh space, this flag will be set. */
 	UPROPERTY()
@@ -502,11 +501,11 @@ public:
 	void StopSlotAnimation(float InBlendOutTime = 0.25f, FName SlotNodeName = NAME_None);
 
 	/** Return true if it's playing the slot animation */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName); 
+	UFUNCTION(BlueprintPure, Category="Animation")
+	bool IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName SlotNodeName) const;
 
 	/** Return true if this instance playing the slot animation, also returning the montage it is playing on */
-	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage);
+	bool IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage) const;
 
 	/*********************************************************************************************
 	 * AnimMontage
@@ -514,27 +513,27 @@ public:
 public:
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	float Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate = 1.f);
+	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f);
 
 	/** Stops the animation montage. If reference is NULL, it will stop ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	void Montage_Stop(float InBlendOutTime, UAnimMontage * Montage = NULL);
+	void Montage_Stop(float InBlendOutTime, const UAnimMontage* Montage = NULL);
 
 	/** Pauses the animation montage. If reference is NULL, it will pause ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	void Montage_Pause(UAnimMontage * Montage = NULL);
+	void Montage_Pause(const UAnimMontage* Montage = NULL);
 
 	/** Resumes a paused animation montage. If reference is NULL, it will resume ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	void Montage_Resume(UAnimMontage* Montage);
+	void Montage_Resume(const UAnimMontage* Montage);
 
 	/** Makes a montage jump to a named section. If Montage reference is NULL, it will do that to all active montages. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_JumpToSection(FName SectionName, UAnimMontage * Montage = NULL);
+	void Montage_JumpToSection(FName SectionName, const UAnimMontage* Montage = NULL);
 
 	/** Makes a montage jump to the end of a named section. If Montage reference is NULL, it will do that to all active montages. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_JumpToSectionsEnd(FName SectionName, UAnimMontage * Montage = NULL);
+	void Montage_JumpToSectionsEnd(FName SectionName, const UAnimMontage* Montage = NULL);
 
 	/** Relink new next section AFTER SectionNameToChange in run-time
 	 *	You can link section order the way you like in editor, but in run-time if you'd like to change it dynamically, 
@@ -546,24 +545,24 @@ public:
 	 * @param NextSection	: new next section 
 	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection, UAnimMontage * Montage = NULL);
+	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection, const UAnimMontage* Montage = NULL);
 
 	/** Change AnimMontage play rate. NewPlayRate = 1.0 is the default playback rate. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate = 1.f);
+	void Montage_SetPlayRate(const UAnimMontage* Montage, float NewPlayRate = 1.f);
 
 	/** Returns true if the animation montage is active. If the Montage reference is NULL, it will return true if any Montage is active. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	bool Montage_IsActive(UAnimMontage* Montage);  
+	UFUNCTION(BlueprintPure, Category="Animation")
+	bool Montage_IsActive(const UAnimMontage* Montage) const;
 
 	/** Returns true if the animation montage is currently active and playing. 
 	If reference is NULL, it will return true is ANY montage is currently active and playing. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	bool Montage_IsPlaying(UAnimMontage* Montage); 
+	UFUNCTION(BlueprintPure, Category="Animation")
+	bool Montage_IsPlaying(const UAnimMontage* Montage) const;
 
 	/** Returns the name of the current animation montage section. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	FName Montage_GetCurrentSection(UAnimMontage* Montage = NULL);
+	UFUNCTION(BlueprintPure, Category="Animation")
+	FName Montage_GetCurrentSection(const UAnimMontage* Montage = NULL) const;
 
 	/** Called when a montage starts blending out, whether interrupted or finished */
 	UPROPERTY(BlueprintAssignable)
@@ -581,51 +580,55 @@ public:
 	* AnimMontage native C++ interface
 	********************************************************************************************* */
 public:	
-	void Montage_SetEndDelegate(FOnMontageEnded & InOnMontageEnded, UAnimMontage * Montage = NULL);
+	void Montage_SetEndDelegate(FOnMontageEnded & InOnMontageEnded, UAnimMontage* Montage = NULL);
 	
 	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & InOnMontageBlendingOut, UAnimMontage* Montage = NULL);
 	
 	/** Get pointer to BlendingOutStarted delegate for Montage.
 	If Montage reference is NULL, it will pick the first active montage found. */
-	FOnMontageBlendingOutStarted * Montage_GetBlendingOutDelegate(UAnimMontage * Montage = NULL);
+	FOnMontageBlendingOutStarted* Montage_GetBlendingOutDelegate(UAnimMontage* Montage = NULL);
 
 	/** Get Current Montage Position */
-	float Montage_GetPosition(UAnimMontage* Montage);
+	float Montage_GetPosition(const UAnimMontage* Montage);
 	
 	/** Set position. */
-	void Montage_SetPosition(UAnimMontage* Montage, float NewPosition);
+	void Montage_SetPosition(const UAnimMontage* Montage, float NewPosition);
 	
 	/** return true if Montage is not currently active. (not valid or blending out) */
-	bool Montage_GetIsStopped(UAnimMontage* Montage);
+	bool Montage_GetIsStopped(const UAnimMontage* Montage);
 
 	/** Get the current blend time of the Montage.
 	If Montage reference is NULL, it will return the current blend time on the first active Montage found. */
-	float Montage_GetBlendTime(UAnimMontage* Montage);
+	float Montage_GetBlendTime(const UAnimMontage* Montage);
 
 	/** Get PlayRate for Montage.
 	If Montage reference is NULL, PlayRate for any Active Montage will be returned.
 	If Montage is not playing, 0 is returned. */
-	float Montage_GetPlayRate(UAnimMontage* Montage);
+	float Montage_GetPlayRate(const UAnimMontage* Montage);
 
 	/** Get next sectionID for given section ID */
-	int32 Montage_GetNextSectionID(UAnimMontage const * const Montage, int32 const & CurrentSectionID) const;
+	int32 Montage_GetNextSectionID(const UAnimMontage* Montage, int32 const & CurrentSectionID) const;
 
 	/** Returns true if any montage is playing currently. Doesn't mean it's active though, it could be blending out. */
 	bool IsAnyMontagePlaying() const;
 
 	/** Get a current Active Montage in this AnimInstance. 
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
-	UAnimMontage * GetCurrentActiveMontage();
+	UAnimMontage* GetCurrentActiveMontage();
 
 	/** Get Currently active montage instance.
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
-	FAnimMontageInstance * GetActiveMontageInstance() const;
+	FAnimMontageInstance* GetActiveMontageInstance() const;
 
 	/** Get Active FAnimMontageInstance for given Montage asset. Will return NULL if Montage is not currently Active. */
-	FAnimMontageInstance * GetActiveInstanceForMontage(UAnimMontage const & Montage) const;
+	DEPRECATED(4.13, "Please use GetActiveInstanceForMontage(const UAnimMontage* Montage)")
+	FAnimMontageInstance* GetActiveInstanceForMontage(UAnimMontage const& Montage) const;
+
+	/** Get Active FAnimMontageInstance for given Montage asset. Will return NULL if Montage is not currently Active. */
+	FAnimMontageInstance* GetActiveInstanceForMontage(const UAnimMontage* Montage) const;
 
 	/** Get the FAnimMontageInstance currently running that matches this ID.  Will return NULL if no instance is found. */
-	FAnimMontageInstance * GetMontageInstanceForID(int32 MontageInstanceID);
+	FAnimMontageInstance* GetMontageInstanceForID(int32 MontageInstanceID);
 
 	/** AnimMontage instances that are running currently
 	* - only one is primarily active per group, and the other ones are blending out
@@ -641,7 +644,7 @@ public:
 
 protected:
 	/** Map between Active Montages and their FAnimMontageInstance */
-	TMap<class UAnimMontage *, struct FAnimMontageInstance*> ActiveMontagesMap;
+	TMap<class UAnimMontage*, struct FAnimMontageInstance*> ActiveMontagesMap;
 
 	/** Stop all montages that are active **/
 	void StopAllMontages(float BlendOut);
@@ -1162,7 +1165,7 @@ public:
 
 private:
 	/** Active Root Motion Montage Instance, if any. */
-	struct FAnimMontageInstance * RootMotionMontageInstance;
+	struct FAnimMontageInstance* RootMotionMontageInstance;
 
 	/** Temporarily queued root motion blend */
 	struct FQueuedRootMotionBlend
@@ -1290,6 +1293,8 @@ protected:
 	// TODO: Remove after deprecation (4.11)
 	friend struct FAnimationBaseContext;
 	
+	friend struct FAnimNode_SubInstance;
+
 protected:
 	/** Proxy object, nothing should access this from an externally-callable API as it is used as a scratch area on worker threads */
 	mutable FAnimInstanceProxy* AnimInstanceProxy;

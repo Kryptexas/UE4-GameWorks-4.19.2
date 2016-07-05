@@ -278,5 +278,9 @@ protected:
 
 	/** Returns the scale of the constraint as it will be passed into the ConstraintInstance*/
 	float GetConstraintScale() const;
+
+private:
+	/** Wrapper that calls our constraint broken delegate */
+	void OnConstraintBrokenWrapper(int32 ConstraintIndex);
 };
 

@@ -199,8 +199,11 @@ public:
 	uint8 bRunOnAnyThread:1;
 
 private:
-	/** If true, means that this tick function is in the master array of tick functions **/
+	/** If true, means that this tick function is in the master array of tick functions */
 	uint8 bRegistered:1;
+
+	/** Cache whether this function was rescheduled as an interval function during StartParallel */
+	uint8 bWasInterval:1;
 
 	enum class ETickState : uint8
 	{
@@ -337,9 +340,8 @@ private:
 	 * Queues a tick function for execution from the game thread
 	 * @param TickContext - context to tick in
 	 * @param StackForCycleDetection - Stack For Cycle Detection
-	 * @param bWasInterval - true if this was an interval tick
 	 */
-	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection, bool bWasInterval);
+	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection);
 
 	/** 
 	 * Logs the prerequisites

@@ -223,6 +223,11 @@ void FCollisionQueryParams::AddIgnoredActor(const AActor* InIgnoreActor)
 	}
 }
 
+void FCollisionQueryParams::AddIgnoredActor(const uint32 InIgnoreActorID)
+{
+	IgnoreActors.Add(InIgnoreActorID);
+}
+
 void FCollisionQueryParams::AddIgnoredActors(const TArray<AActor*>& InIgnoreActors)
 {
 	for (int32 Idx = 0; Idx < InIgnoreActors.Num(); ++Idx)

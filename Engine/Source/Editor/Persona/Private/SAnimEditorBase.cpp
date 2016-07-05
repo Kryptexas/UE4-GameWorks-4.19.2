@@ -28,22 +28,11 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 
 	SetInputViewRange(0, GetSequenceLength());
 
-	UAnimSequenceBase* SeqBase = Cast<UAnimSequenceBase>(GetEditorObject());
-
-	TSharedPtr<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
-	if (SeqBase)
-	{
-		HorizontalBox->AddSlot()
-			.FillWidth(1)
-			[
-				ConstructAnimScrubPanel()
-			];
-	}
-
+	TSharedPtr<SVerticalBox> AnimVerticalBox;
 
 	this->ChildSlot
 	[
-		SNew(SVerticalBox)
+		SAssignNew(AnimVerticalBox, SVerticalBox)
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[
@@ -84,8 +73,12 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 				]
 			]
 		]
+	];
 
-		+SVerticalBox::Slot()
+	// If we want to create anim info bar, display that now
+	if (InArgs._DisplayAnimInfoBar)
+	{
+		AnimVerticalBox->AddSlot()
 		.AutoHeight()
 		.VAlign(VAlign_Center)
 		[
@@ -174,15 +167,27 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 					]
 				]
 			]
-		]
-	
-		+SVerticalBox::Slot()
-		.AutoHeight() 
+		];
+
+	}
+
+	// If we are an anim sequence, add scrub panel as well
+	UAnimSequenceBase* SeqBase = Cast<UAnimSequenceBase>(GetEditorObject());
+	if (SeqBase)
+	{
+		AnimVerticalBox->AddSlot()
+		.AutoHeight()
 		.VAlign(VAlign_Bottom)
 		[
-			HorizontalBox.ToSharedRef()
-		]
-	];
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1)
+			[
+				ConstructAnimScrubPanel()
+			]
+		];
+	}
+
 }
 
 TSharedRef<class SAnimationScrubPanel> SAnimEditorBase::ConstructAnimScrubPanel()

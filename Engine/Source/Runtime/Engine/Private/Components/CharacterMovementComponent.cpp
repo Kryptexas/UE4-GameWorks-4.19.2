@@ -2224,12 +2224,24 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 	bForceNextFloorCheck = true;
 
 	// OnStartCrouch takes the change from the Default size, not the current one (though they are usually the same).
+	const float MeshAdjust = ScaledHalfHeightAdjust;
 	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
 	HalfHeightAdjust = (DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - ClampedCrouchedHalfHeight);
 	ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
 
 	AdjustProxyCapsuleSize();
 	CharacterOwner->OnStartCrouch( HalfHeightAdjust, ScaledHalfHeightAdjust );
+
+	// Don't smooth this change in mesh position
+	if (bClientSimulation && CharacterOwner->Role == ROLE_SimulatedProxy)
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData && ClientData->MeshTranslationOffset.Z != 0.f)
+		{
+			ClientData->MeshTranslationOffset -= FVector(0.f, 0.f, MeshAdjust);
+			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
+		}
+	}
 }
 
 
@@ -2362,8 +2374,20 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 	bUpdateOverlaps = true;
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), bUpdateOverlaps);
 
+	const float MeshAdjust = ScaledHalfHeightAdjust;
 	AdjustProxyCapsuleSize();
 	CharacterOwner->OnEndCrouch( HalfHeightAdjust, ScaledHalfHeightAdjust );
+
+	// Don't smooth this change in mesh position
+	if (bClientSimulation && CharacterOwner->Role == ROLE_SimulatedProxy)
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData && ClientData->MeshTranslationOffset.Z != 0.f)
+		{
+			ClientData->MeshTranslationOffset += FVector(0.f, 0.f, MeshAdjust);
+			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
+		}
+	}
 }
 
 void UCharacterMovementComponent::StartNewPhysics(float deltaTime, int32 Iterations)

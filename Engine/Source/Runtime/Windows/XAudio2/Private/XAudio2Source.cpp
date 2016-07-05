@@ -53,7 +53,7 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 
 	AudioDevice = ( FXAudio2Device* )InAudioDevice;
 	check( AudioDevice );
-	Effects = (FXAudio2EffectsManager*)AudioDevice->Effects;
+	Effects = (FXAudio2EffectsManager*)AudioDevice->GetEffects();
 	check( Effects );
 
 	Destinations[DEST_DRY].Flags = 0;
@@ -145,17 +145,16 @@ void FXAudio2SoundSource::FreeResources( void )
 		PendingTaskInfo.Buffer = Buffer;
 
 		AudioDevice->DeviceProperties->AddPendingTaskToCleanup(PendingTaskInfo);
-
-		// Clear our buffer ptr here
-		Buffer = XAudio2Buffer = nullptr;
 	}
 	else if (bResourcesNeedFreeing && Buffer)
 	{
 		check(Buffer->ResourceID == 0);
 		delete Buffer;
-		Buffer = XAudio2Buffer = nullptr;
 	}
 
+	// Make sure to nullify the buffer ptrs so that on re-use the source will have a clean buffer
+	// Note that most cases will not require a delete since they are cached and owned by the audio device manager.
+	Buffer = XAudio2Buffer = nullptr;
 	CurrentBuffer = 0;
 }
 
@@ -394,7 +393,10 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 	// Create a source that goes to the spatialisation code and reverb effect
 	Destinations[NumSends].pOutputVoice = Effects->DryPremasterVoice;
-	if( IsEQFilterApplied() )
+
+	// EQFilter Causes sound devices on AMD boards to lag and starve important game threads. Hack disable for AMD until a long term solution is put into place.
+	static const bool bIsAMD = (FPlatformMisc::GetCPUVendor() == TEXT("AuthenticAMD"));
+	if (!bIsAMD && IsEQFilterApplied())
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
@@ -492,19 +494,10 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 	bEditorWarnedChangedSpatialization = false;
 
 	// Find matching buffer.
-	FAudioDevice* BestAudioDevice = nullptr;
-	if (UAudioComponent* AudioComponent = InWaveInstance->ActiveSound->GetAudioComponent())
-	{
-		BestAudioDevice = AudioComponent->GetAudioDevice();
-	}
-	else
-	{
-		BestAudioDevice = GEngine->GetMainAudioDevice();
-	}
-	check(BestAudioDevice);
+	check(InWaveInstance->ActiveSound->AudioDevice);
 
 	check(XAudio2Buffer == nullptr);
-	XAudio2Buffer = FXAudio2SoundBuffer::Init(BestAudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
+	XAudio2Buffer = FXAudio2SoundBuffer::Init(InWaveInstance->ActiveSound->AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
 	if (XAudio2Buffer)
 	{
 		// If our realtime source is not ready, then we will need to free our resources because this 
@@ -556,51 +549,58 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 		SetReverbApplied(Effects->ReverbEffectVoice != nullptr);
 
 		// Create a new source if we haven't already
-		if (!CreateSource())
+		if (CreateSource())
 		{
-			return false;
-		}
+			check(WaveInstance);
+			if (WaveInstance->StartTime)
+			{
+				XAudio2Buffer->Seek(WaveInstance->StartTime);
+			}
 
-		check(WaveInstance);
-		if (WaveInstance->StartTime)
-		{
-			XAudio2Buffer->Seek(WaveInstance->StartTime);
-		}
-
-		// Submit audio buffers
-		switch (XAudio2Buffer->SoundFormat)
-		{
+			// Submit audio buffers
+			switch (XAudio2Buffer->SoundFormat)
+			{
 			case SoundFormat_PCM:
 			case SoundFormat_PCMPreview:
-			SubmitPCMBuffers();
-			break;
+				SubmitPCMBuffers();
+				break;
 
 			case SoundFormat_PCMRT:
 			case SoundFormat_Streaming:
-			SubmitPCMRTBuffers();
-			break;
+				SubmitPCMRTBuffers();
+				break;
 
 			case SoundFormat_XMA2:
-			SubmitXMA2Buffers();
-			break;
+				SubmitXMA2Buffers();
+				break;
 
 			case SoundFormat_XWMA:
-			SubmitXWMABuffers();
-			break;
+				SubmitXWMABuffers();
+				break;
+			}
+
+			// First updates of the source which e.g. sets the pitch and volume.
+			bInitialized = true;
+			bFirstRTBuffersSubmitted = false;
+
+			Update();
+
+			// Now set the source state to initialized so it can be played
+			// Initialization succeeded.
+			return true;
 		}
-
-		// First updates of the source which e.g. sets the pitch and volume.
-		bInitialized = true;
-		bFirstRTBuffersSubmitted = false;
-
-		Update();
-
-		// Now set the source state to initialized so it can be played
-		// Initialization succeeded.
-		return true;
+		else
+		{
+			UE_LOG(LogXAudio2, Warning, TEXT("Failed to init sound source for wave instance '%s' due to being unable to create an IXAudio2SourceVoice."), *InWaveInstance->GetName());
+		}
+	}
+	else
+	{
+		UE_LOG(LogXAudio2, Warning, TEXT("Failed to init sound source for wave instance '%s' due to invalid buffer or error in compression."), *InWaveInstance->GetName());
 	}
 
 	// Initialization failed.
+	FreeResources();
 	return false;
 }
 
@@ -672,7 +672,7 @@ void FXAudio2SoundSource::GetChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_
 			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains unreasonble value %f in channel %d: %s"), ChannelVolumes[i], i, *Describe_Internal(true, false));
 		}
 
-		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * AudioDevice->PlatformAudioHeadroom, 0.0f, MAX_VOLUME);
+		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * AudioDevice->GetPlatformAudioHeadroom(), 0.0f, MAX_VOLUME);
 	}
 }
 
@@ -1237,16 +1237,6 @@ FString FXAudio2SoundSource::Describe(bool bUseLongName)
 
 FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeChannelVolumes)
 {
-	// look for a component and its owner
-	AActor* SoundOwner = NULL;
-
-	// TODO - Audio Threading. This won't work cross thread.
-	UAudioComponent* AudioComponent = (WaveInstance->ActiveSound ?  WaveInstance->ActiveSound->GetAudioComponent() : nullptr);
-	if (AudioComponent)
-	{
-		SoundOwner = AudioComponent->GetOwner();
-	}
-
 	FString SpatializedVolumeInfo;
 	if (bIncludeChannelVolumes && WaveInstance->bUseSpatialization)
 	{
@@ -1281,11 +1271,13 @@ FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeC
 		}
 	}
 
+	const FString SoundOwnerName = (WaveInstance->ActiveSound ? WaveInstance->ActiveSound->GetOwnerName() : TEXT("None"));
+
 	return FString::Printf(TEXT("Wave: %s, Volume: %6.2f%s, Owner: %s"), 
 		bUseLongName ? *WaveInstance->WaveData->GetPathName() : *WaveInstance->WaveData->GetName(),
 		WaveInstance->GetActualVolume(),
 		*SpatializedVolumeInfo,
-		SoundOwner ? *SoundOwner->GetName() : TEXT("None"));
+		*SoundOwnerName);
 
 }
 
@@ -1303,7 +1295,7 @@ void FXAudio2SoundSource::Update()
 	// Don't apply global pitch scale to UI sounds
 	if (!WaveInstance->bIsUISound)
 	{
-		Pitch *= AudioDevice->GlobalPitchScale.GetValue();
+		Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
 	}
 
 	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
@@ -1418,7 +1410,6 @@ void FXAudio2SoundSource::Stop()
 		// Free resources
 		FreeResources();
 
-		Buffer = XAudio2Buffer = nullptr;
 		bBuffersToFlush = false;
 		bLoopCallback = false;
 		bResourcesNeedFreeing = false;

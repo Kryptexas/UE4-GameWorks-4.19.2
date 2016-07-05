@@ -60,7 +60,7 @@ FCoreAudioSoundSource::FCoreAudioSoundSource( FAudioDevice* InAudioDevice )
 {
 	AudioDevice = ( FCoreAudioDevice *)InAudioDevice;
 	check( AudioDevice );
-	Effects = ( FCoreAudioEffectsManager* )AudioDevice->Effects;
+	Effects = ( FCoreAudioEffectsManager* )AudioDevice->GetEffects();
 	check( Effects );
 
 	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffers ) );
@@ -313,12 +313,12 @@ void FCoreAudioSoundSource::Update( void )
 
 	float Volume = 0.0f;
 	
-	if (!AudioDevice->bIsDeviceMuted)
+	if (!AudioDevice->IsAudioDeviceMuted())
 	{
 		Volume = WaveInstance->GetActualVolume();
 	}
 
-	Volume *= AudioDevice->PlatformAudioHeadroom;
+	Volume *= AudioDevice->GetPlatformAudioHeadroom();
 
 	if( Buffer->NumChannels < 3 )
 	{

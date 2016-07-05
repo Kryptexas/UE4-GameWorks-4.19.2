@@ -28,6 +28,14 @@ CORE_API bool IsInSlateThread()
 	return GSlateLoadingThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GSlateLoadingThreadId;
 }
 
+CORE_API FRunnableThread* GAudioThread = nullptr;
+
+CORE_API bool IsInAudioThread()
+{
+	// True if this is the audio thread or if there is no audio thread, then if it is the game thread
+	return (GAudioThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GAudioThreadId) || (GAudioThreadId == 0 && FPlatformTLS::GetCurrentThreadId() == GGameThreadId);
+}
+
 CORE_API int32 GIsRenderingThreadSuspended = 0;
 
 CORE_API FRunnableThread* GRenderingThread = nullptr;

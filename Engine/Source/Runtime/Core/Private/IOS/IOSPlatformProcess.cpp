@@ -78,9 +78,9 @@ void FIOSPlatformProcess::SetRealTimeMode()
 	}
 }
 
-void FIOSPlatformProcess::SetupGameOrRenderThread(bool bIsRenderThread)
+// Set the game thread priority to very high, slightly above the render thread
+void FIOSPlatformProcess::SetupThread(const int Priority)
 {
-	// Set the gamethread priority to very high, slightly above the renderthread
 	struct sched_param Sched;
 	FMemory::Memzero(&Sched, sizeof(struct sched_param));
 
@@ -90,10 +90,19 @@ void FIOSPlatformProcess::SetupGameOrRenderThread(bool bIsRenderThread)
 
 	// Set the new priority and policy (apple recommended FIFO for the two main non-working threads)
 	int32 Policy = SCHED_FIFO;
-	Sched.sched_priority = bIsRenderThread ? RENDER_THREAD_PRIORITY : GAME_THREAD_PRIORITY;
+	Sched.sched_priority = Priority;
 	pthread_setschedparam(pthread_self(), Policy, &Sched);
 }
 
+void FIOSPlatformProcess::SetupGameThread()
+{
+	SetupThread(GAME_THREAD_PRIORITY);
+}
+
+void FIOSPlatformProcess::SetupRenderThread()
+{
+	SetupThread(RENDER_THREAD_PRIORITY);
+}
 
 void FIOSPlatformProcess::SetThreadAffinityMask(uint64 AffinityMask)
 {

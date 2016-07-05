@@ -287,7 +287,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 bool UAnimSequence::IsValidToPlay() const
 {
 	// make sure sequence length is valid and raw animation data exists, and compressed
-	return ( SequenceLength > 0.f && RawAnimationData.Num() > 0 && CompressedTrackOffsets.Num() > 0 );
+	return ( SequenceLength > 0.f);
 }
 #endif
 
@@ -1042,7 +1042,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	{
 		if (bIsBakedAdditive)
 		{
-			OutPose.ResetToIdentity(); 
+			OutPose.ResetToAdditiveIdentity(); 
 		}
 		else
 		{
@@ -1057,7 +1057,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	if (bIsBakedAdditive)
 	{
 		//When using baked additive ref pose is identity
-		OutPose.ResetToIdentity();
+		OutPose.ResetToAdditiveIdentity();
 	}
 	else
 	{
@@ -1290,7 +1290,7 @@ void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& O
 {
 	if (!IsValidAdditive())
 	{
-		OutPose.ResetToIdentity();
+		OutPose.ResetToAdditiveIdentity();
 		return;
 	}
 
@@ -1354,7 +1354,7 @@ void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, 
 	if (!IsValidAdditive())
 	{
 		// since this is additive, need to initialize to identity
-		OutPose.ResetToIdentity();
+		OutPose.ResetToAdditiveIdentity();
 		return;
 	}
 

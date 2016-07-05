@@ -741,6 +741,12 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 
 UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment, const FTransform& RelativeTransform, const UObject* ComponentTemplateContext)
 {
+	if (GetWorld()->bIsTearingDown)
+	{
+		UE_LOG(LogActor, Warning, TEXT("AddComponent failed because we are in the process of tearing down the world"));
+		return nullptr;
+	}
+
 	UActorComponent* Template = nullptr;
 	FBlueprintCookedComponentInstancingData* TemplateData = nullptr;
 	for (UClass* TemplateOwnerClass = (ComponentTemplateContext != nullptr) ? ComponentTemplateContext->GetClass() : GetClass()

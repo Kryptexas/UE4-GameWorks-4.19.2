@@ -41,14 +41,4 @@ protected:
 	virtual FText GetControllerDescription() const override;
 	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
 	// End of UAnimGraphNode_SkeletalControlBase protected interface
-
-private:
-	/** Called when a pose is selected from asset picker */
-	void OnPoseAssetSelected(const FAssetData& AssetData);
-
-	/** Build pop-up asset picker for choosing PoseAsset to import info from */
-	TSharedRef<SWidget> BuildPoseAssetPicker();
-
-	/** Handle 'import poses from pose asset' button being pressed */
-	FReply ClickedOnImportPosesFromPoseAsset();
 };

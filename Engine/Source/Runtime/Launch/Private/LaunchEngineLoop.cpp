@@ -39,6 +39,7 @@
 #endif
 
 #if WITH_ENGINE
+	#include "AudioThread.h"
 	#include "AutomationController.h"
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
@@ -878,7 +879,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	GIsGameThreadIdInitialized = true;
 
 	FPlatformProcess::SetThreadAffinityMask(FPlatformAffinity::GetMainGameMask());
-	FPlatformProcess::SetupGameOrRenderThread(false);
+	FPlatformProcess::SetupGameThread();
 
 	// Figure out whether we're the editor, ucc or the game.
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
@@ -1440,6 +1441,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if WITH_ENGINE
 
 	EndInitTextLocalization();
+
+	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())
+	{
+		bool bUseThreadedAudio = false;
+		if (!GIsEditor)
+		{
+			GConfig->GetBool(TEXT("Audio"), TEXT("UseAudioThread"), bUseThreadedAudio, GEngineIni);
+		}
+		FAudioThread::SetUseThreadedAudio(bUseThreadedAudio);
+	}
 
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{

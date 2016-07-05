@@ -211,7 +211,6 @@
 #include "Engine/PendingNetGame.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhysicalMaterials/PhysicalMaterialPropertyBase.h"
-#include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Engine/PlatformInterfaceBase.h"
 #include "Engine/CloudStorageBase.h"

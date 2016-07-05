@@ -4804,9 +4804,9 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			&& SkeletalMeshComponent->CastShadow
 			&& (SkeletalMeshComponent->bCastCapsuleDirectShadow || SkeletalMeshComponent->bCastCapsuleIndirectShadow))
 		{
-			for (int32 BodyIndex = 0; BodyIndex < ShadowPhysicsAsset->BodySetup.Num(); BodyIndex++)
+			for (int32 BodyIndex = 0; BodyIndex < ShadowPhysicsAsset->SkeletalBodySetups.Num(); BodyIndex++)
 			{
-				UBodySetup* BodySetup = ShadowPhysicsAsset->BodySetup[BodyIndex];
+				UBodySetup* BodySetup = ShadowPhysicsAsset->SkeletalBodySetups[BodyIndex];
 				int32 BoneIndex = SkeletalMeshComponent->GetBoneIndex(BodySetup->BoneName);
 
 				if (BoneIndex != INDEX_NONE)

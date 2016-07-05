@@ -69,6 +69,22 @@ bool UPaperGroupedSpriteComponent::GetInstanceTransform(int32 InstanceIndex, FTr
 	return true;
 }
 
+void UPaperGroupedSpriteComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	// We are handling the physics move below, so don't handle it at higher levels
+	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
+
+	// Always send new transform to physics
+	if (bPhysicsStateCreated && !(EUpdateTransformFlags::SkipPhysicsUpdate & UpdateTransformFlags))
+	{
+		for (int i = 0; i < PerInstanceSpriteData.Num(); i++)
+		{
+			const FTransform InstanceTransform(PerInstanceSpriteData[i].Transform);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, true);
+		}
+	}
+}
+
 bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
 {
 	if (!PerInstanceSpriteData.IsValidIndex(InstanceIndex))

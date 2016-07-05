@@ -335,8 +335,8 @@ struct FInEditorCapture
 		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
 		if (AudioDevice != nullptr)
 		{
-			TransientMasterVolume = AudioDevice->TransientMasterVolume;
-			AudioDevice->TransientMasterVolume = 0.0f;
+			TransientMasterVolume = AudioDevice->GetTransientMasterVolume();
+			AudioDevice->SetTransientMasterVolume(0.0f);
 		}
 
 		GEditor->RequestPlaySession(true, nullptr, false);
@@ -454,7 +454,7 @@ struct FInEditorCapture
 		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
 		if (AudioDevice != nullptr)
 		{
-			AudioDevice->TransientMasterVolume = TransientMasterVolume;
+			AudioDevice->SetTransientMasterVolume(TransientMasterVolume);
 		}
 
 		CaptureObject->Close();

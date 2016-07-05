@@ -27,10 +27,10 @@ DEFINE_LOG_CATEGORY(LogPathFollowing);
 FPathFollowingResult::FPathFollowingResult(uint16 InFlags) : Flags(InFlags)
 {
 	Code =
-		HasFlag(FPathFollowingResultFlags::Success) && !HasFlag(FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::OffPath | FPathFollowingResultFlags::ExternalCancel) ? EPathFollowingResult::Success :
-		HasFlag(FPathFollowingResultFlags::Blocked) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::OffPath | FPathFollowingResultFlags::ExternalCancel) ? EPathFollowingResult::Blocked :
-		HasFlag(FPathFollowingResultFlags::OffPath) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::ExternalCancel) ? EPathFollowingResult::OffPath :
-		HasFlag(FPathFollowingResultFlags::ExternalCancel) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::OffPath) ? EPathFollowingResult::Aborted :
+		HasFlag(FPathFollowingResultFlags::Success) && !HasFlag(FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::OffPath | FPathFollowingResultFlags::UserAbort) ? EPathFollowingResult::Success :
+		HasFlag(FPathFollowingResultFlags::Blocked) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::OffPath | FPathFollowingResultFlags::UserAbort) ? EPathFollowingResult::Blocked :
+		HasFlag(FPathFollowingResultFlags::OffPath) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::UserAbort) ? EPathFollowingResult::OffPath :
+		HasFlag(FPathFollowingResultFlags::UserAbort) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::OffPath) ? EPathFollowingResult::Aborted :
 		EPathFollowingResult::Invalid;
 }
 
@@ -40,7 +40,7 @@ FPathFollowingResult::FPathFollowingResult(EPathFollowingResult::Type ResultCode
 		FPathFollowingResultFlags::Success,			// EPathFollowingResult::Success
 		FPathFollowingResultFlags::Blocked,			// EPathFollowingResult::Blocked
 		FPathFollowingResultFlags::OffPath,			// EPathFollowingResult::OffPath
-		FPathFollowingResultFlags::ExternalCancel,	// EPathFollowingResult::Aborted
+		FPathFollowingResultFlags::UserAbort,		// EPathFollowingResult::Aborted
 		0,											// EPathFollowingResult::Skipped_DEPRECATED
 		0,											// EPathFollowingResult::Invalid
 	};
@@ -60,7 +60,7 @@ FString FPathFollowingResultFlags::ToString(uint16 Value)
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, Success),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, Blocked),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, OffPath),
-		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, ExternalCancel),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, UserAbort),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, OwnerFinished),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, InvalidPath),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, MovementStop),
@@ -397,7 +397,7 @@ void UPathFollowingComponent::AbortMove(const UObject& Instigator, FPathFollowin
 	if ((Status != EPathFollowingStatus::Idle) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
 		bStopMovementOnFinish = (VelocityMode == EPathFollowingVelocityMode::Reset);
-		OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, AbortFlags & FPathFollowingResultFlags::ExternalCancelFlagMask));
+		OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, AbortFlags & FPathFollowingResultFlags::UserAbortFlagMask));
 	}
 }
 

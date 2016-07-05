@@ -1135,7 +1135,7 @@ if (bModified)
 	}
 }
 
-bool USkeleton::GetSmartNameByUID(FName ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
+bool USkeleton::GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
@@ -1146,7 +1146,7 @@ bool USkeleton::GetSmartNameByUID(FName ContainerName, FSmartNameMapping::UID UI
 	return false;
 }
 
-bool USkeleton::GetSmartNameByName(FName ContainerName, FName InName, FSmartName& OutSmartName)
+bool USkeleton::GetSmartNameByName(const FName& ContainerName, const FName& InName, FSmartName& OutSmartName)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
@@ -1157,7 +1157,7 @@ bool USkeleton::GetSmartNameByName(FName ContainerName, FName InName, FSmartName
 	return false;
 }
 
-FSmartNameMapping::UID USkeleton::GetUIDByName(FName ContainerName, FName Name)
+FSmartNameMapping::UID USkeleton::GetUIDByName(const FName& ContainerName, const FName& Name)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)

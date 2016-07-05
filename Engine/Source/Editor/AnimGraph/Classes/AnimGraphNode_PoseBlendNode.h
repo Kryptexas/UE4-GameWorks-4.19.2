@@ -18,6 +18,7 @@ class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_AssetPlayerBase
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
+	virtual FText GetMenuCategory() const override;
 	// End of UEdGraphNode
 
 	// UAnimGraphNode_Base interface
@@ -28,6 +29,8 @@ class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_AssetPlayerBase
 	virtual UAnimationAsset* GetAnimationAsset() const override;
 	virtual void GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap) override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	// End of UAnimGraphNode_Base
 
 	// UK2Node interface
@@ -36,6 +39,11 @@ class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_AssetPlayerBase
 
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
 private:
+	static FText GetTitleGivenAssetInfo(const FText& AssetName);
+
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;
+
+	/** Used for filtering in the Blueprint context menu when the pose asset this node uses is unloaded */
+	FString UnloadedSkeletonName;
 };

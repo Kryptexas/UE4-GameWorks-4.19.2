@@ -168,6 +168,9 @@ public:
 	/** PhAT specific skeletal mesh component */
 	UPhATEdSkeletalMeshComponent* EditorSkelComp;
 
+	/** PhAT specific physical animation component */
+	class UPhysicalAnimationComponent* PhysicalAnimationComponent;
+
 	/** The skeletal mesh being used to preview the physics asset */
 	USkeletalMesh* EditorSkelMesh;
 

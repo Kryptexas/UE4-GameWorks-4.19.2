@@ -12,6 +12,7 @@
 #include "Animation/AnimNode_StateMachine.h"
 #include "Animation/AnimNode_TransitionResult.h"
 #include "Animation/AnimNode_SaveCachedPose.h"
+#include "Animation/AnimNode_SubInput.h"
 
 #define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
 #include "AnimMTStats.h"
@@ -140,6 +141,8 @@ void FAnimInstanceProxy::InitializeRootNode()
 				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(AnimInstanceObject);
 				if (AnimNode)
 				{
+					AnimNode->RootInitialize(this);
+
 					// Force our functions to be re-evaluated - this reinitialization may have been a 
 					// consequence of our class being recompiled and functions will be invalid in that
 					// case.
@@ -161,6 +164,12 @@ void FAnimInstanceProxy::InitializeRootNode()
 						FAnimNode_StateMachine* StateMachine = static_cast<FAnimNode_StateMachine*>(AnimNode);
 						StateMachine->CacheMachineDescription(AnimClassInterface);
 					}
+
+					if(Property->Struct->IsChildOf(FAnimNode_SubInput::StaticStruct()))
+					{
+						check(!SubInstanceInputNode); // Should only ever have one
+						SubInstanceInputNode = static_cast<FAnimNode_SubInput*>(AnimNode);
+					}
 				}
 			}
 		}
@@ -173,6 +182,7 @@ void FAnimInstanceProxy::InitializeRootNode()
 
 void FAnimInstanceProxy::Uninitialize(UAnimInstance* InAnimInstance)
 {
+	SubInstanceInputNode = nullptr;
 }
 
 void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds)
