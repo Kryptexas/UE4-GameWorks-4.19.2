@@ -6,24 +6,12 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:1
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\2 "%Engine\Sequencer\QuickStart\2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Before we start crafting our scene, we will create some of the assets we'll need as well as set up the Editor UI for previewing our cinematic in real-time. 
 For the Editor Layout, feel free to experiment with the different options and choose the one that you feel most comfortable with. 
@@ -55,7 +43,7 @@ For the duration of this guide, we are using the **Blueprint Third Person Templa
 
 	Above we have docked the Sequencer Editor next to the **Content Browser**. This allows us to either click the **Content Browser** tab to see the Content Browser or click the **Sequencer** tab to open the Sequencer Editor. 
 
-1.	In the **Content Browser**, **Right-click** on and duplicate your **Master** Level Sequence and call it **Shot01**. 
+1.	In the **Content Browser**, **Right-click** on the **Master** Level Sequence and choose **Duplicate**. Name the new Level Sequence **Shot01**. 
 
 	![](SequencerQS_1_3.png)
 
@@ -77,12 +65,10 @@ For the duration of this guide, we are using the **Blueprint Third Person Templa
 
 	![](SequencerQS_1_7.png)
 
-1.	In the right Viewport, press **G** then press **Ctrl+Shift+T**. 
+1.	In the right Viewport, press **G** then press **Ctrl+Shift+T**. Pressing the **G** key enters [Game View](Engine/UI/LevelEditor/Viewports/Basics) which hides all editor icons and represents what the game (or cinematic) will look like. 
+	Pressing **Ctrl+Shift+T** toggles the display of the Viewport Toolbar (which includes things like grid snapping, view modes and transform gizmos which you may not need for a cinematic preview). 
 
 	![](SequencerQS_1_8.png)
-
-	Pressing the **G** key enters [Game View](Engine/UI/LevelEditor/Viewports/Basics) which hides all editor icons and represents what the game (or cinematic) will look like. 
-	Pressing **Ctrl+Shift+T** toggles the display of the Viewport Toolbar (which includes things like grid snapping, view modes and transform gizmos which you may not need for a cinematic preview). 
 
 	[REGION:tip]
 	You can press **G** again to re-enable the editor icons or press **Ctrl+Shift+T** to display the Viewport Toolbar again. 
@@ -96,6 +82,6 @@ We have created our **Master** Level Sequence and our first **Shot** as well as 
 
 Up next we will work on our first shot, add a camera and adjust focus as well as generate movement for the camera.
 
-%Steps%
+[NAV]
 
 

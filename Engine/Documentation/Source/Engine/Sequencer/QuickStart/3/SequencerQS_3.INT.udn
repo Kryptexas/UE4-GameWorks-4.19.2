@@ -6,29 +6,14 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:3
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\2 "%Engine\Sequencer\QuickStart\2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\4 "%Engine\Sequencer\QuickStart\4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-In the previous step we added a camera and provided a path for our camera to take. 
-Up next we will replace the Character Blueprint that is used with the template with a **Skeletal Mesh** Actor that we can apply animations to. 
-By the end of this step, our first shot will be complete. 
+In the previous step, we added a camera and provided a path for our camera to take. In this step, we replace the Character Blueprint that is used with the template with a **Skeletal Mesh** Actor that we can apply animations to, completing our first shot.
 
 ## Steps
 
@@ -36,17 +21,15 @@ By the end of this step, our first shot will be complete.
 	
 	![](SequencerQS_3_1.png)
 
-1. In the left Viewport, **Right-click** on the character in the level then select **Replace Selected Actors with** option. 
+1. In the left Viewport, **Right-click** on the character in the level and choose **Replace Selected Actors with**. This will replace the default **Character Blueprint** used for gameplay with a **Skeletal Mesh Actor**.
 
-	![](SequencerQS_3_2.png)
+	![](SequencerQS_3_2.png) 
 
-	This will replace the default **Character Blueprint** used for gameplay with a **Skeletal Mesh Actor**. 
-
-1.	In the left Viewport, press the **End** key to drop the Skeletal Mesh down to the ground, then press **E** and rotate it as shown below. 
+1.	In the left Viewport, press the **End** key to drop the Skeletal Mesh down to the ground. Press **E** and rotate it as shown below. 
 
 	![](SequencerQS_3_3.png)
 
-1.	With the Skeletal Mesh still selected, in **Sequencer** click the **Add** button and it to the Level Sequence. 
+1.	With the Skeletal Mesh still selected, in **Sequencer** click the **Add** button to add it to the Level Sequence. 
 
 	![](SequencerQS_3_4.png)
 
@@ -54,21 +37,17 @@ By the end of this step, our first shot will be complete.
 
 	![](SequencerQS_3_5a.png)
 
-1.	For the **ThirdPersonCharacter** Track, click the **+ Animation** button and search for and add the **ThirdPersonIdle**.
+1.	For the **ThirdPersonCharacter** Track, click the **+ Animation** button. Search for the **ThirdPersonIdle** animation and add it to the track. The Skeletal Mesh in the level will assume an Idle pose.
 
-	![](SequencerQS_3_5.png)
+	![](SequencerQS_3_5.png) 
 
-	The Skeletal Mesh in the level will assume an Idle pose. 
-
-1.	**Left-click** and drag the end of the **ThirdPersonIdle** so it loops and fills the entire 150 frames. 
+1.	**Left-click** and drag the end of the **ThirdPersonIdle** animation so it loops and fills the entire 150 frames. 
 
 	![](SequencerQS_3_6.png)
 
-1.	On the **Camera Cuts** track, click the **Unlock/Lock Camera** button. 
+1.	On the **Camera Cuts** track, click the **Unlock/Lock Camera** button. Locking the Camera on a Camera Cuts track, will only affect Cinematic Viewports.
 
-	![](SequencerQS_3_6b.png)	
-
-	Locking the Camera on a Camera Cuts track, will only affect Cinematic Viewports. 
+	![](SequencerQS_3_6b.png) 
 
 1.	Click the **Preview Play** button in the Cinematic Preview window. 
 
@@ -91,8 +70,6 @@ vx-HlYIbpOI
 [/OBJECT]
 
 
-In the next step we will work on another shot for our scene before we add both shots to our Master track. 
+In the next step, we will work on another shot for our scene before we add both shots to our Master track. 
 
-%Steps%
-
-
+[NAV]

@@ -6,24 +6,12 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:6
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Now that you have created a sample cinematic with Sequencer, you can try several of the How-to's to add to this scene. 
 
@@ -55,14 +43,9 @@ Optionally, you can **Render** out your cinematic as a video file:
 
 	![](ExportMovie.png)
 
-1. Under **General**, define the **Output Directory** then click **Capture Movie** to start rendering.
+1. Under **General**, define the **Output Directory** then click **Capture Movie** to start rendering. A preview window will appear while rendering and will close when complete.
 
-	![](ExportMovieB.png)
-
-	A preview window will appear while rendering and will close when complete. 
+	![](ExportMovieB.png) 
 
 
-
-%Steps%
-
-
+[NAV]
