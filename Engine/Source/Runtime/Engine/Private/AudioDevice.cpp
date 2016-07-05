@@ -2983,9 +2983,9 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 #if !UE_BUILD_SHIPPING
 				AudioDevice->AudioStats.StatSoundInfos = MoveTemp(StatSoundInfos);
 				AudioDevice->AudioStats.bStale = bStatsStale;
+#endif
 			}
 		}
-#endif
 	}, GET_STATID(STAT_AudioSendResults));
 }
 
