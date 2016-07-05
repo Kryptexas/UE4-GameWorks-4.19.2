@@ -5,6 +5,10 @@ availability:docs
 
 HLODs, in their simplest form, combine pre-existing **Static Mesh Actors** into a single Static Mesh Actor and material, with atlased textures, to reduce draw calls which in-turn helps with your performance of your game. There is a robust system in place to help you set specifically what needs to be generated when you create these HLOD actors for your scenes and covers more options that is normally available for LODs for a single actor. 
 
+[REGION:warning]
+HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+[/REGION]
+
 ## Proxy Meshes
 
 Once your proxy meshes have been generated you can find these located under the HLOD folder generated in your project. This will include the LODActors referenced in the HLOD Outliner. 
