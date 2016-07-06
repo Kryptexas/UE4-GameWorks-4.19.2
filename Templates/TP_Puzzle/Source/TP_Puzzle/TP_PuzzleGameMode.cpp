@@ -3,11 +3,12 @@
 #include "TP_Puzzle.h"
 #include "TP_PuzzleGameMode.h"
 #include "TP_PuzzlePlayerController.h"
+#include "TP_PuzzlePawn.h"
 
 ATP_PuzzleGameMode::ATP_PuzzleGameMode()
 {
 	// no pawn by default
-	DefaultPawnClass = NULL;
+	DefaultPawnClass = ATP_PuzzlePawn::StaticClass();
 	// use our own player controller class
 	PlayerControllerClass = ATP_PuzzlePlayerController::StaticClass();
 }

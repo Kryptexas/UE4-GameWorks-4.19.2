@@ -46,7 +46,7 @@ void ATP_PuzzleBlockGrid::BeginPlay()
 		ATP_PuzzleBlock* NewBlock = GetWorld()->SpawnActor<ATP_PuzzleBlock>(BlockLocation, FRotator(0,0,0));
 
 		// Tell the block about its owner
-		if(NewBlock != NULL)
+		if (NewBlock != nullptr)
 		{
 			NewBlock->OwningGrid = this;
 		}
