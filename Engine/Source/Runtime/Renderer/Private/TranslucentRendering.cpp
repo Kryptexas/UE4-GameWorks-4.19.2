@@ -363,7 +363,7 @@ public:
 
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
-		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight() && bIsLitMaterial;
+		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight(Parameters.BlendMode) && bIsLitMaterial;
 		const bool bRenderAtmosphericFog =(Scene && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog) && View.Family->EngineShowFlags.AtmosphericFog && View.Family->EngineShowFlags.Fog;
 
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(

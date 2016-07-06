@@ -811,11 +811,6 @@ void FMaterial::ReleaseShaderMap()
 	}
 }
 
-bool IsTranslucentBlendMode(EBlendMode BlendMode)
-{
-	return BlendMode != BLEND_Opaque && BlendMode != BLEND_Masked;
-}
-
 int32 FMaterialResource::GetMaterialDomain() const { return Material->MaterialDomain; }
 bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || (!Material->Normal.IsConnected() && !Material->bUseMaterialAttributes); }
 bool FMaterialResource::ShouldInjectEmissiveIntoLPV() const { return Material->bUseEmissiveForDynamicAreaLighting; }

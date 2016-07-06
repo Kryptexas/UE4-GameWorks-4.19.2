@@ -1561,7 +1561,10 @@ public:
 /**
  * @return True if BlendMode is translucent (should be part of the translucent rendering).
  */
-extern ENGINE_API bool IsTranslucentBlendMode(enum EBlendMode BlendMode);
+inline bool IsTranslucentBlendMode(enum EBlendMode BlendMode)
+{
+	return BlendMode != BLEND_Opaque && BlendMode != BLEND_Masked;
+}
 
 /**
  * Implementation of the FMaterial interface for a UMaterial or UMaterialInstance.

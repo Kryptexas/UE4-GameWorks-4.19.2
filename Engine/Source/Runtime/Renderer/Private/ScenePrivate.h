@@ -2108,19 +2108,26 @@ public:
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
-	bool ShouldRenderSkylight() const
+	bool ShouldRenderSkylight(EBlendMode BlendMode) const
 	{
-		return ShouldRenderSkylight_Internal() && ReadOnlyCVARCache.bEnableStationarySkylight;
+		return ShouldRenderSkylight_Internal(BlendMode) && ReadOnlyCVARCache.bEnableStationarySkylight;
 	}
 
-	bool ShouldRenderSkylight_Internal() const
+	bool ShouldRenderSkylight_Internal(EBlendMode BlendMode) const
 	{
-		const bool bRenderSkylight = SkyLight
-			&& !SkyLight->bHasStaticLighting
-			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
-			&& (SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(GetShaderPlatform()));
+		if (IsTranslucentBlendMode(BlendMode))
+		{
+			return SkyLight && !SkyLight->bHasStaticLighting;
+		}
+		else
+		{
+			const bool bRenderSkylight = SkyLight
+				&& !SkyLight->bHasStaticLighting
+				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+				&& (SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(GetShaderPlatform()));
 
-		return bRenderSkylight;
+			return bRenderSkylight;
+		}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

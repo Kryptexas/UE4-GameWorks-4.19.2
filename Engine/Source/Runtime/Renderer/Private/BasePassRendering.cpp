@@ -349,7 +349,7 @@ public:
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);
 
-			const bool bRenderSkylight = Scene->ShouldRenderSkylight() && Parameters.ShadingModel != MSM_Unlit;
+			const bool bRenderSkylight = Scene->ShouldRenderSkylight(Parameters.BlendMode) && Parameters.ShadingModel != MSM_Unlit;
 			const bool bRenderAtmosphericFog = IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
 
 			// Add the static mesh to the draw list.
@@ -466,7 +466,7 @@ public:
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
-		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight() && Parameters.ShadingModel != MSM_Unlit;
+		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight(Parameters.BlendMode) && Parameters.ShadingModel != MSM_Unlit;
 		const bool bRenderAtmosphericFog = IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog) && View.Family->EngineShowFlags.AtmosphericFog;
 
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(
