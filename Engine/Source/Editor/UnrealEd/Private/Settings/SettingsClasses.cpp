@@ -76,6 +76,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, BlueprintProfilerInclNodeThreshold(0.25f)
 	, BlueprintProfilerMaxNodeThreshold(0.5f)
 	, bUseOpenCLForConvexHullDecomp(false)
+	, bEnableAutoVREditMode(true)
 	, bAllowPotentiallyUnsafePropertyEditing(false)
 {
 }

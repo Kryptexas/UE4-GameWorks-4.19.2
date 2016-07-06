@@ -42,6 +42,7 @@ public:
 
 	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
+	virtual EHMDWornState::Type GetHMDWornState() override;
 	virtual void EnableHMD(bool allow = true) override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
@@ -264,6 +265,7 @@ private:
 	void SetupOcclusionMeshes();
 
 	bool bHmdEnabled;
+	EHMDWornState::Type HmdWornState;
 	bool bStereoEnabled;
 	bool bHmdPosTracking;
 	mutable bool bHaveVisionTracking;

@@ -212,6 +212,7 @@ public:
 		return false;
 	}
 
+
 private:
 	vr::IVRSystem* VRSystem;
     
@@ -250,6 +251,12 @@ pVRExtendedDisplay FSteamVRHMD::VRExtendedDisplayFn = nullptr;
 bool FSteamVRHMD::IsHMDEnabled() const
 {
 	return bHmdEnabled;
+}
+
+EHMDWornState::Type FSteamVRHMD::GetHMDWornState()
+{
+	//HmdWornState is set in OnStartGameFrame's event loop
+	return HmdWornState;
 }
 
 void FSteamVRHMD::EnableHMD(bool enable)
@@ -796,6 +803,20 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 		case vr::VREvent_InputFocusReleased:
 			FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
 			break;
+		case vr::VREvent_TrackedDeviceUserInteractionStarted:
+			// if the event was sent by the HMD
+			if(VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)
+			{
+				HmdWornState = EHMDWornState::Worn;
+			}
+			break;
+		case vr::VREvent_TrackedDeviceUserInteractionEnded:
+			// if the event was sent by the HMD
+			if (VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)
+			{
+				HmdWornState = EHMDWornState::NotWorn;
+			}
+			break;
 		}
 	}
 
@@ -1144,6 +1165,7 @@ bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport)
 FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	VRSystem(nullptr),
 	bHmdEnabled(true),
+	HmdWornState(EHMDWornState::Unknown),
 	bStereoEnabled(false),
 	bHmdPosTracking(true),
 	bHaveVisionTracking(false),

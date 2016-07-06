@@ -6,6 +6,7 @@
 #include "VREditorMode.h"
 #include "LevelEditor.h"
 #include "HeadMountedDisplay.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
 
 class FVREditorModule : public IVREditorModule, public FTickableEditorObject
 {
@@ -14,7 +15,9 @@ public:
 		bEnableVRRequest( false ),
 		bPlayStartedFromVREditor( false ),
 		LastWorldToMeters( 100 ),
-		SavedWorldToMeters( 0 )
+		SavedWorldToMeters( 0 ),
+		HMDWornState( EHMDWornState::Unknown ),
+		TimeSinceHMDChecked( 0.0f )
 	{
 	}
 
@@ -67,6 +70,14 @@ private:
 
 	/** Saved last world to meters scale from last VR Editor session so we can restore it when entering the VR Editor when PIE starter from VR Editor */
 	float SavedWorldToMeters;
+
+	/** True when we detect that the user is wearing the HMD */
+	EHMDWornState::Type HMDWornState;
+
+	/** Timer for checking if the user is wearing the HMD */
+	float TimeSinceHMDChecked;
+
+
 };
 
 namespace VREd
@@ -174,12 +185,33 @@ void FVREditorModule::ToggleForceVRMode()
 
 void FVREditorModule::Tick( float DeltaTime )
 {
+	//@todo vreditor: Make the timer a configurable variable and/or change the polling system to an event-based one.
+	TimeSinceHMDChecked += DeltaTime;
+	// You can only auto-enter VR if the setting is enabled. Other criteria are that the VR Editor is enabled in experimental settings, that you are not in PIE, and that the editor is foreground.
+	bool bCanAutoEnterVR = (GetDefault<UEditorExperimentalSettings>()->bEnableAutoVREditMode) && (GetDefault<UEditorExperimentalSettings>()->bEnableVREditing) && !(GEditor->PlayWorld) && FPlatformProcess::IsThisApplicationForeground();
+
+	// Only check whether you are wearing the HMD every second, if you are allowed to auto-enter VR, and if your HMD state has changed since the last check. 
+	if((TimeSinceHMDChecked >= 1.0f) && bCanAutoEnterVR && (HMDWornState != GEngine->HMDDevice->GetHMDWornState()))
+	{
+		TimeSinceHMDChecked = 0.0f;
+		HMDWornState = GEngine->HMDDevice->GetHMDWornState();
+		if( HMDWornState == EHMDWornState::Worn )
+		{
+			EnableVREditor(true, false);
+		}
+		else if (HMDWornState == EHMDWornState::NotWorn)
+		{
+			EnableVREditor(false , false);
+		}
+	}
+
 	if( IsVREditorEnabled() )
 	{
-		FVREditorMode* VREditorMode = static_cast<FVREditorMode*>( GLevelEditorModeTools().FindMode( FVREditorMode::GetVREditorModeID() ) );
-		check( VREditorMode != nullptr );
+		FVREditorMode* VREditorMode = static_cast<FVREditorMode*>(GLevelEditorModeTools().FindMode(FVREditorMode::GetVREditorModeID()));
+		check(VREditorMode != nullptr);
 
-		if( VREditorMode->WantsToExitMode() )
+
+		if (VREditorMode->WantsToExitMode())
 		{
 			//Store the current WorldToMeters before exiting the mode
 			LastWorldToMeters = GWorld->GetWorldSettings()->WorldToMeters;
@@ -198,6 +230,7 @@ void FVREditorModule::Tick( float DeltaTime )
 			}
 		}
 	}
+
 	// Only check for input if we started this play session from the VR Editor
 	else if( bPlayStartedFromVREditor && GEditor->PlayWorld && !bEnableVRRequest )
 	{
@@ -226,6 +259,7 @@ void FVREditorModule::Tick( float DeltaTime )
 			EnableVREditor( true, false );
 			bEnableVRRequest = false;
 		}
+		
 	}
 }
 
