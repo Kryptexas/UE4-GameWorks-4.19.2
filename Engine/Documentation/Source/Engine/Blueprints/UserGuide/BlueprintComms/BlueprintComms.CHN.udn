@@ -51,6 +51,10 @@ version: 4.9
 
 [TOC(start:2)]
 
+[EXCERPT:intro]
+**Direct Blueprint Communication** is the most common method of Blueprint Communication and is great for when you have two Blueprints that you know you want to have talk to each other at some point. This type of communication is always one-to-one; meaning one Blueprint (the "Working Blueprint") is requesting to access another Blueprint (the "Target Blueprint"). The simplest way to use Direct Blueprint Communication is to get a reference to the Target Blueprint through a publicly exposed object [**Variable**](Engine/Blueprints/UserGuide/Variables) and then specify which instance of that Blueprint you want to access.
+[/EXCERPT:intro]
+
 ## 概述
 
 当您应用蓝图时，有时您可能会发现需要访问另一个蓝图中包含的函数、事件及变量。最简单的方法是通过一个公开暴露的对象变量来引用“目标”蓝图，然后指出您想使用的蓝图实例。
