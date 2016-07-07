@@ -40,5 +40,5 @@ freely, subject to the following restrictions:
    misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 </Notification>
-  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/DUAL QUATERNION SKINNING CODE license.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/DualQuaternionSkinningCode_License.txt</LicenseFolder>
 </TpsData>
