@@ -61,12 +61,12 @@ When creating a new Animation Blueprint, you will be asked to pick a valid [**Sk
 
 	![](CE_create_NoSkel.png)
 
-1. You will then be prompted to specify which Skeletal to target for the Animation Blueprint, select one and click **OK**. 
+1. You will then be prompted to specify which Skeleton to target for the Animation Blueprint. Select one and click **OK**. 
 
 	![](PickSkeleton.png)
 
 	You are also given the ability to select a [**Parent Class**](Engine/Blueprints/UserGuide/Types/ClassBlueprint) for the Animation Blueprint to use. 
-	Most of the time you will not need to select one and can use the default class, however based on your circumstances, you can choose one if you need to. 
+	Most of the time you will not need to select one and can use the default class. However, based on your circumstances, you can choose one if you need to. 
 
 1. The new asset will automatically be created in the **Content Browser**. 
 	

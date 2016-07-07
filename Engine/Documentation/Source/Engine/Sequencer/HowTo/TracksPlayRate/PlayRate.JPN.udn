@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2996833
+﻿INTSourceChangelist:3038334
 Availability:Public
 Title:シーンの速度を調整する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -49,7 +49,7 @@ Play Rate (再生レート) を変化させたい場所でシーン内の任意�
 	上記では、1 から 0.25 にし、数フレームの間 0.25 にとどまってから、通常の 1.0 の再生レートに戻ります。 
 
 	[REGION:tip]
-	キーフレーム ウィンドウ内で移動するには、**右クリック** してドラッグし、ズームイン、ズームアウトするには **CTRL キーを押しながらマウスホイール** を動かします。 
+	トラック エリアで移動するには、**右クリック** してドラッグし、ズームイン、ズームアウトするには **CTRL キーを押しながらマウスホイール** を動かします。 
 	[/REGION]
 
 1.	**コンテンツ ブラウザ** タブの **Content/Mannequin/Character/Mesh** で **SK_Mannequin** をレベルにドラッグします。 

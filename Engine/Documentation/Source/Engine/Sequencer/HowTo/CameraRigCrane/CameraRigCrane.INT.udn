@@ -124,7 +124,7 @@ RAsfP5G0Shk
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can adjust the keys by dragging them to new values in the keyframe window. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
+You can adjust the keys by dragging them to new values in the Tracks Area. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
 
 [REGION:tip]
 There is an advanced method you can use to work with the **Camera Rig Crane** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 

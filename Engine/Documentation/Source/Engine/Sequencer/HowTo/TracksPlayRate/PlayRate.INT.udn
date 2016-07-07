@@ -48,7 +48,7 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 	Above we are going from 1 to 0.25 then staying at 0.25 for several frames before returning to our normal 1.0 Play Rate. 
 
 	[REGION:tip]
-	You can **Right-click** drag to move around in the Keyframe window and **CTRL + Mouse Wheel** in/out to zoom in/out. 
+	You can **Right-click** drag to move around in the Tracks Area and **CTRL + Mouse Wheel** in/out to zoom in/out. 
 	[/REGION]
 
 1.	On the **Content Browser** tab under **Content/Mannequin/Character/Mesh**, drag the **SK_Mannequin** into the level. 

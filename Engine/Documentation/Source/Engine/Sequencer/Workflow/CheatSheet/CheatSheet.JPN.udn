@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3038334
 Availability:Public
-Title: Sequencer Cheat Sheet
+Title:シーケンサー虎の巻
 Crumbs: %ROOT%, Engine
-Description:Shortcuts and Keyboard Bindings you can use to increase your Sequencer productivity.
+Description:シーケンサーでの作業効率を高めるために使用できるショートカットとキーボードのバインディングを取り上げます。
 Navigation:topic
 parent:Engine\Sequencer\Workflow
 order:1
@@ -13,146 +13,164 @@ Related: Engine\Sequencer\HowTo
 
 [TOC(start:2 end:2)]
 
-To improve your productivity, several shortcuts have been built into the Sequencer Editor. While some of these shortcuts are readily apparent and indicated through the menus, some key bindings are a bit hidden. This page covers the most commonly used actions, shortcuts and bindings to working with Sequencer.
+シーケンサー エディタには、作業効率を高めるためにいくつかのショートカットがあります。このページでは、シーケンサーで作業する場合に非常に一般的に使用されるアクション、ショートカット、キーバインディングについて説明します。
 
-## Playback Shortcuts
+## 再生のショートカット
 
 ![](Playback.png)
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **Spacebar** | Play or Pause Playback for the selected sequence. |
-| **Down Arrow** | Plays the selected sequence. |
-| **Up Arrow** | Returns to the start of the of the assigned Playback Range. |
-| **Left Arrow** | Step backwards in the current sequence. |
-| **Right Arrow** | Step fowards in the current sequence. |
-| **[** | Sets the start of Playback Range to the current time. |
-| **]** | Sets the end of Playback Range to the current time. |
+| **スペースバー** | 選択したシーケンスをプレイまたは一時停止します。 |
+| **下向き矢印** | 選択したシーケンスをプレイします。 |
+| **上向き矢印** | 指定された再生範囲の開始地点に戻ります。 |
+| **左向き矢印** | 現在のシーケンスで後ろ方向に進みます。 |
+| **右向き矢印** | 現在のシーケンスで前方向に進みます。 |
+| **[** | 再生範囲の始まりを現在の時刻に設定します。 |
+| **]** | 再生範囲の終わりを現在の時刻に設定します。 |
 
 
-## Keyframe Window Navigation
+## トラックエリアのナビゲート
 
 ![](KeyframeWindow.png)
 
 
-### Basic Navigation
+### 基本のナビゲーション
 [EXCERPT:keyframe]
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **Right-click Drag** | Allows you to move around keyframe window. |
-| **Ctrl + Mouse Wheel In/Out** | Zoom in/out in the Keyframe window.  |
-| **Home** | Resets the zoom/view range of the Keyframe window. |
-| **-** and **=** | Zoom into and out of the view range by 10%. |
-| **,** and **.** | Moves backwards and forwards between placed keyframes. |
-| **Left-click Drag** | Creates a selection box around keys in the window. |
-| **Left-click** on a key | Selects the key. |
-| **Right-click** on a key | Displays the Context Menu where you can define properties for the key. |
-| **Middle Mouse** | Creates a key at the mouse position. |
-| **Enter** | Set a key on the selected tracks at the current time. |
-| **Ctrl + G** | Go to a set time/frame in the sequence. |
-| **I** | Sets the start of Selection Range. |
-| **O** | Sets the end of Selection Range. |
+| **右クリックしてドラッグ** | トラック エリアを移動することができます。 |
+| **Ctrl + マウスホイールのイン/アウト** | トラックエリアをズームイン/ズームアウトします。  |
+| **Home** | トラック エリアのズーム / ビューの範囲をリセットします。 |
+| **-** および **=** | ビュー範囲を 10% ズームイン、ズームアウトします。 |
+| **,** および **.** | 配置したキーフレーム間で前後に移動します。 |
+| **左クリックしてドラッグ** | ウィンドウ内でキー周辺に選択ボックスを作成します。 |
+| キー上で **左クリック** | キーを選択します。 |
+| キー上で **右クリック** | キーのプロパティを定義できるコンテキスト メニューを表示します。 |
+| **マウスのミドルクリック** | マウス位置でキーを作成します。 |
+| **Enter** | 現在の時刻で選択したトラックにキーを設定します。 |
+| **Ctrl + G** | シーケンス内の設定された時刻 / フレームに進みます。 |
+| **I** | 選択範囲の開始を設定します。 |
+| **O** | 選択範囲の終了を設定します。 |
 [/EXCERPT:keyframe]
 
-### Key Interpolation Shortcuts
+### キー補間のショートカット
 
 ![](KeyInterp.png)
 
-You can use the following keys to set the keyrame interpolation method for the selected key(s).
+以下のキーを使って選択したキーに対してキーフレームの補間方法を設定することができます。
 
 [REGION:note]
-The commands below do not respond to Numpad entries.
+以下のコマンドは、テンキーのエントリには反応しません。
 [/REGION]
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **1** | Set the selected key to use an auto tangent. |
-| **2** | Set the selected key to use a user defined tangent. |
-| **3** | Set the selected key to use a break tangent. |
-| **4** | Set the selected key to use a linear tangent. |
-| **5** | Set the selected key to use a constant tangent. |
+| **1** | 選択したキーで auto タンジェントを使用するように設定します。 |
+| **2** | 選択したキーでユーザー定義のタンジェントを使用するように設定します。 |
+| **3** | 選択したキーで break タンジェントを使用するように設定します。|
+| **4** | 選択したキーで linear タンジェントを使用するように設定します。|
+| **5** | 選択したキーで constant タンジェントを使用するように設定します。 |
 
-## Editing Shortcuts
+## 編集のショートカット
 
 ![](Editing.png)
 
-Select a section in the Keyframe window (audio or animation asset, camera, etc.) and edit it with the commands below. 
+トラック エリアでセクションを選択し (オーディオまたはアニメーションのアセット、カメラなど)、以下のコマンドで編集します。 
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **Ctrl + /** | Split the current section at the current time position. |
-| **Ctrl + ,** | Trim the current section left at the current time position. |
-| **Ctrl + .** | Trim the current section right at the current time position. |
+| **Ctrl + /** | 現在の時間の位置で現在のセクションを分けます。 |
+| **Ctrl + ,** | 現在の時間の位置で現在のセクションの左をトリムします。 |
+| **Ctrl + .** | 現在の時間の位置で現在のセクションの右をトリムします。 |
 
 
-## Transform Track Shortcuts
+## Transform トラックのショートカット
 
 ![](TransformKeys.png)
 
-Select an Actor in your level and use the commands below to add keyframes at the current time position. 
+レベルでアクタを選択し、以下のコマンドを使って現在の時間位置にキーフレームを追加します。 
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **S** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds keys for Location, Rotation and Scale. |
-| **Shift + W** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds a key for Location only. |
-| **Shift + E** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds a key for Rotation only. |
-| **Shift + R** with a Track selected | Adds a Transform Sub-Track (if it does not exist) and adds a key for Scale only. |
+| トラックを選択した状態で **S** | トランスフォームのサブトラックを追加し (存在しない場合)、Location、 Rotation、 および Scale のキーを追加します。 |
+| トラックを選択した状態で **Shift + W** | トランスフォームのサブトラックを追加し (存在しない場合)、Location のキーだけを追加します。 |
+| トラックを選択した状態で **Shift + E** | トランスフォームのサブトラックを追加し (存在しない場合)、Rotation のキーだけを追加します。 |
+| トラックを選択した状態で **Shift + R** | トランスフォームのサブトラックを追加し (存在しない場合)、Scale のキーだけを追加します。 |
 
 [REGION:note]
-If you do not have a Transform track for the selected actor, one will be created when you use the shortcut commands. 
+選択したアクタに対して Transform トラックがない場合は、ショートカット コマンドを使用するときにひとつ作成されます。 
 [/REGION]
 
 
-## Workflow Shortcuts
+## ワークフローのショートカット
 
-The following shortcuts can be used to improve adding content to Sequencer. 
+以下のショートカットを使用してシーケンサーへのコンテンツの追加をやりやすくします。 
 
-### Auto Add to Sequencer
+### シーケンサーへの自動追加
 
-You can automatically add objects to Sequencer when dragging them into the viewport from the **Modes** panel or **Content Browser** provided you have a Level Sequence open. 
+レベル シーケンスを開いていれば、**[Modes]** パネルや **コンテンツ ブラウザ** からオブジェクトをシーケンサーに自動的に追加することができます。 
 
 ![](Workflow.png)
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **Ctrl + Drag** asset into viewport | This will automatically add the object to Sequencer. |
-| **Shift + Drag** asset into viewport | This will automatically add the object to Sequencer as a **Spawnable**. |
+| **Ctrl + アセットをドラッグして** ビューポートに入れる | これでオブジェクトがシーケンサーに自動的に追加されます。 |
+| **Shift + アセットをドラッグして** ビューポートに入れる | これでオブジェクトがシーケンサーに自動的に **Spawnable** として追加されます。 |
 
 [REGION:note]
-You can also drag assets directly into Sequencer which will add them as a **Spawnable**. 
+アセットをドラッグして直接シーケンサーに入れて [**Spawnable**](Engine\Sequencer\HowTo\Spawnables) として追加することもできます。 
 [/REGION]
 
-### Quick Add Camera Option
+**Camera Rig Crane** アセットまたは **Camera Rig Rail** アセットを **Modes** パネルから上記のいずれかの方法でドラッグすると、これらがシーケンサーに追加される前に **Cine Camera Actor** が自動的に作成されてアタッチされます。 
+さらに **Camera Cuts** トラックも開いているレベル シーケンスで自動的に作成されて、新しい Cine Camera アクタも割り当てられます。これは、クレーンやレールを使うショットを迅速にセットアップするワークフローになります。 
 
-On the Sequencer toolbar you can click the camera icon to quickly add a **Cine Camera Actor** and **Camera Cuts** track to your sequence. 
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+t1l73guPHeE
+[/PARAMLITERAL]
+[/OBJECT]
+
+上の画面では **レベル シーケンス** を作成し、**Ctrl** キーを押しながら **Camera Rig Crane** アセットと **Camera Rig Rail** アセットをドラッグしました。 
+
+
+### カメラ追加のクイック オプション
+
+シーケンサーのツールバーでカメラ アイコンをクリックして **Cine Camera Actor** トラックと **Camera Cuts** トラックをシーケンスに追加します。 
 
 ![](CameraShortcut.png)
 
-The viewport automatically enters **Pilot** mode allowing you to quickly frame up your shots with **WASD** navigation controls. 
+ビューポートは自動的に **Pilot** モードになり、 **WASD** ナビゲーション コントロールを使ってショットを迅速に構成することができます。 
 
-## Misc Shortcuts
+## その他のショートカット
 
-These shortcuts can be used to organize the layout of Sequencer or display settings. 
+こうしたショートカットを使ってシーケンサーや表示設定のレイアウトを整理することができます。 
 
-### Track Organization
+### トラックの構成
 
 ![](Organization.png)
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **Ctrl + O** | Toggle for expanding/collapsing selected tracks. |
-| **Shift + O** | Toggle for expanding/collapsing selected tracks and its child tracks. |
+| **Ctrl + O** | 選択したトラックの展開、折り畳みを切り替えます。 |
+| **Shift + O** | 選択したトラックとその子のトラックの展開、折り畳みを切り替えます。 |
 
 
-### Viewports
+### ビューポート
 
 ![](Viewports.png)
 
-| Command | Description |
+| コマンド | 説明 |
 | ---- | ----------- |
-| **Shift + C** | Switch the active viewport to a Cinematic Viewport view mode. |
-| **Shift + D** | Switch the active viewport to a Default Viewport view mode. |
-| **Ctrl + Shift + T** | Toggles the display of the Toolbar in the active viewport. |
-| **G** | Enters Game View (hides all editor icons from being displayed). |
+| **Shift + C** | アクティブなビューポートをシネマティックス ビューポートのビューモードに切り替えます。 |
+| **Shift + D** | アクティブなビューポートをデフォルトのビューポートのビューモードに切り替えます。 |
+| **Ctrl + Shift + T** | アクティブなビューポートでのツールバーの表示を切り替えます。 |
+| **G** | ゲーム ビューに入ります (すべてのエディタ アイコンを非表示にします)。 |
 
 
