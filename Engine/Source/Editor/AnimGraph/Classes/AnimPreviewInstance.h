@@ -267,6 +267,12 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * This is used by when editing, when controller has to be disabled
 	 */
 	void EnableControllers(bool bEnable);
+
+	/** Used by GenSpaceBases to set up the anim instance proxy, calling InitializeObjects */
+	void PrePerformAnimationEvaluation();
+
+	/** Used by GenSpaceBases to clear the anim instance proxy, calling ClearObjects */
+	void PostPerformAnimationEvaluation();
 };
 
 

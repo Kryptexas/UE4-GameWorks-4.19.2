@@ -1914,7 +1914,7 @@ void ULevel::RouteActorInitialize()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
 				}
 
-				if (bCallBeginPlay)
+				if (bCallBeginPlay && !Actor->IsChildActor())
 				{
 					ActorsToBeginPlay.Add(Actor);
 				}
