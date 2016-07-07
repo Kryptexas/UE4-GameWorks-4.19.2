@@ -1356,16 +1356,19 @@ FText UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)
 {
 	FText ReturnDisplayName;
 
-	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
+	if (Function != NULL)
 	{
-		ReturnDisplayName = Function->GetDisplayNameText();
-	}
-	else
-	{
-		static const FString Namespace = TEXT("UObjectDisplayNames");
-		const FString Key = Function->GetFullGroupName(false);
+		if (GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames)
+		{
+			ReturnDisplayName = Function->GetDisplayNameText();
+		}
+		else
+		{
+			static const FString Namespace = TEXT("UObjectDisplayNames");
+			const FString Key = Function->GetFullGroupName(false);
 
-		ReturnDisplayName = Function->GetMetaDataText(TEXT("DisplayName"), Namespace, Key);
+			ReturnDisplayName = Function->GetMetaDataText(TEXT("DisplayName"), Namespace, Key);
+		}
 	}
 	return ReturnDisplayName;
 }

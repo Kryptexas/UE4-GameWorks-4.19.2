@@ -13,7 +13,7 @@ struct FGroupDisplayInfo
 	}
 
 	FGroupDisplayInfo(const FGroupDisplayInfo& Other)
-		: DisplayName(Other.DisplayName)
+		: Name(Other.Name)
 		, Description(Other.Description)
 		, Motto(Other.Motto)
 		, Language(Other.Language)
@@ -22,7 +22,7 @@ struct FGroupDisplayInfo
 	}
 
 	/** The human readable name of this guild */
-	FText DisplayName;
+	FText Name;
 
 	/** User entered guild description text */
 	FText Description;
@@ -71,9 +71,12 @@ public:
  */
 struct FGroupMember
 {
-	TSharedPtr<const FUniqueNetId> Id;
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
+
+	TSharedPtr<const FUniqueNetId> AccountId;
+	bool bAdmin;
+	bool bIsOwner;
 	FDateTime JoinedAt;
-	bool bIsAdmin;
 };
 
 /**
@@ -81,12 +84,11 @@ struct FGroupMember
  */
 struct FGroupMemberInvite
 {
-	TSharedPtr<const FUniqueNetId> Id;
-	FDateTime InvitedAt;
-	FString Host;
-	FString Message;
-	TSharedPtr<const FUniqueNetId> JobId;
-	FString JobSummary;
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
+
+	TSharedPtr<const FUniqueNetId> AccountId;
+	TSharedPtr<const FUniqueNetId> GroupHostId;
+	FDateTime SentAt;
 };
 
 /**
@@ -94,10 +96,10 @@ struct FGroupMemberInvite
  */
 struct FGroupMemberRequest
 {
-	TSharedPtr<const FUniqueNetId> Id;
-	FDateTime JoinedAt;
-	bool IsAdmin;
-	bool IsOwner;
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
+
+	TSharedPtr<const FUniqueNetId> AccountId;
+	FDateTime SentAt;
 };
 
 /**
@@ -105,7 +107,9 @@ struct FGroupMemberRequest
  */
 struct FGroupBlacklistEntry
 {
-	TSharedPtr<const FUniqueNetId> Id;
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
+
+	TSharedPtr<const FUniqueNetId> AccountId;
 	bool bIsApplicant;
 };
 
@@ -114,23 +118,31 @@ struct FGroupBlacklistEntry
  */
 struct FUserMembershipEntry
 {
-	/** The display name of the group */
-	FText DisplayName;
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
 
-	/** The globally unique id of the group */
-	TSharedPtr<const FUniqueNetId> Id;
+	/** AccountId of the member */
+	TSharedPtr<const FUniqueNetId> AccountId;
 
-	/** Arbitrary namespace string used to filter group groups in some queries or client side. Usually this would be the game codename */
-	FString Namespace;
+	/** Does the user have admin rights for this group. */
+	bool bAdmin;
 
-	/** GUID of the user account that holds the owner role for this group (will only be one) */
-	TSharedPtr<const FUniqueNetId> Owner;
+	/** Is the user the owner of this group. */
+	bool bIsOwner;
 
 	/** When did the user join this group */
 	FDateTime JoinedAt;
 
-	/** Does the user have admin rights for this group. */
-	bool bIsAdmin;
+	/** Arbitrary namespace string used to filter group groups in some queries or client side. Usually this would be the game codename */
+	FString Namespace;
+
+	/** GroupId */
+	TSharedPtr<const FUniqueNetId> GroupId;
+
+	/** The display name of the group */
+	FText Name;
+
+	/** AccountId of the group owner */
+	TSharedPtr<const FUniqueNetId> Owner;
 };
 
 /**
@@ -138,20 +150,13 @@ struct FUserMembershipEntry
  */
 struct FApplicationEntry
 {
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
+
 	/** AccountId of the user who applied for group membership. */
-	TSharedPtr<const FUniqueNetId> Id;
+	TSharedPtr<const FUniqueNetId> AccountId;
 
 	/** Timestamp of when the application was sent. */
 	FDateTime SentAt;
-
-	/** Message associated with the membership application. */
-	FText Message;
-
-	/** JobId of the application. */
-	TSharedPtr<const FUniqueNetId> JobId;
-
-	/** Job summary. */
-	FString JobSummary;
 
 	/** GroupId of the group for which membership was applied. */
 	TSharedPtr<const FUniqueNetId> GroupId;
@@ -164,35 +169,28 @@ struct FApplicationEntry
 };
 
 /**
-* An entry in the list of user pending membership invitations.
+* An entry in a user's list of groups to which they are invited.
 */
 struct FInvitationEntry
 {
-	/** AccountId of the user who applied for group membership. */
-	TSharedPtr<const FUniqueNetId> Id;
+	TSharedPtr<const FUniqueNetId> GetId() const { return AccountId; }
 
-	/** The name of the account that is associated with the other end of the transaction. */
-	FText Host;
+	/** AccountId of the user invited to group membership. */
+	TSharedPtr<const FUniqueNetId> AccountId;
+
+	/** AccountId of the group user that did the inviting. */
+	TSharedPtr<const FUniqueNetId> GroupHostId;
 
 	/** Timestamp of when the application was sent. */
 	FDateTime SentAt;
 
-	/** Message associated with the membership application. */
-	FText Message;
-
-	/** JobId of the application. */
-	TSharedPtr<const FUniqueNetId> JobId;
-
-	/** Job summary. */
-	FString JobSummary;
-
-	/** GroupId of the group for which membership was applied. */
+	/** The GroupId for the group. */
 	TSharedPtr<const FUniqueNetId> GroupId;
 
-	/** Namespace in which the application exists. */
+	/** The Namespace for the invitation. */
 	FString Namespace;
 
-	/** Name of the group. */
+	/** The Name of the group. */
 	FText Name;
 };
 
@@ -348,23 +346,20 @@ public: // callable by all users
 	 *
 	 * @param ContextUserId The ID of the user whose credentials are being used to make this call
 	 * @param GroupInfo The display info to use for the new group. Name, description, etc
-	 * @param Namespace What namespace to create this group in. This must match a namespace the server recognizes. Some 
-	 *        configuration options (like how many groups a user can own or be a member of) are inferred from this.
 	 * @param OnCompleted This callback is invoked after contacting the server. It is guaranteed to occur
 	 *        (regardless of success/fail) and will not be called before this function returns.
 	 */
-	virtual void CreateGroup(const FUniqueNetId& ContextUserId, const FGroupDisplayInfo& GroupInfo, const FString& Namespace, const FOnGroupsRequestCompleted& OnCompleted) = 0;
+	virtual void CreateGroup(const FUniqueNetId& ContextUserId, const FGroupDisplayInfo& GroupInfo, const FOnGroupsRequestCompleted& OnCompleted) = 0;
 
 	/**
-	 * Find all groups matching the specified search string within the namespace specified.
+	 * Find all groups matching the specified search string
 	 *
 	 * @param ContextUserId The ID of the user whose credentials are being used to make this call
 	 * @param SearchOptions A collections of search parameters passed to the search.
-	 * @param Namespace The namespace to restrict the search to (i.e. "fortnite")
 	 * @param OnCompleted Callback delegate which will receive the results of the search. Any GroupInfo from the search will 
 	 *        also be available from GetCachedGroupInfo.
 	 */
-	virtual void FindGroups(const FUniqueNetId& ContextUserId, const FGroupSearchOptions& SearchOptions, const FString& Namespace, const FOnFindGroupsCompleted& OnCompleted) = 0;
+	virtual void FindGroups(const FUniqueNetId& ContextUserId, const FGroupSearchOptions& SearchOptions, const FOnFindGroupsCompleted& OnCompleted) = 0;
 
 	/** 
 	 * Ask the server for GroupInfo corresponding to the provided group ID. If this completes 
@@ -506,6 +501,17 @@ public: // callable by all users
 	*        (regardless of success/fail) and will not be called before this function returns.
 	*/
 	virtual TSharedPtr<const IApplications> GetCachedApplications(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId) = 0;
+
+	/**
+	* Queries the server for a list of group invitations the user has sent.
+	* If the callback reports success, use GetCachedApplications to retrieve details.
+	*
+	* @param ContextUserId The ID of the user whose credentials are being used to make this call
+	* @param UserId The user to query for pending membership invitation information.
+	* @param OnCompleted This callback is invoked after contacting the server. It is guaranteed to occur
+	*        (regardless of success/fail) and will not be called before this function returns.
+	*/
+	virtual void QueryOutgoingInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) = 0;
 
 	/**
 	* Queries the server for a list of groups to which the user has been invited.
@@ -738,17 +744,6 @@ public: // can be called by group admins
 	*/
 	virtual void QueryIncomingApplications(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) = 0;
 
-	/**
-	* Queries the server for a list of invitations for other users to join groups to which UserId is an admin.
-	* If the callback reports success, use GetCachedInvitations to retrieve details.
-	*
-	* @param ContextUserId The ID of the user whose credentials are being used to make this call
-	* @param UserId The user to query for pending membership invitation information.
-	* @param OnCompleted This callback is invoked after contacting the server. It is guaranteed to occur
-	*        (regardless of success/fail) and will not be called before this function returns.
-	*/
-	virtual void QueryOutgoingInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) = 0;
-
 public: // can be called by group owner only
 
 	/**
@@ -778,6 +773,9 @@ protected:
 	IOnlineGroups() {}
 public:
 	virtual ~IOnlineGroups() {};
+
+	virtual void SetNamespace(const FString& Ns) = 0;
+	virtual const FString& GetNamespace() const = 0;
 };
 
 typedef TSharedPtr<IOnlineGroups, ESPMode::ThreadSafe> IOnlineGroupsPtr;
