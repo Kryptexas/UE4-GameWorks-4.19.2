@@ -20,7 +20,6 @@ Refer to the table below for more information and click each link to view its co
 [](FANCY:Engine\Sequencer\HowTo\TracksPlayRate "%Engine\Sequencer\HowTo\TracksPlayRate:description%")
 [/REGION]
 
-
 ## Intermediate
 [REGION:wrapper transparent]
 [](FANCY:Engine\Sequencer\HowTo\CharacterAnimation "%Engine\Sequencer\HowTo\CharacterAnimation:description%")
@@ -30,7 +29,11 @@ Refer to the table below for more information and click each link to view its co
 [](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
 [](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
 [](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\Sequencer\HowTo\BurnIns "%Engine\Sequencer\HowTo\BurnIns:description%")
+[/PUBLISH:docs]
 [/REGION]
+
 
 
 ## Advanced
@@ -39,6 +42,9 @@ Refer to the table below for more information and click each link to view its co
 [](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
 [](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksLevelVisibility "%Engine\Sequencer\HowTo\TracksLevelVisibility:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\Sequencer\HowTo\CustomBurnIns "%Engine\Sequencer\HowTo\CustomBurnIns:description%")
+[/PUBLISH:docs]
 [/REGION]
 
 
