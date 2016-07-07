@@ -29,7 +29,7 @@ To improve your productivity, several shortcuts have been built into the Sequenc
 | **]** | Sets the end of Playback Range to the current time. |
 
 
-## Keyframe Window Navigation
+## Tracks Area Navigation
 
 ![](KeyframeWindow.png)
 
@@ -38,9 +38,9 @@ To improve your productivity, several shortcuts have been built into the Sequenc
 [EXCERPT:keyframe]
 | Command | Description |
 | ---- | ----------- |
-| **Right-click Drag** | Allows you to move around the keyframe window. |
-| **Ctrl + Mouse Wheel In/Out** | Zoom in/out in the Keyframe window.  |
-| **Home** | Resets the zoom/view range of the Keyframe window. |
+| **Right-click Drag** | Allows you to move around the Tracks Area. |
+| **Ctrl + Mouse Wheel In/Out** | Zoom in/out in the Tracks Area.  |
+| **Home** | Resets the zoom/view range of the Tracks Area. |
 | **-** and **=** | Zoom into and out of the view range by 10%. |
 | **,** and **.** | Moves backwards and forwards between placed keyframes. |
 | **Left-click Drag** | Creates a selection box around keys in the window. |
@@ -75,7 +75,7 @@ The commands below do not respond to Numpad entries.
 
 ![](Editing.png)
 
-Select a section in the Keyframe window (audio or animation asset, camera, etc.) and edit it with the commands below. 
+Select a section in the Tracks Area (audio or animation asset, camera, etc.) and edit it with the commands below. 
 
 | Command | Description |
 | ---- | ----------- |

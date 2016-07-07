@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3027057
+﻿INTSourceChangelist:3038435
 Availability:Public
 Title:Animation ブループリントの作成
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
@@ -62,7 +62,7 @@ Animation ブループリントを新規作成する場合、ターゲットに�
 
 	![](CE_create_NoSkel.png)
 
-1. Animation ブループリントがどのスケルタルをターゲットにするかを指定するように促されます。ひとつ選択して、 **OK** をクリックします。 
+1. Animation ブループリントがどのスケルトンをターゲットにするかを指定するように促されます。ひとつ選択して **OK** をクリックします。 
 
 	![](PickSkeleton.png)
 

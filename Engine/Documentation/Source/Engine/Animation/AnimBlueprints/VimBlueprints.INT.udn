@@ -84,12 +84,12 @@ Check out the links below for more information on each topic.
 
 ## Working with Child Animation Blueprints
 
-When creating and setting up your characters and Animation Blueprints, there may be instances where you have multiple characters that are similar but have entirely different animations for different states. Rather than create Animation Blueprints for each of those characters, you may be able to use a **Child Animation Blueprint** of a pre-existing Animation Blueprint and override the animation assets that you want to replace. The Child Animation Blueprint will inherit everything from the parent, however it will also allow you to specify which animations to override via the **Asset Override Editor**. 
+When creating and setting up your characters and Animation Blueprints, there may be instances where you have multiple characters that are similar but have entirely different animations for different states. Rather than create Animation Blueprints for each of those characters, you may be able to use a **Child Animation Blueprint** of a pre-existing Animation Blueprint and override the animation assets that you want to replace. The Child Animation Blueprint will inherit everything from the parent, but it will also allow you to specify which animations to override via the **Asset Override Editor**. 
 
-For example, suppose you have two humanoid type characters where one is a human and another is a werewolf. Both characters can walk, run, jump, crawl, etc. however their motions may be entirely different. The logic of moving between those motions is the same, but the motions themselves are different. It's perfectly fine to create two different Animation Blueprints, but to save some time; you can create a Child Animation Blueprint and selectively choose which animations to override. 
+For example, suppose you have two humanoid type characters where one is a human and another is a werewolf. Both characters can walk, run, jump, crawl, etc. However, their motions may be entirely different. The logic of moving between those motions is the same, but the motions themselves are different. It's perfectly fine to create two different Animation Blueprints, but to save some time. you can create a Child Animation Blueprint and selectively choose which animations to override. 
 
 [REGION:note]
-See [**Animation Blueprint Override**](Engine/Animation/AnimHowTo/AnimBPOverride) for an example walk-through of creating and overriding an Animation Blueprint with a Child.
+See [**Animation Blueprint Override**](Engine/Animation/AnimHowTo/AnimBPOverride) for an example walk-through of creating and overriding an Animation Blueprint with a Child Animation Blueprint.
 [/REGION]
 
 

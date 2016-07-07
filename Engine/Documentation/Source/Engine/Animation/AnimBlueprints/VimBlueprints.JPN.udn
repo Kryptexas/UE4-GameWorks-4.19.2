@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3027057
+﻿INTSourceChangelist:3038435
 Availability:Public
 Title:Animation ブループリント
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -90,7 +90,7 @@ Animation ブループリントには、2 つの主要コンポーネントが�
 例えば、ひとつは人間でもうひとつはオオカミ人間という 2 種類の人間の形をしたキャラクターがあるとします。両方とも歩く、走る、ジャンプ、這うなどができます。しかし、その動きは全く異なる可能性があります。こうした動きの間での移動のロジックは同じですが、動き自体は異なります。2 種類の Animation ブループリントを作成しても問題ありませんが、時間を短縮するために子 Animation ブループリントを作成してどのアニメーションをオーバーライドするかを選択することができます。 
 
 [REGION:note]
-子 Animation ブループリントを作成し、オーバーライドする例の説明については、 [**Animation ブループリントのオーバーライド**](Engine/Animation/AnimHowTo/AnimBPOverride) をご覧ください。
+子 Animation ブループリントを作成し、オーバーライドする例の説明については、 [Animation ブループリントのオーバーライド](Engine/Animation/AnimHowTo/AnimBPOverride) をご覧ください。
 [/REGION]
 
 

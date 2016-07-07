@@ -26,8 +26,8 @@ New **Level Sequences** will not have any content in them and the image above is
 1. [Sequence Breadcrumbs](#sequencebreadcrumbs)
 1. [Add/Filter Tracks](#add/filtertracks)
 1. [Timeline](#timeline)
-1. [Tracks Window](#trackswindow)
-1. [Keyframe Window](#keyframewindow)
+1. [Tree View](#treeview)
+1. [Tracks Area](#tracksarea)
 1. [Playback Controls](#playbackcontrols)
 
 ## Tool Bar
@@ -45,14 +45,14 @@ What follows is a description of each of the toolbar buttons, from left to right
 | ![](tb_5.png) | Opens the General Options menu with settings to define functionality for Sequencer.  |
 | ![](tb_6.png) | Enables/Disables the Key All option. With this and auto-key enabled, determines if all properties are keyed for a track when changes are made or if only the changed property is keyed. |
 | ![](tb_7.png) | Enables/Disables different Auto-Key options. By default, this option is disabled but can be set to Auto-key All or Auto-key Animated. |
-| ![](tb_8.png) | Enables/Disables grid snapping for the Keyframe window as well as grid snapping options. |
+| ![](tb_8.png) | Enables/Disables grid snapping for the Tracks Area as well as grid snapping options. |
 | ![](tb_9.png) | Allows for adjustment of the time snapping internval. |
-| ![](tb_10.png) | Opens the [**Curve Editor**](Engine/UI/CurveEditor) which allows you to fine tune the animation keys placed in the Keyframe window. |
+| ![](tb_10.png) | Opens the [**Curve Editor**](Engine/UI/CurveEditor) which allows you to fine tune the animation keys placed in the Tracks Area. |
 
 ## Sequence Breadcrumbs
 
 Depending on your workflow, you may choose to create several **Level Sequences** as scenes and place each of those scenes in a new Level Sequence which is your "master" Level Sequence which plays those scenes back-to-back as part of a **Shots** track. 
-In these instances, you can jump from your master Level Sequence directly into each scene by **Double-clicking** on them inside the Keyframe window. 
+In these instances, you can jump from your master Level Sequence directly into each scene by **Double-clicking** on them inside the Tracks Area. 
 
 In the image below, we have a Level Sequence called _shot_06_ inside another Level Sequence called _Master_.
 
@@ -86,7 +86,7 @@ Below are the available Tracks you can add to Sequencer, click each link below t
 | [**Fade Track**](Engine\Sequencer\HowTo\TracksFade) | Adds a track that will allow you to control the fading in/out of the sequence.  |
 | [**Level Visibility Track**](Engine\Sequencer\HowTo\TracksLevelVisibility) | This can be used to keyframe and control the visibilty of your level. |
 
-The **Filter** option allows you to filter the **Tracks Window** for only Actors that have been added to the sequence from the level.
+The **Filter** option allows you to filter the **Tree View** for only Actors that have been added to the sequence from the level.
 
 ![](FilterOption.png)
 
@@ -107,9 +107,9 @@ Your sequence will continue to play from the start marker all the way to the end
 [/REGION]
 
 
-## Tracks Window
+## Tree View
 
-The **Tracks** window is where you determine what types of actions you want to perform during your sequence. 
+The **Tree View** is where you determine what types of actions you want to perform during your sequence. 
 
 ![](tracks1.png)
 
@@ -120,18 +120,18 @@ For example, in the image below we have added a **CameraComponent** track to our
 
 ![](tracks2.png)
 
-You can also add Keyframes from the Tracks Window for your tracks to define properties at a specific point on the Timeline.
+You can also add Keyframes from the Tree View for your tracks to define properties at a specific point on the Timeline.
 
 ![](AddKeyFrameButton.png)
 
 You can click the **+** keyframe button or press the **Enter** key with a Track selected. 
 
 
-## Keyframe Window
+## Tracks Area
 
 ![](KeyframeWindow.png)
 
-They **Keyframe** Window is where you adjust the content in each of your Tracks. You can adjust any keyframes you have added, trim/split or taper in/out of sections as well as several other options that are available from the **Right-click** context menu (pictured below). 
+They **Tracks Area** is where you adjust the content in each of your Tracks. You can adjust any keyframes you have added, trim/split or taper in/out of sections as well as several other options that are available from the **Right-click** context menu (pictured below). 
 
 ![](RightClickContext1.png)
 
@@ -141,9 +141,9 @@ Below, **Right-clicking** on an Animation assigned to an Animation Track and sel
 
 ![](RightClickProperties.png)
 
-### Navigating the Keyframe Window
+### Navigating the Tracks Area
 
-Below are methods and shortcuts you can use to navigate the Keyframe window. 
+Below are methods and shortcuts you can use to navigate the Tracks Area. 
 
 [INCLUDE:Engine\Sequencer\Workflow\CheatSheet#keyframe]
 
