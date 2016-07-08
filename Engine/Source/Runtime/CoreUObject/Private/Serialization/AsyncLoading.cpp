@@ -2261,17 +2261,36 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 		// Clear async loading flags (we still want RF_Async, but EInternalObjectFlags::AsyncLoading can be cleared)
 		for (UObject* Object : DeferredFinalizeObjects)
 		{
-			Object->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+			if (Object)
+			{
+				Object->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+			}
+
+			// CDO need special handling, no matter if it's listed in DeferredFinalizeObjects or created here for DynamicClass
+			UObject* CDOToHandle = nullptr;
+
 			// Dynamic Class doesn't require/use pre-loading (or post-loading). 
 			// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
 			if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Object))
 			{
-				DynamicClass->GetDefaultObject(true);
+				UObject* OldCDO = DynamicClass->GetDefaultObject(false);
+				UObject* NewCDO = DynamicClass->GetDefaultObject(true);
+				const bool bCDOWasJustCreated = (OldCDO != NewCDO);
+				if (bCDOWasJustCreated && (NewCDO != nullptr))
+				{
+					NewCDO->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+					CDOToHandle = NewCDO;
+				}
+			}
+			else
+			{
+				CDOToHandle = ((Object != nullptr) && Object->HasAnyFlags(RF_ClassDefaultObject)) ? Object : nullptr;
 			}
 
-			if(Object->HasAnyFlags(RF_ClassDefaultObject))
+			// Clear AsyncLoading in CDO's subobjects.
+			if(CDOToHandle != nullptr)
 			{
-				Object->GetDefaultSubobjects(CDODefaultSubobjects);
+				CDOToHandle->GetDefaultSubobjects(CDODefaultSubobjects);
 				for (UObject* SubObject : CDODefaultSubobjects)
 				{
 					if (SubObject && SubObject->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))

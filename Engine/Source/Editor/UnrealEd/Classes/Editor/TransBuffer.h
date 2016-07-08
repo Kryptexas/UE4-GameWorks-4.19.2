@@ -115,6 +115,7 @@ public:
 	virtual bool IsObjectSerializationEnabled() override { return DisallowObjectSerialization == 0; }
 	virtual void SetPrimaryUndoObject( UObject* Object ) override;
 	virtual bool IsObjectInTransationBuffer( const UObject* Object ) const override;
+	virtual bool IsObjectTransacting(const UObject* Object) const override;
 	virtual bool ContainsPieObject() const override;
 	virtual bool IsActive() override
 	{
@@ -179,4 +180,7 @@ private:
 
 	// Holds an event delegate that is executed when a undo operation is being attempted.
 	FOnTransactorUndo UndoDelegate;
+
+	// Reference to the current transaction, nullptr when not transacting:
+	FTransaction* CurrentTransaction;
 };

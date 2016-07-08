@@ -744,8 +744,16 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			// Record in the debugging information
 			//@TODO: Rename RegisterClassPropertyAssociation, etc..., to better match that indicate it works with locals
 			{
-				UObject* TrueSourceObject = MessageLog.FindSourceObject(Term.Source);
-				NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, NewProperty);
+				if (Term.SourcePin)
+				{
+					UEdGraphPin* TrueSourcePin = MessageLog.FindSourcePin(Term.SourcePin);
+					NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourcePin, NewProperty);
+				}
+				else
+				{
+					UObject* TrueSourceObject = MessageLog.FindSourceObject(Term.Source);
+					NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, NewProperty);
+				}
 			}
 
 			// Record the desired default value for this, if specified by the term
@@ -818,8 +826,16 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 
 				if (Term.AssociatedVarProperty != NULL)
 				{
-					UObject* TrueSourceObject = MessageLog.FindSourceObject(Term.Source);
-					NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, Term.AssociatedVarProperty);
+					if (Term.SourcePin)
+					{
+						UEdGraphPin* TrueSourcePin = MessageLog.FindSourcePin(Term.SourcePin);
+						NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourcePin, Term.AssociatedVarProperty);
+					}
+					else
+					{
+						UObject* TrueSourceObject = MessageLog.FindSourceObject(Term.Source);
+						NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, Term.AssociatedVarProperty);
+					}
 				}
 			}
 		}
@@ -922,7 +938,15 @@ void FKismetCompilerContext::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 				{
 					const FString ErrorMessage = *FString::Printf(*LOCTEXT("ParseDefaultValueError", "Can't parse default value '%s' for @@. Property: %s.").ToString(), *Value, *Property->GetName());
 					UObject* InstigatorObject = NewClass->GetDebugData().FindObjectThatCreatedProperty(Property);
-					MessageLog.Warning(*ErrorMessage, InstigatorObject);
+					if(InstigatorObject)
+					{
+						MessageLog.Warning(*ErrorMessage, InstigatorObject);
+					}
+					else
+					{
+						UEdGraphPin* InstigatorPin = NewClass->GetDebugData().FindPinThatCreatedProperty(Property);
+						MessageLog.Warning(*ErrorMessage, InstigatorPin);
+					}
 				}
 
 				break;
@@ -1821,6 +1845,13 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 
 		// If the flag is inherited, this will keep the bool up-to-date
 		Blueprint->bDeprecate = (Class->ClassFlags & CLASS_Deprecated) == CLASS_Deprecated;
+		
+		// If the Blueprint was marked as abstract, then flag the class as abstract.
+		if (Blueprint->bGenerateAbstractClass)
+		{
+			NewClass->ClassFlags |= CLASS_Abstract;
+		}
+		Blueprint->bGenerateAbstractClass = (Class->ClassFlags & CLASS_Abstract) == CLASS_Abstract;	
 
 		// Add the description to the tooltip
 		if (!Blueprint->BlueprintDescription.IsEmpty())
@@ -1957,7 +1988,12 @@ void FKismetCompilerContext::BuildDynamicBindingObjects(UBlueprintGeneratedClass
  */ 
 void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, const FString& PinName, FName ExecFuncName)
 {
-	UK2Node_Event* TimelineEventNode = SpawnIntermediateNode<UK2Node_Event>(TimelineNode, SourceGraph);
+	UEdGraphPin* SourcePin = nullptr;
+	if (UK2Node_Timeline* SourceNode = Cast<UK2Node_Timeline>(MessageLog.FindSourceObject(TimelineNode)))
+	{
+		SourcePin = SourceNode->FindPin(PinName);
+	}
+	UK2Node_Event* TimelineEventNode = SpawnIntermediateEventNode<UK2Node_Event>(TimelineNode, SourcePin, SourceGraph);
 	TimelineEventNode->EventReference.SetExternalMember(FunctionName, UTimelineComponent::StaticClass());
 	TimelineEventNode->CustomFunctionName = FunctionName; // Make sure we name this function the thing we are expecting
 	TimelineEventNode->bInternalEvent = true;
@@ -2397,11 +2433,12 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 	for (TArray<UEdGraph*>::TIterator It(Blueprint->UbergraphPages); It; ++It)
 	{
 		UEdGraph* SourceGraph = *It;
+		const bool bCreateTunnelBoundries = CompileOptions.IsInstrumentationActive();
 
 		if (CompileOptions.bSaveIntermediateProducts)
 		{
 			TArray<UEdGraphNode*> ClonedNodeList;
-			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, /*bIsCompiling*/ true, &ClonedNodeList);
+			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, /*bIsCompiling*/ true, bCreateTunnelBoundries/*bCreateTunnelBoundries*/, &ClonedNodeList);
 
 			// Create a comment block around the ubergrapgh contents before anything else got started
 			int32 OffsetX = 0;
@@ -2419,7 +2456,7 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 		}
 		else
 		{
-			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, /*bIsCompiling*/ true);
+			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, /*bIsCompiling*/ true, bCreateTunnelBoundries/*bCreateTunnelBoundries*/);
 		}
 	}
 }
@@ -2591,7 +2628,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 				if (!bFoundEntry)
 				{
 					// Create an entry node stub, so that we have a entry point for interfaces to call to
-					UK2Node_Event* EventNode = SpawnIntermediateNode<UK2Node_Event>(NULL, ConsolidatedEventGraph);
+					UK2Node_Event* EventNode = SpawnIntermediateEventNode<UK2Node_Event>(nullptr, nullptr, ConsolidatedEventGraph);
 					EventNode->EventReference.SetExternalMember(FunctionName, InterfaceDesc.Interface);
 					EventNode->bOverrideFunction = true;
 					EventNode->AllocateDefaultPins();
@@ -2757,6 +2794,12 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
 			UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL, &MessageLog, true);
+
+			if (CompileOptions.IsInstrumentationActive())
+			{
+				// Create tunnel Boundary signals
+				UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(MacroInstanceNode, ClonedGraph, MessageLog);
+			}
 
 			for (int32 I = 0; I < ClonedGraph->Nodes.Num(); ++I)
 			{
@@ -3349,6 +3392,16 @@ void FKismetCompilerContext::Compile()
 			if (FunctionList[i].IsValid())
 			{
 				PostcompileFunction(FunctionList[i]);
+			}
+		}
+
+		// Create a mapping between compile time generated events and what created them.
+		if (TargetClass->bHasInstrumentation)
+		{
+			FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
+			for (auto EventInfo : SourcePinToExpansionEvent)
+			{
+				DebugData.RegisterPinToEventName(EventInfo.Key, EventInfo.Value->GetFunctionName());
 			}
 		}
 

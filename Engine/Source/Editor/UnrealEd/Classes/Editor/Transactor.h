@@ -346,6 +346,8 @@ protected:
 	/** Count of the number of UModels modified since the last call to FTransaction::Apply */
 	int32					NumModelsModified;
 
+	/** Objects that will be changed directly by the transaction, empty when not transacting */
+	TMap<UObject*, TSharedPtr<ITransactionObjectAnnotation>> ChangedObjects;
 public:
 	// Constructor.
 	FTransaction(  const TCHAR* InContext=NULL, const FText& InTitle=FText(), bool InFlip=0 )
@@ -414,6 +416,9 @@ public:
 
 	/** @return True if this record contains a reference to a pie object */
 	bool ContainsPieObject() const;
+
+	/** Checks if a specific object is in the transaction currently underway */
+	bool IsObjectTransacting(const UObject* Object) const;
 
 	/**
 	 * Outputs the contents of the ObjectMap to the specified output device.
@@ -594,10 +599,13 @@ class UTransactor : public UObject
 	/** 
 	 * Set passed object as the primary context object for transactions
 	 */
-	virtual void SetPrimaryUndoObject( UObject* Object ) PURE_VIRTUAL(UTransactor::MakePrimaryUndoObject,);
+	virtual void SetPrimaryUndoObject( UObject* Object ) PURE_VIRTUAL(UTransactor::SetPrimaryUndoObject,);
 
 	/** Checks if a specific object is referenced by the transaction buffer */
 	virtual bool IsObjectInTransationBuffer( const UObject* Object ) const { return false; }
+
+	/** Checks if a specific object is in the transaction currently underway */
+	virtual bool IsObjectTransacting(const UObject* Object) const PURE_VIRTUAL(UTransactor::IsObjectTransacting, return false;);
 
 	/** @return True if this record contains a reference to a pie object */
 	virtual bool ContainsPieObject() const { return false; }

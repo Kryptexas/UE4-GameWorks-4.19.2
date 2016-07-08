@@ -4109,11 +4109,11 @@ void FBlueprintEditor::OnChangePinType()
 				UK2Node_Select* SelectNode = Cast<UK2Node_Select>(SelectedPin->GetOwningNode());
 				if (SelectNode && SelectNode->GetIndexPin() == SelectedPin)
 				{
-					TSharedRef<SCompoundWidget> PinChange = SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableIndexTypeTree))
+					TSharedRef<SCompoundWidget> PinChange = SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
 				.TargetPinType(this, &FBlueprintEditor::OnGetPinType, RootPin)
 						.OnPinTypeChanged(this, &FBlueprintEditor::OnChangePinTypeFinished, SelectedPin)
 						.Schema(Schema)
-						.bAllowExec(false)
+						.TypeTreeFilter(ETypeTreeFilter::IndexTypesOnly)
 						.IsEnabled(true)
 						.bAllowArrays(false);
 
@@ -4131,7 +4131,7 @@ void FBlueprintEditor::OnChangePinType()
 				.TargetPinType(this, &FBlueprintEditor::OnGetPinType, RootPin)
 						.OnPinTypeChanged(this, &FBlueprintEditor::OnChangePinTypeFinished, SelectedPin)
 						.Schema(Schema)
-						.bAllowExec(false)
+						.TypeTreeFilter(ETypeTreeFilter::None)
 						.IsEnabled(true)
 						.bAllowArrays(false);
 
@@ -4533,6 +4533,8 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 
 	UEdGraphNode* InterfaceTemplateNode = nullptr;
 
+	TArray<UEdGraphPin*> EntryGatewayPins;
+
 	// Runs through every node and fully validates errors with placing selection in a function graph, reporting all errors.
 	for (TSet<UEdGraphNode*>::TConstIterator NodeIt(InSelection); NodeIt; ++NodeIt)
 	{
@@ -4570,37 +4572,45 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 			{
 				if(Node->Pins[PinIndex]->PinType.PinCategory == K2Schema->PC_Exec)
 				{
-					for (int32 LinkIndex = 0; LinkIndex < Node->Pins[PinIndex]->LinkedTo.Num(); ++LinkIndex)
+					if (Node->Pins[PinIndex]->LinkedTo.Num() == 0 && Node->Pins[PinIndex]->Direction == EGPD_Input)
 					{
-						if(!InSelection.Contains(Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode()))
+						EntryGatewayPins.Add(Node->Pins[PinIndex]);
+					}
+					else
+					{
+						for (int32 LinkIndex = 0; LinkIndex < Node->Pins[PinIndex]->LinkedTo.Num(); ++LinkIndex)
 						{
-							if(Node->Pins[PinIndex]->Direction == EGPD_Input)
+							if (!InSelection.Contains(Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode()))
 							{
-								// For input pins, there must be a single connection 
-								if(InputConnection == NULL || InputConnection == Node->Pins[PinIndex])
+								if (Node->Pins[PinIndex]->Direction == EGPD_Input)
 								{
-									InputConnection = Node->Pins[PinIndex];
+									// For input pins, there must be a single connection 
+									if (InputConnection == NULL || InputConnection == Node->Pins[PinIndex])
+									{
+										EntryGatewayPins.Add(Node->Pins[PinIndex]);
+										InputConnection = Node->Pins[PinIndex];
+									}
+									else
+									{
+										// Check if the input connection was linked, report what node it is connected to
+										LogResults.Error(*LOCTEXT("TooManyPathsMultipleInput_Error", "Found too many input connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode(), InputConnection->GetOwningNode(), InputConnection->LinkedTo[0]->GetOwningNode());
+										bBadConnection = true;
+									}
 								}
 								else
 								{
-									// Check if the input connection was linked, report what node it is connected to
-									LogResults.Error(*LOCTEXT("TooManyPathsMultipleInput_Error", "Found too many input connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode(), InputConnection->GetOwningNode(), InputConnection->LinkedTo[0]->GetOwningNode());
-									bBadConnection = true;
-								}
-							}
-							else
-							{
-								// For output pins, as long as they all connect to the same pin, we consider the selection valid for being made into a function
-								if(OutputConnection == NULL || OutputConnection == Node->Pins[PinIndex]->LinkedTo[LinkIndex])
-								{
-									OutputConnection = Node->Pins[PinIndex]->LinkedTo[LinkIndex];
-								}
-								else
-								{
-									check(OutputConnection->LinkedTo.Num());
+									// For output pins, as long as they all connect to the same pin, we consider the selection valid for being made into a function
+									if (OutputConnection == NULL || OutputConnection == Node->Pins[PinIndex]->LinkedTo[LinkIndex])
+									{
+										OutputConnection = Node->Pins[PinIndex]->LinkedTo[LinkIndex];
+									}
+									else
+									{
+										check(OutputConnection->LinkedTo.Num());
 
-									LogResults.Error(*LOCTEXT("TooManyPathsMultipleOutput_Error", "Found too many output connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode(), OutputConnection->GetOwningNode(), OutputConnection->LinkedTo[0]->GetOwningNode());
-									bBadConnection = true;
+										LogResults.Error(*LOCTEXT("TooManyPathsMultipleOutput_Error", "Found too many output connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode(), OutputConnection->GetOwningNode(), OutputConnection->LinkedTo[0]->GetOwningNode());
+										bBadConnection = true;
+									}
 								}
 							}
 						}
@@ -4608,6 +4618,13 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 				}
 			}
 		}
+	}
+
+	if (!bBadConnection && InputConnection == nullptr && EntryGatewayPins.Num() > 1)
+	{
+		// Too many input gateway pins with no connections.
+		LogResults.Error(*LOCTEXT("AmbiguousEntryPaths_Error", "Multiple entry pin possibilities. Unable to convert to a function. Make sure that selection either has only 1 entry pin or exactly 1 entry pin has a connection.").ToString());
+		bBadConnection = true;
 	}
 
 	// No need to check for cycling if the selection is invalid anyways.
@@ -6483,6 +6500,10 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 
 	UEdGraphNode* InterfaceTemplateNode = nullptr;
 
+	// If our return node only contains an exec pin, then we don't need to add it
+	// This helps to mitigate cases where it is unclear which exec pins should be connected to the return node
+	bool bDiscardReturnNode = true;
+
 	// For collapsing to functions can use a single event as a template for the function. This event MUST be deleted at the end, and the pins pre-generated. 
 	if(InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass())
 	{
@@ -6599,6 +6620,11 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 
 						if(!RemotePortPin && !LocalPortPin)
 						{
+							if (LocalPin->Direction == EGPD_Output)
+							{
+								bDiscardReturnNode = false;
+							}
+							
 							RemotePortPin = InGatewayNode->CreatePin(LocalPin->Direction, LocalPin->PinType, UniquePortName);
 							LocalPortPin = LocalPort->CreateUserDefinedPin(UniquePortName, LocalPin->PinType, (LocalPin->Direction == EGPD_Input)? EGPD_Output : EGPD_Input);
 						}
@@ -6621,6 +6647,13 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 						// Fix up the remote pin
 						RemotePin->LinkedTo.Remove(LocalPin);
 						RemotePin->MakeLinkTo(RemotePortPin);
+
+						// The Entry Node only supports a single link, so if we made links above
+						// we need to break them now, to make room for the new link.
+						if (LocalPort == InEntryNode)
+						{
+							LocalPortPin->BreakAllPinLinks();
+						}
 
 						// Fix up the local pin
 						LocalPin->LinkedTo.Remove(RemotePin);
@@ -6678,6 +6711,11 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 		InResultNode->NodePosX = MaxNodeX + PlusOffsetX;
 		InResultNode->NodePosY = CenterY;
 		InResultNode->SnapToGrid(SNodePanel::GetSnapGridSize());
+	}
+
+	if (bDiscardReturnNode)
+	{
+		InResultNode->DestroyNode();
 	}
 }
 
@@ -8007,9 +8045,11 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 			SpawnInfo.bNoFail = true;
 			SpawnInfo.ObjectFlags = RF_Transient|RF_Transactional;
 
-			// Temporarily remove the deprecated flag so we can respawn the Blueprint in the viewport
-			bool bIsClassDeprecated = PreviewBlueprint->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
+			// Temporarily remove the deprecated and abstract flag so we can respawn the Blueprint in the viewport
+			const bool bIsClassDeprecated = PreviewBlueprint->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
+			const bool bIsClassAbstract = PreviewBlueprint->GeneratedClass->HasAnyClassFlags(CLASS_Abstract);
 			PreviewBlueprint->GeneratedClass->ClassFlags &= ~CLASS_Deprecated;
+			PreviewBlueprint->GeneratedClass->ClassFlags &= ~CLASS_Abstract;
 
 			PreviewActorPtr = PreviewActor = PreviewScene.GetWorld()->SpawnActor(PreviewBlueprint->GeneratedClass, &SpawnLocation, &SpawnRotation, SpawnInfo);
 
@@ -8017,6 +8057,12 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 			if ( bIsClassDeprecated )
 			{
 				PreviewBlueprint->GeneratedClass->ClassFlags |= CLASS_Deprecated;
+			}
+			 
+			// Reassign the abstract flag if it was previously assigned
+			if (bIsClassAbstract)
+			{
+				PreviewBlueprint->GeneratedClass->ClassFlags |= CLASS_Abstract;
 			}
 
 			check(PreviewActor);

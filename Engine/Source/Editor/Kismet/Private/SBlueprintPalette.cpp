@@ -701,7 +701,7 @@ public:
 			.Schema(Schema)
 			.TargetPinType(this, &SPinTypeSelectorHelper::OnGetVarType)
 			.OnPinTypeChanged(this, &SPinTypeSelectorHelper::OnVarTypeChanged)
-			.bAllowExec(false)
+			.TypeTreeFilter(ETypeTreeFilter::None)
 			.bCompactSelector(true)
 		];
 	}

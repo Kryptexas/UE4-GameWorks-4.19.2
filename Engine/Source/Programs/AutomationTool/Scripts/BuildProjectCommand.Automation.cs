@@ -37,6 +37,32 @@ public partial class Project : CommandUtils
 {
 	#region Build Command
 
+    static string GetBlueprintPluginPathArgument(ProjectParams Params, bool Client, UnrealTargetPlatform TargetPlatform)
+    {
+        string ScriptPluginArgs = "";
+
+        // if we're utilizing an auto-generated code plugin/module (a product of 
+        // the cook process), make sure to compile it along with the targets here
+
+        if (Params.RunAssetNativization)
+        {
+            ProjectParams.BlueprintPluginKey PluginKey = new ProjectParams.BlueprintPluginKey();
+            PluginKey.Client = Client;
+            PluginKey.TargetPlatform = TargetPlatform;
+            FileReference CodePlugin = null;
+            if(Params.BlueprintPluginPaths.TryGetValue(PluginKey, out CodePlugin))
+            {
+                ScriptPluginArgs += "-PLUGIN \"" + CodePlugin + "\" ";
+            }
+            else
+            {
+                LogWarning("BlueprintPluginPath for " + TargetPlatform + " " + (Client ? "client" : "server") + " was not found");
+            }
+        }
+
+        return ScriptPluginArgs;
+    }
+
     public static void Build(BuildCommand Command, ProjectParams Params, int WorkingCL = -1, ProjectBuildTargets TargetMask = ProjectBuildTargets.All)
 	{
 		Params.ValidateAndLog();
@@ -79,18 +105,6 @@ public partial class Project : CommandUtils
 			}
 		}
 
-        string ScriptPluginArgs = "";
-        // if we're utilizing an auto-generated code plugin/module (a product of 
-        // the cook process), make sure to compile it along with the targets here
-        if (Params.RunAssetNativization)
-        {
-            // Add every plugin:
-            foreach( var CodePlugin in  Params.BlueprintPluginPaths)
-            {
-                ScriptPluginArgs += "-PLUGIN \"" + CodePlugin + "\" "; 
-            }
-        }
-
 		// Setup cooked targets
 		if (Params.HasClientCookedTargets && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
 		{
@@ -98,7 +112,8 @@ public partial class Project : CommandUtils
 			{
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
 				{
-					CrashReportPlatforms.Add(ClientPlatform);
+                    string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, true, ClientPlatform);
+                    CrashReportPlatforms.Add(ClientPlatform);
 					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
 				}
 			}
@@ -109,7 +124,8 @@ public partial class Project : CommandUtils
 			{
 				foreach (var ServerPlatform in Params.ServerTargetPlatforms)
 				{
-					CrashReportPlatforms.Add(ServerPlatform);
+                    string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, false, ServerPlatform);
+                    CrashReportPlatforms.Add(ServerPlatform);
 					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatform, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
 				}
 			}

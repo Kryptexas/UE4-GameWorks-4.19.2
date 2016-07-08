@@ -17,9 +17,25 @@ using UnrealBuildTool;
 /// </remarks>
 public partial class Project : CommandUtils
 {
-	#region Cook Command
+    #region Cook Command
 
-	public static void Cook(ProjectParams Params)
+    static void AddBlueprintPluginPathArgument(ProjectParams Params, bool Client, UnrealTargetPlatform TargetPlatform, string PlatformToCook)
+    {
+        if (Params.RunAssetNativization)
+        {
+            ProjectParams.BlueprintPluginKey PluginKey = new ProjectParams.BlueprintPluginKey();
+            PluginKey.Client = Client;
+            PluginKey.TargetPlatform = TargetPlatform;
+
+            string ProjectDir = Params.RawProjectPath.Directory.ToString();
+            // If you change this target path you must also update logic in CookOnTheFlyServer.cpp. Passing a single directory around is cumbersome for testing, so I have hard coded it.
+            // Similarly if you change the .uplugin name you must update DefaultPluginName in BlueprintNativeCodeGenModule.cpp
+            string GeneratedPluginPath = CombinePaths(ProjectDir, "Intermediate", PlatformToCook, "NativizedAssets/NativizedAssets.uplugin");
+            Params.BlueprintPluginPaths.Add(PluginKey, new FileReference(GeneratedPluginPath));
+        }
+    }
+
+    public static void Cook(ProjectParams Params)
 	{
 		if ((!Params.Cook && !(Params.CookOnTheFly && !Params.SkipServer)) || Params.SkipCook)
 		{
@@ -80,15 +96,16 @@ public partial class Project : CommandUtils
 		else
 		{
 			var PlatformsToCook = new HashSet<string>();
-
-			if (!Params.NoClient)
+            if (!Params.NoClient)
 			{
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
 				{
 					// Use the data platform, sometimes we will copy another platform's data
 					var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
-					PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.Client, Params.CookFlavor));
-				}
+                    string PlatformToCook = Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.Client, Params.CookFlavor);
+                    PlatformsToCook.Add(PlatformToCook);
+                    AddBlueprintPluginPathArgument(Params, true, DataPlatform, PlatformToCook);
+                }
 			}
 			if (Params.DedicatedServer)
 			{
@@ -96,8 +113,10 @@ public partial class Project : CommandUtils
 				{
 					// Use the data platform, sometimes we will copy another platform's data
 					var DataPlatform = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
-					PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(true, false, Params.CookFlavor));
-				}
+                    string PlatformToCook = Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(true, false, Params.CookFlavor);
+                    PlatformsToCook.Add(PlatformToCook);
+                    AddBlueprintPluginPathArgument(Params, false, DataPlatform, PlatformToCook);
+                }
 			}
 
 			if (Params.Clean.HasValue && Params.Clean.Value && !Params.IterativeCooking)
@@ -216,16 +235,6 @@ public partial class Project : CommandUtils
                 if (Params.RunAssetNativization)
                 {
                     CommandletParams += " -NativizeAssets";
-
-                    // Store plugin paths now, it's easiest to do so while PlatformsToCook is still available:
-                    string ProjectDir = Params.RawProjectPath.Directory.ToString();
-                    foreach (var Platform in PlatformsToCook)
-                    {
-                        // If you change this target path you must also update logic in CookOnTheFlyServer.cpp. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-                        // Similarly if you change the .uplugin name you must update DefaultPluginName in BlueprintNativeCodeGenModule.cpp
-                        string GeneratedPluginPath = CombinePaths(ProjectDir, "Intermediate", Platform, "NativizedAssets/NativizedAssets.uplugin");
-                        Params.BlueprintPluginPaths.Add( new FileReference(GeneratedPluginPath) );
-                    }
                 }
                 if (Params.HasAdditionalCookerOptions)
                 {

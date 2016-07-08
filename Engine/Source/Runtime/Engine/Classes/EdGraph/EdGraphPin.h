@@ -397,9 +397,6 @@ public:
 	/** Changes the owning node. This will remove the pin from the old owning node's pin list and add itself to the new node's pin list. */
 	ENGINE_API void SetOwningNode(UEdGraphNode* NewOwningNode);
 
-	/** Marks the pin as 'trashed'. Removed the pin from the Owning Node's Pins list */
-	ENGINE_API void InvalidateAndTrash();
-
 	/** Marks the pin as 'trashed'. *Does not* remove the pin from the Owning Node's Pins list */
 	ENGINE_API void MarkPendingKill();
 
@@ -429,17 +426,14 @@ public:
 	/** This needs to be called if you want to use pin data within PostEditUndo */
 	ENGINE_API static void ResolveAllPinReferences();
 private:
-	/** 
-		Unsafe helper function used to deal with odd design of transaction buffer, 
-		which immediately applies changes to some records before saving state of others 
-	  */
-	void QueueForDestruction();
-
 	/** Private Constructor. Create pins using CreatePin since all pin instances are managed by TSharedPtr. */
 	UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinGuid);
 
 	/** Backward compatibility code to populate this pin with data from the supplied deprecated UEdGraphPin. */
 	void InitFromDeprecatedPin(class UEdGraphPin_Deprecated* DeprecatedPin);
+
+	/** Helper function for common destruction logic */
+	void DestroyImpl(bool bClearLinks);
 
 	bool Serialize(FArchive& Ar);
 

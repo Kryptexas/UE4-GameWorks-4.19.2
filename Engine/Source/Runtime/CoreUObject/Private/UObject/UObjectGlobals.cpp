@@ -2531,41 +2531,93 @@ FObjectInitializer::~FObjectInitializer()
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	bool bIsPostConstructInitDeferred = false;
-	if (bIsCDO && (ObjectArchetype != nullptr) && !FBlueprintSupport::IsDeferredCDOInitializationDisabled())
-	{
-		UClass* ArchetypeClass = ObjectArchetype->GetClass();
-		const bool bSuperCDONeedsLoad = ObjectArchetype->HasAnyFlags(RF_NeedLoad) ||
-			(ArchetypeClass->GetLinker() && ArchetypeClass->GetLinker()->IsBlueprintFinalizationPending()) ||
-			FDeferredObjInitializerTracker::IsCdoDeferred(ArchetypeClass);
-
-		// if this is a blueprint CDO that derives from another blueprint, and 
-		// that parent (archetype) CDO isn't fully serialized
-		if (!Class->IsNative() && !ArchetypeClass->IsNative() && bSuperCDONeedsLoad)
+	if (!FBlueprintSupport::IsDeferredCDOInitializationDisabled())
+	{		
+		UClass* BlueprintClass = nullptr;
+		// since "InheritableComponentTemplate"s are not default sub-objects, 
+		// they won't be fixed up by the owner's FObjectInitializer (CDO 
+		// FObjectInitializers will init default sub-object properties, copying  
+		// from the super's DSOs) - this means that we need to separately defer 
+		// init'ing these sub-objects when their archetype hasn't been loaded 
+		// yet (it is possible that the archetype isn't even correct, as the 
+		// super's sub-object hasn't even been created yet; in this case the 
+		// component's CDO is used, which is probably wrong)
+		if (Obj->HasAnyFlags(RF_InheritableComponentTemplate))
 		{
-			FLinkerLoad* ClassLinker = Class->GetLinker();
-			if ((ClassLinker != nullptr) && (ClassLinker->LoadFlags & LOAD_DeferDependencyLoads) != 0x00)
-			{
+			BlueprintClass = Cast<UClass>(Obj->GetOuter());
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-				// make sure we haven't already deferred this once, if we have
-				// then something is destroying this one prematurely 
-				check(bIsDeferredInitializer == false);
+			check(BlueprintClass != nullptr);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		}
+		else if (bIsCDO && !Class->IsNative())
+		{
+			BlueprintClass = Class;
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			check(Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		}
 
-				for (const FSubobjectsToInit::FSubobjectInit& SubObjInfo : ComponentInits.SubobjectInits)
-				{
-					check(!SubObjInfo.Subobject->HasAnyFlags(RF_NeedLoad));
-				}
+		if (BlueprintClass != nullptr)
+		{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			check(!BlueprintClass->IsNative());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
-				// makes a copy of this and saves it off, to be ran later
-				if (FObjectInitializer* DeferredCopy = FDeferredObjInitializerTracker::Add(*this))
+			UClass* SuperClass = BlueprintClass->GetSuperClass();
+			if (SuperClass && !SuperClass->IsNative())
+			{
+				UObject* SuperBpCDO = nullptr;
+				// if this is a CDO (then we know/assume the archetype is the 
+				// CDO from the super class), use the ObjectArchetype for the 
+				// SuperBpCDO (because the SuperClass may have a REINST CDO 
+				// cached currently)
+				if (bIsCDO)
 				{
-					bIsPostConstructInitDeferred = true;
-					DeferredCopy->bIsDeferredInitializer = true;
+					SuperBpCDO = ObjectArchetype;
+					SuperClass = ObjectArchetype->GetClass();
 
-					// make sure this wasn't mistakenly pushed into ObjectInitializers
-					// (the copy constructor should have been what was invoked, 
-					// which doesn't push to ObjectInitializers)
-					check(FUObjectThreadContext::Get().TopInitializer() != DeferredCopy);
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+					check(ObjectArchetype->HasAnyFlags(RF_ClassDefaultObject));
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+				}
+				else
+				{
+					SuperBpCDO = SuperClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
+				}
+
+				const bool bSuperLoadPending = FDeferredObjInitializerTracker::IsCdoDeferred(SuperClass) ||
+					(SuperBpCDO && SuperBpCDO->HasAnyFlags(RF_NeedLoad)) ||
+					(SuperClass->GetLinker() && SuperClass->GetLinker()->IsBlueprintFinalizationPending());
+
+				FLinkerLoad* ObjLinker = BlueprintClass->GetLinker();
+				const bool bIsBpClassSerializing    = ObjLinker && (ObjLinker->LoadFlags & LOAD_DeferDependencyLoads);
+				const bool bIsResolvingDeferredObjs = BlueprintClass->HasAnyFlags(RF_LoadCompleted) &&
+					ObjLinker && ObjLinker->IsBlueprintFinalizationPending();
+
+				if (bSuperLoadPending && (bIsBpClassSerializing || bIsResolvingDeferredObjs))
+				{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+					// make sure we haven't already deferred this once, if we have
+					// then something is destroying this one prematurely 
+					check(bIsDeferredInitializer == false);
+
+					for (const FSubobjectsToInit::FSubobjectInit& SubObjInfo : ComponentInits.SubobjectInits)
+					{
+						check(!SubObjInfo.Subobject->HasAnyFlags(RF_NeedLoad));
+					}
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+					
+					// makes a copy of this and saves it off, to be ran later
+					if (FObjectInitializer* DeferredCopy = FDeferredObjInitializerTracker::Add(*this))
+					{
+						bIsPostConstructInitDeferred = true;
+						DeferredCopy->bIsDeferredInitializer = true;
+
+						// make sure this wasn't mistakenly pushed into ObjectInitializers
+						// (the copy constructor should have been what was invoked, 
+						// which doesn't push to ObjectInitializers)
+						check(FUObjectThreadContext::Get().TopInitializer() != DeferredCopy);
+					}
 				}
 			}
 		}
@@ -2596,25 +2648,33 @@ void FObjectInitializer::PostConstructInit()
 	UClass* SuperClass = Class->GetSuperClass();
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	// if this is a deferred initializer (implying that it's for a CDO), and the 
-	// ObjectArchetype (super CDO) has since been regenerated, then we cannot
-	// reliably initialize and instance properties (if we were to use the 
-	// regenerated ObjectArchetype, the property layouts could differ and that's
-	// not viable for InitProperties())
-	// 
-	// However, this case is handled in FLinkerLoad::ResolveDeferredExports(), 
-	// where we forcefully recreate and separately init this CDO (hence it being 
-	// moved to the transient package) 
 	if (bIsDeferredInitializer)
 	{
-		const bool bSuperHasBeenRegenerated = SuperClass->HasAnyClassFlags(CLASS_NewerVersionExists);
+		const bool bIsDeferredSubObject = Obj->HasAnyFlags(RF_InheritableComponentTemplate);
+		if (bIsDeferredSubObject)
+		{
+			// when this sub-object was created it's archetype object (the 
+			// super's sub-obj) may not have been created yet (thanks cyclic 
+			// dependencies). in that scenario, the component class's CDO would  
+			// have been used in its place; now that we're resolving the defered 
+			// sub-obj initialization we should try to update the archetype
+			if (ObjectArchetype->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				ObjectArchetype = UObject::GetArchetypeFromRequiredInfo(Class, Obj->GetOuter(), Obj->GetFName(), Obj->GetFlags());
+				// NOTE: this may still be the component class's CDO (like when 
+				// a component was removed from the super, without resaving the child)
+			}			
+		}
+
+		UClass* ArchetypeClass = ObjectArchetype->GetClass();
+		const bool bSuperHasBeenRegenerated = ArchetypeClass->HasAnyClassFlags(CLASS_NewerVersionExists);
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-		check(bIsCDO);
+		check(bIsCDO || bIsDeferredSubObject);
 		check(ObjectArchetype->GetOutermost() != GetTransientPackage());
-		check(ObjectArchetype->GetClass() == SuperClass && !bSuperHasBeenRegenerated);
+		check(!bIsCDO || (ArchetypeClass == SuperClass && !bSuperHasBeenRegenerated));
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
-		if ( !ensureMsgf(!bSuperHasBeenRegenerated, TEXT("The super class for %s has been regenerated, we cannot properly initialize inherited properties, as the class layout may have changed."), *Obj->GetName()) )
+		if ( !ensureMsgf(!bSuperHasBeenRegenerated, TEXT("The archetype for %s has been regenerated, we cannot properly initialize inherited properties, as the class layout may have changed."), *Obj->GetName()) )
 		{
 			// attempt to complete initialization/instancing as best we can, but
 			// it would not be surprising if our CDO was improperly initialized 

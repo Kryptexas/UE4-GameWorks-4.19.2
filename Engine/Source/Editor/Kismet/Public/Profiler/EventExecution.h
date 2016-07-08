@@ -23,22 +23,25 @@ namespace EScriptExecutionNodeFlags
 		Node						= 0x00000800,	// Node timing
 		ExecPin						= 0x00001000,	// Exec pin dummy node
 		PureNode					= 0x00002000,	// Pure node (no exec pins)
-		AsyncTask					= 0x00004000,	// Async task node
-		AsyncTaskDelegate			= 0x00008000,	// Async task delegate pin/event
-		FunctionTunnel				= 0x00010000,	// Tunnel function
-		TunnelEntryPin				= 0x00020000,	// Tunnel entry pin
-		TunnelExitPin				= 0x00040000,	// Tunnel exit pin
-		ReEntrantTunnelPin			= 0x00080000,	// Re-Entrant tunnel pin
-		TunnelFinalExitPin			= 0x00100000,	// Tunnel final exit or exec then pin
+		EventPin					= 0x00004000,	// Delegate pin entry point
+		TunnelInstance				= 0x00008000,	// Tunnel instance
+		TunnelEntryPin				= 0x00010000,	// Internal tunnel entry pin
+		TunnelExitPin				= 0x00020000,	// Internal tunnel exit pin
+		TunnelEntryPinInstance		= 0x00040000,	// Tunnel entry pin instance
+		TunnelExitPinInstance		= 0x00080000,	// Tunnel exit pin instance
 		PureChain					= 0x00200000,	// Pure node call chain
 		CyclicLinkage				= 0x00400000,	// Marks execution path as cyclic.
 		InvalidTrace				= 0x00800000,	// Indicates that node doesn't contain a valid script trace.
-									// Groups
-		CallSite					= FunctionCall|MacroCall|FunctionTunnel,
+		// Groups
+		CallSite					= FunctionCall|MacroCall|TunnelInstance,
 		BranchNode					= ConditionalBranch|SequentialBranch,
+		TunnelInstancePin			= TunnelEntryPinInstance|TunnelExitPinInstance,
 		TunnelPin					= TunnelEntryPin|TunnelExitPin,
+		TunnelBoundary				= TunnelInstancePin|TunnelPin,
+		TunnelEntry					= TunnelEntryPin|TunnelEntryPinInstance,
+		TunnelExit					= TunnelExitPin|TunnelExitPinInstance,
 		PureStats					= PureNode|PureChain,
-		Container					= Class|Instance|Event|CustomEvent|TunnelPin|ExecPin|PureChain
+		Container					= Class|Instance|Event|CustomEvent|ExecPin|PureChain
 	};
 }
 
@@ -91,9 +94,6 @@ public:
 
 	/** Returns the child nodes map */
 	TArray<TSharedPtr<class FScriptExecutionNode>>& GetChildNodes() { return ChildNodes; }
-
-	/** Returns the filtered child nodes */
-	virtual void GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath);
 
 	/** Returns the number of children */
 	int32 GetNumChildren() const { return ChildNodes.Num(); }
@@ -230,8 +230,8 @@ public:
 	/** Does the node contain these flags */
 	bool HasFlags(const uint32 Flags) const { return (NodeFlags & Flags) != 0U; }
 
-	/** Returns if this exec node can be safely cyclicly linked */
-	bool IsCyclicNode() const { return (NodeFlags & EScriptExecutionNodeFlags::CallSite) == 0U; }
+	/** Returns the current node flags */
+	uint32 GetFlags() const { return NodeFlags; }
 
 	/** Returns if this exec event represents a change in class/blueprint */
 	bool IsClass() const { return (NodeFlags & EScriptExecutionNodeFlags::Class) != 0U; }
@@ -260,8 +260,26 @@ public:
 	/** Returns if this node is a pure chain node */
 	bool IsPureChain() const { return (NodeFlags & EScriptExecutionNodeFlags::PureChain) != 0U; }
 
-	/** Returns if this event potentially multiple exit sites */
+	/** Returns if this event potentially has multiple exit sites */
 	bool IsBranch() const { return (NodeFlags & EScriptExecutionNodeFlags::BranchNode) != 0U; }
+
+	/** Returns if this event represents a tunnel Boundary */
+	bool IsTunnelBoundary() const { return (NodeFlags & EScriptExecutionNodeFlags::TunnelBoundary) != 0U; }
+	
+	/** Returns if this event represents a tunnel instance */
+	bool IsTunnelInstance() const { return (NodeFlags & EScriptExecutionNodeFlags::TunnelInstance) != 0U; }
+
+	/** Returns if this event represents a tunnel entry */
+	bool IsTunnelEntry() const { return (NodeFlags & EScriptExecutionNodeFlags::TunnelEntryPinInstance) != 0U; }
+
+	/** Returns if this event represents a tunnel exit */
+	bool IsTunnelExit() const { return (NodeFlags & EScriptExecutionNodeFlags::TunnelExit) != 0U; }
+
+	/** Returns if this exec node can be safely cyclicly linked */
+	bool CanLinkAsCyclicNode() const { return (NodeFlags & EScriptExecutionNodeFlags::CallSite) != 0U; }
+
+	/** Returns true if this node is cyclicly linked */
+	bool HasCyclicLinkage() const { return (NodeFlags & EScriptExecutionNodeFlags::CyclicLinkage) != 0U; }
 
 	/** Gets the observed object context */
 	const UObject* GetObservedObject() { return ObservedObject.Get(); }
@@ -324,10 +342,10 @@ public:
 	virtual void GetAllPureNodes(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut);
 
 	/** Creates and returns the slate icon widget */
-	virtual TSharedRef<SWidget> GetIconWidget();
+	virtual TSharedRef<SWidget> GetIconWidget(const uint32 TracePath = 0U);
 
 	/** Creates and returns the slate hyperlink widget */
-	virtual TSharedRef<SWidget> GetHyperlinkWidget();
+	virtual TSharedRef<SWidget> GetHyperlinkWidget(const uint32 TracePath = 0U);
 
 protected:
 
@@ -386,13 +404,24 @@ public:
 	virtual void GetBlueprintPerfDataForAllTracePaths(FScriptPerfData& OutPerfData) override;
 	// ~FScriptNodePerfData
 
-	/** Adds a custom child entry point */
-	void AddCustomEntryPoint(TSharedPtr<class FScriptExecutionTunnelEntry> CustomEntryPoint) { CustomEntryPoints.Add(CustomEntryPoint); }
+	/** Adds an entry site at the specified script offset */
+	void AddEntrySite(const int32 ScriptOffset, TSharedPtr<class FScriptExecutionTunnelEntry> EntrySite);
+
+	/** Adds an entry site at the specified script offset */
+	void AddExitSite(const int32 ScriptOffset, TSharedPtr<class FScriptExecutionTunnelExit> ExitSite) { ExitSites.FindOrAdd(ScriptOffset) = ExitSite; }
+
+	/** Copies tunnel Boundary sites  */
+	void CopyBoundarySites(TSharedPtr<FScriptExecutionTunnelInstance> OtherInstance);
+
+	/** Find a tunnel Boundary node by script offset */
+	TSharedPtr<FScriptExecutionNode> FindBoundarySite(const int32 ScriptOffset);
 
 private:
 
-	/** List of custom entry points */
-	TArray<TSharedPtr<class FScriptExecutionTunnelEntry>> CustomEntryPoints;
+	/** List of entry sites by script offset */
+	TMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> EntrySites;
+	/** List of exit sites by script offset */
+	TMap<int32, TSharedPtr<FScriptExecutionTunnelExit>> ExitSites;
 
 };
 
@@ -403,69 +432,68 @@ class KISMET_API FScriptExecutionTunnelEntry : public FScriptExecutionNode
 {
 public:
 
-	/** Tunnel execution type */
-	enum ETunnelType
-	{
-		SimpleTunnel = 0,
-		SinglePathTunnel,
-		MultiIOTunnel
-	};
-
-	FScriptExecutionTunnelEntry(const FScriptExecNodeParams& InitParams, const class UK2Node_Tunnel* TunnelInstanceIn, const ETunnelType TypeIn)
+	FScriptExecutionTunnelEntry(const FScriptExecNodeParams& InitParams)
 		: FScriptExecutionNode(InitParams)
-		, TunnelType(TypeIn)
-		, TunnelInstance(TunnelInstanceIn)
 	{
 	}
 
 	// FScriptExecutionNode
 	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
-	virtual void GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath) override;
 	virtual void RefreshStats(const FTracePath& TracePath) override;
 	// ~FScriptExecutionNode
 
 	/** Add tunnel timing */
-	void AddTunnelTiming(const FName InstanceName, const FTracePath& TracePath, const double Time);
+	void AddTunnelTiming(const FName InstanceName, const FTracePath& TracePath, const FTracePath& InternalTracePath, const int32 ExitScriptOffset, const double Time);
 
-	/** Update tunnel exit site */
-	void UpdateTunnelExit(const FName InstanceName, const FTracePath& TracePath, const int32 ExitScriptOffset);
+	/** Returns the tunnel instance type */
+	bool IsComplexTunnel() const { return LinkedNodes.Num() > 1; }
 
-	/** Returns true if the script offset is valid for this tunnel */
-	bool IsPathValidForTunnel(const int32 ScriptOffset) const;
+	/** Returns the tunnel instance exec node */
+	TSharedPtr<FScriptExecutionTunnelInstance> GetTunnelInstance() const { return TunnelInstance; }
 
-	/** Returns the tunnel instance graph node */
-	const ETunnelType GetTunnelType() const { return TunnelType; }
-
-	/** Returns the tunnel instance graph node */
-	const UK2Node_Tunnel* GetTunnelInstance() const { return TunnelInstance.Get(); }
+	/** Sets the tunnel instance exec node */
+	void SetTunnelInstance(TSharedPtr<FScriptExecutionTunnelInstance> TunnelInstanceIn) { TunnelInstance = TunnelInstanceIn; }
 
 	/** Adds a valid exit script offset */
-	void AddExitSite(TSharedPtr<FScriptExecutionNode> ExitSite, const int32 ExitScriptOffset);
+	void AddExitSite(const int32 ExitScriptOffset, TSharedPtr<class FScriptExecutionTunnelExit> ExitSite);
 
-	/** Returns the exit point associated with the script offset */
-	TSharedPtr<FScriptExecutionNode> GetExitSite(const int32 ScriptOffset) const;
+	/** Returns the exit point associated with the exit script offset */
+	TSharedPtr<FScriptExecutionTunnelExit> GetExitSite(const int32 ScriptOffset) const;
 
-	/** Returns if the exit point associated with the script offset is the final exit site */
-	bool IsFinalExitSite(const int32 ScriptOffset) const;
+	/** Returns the exit point associated with the entry script offset */
+	TMap<int32, TSharedPtr<FScriptExecutionNode>> GetExitSites() { return LinkedNodes; }
 
-	/** Builds exit sites for instance */
-	void BuildExitBranches();
+	/** Returns true if the supplied node is inside this tunnel */
+	bool IsInternalBoundary(TSharedPtr<FScriptExecutionNode> PotentialBoundaryNode) const;
 
 private:
 
-	/** The tunnel type */
-	ETunnelType TunnelType;
 	/** The tunnel instance this node represents */
-	TWeakObjectPtr<const UK2Node_Tunnel> TunnelInstance;
-	/** List of valid exit scripts offsets */
-	TMap<int32, TSharedPtr<FScriptExecutionNode>> ValidExitPoints;
-	/** Branched exit sites */
-	TArray<FLinearExecPath> BranchedExitSites;
+	TSharedPtr<FScriptExecutionTunnelInstance> TunnelInstance;
 
 };
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptExecutionTunnelExit
+
+struct FTunnelExitInstanceData
+{
+	FTunnelExitInstanceData()
+		: InstanceIcon(nullptr)
+	{
+	}
+
+	FTunnelExitInstanceData(const FSlateBrush* PinIconIn, UEdGraphPin* InstancePinIn)
+		: InstanceIcon(PinIconIn)
+		, InstancePin(InstancePinIn)
+	{
+	}
+
+	/** Instance specific icon */
+	const FSlateBrush* InstanceIcon;
+	/** Instance specific pin */
+	FEdGraphPinReference InstancePin;
+};
 
 class KISMET_API FScriptExecutionTunnelExit : public FScriptExecutionNode
 {
@@ -479,8 +507,28 @@ public:
 	// FScriptExecutionNode
 	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
 	virtual void RefreshStats(const FTracePath& TracePath) override;
-	virtual void NavigateToObject() const;
+	virtual TSharedRef<SWidget> GetIconWidget(const uint32 TracePath = 0U) override;
+	virtual TSharedRef<SWidget> GetHyperlinkWidget(const uint32 TracePath = 0U) override;
 	// ~FScriptExecutionNode
+
+	/** Navigate to exit site using tracepath */
+	virtual void NavigateToExitSite(const uint32 TracePath) const;
+
+	/** Add Instance exit pin */
+	void AddInstanceExitSite(const uint32 TracePath, UEdGraphPin* InstanceExitPin);
+
+	/** Returns the external tunnel pin */
+	UEdGraphPin* GetExternalPin() const { return ExternalPin.Get(); }
+
+	/** Sets the external tunnel pin */
+	void SetExternalPin(UEdGraphPin* ExternalPinIn) { ExternalPin = ExternalPinIn; }
+
+private:
+
+	/** The internal tunnel pin this node represents */
+	FEdGraphPinReference ExternalPin;
+	/** Instance specific exit sites */
+	TMap<const uint32, FTunnelExitInstanceData> InstanceExitSiteInfo;
 
 };
 
@@ -512,18 +560,22 @@ public:
 
 	FScriptExecutionInstance(const FScriptExecNodeParams& InitParams)
 		: FScriptExecutionNode(InitParams)
+		, bPIEInstanceDestroyed(false)
 	{
 	}
 
 	// FScriptExecutionNode
 	virtual void NavigateToObject() const override;
-	virtual TSharedRef<SWidget> GetIconWidget() override;
-	virtual TSharedRef<SWidget> GetHyperlinkWidget() override;
+	virtual TSharedRef<SWidget> GetIconWidget(const uint32 TracePath = 0U) override;
+	virtual TSharedRef<SWidget> GetHyperlinkWidget(const uint32 TracePath = 0U) override;
 	virtual bool IsObservedObjectValid() const override;
 	// ~FScriptExecutionNode
 
-	/** Sets the current PIE Instance */
-	void SetPIEInstance(const UObject* PIEInstanceIn) { PIEInstance = PIEInstanceIn; }
+	/** Refresh PIE Instance */
+	void RefreshPIEInstance() const;
+
+	/** Returns the active object instance - PIE Instance if in PIE, otherwise editor instance */
+	UObject* GetActiveObject() const;
 
 private:
 
@@ -536,7 +588,9 @@ private:
 private:
 
 	/** PIE instance */
-	TWeakObjectPtr<const UObject> PIEInstance;
+	mutable TWeakObjectPtr<const UObject> PIEInstance;
+	/** Indicates the PIE instance has been detected as destroyed, so we don't keep refreshing */
+	mutable bool bPIEInstanceDestroyed;
 
 };
 

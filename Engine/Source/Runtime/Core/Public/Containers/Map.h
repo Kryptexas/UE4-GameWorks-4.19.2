@@ -1144,10 +1144,22 @@ public:
 	{
 		for(typename Super::ElementSetType::TConstKeyIterator It(Super::Pairs,Key);It;++It)
 		{
-			new(OutValues) const ValueType*(&It->Value);
+			OutValues.Add(&It->Value);
 		}
 
 		if(bMaintainOrder)
+		{
+			Algo::Reverse(OutValues);
+		}
+	}
+	template<typename Allocator> void MultiFindPointer(KeyInitType Key, TArray<ValueType*, Allocator>& OutValues, bool bMaintainOrder = false)
+	{
+		for (typename Super::ElementSetType::TKeyIterator It(Super::Pairs, Key); It; ++It)
+		{
+			OutValues.Add(&It->Value);
+		}
+
+		if (bMaintainOrder)
 		{
 			Algo::Reverse(OutValues);
 		}

@@ -2,6 +2,7 @@
 #pragma  once
 
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "BlueprintCompilerCppBackend.h"
 
 struct FCodeText
 {
@@ -89,17 +90,17 @@ public:
 	{
 		if (ListType == EClassSubobjectList::ComponentTemplates)
 		{
-			return TEXT("ComponentTemplates");
+			return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ComponentTemplates);
 		}
 		if (ListType == EClassSubobjectList::Timelines)
 		{
-			return TEXT("Timelines");
+			return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, Timelines);
 		}
 		if (ListType == EClassSubobjectList::DynamicBindingObjects)
 		{
-			return TEXT("DynamicBindingObjects");
+			return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, DynamicBindingObjects);
 		}
-		return TEXT("MiscConvertedSubobjects");
+		return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, MiscConvertedSubobjects);
 	}
 
 	void RegisterClassSubobject(UObject* Object, EClassSubobjectList ListType)
@@ -260,7 +261,8 @@ struct FEmitHelper
 	static FString GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property);
 
 	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
-		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx, bool bGetter);
+		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx
+		, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding);
 
 	// This code works properly as long, as all fields in structures are UProperties!
 	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property

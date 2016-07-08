@@ -172,6 +172,24 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 				}
 			}
 		}
+
+		// Include classes of native subobjects
+		if (BPGC)
+		{
+			UClass* NativeSuperClass = BPGC->GetSuperClass();
+			for (; NativeSuperClass && !NativeSuperClass->HasAnyClassFlags(CLASS_Native); NativeSuperClass = NativeSuperClass->GetSuperClass())
+			{}
+			UObject* NativeCDO = NativeSuperClass ? NativeSuperClass->GetDefaultObject(false) : nullptr;
+			if (NativeCDO)
+			{
+				TArray<UObject*> DefaultSubobjects;
+				NativeCDO->GetDefaultSubobjects(DefaultSubobjects);
+				for (UObject* DefaultSubobject : DefaultSubobjects)
+				{
+					IncludeTheHeaderInBody(DefaultSubobject ? DefaultSubobject->GetClass() : nullptr);
+				}
+			}
+		}
 	}
 
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override

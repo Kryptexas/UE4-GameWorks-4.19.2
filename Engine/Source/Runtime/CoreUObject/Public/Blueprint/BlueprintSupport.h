@@ -41,7 +41,7 @@ struct FBlueprintSupport
 	static bool IsDeferredCDOInitializationDisabled();
 
 	/** Tells if the specified object is one of the many flavors of FLinkerPlaceholderBase that we have. */
-	static bool IsDeferredDependencyPlaceholder(UObject* LoadedObj);
+	COREUOBJECT_API static bool IsDeferredDependencyPlaceholder(UObject* LoadedObj);
 
 	/** Not a particularly fast function. Mostly intended for validation in debug builds. */
 	static bool IsInBlueprintPackage(UObject* LoadedObj);
@@ -161,8 +161,8 @@ struct IBlueprintNativeCodeGenCore
 
 /** 
  * A helper struct for storing FObjectInitializers that were not run on 
- * Blueprint CDO's post-construction (presumably because that CDO's super had 
- * not been fully serialized yet). 
+ * Blueprint CDO's (or CDO sub-objects) post-construction (presumably because 
+ * that CDO's super had not been fully serialized yet). 
  * 
  * This was designed to hold onto FObjectInitializers until a later point, when 
  * they can properly be ran (presumably in FLinkerLoad::ResolveDeferredExports,
@@ -206,6 +206,8 @@ private:
 	UClass* ResolvingClass;
 	/** Tracks sub-classes that have had their CDO deferred as a result of the super not being fully serialized */
 	TMultiMap<UClass*, UClass*> SuperClassMap;
+	/** A map that tracks deferred FObjectInitializers for a class/CDO's sub-objects (not DSOs, but things like component override templates)*/
+	TMultiMap<UClass*, FObjectInitializer> DeferredSubObjInitializers;
 };
 
 

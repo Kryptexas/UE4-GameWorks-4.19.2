@@ -86,6 +86,11 @@ void FBlueprintProfiler::InstrumentEvent(const EScriptInstrumentationEvent& Even
 			ScriptCodeOffset = StackFrame.Code - StackFrame.Node->Script.GetData() - 1;
 			CurrentFunctionName = StackFrame.Node->GetFName();
 		}
+		// Handle latent suspends - set the script offset to the LinkId of the most recent latent action.
+		if (Event.GetType() == EScriptInstrumentation::ResumeEvent)
+		{
+			ScriptCodeOffset = Event.GetLatentLinkId();
+		}
 		InstrumentationEventQueue.Add(FScriptInstrumentedEvent(Event.GetType(), CurrentFunctionName, ScriptCodeOffset));
 		// Reset context on event end
 		if (Event.GetType() == EScriptInstrumentation::Stop)
@@ -232,7 +237,6 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 			}
 			case EScriptInstrumentation::Stop:
 			{
-				const int32 NumEventRanges = ScriptEventRanges.Num();
 				if (ScriptEventRanges.Num() > 0)
 				{
 					FEventRange& EventRangeToProcess = ScriptEventRanges.Last();
@@ -244,10 +248,14 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 						// Find any resumed contexts if required
 						if (InstrumentationEventQueue[EventRangeToProcess.StartIdx].IsResumeEvent())
 						{
-							if (TSharedPtr<FScriptEventPlayback>* SuspendedEvent = SuspendedEvents.Find(EventRangeToProcess.InstanceName))
+							if (TMap<int32, TSharedPtr<FScriptEventPlayback>>* SuspendedEventMap = SuspendedEvents.Find(EventRangeToProcess.InstanceName))
 							{
-								EventToProcess = *SuspendedEvent;
-								SuspendedEvents.Remove(EventRangeToProcess.InstanceName);
+								const int32 LatentLinkId = InstrumentationEventQueue[EventRangeToProcess.StartIdx].GetScriptCodeOffset();
+								if (TSharedPtr<FScriptEventPlayback>* SuspendedEvent = SuspendedEventMap->Find(LatentLinkId))
+								{
+									EventToProcess = *SuspendedEvent;
+									SuspendedEventMap->Remove(LatentLinkId);
+								}
 							}
 						}
 						else
@@ -263,7 +271,8 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 							DirtyContexts.Add(EventRangeToProcess.BlueprintContext);
 							if (EventToProcess->IsSuspended())
 							{
-								SuspendedEvents.Add(EventRangeToProcess.InstanceName) = EventToProcess;
+								TMap<int32, TSharedPtr<FScriptEventPlayback>>& SuspendedEventMap = SuspendedEvents.FindOrAdd(EventRangeToProcess.InstanceName);
+								SuspendedEventMap.Add(EventToProcess->GetLatentLinkId()) = EventToProcess;
 							}
 						}
 					}

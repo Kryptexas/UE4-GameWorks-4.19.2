@@ -65,7 +65,7 @@ public:
 	virtual ~FBPProfilerStatWidget() {}
 
 	/** Generate exec node widgets */
-	virtual void GenerateExecNodeWidgets(const TSharedPtr<struct FBlueprintProfilerStatOptions> DisplayOptions);
+	void GenerateExecNodeWidgets(const TSharedPtr<struct FBlueprintProfilerStatOptions> DisplayOptions);
 
 	/** Gather children for list/tree widget */
 	void GatherChildren(TArray<TSharedPtr<FBPProfilerStatWidget>>& OutChildren);
@@ -95,6 +95,21 @@ public:
 	bool ProbeChildWidgetExpansionStates();
 
 protected:
+
+	/** Generate standard node widgets */
+	void GenerateStandardNodeWidgets(const TSharedPtr<struct FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate pure node widgets */
+	void GeneratePureNodeWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate simple tunnel widgets */
+	void GenerateSimpleTunnelWidgets(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode, const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate complex tunnel widgets */
+	void GenerateComplexTunnelWidgets(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode, const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate tunnel exit site linked widgets */
+	void GenerateTunnelLinkWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions, const int32 ScriptOffset = INDEX_NONE);
 
 	/** Navigate to referenced node */
 	void NavigateTo() const;

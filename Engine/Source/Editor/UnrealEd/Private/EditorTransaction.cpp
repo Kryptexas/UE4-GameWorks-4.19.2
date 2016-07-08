@@ -201,6 +201,15 @@ bool FTransaction::ContainsPieObject() const
 	return false;
 }
 
+bool FTransaction::IsObjectTransacting(const UObject* Object) const
+{
+	// This function is meaningless when called outside of a transaction context. Without this
+	// ensure clients will commonly introduced bugs by having some logic that runs during
+	// the transacting and some logic that does not, yielding assymetrical results.
+	ensure(GIsTransacting);
+	ensure(ChangedObjects.Num() != 0);
+	return ChangedObjects.Contains(Object);
+}
 
 void FTransaction::RemoveRecords( int32 Count /* = 1  */ )
 {
@@ -408,7 +417,6 @@ void FTransaction::Apply()
 	const int32 End   = Inc==1 ? Records.Num() :              -1;
 
 	// Init objects.
-	TMap<UObject*, TSharedPtr<ITransactionObjectAnnotation>> ChangedObjects;
 	for( int32 i=Start; i!=End; i+=Inc )
 	{
 		FObjectRecord& Record = Records[i];
@@ -499,6 +507,8 @@ void FTransaction::Apply()
 		UObject* ChangedObject = ChangedObjectIt.Key;
 		ChangedObject->CheckDefaultSubobjects();
 	}
+
+	ChangedObjects.Empty();
 }
 
 SIZE_T FTransaction::DataSize() const
@@ -838,6 +848,7 @@ bool UTransBuffer::Undo(bool bCanRedo)
 	{
 		FTransaction& Transaction = UndoBuffer[ UndoBuffer.Num() - ++UndoCount ];
 		UE_LOG(LogEditorTransaction, Log,  TEXT("Undo %s"), *Transaction.GetTitle().ToString() );
+		CurrentTransaction = &Transaction;
 
 		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
 		Transaction.Apply();
@@ -848,6 +859,8 @@ bool UTransBuffer::Undo(bool bCanRedo)
 			UndoBuffer.RemoveAt(UndoBuffer.Num() - UndoCount, UndoCount);
 			UndoCount = 0;
 		}
+
+		CurrentTransaction = nullptr;
 	}
 	GIsTransacting = false;
 
@@ -872,10 +885,13 @@ bool UTransBuffer::Redo()
 	{
 		FTransaction& Transaction = UndoBuffer[ UndoBuffer.Num() - UndoCount-- ];
 		UE_LOG(LogEditorTransaction, Log,  TEXT("Redo %s"), *Transaction.GetTitle().ToString() );
+		CurrentTransaction = &Transaction;
 
 		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
 		Transaction.Apply();
 		RedoDelegate.Broadcast(Transaction.GetContext(), true);
+
+		CurrentTransaction = nullptr;
 	}
 	GIsTransacting = false;
 
@@ -945,6 +961,17 @@ bool UTransBuffer::IsObjectInTransationBuffer( const UObject* Object ) const
 		}
 		
 		TransactionObjects.Reset();
+	}
+
+	return false;
+}
+
+bool UTransBuffer::IsObjectTransacting(const UObject* Object) const
+{
+	// We can't provide a truly meaningful answer to this question when not transacting:
+	if (ensure(CurrentTransaction))
+	{
+		return CurrentTransaction->IsObjectTransacting(Object);
 	}
 
 	return false;

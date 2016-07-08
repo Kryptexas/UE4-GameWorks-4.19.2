@@ -4,6 +4,7 @@
 #include "SBlueprintProfilerView.h"
 #include "BPProfilerStatisticWidgets.h"
 #include "EventExecution.h"
+#include "SProfilerStatExpander.h"
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfilerViewTypesUI"
@@ -43,7 +44,7 @@ TSharedRef<SWidget> SProfilerStatRow::GenerateWidgetForColumn(const FName& Colum
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SExpanderArrow, SharedThis(this))
+				SNew(SProfilerStatExpander, SharedThis(this))
 				.IndentAmount(15.f)
 			]
 			+SHorizontalBox::Slot()
@@ -104,7 +105,7 @@ FBPProfilerStatWidget::FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNo
 	: WidgetTracePath(WidgetTracePathIn)
 	, ExecNode(InExecNode)
 {
-	if (ExecNode->HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+	if (ExecNode->HasFlags(EScriptExecutionNodeFlags::TunnelInstance))
 	{
 		WidgetTracePath = FTracePath(WidgetTracePathIn, StaticCastSharedPtr<FScriptExecutionTunnelEntry>(InExecNode));
 	}
@@ -120,13 +121,13 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					ExecNode->GetIconWidget()
+					ExecNode->GetIconWidget(WidgetTracePath)
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(FMargin(5,0))
 				[
-					ExecNode->GetHyperlinkWidget()
+					ExecNode->GetHyperlinkWidget(WidgetTracePath)
 		#if TRACEPATH_DEBUG
 				]
 				+SHorizontalBox::Slot()
@@ -213,93 +214,214 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBlueprintP
 {
 	if (ExecNode.IsValid())
 	{
-		// Grab Performance Stats
+		// Create perf stats entry
 		PerformanceStats = ExecNode->GetOrAddPerfDataByInstanceAndTracePath(DisplayOptions->GetActiveInstance(), WidgetTracePath);
 		CachedChildren.Reset(0);
-
+		// Check for specialised variants
 		if (ExecNode->HasFlags(EScriptExecutionNodeFlags::PureStats))
 		{
 			if (ExecNode->IsPureChain())
 			{
-				// Get the full pure node chain associated with this exec node.
-				TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
-				ExecNode->GetAllPureNodes(AllPureNodes);
-
-				// Build trace path, tree view node widget and register perf stats for tracking.
-				FTracePath PureTracePath(WidgetTracePath);
-				for (auto Iter : AllPureNodes)
-				{
-					PureTracePath.AddExitPin(Iter.Key);
-					TSharedPtr<FBPProfilerStatWidget> NewPureChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.Value, PureTracePath));
-					NewPureChildNode->GenerateExecNodeWidgets(DisplayOptions);
-
-					// Pure nodes are shown in reverse execution order.
-					CachedChildren.Insert(NewPureChildNode, 0);
-				}
+				// Generate the specialised pure chain widget.
+				GeneratePureNodeWidgets(DisplayOptions);
 			}
 		}
-		else
+		else if (ExecNode->IsTunnelEntry())
 		{
-			TArray<FScriptNodeExecLinkage::FLinearExecPath> Children;
-			ExecNode->GetFilteredChildNodes(Children, WidgetTracePath);
-			for (auto Iter : Children)
+			TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode = StaticCastSharedPtr<FScriptExecutionTunnelEntry>(ExecNode);
+			// Generate specialised tunnel node widget.
+			if (TunnelEntryNode->IsComplexTunnel())
 			{
-				// Filter out events based on graph
-				if (!DisplayOptions->IsFiltered(Iter.LinkedNode))
-				{
-					TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
-					FTracePath ChildTracePath(Iter.TracePath);
-					Iter.LinkedNode->GetLinearExecutionPath(LinearExecNodes, ChildTracePath, Iter.bIncludeChildren);
-					if (LinearExecNodes.Num() > 1)
-					{
-						TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
-						for (auto LinearPathIter : LinearExecNodes)
-						{
-							if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode))
-							{
-								TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
-								NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
-								ChildContainer->CachedChildren.Add(NewLinkedNode);
-								if (LinearPathIter.LinkedNode->HasFlags(EScriptExecutionNodeFlags::Container))
-								{
-									ChildContainer = NewLinkedNode;
-								}
-							}
-						}
-					}
-					else
-					{
-						TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.LinkedNode, ChildTracePath));
-						NewChildNode->GenerateExecNodeWidgets(DisplayOptions);
-						CachedChildren.Add(NewChildNode);
-					}
-				}
+				// Create a widget that houses the exit sites tracepaths as children.
+				GenerateComplexTunnelWidgets(TunnelEntryNode, DisplayOptions);
 			}
-			if (ExecNode->IsBranch())
+			else
 			{
-				for (auto LinkIter : ExecNode->GetLinkedNodes())
+				// Create a widget that houses only tunnel exec nodes as children.
+				GenerateSimpleTunnelWidgets(TunnelEntryNode, DisplayOptions);
+			}
+		}
+		else	
+		{
+			// Create a standard set of widgets that serves for most exec nodes.
+			GenerateStandardNodeWidgets(DisplayOptions);
+		}
+	}
+}
+
+void FBPProfilerStatWidget::GenerateStandardNodeWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions)
+{
+	// Add any child nodes that are not filtered out.
+	if (ExecNode->HasFlags(EScriptExecutionNodeFlags::Container))
+	{
+		for (auto Iter : ExecNode->GetChildNodes())
+		{
+			// Filter out events based on graph
+			if (!DisplayOptions->IsFiltered(Iter))
+			{
+				TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
+				FTracePath ChildTracePath(WidgetTracePath);
+				Iter->GetLinearExecutionPath(LinearExecNodes, ChildTracePath, false);
+				if (LinearExecNodes.Num() > 1)
 				{
-					if (!DisplayOptions->IsFiltered(LinkIter.Value))
+					TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
+					for (auto LinearPathIter : LinearExecNodes)
 					{
-						TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
-						FTracePath LinkPath(WidgetTracePath);
-						if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::AsyncTaskDelegate))
-						{
-							LinkPath.ResetPath();
-						}
-						if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
-						{
-							LinkPath.AddExitPin(LinkIter.Key);
-						}
-						LinkIter.Value->GetLinearExecutionPath(LinearExecNodes, LinkPath);
-						for (auto LinearPathIter : LinearExecNodes)
+						if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode))
 						{
 							TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
 							NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
-							CachedChildren.Add(NewLinkedNode);
+							ChildContainer->CachedChildren.Add(NewLinkedNode);
+							if (LinearPathIter.LinkedNode->HasFlags(EScriptExecutionNodeFlags::Container))
+							{
+								ChildContainer = NewLinkedNode;
+							}
 						}
 					}
 				}
+				else
+				{
+					TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter, ChildTracePath));
+					NewChildNode->GenerateExecNodeWidgets(DisplayOptions);
+					CachedChildren.Add(NewChildNode);
+				}
+			}
+		}
+	}
+	// Follow execution links and generate node widgets
+	const bool bShouldBuildLinks = ExecNode->IsBranch()||ExecNode->HasFlags(EScriptExecutionNodeFlags::TunnelEntryPin);
+	if (bShouldBuildLinks)
+	{
+		for (auto LinkIter : ExecNode->GetLinkedNodes())
+		{
+			if (!DisplayOptions->IsFiltered(LinkIter.Value))
+			{
+				TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
+				FTracePath LinkPath(WidgetTracePath);
+				if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+				{
+					LinkPath.AddExitPin(LinkIter.Key);
+				}
+				LinkIter.Value->GetLinearExecutionPath(LinearExecNodes, LinkPath);
+				for (auto LinearPathIter : LinearExecNodes)
+				{
+					TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
+					NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
+					CachedChildren.Add(NewLinkedNode);
+				}
+			}
+		}
+	}
+}
+
+void FBPProfilerStatWidget::GeneratePureNodeWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions)
+{
+	// Get the full pure node chain associated with this exec node.
+	TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
+	ExecNode->GetAllPureNodes(AllPureNodes);
+
+	// Build trace path, tree view node widget and register perf stats for tracking.
+	FTracePath PureTracePath(WidgetTracePath);
+	for (auto Iter : AllPureNodes)
+	{
+		PureTracePath.AddExitPin(Iter.Key);
+		TSharedPtr<FBPProfilerStatWidget> NewPureChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.Value, PureTracePath));
+		NewPureChildNode->GenerateExecNodeWidgets(DisplayOptions);
+
+		// Pure nodes are shown in reverse execution order.
+		CachedChildren.Insert(NewPureChildNode, 0);
+	}
+}
+
+void FBPProfilerStatWidget::GenerateSimpleTunnelWidgets(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode, const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions)
+{
+	// Map entry points
+	for (auto EntryPoint : TunnelEntryNode->GetChildNodes())
+	{
+		// Filter out events based on graph
+		if (!DisplayOptions->IsFiltered(EntryPoint))
+		{
+			TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
+			EntryPoint->GetLinearExecutionPath(LinearExecNodes, WidgetTracePath, true);
+			if (LinearExecNodes.Num() > 1)
+			{
+				TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
+				for (auto LinearPathIter : LinearExecNodes)
+				{
+					const bool bInternalTunnelBoundary = TunnelEntryNode->IsInternalBoundary(LinearPathIter.LinkedNode);
+					if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode) && !bInternalTunnelBoundary)
+					{
+						TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
+						NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
+						CachedChildren.Add(NewLinkedNode);
+						if (LinearPathIter.LinkedNode->HasFlags(EScriptExecutionNodeFlags::Container))
+						{
+							ChildContainer = NewLinkedNode;
+						}
+					}
+				}
+			}
+			else
+			{
+				TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(EntryPoint, WidgetTracePath));
+				NewChildNode->GenerateExecNodeWidgets(DisplayOptions);
+				CachedChildren.Add(NewChildNode);
+			}
+		}
+	}
+}
+
+void FBPProfilerStatWidget::GenerateComplexTunnelWidgets(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode, const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions)
+{
+	// Map entry points
+	for (auto EntryPoint : TunnelEntryNode->GetChildNodes())
+	{
+		// Filter out events based on graph
+		if (!DisplayOptions->IsFiltered(EntryPoint))
+		{
+			TSharedPtr<FBPProfilerStatWidget> EntryPointNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(EntryPoint, WidgetTracePath));
+			EntryPointNode->GenerateTunnelLinkWidgets(DisplayOptions);
+			CachedChildren.Add(EntryPointNode);
+		}
+	}
+	// Create exit links as child nodes
+	for (auto ExitSite : TunnelEntryNode->GetExitSites())
+	{
+		TSharedPtr<FBPProfilerStatWidget> ExitSiteNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(ExitSite.Value, WidgetTracePath));
+		ExitSiteNode->GenerateTunnelLinkWidgets(DisplayOptions, ExitSite.Key);
+		CachedChildren.Add(ExitSiteNode);
+		if (ExitSite.Value->IsTunnelExit())
+		{
+			TSharedPtr<FScriptExecutionTunnelExit> ExitSiteTypedNode = StaticCastSharedPtr<FScriptExecutionTunnelExit>(ExitSite.Value);
+			// Allow exit sites to jump to external pins using the correct widget path.
+			ExitSiteTypedNode->AddInstanceExitSite(WidgetTracePath, ExitSiteTypedNode->GetExternalPin());
+		}
+	}
+}
+
+void FBPProfilerStatWidget::GenerateTunnelLinkWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions, const int32 ScriptOffset)
+{
+	// Create perf stats entry
+	PerformanceStats = ExecNode->GetOrAddPerfDataByInstanceAndTracePath(DisplayOptions->GetActiveInstance(), WidgetTracePath);
+	CachedChildren.Reset(0);
+	// Create child tracepath
+	FTracePath ChildTrace(WidgetTracePath);
+	if (ScriptOffset != INDEX_NONE)
+	{
+		ChildTrace.AddExitPin(ScriptOffset);
+	}
+	// Build linked widgets
+	for (auto LinkIter : ExecNode->GetLinkedNodes())
+	{
+		if (!DisplayOptions->IsFiltered(LinkIter.Value))
+		{
+			TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
+			LinkIter.Value->GetLinearExecutionPath(LinearExecNodes, ChildTrace);
+			for (auto LinearPathIter : LinearExecNodes)
+			{
+				TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
+				NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
+				CachedChildren.Add(NewLinkedNode);
 			}
 		}
 	}

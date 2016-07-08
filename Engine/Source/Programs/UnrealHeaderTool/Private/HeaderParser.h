@@ -247,6 +247,11 @@ protected:
 	FFileScope* GetCurrentFileScope() const
 	{
 		int32 Index = 0;
+		if (!TopNest)
+		{
+			check(!NestLevel);
+			return nullptr;
+		}
 		while (TopNest[Index].NestType != ENestType::GlobalScope)
 		{
 			--Index;

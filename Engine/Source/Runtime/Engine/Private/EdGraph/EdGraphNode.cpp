@@ -95,11 +95,11 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& Pi
 	return CreatePin(Dir, PinType, PinName, Index);
 }
 
-UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName) const
+UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName, const EEdGraphPinDirection Direction) const
 {
 	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 	{
-		if( Pins[PinIdx]->PinName == PinName )
+		if( Pins[PinIdx]->PinName == PinName && (Direction == EGPD_MAX || Direction == Pins[PinIdx]->Direction))
 		{
 			return Pins[PinIdx];
 		}
@@ -108,9 +108,29 @@ UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName) const
 	return NULL;
 }
 
-UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName) const
+UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName, const EEdGraphPinDirection Direction) const
 {
-	UEdGraphPin* Result = FindPin(PinName);
+	UEdGraphPin* Result = FindPin(PinName, Direction);
+	check(Result != NULL);
+	return Result;
+}
+
+UEdGraphPin* UEdGraphNode::FindPinById(const FGuid PinId) const
+{
+	for (int32 PinIdx = 0; PinIdx < Pins.Num(); PinIdx++)
+	{
+		if (Pins[PinIdx]->PinId == PinId)
+		{
+			return Pins[PinIdx];
+		}
+	}
+
+	return NULL;
+}
+
+UEdGraphPin* UEdGraphNode::FindPinByIdChecked(const FGuid PinId) const
+{
+	UEdGraphPin* Result = FindPinById(PinId);
 	check(Result != NULL);
 	return Result;
 }

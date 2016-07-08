@@ -4692,6 +4692,15 @@ void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)
 	AnimClassImplementation = nullptr;
 }
 
+UObject* UDynamicClass::FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const
+{
+	UDynamicClass* ThisClass = const_cast<UDynamicClass*>(this);
+	UObject* Archetype = static_cast<UObject*>(FindObjectWithOuter(ThisClass, ArchetypeClass, ArchetypeName));
+	const UClass* SuperClass = GetSuperClass();
+	return Archetype ? Archetype :
+		(SuperClass ? SuperClass->FindArchetype(ArchetypeClass, ArchetypeName) : nullptr);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,
 {
 	Class->ClassAddReferencedObjects = &UDynamicClass::AddReferencedObjects;

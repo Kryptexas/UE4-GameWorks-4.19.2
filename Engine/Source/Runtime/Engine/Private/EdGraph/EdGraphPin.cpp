@@ -6,6 +6,7 @@
 #include "BlueprintUtilities.h"
 #include "Tickable.h"
 #if WITH_EDITOR
+#include "Editor/EditorEngine.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "SlateBasics.h"
 #include "ScopedTransaction.h"
@@ -167,10 +168,11 @@ struct FUnresolvedPinData
 	UEdGraphPin* ReferencingPin;
 	int32 ArrayIdx;
 	EPinResolveType ResolveType;
+	bool bResolveSymmetrically;
 
 	FUnresolvedPinData() : ReferencingPin(nullptr), ArrayIdx(INDEX_NONE), ResolveType(EPinResolveType::OwningNode) {}
-	FUnresolvedPinData(UEdGraphPin* InReferencingPin, EPinResolveType InResolveType, int32 InArrayIdx)
-		: ReferencingPin(InReferencingPin), ArrayIdx(InArrayIdx), ResolveType(InResolveType)
+	FUnresolvedPinData(UEdGraphPin* InReferencingPin, EPinResolveType InResolveType, int32 InArrayIdx, bool bInResolveSymmetrically = false)
+		: ReferencingPin(InReferencingPin), ArrayIdx(InArrayIdx), ResolveType(InResolveType), bResolveSymmetrically(bInResolveSymmetrically)
 	{}
 };
 
@@ -458,11 +460,11 @@ const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, con
 {
 #if WITH_EDITOR
 	const FString FromPinName = PinName;
-	const UEdGraphNode* FromPinNode = GetOwningNode();
+	const UEdGraphNode* FromPinNode = GetOwningNodeUnchecked();
 	const FString FromPinNodeName = (FromPinNode != nullptr) ? FromPinNode->GetNodeTitle(ENodeTitleType::ListView).ToString() : TEXT("Unknown");
 	
 	const FString ToPinName = InToPin->PinName;
-	const UEdGraphNode* ToPinNode = InToPin->GetOwningNode();
+	const UEdGraphNode* ToPinNode = InToPin->GetOwningNodeUnchecked();
 	const FString ToPinNodeName = (ToPinNode != nullptr) ? ToPinNode->GetNodeTitle(ENodeTitleType::ListView).ToString() : TEXT("Unknown");
 	const FString LinkInfo = FString::Printf( TEXT("UEdGraphPin::%s Pin '%s' on node '%s' %s '%s' on node '%s'"), *InFunctionName, *ToPinName, *ToPinNodeName, *InInfoData, *FromPinName, *FromPinNodeName);
 	return LinkInfo;
@@ -520,21 +522,6 @@ void UEdGraphPin::SetOwningNode(UEdGraphNode* NewOwningNode)
 			check(NewOwningNode->Pins[ExistingPinIdx] == this);
 		}
 	}
-}
-
-int32 NumSubPins = 0;
-
-void UEdGraphPin::InvalidateAndTrash()
-{
-	check(!bWasTrashed);
-	PinsToDelete.Add(this);
-	BreakAllPinLinks();
-	SetOwningNode(nullptr);
-	NumSubPins += SubPins.Num();
-	SubPins.Empty();
-	ParentPin = nullptr;
-	ReferencePassThroughConnection = nullptr;
-	bWasTrashed = true;
 }
 
 UEdGraphPin* UEdGraphPin::CreatePinFromDeprecatedPin(UEdGraphPin_Deprecated* DeprecatedPin)
@@ -975,29 +962,7 @@ void UEdGraphPin::MarkPendingKill()
 {
 	if (!bWasTrashed)
 	{
-		PinsToDelete.Add(this);
-#if WITH_EDITOR
-		if (!GIsTransacting)
-		{
-#endif //WITH_EDITOR
-			BreakAllPinLinks();
-			if (ParentPin)
-			{
-				ParentPin->SubPins.Remove(this);
-			}
-#if WITH_EDITOR
-		}
-		else
-		{
-			LinkedTo.Empty();
-		}
-#endif //WITH_EDITOR
-		OwningNode = nullptr;
-		NumSubPins = 0;
-		SubPins.Empty();
-		ParentPin = nullptr;
-		ReferencePassThroughConnection = nullptr;
-		bWasTrashed = true;
+		DestroyImpl(true);
 	}
 }
 
@@ -1012,11 +977,6 @@ void UEdGraphPin::ShutdownVerification()
 void UEdGraphPin::Purge()
 {
 	PinDeletionQueue->Tick(0.f);
-}
-
-void UEdGraphPin::QueueForDestruction()
-{
-	PinsToDelete.Add(this);
 }
 
 UEdGraphPin::UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinIdGuid)
@@ -1230,6 +1190,31 @@ void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* Deprecated
 	}
 }
 
+void UEdGraphPin::DestroyImpl(bool bClearLinks)
+{
+#if WITH_EDITOR
+	ensure(!GIsTransacting || bClearLinks == false);
+#endif
+	PinsToDelete.Add(this);
+	if (bClearLinks)
+	{
+		BreakAllPinLinks();
+		if (ParentPin)
+		{
+			ParentPin->SubPins.Remove(this);
+		}
+	}
+	else
+	{
+		LinkedTo.Empty();
+	}
+	OwningNode = nullptr;
+	SubPins.Empty();
+	ParentPin = nullptr;
+	ReferencePassThroughConnection = nullptr;
+	bWasTrashed = true;
+}
+
 bool UEdGraphPin::Serialize(FArchive& Ar)
 {
 	// These properties are in every pin and are unlikely to be removed, so they are native serialized for speed.
@@ -1337,6 +1322,7 @@ void UEdGraphPin::EnableAllConnectedNodes(UEdGraphNode* InNode)
 
 void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin)
 {
+	check(!Pin->bWasTrashed);
 	FPinResolveId ResolveId(Pin->PinId, Pin->OwningNode);
 	TArray<FUnresolvedPinData>* UnresolvedPinData = PinHelpers::UnresolvedPins.Find(ResolveId);
 	if (UnresolvedPinData)
@@ -1347,7 +1333,17 @@ void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin)
 			switch (PinData.ResolveType)
 			{
 			case EPinResolveType::LinkedTo:
-				ReferencingPin->LinkedTo[PinData.ArrayIdx] = Pin;
+				if (ensure(ReferencingPin->LinkedTo.Num() > PinData.ArrayIdx))
+				{
+					ReferencingPin->LinkedTo[PinData.ArrayIdx] = Pin;
+				}
+				if (PinData.bResolveSymmetrically)
+				{
+					if (ensure(!Pin->LinkedTo.Contains(ReferencingPin)))
+					{
+						Pin->LinkedTo.Add(ReferencingPin);
+					}
+				}
 #if WITH_EDITOR
 				// When in the middle of a transaction the LinkedTo lists will be in an 
 				// indeterminate state. After PostEditUndo runs we could validate LinkedTo
@@ -1400,10 +1396,27 @@ void UEdGraphPin::SerializePinArray(FArchive& Ar, TArray<UEdGraphPin*>& ArrayRef
 		SerializePin(Ar, PinRef, PinIdx, RequestingPin, ResolveType, OldPins);
 	}
 
-	// free unused pins:
+	// free unused pins, this only happens when loading and we have already allocated pin data, which currently
+	// means we're serializing for undo/redo:
 	for (UEdGraphPin* Pin : OldPins)
 	{
-		Pin->QueueForDestruction();
+#if WITH_EDITOR
+		// More complexity to handle asymmetry in the transaction buffer. If our peer node is not in the transaction
+		// then we need to take ownership of the entire connection and clear both LinkedTo Arrays:
+		extern UNREALED_API UEditorEngine* GEditor;
+		for (int32 I = 0; I < Pin->LinkedTo.Num(); ++I )
+		{
+			UEdGraphPin* Peer = Pin->LinkedTo[I];
+			// PeerNode will be null if the pin we were linked to was already thrown away:
+			UEdGraphNode* PeerNode = Peer->GetOwningNodeUnchecked();
+			if (PeerNode && !GEditor->Trans->IsObjectTransacting(PeerNode))
+			{
+				Pin->BreakLinkTo(Peer);
+				--I;
+			}
+		}
+#endif// WITH_EDITOR
+		Pin->DestroyImpl(false);
 	}
 }
 
@@ -1440,23 +1453,64 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 		{
 			if (Ar.IsLoading())
 			{
-				UEdGraphPin** ExistingPin = 
+				UEdGraphPin** ExistingPin = LocalOwningNode->Pins.FindByPredicate([&PinGuid](const UEdGraphPin* Pin) { return Pin && Pin->PinId == PinGuid; });
+				if (ExistingPin
 #if WITH_EDITOR
-					// When transacting we're in a volatile state, and we cannot trust any pins we might find, so we defer all 
-					// pin resolving:
-					Ar.IsTransacting() ? nullptr : 
+					// When transacting we're in a volatile state, and we cannot trust any pins we might find:
+					&& !Ar.IsTransacting()
 #endif//WITH_EDITOR
-					LocalOwningNode->Pins.FindByPredicate([&PinGuid](const UEdGraphPin* Pin) { return Pin && Pin->PinId == PinGuid; });
-				if (ExistingPin)
+					)
 				{
 					PinRef = *ExistingPin;
+					check(!PinRef->bWasTrashed);
 				}
 				else
 				{
 					check(RequestingPin);
-					TArray<FUnresolvedPinData>& UnresolvedPinData = PinHelpers::UnresolvedPins.FindOrAdd(FPinResolveId(PinGuid, LocalOwningNode));
-					UnresolvedPinData.Add(FUnresolvedPinData(RequestingPin, ResolveType, ArrayIdx));
-					bRetVal = false;
+#if WITH_EDITOR
+					extern UNREALED_API UEditorEngine* GEditor;
+					if(Ar.IsTransacting() && !GEditor->Trans->IsObjectTransacting(LocalOwningNode))
+					{
+						/* 
+							Two possibilities:
+
+							1. This transaction did not alter this node's LinkedTo list, and also did not
+								alter ExistingPin's
+							2. This transaction has altered this node's LinkedTo list, but did not alter
+								ExistingPin's
+
+							In case 2 we need to make sure that the LinkedTo connection is symmetrical, but
+							in the case of 1 we have to assume that there is already a connection in ExistingPin.
+							If ExistingPin's LinkedTo list *was* mutated IsObjectTransacting must return true
+							for the owning node.
+						*/
+
+						check(ResolveType == EPinResolveType::LinkedTo);
+
+						check(ExistingPin && *ExistingPin); // the transaction buffer is corrupt
+						FGuid RequestingPinId = RequestingPin->PinId;
+						UEdGraphPin** LinkedTo = (*ExistingPin)->LinkedTo.FindByPredicate([&RequestingPinId](const UEdGraphPin* Pin) { return Pin && Pin->PinId == RequestingPinId; });
+						if (LinkedTo)
+						{
+							// case 1:
+							check(*LinkedTo == RequestingPin);
+							PinRef = *ExistingPin;
+						}
+						else
+						{
+							// case 2:
+							TArray<FUnresolvedPinData>& UnresolvedPinData = PinHelpers::UnresolvedPins.FindOrAdd(FPinResolveId(PinGuid, LocalOwningNode));
+							UnresolvedPinData.Add(FUnresolvedPinData(RequestingPin, ResolveType, ArrayIdx, true));
+							bRetVal = false;
+						}
+					}
+					else
+#endif // WITH_EDITOR
+					{
+						TArray<FUnresolvedPinData>& UnresolvedPinData = PinHelpers::UnresolvedPins.FindOrAdd(FPinResolveId(PinGuid, LocalOwningNode));
+						UnresolvedPinData.Add(FUnresolvedPinData(RequestingPin, ResolveType, ArrayIdx));
+						bRetVal = false;
+					}
 				}
 			}
 		}
@@ -1468,6 +1522,7 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 				if (PinToReuse)
 				{
 					PinRef = *PinToReuse;
+					check(!PinRef->bWasTrashed);
 					OldPins.RemoveAtSwap(PinToReuse - OldPins.GetData());
 				}
 				else
@@ -1477,6 +1532,7 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 			}
 
 			PinRef->Serialize(Ar);
+			check(!PinRef->bWasTrashed);
 		}
 	}
 

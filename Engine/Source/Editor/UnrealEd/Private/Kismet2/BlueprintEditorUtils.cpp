@@ -1048,7 +1048,7 @@ struct FRegenerationHelper
 				ForcedLoadMembers(InterfaceBlueprint);
 				if (InterfaceBlueprint->HasAnyFlags(RF_BeingRegenerated))
 				{
-					InterfaceBlueprint->RegenerateClass(InterfaceClass, nullptr, ObjLoaded);
+					InterfaceBlueprint->RegenerateClass(InterfaceClass, InterfaceClass->ClassDefaultObject, ObjLoaded);
 				}
 			}
 		}
@@ -1466,9 +1466,11 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	// member further up the stack).
 	if (!Blueprint->bHasBeenRegenerated)
 	{
-		check(PreviousCDO != nullptr);
 		FRegenerationHelper::ForceLoadMetaData(Blueprint);
-		FRegenerationHelper::ForcedLoadMembers(PreviousCDO);
+		if (ensure(PreviousCDO))
+		{
+			FRegenerationHelper::ForcedLoadMembers(PreviousCDO);
+		}
 		FRegenerationHelper::ForcedLoadMembers(Blueprint);
 	}
 
@@ -1728,6 +1730,16 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			{
 				MyActor->ResetOwnedComponents();
 			}
+		}
+	}
+	else
+	{
+		if (Blueprint->GeneratedClass && !Blueprint->bHasBeenRegenerated && !Blueprint->bIsRegeneratingOnLoad)
+		{
+			FObjectDuplicationParameters Params(Blueprint->GeneratedClass, Blueprint->GeneratedClass->GetOuter());
+			Params.ApplyFlags = RF_Transient;
+			Params.DestName = *(FString("SKEL_COPY_") + Blueprint->GeneratedClass->GetName());
+			Blueprint->SkeletonGeneratedClass = (UClass*)StaticDuplicateObjectEx(Params);
 		}
 	}
 

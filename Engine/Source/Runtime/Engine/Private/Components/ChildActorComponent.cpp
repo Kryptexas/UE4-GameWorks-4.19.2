@@ -180,6 +180,28 @@ void FChildActorComponentInstanceData::ApplyToComponent(UActorComponent* Compone
 	CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this, CacheApplyPhase);
 }
 
+void FChildActorComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	FSceneComponentInstanceData::AddReferencedObjects(Collector);
+
+	if (ComponentInstanceData)
+	{
+		ComponentInstanceData->AddReferencedObjects(Collector);
+	}
+}
+
+void UChildActorComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UChildActorComponent* This = CastChecked<UChildActorComponent>(InThis);
+
+	if (This->CachedInstanceData)
+	{
+		This->CachedInstanceData->AddReferencedObjects(Collector);
+	}
+
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
 void UChildActorComponent::BeginDestroy()
 {
 	Super::BeginDestroy();

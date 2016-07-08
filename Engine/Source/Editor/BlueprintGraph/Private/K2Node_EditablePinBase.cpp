@@ -15,7 +15,11 @@ void UK2Node_EditablePinBase::AllocateDefaultPins()
 	// Add in pins based on the user defined pins in this node
 	for(int32 i = 0; i < UserDefinedPins.Num(); i++)
 	{
-		CreatePinFromUserDefinition( UserDefinedPins[i] );
+		//FText DummyErrorMsg;
+		//if (!IsEditable() || CanCreateUserDefinedPin(UserDefinedPins[i]->PinType, UserDefinedPins[i]->DesiredPinDirection, DummyErrorMsg))
+		{
+			CreatePinFromUserDefinition(UserDefinedPins[i]);
+		}
 	}
 }
 
@@ -130,6 +134,9 @@ void UK2Node_EditablePinBase::ImportCustomProperties(const TCHAR* SourceText, FF
 	if (FParse::Command(&SourceText, TEXT("UserDefinedPin")))
 	{
 		TSharedPtr<FUserPinInfo> PinInfo = MakeShareable( new FUserPinInfo() );
+
+		// UserDefinedPins don't currently support direction so set them to an unknown value by default for now
+		PinInfo->DesiredPinDirection = EGPD_MAX;
 
 		if (!FParse::Value(SourceText, TEXT("Name="), PinInfo->PinName))
 		{

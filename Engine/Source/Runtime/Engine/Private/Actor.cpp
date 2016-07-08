@@ -267,6 +267,12 @@ void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 {
 	AActor* This = CastChecked<AActor>(InThis);
 	Collector.AddReferencedObjects(This->OwnedComponents);
+#if WITH_EDITOR
+	if (This->CurrentTransactionAnnotation.IsValid())
+	{
+		This->CurrentTransactionAnnotation->AddReferencedObjects(Collector);
+	}
+#endif
 	Super::AddReferencedObjects(InThis, Collector);
 }
 

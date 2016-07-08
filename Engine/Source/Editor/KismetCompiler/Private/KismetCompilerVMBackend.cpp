@@ -1548,83 +1548,80 @@ public:
 			Writer << EventType;
 		}
 
-		if (Statement.Type != KCST_InstrumentedStateRestore)
+		TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
+		if (Statement.ExecContext != nullptr)
 		{
-			TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
-			if (Statement.ExecContext != nullptr)
-			{
-				PinContextArray.Add(Statement.ExecContext);
-			}
+			PinContextArray.Add(Statement.ExecContext);
+		}
 
-			for (auto PinContext : PinContextArray)
+		for (auto PinContext : PinContextArray)
+		{
+			UEdGraphPin const* TrueSourcePin = FunctionContext.MessageLog.FindSourcePin(PinContext);
+			// Source pin can be marked as pending kill if it was a generated pin that node logic decided to disown, e.g.
+			// logic in UK2Node_CallFunction to handle bWantsEnumToExecExpansion:
+			if (TrueSourcePin && !TrueSourcePin->IsPendingKill())
 			{
-				UEdGraphPin const* TrueSourcePin = FunctionContext.MessageLog.FindSourcePin(PinContext);
-				// Source pin can be marked as pending kill if it was a generated pin that node logic decided to disown, e.g.
-				// logic in UK2Node_CallFunction to handle bWantsEnumToExecExpansion:
-				if (TrueSourcePin && !TrueSourcePin->IsPendingKill())
+				ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
+			}
+		}
+
+		if (SourceNode != NULL)
+		{
+			// Record where this NOP is
+			UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
+			if (TrueSourceNode)
+			{
+				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
+				UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
+				if (MacroSourceNode == SourceNode)
 				{
-					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
+					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
+					MacroSourceNode = NULL;
 				}
-			}
 
-			if (SourceNode != NULL)
-			{
-				// Record where this NOP is
-				UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
-				if (TrueSourceNode)
+				TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
+				const bool bInstrumentedBreakpoint = Statement.Type == KCST_InstrumentedWireEntry;
+				bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
+
+				if (MacroSourceNode)
 				{
-					// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
-					if (MacroSourceNode == SourceNode)
+					// Only associate macro instance node breakpoints with source nodes that are linked to the entry node in an impure macro graph
+					if (bBreakpointSite)
 					{
-						// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
-						MacroSourceNode = NULL;
-					}
-
-					TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
-					const bool bInstrumentedBreakpoint = Statement.Type == KCST_InstrumentedWireEntry;
-					bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
-
-					if (MacroSourceNode)
-					{
-						// Only associate macro instance node breakpoints with source nodes that are linked to the entry node in an impure macro graph
-						if (bBreakpointSite)
+						const UK2Node_MacroInstance* MacroInstanceNode = Cast<const UK2Node_MacroInstance>(TrueSourceNode);
+						if (MacroInstanceNode)
 						{
-							const UK2Node_MacroInstance* MacroInstanceNode = Cast<const UK2Node_MacroInstance>(TrueSourceNode);
-							if (MacroInstanceNode)
-							{
-								TArray<const UEdGraphNode*> ValidBreakpointLocations;
-								FKismetDebugUtilities::GetValidBreakpointLocations(MacroInstanceNode, ValidBreakpointLocations);
-								bBreakpointSite = ValidBreakpointLocations.Contains(MacroSourceNode);
-							}
+							TArray<const UEdGraphNode*> ValidBreakpointLocations;
+							FKismetDebugUtilities::GetValidBreakpointLocations(MacroInstanceNode, ValidBreakpointLocations);
+							bBreakpointSite = ValidBreakpointLocations.Contains(MacroSourceNode);
 						}
-
-						// Gather up all the macro instance nodes that lead to this macro source node
-						CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
 					}
 
-					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+					// Gather up all the macro instance nodes that lead to this macro source node
+					CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
+				}
 
-					// Track pure node script code range for the current impure (exec) node
-					if (Statement.Type == KCST_InstrumentedPureNodeEntry)
+				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+
+				// Track pure node script code range for the current impure (exec) node
+				if (Statement.Type == KCST_InstrumentedPureNodeEntry)
+				{
+					if (PureNodeEntryCount == 0)
 					{
-						if (PureNodeEntryCount == 0)
-						{
-							// Indicates the starting offset for this pure node call chain.
-							PureNodeEntryStart = Offset;
-						}
-
-						++PureNodeEntryCount;
+						// Indicates the starting offset for this pure node call chain.
+						PureNodeEntryStart = Offset;
 					}
-					else if (Statement.Type == KCST_InstrumentedWireEntry && PureNodeEntryCount > 0)
-					{
-						// Map script code range for the full set of pure node inputs feeding in to the current impure (exec) node at the current offset
-						ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
 
-						// Reset pure node code range tracking.
-						PureNodeEntryCount = 0;
-						PureNodeEntryStart = 0;
-					}
+					++PureNodeEntryCount;
+				}
+				else if (Statement.Type == KCST_InstrumentedWireEntry && PureNodeEntryCount > 0)
+				{
+					// Map script code range for the full set of pure node inputs feeding in to the current impure (exec) node at the current offset
+					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
+
+					// Reset pure node code range tracking.
+					PureNodeEntryCount = 0;
+					PureNodeEntryStart = 0;
 				}
 			}
 		}

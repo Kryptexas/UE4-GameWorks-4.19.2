@@ -1178,6 +1178,11 @@ void FBlueprintExceptionTracker::ResetRunaway()
 	Recurse = 0;
 	bRanaway = false;
 }
+
+FBlueprintExceptionTracker& FBlueprintExceptionTracker::Get()
+{
+	return TThreadSingleton<FBlueprintExceptionTracker>::Get();
+}
 #endif // DO_BLUEPRINT_GUARD
 
 #if WITH_HOT_RELOAD_CTORS

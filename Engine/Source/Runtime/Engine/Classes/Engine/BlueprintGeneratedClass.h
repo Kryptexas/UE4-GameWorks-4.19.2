@@ -197,6 +197,9 @@ protected:
 	//   It does *not* contain the wire tracepoint placed after the impure function call
 	TArray<struct FNodeToCodeAssociation> DebugNodeLineNumbers;
 
+	// List of entry points that contributed to the ubergraph
+	TMap<FName, FEdGraphPinReference> DelegatePins;
+
 	// Acceleration structure for execution wire highlighting at runtime
 	TMap<TWeakObjectPtr<UFunction>, FDebuggingInfoForSingleFunction> PerFunctionLineNumbers;
 
@@ -404,6 +407,13 @@ public:
 		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
 		PerFuncInfo.LineNumberToSourcePinMap.Add(CodeOffset, SourcePin);
 		PerFuncInfo.SourcePinToLineNumbersMap.Add(SourcePin, CodeOffset);
+	}
+
+	const TMap<FName, FEdGraphPinReference>& GetCompilerGeneratedEvents() const { return DelegatePins; }
+
+	void RegisterPinToEventName(UEdGraphPin const* SourcePin, const FName FunctionName)
+	{
+		DelegatePins.Add(FunctionName) = SourcePin;
 	}
 
 	// Registers an association between an object (pin or node typically) and an associated class member property

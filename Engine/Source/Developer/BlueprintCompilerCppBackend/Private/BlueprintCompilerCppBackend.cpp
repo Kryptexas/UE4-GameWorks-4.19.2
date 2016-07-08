@@ -5,6 +5,7 @@
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "EdGraphSchema_K2.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
 
 // Generates single "if" scope. Its condition checks context of given term.
 struct FSafeContextScopedEmmitter
@@ -26,7 +27,7 @@ public:
 		{
 			if (!Term->IsStructContextType() && (Term->Type.PinSubCategory != TEXT("self")))
 			{
-				SafetyConditions.Add(CppBackend.TermToText(EmitterContext, Term, false));
+				SafetyConditions.Add(CppBackend.TermToText(EmitterContext, Term, ENativizedTermUsage::Getter, false));
 			}
 		}
 
@@ -75,7 +76,7 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FEmitterLocalContext
 {
 	check(Statement.FunctionContext && Statement.FunctionContext->AssociatedVarProperty);
 	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.FunctionContext->Context, *this);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s.Broadcast(%s);"), *TermToText(EmitterContext, Statement.FunctionContext, false), *EmitMethodInputParameterList(EmitterContext, Statement)));
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Broadcast(%s);"), *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false), *EmitMethodInputParameterList(EmitterContext, Statement)));
 }
 
 void FBlueprintCompilerCppBackend::EmitCallStatment(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -101,25 +102,65 @@ void FBlueprintCompilerCppBackend::EmitCallStatment(FEmitterLocalContext& Emitte
 	}
 }
 
+struct FSetterExpressionBuilder
+{
+	FString EndCustomSetExpression;
+	FString DestinationExpression;
+
+	FSetterExpressionBuilder(FBlueprintCompilerCppBackend& CppBackend, FEmitterLocalContext& EmitterContext, FBPTerminal* LHS)
+	{
+		DestinationExpression = CppBackend.TermToText(EmitterContext, LHS, ENativizedTermUsage::Setter, false, &EndCustomSetExpression);
+	}
+
+	FString BuildStart() const 
+	{
+		FString Result = DestinationExpression;
+		const bool bCustomExpression = !EndCustomSetExpression.IsEmpty();
+		if (!bCustomExpression)
+		{
+			//It is not use regular = operator
+			Result += TEXT(" = ");
+		}
+		return Result;
+	}
+
+	FString BuildEnd(bool bAddSemicolon) const
+	{
+		FString Result = EndCustomSetExpression;
+		if (bAddSemicolon)
+		{
+			Result += TEXT(";");
+		}
+		return Result;
+	}
+
+	FString BuildFull(const FString& SourceExpression) const
+	{
+		const FString Start = BuildStart();
+		const FString End = BuildEnd(true);
+		return FString::Printf(TEXT("%s%s%s"), *Start, *SourceExpression, *End);
+	}
+};
+
 void FBlueprintCompilerCppBackend::EmitAssignmentStatment(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	check(Statement.LHS && Statement.RHS[0]);
-	const FString DestinationExpression = TermToText(EmitterContext, Statement.LHS, false, false);
-	const FString SourceExpression = TermToText(EmitterContext, Statement.RHS[0]);
-
+	const FString SourceExpression = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
+	FSetterExpressionBuilder SetterExpression(*this, EmitterContext, Statement.LHS);
 	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
 
 	FString BeginCast;
 	FString EndCast;
 	FEmitHelper::GenerateAutomaticCast(EmitterContext, Statement.LHS->Type, Statement.RHS[0]->Type, BeginCast, EndCast);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s = %s%s%s;"), *DestinationExpression, *BeginCast, *SourceExpression, *EndCast));
+	const FString RHS = FString::Printf(TEXT("%s%s%s"), *BeginCast, *SourceExpression, *EndCast);
+	EmitterContext.AddLine(SetterExpression.BuildFull(RHS));
 }
 
 void FBlueprintCompilerCppBackend::EmitCastObjToInterfaceStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString InterfaceClass = TermToText(EmitterContext, Statement.RHS[0]);
-	FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
-	FString InterfaceValue = TermToText(EmitterContext, Statement.LHS);
+	FString InterfaceClass = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
+	FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
+	FString InterfaceValue = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference);
 
 	// Both here and in UObject::execObjectToInterface IsValid function should be used.
 	EmitterContext.AddLine(FString::Printf(TEXT("if ( %s && %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *ObjectValue, *InterfaceClass));
@@ -136,9 +177,9 @@ void FBlueprintCompilerCppBackend::EmitCastObjToInterfaceStatement(FEmitterLocal
 
 void FBlueprintCompilerCppBackend::EmitCastBetweenInterfacesStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString ClassToCastTo = TermToText(EmitterContext, Statement.RHS[0]);
-	FString InputInterface = TermToText(EmitterContext, Statement.RHS[1]);
-	FString ResultInterface = TermToText(EmitterContext, Statement.LHS);
+	FString ClassToCastTo = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
+	FString InputInterface = TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
+	FString ResultInterface = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference);
 
 	FString InputObject = FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface);
 
@@ -154,7 +195,7 @@ void FBlueprintCompilerCppBackend::EmitCastBetweenInterfacesStatement(FEmitterLo
 	EmitterContext.AddLine(FString::Printf(TEXT("}")));
 }
 
-static void EmitGenericCast(FEmitterLocalContext& EmitterContext, UClass* ClassPtr, const FString& ObjectValue, const FString& ResultObject)
+static FString GenerateCastRHS(FEmitterLocalContext& EmitterContext, UClass* ClassPtr, const FString& ObjectValue)
 {
 	check(ClassPtr != nullptr);
 
@@ -163,50 +204,54 @@ static void EmitGenericCast(FEmitterLocalContext& EmitterContext, UClass* ClassP
 	{
 		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeOrConvertedClass(ClassPtr));
 		const FString TargetClass = EmitterContext.FindGloballyMappedObject(ClassPtr, UClass::StaticClass(), true);
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = NoNativeCast<%s>(%s, %s);"), *ResultObject, *NativeClass, *TargetClass, *ObjectValue));
+		return FString::Printf(TEXT("NoNativeCast<%s>(%s, %s)"), *NativeClass, *TargetClass, *ObjectValue);
 	}
 	else
 	{
 		const FString TargetClass = FEmitHelper::GetCppName(ClassPtr);
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"), *ResultObject, *TargetClass, *ObjectValue));
+		return FString::Printf(TEXT("Cast<%s>(%s)"), *TargetClass, *ObjectValue);
 	}
 }
 
 void FBlueprintCompilerCppBackend::EmitCastInterfaceToObjStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	const FString InputInterface = TermToText(EmitterContext, Statement.RHS[1]);
-	const FString ResultObject = TermToText(EmitterContext, Statement.LHS, true, false);
+	const FString InputInterface = TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
+	FSetterExpressionBuilder SetterExpression(*this, EmitterContext, Statement.LHS);
+	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
 
-	EmitGenericCast(EmitterContext
-		, CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral)
-		, FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface)
-		, ResultObject);
+	const FString CastRHS = GenerateCastRHS(EmitterContext, CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral), FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface));
+	EmitterContext.AddLine(SetterExpression.BuildFull(CastRHS));
 }
 
 void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	const FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
-	const FString ResultObject = TermToText(EmitterContext, Statement.LHS, true, false);
-
-	EmitGenericCast(EmitterContext
-		, CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral)
-		, ObjectValue
-		, ResultObject);
+	const FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
+	FSetterExpressionBuilder SetterExpression(*this, EmitterContext, Statement.LHS);
+	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
+	
+	const FString CastRHS = GenerateCastRHS(EmitterContext, CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral), ObjectValue);
+	EmitterContext.AddLine(SetterExpression.BuildFull(CastRHS));
 }
 
 void FBlueprintCompilerCppBackend::EmitMetaCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString DesiredClass = TermToText(EmitterContext, Statement.RHS[0]);
-	FString SourceClass = TermToText(EmitterContext, Statement.RHS[1]);
-	FString Destination = TermToText(EmitterContext, Statement.LHS, true, false);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s = DynamicMetaCast(%s, %s);"),*Destination, *DesiredClass, *SourceClass));
+	const FString DesiredClass = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
+	const FString SourceClass = TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
+	FSetterExpressionBuilder SetterExpression(*this, EmitterContext, Statement.LHS);
+	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
+
+	const FString CastRHS = FString::Printf(TEXT("DynamicMetaCast(%s, %s);"), *DesiredClass, *SourceClass);
+	EmitterContext.AddLine(SetterExpression.BuildFull(CastRHS));
 }
 
 void FBlueprintCompilerCppBackend::EmitObjectToBoolStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString ObjectTarget = TermToText(EmitterContext, Statement.RHS[0]);
-	FString DestinationExpression = TermToText(EmitterContext, Statement.LHS, true, false);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s = (%s != nullptr);"), *DestinationExpression, *ObjectTarget));
+	const FString ObjectTarget = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
+	FSetterExpressionBuilder SetterExpression(*this, EmitterContext, Statement.LHS);
+	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
+
+	const FString RHS = FString::Printf(TEXT("(%s != nullptr);"), *ObjectTarget);
+	EmitterContext.AddLine(SetterExpression.BuildFull(RHS));
 }
 
 void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -214,8 +259,8 @@ void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FEmitterLoc
 	check(Statement.LHS && Statement.LHS->AssociatedVarProperty);
 	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
 
-	const FString Delegate = TermToText(EmitterContext, Statement.LHS, false);
-	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0]);
+	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
+	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
 
 	EmitterContext.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *Delegate, *DelegateToAdd));
 }
@@ -225,8 +270,8 @@ void FBlueprintCompilerCppBackend::EmitRemoveMulticastDelegateStatement(FEmitter
 	check(Statement.LHS && Statement.LHS->AssociatedVarProperty);
 	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
 
-	const FString Delegate = TermToText(EmitterContext, Statement.LHS, false);
-	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0]);
+	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
+	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
 
 	EmitterContext.AddLine(FString::Printf(TEXT("%s.Remove(%s);"), *Delegate, *DelegateToAdd));
 }
@@ -237,9 +282,9 @@ void FBlueprintCompilerCppBackend::EmitBindDelegateStatement(FEmitterLocalContex
 	check(Statement.LHS);
 	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
 
-	const FString Delegate = TermToText(EmitterContext, Statement.LHS, false);
-	const FString NameTerm = TermToText(EmitterContext, Statement.RHS[0]);
-	const FString ObjectTerm = TermToText(EmitterContext, Statement.RHS[1]);
+	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
+	const FString NameTerm = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
+	const FString ObjectTerm = TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
 
 	EmitterContext.AddLine(FString::Printf(TEXT("%s.BindUFunction(%s,%s);"), *Delegate, *ObjectTerm, *NameTerm));
 }
@@ -249,7 +294,7 @@ void FBlueprintCompilerCppBackend::EmitClearMulticastDelegateStatement(FEmitterL
 	check(Statement.LHS);
 	FSafeContextScopedEmmitter SafeContextScope(EmitterContext, Statement.LHS->Context, *this);
 
-	const FString Delegate = TermToText(EmitterContext, Statement.LHS, false);
+	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
 
 	EmitterContext.AddLine(FString::Printf(TEXT("%s.Clear();"), *Delegate));
 }
@@ -257,14 +302,14 @@ void FBlueprintCompilerCppBackend::EmitClearMulticastDelegateStatement(FEmitterL
 void FBlueprintCompilerCppBackend::EmitCreateArrayStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FBPTerminal* ArrayTerm = Statement.LHS;
-	const FString Array = TermToText(EmitterContext, ArrayTerm);
+	const FString Array = TermToText(EmitterContext, ArrayTerm, ENativizedTermUsage::UnspecifiedOrReference);
 
 	EmitterContext.AddLine(FString::Printf(TEXT("%s.SetNum(%d, true);"), *Array, Statement.RHS.Num()));
 
 	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
 	{
 		FBPTerminal* CurrentTerminal = Statement.RHS[i];
-		EmitterContext.AddLine(FString::Printf(TEXT("%s[%d] = %s;"), *Array, i, *TermToText(EmitterContext, CurrentTerminal)));
+		EmitterContext.AddLine(FString::Printf(TEXT("%s[%d] = %s;"), *Array, i, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
 	}
 }
 
@@ -275,7 +320,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		if (bUseGotoState)
 		{
 			FString NextStateExpression;
-			NextStateExpression = TermToText(EmitterContext, Statement.LHS);
+			NextStateExpression = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::Getter);
 
 			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %s;"), *NextStateExpression));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;\n")));
@@ -284,7 +329,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 	else if ((Statement.Type == KCST_GotoIfNot) || (Statement.Type == KCST_EndOfThreadIfNot) || (Statement.Type == KCST_GotoReturnIfNot))
 	{
 		FString ConditionExpression;
-		ConditionExpression = TermToText(EmitterContext, Statement.LHS);
+		ConditionExpression = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::Getter);
 
 		EmitterContext.AddLine(FString::Printf(TEXT("if (!%s)"), *ConditionExpression));
 		EmitterContext.AddLine(FString::Printf(TEXT("{")));
@@ -407,15 +452,15 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 	FString Result = FString::Printf(TEXT("TSwitchValue<%s, %s>(%s, %s, %d")
 		, *IndexDeclaration
 		, *ValueDeclaration
-		, *TermToText(EmitterContext, IndexTerm) //index
-		, *TermToText(EmitterContext, DefaultValueTerm) // default
+		, *TermToText(EmitterContext, IndexTerm, ENativizedTermUsage::UnspecifiedOrReference) //index
+		, *TermToText(EmitterContext, DefaultValueTerm, ENativizedTermUsage::UnspecifiedOrReference) // default
 		, NumCases);
 
 	for (int32 TermIndex = TermsBeforeCases; TermIndex < (NumCases * TermsPerCase); TermIndex += TermsPerCase)
 	{
 		auto TermToRef = [&](const FBPTerminal* Term) -> FString
 		{
-			const FString TermEvaluation = TermToText(EmitterContext, Term); //should bGetter be false ?
+			const FString TermEvaluation = TermToText(EmitterContext, Term, ENativizedTermUsage::UnspecifiedOrReference); //should bGetter be false ?
 			if (Term->bIsLiteral) //TODO it should be done for every term, that cannot be handled as reference.
 			{
 				const FString LocalVarName = EmitterContext.GenerateUniqueLocalName();
@@ -424,7 +469,7 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 			}
 			return TermEvaluation;
 		};
-		const FString Term0_Index = TermToText(EmitterContext, Statement.RHS[TermIndex]);
+		const FString Term0_Index = TermToText(EmitterContext, Statement.RHS[TermIndex], ENativizedTermUsage::UnspecifiedOrReference);
 		const FString Term1_Ref = TermToRef(Statement.RHS[TermIndex + 1]);
 		Result += FString::Printf(TEXT(", TSwitchPair<%s, %s>(%s, %s)")
 			, *IndexDeclaration
@@ -482,12 +527,14 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 				FEdGraphPinType LType;
 				auto Schema = GetDefault<UEdGraphSchema_K2>();
 				check(Schema);
+				ENativizedTermUsage TermUsage = ENativizedTermUsage::UnspecifiedOrReference;
 				if (Schema->ConvertPropertyToPinType(FuncParamProperty, LType))
 				{
 					FEmitHelper::GenerateAutomaticCast(EmitterContext, LType, Term->Type, BeginCast, CloseCast);
+					TermUsage = LType.bIsReference ? ENativizedTermUsage::UnspecifiedOrReference : ENativizedTermUsage::Getter;
 				}
 				VarName += BeginCast;
-				VarName += TermToText(EmitterContext, Term);
+				VarName += TermToText(EmitterContext, Term, TermUsage);
 				VarName += CloseCast;
 			}
 
@@ -527,12 +574,12 @@ static FString CustomThunkFunctionPostfix(FBlueprintCompiledStatement& Statement
 		}
 	}
 
-	FString FunctionName = Statement.FunctionToCall->GetName();
+	const FName FunctionName = Statement.FunctionToCall->GetFName();
 	if (ArrayTerm 
-		&& (FunctionName == TEXT("Array_Find") 
-			|| FunctionName == TEXT("Array_Contains") 
-			|| FunctionName == TEXT("Array_RemoveItem")
-			|| FunctionName == TEXT("Array_AddUnique")
+		&& ((FunctionName == GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_Find))
+			|| (FunctionName == GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_Contains))
+			|| (FunctionName == GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_RemoveItem))
+			|| (FunctionName == GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_AddUnique))
 			))
 	{
 		if (UEdGraphSchema_K2::PC_Text == ArrayTerm->Type.PinCategory)
@@ -576,12 +623,16 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 
 	FString Result;
 	FString CloseCast;
+	TAutoPtr<FSetterExpressionBuilder> SetterExpression;
 	if (!bInline)
 	{
 		// Handle the return value of the function being called
 		UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
 		if (FuncToCallReturnProperty && ensure(Statement.LHS))
 		{
+			SetterExpression = new FSetterExpressionBuilder(*this, EmitterContext, Statement.LHS);
+			Result += SetterExpression->BuildStart();
+
 			FString BeginCast;
 			FEdGraphPinType RType;
 			auto Schema = GetDefault<UEdGraphSchema_K2>();
@@ -590,7 +641,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			{
 				FEmitHelper::GenerateAutomaticCast(EmitterContext, Statement.LHS->Type, RType, BeginCast, CloseCast);
 			}
-			Result += FString::Printf(TEXT("%s = %s"), *TermToText(EmitterContext, Statement.LHS), *BeginCast);
+			Result += BeginCast;
 		}
 	}
 
@@ -605,7 +656,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			const FBPTerminal* const ValueTerminal = Statement.RHS.IsValidIndex(1) ? Statement.RHS[1] : nullptr;
 			if (Enum && ValueTerminal)
 			{
-				const FString Value = TermToText(EmitterContext, ValueTerminal);
+				const FString Value = TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter);
 				const FString EnumName = FEmitHelper::GetCppName(Enum);
 				Result += FString::Printf(TEXT("%s__GetUserFriendlyName(EnumToByte<%s>(TEnumAsByte<%s>(%s)))"), *EnumName, *EnumName, *EnumName, *Value);
 				return true;
@@ -625,7 +676,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
 				, *FEmitHelper::GetCppName(ContextInterfaceClass)
 				, *FunctionToCallOriginalName
-				, *TermToText(EmitterContext, Statement.FunctionContext, false));
+				, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
 		}
 		else
 		{
@@ -641,7 +692,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 				ensure(!bStaticCall); //unsupported yet
 				ensure(bCallOnDifferentObject); //unexpected
 				const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
-				const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, false) : TEXT("this");
+				const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
 				Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
 			}
 			else if (bStaticCall)
@@ -651,7 +702,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			}
 			else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
 			{
-				Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, false));
+				Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
 			}
 
 			if (Statement.bIsParentContext)
@@ -684,6 +735,10 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 
 	Result += CloseCast;
+	if (SetterExpression.IsValid())
+	{
+		Result += SetterExpression->BuildEnd(false);
+	}
 	if (!bInline)
 	{
 		Result += TEXT(";");
@@ -697,15 +752,23 @@ FString FBlueprintCompilerCppBackend::EmitArrayGetByRef(FEmitterLocalContext& Em
 	check(Statement.RHS.Num() == 2);
 
 	FString Result;
-	Result += TermToText(EmitterContext, Statement.RHS[0]);
+	Result += TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::UnspecifiedOrReference);
 	Result += TEXT("[");
-	Result += TermToText(EmitterContext, Statement.RHS[1]);
+	Result += TermToText(EmitterContext, Statement.RHS[1], ENativizedTermUsage::Getter);
 	Result += TEXT("]");
 	return Result;
 }
 
-FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterContext, const FBPTerminal* Term, bool bUseSafeContext, bool bGetter)
+FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterContext, const FBPTerminal* Term, const ENativizedTermUsage TermUsage, const bool bUseSafeContext, FString* EndCustomSetExpression)
 {
+	ensure((TermUsage != ENativizedTermUsage::Setter) || !bUseSafeContext);
+	ensure((TermUsage == ENativizedTermUsage::Setter) == (EndCustomSetExpression != nullptr));
+	if (EndCustomSetExpression)
+	{
+		EndCustomSetExpression->Reset();
+	}
+
+	const bool bGetter = (TermUsage == ENativizedTermUsage::Getter);
 	const FString PSC_Self(TEXT("self"));
 	if (Term->bIsLiteral)
 	{
@@ -755,7 +818,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 				}
 			}
 
-			ContextStr += TermToText(EmitterContext, Term->Context, false);
+			ContextStr += TermToText(EmitterContext, Term->Context, ENativizedTermUsage::UnspecifiedOrReference, false); // Should we just pass TermUsage?
 			ContextStr += bFromDefaultValue ? TEXT(")") : TEXT("");
 		}
 
@@ -768,7 +831,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			bIsAccessible &= !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate | CPF_NativeAccessSpecifierProtected);
 			if (!bIsAccessible)
 			{
-				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, TEXT("&"), 0, bGetter);
+				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, TEXT("&"), 0, TermUsage, EndCustomSetExpression);
 			}
 			else
 			{
@@ -804,7 +867,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 					ensure(ContextStr.IsEmpty());
 					ContextStr = TEXT("this");
 				}
-				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, FString(), 0, bGetter);
+				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, FString(), 0, TermUsage, EndCustomSetExpression);
 			}
 			else
 			{
@@ -863,7 +926,11 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		{
 			const FString DefaultValueConstructor = FEmitHelper::DefaultValue(EmitterContext, Term->Type);
 			const FString DefaultValueVariable = EmitterContext.GenerateUniqueLocalName();
-			const FString CppType = FEmitHelper::PinTypeToNativeType(Term->Type);
+			const uint32 PropertyExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
+			const FString CppType = Term->AssociatedVarProperty 
+				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, true)
+				: FEmitHelper::PinTypeToNativeType(Term->Type);
+
 			EmitterContext.AddLine(*FString::Printf(TEXT("%s %s = %s;"), *CppType, *DefaultValueVariable, *DefaultValueConstructor));
 			return FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *DefaultValueVariable);
 		}

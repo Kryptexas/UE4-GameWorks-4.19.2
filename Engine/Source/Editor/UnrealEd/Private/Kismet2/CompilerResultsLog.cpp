@@ -87,15 +87,18 @@ UEdGraphPin* FBacktrackMap::FindSourcePin(UEdGraphPin* PossiblyDuplicatedPin)
 	{
 		// Not in the map, maybe its owning node was duplicated - and then maybe he GUID matches
 		// some node on the original node:
-		if (UObject* OriginalOwner = FindSourceObject(PossiblyDuplicatedPin->GetOwningNode()))
+		if (PossiblyDuplicatedPin)
 		{
-			if (UEdGraphNode* AsNode = Cast<UEdGraphNode>(OriginalOwner))
+			if (UObject* OriginalOwner = FindSourceObject(PossiblyDuplicatedPin->GetOwningNode()))
 			{
-				FGuid TargetGuid = PossiblyDuplicatedPin->PinId;
-				UEdGraphPin** ExistingPin = AsNode->Pins.FindByPredicate([TargetGuid](const UEdGraphPin* TargetPin) { return TargetPin && TargetPin->PinId == TargetGuid; });
-				if (ExistingPin != nullptr)
+				if (UEdGraphNode* AsNode = Cast<UEdGraphNode>(OriginalOwner))
 				{
-					return *ExistingPin;
+					FGuid TargetGuid = PossiblyDuplicatedPin->PinId;
+					UEdGraphPin** ExistingPin = AsNode->Pins.FindByPredicate([TargetGuid](const UEdGraphPin* TargetPin) { return TargetPin && TargetPin->PinId == TargetGuid; });
+					if (ExistingPin != nullptr)
+					{
+						return *ExistingPin;
+					}
 				}
 			}
 		}

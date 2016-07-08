@@ -240,12 +240,18 @@ public:
 	/** Destroys the specified pin, does not modify its owning pin's Pins list */
 	static void DestroyPin(UEdGraphPin* Pin);
 
-	/** Find a pin on this node with the supplied name */
-	UEdGraphPin* FindPin(const FString& PinName) const;
+	/** Find a pin on this node with the supplied name and optional direction */
+	UEdGraphPin* FindPin(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
 
-	/** Find a pin on this node with the supplied name and assert if it is not present */
-	UEdGraphPin* FindPinChecked(const FString& PinName) const;
+	/** Find a pin on this node with the supplied name and optional direction and assert if it is not present */
+	UEdGraphPin* FindPinChecked(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
 	
+	/** Find the pin on this node with the supplied guid */
+	UEdGraphPin* FindPinById(const FGuid PinId) const;
+
+	/** Find the pin on this node with the supplied guid and assert if it is not present */
+	UEdGraphPin* FindPinByIdChecked(const FGuid PinId) const;
+
 	/** Find a pin on this node with the supplied name and remove it, returns TRUE if successful */
 	bool RemovePin(UEdGraphPin* Pin);
 

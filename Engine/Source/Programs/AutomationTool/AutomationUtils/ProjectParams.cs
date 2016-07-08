@@ -1032,19 +1032,24 @@ namespace AutomationTool
         [Help("nativizeAssets", "Runs a \"nativization\" pass on Blueprint assets, converting then into C++ (replacing the assets with the generated source).")]
         public bool RunAssetNativization;
 
-		/// <summary>
-		/// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
-		/// </summary>
-        public List<FileReference> BlueprintPluginPaths = new List<FileReference>();
+        public struct BlueprintPluginKey
+        {
+            public bool Client;
+            public UnrealTargetPlatform TargetPlatform;
+        }
+        /// <summary>
+        /// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
+        /// </summary>
+        public Dictionary<BlueprintPluginKey, FileReference> BlueprintPluginPaths = new Dictionary<BlueprintPluginKey, FileReference>();
 
-		#endregion
+        #endregion
 
-		#region Build
+        #region Build
 
-		/// <summary>
-		/// Build: True if build step should be executed, command: -build
-		/// </summary>
-		[Help("build", "True if build step should be executed")]
+        /// <summary>
+        /// Build: True if build step should be executed, command: -build
+        /// </summary>
+        [Help("build", "True if build step should be executed")]
 		public bool Build { private set; get; }
 
 		/// <summary>

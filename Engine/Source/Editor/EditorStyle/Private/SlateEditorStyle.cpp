@@ -4839,6 +4839,20 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "BlueprintProfiler.BPPinDisconnected", new IMAGE_BRUSH( "Icons/BPProfiler_ExecPin_Disconnected", Icon12x16 ) );
 		Set( "BlueprintProfiler.PureNode", new IMAGE_BRUSH( "/Icons/pill_16x", Icon16x16 ) );
 		Set( "BlueprintProfiler.BPNode", new IMAGE_BRUSH("Icons/Icon_Profiler_BPNode_16x", Icon16x16));
+
+		Button = FButtonStyle()
+			.SetNormal( FSlateNoResource() )
+			.SetHovered( FSlateNoResource() )
+			.SetPressed( FSlateNoResource() )
+			.SetNormalPadding( FMargin( 2,2,2,2 ) )
+			.SetPressedPadding( FMargin( 2,2,2,2 ) );
+		Set( "BlueprintProfiler.TreeArrowButton", Button );
+
+		Set( "BlueprintProfiler.TreeArrowGlyph", FTextBlockStyle(NormalText)
+			.SetFont(TTF_FONT("Fonts/FontAwesome", 10))
+			.SetShadowOffset(FVector2D::ZeroVector)
+		);
+
 	}
 #endif // WITH_EDITOR
 

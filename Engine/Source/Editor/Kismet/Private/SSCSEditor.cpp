@@ -5643,6 +5643,83 @@ void SSCSEditor::OnOpenBlueprintEditor(bool bForceCodeEditing) const
 	}
 }
 
+/** 
+This struct saves and deselects all selected instanced components (from given actor), then finds them (in recreated actor instance, after compilation) and selects them again.
+*/
+struct FRestoreSelectedInstanceComponent
+{
+	TWeakObjectPtr<UClass> ActorClass;
+	FName ActorName;
+	TWeakObjectPtr<UObject> ActorOuter;
+
+	struct FComponentKey
+	{
+		FName Name;
+		TWeakObjectPtr<UClass> Class;
+
+		FComponentKey(FName InName, UClass* InClass) : Name(InName), Class(InClass) {}
+	};
+	TArray<FComponentKey> ComponentKeys;
+
+	FRestoreSelectedInstanceComponent()
+		: ActorClass(nullptr)
+		, ActorOuter(nullptr)
+	{ }
+
+	void Save(AActor* InActor)
+	{
+		check(InActor);
+		ActorClass = InActor->GetClass();
+		ActorName = InActor->GetFName();
+		ActorOuter = InActor->GetOuter();
+
+		check(GEditor);
+		TArray<UActorComponent*> ComponentsToSaveAndDelesect;
+		for (auto Iter = GEditor->GetSelectedComponentIterator(); Iter; ++Iter)
+		{
+			UActorComponent* Component = CastChecked<UActorComponent>(*Iter, ECastCheckedType::NullAllowed);
+			if (Component && InActor->GetInstanceComponents().Contains(Component))
+			{
+				ComponentsToSaveAndDelesect.Add(Component);
+			}
+		}
+
+		for (UActorComponent* Component : ComponentsToSaveAndDelesect)
+		{
+			USelection* SelectedComponents = GEditor->GetSelectedComponents();
+			if (ensure(SelectedComponents))
+			{
+				ComponentKeys.Add(FComponentKey(Component->GetFName(), Component->GetClass()));
+				SelectedComponents->Deselect(Component);
+			}
+		}
+	}
+
+	void Restore()
+	{
+		AActor* Actor = (ActorClass.IsValid() && ActorOuter.IsValid()) 
+			? Cast<AActor>((UObject*)FindObjectWithOuter(ActorOuter.Get(), ActorClass.Get(), ActorName)) 
+			: nullptr;
+		if (Actor)
+		{
+			for (auto IterKey : ComponentKeys)
+			{
+				TArray<UActorComponent*> OwnedComponents;
+				Actor->GetComponents(OwnedComponents);
+				UActorComponent** ComponentPtr = OwnedComponents.FindByPredicate([&](UActorComponent* InComp)
+				{
+					return InComp && (InComp->GetFName() == IterKey.Name) && (InComp->GetClass() == IterKey.Class.Get());
+				});
+				if (ComponentPtr && *ComponentPtr)
+				{
+					check(GEditor);
+					GEditor->SelectComponent(*ComponentPtr, true, false);
+				}
+			}
+		}
+	}
+};
+
 void SSCSEditor::OnApplyChangesToBlueprint() const
 {
 	int32 NumChangedProperties = 0;
@@ -5654,6 +5731,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 	{
 		// Cache the actor label as by the time we need it, it may be invalid
 		const FString ActorLabel = Actor->GetActorLabel();
+		FRestoreSelectedInstanceComponent RestoreSelectedInstanceComponent;
 		{
 			const FScopedTransaction Transaction(LOCTEXT("PushToBlueprintDefaults_Transaction", "Apply Changes to Blueprint"));
 
@@ -5680,6 +5758,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 					NumChangedProperties = EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
 					if (Actor->GetInstanceComponents().Num() > 0)
 					{
+						RestoreSelectedInstanceComponent.Save(Actor);
 						FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Actor->GetInstanceComponents());
 						NumChangedProperties += Actor->GetInstanceComponents().Num();
 						Actor->ClearInstanceComponents(true);
@@ -5697,6 +5776,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
  		{
 			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 			FKismetEditorUtilities::CompileBlueprint(Blueprint);
+			RestoreSelectedInstanceComponent.Restore();
  		}
 
 		// Set up a notification record to indicate success/failure

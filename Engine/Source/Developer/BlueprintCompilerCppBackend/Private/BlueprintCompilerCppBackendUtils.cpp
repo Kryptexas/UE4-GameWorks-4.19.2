@@ -59,29 +59,37 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		int32 ObjectsCreatedPerClassIdx = MiscConvertedSubobjects.IndexOfByKey(Object);
 		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
-			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->MiscConvertedSubobjects[%d])")
-				, *ClassString(), *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
+				, *ClassString(), *FEmitHelper::GetCppName(ActualClass)
+				, GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, MiscConvertedSubobjects)
+				, ObjectsCreatedPerClassIdx);
 		}
 
 		ObjectsCreatedPerClassIdx = ObjectsCreatedPerClassIdx = DynamicBindingObjects.IndexOfByKey(Object);
 		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
-			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->DynamicBindingObjects[%d])")
-				, *ClassString(), *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
+				, *ClassString(), *FEmitHelper::GetCppName(ActualClass)
+				, GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, DynamicBindingObjects)
+				, ObjectsCreatedPerClassIdx);
 		}
 
 		ObjectsCreatedPerClassIdx = ComponentTemplates.IndexOfByKey(Object);
 		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
-			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->ComponentTemplates[%d])")
-				, *ClassString(), *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
+				, *ClassString(), *FEmitHelper::GetCppName(ActualClass)
+				, GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ComponentTemplates)
+				, ObjectsCreatedPerClassIdx);
 		}
 
 		ObjectsCreatedPerClassIdx = Timelines.IndexOfByKey(Object);
 		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
-			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->Timelines[%d])")
-				, *ClassString(), *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
+				, *ClassString(), *FEmitHelper::GetCppName(ActualClass)
+				, GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, Timelines)
+				, ObjectsCreatedPerClassIdx);
 		}
 
 		if ((CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass) || (CurrentCodeType == EGeneratedCodeType::CommonConstructor))
@@ -147,9 +155,10 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		const int32 EnumIndex = EnumsInCurrentClass.IndexOfByKey(UDE);
 		if (INDEX_NONE != EnumIndex)
 		{
-			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->ReferencedConvertedFields[%d])")
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
 				, *ClassString()
 				, *FEmitHelper::GetCppName(ActualClass)
+				, GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields)
 				, EnumIndex);
 		}
 	}
@@ -168,9 +177,10 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 
 			if (INDEX_NONE != AssetIndex)
 			{
-				return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->UsedAssets[%d], ECastCheckedType::NullAllowed)")
+				return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d], ECastCheckedType::NullAllowed)")
 					, *ClassString()
 					, *FEmitHelper::GetCppName(ActualClass)
+					, GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, UsedAssets)
 					, AssetIndex);
 			}
 		}
@@ -822,10 +832,10 @@ void FEmitHelper::EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterC
 		{
 			if (!bFunctionInitilzed)
 			{
-				EmitterContext.AddLine(FString::Printf(TEXT("void %s::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const"), *CppClassName));
+				EmitterContext.AddLine(FString::Printf(TEXT("void %s::%s(TArray< FLifetimeProperty > & OutLifetimeProps) const"), *CppClassName, GET_FUNCTION_NAME_STRING_CHECKED(UActorComponent, GetLifetimeReplicatedProps)));
 				EmitterContext.AddLine(TEXT("{"));
 				EmitterContext.IncreaseIndent();
-				EmitterContext.AddLine(TEXT("Super::GetLifetimeReplicatedProps(OutLifetimeProps);"));
+				EmitterContext.AddLine(FString::Printf(TEXT("Super::%s(OutLifetimeProps);"), GET_FUNCTION_NAME_STRING_CHECKED(UActorComponent, GetLifetimeReplicatedProps)));
 				bFunctionInitilzed = true;
 			}
 			EmitterContext.AddLine(FString::Printf(TEXT("DOREPLIFETIME_DIFFNAMES(%s, %s, FName(TEXT(\"%s\")));"), *CppClassName, *FEmitHelper::GetCppName(*It), *(It->GetName())));
@@ -1332,9 +1342,10 @@ FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterCont
 		EmitterContext.IncreaseIndent();
 
 		const FString PropertyOwnerStruct = EmitterContext.FindGloballyMappedObject(Property->GetOwnerStruct(), UStruct::StaticClass());
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = (%s)->FindPropertyByName(FName(TEXT(\"%s\")));")
+		EmitterContext.AddLine(FString::Printf(TEXT("%s = (%s)->%s(FName(TEXT(\"%s\")));")
 			, *PropertyPtrName
 			, *PropertyOwnerStruct
+			, GET_FUNCTION_NAME_STRING_CHECKED(UStruct, FindPropertyByName)
 			, *Property->GetName()));
 		EmitterContext.AddLine(FString::Printf(TEXT("check(%s);"), *PropertyPtrName));
 		EmitterContext.AddLine(FString::Printf(TEXT("%s = %s;"), *PropertyWeakPtrName, *PropertyPtrName));
@@ -1347,6 +1358,7 @@ FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterCont
 		EmitterContext.AddLine(FString::Printf(TEXT("const UProperty* %s = (%s)->FindPropertyByName(FName(TEXT(\"%s\")));")
 			, *PropertyPtrName
 			, *PropertyOwnerStruct
+			, GET_FUNCTION_NAME_STRING_CHECKED(UStruct, FindPropertyByName)
 			, *Property->GetName()));
 		EmitterContext.AddLine(FString::Printf(TEXT("check(%s);"), *PropertyPtrName));
 	}
@@ -1359,22 +1371,43 @@ FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterCont
 }
 
 FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
-	, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx, bool bGetter)
+	, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding)
 {
 	check(Property);
+	ensure((TermUsage == ENativizedTermUsage::Setter) == (CustomSetExpressionEnding != nullptr));
+	if (CustomSetExpressionEnding)
+	{
+		CustomSetExpressionEnding->Reset();
+	}
+
 	const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
 	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
-	if (bGetter && BoolProperty)
+	if ((TermUsage == ENativizedTermUsage::Getter) && BoolProperty)
 	{
-		return  FString::Printf(TEXT("(((UBoolProperty*)%s)->GetPropertyValue_InContainer(%s(%s), %d))")
+		return  FString::Printf(TEXT("(((UBoolProperty*)%s)->%s(%s(%s), %d))")
 			, *PropertyLocalName
+			, GET_FUNCTION_NAME_STRING_CHECKED(UBoolProperty, GetPropertyValue_InContainer)
 			, *ContextAdressOp
 			, *ContextStr
 			, StaticArrayIdx);
 	}
+
+	if ((TermUsage == ENativizedTermUsage::Setter) && BoolProperty)
+	{
+		if (ensure(CustomSetExpressionEnding))
+		{
+			*CustomSetExpressionEnding = FString::Printf(TEXT(", %d))"), StaticArrayIdx);
+		}
+		return FString::Printf(TEXT("(((UBoolProperty*)%s)->%s(%s(%s), ")
+			, *PropertyLocalName
+			, GET_FUNCTION_NAME_STRING_CHECKED(UBoolProperty, SetPropertyValue_InContainer)
+			, *ContextAdressOp
+			, *ContextStr);
+	}
+
 	if (BoolProperty && !BoolProperty->IsNativeBool())
 	{
-		UE_LOG(LogK2Compiler, Error, TEXT("AccessInaccessiblePropertyUsingOffset - bitfield %s"), *GetPathNameSafe(Property));
+		UE_LOG(LogK2Compiler, Error, TEXT("AccessInaccessibleProperty - bitfield %s"), *GetPathNameSafe(Property));
 	}
 	const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
@@ -1503,17 +1536,46 @@ FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext&
 		, StaticArrayIdx);
 }
 
-bool FBackendHelperStaticSearchableValues::HasSearchableValues(UClass* Class)
+struct FSearchableValuesdHelper_StaticData
 {
-	TArray<FStringClassReference> ClassesWithSearchableValues;
-	//TODO: export to .ini
-	ClassesWithSearchableValues.Add(FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueNotify_Actor")));
-	ClassesWithSearchableValues.Add(FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueNotify_Static")));
-
-	for (FStringClassReference& IterClassRef : ClassesWithSearchableValues)
+	TArray<FStringClassReference> ClassesWithStaticSearchableValues;
+	TArray<FName> TagPropertyNames;
+private:
+	FSearchableValuesdHelper_StaticData()
 	{
-		UClass* IterClass = IterClassRef.ResolveClass();
-		if (IterClass && Class && Class->IsChildOf(IterClass))
+		{
+			TArray<FString> Paths;
+			GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ClassesWithStaticSearchableValues"), Paths, GEditorIni);
+			for (FString& Path : Paths)
+			{
+				ClassesWithStaticSearchableValues.Add(FStringClassReference(Path));
+			}
+		}
+
+		{
+			TArray<FString> Names;
+			GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("StaticSearchableTagNames"), Names, GEditorIni);
+			for (FString& Name : Names)
+			{
+				TagPropertyNames.Add(FName(*Name));
+			}
+		}
+	}
+
+public:
+	static FSearchableValuesdHelper_StaticData& Get()
+	{
+		static FSearchableValuesdHelper_StaticData StaticInstance;
+		return StaticInstance;
+	}
+};
+
+bool FBackendHelperStaticSearchableValues::HasSearchableValues(UClass* InClass)
+{
+	for (const FStringClassReference& ClassStrRef : FSearchableValuesdHelper_StaticData::Get().ClassesWithStaticSearchableValues)
+	{
+		UClass* IterClass = ClassStrRef.ResolveClass();
+		if (IterClass && InClass && InClass->IsChildOf(IterClass))
 		{
 			return true;
 		}
@@ -1553,12 +1615,7 @@ void FBackendHelperStaticSearchableValues::EmitFunctionDefinition(FEmitterLocalC
 	if(ensure(OriginalSourceClass))
 	{
 		FAssetData ClassAsset(OriginalSourceClass);
-
-		TArray<FName> TagPropertyNames;
-		//TODO: export to ini
-		TagPropertyNames.Add(FName(TEXT("GameplayCueName")));
-
-		for (const FName TagPropertyName : TagPropertyNames)
+		for (const FName TagPropertyName : FSearchableValuesdHelper_StaticData::Get().TagPropertyNames)
 		{
 			const FName FoundValue = ClassAsset.GetTagValueRef<FName>(TagPropertyName);
 			if (!FoundValue.IsNone())

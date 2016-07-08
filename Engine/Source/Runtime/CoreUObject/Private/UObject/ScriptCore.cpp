@@ -1147,11 +1147,13 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		// Don't instrument native events that have not been implemented/overridden in script (BP). These events will not have had any profiler data generated for them at compile time.
 		if (!Function->HasAnyFunctionFlags(FUNC_Native) || Function->GetOuter()->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 		{
-			const EScriptInstrumentation::Type EventType = Function->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent) ? EScriptInstrumentation::Event : EScriptInstrumentation::ResumeEvent;
-			EScriptInstrumentationEvent EventInstrumentationInfo(EventType, this, Function->GetFName());
-			FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
-
-			bInstrumentScriptEvent = true;
+			if (Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent))
+			{
+				// Don't handle latent actions here, let the latent action manager handle them.
+				EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function->GetFName());
+				FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
+				bInstrumentScriptEvent = true;
+			}
 		}
 	}
 #endif

@@ -183,13 +183,36 @@ bool UK2Node_CustomEvent::CanCreateUserDefinedPin(const FEdGraphPinType& InPinTy
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if(InDesiredDirection == EGPD_Input)
 	{
-		OutErrorMessage = NSLOCTEXT("K2Node", "AddInputPinError", "Cannot add input pins to function result node!");
+		OutErrorMessage = NSLOCTEXT("K2Node", "AddInputPinError", "Cannot add input pins to custom event node!");
 		return false;
 	}
 	else if (InPinType.PinCategory == Schema->PC_Exec && !CanModifyExecutionWires())
 	{
 		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
 		return false;
+	}
+	else
+	{
+		TArray<TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo>> TypeTree;
+		Schema->GetVariableTypeTree(TypeTree, ETypeTreeFilter::RootTypesOnly);
+
+		bool bIsValid = false;
+		for (TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo>& TypeInfo : TypeTree)
+		{
+			FEdGraphPinType CurrentType = TypeInfo->GetPinType(false);
+			// only concerned with the list of categories
+			if (CurrentType.PinCategory == InPinType.PinCategory)
+			{
+				bIsValid = true;
+				break;
+			}
+		}
+
+		if (!bIsValid)
+		{
+			OutErrorMessage = LOCTEXT("AddInputPinError", "Cannot add pins of this type to custom event node!");
+			return false;
+		}
 	}
 
 	return true;
@@ -383,6 +406,7 @@ void UK2Node_CustomEvent::ReconstructNode()
 				TSharedPtr<FUserPinInfo> NewPinInfo = MakeShareable( new FUserPinInfo() );
 				NewPinInfo->PinName = NewPinName;
 				NewPinInfo->PinType = PinType;
+				NewPinInfo->DesiredPinDirection = EGPD_Output;
 				UserDefinedPins.Add(NewPinInfo);
 			}
 		}

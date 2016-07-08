@@ -88,8 +88,8 @@ protected:
 	EBlueprintProfilerHeatMapDisplayMode::Type GraphNodeHeatMapDisplayMode;
 	/** Current wire heat map display mode */
 	EBlueprintProfilerHeatMapDisplayMode::Type WireHeatMapDisplayMode;
-	/** Suspended script events */
-	TMap<FName, TSharedPtr<FScriptEventPlayback>> SuspendedEvents;
+	/** Suspended script events, the key is the latent LinkId */
+	TMap<FName, TMap<int32, TSharedPtr<FScriptEventPlayback>>> SuspendedEvents;
 	/** Cached object path and code offset lookup to UObjects */
 	TMap<FString, TSharedPtr<FBlueprintExecutionContext>> PathToBlueprintContext;
 	/** The profiler connection factory */

@@ -8,6 +8,7 @@
 #include "UnrealExporter.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "K2Node_TunnelBoundary.h"
 
 /////////////////////////////////////////////////////
 // FGraphObjectTextFactory
@@ -235,10 +236,20 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 }
 
 // Clones the content from SourceGraph and merges it into MergeTarget; including merging/flattening all of the children from the SourceGraph into MergeTarget
-void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* SourceGraph, FCompilerResultsLog& MessageLog, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, TArray<UEdGraphNode*>* OutClonedNodes)
+void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* SourceGraph, FCompilerResultsLog& MessageLog, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, bool bCreateBoundaryNodes/* = false*/, TArray<UEdGraphNode*>* OutClonedNodes)
 {
 	// Clone the graph, then move all of it's children
 	UEdGraph* ClonedGraph = CloneGraph(SourceGraph, NULL, &MessageLog, true);
+
+	// Create any Boundary nodes around child graphs if specified.
+	if (bCreateBoundaryNodes)
+	{
+		for (UEdGraph* SubGraph : ClonedGraph->SubGraphs)
+		{
+			UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(SubGraph, MessageLog);
+		}
+	}
+
 	MergeChildrenGraphsIn(ClonedGraph, ClonedGraph, bRequireSchemaMatch);
 
 	// Duplicate the list of cloned nodes

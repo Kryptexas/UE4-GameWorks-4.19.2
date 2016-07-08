@@ -782,13 +782,13 @@ public:
 		}
 	}
 
-	void GetFilteredVariableTypeTree( TArray< TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard ) const
+	void GetFilteredVariableTypeTree( TArray< TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> >& TypeTree, ETypeTreeFilter TypeTreeFilter) const
 	{
 		auto K2Schema = GetDefault<UEdGraphSchema_K2>();
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if(StructureDetailsSP.IsValid() && K2Schema)
 		{
-			K2Schema->GetVariableTypeTree(TypeTree, bAllowExec, bAllowWildcard);
+			K2Schema->GetVariableTypeTree(TypeTree, TypeTreeFilter);
 			const auto Parent = StructureDetailsSP->GetUserDefinedStruct();
 			// THE TREE HAS ONLY 2 LEVELS
 			for (auto PinTypePtr : TypeTree)
@@ -864,8 +864,7 @@ public:
 				.OnPinTypePreChanged(this, &FUserDefinedStructureFieldLayout::OnPrePinInfoChange)
 				.OnPinTypeChanged(this, &FUserDefinedStructureFieldLayout::PinInfoChanged)
 				.Schema(K2Schema)
-				.bAllowExec(false)
-				.bAllowWildcard(false)
+				.TypeTreeFilter(ETypeTreeFilter::None)
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 			+ SHorizontalBox::Slot()

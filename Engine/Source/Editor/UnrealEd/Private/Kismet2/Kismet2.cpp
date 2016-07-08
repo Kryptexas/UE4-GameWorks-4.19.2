@@ -2081,9 +2081,12 @@ void FKismetEditorUtilities::StripExternalComponents(class UBlueprint* Blueprint
 	FArchiveInvalidateTransientRefs InvalidateRefsAr;
 	
 	UClass* SkeletonGeneratedClass = Blueprint->SkeletonGeneratedClass;
-	UObject* SkeletonCDO = SkeletonGeneratedClass->GetDefaultObject();
+	if (SkeletonGeneratedClass)
+	{
+		UObject* SkeletonCDO = SkeletonGeneratedClass->GetDefaultObject();
 
-	SkeletonCDO->Serialize(InvalidateRefsAr);
+		SkeletonCDO->Serialize(InvalidateRefsAr);
+	}
 
 	UClass* GeneratedClass = Blueprint->GeneratedClass;
 	UObject* GeneratedCDO = GeneratedClass->GetDefaultObject();

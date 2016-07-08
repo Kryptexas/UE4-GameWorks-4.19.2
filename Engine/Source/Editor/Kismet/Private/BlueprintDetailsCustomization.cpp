@@ -256,7 +256,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.OnPinTypeChanged(this, &FBlueprintVarActionDetails::OnVarTypeChanged)
 		.IsEnabled(this, &FBlueprintVarActionDetails::GetVariableTypeChangeEnabled)
 		.Schema(Schema)
-		.bAllowExec(false)
+		.TypeTreeFilter(ETypeTreeFilter::None)
 		.Font( DetailFontInfo )
 		.ToolTip(VarTypeTooltip)
 	];
@@ -2271,6 +2271,17 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
+	ETypeTreeFilter TypeTreeFilter = ETypeTreeFilter::None;
+	if (TargetNode->CanModifyExecutionWires())
+	{
+		TypeTreeFilter |= ETypeTreeFilter::AllowExec;
+	}
+
+	if (ShouldAllowWildcard(TargetNode))
+	{
+		TypeTreeFilter |= ETypeTreeFilter::AllowWildcard;
+	}
+
 	NodeRow
 	.NameContent()
 	[
@@ -2300,8 +2311,7 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 				.OnPinTypePreChanged(this, &FBlueprintGraphArgumentLayout::OnPrePinInfoChange)
 				.OnPinTypeChanged(this, &FBlueprintGraphArgumentLayout::PinInfoChanged)
 				.Schema(K2Schema)
-				.bAllowExec(TargetNode->CanModifyExecutionWires())
-				.bAllowWildcard(ShouldAllowWildcard(TargetNode))
+				.TypeTreeFilter(TypeTreeFilter)
 				.bAllowArrays(!ShouldPinBeReadOnly())
 				.IsEnabled(!ShouldPinBeReadOnly(true))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
