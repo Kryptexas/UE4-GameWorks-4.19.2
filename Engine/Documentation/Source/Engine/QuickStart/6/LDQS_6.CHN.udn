@@ -1,5 +1,5 @@
 ﻿Availability: Public
-Title:6. 运行构建过程
+Title: 6. 执行构建过程
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description: 放置了几个Actor并进行了自定义处理后，创建关卡的最后一步就是构建关卡。
 
