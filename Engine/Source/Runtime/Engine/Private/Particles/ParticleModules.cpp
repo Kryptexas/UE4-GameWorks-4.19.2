@@ -314,9 +314,9 @@ void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* P
 			{
 				ParamType = PSPT_Scalar;
 				ParamName = DistFloatParam->ParameterName;
+				
 			}
-			else 
-			if (DistVectorParam != NULL)
+			else if (DistVectorParam != NULL)
 			{
 				ParamType = PSPT_Vector;
 				ParamName = DistVectorParam->ParameterName;
@@ -342,6 +342,18 @@ void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* P
 					PSysComp->InstanceParameters[NewParamIndex].Name		= ParamName;
 					PSysComp->InstanceParameters[NewParamIndex].ParamType	= ParamType;
 					PSysComp->InstanceParameters[NewParamIndex].Actor		= NULL;
+					// Populate a Vector or Scalar using GetValue. (If we just call GetValue with no parameters we will get the default value based on the setting of the Parameter)
+					switch (ParamType)
+					{
+					case PSPT_Vector:
+						PSysComp->InstanceParameters[NewParamIndex].Vector = DistVectorParam->GetValue();
+						PSysComp->InstanceParameters[NewParamIndex].Vector_Low = DistVectorParam->MinOutput;
+						break;
+					case PSPT_Scalar:
+						PSysComp->InstanceParameters[NewParamIndex].Scalar = DistFloatParam->GetValue();
+						PSysComp->InstanceParameters[NewParamIndex].Scalar_Low = DistFloatParam->MinOutput;
+						break;
+					}
 				}
 			}
 		}

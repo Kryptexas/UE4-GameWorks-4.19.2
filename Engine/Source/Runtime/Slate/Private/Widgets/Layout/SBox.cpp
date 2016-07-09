@@ -158,10 +158,10 @@ void SBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildr
 			{
 				const float AspectRatioHeight = 1.0f / AspectRatioWidth;
 
-				const float CurrentRatioWidth = ( CurrentWidth / CurrentHeight );
+				const float CurrentRatioWidth = ( AllottedGeometry.Size.X / AllottedGeometry.Size.Y );
 				const float CurrentRatioHeight = 1.0f / CurrentRatioWidth;
 
-				if ( CurrentRatioWidth > AspectRatioWidth )
+				if ( CurrentRatioWidth > AspectRatioWidth /*|| CurrentRatioHeight > AspectRatioHeight*/ )
 				{
 					XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, ChildSlot, SlotPadding);
 					YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ChildSlot, SlotPadding);

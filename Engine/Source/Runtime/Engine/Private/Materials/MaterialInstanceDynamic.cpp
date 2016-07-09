@@ -20,6 +20,14 @@ UMaterialInstanceDynamic* UMaterialInstanceDynamic::Create(UMaterialInterface* P
 	return MID;
 }
 
+UMaterialInstanceDynamic* UMaterialInstanceDynamic::Create(UMaterialInterface* ParentMaterial, UObject* InOuter, FName Name)
+{
+	UObject* Outer = InOuter ? InOuter : GetTransientPackage();
+	UMaterialInstanceDynamic* MID = NewObject<UMaterialInstanceDynamic>(Outer, Name);
+	MID->SetParentInternal(ParentMaterial, false);
+	return MID;
+}
+
 void UMaterialInstanceDynamic::SetVectorParameterValue(FName ParameterName, FLinearColor Value)
 {
 	SetVectorParameterValueInternal(ParameterName,Value);

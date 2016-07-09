@@ -32,6 +32,7 @@ class AWorldSettings;
 class ACameraActor;
 class FUniqueNetId;
 class FWorldInGamePerformanceTrackers;
+struct FUniqueNetIdRepl;
 
 template<typename,typename> class TOctree;
 
@@ -2541,7 +2542,8 @@ public:
 	 * @return the PlayerController that was spawned (may fail and return NULL)
 	 */
 	APlayerController* SpawnPlayActor(class UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex = 0);
-
+	APlayerController* SpawnPlayActor(class UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const FUniqueNetIdRepl& UniqueId, FString& Error, uint8 InNetPlayerIndex = 0);
+	
 	/** Try to find an acceptable position to place TestActor as close to possible to PlaceLocation.  Expects PlaceLocation to be a valid location inside the level. */
 	bool FindTeleportSpot( AActor* TestActor, FVector& PlaceLocation, FRotator PlaceRotation );
 

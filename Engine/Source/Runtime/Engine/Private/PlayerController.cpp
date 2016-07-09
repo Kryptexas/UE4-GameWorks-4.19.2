@@ -2819,6 +2819,8 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		DisplayDebugManager.SetDrawColor(FColor::White);
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
 	}
+
+	YPos = DisplayDebugManager.GetYPos();
 }
 
 void APlayerController::SetCinematicMode(bool bInCinematicMode, bool bHidePlayer, bool bAffectsHUD, bool bAffectsMovement, bool bAffectsTurning)

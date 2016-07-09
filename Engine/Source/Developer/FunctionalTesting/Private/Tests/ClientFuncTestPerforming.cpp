@@ -40,7 +40,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND(FStartFTestsOnMap);
 bool FStartFTestsOnMap::Update()
 {
 	//should really be wait until the map is properly loaded....in PIE or gameplay....
-	//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(15.f));
 	ADD_LATENT_AUTOMATION_COMMAND(FTriggerFTests);
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitForFTestsToFinish);	
 	

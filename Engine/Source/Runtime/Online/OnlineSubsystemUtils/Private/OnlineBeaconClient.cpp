@@ -56,6 +56,17 @@ bool AOnlineBeaconClient::DestroyNetworkActorHandled()
 	return false;
 }
 
+const FUniqueNetIdRepl& AOnlineBeaconClient::GetUniqueId() const
+{
+	if (BeaconConnection)
+	{
+		return BeaconConnection->PlayerId;
+	}
+
+	static FUniqueNetIdRepl EmptyId;
+	return EmptyId;
+}
+
 EBeaconConnectionState AOnlineBeaconClient::GetConnectionState() const
 {
 	return ConnectionState;
@@ -194,7 +205,16 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				FString BeaconType = GetBeaconType();
 				if (!BeaconType.IsEmpty())
 				{
-					FNetControlMessage<NMT_BeaconJoin>::Send(Connection, BeaconType);
+					FUniqueNetIdRepl UniqueIdRepl;
+
+					ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(GetWorld());
+					if (LocalPlayer)
+					{
+						// Send the player unique Id at login
+						UniqueIdRepl = LocalPlayer->GetPreferredUniqueNetId();
+					}
+
+					FNetControlMessage<NMT_BeaconJoin>::Send(Connection, BeaconType, UniqueIdRepl);
 					NetDriver->ServerConnection->FlushNet();
 				}
 				else

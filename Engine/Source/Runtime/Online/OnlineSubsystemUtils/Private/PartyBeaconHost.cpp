@@ -7,7 +7,7 @@
 APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	State(NULL),
-	bNoTimeouts(false)
+	bLogoutOnSessionTimeout(false)
 {
 	ClientBeaconActorClass = APartyBeaconClient::StaticClass();
 	BeaconTypeName = ClientBeaconActorClass->GetName();
@@ -15,9 +15,14 @@ APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bAllowTickOnDedicatedServer = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+}
 
+void APartyBeaconHost::PostInitProperties()
+{
+	Super::PostInitProperties();
 #if !UE_BUILD_SHIPPING
-	bNoTimeouts = bNoTimeouts || FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts")) ? true : false;
+	// This value is set on the CDO as well on purpose
+	bLogoutOnSessionTimeout = bLogoutOnSessionTimeout || FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts")) ? true : false;
 #endif
 }
 
@@ -152,7 +157,7 @@ void APartyBeaconHost::Tick(float DeltaTime)
 								{
 									UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): pending player %s found in session (%s)."),
 										*GetName(),
-										*PlayerEntry.UniqueId->ToDebugString(),
+										*(PlayerEntry.UniqueId.ToDebugString()),
 										*SessionName.ToString());
 
 									// reset elapsed time since found
@@ -166,7 +171,7 @@ void APartyBeaconHost::Tick(float DeltaTime)
 								// update elapsed time
 								PlayerEntry.ElapsedTime += DeltaTime;
 
-								if (!bNoTimeouts)
+								if (bLogoutOnSessionTimeout)
 								{
 									// if the player is pending it's initial join then check against TravelSessionTimeoutSecs instead
 									FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
@@ -185,41 +190,44 @@ void APartyBeaconHost::Tick(float DeltaTime)
 					}
 				}
 
-				// Logout any players that timed out
-				for (int32 LogoutIdx = 0; LogoutIdx < PlayersToLogout.Num(); LogoutIdx++)
+				if (bLogoutOnSessionTimeout)
 				{
-					bool bFound = false;
-					const TSharedPtr<const FUniqueNetId>& UniqueId = PlayersToLogout[LogoutIdx];
-					float ElapsedSessionTime = 0.f;
-					for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
+					// Logout any players that timed out
+					for (int32 LogoutIdx = 0; LogoutIdx < PlayersToLogout.Num(); LogoutIdx++)
 					{
-						const FPartyReservation& PartyRes = Reservations[ResIdx];
-						for (int32 PlayerIdx = 0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
+						bool bFound = false;
+						const TSharedPtr<const FUniqueNetId>& UniqueId = PlayersToLogout[LogoutIdx];
+						float ElapsedSessionTime = 0.f;
+						for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
 						{
-							const FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
-							if (*PlayerEntry.UniqueId == *UniqueId)
+							const FPartyReservation& PartyRes = Reservations[ResIdx];
+							for (int32 PlayerIdx = 0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
 							{
-								ElapsedSessionTime = PlayerEntry.ElapsedTime;
-								bFound = true;
+								const FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
+								if (*PlayerEntry.UniqueId == *UniqueId)
+								{
+									ElapsedSessionTime = PlayerEntry.ElapsedTime;
+									bFound = true;
+									break;
+								}
+							}
+
+							if (bFound)
+							{
 								break;
 							}
 						}
 
-						if (bFound)
-						{
-							break;
-						}
+						UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): player logout due to timeout for %s, elapsed time = %0.3f"),
+							*GetName(),
+							*UniqueId->ToDebugString(),
+							ElapsedSessionTime);
+						// Also remove from pending join list
+						State->PlayersPendingJoin.RemoveSingleSwap(UniqueId);
+						// let the beacon handle the logout and notifications/delegates
+						FUniqueNetIdRepl RemovedId(UniqueId);
+						HandlePlayerLogout(RemovedId);
 					}
-
-					UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): player logout due to timeout for %s, elapsed time = %0.3f"),
-						*GetName(),
-						*UniqueId->ToDebugString(),
-						ElapsedSessionTime);
-					// Also remove from pending join list
-					State->PlayersPendingJoin.RemoveSingleSwap(UniqueId);
-					// let the beacon handle the logout and notifications/delegates
-					FUniqueNetIdRepl RemovedId(UniqueId);
-					HandlePlayerLogout(RemovedId);
 				}
 			}
 		}
@@ -324,7 +332,7 @@ void APartyBeaconHost::NewPlayerAdded(const FPlayerReservation& NewPlayer)
 	{
 		if (State)
 		{
-			UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId->ToDebugString());
+			UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId.ToDebugString());
 			State->PlayersPendingJoin.Add(NewPlayer.UniqueId.GetUniqueNetId());
 		}
 		else

@@ -74,7 +74,7 @@ void AQosBeaconClient::ServerQosRequest_Implementation(const FString& InSessionI
 void AQosBeaconClient::ClientQosResponse_Implementation(EQosResponseType Response)
 {
 	double EndTime = FPlatformTime::Seconds();
-	UE_LOG(LogBeacon, Warning, TEXT("ClientQosResponse: total time: %f RPC time: %f."), EndTime - ConnectionStartTime, EndTime - QosStartTime);
+	UE_LOG(LogBeacon, Display, TEXT("ClientQosResponse: total time: %f RPC time: %f."), EndTime - ConnectionStartTime, EndTime - QosStartTime);
 
 	int32 ResponseTime = FMath::TruncToInt((EndTime - QosStartTime) * 1000.0);
 	QosRequestComplete.ExecuteIfBound(EQosResponseType::Success, ResponseTime);

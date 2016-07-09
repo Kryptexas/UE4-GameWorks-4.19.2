@@ -49,6 +49,8 @@ namespace EStretch
 		 * or exceed the size of the area.  Will result in clipping the longer side.
 		 */
 		ScaleToFill,
+		/** Scales the content according to the size of the safe zone currently applied to the viewport. */
+		ScaleBySafeZone,
 		/** Scales the content by the scale specified by the user. */
 		UserSpecified
 	};
@@ -133,6 +135,8 @@ public:
 protected:
 	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
 
+	float GetLayoutScale() const;
+	void RefreshSafeZoneScale();
 private:
 	/** The allowed direction of stretching of the content */
 	TAttribute<EStretchDirection::Type> StretchDirection;
@@ -145,4 +149,7 @@ private:
 
 	/** Optional bool to ignore the inherited scale */
 	TAttribute<bool> IgnoreInheritedScale;
+
+	/** Computed scale when scaled by safe zone padding */
+	float SafeZoneScale;
 };

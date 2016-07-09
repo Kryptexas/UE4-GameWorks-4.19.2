@@ -118,8 +118,9 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 			{
 				FString ErrorMsg;
 				FString BeaconType;
-				FNetControlMessage<NMT_BeaconJoin>::Receive(Bunch, BeaconType);
-				UE_LOG(LogBeacon, Log, TEXT("Beacon Join %s"), *BeaconType);
+				FUniqueNetIdRepl UniqueId;
+				FNetControlMessage<NMT_BeaconJoin>::Receive(Bunch, BeaconType, UniqueId);
+				UE_LOG(LogBeacon, Log, TEXT("Beacon Join %s %s"), *BeaconType, *UniqueId.ToDebugString());
 
 				if (Connection->ClientWorldPackageName == NAME_None)
 				{
@@ -140,8 +141,9 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 						{
 							NewClientActor->SetConnectionState(EBeaconConnectionState::Pending);
 
-							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server( NewClientActor );
+							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server(NewClientActor);
 							NewClientActor->SetNetConnection(Connection);
+							Connection->PlayerId = UniqueId;
 							Connection->OwningActor = NewClientActor;
 							NewClientActor->Role = ROLE_Authority;
 							NewClientActor->SetReplicates(false);
@@ -230,7 +232,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 		if (bCloseConnection)
 		{		
-			UE_LOG(LogBeacon, Verbose, TEXT("Closing connection %s"), *Connection->GetName());
+			UE_LOG(LogBeacon, Verbose, TEXT("Closing connection %s: %s"), *Connection->GetName(), *Connection->PlayerId.ToDebugString());
 			AOnlineBeaconClient* ClientActor = GetClientActor(Connection);
 			if (ClientActor)
 			{

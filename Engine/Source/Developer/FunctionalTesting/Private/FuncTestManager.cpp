@@ -70,10 +70,10 @@ static bool FuncTestExec(UWorld* InWorld, const TCHAR* Command,FOutputDevice& Ar
 			const bool bLooped = FParse::Command(&Command,TEXT("loop"));
 
 			//instead of allowing straight use of the functional test framework, this should go through the automation framework and kick off one of the Editor/Client functional tests
-			//FFunctionalTestingModule::Get()->RunAllTestsOnMap(/*bClearLog=*/true, bLooped);
-			FString TestName = InWorld->GetName();
-			FString AutomationString = FString::Printf(TEXT("Automation RunTests FunctionalTesting.%s"), *TestName);
-			GEngine->Exec(InWorld, *AutomationString);
+			if (!FFunctionalTestingModule::Get()->IsRunning())
+			{
+				FFunctionalTestingModule::Get()->RunAllTestsOnMap(/*bClearLog=*/true, bLooped);
+			}
 		}
 		return true;
 	}

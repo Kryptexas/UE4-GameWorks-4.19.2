@@ -1497,11 +1497,13 @@ UVoiceChannel* UNetConnection::GetVoiceChannel()
 float UNetConnection::GetTimeoutValue()
 {
 #if !UE_BUILD_SHIPPING
-	// Check for -notimeouts, if using it then set the timeout value to a huge number
-	float Timeout = !Driver->bNoTimeouts ? Driver->InitialConnectTimeout : MAX_FLT;
-#else
-	float Timeout = Driver->InitialConnectTimeout;
+	if (Driver->bNoTimeouts)
+	{
+		return MAX_FLT;
+	}
 #endif
+
+	float Timeout = Driver->InitialConnectTimeout;
 
 	if ( ( State != USOCK_Pending ) && ( bPendingDestroy || ( OwningActor && OwningActor->UseShortConnectTimeout() ) ) )
 	{

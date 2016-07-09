@@ -223,7 +223,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		}
 
 		// Get player unique id
-		TSharedPtr<const FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
+		FUniqueNetIdRepl UniqueId(GetPreferredUniqueNetId());
 
 		PlayerController = InWorld->SpawnPlayActor(this, ROLE_SimulatedProxy, PlayerURL, UniqueId, OutError, GEngine->GetGamePlayers(InWorld).Find(this));
 	}

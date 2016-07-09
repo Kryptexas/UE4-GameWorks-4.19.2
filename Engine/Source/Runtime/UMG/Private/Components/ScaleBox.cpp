@@ -114,6 +114,27 @@ const FText UScaleBox::GetPaletteCategory()
 	return LOCTEXT("Panel", "Panel");
 }
 
+bool UScaleBox::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty)
+	{
+		const FName PropertyName = InProperty->GetFName();
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UScaleBox, StretchDirection))
+		{
+			return Stretch != EStretch::None && Stretch != EStretch::ScaleBySafeZone && Stretch != EStretch::UserSpecified;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UScaleBox, UserSpecifiedScale))
+		{
+			return Stretch == EStretch::UserSpecified;
+		}
+	}
+
+	return bIsEditable;
+}
+
 #endif
 
 /////////////////////////////////////////////////////

@@ -345,6 +345,11 @@ void UAutomatedLevelSequenceCapture::SerializeAdditionalJson(FJsonObject& Object
 
 void UAutomatedLevelSequenceCapture::DeserializeAdditionalJson(const FJsonObject& Object)
 {
+	if (!BurnInOptions)
+	{
+		BurnInOptions = NewObject<ULevelSequenceBurnInOptions>(this, "BurnInOptions");
+	}
+
 	TSharedPtr<FJsonValue> OptionsContainer = Object.TryGetField(TEXT("BurnInOptions"));
 	if (OptionsContainer.IsValid())
 	{

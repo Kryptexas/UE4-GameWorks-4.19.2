@@ -99,7 +99,7 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT("(Useful for testing, no scalability or project setting)\n")
 	TEXT(" 0..1: use specified max roughness (overrride PostprocessVolume setting)\n")
 	TEXT(" -1: no override (default)"),
-	ECVF_RenderThreadSafe);
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarShadowFreezeCamera(
 	TEXT("r.Shadow.FreezeCamera"),

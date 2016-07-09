@@ -24,7 +24,42 @@ static const int GUID_PACKET_ACKED		= -1;
 static const int INTERNAL_LOAD_OBJECT_RECURSION_LIMIT = 16;
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncLoading( TEXT( "net.AllowAsyncLoading" ), 0, TEXT( "Allow async loading" ) );
-static TAutoConsoleVariable<int32> CVarIgnoreNetworkCheckumMismatch( TEXT( "net.IgnoreNetworkCheckumMismatch" ), 0, TEXT( "" ) );
+static TAutoConsoleVariable<int32> CVarIgnoreNetworkChecksumMismatch( TEXT( "net.IgnoreNetworkChecksumMismatch" ), 0, TEXT( "" ) );
+
+void BroadcastNetFailure(UNetDriver* Driver, ENetworkFailure::Type FailureType, const FString& ErrorStr)
+{
+	UWorld* World = Driver->GetWorld();
+
+	TWeakObjectPtr<UWorld> WeakWorld(World);
+	TWeakObjectPtr<UNetDriver> WeakDriver(Driver);
+
+	auto BroadcastFailureNextFrame = [WeakWorld, WeakDriver, FailureType, ErrorStr]()
+	{
+		UWorld* LambdaWorld = nullptr;
+		UNetDriver* NetDriver = nullptr;
+		if (WeakWorld.IsValid())
+		{
+			LambdaWorld = WeakWorld.Get();
+		}
+
+		if (WeakDriver.IsValid())
+		{
+			NetDriver = WeakDriver.Get();
+		}
+
+		GEngine->BroadcastNetworkFailure(LambdaWorld, NetDriver, FailureType, ErrorStr);
+	};
+
+	if (World)
+	{
+		FTimerManager& TM = World->GetTimerManager();
+		TM.SetTimerForNextTick(FTimerDelegate::CreateLambda(BroadcastFailureNextFrame));
+	}
+	else
+	{
+		BroadcastFailureNextFrame();
+	}
+}
 
 /*-----------------------------------------------------------------------------
 	UPackageMapClient implementation.
@@ -732,14 +767,17 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 				return NetGUID;
 			}
 
-			if ( NetworkChecksum != 0 && GuidCache->NetworkChecksumMode == FNetGUIDCache::NETCHECKSUM_SaveAndUse && !CVarIgnoreNetworkCheckumMismatch.GetValueOnGameThread() )
+			if ( NetworkChecksum != 0 && GuidCache->NetworkChecksumMode == FNetGUIDCache::NETCHECKSUM_SaveAndUse && !CVarIgnoreNetworkChecksumMismatch.GetValueOnGameThread() )
 			{
 				const uint32 CompareNetworkChecksum = GuidCache->GetNetworkChecksum( Object );
 
-				if ( CompareNetworkChecksum != NetworkChecksum )
+				if (CompareNetworkChecksum != NetworkChecksum )
 				{
-					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package network checksum mismatch! PathName: %s, ObjOuter: %s, GUID1: %u, GUID2: %u " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), CompareNetworkChecksum, NetworkChecksum );
+					FString ErrorStr = FString::Printf(TEXT("UPackageMapClient::InternalLoadObject: Default object package network checksum mismatch! PathName: %s, ObjOuter: %s, GUID1: %u, GUID2: %u "), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT("NULL"), CompareNetworkChecksum, NetworkChecksum);
+					UE_LOG( LogNetPackageMap, Error, TEXT("%s"), *ErrorStr);
 					Object = NULL;
+
+					BroadcastNetFailure(GuidCache->Driver, ENetworkFailure::NetChecksumMismatch, ErrorStr);
 					return NetGUID;
 				}
 			}
@@ -2000,14 +2038,24 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID,
 	// If we find this guid, make sure nothing changes
 	if ( ExistingCacheObjectPtr != NULL )
 	{
+		FString ErrorStr;
+		bool bPathnameMismatch = false;
+		bool bOuterMismatch = false;
+		bool bNetGuidMismatch = false;
+
 		if ( ExistingCacheObjectPtr->PathName.ToString() != PathName )
 		{
 			UE_LOG( LogNetPackageMap, Warning, TEXT( "FNetGUIDCache::RegisterNetGUIDFromPath_Client: Path mismatch. Path: %s, Expected: %s, NetGUID: %s" ), *PathName, *ExistingCacheObjectPtr->PathName.ToString(), *NetGUID.ToString() );
+			
+			ErrorStr = FString::Printf(TEXT("Path mismatch. Path: %s, Expected: %s, NetGUID: %s"), *PathName, *ExistingCacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+			bPathnameMismatch = true;
 		}
 
 		if ( ExistingCacheObjectPtr->OuterGUID != OuterGUID )
 		{
 			UE_LOG( LogNetPackageMap, Warning, TEXT( "FNetGUIDCache::RegisterNetGUIDFromPath_Client: Outer mismatch. Path: %s, Outer: %s, Expected: %s, NetGUID: %s" ), *PathName, *OuterGUID.ToString(), *ExistingCacheObjectPtr->OuterGUID.ToString(), *NetGUID.ToString() );
+			ErrorStr = FString::Printf(TEXT("Outer mismatch. Path: %s, Outer: %s, Expected: %s, NetGUID: %s"), *PathName, *OuterGUID.ToString(), *ExistingCacheObjectPtr->OuterGUID.ToString(), *NetGUID.ToString());
+			bOuterMismatch = true;
 		}
 
 		if ( ExistingCacheObjectPtr->Object != NULL )
@@ -2017,7 +2065,14 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID,
 			if ( CurrentNetGUID != NetGUID )
 			{
 				UE_LOG( LogNetPackageMap, Warning, TEXT( "FNetGUIDCache::RegisterNetGUIDFromPath_Client: Netguid mismatch. Path: %s, NetGUID: %s, Expected: %s" ), *PathName, *NetGUID.ToString(), *CurrentNetGUID.ToString() );
+				ErrorStr = FString::Printf(TEXT("Netguid mismatch. Path: %s, NetGUID: %s, Expected: %s"), *PathName, *NetGUID.ToString(), *CurrentNetGUID.ToString());
+				bNetGuidMismatch = true;
 			}
+		}
+
+		if (bPathnameMismatch || bOuterMismatch || bNetGuidMismatch)
+		{
+			BroadcastNetFailure(Driver, ENetworkFailure::NetGuidMismatch, ErrorStr);
 		}
 
 		return;
@@ -2304,17 +2359,20 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		}
 	}
 
-	if ( CacheObjectPtr->NetworkChecksum != 0 && !CVarIgnoreNetworkCheckumMismatch.GetValueOnGameThread() )
+	if ( CacheObjectPtr->NetworkChecksum != 0 && !CVarIgnoreNetworkChecksumMismatch.GetValueOnGameThread() )
 	{
 		const uint32 NetworkChecksum = GetNetworkChecksum( Object );
 
-		if ( CacheObjectPtr->NetworkChecksum != NetworkChecksum )
+		if (CacheObjectPtr->NetworkChecksum != NetworkChecksum )
 		{
 			if ( NetworkChecksumMode == NETCHECKSUM_SaveAndUse )
 			{
-				UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Network checksum mismatch. FullNetGUIDPath: %s, %u, %u" ), *FullNetGUIDPath( NetGUID ), CacheObjectPtr->NetworkChecksum, NetworkChecksum );
+				FString ErrorStr = FString::Printf(TEXT("GetObjectFromNetGUID: Network checksum mismatch. FullNetGUIDPath: %s, %u, %u"), *FullNetGUIDPath(NetGUID), CacheObjectPtr->NetworkChecksum, NetworkChecksum);
+				UE_LOG( LogNetPackageMap, Warning, TEXT("%s"), *ErrorStr );
 
 				CacheObjectPtr->bIsBroken = true;
+
+				BroadcastNetFailure(Driver, ENetworkFailure::NetChecksumMismatch, ErrorStr);
 				return NULL;
 			}
 			else

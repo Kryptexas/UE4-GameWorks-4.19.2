@@ -910,7 +910,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 // OUtbunch is a bunch that was new'd by the network system or NULL. It should never be one created on the stack
 FOutBunch* UChannel::PrepBunch(FOutBunch* Bunch, FOutBunch* OutBunch, bool Merge)
 {
-	if ( Connection->InternalAck )
+	if ( Connection->bResendAllDataSinceOpen )
 	{
 		return Bunch;
 	}

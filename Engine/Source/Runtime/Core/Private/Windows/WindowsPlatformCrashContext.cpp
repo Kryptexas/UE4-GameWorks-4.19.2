@@ -706,15 +706,16 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
-	if (FPlatformAtomics::InterlockedIncrement(&ReportCrashCallCount) != 1 || !GCrashReportingThread.IsValid())
+	if (GCrashReportingThread.IsValid())
 	{
-		return EXCEPTION_EXECUTE_HANDLER;
+		if (FPlatformAtomics::InterlockedIncrement(&ReportCrashCallCount) == 1)
+		{
+			GCrashReportingThread->OnCrashed(ExceptionInfo);
+		}
+
+		// Wait 60s for the crash reporting thread to process the message
+		GCrashReportingThread->WaitUntilCrashIsHandled();
 	}
-
-	GCrashReportingThread->OnCrashed(ExceptionInfo);
-
-	// Wait 60s for the crash reporting thread to process the message
-	GCrashReportingThread->WaitUntilCrashIsHandled();
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }

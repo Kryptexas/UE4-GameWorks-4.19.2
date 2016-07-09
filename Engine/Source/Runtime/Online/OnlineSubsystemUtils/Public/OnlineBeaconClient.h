@@ -92,6 +92,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	void SetConnectionState(EBeaconConnectionState NewConnectionState);
 
 	/**
+	 * Get the unique id of the user on this connection (server side only)
+	 *
+	 * @return unique id of the user on this connection
+	 */
+	const FUniqueNetIdRepl& GetUniqueId() const;
+
+	/**
 	 * Get the connection state
 	 * Higher level than the net connection because of the handshaking of the actors
 	 *

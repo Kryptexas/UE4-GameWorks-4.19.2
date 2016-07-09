@@ -83,6 +83,11 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	static UMaterialInstanceDynamic* Create(class UMaterialInterface* ParentMaterial, class UObject* InOuter);
 
 	/**
+	* Create a material instance dynamic parented to the specified material with the specified name.
+	*/
+	static UMaterialInstanceDynamic* Create( class UMaterialInterface* ParentMaterial, class UObject* InOuter, FName Name );
+
+	/**
 	 * Set the value of the given font parameter.  
 	 * @param ParameterName - The name of the font parameter
 	 * @param OutFontValue - New font value to set for this MIC

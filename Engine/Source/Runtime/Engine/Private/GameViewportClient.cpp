@@ -297,7 +297,7 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 				{
 					NewDeviceResults.AudioDevice->UpdateSoundShowFlags(0, GetSoundShowFlags());
 				}
-#endif
+#endif // UE_BUILD_SHIPPING
 
 				// Set the base mix of the new device based on the world settings of the world
 				if (World)

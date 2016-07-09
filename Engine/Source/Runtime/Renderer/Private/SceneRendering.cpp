@@ -427,7 +427,13 @@ FViewInfo::~FViewInfo()
 
 void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradianceEnvironmentMap) const
 {
-	FScene* Scene = (FScene*)Family->Scene;
+
+	FScene* Scene = nullptr;
+
+	if (Family->Scene)
+	{
+		Scene = Family->Scene->GetRenderScene();
+	}
 
 	if (Scene 
 		&& Scene->SkyLight 
@@ -720,10 +726,16 @@ void FViewInfo::CreateUniformBuffer(
 	//white texture should act like a shadowmap cleared to the farplane.
 	ViewUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
 	ViewUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	
+	FScene* Scene = nullptr;
+
 	if (Family->Scene)
 	{
-		FScene* Scene = (FScene*)Family->Scene;
+		Scene = Family->Scene->GetRenderScene();
+	}	
 
+	if (Scene)
+	{		
 		if (Scene->SimpleDirectionalLight)
 		{			
 			ViewUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight->Proxy->GetColor() / PI;
@@ -982,7 +994,11 @@ void FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
 	ViewUniformShaderParameters.CircleDOFParams = CircleDofHalfCoc(*this);
 
-	FScene* Scene = (FScene*)Family->Scene;
+	if (Family->Scene)
+	{
+		Scene = Family->Scene->GetRenderScene();
+	}
+
 	ERHIFeatureLevel::Type RHIFeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
 
 	if (Scene && Scene->SkyLight)

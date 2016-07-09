@@ -149,7 +149,11 @@ void UGameplayTagReponseTable::AddOrUpdate(UAbilitySystemComponent* ASC, const T
 		{
 			for (const TSubclassOf<UGameplayEffect>& ResponseGameplayEffect : ResponseGameplayEffects)
 			{
-				Handles.Add(ASC->ApplyGameplayEffectToSelf(Cast<UGameplayEffect>(ResponseGameplayEffect->ClassDefaultObject), TotalCount, ASC->MakeEffectContext()));
+				FActiveGameplayEffectHandle NewHandle = ASC->ApplyGameplayEffectToSelf(Cast<UGameplayEffect>(ResponseGameplayEffect->ClassDefaultObject), TotalCount, ASC->MakeEffectContext());
+				if (NewHandle.IsValid())
+				{
+					Handles.Add(NewHandle);
+				}
 			}
 		}
 	}

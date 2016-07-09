@@ -1684,7 +1684,7 @@ void UEngine::InitializePortalServices()
 	TSharedPtr<IPortalRpcModule> PortalRpcModule;
 	TSharedPtr<IPortalServicesModule> PortalServicesModule;
 
-#if WITH_PORTAL_SERVICES
+#if WITH_PORTAL_SERVICES && UE_EDITOR
 	MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
 	PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
 	PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
@@ -8625,6 +8625,11 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 			break;
 		case ENetworkFailure::ConnectionTimeout:
 			// Hosts don't travel when clients disconnect
+			bShouldTravel = (FailureNetMode == NM_Client);
+			break;
+		case ENetworkFailure::NetGuidMismatch:
+		case ENetworkFailure::NetChecksumMismatch:
+			// Hosts don't travel when clients have actor issues
 			bShouldTravel = (FailureNetMode == NM_Client);
 			break;
 		case ENetworkFailure::NetDriverAlreadyExists:

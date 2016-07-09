@@ -3980,14 +3980,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 				Connection->RequestURL = InURL.ToString();
 
-
 				// skip to the first option in the URL
 				const TCHAR* Tmp = *Connection->RequestURL;
 				for (; *Tmp && *Tmp != '?'; Tmp++);
 
-
 				// keep track of net id for player associated with remote connection
-				Connection->PlayerId = UniqueIdRepl.GetUniqueNetId();
+				Connection->PlayerId = UniqueIdRepl;
 
 				// ask the game code if this player can join
 				FString ErrorMsg;
@@ -4097,14 +4095,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 				SplitRequestURL = InURL.ToString();
 
-
 				// skip to the first option in the URL
 				const TCHAR* Tmp = *SplitRequestURL;
 				for (; *Tmp && *Tmp != '?'; Tmp++);
 
-
 				// keep track of net id for player associated with remote connection
-				Connection->PlayerId = UniqueIdRepl.GetUniqueNetId();
+				Connection->PlayerId = UniqueIdRepl;
 
 				// go through the same full login process for the split player even though it's all in the same frame
 				FString ErrorMsg;
@@ -4155,7 +4151,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 						// Successfully spawned in game.
 						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Succeeded: %s PlayerId: %s"), 
 							*ChildConn->PlayerController->PlayerState->PlayerName,
-							ChildConn->PlayerController->PlayerState->UniqueId.IsValid() ? *ChildConn->PlayerController->PlayerState->UniqueId->ToDebugString() : TEXT("INVALID"));
+							*ChildConn->PlayerController->PlayerState->UniqueId.ToDebugString());
 					}
 				}
 				break;

@@ -142,6 +142,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<USkeletalMeshComponent>	SkeletalMeshComponent;
 
+	/** Anim instance of the avatar actor. Often null */
+	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
+	TWeakObjectPtr<UAnimInstance>	AnimInstance;
+
 	/** Movement component of the avatar actor. Often null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UMovementComponent>	MovementComponent;

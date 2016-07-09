@@ -517,7 +517,11 @@ namespace ENetworkFailure
 		/** The server needs to upgrade their game */
 		OutdatedServer,
 		/** There was an error during connection to the game */
-		PendingConnectionFailure
+		PendingConnectionFailure,
+		/** NetGuid mismatch */
+		NetGuidMismatch,
+		/** Network checksum mismatch */
+		NetChecksumMismatch
 	};
 }
 
@@ -546,6 +550,10 @@ namespace ENetworkFailure
 			return TEXT("OutdatedServer");
 		case PendingConnectionFailure:
 			return TEXT("PendingConnectionFailure");
+		case NetGuidMismatch:
+			return TEXT("NetGuidMismatch");
+		case NetChecksumMismatch:
+			return TEXT("NetChecksumMismatch");
 		}
 		return TEXT("Unknown ENetworkFailure error occurred.");
 	}

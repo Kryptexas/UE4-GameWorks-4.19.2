@@ -153,8 +153,6 @@ namespace EditorAnimUtils
 		return ReturnMap;
 	}
 
-	void GetBlueprintAssetVariableProperties(UAnimBlueprint* InBlueprint, TArray<UProperty*>& OutSimpleProperties, TArray<UProperty*>& OutComplexProperties);
-
 	template<class AssetType>
 	void GetAssetsFromProperties(TArray<UProperty*> InProperties, UObject* Scope, TArray<AssetType*>& OutAssets)
 	{

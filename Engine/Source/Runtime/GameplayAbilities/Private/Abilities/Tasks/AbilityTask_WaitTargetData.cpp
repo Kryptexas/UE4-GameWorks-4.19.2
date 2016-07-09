@@ -283,6 +283,8 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(const FGameplayA
 {
 	check(AbilitySystemComponent);
 
+	FScopedPredictionWindow ScopedPrediction(AbilitySystemComponent, IsPredictingClient());
+
 	if (IsPredictingClient())
 	{
 		if (!TargetActor->ShouldProduceTargetDataOnServer)

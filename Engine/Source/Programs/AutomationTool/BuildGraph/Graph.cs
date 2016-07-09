@@ -169,6 +169,14 @@ namespace AutomationTool
 					OutNodes = Nodes;
 					return true;
 				}
+
+				// Check if it's a group name
+				Agent Agent;
+				if(NameToAgent.TryGetValue(Name, out Agent))
+				{
+					OutNodes = Agent.Nodes.ToArray();
+					return true;
+				}
 			}
 
 			// Otherwise fail

@@ -1035,12 +1035,18 @@ void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
 
 FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal)
 {
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	return InitNewPlayer(NewPlayerController, UniqueIdRepl, Options, Portal);
+}
+
+FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal)
+{
 	check(NewPlayerController);
 
 	FString ErrorMessage;
 
 	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayerController, UniqueId, UGameplayStatics::HasOption(Options, TEXT("bIsFromInvite")));
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId.GetUniqueNetId(), UGameplayStatics::HasOption(Options, TEXT("bIsFromInvite")));
 
 	// Init player's name
 	FString InName = UGameplayStatics::ParseOption(Options, TEXT("Name")).Left(20);
@@ -1075,6 +1081,12 @@ bool AGameMode::MustSpectate_Implementation(APlayerController* NewPlayerControll
 }
 
 APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
+{
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	return Login(NewPlayer, InRemoteRole, Portal, Options, UniqueIdRepl, ErrorMessage);
+}
+
+APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 	if (!ErrorMessage.IsEmpty())
@@ -1266,6 +1278,12 @@ APlayerController* AGameMode::ProcessClientTravel( FString& FURL, FGuid NextMapG
 }
 
 void AGameMode::PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
+{
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	PreLogin(Options, Address, UniqueIdRepl, ErrorMessage);
+}
+
+void AGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 }
@@ -1558,6 +1576,7 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 		APlayerState* const NewPlayerState = PlayerState->Duplicate();
 		if (NewPlayerState)
 		{
+			// Side effect of Duplicate() adding PlayerState to PlayerArray (see APlayerState::PostInitializeComponents)
 			LocalWorld->GameState->RemovePlayerState(NewPlayerState);
 
 			// make PlayerState inactive

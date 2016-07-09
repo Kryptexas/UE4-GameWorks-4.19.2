@@ -10,12 +10,12 @@
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
 #include "Engine/NetDriver.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;
-class FUniqueNetId;
 struct FNetworkObjectInfo;
 
 /*-----------------------------------------------------------------------------
@@ -229,8 +229,9 @@ public:
 
 	/** Whether this channel needs to byte swap all data or not */
 	bool			bNeedsByteSwapping;
-	/** Net id of remote player on this connection. Only valid on client connections. */
-	TSharedPtr<const FUniqueNetId> PlayerId;
+	/** Net id of remote player on this connection. Only valid on client connections (server side).*/
+	UPROPERTY()
+	FUniqueNetIdRepl PlayerId;
 
 	// Negotiated parameters.
 	int32			PacketOverhead;			// Bytes overhead per packet sent.

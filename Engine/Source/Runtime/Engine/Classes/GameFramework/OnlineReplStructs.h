@@ -91,6 +91,12 @@ struct FUniqueNetIdRepl
 		return IsValid() ? UniqueNetId->ToString() : TEXT("INVALID");
 	}
 
+	/** Convert this value to a string with additional information */
+	virtual FString ToDebugString() const 
+	{
+		return IsValid() ? UniqueNetId->ToDebugString() : TEXT("INVALID");
+	}
+
 	/** Convert this unique id to a json value */
 	TSharedRef<FJsonValue> ToJson() const;
 	/** Create a unique id from a json string */
