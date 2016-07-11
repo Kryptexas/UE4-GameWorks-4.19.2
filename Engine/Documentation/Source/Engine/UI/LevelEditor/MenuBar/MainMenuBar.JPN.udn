@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2691917
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:メインメニュー バー
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -6,7 +6,7 @@ Description:エディタでの作業時に使用する一般的なツールや�
 Version:4.9
 
 [EXCERPT:Intro]
-Windows アプリケーションを使用したことがあれば、エディタの **メニュー バー** は見慣れているはずです。このメニューバーからエディタのレベルでの作業中に、一般的なツールおよびコマンドを利用できます。
+Windows アプリケーションを使用したことがあれば、エディタの **メニュー バー** は見慣れているはずです。このメニューバーからエディタのレベルでの作業中に、一般的なツールやコマンドを利用できます。
 [/EXCERPT:Intro]
 
 ![](MainMenubar.png)
@@ -20,11 +20,11 @@ Windows アプリケーションを使用したことがあれば、エディタ
 | **Open Level** | 既存レベルをロードします。 |
 | **Save** | 現在のレベルをディスクに保存します。 |
 | **Save As** | 任意の名前で現在の永続的なマップを保存します。 |
-| **Save All Levels** | ストリーミング レベルを含む、未保存のロードされたレベルを保存します。 |
-| **Open Asset** | アセットピッカーを呼び出します。 |
+| **Save All Levels** | ストリーミング レベルを含む、未保存のロードされたレベルをすべて保存します。 |
+| **Open Asset...** | アセットピッカーを呼び出します。 |
 | **Save All** | 全ての未保存レベルとアセットを保存します。 |
-| **Choose Files to Save** | レベルとコンテンツのための保存オプションがあるダイアログを開きます。 |
-| **Submit to Source Control** | コンテンツとレベルのためのチェックイン オプションがあるダイアログを開きます。 |
+| **Choose Files to Save** | レベルとコンテンツの保存オプションがあるダイアログを開きます。 |
+| **Submit to Source Control** | コンテンツとレベルのチェックイン オプションがあるダイアログを開きます。 |
 | [REGION:tablesection]**プロジェクト**[/REGION] ||
 | **New Project** | 新規ゲームプロジェクトを作成するためのダイアログを開きます。 |
 | **Open Project** | 開くゲームプロジェクトを選択するためのダイアログを開きます。 |
@@ -32,7 +32,7 @@ Windows アプリケーションを使用したことがあれば、エディタ
 | **Cook Content** | プロジェクトのコンテンツを特定のプラットフォーム用にクックします。Visual Studio からコー ドベースのプロジェクトを実行する場合に便利です。 |
 | **Package Project** | プロジェクトとそのコンテンツを配布用にコンパイル、クック、パッケージングします。 |
 | **Open Visual Studio** | Visual Studioで C++ コードを開きます。 |
-| **Refresh Visual Studio Project** | Visual Studio で C++ コードをリフレッシュします。|
+| **Refresh Visual Studio Project** | Visual Studio で C++ コードのプロジェクトをリフレッシュします。|
 | [REGION:tablesection]**アクタ**[/REGION] ||
 | **Import** | T3D 形式から現在のレベルへ、オブジェクトとアクタをインポートします。 |
 | **Export All** | レベル全体をディスクのファイルにエクスポートします (複数形式に対応) |
@@ -53,8 +53,8 @@ Windows アプリケーションを使用したことがあれば、エディタ
 
 [VAR:EditConfig]
 | [REGION:tablesection]**コンフィギュレーション**[/REGION] ||
-|**Editor Preferences**| エディタの動作と機能を設定します。詳細は [](Engine/UI/EditorSettings) を参照してください。 |
-|**Project Settings**| 現在ロードされているプロジェクト設定を変更します。詳細は [](Engine/UI/ProjectSettings) を参照してください。 |
+|**Editor Preferences**| エディタの動作と機能を設定します。詳細については、**[](Engine/UI/EditorSettings)** をご覧ください。 |
+|**Project Settings**| 現在ロードされているプロジェクト設定を変更します。詳細は **[](Engine/UI/ProjectSettings)** を参照してください。 |
 |**Plugins**| プラグイン ブラウザを開きます。このブラウザで、現在のプロジェクトに対してプラグインを有効、無効にすることができます。 |
 [/VAR]
 
@@ -78,43 +78,43 @@ Windows アプリケーションを使用したことがあれば、エディタ
 |**Viewports**| ゲームの 3D ワールドのビューであるビューポートを表示します。ビューポートは最高 4 つまで同時に表示できます。|
 |**Hierarchical LOD Outliner**| HLOD 設定を表示し、クラスタを生成できるようにします。|
 | **Layers** | レベルを一連の表示レイヤーに分割する **[Layers]** パネルを開きます。 |
-| **Levels** | 永続レベルと全てのストリーミング レベルを表示する**[Levels]** パネルを開きます。 |
+| **Levels** | 永続レベルと全てのストリーミング レベルを表示する **[Levels]** パネルを開きます。 |
 | **Modes** | ランドスケープやフォリッジなどの特殊なレベル編集ツールにアクセスする **[Modes]** パネルを表示します。 |
 | **World Outliner** | 現在レベル内にある全てのアクタを階層的に分類した **ワールド アウトライナー** を開きます。 |
-| **Statistics** | レベルに対する各種パフォーマンスの統計情報を利用できる **[Statistics]** パネルを表示します。
+| **Statistics** | レベルの各種パフォーマンスの統計情報を利用できる **[Statistics (統計)]** パネルを表示します。|
 | **Toolbar** | レベル編集中に使用する各種機能を含むツールバーを表示します。 |
-| **World Settings** | 現在編集中のレベルに特化した設定を検索するための **[World Settings]** パネルを表示します。 |
+| **World Settings** | 現在編集中のレベルの設定を検索するための **[World Settings]** パネルを表示します。 |
 %commonwindowmenu%
 
 [VAR:CommonWindowMenu]
 | [REGION:tablesection]** **[/REGION] ||
-| **コンテンツ ブラウザ** | コンテンツのアセットで作業するために最高 4 つまで別々に [コンテンツ ブラウザ](Engine/Content/Browser) を開きます |
-| **Developer Tools** | エンジンやとエディタで作業するプログラマにとって有用な様々なツールにアクセスすることができます。 |
-| **Blueprint Debugger** | [](Engine/Blueprints/UserGuide/Debugging) パネルを開きます。 |
-| **Class Viewer** | **アクタ** のインスタンスをマップに追加し、**ブループリント** を作成するための [](Engine/UI/ClassViewer) を開きます。 |
-| **Message Log** | 様々な専門的な情報ログが含まれる **Message Log** を開きます。一度に 1 つの **Message Log** だけが存在します。 |
+| **コンテンツ ブラウザ** | コンテンツ アセットで作業するために最高 4 つまでの [**コンテンツ ブラウザ**](Engine/Content/Browser) を開きます。 |
+| **Developer Tools** | エンジンやエディタで作業するプログラマーにとって有用な様々な **[](Engine\Tools\DevTools)** にアクセスすることができます。 |
+| **Blueprint Debugger** | **[](Engine/Blueprints/UserGuide/Debugging)** パネルを開きます。 |
+| **Class Viewer** | **アクタ** のインスタンスをマップに追加し、**ブループリント** を作成するための **[](Engine/UI/ClassViewer)** を開きます。 |
+| **Message Log** | 各種特殊情報ログが含まれる **Message Log** を開きます。一度に 1 つの **Message Log** だけが存在します。 |
 | **Output Log** | 新しい **Output Log** を開きます。一度に 1 つの **Output Log** だけが存在します。 |
 | **Plugins** | プラグインのブラウザ タブを開きます。 |
 | [REGION:tablesection]**Unreal Frontend**[/REGION] ||
-| **Device Manager** | [デバイス マネージャ] タブを開きます。|
-| **Session Frontend** | [オートメーション システム](Programming/Automation)、 Unreal Console などへのアクセスを提供する [](Engine/Deployment/UnrealFrontend) ツールを開きます。 |
-| [REGION:tablesection]**Layout**[/REGION] ||
-| **Reset Layout** | ユーザー設定のバックアップを作成してカスタマイズしたレイアウトをリセットします。
-| **Save Layout** | 現在のユーザーインターフェース (UI) のレイアウトを保存します。 |
+| **Device Manager** | **[デバイス マネージャ]** タブを開きます。|
+| **Session Frontend** | [**オートメーション システム**](Programming/Automation)、 Unreal Console などへのアクセスを提供する **[](Engine/Deployment/UnrealFrontend)** ツールを開きます。 |
+| [REGION:tablesection]**レイアウト**[/REGION] ||
+| **Reset Layout** | ユーザー設定のバックアップを作成してカスタマイズしたレイアウトをリセットします。 |
+| **Save Layout** | 現在のユーザー インターフェース (UI) のレイアウトを保存します。 |
 | **Enable Fullscreen** | エディタを最大画面と通常モードとの間で切り替えます。 |
 [/VAR]
 
-##ヘルプ
+## ヘルプ
 
 | コマンド | 説明 |
 | ------- | ----------- |
-| [REGION:tablesection]**Browse**[/REGION] ||
+| [REGION:tablesection]**Browse (ブラウズ)**[/REGION] ||
 | **Documentation** | メインのドキュメント ページを開きます。 |
 | **API Reference** | API リファレンスのドキュメントを開きます。 |
-| **Viewport Controls** | ビューポート コントロールのカンニング シートを開きます。 |
+| **Viewport Controls** | ビューポート コントロールのチートシートを開きます。 |
 | [REGION:tablesection]**チュートリアル**[/REGION] ||
-| アンリアル エンジン 4 のエディタ使用の基礎となる入門チュートリアルを開きます。 ||
-| [REGION:tablesection]**Online**[/REGION] ||
+| UE4 エディタ使用の基礎となる入門チュートリアルを開きます。 ||
+| [REGION:tablesection]**Online (オンライン)**[/REGION] ||
 | エピック ゲームズとアンリアル エンジンのサポート サイトへのリンクがあります。 ||
 | [REGION:tablesection]**アプリケーション**[/REGION] ||
-| **About Unreal Editor** | エンジンのバージョン情報を表示する [About] ダイアログを開きます。 |
+| **About Unreal Editor (アンリアル エディタについて)** | エンジンのバージョン情報を表示する [About] ダイアログを開きます。 |
