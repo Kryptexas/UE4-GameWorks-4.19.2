@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2986722
+﻿INTSourceChangelist:3011129
 Title:사이트 맵
 Availability:Public
 Crumbs:%ROOT%
@@ -14,25 +14,25 @@ Template:DefaultSiteMap.html
 	[/PARAMLITERAL]
 	[PARAM:heading]
 		[REGION:darktitlelarge]
-			콘텐츠 필터
+			Filter Content
 		[/REGION]
 	[/PARAM]
 	[PARAM:content]
 		[REGION:wrapper transparent]
 			[REGION:normaltitle]
-				스킬 레벨별:
+				By Skill Level:
 			[/REGION]
 			[tagfilters(type:"skill_level" filter:"used")]
 		[/REGION]
 		[REGION:wrapper transparent]
 			[REGION:normaltitle]
-				엔진 버전별:
+				By Engine Version:
 			[/REGION]
 			[tagfilters(type:"engine_version" filter:"used")]
 		[/REGION]
 		[REGION:wrapper transparent]
 			[REGION:normaltitle]
-				카테고리별:
+				By Category:
 			[/REGION]
 			[tagfilters(type:"tag" filter:"used")]
 		[/REGION]

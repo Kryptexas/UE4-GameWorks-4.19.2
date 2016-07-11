@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726600
+﻿INTSourceChangelist:2944273
 Availability:Public
 Title:맵 체크 오류
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
@@ -107,6 +107,13 @@ bStatic 플래그가 True 로 설정된 액터가 있는데 그 Physics 는 PHYS
 
 원본 메시의 인스턴스에 버텍스 컬러를 칠한 이후 원본 메시가 변경된 것 같습니다. 새로고침이 필요할 듯 합니다.
 [/EXCERPT:VertexColorsNotMatchOriginalMesh]
+
+(#CollisionEnabledNoCollisionGeom)
+[EXCERPT:CollisionEnabledNoCollisionGeom]
+**[액터] 에 콜리전이 켜져 있으나 [스태틱 메시 이름] 스태틱 메시에 단순 또는 복합 콜리전이 없습니다.**
+
+액터에 Collision Enabled (콜리전 켜짐) 옵션을 No Collision (콜리전 없음)으로 설정하거나, 메시에 콜리전을 추가(단순 콜리전 모양을 추가 및/또는 섹션에 콜리전을 켜거나) 하면 됩니다.
+[/EXCERPT:CollisionEnabledNoCollisionGeom]
 
 (#ShadowCasterUsingBoundsScale)
 [EXCERPT:ShadowCasterUsingBoundsScale]

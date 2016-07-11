@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2926677
 Availability:NoPublish
 Title: 애니메이션 노드 참고서
 Crumbs:
@@ -210,3 +210,16 @@ FaBRIK (Forward and Backward Reaching Inverse Kinematics, 앞뒤로 늘어나는
 IK 본 체인의 리타게팅을 처리합니다. IK 본이 (어느 쪽이든 선호 대상이 되도록) HandFKWeight 에 따라 FK 핸드 본을 만나도록 이동시킵니다. (0 = 왼손 선호, 1 = 오른손 선호, 0.5 = 동일 가중치).
 
 [/EXCERPT:UAnimGraphNode_HandIKRetargeting]
+[EXCERPT:GraphNode_FastPathInfo]
+
+애니메이션 노드에서는 약간 느린 블루프린트 사용 방법을 피하여 '빠른 경로' 사용이 가능한데, 그 방법은 다음과 같습니다:
+- 멤버 변수에 직접 접근합니다.
+- 부정 불리언 멤버 변수에 접근합니다.
+- 중첩 구조체의 멤버에 접근합니다.
+- 약간의 Break Struct 케이스에도 접근합니다 (Break Transform 은 한 가지 예외입니다).
+
+[VAR:ToolTipFullLink]
+Engine/Animation/Optimization/FastPath
+[/VAR]
+
+[/EXCERPT:GraphNode_FastPathInfo]

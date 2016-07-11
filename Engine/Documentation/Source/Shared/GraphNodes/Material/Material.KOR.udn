@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744898
+﻿INTSourceChangelist:2994308
 Availability:NoPublish
 Title:
 Crumbs:
@@ -589,7 +589,7 @@ Engine/Rendering/Materials/ExpressionReference/Math#if
 [/EXCERPT:UMaterialExpressionIf]
 
 [EXCERPT:UMaterialExpressionLinearInterpolate]
-LinearInterpolate 는 세 번째 값을 마스크로 사용하여 두 입력 값을 블렌딩하는 표현식입니다. 포토샵의 레이어 마스크처럼 두 텍스처 사이의 전환을 정의하는 마스크로 간주할 수 있습니다. 마스크의 강도 Alpha 는 두 입력값에서 취할 색 비율을 결정합니다. Alpha 가 1.0/하양이면 첫 입력이 사용됩니다.
+LinearInterpolate 는 세 번째 값을 마스크로 사용하여 두 입력 값을 블렌딩하는 표현식입니다. 포토샵의 레이어 마스크처럼 두 텍스처 사이의 전환을 정의하는 마스크로 간주할 수 있습니다. 마스크의 강도 Alpha 는 두 입력값에서 취할 색 비율을 결정합니다.
 
 Alpha 가 1.0/검정이면 첫 번째 입력이, 0.0/하양이면 두 번째 입력이 사용됩니다. Alpha 가 회색(0.0 에서 1.0 사이)이면 출력은 두 입력 사이의 혼합이 됩니다. 유념할 것은 채널별로 블렌딩이 일어난다는 점입니다. 즉 Alpha 가 RGB 색이라면, Alpha 의 빨강 채널 값이 A 와 B 의 빨강 채널 블렌딩을 정의하며, Alpha 의 초록 채널과는 별개 입니다. Alpha 의 초록 채널은 A 와 B 의 초록 채널 블렌딩을 정의합니다.
 
