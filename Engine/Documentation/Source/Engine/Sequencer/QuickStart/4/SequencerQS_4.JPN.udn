@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3017881
+﻿INTSourceChangelist:3038380
 Availability:Public
 Title:4 - 2 つめのショット
 Crumbs:%ROOT%
@@ -50,8 +50,8 @@ checkpoint: editorqs
 	![](SequencerQS_4_3.png)
 
 	CineCameraActor の名前は上のものとは異なることがありますが、問題ありません。 
-	1.	シーケンサーで **CineCameraActor** トラックを選択した状態で、**S** キーを押して、カメラのトランスフォームのキーフレームを追加します。
 
+1.	シーケンサーで **CineCameraActor** トラックを選択した状態で、**S** キーを押して、カメラのトランスフォームのキーフレームを追加します。
 
 	![](SequencerQS_4_3b.png)
 
