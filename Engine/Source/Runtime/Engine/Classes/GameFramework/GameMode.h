@@ -8,6 +8,7 @@
 
 class FDebugDisplayInfo;
 class FUniqueNetId;
+class FUniqueNetIdRepl;
 
 //~=============================================================================
 //  GameMode defines the rules and mechanics of the game.  It is only 
