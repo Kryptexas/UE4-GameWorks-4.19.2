@@ -32,6 +32,11 @@ float2 TonemapperParams;
 float3 GrainRandomFull;
 float3 GrainScaleBiasJitter;
 
+#if EYEADAPTATION_EXPOSURE_FIX != 1
+// Default value used when eye adaptation is disabled (e.g fixed exposure) or not available.
+float DefaultEyeExposure;
+#endif
+
 half GrainFromUV(float2 GrainUV) 
 {
 	half Grain = frac(sin(GrainUV.x + GrainUV.y * 543.31) *  493013.0);
@@ -138,8 +143,8 @@ void MainVS(
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
 	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;
 #else
-	// Eye adaptation is not yet supported
-	OutExposureScaleVignette.x = 1.0f;
+	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
+	OutExposureScaleVignette.x = DefaultEyeExposure;
 #endif
 
 	// Scale vignette to always be a circle with consistent corner intensity.
@@ -469,7 +474,7 @@ void MainPS(
 			LinearColor += CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor); 
 		#endif
 
-		#if NO_EYEADAPTATION_EXPOSURE_FIX
+		#if NO_EYEADAPTATION_EXPOSURE_FIX == 1
 			ExposureScale = BloomDirtMask.Tint.w;
 		#endif
 

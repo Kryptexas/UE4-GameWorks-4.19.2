@@ -135,7 +135,7 @@ public:
 		{
 			const FSceneInterface* Scene = Component->GetScene();
 			// ensure bUseWholeSceneCSMForMovableObjects is only be used with the forward renderer.
-			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->ShouldUseDeferredRenderer();
+			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->GetShadingPath() == EShadingPath::Deferred;
 			bUseWholeSceneCSMForMovableObjects = Component->Mobility == EComponentMobility::Stationary && !Component->bUseInsetShadowsForMovableObjects && !bUsingDeferredRenderer;
 		}
 		bCastModulatedShadows = Component->bCastModulatedShadows;

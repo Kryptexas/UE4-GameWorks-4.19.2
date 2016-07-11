@@ -137,7 +137,7 @@ void FVulkanDevice::CreateDevice()
 	DeviceInfo.pEnabledFeatures = &Features;
 
 	// Create the device
-	VERIFYVULKANRESULT(vkCreateDevice(Gpu, &DeviceInfo, nullptr, &Device));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateDevice(Gpu, &DeviceInfo, nullptr, &Device));
 
 	// Create Graphics Queue, here we submit command buffers for execution
 	Queue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
@@ -145,8 +145,8 @@ void FVulkanDevice::CreateDevice()
 #if VULKAN_ENABLE_DRAW_MARKERS
 	if (bDebugMarkersFound)
 	{
-		CmdDbgMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)(void*)vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerBeginEXT");
-		CmdDbgMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)(void*)vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerEndEXT");
+		CmdDbgMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)(void*)VulkanRHI::vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerBeginEXT");
+		CmdDbgMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)(void*)VulkanRHI::vkGetDeviceProcAddr(Device, "vkCmdDebugMarkerEndEXT");
 
 		// We're running under RenderDoc or other trace tool, so enable capturing mode
 		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
@@ -160,7 +160,7 @@ void FVulkanDevice::SetupFormats()
 	{
 		const VkFormat Format = (VkFormat)Index;
 		FMemory::Memzero(FormatProperties[Index]);
-		vkGetPhysicalDeviceFormatProperties(Gpu, Format, &FormatProperties[Index]);
+		VulkanRHI::vkGetPhysicalDeviceFormatProperties(Gpu, Format, &FormatProperties[Index]);
 	}
 
 	static_assert(sizeof(VkFormat) <= sizeof(GPixelFormats[0].PlatformFormat), "PlatformFormat must be increased!");
@@ -336,7 +336,7 @@ void FVulkanDevice::MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanForma
 bool FVulkanDevice::QueryGPU(int32 DeviceIndex)
 {
 	bool bDiscrete = false;
-	vkGetPhysicalDeviceProperties(Gpu, &GpuProps);
+	VulkanRHI::vkGetPhysicalDeviceProperties(Gpu, &GpuProps);
 
 	auto GetDeviceTypeString = [&]()
 	{
@@ -372,11 +372,11 @@ bool FVulkanDevice::QueryGPU(int32 DeviceIndex)
 	UE_LOG(LogVulkanRHI, Display, TEXT("Max Descriptor Sets Bound %d Timestamps %d"), GpuProps.limits.maxBoundDescriptorSets, GpuProps.limits.timestampComputeAndGraphics);
 
 	uint32 QueueCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(Gpu, &QueueCount, nullptr);
+	VulkanRHI::vkGetPhysicalDeviceQueueFamilyProperties(Gpu, &QueueCount, nullptr);
 	check(QueueCount >= 1);
 
 	QueueFamilyProps.AddUninitialized(QueueCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(Gpu, &QueueCount, QueueFamilyProps.GetData());
+	VulkanRHI::vkGetPhysicalDeviceQueueFamilyProperties(Gpu, &QueueCount, QueueFamilyProps.GetData());
 
 	return bDiscrete;
 }
@@ -384,7 +384,7 @@ bool FVulkanDevice::QueryGPU(int32 DeviceIndex)
 void FVulkanDevice::InitGPU(int32 DeviceIndex)
 {
 	// Query features
-	vkGetPhysicalDeviceFeatures(Gpu, &Features);
+	VulkanRHI::vkGetPhysicalDeviceFeatures(Gpu, &Features);
 
 	UE_LOG(LogVulkanRHI, Display, TEXT("Geometry %d Tessellation %d"), Features.geometryShader, Features.tessellationShader);
 
@@ -478,13 +478,15 @@ void FVulkanDevice::Destroy()
 
 	MemoryManager.Deinit();
 
-	vkDestroyDevice(Device, nullptr);
+	DeferredDeletionQueue.Clear();
+
+	VulkanRHI::vkDestroyDevice(Device, nullptr);
 	Device = VK_NULL_HANDLE;
 }
 
 void FVulkanDevice::WaitUntilIdle()
 {
-	VERIFYVULKANRESULT(vkDeviceWaitIdle(Device));
+	VERIFYVULKANRESULT(VulkanRHI::vkDeviceWaitIdle(Device));
 }
 
 bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
@@ -510,7 +512,7 @@ bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
 	// Add it for faster caching next time
 	VkFormatProperties& NewProperties = ExtensionFormatProperties.Add(Format);
 	FMemory::Memzero(NewProperties);
-	vkGetPhysicalDeviceFormatProperties(Gpu, Format, &NewProperties);
+	VulkanRHI::vkGetPhysicalDeviceFormatProperties(Gpu, Format, &NewProperties);
 
 	return ArePropertiesSupported(NewProperties);
 }

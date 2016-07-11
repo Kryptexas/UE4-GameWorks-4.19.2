@@ -213,3 +213,187 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 		ensure(0);
 	}
 }
+
+// Need a separate struct so we can memzero/remove dependencies on reference counts
+struct FRenderTargetLayoutHashableStruct
+{
+	// Depth goes in the last slot
+	FRHITexture* Texture[MaxSimultaneousRenderTargets + 1];
+	uint32 MipIndex[MaxSimultaneousRenderTargets];
+	uint32 ArraySliceIndex[MaxSimultaneousRenderTargets];
+	ERenderTargetLoadAction LoadAction[MaxSimultaneousRenderTargets];
+	ERenderTargetStoreAction StoreAction[MaxSimultaneousRenderTargets];
+
+	ERenderTargetLoadAction		DepthLoadAction;
+	ERenderTargetStoreAction	DepthStoreAction;
+	ERenderTargetLoadAction		StencilLoadAction;
+	ERenderTargetStoreAction	StencilStoreAction;
+	FExclusiveDepthStencil		DepthStencilAccess;
+
+	// Fill this outside Set() function
+	VkExtent2D					Extents;
+
+	bool bClearDepth;
+	bool bClearStencil;
+	bool bClearColor;
+
+	void Set(const FRHISetRenderTargetsInfo& RTInfo)
+	{
+		FMemory::Memzero(*this);
+		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+		{
+			Texture[Index] = RTInfo.ColorRenderTarget[Index].Texture;
+			MipIndex[Index] = RTInfo.ColorRenderTarget[Index].MipIndex;
+			ArraySliceIndex[Index] = RTInfo.ColorRenderTarget[Index].ArraySliceIndex;
+			LoadAction[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
+			StoreAction[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
+		}
+
+		Texture[MaxSimultaneousRenderTargets] = RTInfo.DepthStencilRenderTarget.Texture;
+		DepthLoadAction = RTInfo.DepthStencilRenderTarget.DepthLoadAction;
+		DepthStoreAction = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
+		StencilLoadAction = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
+		StencilStoreAction = RTInfo.DepthStencilRenderTarget.GetStencilStoreAction();
+		DepthStencilAccess = RTInfo.DepthStencilRenderTarget.GetDepthStencilAccess();
+
+		bClearDepth = RTInfo.bClearDepth;
+		bClearStencil = RTInfo.bClearStencil;
+		bClearColor = RTInfo.bClearColor;
+	}
+};
+
+FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsInfo& RTInfo)
+	: NumAttachments(0)
+	, NumColorAttachments(0)
+	, bHasDepthStencil(false)
+	, bHasResolveAttachments(false)
+	, Hash(0)
+{
+	FMemory::Memzero(ColorReferences);
+	FMemory::Memzero(ResolveReferences);
+	FMemory::Memzero(DepthStencilReference);
+	FMemory::Memzero(Desc);
+	FMemory::Memzero(Extent);
+
+	bool bSetExtent = false;
+		
+	for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+	{
+		const FRHIRenderTargetView& RTView = RTInfo.ColorRenderTarget[Index];
+		if (RTView.Texture)
+		{
+		    FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTView.Texture);
+		    check(Texture);
+    
+		    if (!bSetExtent)
+		    {
+			    bSetExtent = true;
+			    Extent.Extent3D.width = Texture->Surface.Width;
+			    Extent.Extent3D.height = Texture->Surface.Height;
+			    Extent.Extent3D.depth = 1;
+		    }
+    
+		    uint32 NumSamples = RTView.Texture->GetNumSamples();
+	    
+		    VkAttachmentDescription& CurrDesc = Desc[NumAttachments];
+		    
+		    //@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
+		    CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
+		    CurrDesc.format = (VkFormat)GPixelFormats[RTView.Texture->GetFormat()].PlatformFormat;
+		    CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTView.LoadAction);
+		    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
+		    CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+#if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
+		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+#endif
+		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+    
+		    ColorReferences[NumColorAttachments].attachment = NumAttachments;
+		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
+		    NumAttachments++;
+    
+#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
+			if (NumSamples == 1)
+			{
+			    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
+    
+			    ResolveReferences[NumColorAttachments].attachment = VK_ATTACHMENT_UNUSED;
+			    ResolveReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_UNDEFINED;
+		    }
+			else
+		    {
+			    // discard MSAA color target after resolve to 1x surface
+			    CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    
+			    // Resolve attachment
+			    VkAttachmentDescription& ResolveDesc = Desc[NumAttachments];
+			    ResolveDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+			    ResolveDesc.format = (VkFormat)GPixelFormats[RTView.Texture->GetFormat()].PlatformFormat;
+			    ResolveDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			    ResolveDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
+			    ResolveDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			    ResolveDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			    ResolveDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			    ResolveDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    
+			    ResolveReferences[NumColorAttachments].attachment = NumAttachments;
+			    ResolveReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			    NumAttachments++;
+			    bHasResolveAttachments = true;
+		    }
+#endif
+	    
+		    NumColorAttachments++;
+		}
+	}
+
+	if (RTInfo.DepthStencilRenderTarget.Texture)
+	{
+		VkAttachmentDescription& CurrDesc = Desc[NumAttachments];
+		FMemory::Memzero(CurrDesc);
+		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTInfo.DepthStencilRenderTarget.Texture);
+		check(Texture);
+
+		//@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
+		CurrDesc.samples = static_cast<VkSampleCountFlagBits>(RTInfo.DepthStencilRenderTarget.Texture->GetNumSamples());
+		CurrDesc.format = (VkFormat)GPixelFormats[RTInfo.DepthStencilRenderTarget.Texture->GetFormat()].PlatformFormat;
+		CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthLoadAction);
+		CurrDesc.stencilLoadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.StencilLoadAction);
+		if (CurrDesc.samples == VK_SAMPLE_COUNT_1_BIT)
+		{
+			CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthStoreAction);
+			CurrDesc.stencilStoreOp = RenderTargetStoreActionToVulkan(RTInfo.DepthStencilRenderTarget.GetStencilStoreAction());
+		}
+		else
+		{
+			// Never want to store MSAA depth/stencil
+			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		}
+		CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		
+		DepthStencilReference.attachment = NumAttachments;
+		DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		bHasDepthStencil = true;
+		NumAttachments++;
+
+		if (!bSetExtent)
+		{
+			bSetExtent = true;
+			Extent.Extent3D.width = Texture->Surface.Width;
+			Extent.Extent3D.height = Texture->Surface.Height;
+			Extent.Extent3D.depth = 1;
+		}
+	}
+
+	check(bSetExtent);
+
+	FRenderTargetLayoutHashableStruct RTHash;
+	FMemory::Memzero(RTHash);
+	RTHash.Set(RTInfo);
+	RTHash.Extents = Extent.Extent2D;
+	Hash = FCrc::MemCrc32(&RTHash, sizeof(RTHash));
+}

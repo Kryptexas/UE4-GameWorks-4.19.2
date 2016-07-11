@@ -1067,12 +1067,8 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 {
 	bool bDepthWasCleared = false;
 
-#if WANTS_DRAW_MESH_EVENTS
-	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
-	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
-
-	SCOPED_DRAW_EVENTF(RHICmdList, PrePass, TEXT("PrePass %s %s"), GetDepthDrawingModeString(EarlyZPassMode), (bDBufferAllowed ? TEXT("(Forced by DBuffer)") : (bDitheredLODTransitionsUseStencil ? TEXT("(Forced by StencilLODDither)") : TEXT(""))));
-#endif
+	extern const TCHAR* GetDepthPassReason(bool bDitheredLODTransitionsUseStencil, ERHIFeatureLevel::Type FeatureLevel);
+	SCOPED_DRAW_EVENTF(RHICmdList, PrePass, TEXT("PrePass %s %s"), GetDepthDrawingModeString(EarlyZPassMode), GetDepthPassReason(bDitheredLODTransitionsUseStencil, FeatureLevel));
 
 	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
 

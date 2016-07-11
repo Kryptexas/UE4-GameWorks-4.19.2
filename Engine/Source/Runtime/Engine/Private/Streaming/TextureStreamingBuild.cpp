@@ -25,7 +25,7 @@ bool WaitForShaderCompilation(const FText& Message, FSlowTask& BuildTextureStrea
 			const int32 NumberOfShadersCompiledThisFrame = RemainingShaders - RemainingShadersThisFrame;
 
 			SlowTask.EnterProgressFrame((float)NumberOfShadersCompiledThisFrame);
-			BuildTextureStreamingTask.EnterProgressFrame((float)NumberOfShadersCompiledThisFrame / (float)NumShadersToBeCompiled * (1.f - KINDA_SMALL_NUMBER));
+			BuildTextureStreamingTask.EnterProgressFrame((float)NumberOfShadersCompiledThisFrame / (float)NumShadersToBeCompiled);
 			if (GWarn->ReceivedUserCancel()) return false;
 
 			RemainingShaders = RemainingShadersThisFrame;
@@ -90,9 +90,10 @@ int32 GetNumPrimitiveComponents(UWorld* InWorld)
  * @param QualityLevel		The quality level for the shaders.
  * @param FeatureLevel		The feature level for the shaders.
  * @param TexCoordScales	The map to store material interfaces used by the current primitive world.
+ * @param bIncremental		true if the build should only update components that have no data.
  * @return true if the operation is a success, false if it was canceled.
  */
-ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, FSlowTask& BuildTextureStreamingTask)
+ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales , bool bIncremental, FSlowTask& BuildTextureStreamingTask)
 {
 #if WITH_EDITORONLY_DATA
 
@@ -108,7 +109,14 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 		return false;
 	}
 
-	FDebugViewModeMaterialProxy::ClearAllShaders();
+	if (!bIncremental)
+	{
+		FDebugViewModeMaterialProxy::ClearAllShaders();
+	}
+	else // Otherwise, if there are no shaders, then we need to rebuild them all.
+	{
+		bIncremental = FDebugViewModeMaterialProxy::HasAnyShaders();
+	}
 
 	// Without the new metrics, the shaders will are not compiled, making the texcoord scale viewmode non functional.
 	if (bUseNewMetrics && AllowDebugViewPS(DVSM_MaterialTexCoordScalesAnalysis, GetFeatureLevelShaderPlatform(FeatureLevel)))
@@ -121,20 +129,31 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 			for (UPrimitiveComponent* Primitive : Components)
 			{
 				SlowTask.EnterProgressFrame();
-				BuildTextureStreamingTask.EnterProgressFrame((1.f - KINDA_SMALL_NUMBER) / (float)Components.Num());
+				BuildTextureStreamingTask.EnterProgressFrame(1.f / (float)Components.Num());
 				if (GWarn->ReceivedUserCancel())
 				{
 					FDebugViewModeMaterialProxy::ClearAllShaders();
 					return false;
 				}
 
+				// When only updating (viewmode path), skip primitives that already have data.
+				if (bIncremental && !Primitive->HasMissingStreamingSectionData(true))
+					continue;
+
 				TArray<UMaterialInterface*> Materials;
 				Primitive->GetUsedMaterials(Materials);
 
-				for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
+				for (UMaterialInterface* MaterialInterface : Materials)
 				{
-					UMaterialInterface* MaterialInterface = Materials[MaterialIndex];
 					if (!MaterialInterface) continue;
+
+					// Landscape material resources can not be used. See logic in FLandscapeMaterialResource::ShouldCache().
+					const FMaterial* Material = MaterialInterface->GetMaterialResource(FeatureLevel);
+					if (!Material || Material->IsUsedWithLandscape())
+					{
+						UE_LOG(LogLevel, Warning, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
+						continue;
+					}
 
 					if (!TexCoordScales.Contains(MaterialInterface))
 					{
@@ -169,6 +188,57 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 #endif
 }
 
+ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask)
+{
+#if WITH_EDITORONLY_DATA
+	if (!InWorld) return false;
+	const double StartTime = FPlatformTime::Seconds();
+
+	// ====================================================
+	// Build per primitive data
+	// ====================================================
+	const float NumPrimitiveComponents = (float)GetNumPrimitiveComponents(InWorld);
+	FScopedSlowTask SlowTask(NumPrimitiveComponents, (LOCTEXT("TextureStreamingBuild_ComponentDataUpdate", "Updating Component Data")));
+
+	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+	{
+		ULevel* Level = InWorld->GetLevel(LevelIndex);
+		if (!Level) continue;
+		TArray<UTexture2D*> LevelTextures;
+
+		for (AActor* Actor : Level->Actors)
+		{
+			if (!Actor) continue;
+			bool bComponentUpdated = false;
+
+			TInlineComponentArray<UPrimitiveComponent*> Primitives;
+			Actor->GetComponents<UPrimitiveComponent>(Primitives);
+			for (UPrimitiveComponent* Primitive : Primitives)
+			{
+				SlowTask.EnterProgressFrame();
+				BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
+				if (GWarn->ReceivedUserCancel()) return false;
+
+				if (bIncremental && !Primitive->HasMissingStreamingSectionData(InTexCoordScales.Num() > 0))
+					continue;
+
+				Primitive->UpdateStreamingSectionData(InTexCoordScales);
+				bComponentUpdated = true;
+			}
+
+			if (bComponentUpdated)
+			{
+				Actor->MarkComponentsRenderStateDirty();
+			}
+		}
+	}
+	UE_LOG(LogLevel, Display, TEXT("Update Texture Streaming Data took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+	return true;
+#else
+	return false;
+#endif
+}
+
 ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FSlowTask& BuildTextureStreamingTask)
 {
 #if WITH_EDITORONLY_DATA
@@ -197,7 +267,7 @@ ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleM
 			for (UPrimitiveComponent* Primitive : Primitives)
 			{
 				SlowTask.EnterProgressFrame();
-				BuildTextureStreamingTask.EnterProgressFrame((1.f - KINDA_SMALL_NUMBER) / NumPrimitiveComponents);
+				BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
 				if (GWarn->ReceivedUserCancel()) return false;
 
 				UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Primitive);

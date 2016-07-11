@@ -45,6 +45,7 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesWorldPositionOffset : 1;
 	uint32 bDecal : 1;
+	uint32 bTranslucentSurfaceLighting : 1;
 
 	/** Default constructor */
 	FMaterialRelevance()

@@ -13,6 +13,7 @@
  // If -1, output everything to the RW texture.
 float4 AccuracyColors[5];
 int TextureAnalysisIndex;
+float PrimitiveAlpha;
 
 float4 OneOverCPUTexCoordScales[MAX_NUM_TEXTURE_REGISTER / 4];
 int4 TexCoordIndices[MAX_NUM_TEXTURE_REGISTER / 4];
@@ -91,7 +92,7 @@ void Main(
 	)
 {
 #if INSTANCED_STEREO
-	ResolvedView = ResolveView(DebugInputs.EyeIndex);
+	ResolvedView = ResolveView(GetEyeIndex(DebugInputs.PackedEyeIndex));
 #else
 	ResolvedView = ResolveView();
 #endif
@@ -180,7 +181,7 @@ void Main(
 			Result = Params.TexSample * lerp(AccuracyColors[ColorIndex].rgb, AccuracyColors[ColorIndex + 1].rgb, frac(Accuracy));
 		}
 
-		OutColor = RETURN_COLOR(float4(Result, .25f));
+		OutColor = RETURN_COLOR(float4(Result, PrimitiveAlpha));
 	}
 }
 

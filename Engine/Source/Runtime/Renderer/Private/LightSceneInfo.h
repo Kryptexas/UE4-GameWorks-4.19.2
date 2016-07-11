@@ -4,8 +4,7 @@
 	LightSceneInfo.h: Light scene info definitions.
 =============================================================================*/
 
-#ifndef __LIGHTSCENEINFO_H__
-#define __LIGHTSCENEINFO_H__
+#pragma once
 
 #include "StaticArray.h"
 #include "SceneManagement.h"
@@ -262,4 +261,16 @@ struct FLightOctreeSemantics
 	}
 };
 
-#endif
+/** Stores lighting information for the clustered forward shading path */
+struct FClusteredLightsSceneInfo
+{
+	FIntPoint TileSize;			// In pixels
+	FIntVector GridSize;		// In tiles (x,y) + slices (z)
+	FVector4 LightGridZParams;
+
+	// Index of the light in this array corresponds to the bit set in the grid.
+	TArray<FLightSceneInfoCompact> ClusteredLights;
+
+	// The light grid.  Size is >= GridSize.
+	FTexture3DRHIRef LightGridTex;
+};

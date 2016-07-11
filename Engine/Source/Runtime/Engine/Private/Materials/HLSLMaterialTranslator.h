@@ -4120,7 +4120,7 @@ protected:
 			*GetParameterCode(Depth), FunctionValueIndex);
 	}
 
-	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth) override
+	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 RepeatSize) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
@@ -4143,9 +4143,11 @@ protected:
 		int32 OutputMinConst = Constant(OutputMin);
 		int32 OutputMaxConst = Constant(OutputMax);
 		int32 LevelScaleConst = Constant(LevelScale);
+		int32 TilingConst = Constant(bTiling);
+		int32 RepeatSizeConst = Constant(RepeatSize);
 
 		return AddCodeChunk(MCT_Float, 
-			TEXT("MaterialExpressionNoise(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"), 
+			TEXT("MaterialExpressionNoise(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"), 
 			*GetParameterCode(Position),
 			*GetParameterCode(ScaleConst),
 			*GetParameterCode(QualityConst),
@@ -4155,7 +4157,9 @@ protected:
 			*GetParameterCode(OutputMinConst),
 			*GetParameterCode(OutputMaxConst),
 			*GetParameterCode(LevelScaleConst),
-			*GetParameterCode(FilterWidth));
+			*GetParameterCode(FilterWidth),
+			*GetParameterCode(TilingConst),
+			*GetParameterCode(RepeatSizeConst));
 	}
 
 	virtual int32 BlackBody( int32 Temp ) override

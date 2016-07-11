@@ -656,7 +656,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("ReferenceViewer"),
 			TEXT("TreeMap"),
 			TEXT("SizeMap"),
-			TEXT("MergeActors")
+			TEXT("MergeActors"),
+			TEXT("NiagaraEditor")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));

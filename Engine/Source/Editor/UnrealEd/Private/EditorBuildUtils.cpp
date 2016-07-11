@@ -1042,31 +1042,33 @@ void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, FName Id)
 	InWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
 }
 
-bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld)
+bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithTexCoordScales, bool bDebugDataOnly)
 {
-	FScopedSlowTask BuildTextureStreamingTask(5.f, (LOCTEXT("TextureStreamingBuild", "Building Texture Streaming")));
+	FScopedSlowTask BuildTextureStreamingTask(bWithTexCoordScales ? 5.f : 1.f, bDebugDataOnly ? LOCTEXT("TextureStreamingDataUpdate", "Updating Texture Streaming Data") : LOCTEXT("TextureStreamingBuild", "Building Texture Streaming"));
 	BuildTextureStreamingTask.MakeDialog(true);
 
 	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
 	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
 
+
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
 	FTexCoordScaleMap TexCoordScales;
-	if (!BuildTextureStreamingShaders(InWorld, QualityLevel, FeatureLevel, TexCoordScales, BuildTextureStreamingTask))
+	if (bWithTexCoordScales)
 	{
-		return false;
-	}
+		if (!BuildTextureStreamingShaders(InWorld, QualityLevel, FeatureLevel, TexCoordScales, bDebugDataOnly, BuildTextureStreamingTask))
+		{
+			return false;
+		}
 
-	// Exporting Material TexCoord Scales
-	{
+		// Exporting Material TexCoord Scales
 		FScopedSlowTask SlowTask((float)TexCoordScales.Num(), (LOCTEXT("TextureStreamingBuild_ExportingMaterialScales", "Exporting Material TexCoord Scales")));
 
 		const double StartTime = FPlatformTime::Seconds();
 		for (FTexCoordScaleMap::TIterator It(TexCoordScales); It; ++It)
 		{
 			SlowTask.EnterProgressFrame();
-			BuildTextureStreamingTask.EnterProgressFrame((1.f - KINDA_SMALL_NUMBER) / TexCoordScales.Num());
+			BuildTextureStreamingTask.EnterProgressFrame(1.f / TexCoordScales.Num());
 			if (GWarn->ReceivedUserCancel()) return false;
 
 			UMaterialInterface* MaterialInterface = It.Key();
@@ -1078,10 +1080,21 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld)
 		UE_LOG(LogLevel, Display, TEXT("Export Material TexCoord Scales took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 	}
 
-	if (!BuildTextureStreamingData(InWorld, TexCoordScales, QualityLevel, FeatureLevel, BuildTextureStreamingTask))
+	if (bDebugDataOnly)
 	{
-		return false;
+		if (!UpdateComponentStreamingSectionData(InWorld, TexCoordScales, true, BuildTextureStreamingTask))
+		{
+			return false;
+		}
 	}
+	else
+	{
+		if (!BuildTextureStreamingData(InWorld, TexCoordScales, QualityLevel, FeatureLevel, BuildTextureStreamingTask))
+		{
+			return false;
+		}
+	}
+
 
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	return true;

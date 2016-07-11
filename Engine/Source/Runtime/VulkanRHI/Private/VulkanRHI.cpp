@@ -127,39 +127,6 @@ struct FVulkanMemManager
 
 static FVulkanMemManager GVulkanMemMgr;
 
-static inline VkAttachmentLoadOp RenderTargetLoadActionToVulkan(ERenderTargetLoadAction InLoadAction)
-{
-	VkAttachmentLoadOp OutLoadAction = VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
-
-	switch (InLoadAction)
-	{
-	case ERenderTargetLoadAction::ELoad:		OutLoadAction = VK_ATTACHMENT_LOAD_OP_LOAD;			break;
-	case ERenderTargetLoadAction::EClear:		OutLoadAction = VK_ATTACHMENT_LOAD_OP_CLEAR;		break;
-	case ERenderTargetLoadAction::ENoAction:	OutLoadAction = VK_ATTACHMENT_LOAD_OP_DONT_CARE;	break;
-	default:																						break;
-	}
-
-	// Check for missing translation
-	check(OutLoadAction != VK_ATTACHMENT_LOAD_OP_MAX_ENUM);
-	return OutLoadAction;
-}
-
-static inline VkAttachmentStoreOp RenderTargetStoreActionToVulkan(ERenderTargetStoreAction InStoreAction)
-{
-	VkAttachmentStoreOp OutStoreAction = VK_ATTACHMENT_STORE_OP_MAX_ENUM;
-
-	switch (InStoreAction)
-	{
-	case ERenderTargetStoreAction::EStore:		OutStoreAction = VK_ATTACHMENT_STORE_OP_STORE;		break;
-	case ERenderTargetStoreAction::ENoAction:	OutStoreAction = VK_ATTACHMENT_STORE_OP_DONT_CARE;	break;
-	default:																						break;
-	}
-
-	// Check for missing translation
-	check(OutStoreAction != VK_ATTACHMENT_STORE_OP_MAX_ENUM);
-	return OutStoreAction;
-}
-
 static inline int32 CountSetBits(int32 n)
 {
 	uint32 Count = 0;
@@ -730,7 +697,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 void FVulkanCommandListContext::RHIEndFrame()
 {
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame\n")));
-	Device->GetDeferredDeletionQueue().Clear();
+	Device->GetDeferredDeletionQueue().ReleaseResources();
 
 	Device->GetStagingManager().ProcessPendingFree();
 	Device->GetResourceHeapManager().ReleaseFreedPages();
@@ -747,6 +714,9 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 	if (IsImmediate())
 	{
 #if VULKAN_ENABLE_DRAW_MARKERS
+#if VULKAN_ENABLE_DUMP_LAYER
+		VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkCmdDbgMarkerBeginEXT(%s)"), Name));
+#endif
 		if (auto CmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
 		{
 			VkDebugMarkerMarkerInfoEXT Info;
@@ -771,6 +741,9 @@ void FVulkanCommandListContext::RHIPopEvent()
 	if (IsImmediate())
 	{
 #if VULKAN_ENABLE_DRAW_MARKERS
+#if VULKAN_ENABLE_DUMP_LAYER
+		VulkanRHI::PrintfBegin(TEXT("vkCmdDbgMarkerEndEXT()"));
+#endif
 		if (auto CmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
 			CmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
@@ -851,7 +824,7 @@ FVulkanBuffer::~FVulkanBuffer()
 	// The buffer should be unmapped
 	check(BufferPtr == nullptr);
 
-	VulkanRHI::vkDestroyBuffer(Device.GetInstanceHandle(), Buf, nullptr);
+	Device.GetDeferredDeletionQueue().EnqueueResource(FDeferredDeletionQueue::EType::Buffer, Buf);
 	Buf = VK_NULL_HANDLE;
 
 	Device.GetMemoryManager().Free(Allocation);
@@ -911,10 +884,13 @@ FVulkanDescriptorSetsLayout::FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice
 FVulkanDescriptorSetsLayout::~FVulkanDescriptorSetsLayout()
 {
 	check(Device);
-	for (VkDescriptorSetLayout Handle : LayoutHandles)
+	VulkanRHI::FDeferredDeletionQueue& DeletionQueue = Device->GetDeferredDeletionQueue();
+	for (VkDescriptorSetLayout& Handle : LayoutHandles)
 	{
-		VulkanRHI::vkDestroyDescriptorSetLayout(Device->GetInstanceHandle(), Handle, nullptr);
+		DeletionQueue.EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::DescriptorSetLayout, Handle);
 	}
+
+	LayoutHandles.Reset(0);
 }
 
 void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex)
@@ -1081,170 +1057,9 @@ void FVulkanBufferView::Destroy()
 {
 	if (View != VK_NULL_HANDLE)
 	{
-		VulkanRHI::vkDestroyBufferView(GetParent()->GetInstanceHandle(), View, nullptr);
+		Device->GetDeferredDeletionQueue().EnqueueResource(FDeferredDeletionQueue::EType::BufferView, View);
 		View = VK_NULL_HANDLE;
 	}
-}
-
-FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsInfo& RTInfo)
-	: NumAttachments(0)
-	, NumColorAttachments(0)
-	, bHasDepthStencil(false)
-	, bHasResolveAttachments(false)
-	, Hash(0)
-{
-	FMemory::Memzero(ColorReferences);
-	FMemory::Memzero(ResolveReferences);
-	FMemory::Memzero(DepthStencilReference);
-	FMemory::Memzero(Desc);
-	FMemory::Memzero(Extent);
-
-	bool bSetExtent = false;
-		
-	for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
-	{
-		const FRHIRenderTargetView& rtv = RTInfo.ColorRenderTarget[Index];
-		if(rtv.Texture)
-		{
-		    FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(rtv.Texture);
-		    check(Texture);
-    
-		    if (!bSetExtent)
-		    {
-			    bSetExtent = true;
-			    Extent.Extent3D.width = Texture->Surface.Width;
-			    Extent.Extent3D.height = Texture->Surface.Height;
-			    Extent.Extent3D.depth = 1;
-		    }
-    
-		    uint32 NumSamples = rtv.Texture->GetNumSamples();
-	    
-		    VkAttachmentDescription& CurrDesc = Desc[NumAttachments];
-		    
-		    //@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
-		    CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
-		    CurrDesc.format = (VkFormat)GPixelFormats[rtv.Texture->GetFormat()].PlatformFormat;
-		    CurrDesc.loadOp = RenderTargetLoadActionToVulkan(rtv.LoadAction);
-		    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(rtv.StoreAction);
-		    CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-#if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
-		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-#endif
-		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
-		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
-    
-		    ColorReferences[NumColorAttachments].attachment = NumAttachments;
-		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
-		    NumAttachments++;
-    
-#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
-			if (NumSamples == 1)
-			{
-			    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(rtv.StoreAction);
-    
-			    ResolveReferences[NumColorAttachments].attachment = VK_ATTACHMENT_UNUSED;
-			    ResolveReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_UNDEFINED;
-		    }
-			else
-		    {
-			    // discard MSAA color target after resolve to 1x surface
-			    CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    
-			    // Resolve attachment
-			    VkAttachmentDescription& ResolveDesc = Desc[NumAttachments];
-			    ResolveDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-			    ResolveDesc.format = (VkFormat)GPixelFormats[rtv.Texture->GetFormat()].PlatformFormat;
-			    ResolveDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			    ResolveDesc.storeOp = RenderTargetStoreActionToVulkan(rtv.StoreAction);
-			    ResolveDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			    ResolveDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			    ResolveDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			    ResolveDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    
-			    ResolveReferences[NumColorAttachments].attachment = NumAttachments;
-			    ResolveReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			    NumAttachments++;
-			    bHasResolveAttachments = true;
-		    }
-#endif
-	    
-		    NumColorAttachments++;
-		}
-	}
-
-	if (RTInfo.DepthStencilRenderTarget.Texture)
-	{
-		VkAttachmentDescription& CurrDesc = Desc[NumAttachments];
-		FMemory::Memzero(CurrDesc);
-		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTInfo.DepthStencilRenderTarget.Texture);
-		check(Texture);
-
-		//@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
-		CurrDesc.samples = static_cast<VkSampleCountFlagBits>(RTInfo.DepthStencilRenderTarget.Texture->GetNumSamples());
-		CurrDesc.format = (VkFormat)GPixelFormats[RTInfo.DepthStencilRenderTarget.Texture->GetFormat()].PlatformFormat;
-		CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthLoadAction);
-		CurrDesc.stencilLoadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.StencilLoadAction);
-		if (CurrDesc.samples == VK_SAMPLE_COUNT_1_BIT)
-		{
-			CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthStoreAction);
-			CurrDesc.stencilStoreOp = RenderTargetStoreActionToVulkan(RTInfo.DepthStencilRenderTarget.GetStencilStoreAction());
-		}
-		else
-		{
-			// Never want to store MSAA depth/stencil
-			CurrDesc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		}
-		CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		
-		DepthStencilReference.attachment = NumAttachments;
-		DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		bHasDepthStencil = true;
-		NumAttachments++;
-
-		if (!bSetExtent)
-		{
-			bSetExtent = true;
-			Extent.Extent3D.width = Texture->Surface.Width;
-			Extent.Extent3D.height = Texture->Surface.Height;
-			Extent.Extent3D.depth = 1;
-		}
-	}
-
-	check(bSetExtent);
-
-	//@TODO: remove loads on device
-#if 0
-	//@HACK: don't used the load/store info in the hash (avoids a store/resolve between the tonemapping and slate passes)
-	FRHISetRenderTargetsInfo HashedRTInfo;
-	FMemory::Memcpy(HashedRTInfo, RTInfo);
-	for (int32 Index = 0; Index < HashedRTInfo.NumColorRenderTargets; ++Index)
-	{
-		FRHIRenderTargetView* View = &HashedRTInfo.ColorRenderTarget[Index];
-		View->LoadAction = ERenderTargetLoadAction::ENoAction;
-		View->StoreAction = ERenderTargetStoreAction::ENoAction;
-	}
-
-	if (HashedRTInfo.DepthStencilRenderTarget.Texture)
-	{
-		FRHIDepthRenderTargetView* View = &HashedRTInfo.DepthStencilRenderTarget;
-		View->DepthLoadAction = ERenderTargetLoadAction::ENoAction;
-		View->DepthStoreAction = ERenderTargetStoreAction::ENoAction;
-		View->StencilLoadAction = ERenderTargetLoadAction::ENoAction;
-		View->StencilStoreAction = ERenderTargetStoreAction::ENoAction;
-		View->DepthStencilAccess = FExclusiveDepthStencil();
-		// doubt we care about the stencil store action anyway
-	}
-	HashedRTInfo.bClearDepth = false;
-	HashedRTInfo.bClearStencil = false;
-	HashedRTInfo.bClearColor = false;
-
-	Hash = HashedRTInfo.CalculateHash();
-#else
-	Hash = RTInfo.CalculateHash();
-#endif
 }
 
 FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout) :
@@ -1285,7 +1100,7 @@ FVulkanRenderPass::~FVulkanRenderPass()
 {
 	DEC_DWORD_STAT(STAT_VulkanNumRenderPasses);
 
-	VulkanRHI::vkDestroyRenderPass(Device.GetInstanceHandle(), RenderPass, nullptr);
+	Device.GetDeferredDeletionQueue().EnqueueResource(FDeferredDeletionQueue::EType::RenderPass, RenderPass);
 	RenderPass = VK_NULL_HANDLE;
 }
 
@@ -1409,7 +1224,7 @@ FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, 
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;
-	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
+	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, __FILE__, __LINE__);
 	MinAlignment = BufferSuballocation->GetBufferAllocation()->GetAlignment();
 }
 

@@ -674,6 +674,8 @@ public:
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
 
+	FForwardLightingViewResources ForwardLightingResources;
+
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
 
@@ -927,9 +929,9 @@ public:
 		IndirectShadowLightDirectionVertexBuffer.SafeRelease();
 		IndirectShadowLightDirectionSRV.SafeRelease();
 		CapsuleTileIntersectionCountsBuffer.Release();
-
 		TranslucencyTimer.Release();
 		SeparateTranslucencyTimer.Release();
+		ForwardLightingResources.Release();
 	}
 
 	// FSceneViewStateInterface
@@ -2043,6 +2045,8 @@ public:
 	 */
 	void GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const;
 
+	int64 GetCachedWholeSceneShadowMapsSize() const;
+
 	/**
 	 * Marks static mesh elements as needing an update if necessary.
 	 */
@@ -2120,14 +2124,14 @@ public:
 			return SkyLight && !SkyLight->bHasStaticLighting;
 		}
 		else
-		{
-			const bool bRenderSkylight = SkyLight
-				&& !SkyLight->bHasStaticLighting
-				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
-				&& (SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(GetShaderPlatform()));
+	{
+		const bool bRenderSkylight = SkyLight
+			&& !SkyLight->bHasStaticLighting
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
 
-			return bRenderSkylight;
-		}
+		return bRenderSkylight;
+	}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

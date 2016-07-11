@@ -3,9 +3,8 @@
 #pragma once
 #include "NiagaraSimulation.h"
 #include "NiagaraEmitterProperties.h"
-#include "Engine/NiagaraEffectRenderer.h"
+#include "NiagaraEffectRenderer.h"
 #include "List.h"
-#include "Runtime/VectorVM/Public/VectorVMDataObject.h"
 #include "NiagaraEffect.generated.h"
 
 
@@ -70,7 +69,6 @@ public:
 			Emitters.Add(MakeShareable(Sim));
 		}
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
-		VolumeGrid = NewObject<UNiagaraSparseVolumeDataObject>();
 	}
 
 	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset)
@@ -78,7 +76,6 @@ public:
 		, Effect(InAsset)
 	{
 		InitEmitters(InAsset);
-		VolumeGrid = NewObject<UNiagaraSparseVolumeDataObject>();
 	}
 
 	NIAGARA_API void InitEmitters(UNiagaraEffect *InAsset);
@@ -137,12 +134,7 @@ public:
 	{
 		Constants.SetOrAdd(ID, Value);
 	}
-
-	void SetConstant(FName ConstantName, UNiagaraDataObject *Value)
-	{
-		Constants.SetOrAdd(ConstantName, Value);
-	}
-
+	
 	void Tick(float DeltaSeconds);
 
 	NIAGARA_API void RenderModuleupdate();
@@ -175,6 +167,4 @@ private:
 	TMap<FNiagaraDataSetID, FNiagaraDataSet> ExternalEvents;
 
 	TArray< TSharedPtr<FNiagaraSimulation> > Emitters;
-
-	UNiagaraSparseVolumeDataObject *VolumeGrid;
 };

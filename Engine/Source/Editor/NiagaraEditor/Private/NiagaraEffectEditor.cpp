@@ -440,23 +440,6 @@ FReply FNiagaraEffectEditor::OnDeleteEmitterClicked(TSharedPtr<FNiagaraSimulatio
 
 FReply FNiagaraEffectEditor::OnEmitterSelected(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType)
 {
- 	if (SelectedItem.Get() != nullptr)
-	{
-		if (UNiagaraEmitterProperties* PinnedProps = SelectedItem->GetProperties().Get())
-		{
-			if (PinnedProps->UpdateScriptProps.ExternalConstants.GetNumDataObjectConstants() > 0)
-			{
-				FNiagaraVariableInfo VarInfo;
-				UNiagaraDataObject* DataObj;
-				PinnedProps->UpdateScriptProps.ExternalConstants.GetDataObjectConstant(0, DataObj, VarInfo);
-
-				if (UNiagaraCurveDataObject* CurvObj = Cast<UNiagaraCurveDataObject>(DataObj))
-				{
-					TimeLine.Get()->SetCurve(CurvObj->GetCurveObject());
-				}
-			}
-		}
-	}
 	return FReply::Handled();
 }
 

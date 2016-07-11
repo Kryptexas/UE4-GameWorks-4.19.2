@@ -137,63 +137,42 @@ struct FEmbreeFilterProcessor
      */
 	EMBREE_INLINE bool HitRejectedByHLODTest() const
 	{
+		const uint32 InvalidIndex = 0xFFFF;
 		uint32 GeoHLODTreeIndex = (Geo.Mesh->GetLODIndices() & 0xFFFF0000) >> 16;
+		uint32 RayHLODTreeIndex = Ray.MappingMesh ? (Ray.MappingMesh->GetLODIndices() & 0xFFFF0000) >> 16 : InvalidIndex;
 
-		if (Ray.MappingMesh)
-		{
-			uint32 RayHLODTreeIndex = (Ray.MappingMesh->GetLODIndices() & 0xFFFF0000) >> 16;
-
-			// If either Geo or Ray is a HLOD (0xFFFF being invalid HLOD).
-			if (GeoHLODTreeIndex != 0xFFFF || RayHLODTreeIndex != 0xFFFF)
-			{
-				uint32 GeoHLODRange = Geo.Mesh->GetHLODRange();
-				uint32 GeoHLODRangeStart = GeoHLODRange & 0xFFFF;
-				uint32 GeoHLODRangeEnd = (GeoHLODRange & 0xFFFF0000) >> 16;
-
-				uint32 RayHLODRange = Ray.MappingMesh->GetHLODRange();
-				uint32 RayHLODRangeStart = RayHLODRange & 0xFFFF;
-				uint32 RayHLODRangeEnd = (RayHLODRange & 0xFFFF0000) >> 16;
-
-				// Different rules apply if we're dealing with the same cluster.
-				if (GeoHLODTreeIndex != RayHLODTreeIndex)
-				{
-					// Allow HLOD leaf nodes (Start == End) to interact with other meshes, else reject.
-					if (GeoHLODRangeStart != GeoHLODRangeEnd)
-					{
-						return true;
-					}
-				}
-				else
-				{
-					// Allow HLOD nodes to self-shadow (identical ranges), else reject where range intersects.
-					if (GeoHLODRange != RayHLODRange && 
-						GeoHLODRangeStart <= RayHLODRangeEnd && RayHLODRangeStart <= GeoHLODRangeEnd)
-					{
-						return true;
-					}
-				}
-			}
-			else
-			{
-				return false;
-			}
-		}
-
-		// If the ray didn't originate from a mesh, only intersect against LOD0 of the HLOD
-		if (GeoHLODTreeIndex > 0 && GeoHLODTreeIndex != 0xFFFF)
+		// If either Geo or Ray is a HLOD (0xFFFF being invalid HLOD).
+		if (GeoHLODTreeIndex != InvalidIndex || RayHLODTreeIndex != InvalidIndex)
 		{
 			uint32 GeoHLODRange = Geo.Mesh->GetHLODRange();
 			uint32 GeoHLODRangeStart = GeoHLODRange & 0xFFFF;
 			uint32 GeoHLODRangeEnd = (GeoHLODRange & 0xFFFF0000) >> 16;
 
-			// If the Start == End, it's an HLOD leaf which means the LOD0 (inverted tree)
-			// So reject any intersections with non-leaves
-			if (GeoHLODRangeStart != GeoHLODRangeEnd)
+			uint32 RayHLODRange = Ray.MappingMesh ? Ray.MappingMesh->GetHLODRange() : 0;
+			uint32 RayHLODRangeStart = RayHLODRange & 0xFFFF;
+			uint32 RayHLODRangeEnd = (RayHLODRange & 0xFFFF0000) >> 16;
+
+			// Different rules apply if we're dealing with the same cluster.
+			if (GeoHLODTreeIndex != RayHLODTreeIndex)
 			{
-				return true;
+				// Allow LOD0 nodes to interact with other meshes, else reject.
+				// Note: If the Start == End, it's an HLOD leaf which means LOD0 (inverted tree)
+				if (GeoHLODRangeStart != GeoHLODRangeEnd)
+				{
+					return true;
+				}
+			}
+			else
+			{
+				// Allow HLOD nodes to self-shadow (identical ranges), else reject where range intersects.
+				if (GeoHLODRange != RayHLODRange && 
+					GeoHLODRangeStart <= RayHLODRangeEnd && RayHLODRangeStart <= GeoHLODRangeEnd)
+				{
+					return true;
+				}
 			}
 		}
-		
+
 		return false;
 	}
 

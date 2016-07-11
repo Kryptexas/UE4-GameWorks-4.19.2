@@ -315,6 +315,8 @@ void FSceneRenderer::GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy
 #endif
 }
 
+extern int32 GbEnableAsyncComputeTranslucencyLightingVolumeClear;
+
 uint32 GetShadowQuality();
 
 /** Renders the scene's lighting. */
@@ -416,6 +418,12 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 		}
 		
+		if (GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute)
+		{
+			//Gfx pipe must wait for the async compute clear of the translucency volume clear.
+			RHICmdList.WaitComputeFence(TranslucencyLightingVolumeClearEndFence);
+		}
+
 		if(ViewFamily.EngineShowFlags.DirectLighting)
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, NonShadowedLights);

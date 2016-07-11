@@ -290,12 +290,8 @@ public:
 			, CurrentFrameNumber(0)
 		{
 			// BoneDataOffset and BoneTextureSize are not set as they are only valid if IsValidRef(BoneTexture)
-			if(!MaxBonesVar)
-			{
-				MaxBonesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.MAX_GPUSKIN_BONES"));
-				MaxGPUSkinBones = MaxBonesVar->GetValueOnGameThread();
-				check(MaxGPUSkinBones <= 256);
-			}
+			MaxGPUSkinBones = GetMaxGPUSkinBones();
+			check(MaxGPUSkinBones <= GHardwareMaxGPUSkinBones);
 		}
 
 		/** Mesh origin and Mesh Extension for Mesh compressions **/
@@ -400,8 +396,9 @@ public:
 	};
 
 	FGPUBaseSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-	:	FVertexFactory(InFeatureLevel)
-	{}
+		: FVertexFactory(InFeatureLevel)
+	{
+	}
 
 	/** accessor */
 	FORCEINLINE FShaderDataType& GetShaderData()
@@ -423,7 +420,14 @@ public:
 		return (FSkeletalMeshVertexBuffer*)(Streams[0].VertexBuffer);
 	}
 
+	ENGINE_API static int32 GetMaxGPUSkinBones();
+
+	static const uint32 GHardwareMaxGPUSkinBones = 256;	
+	
 protected:
+
+	
+
 	/** dynamic data need for setting the shader */ 
 	FShaderDataType ShaderData;
 	/** Pool of buffers for bone matrices. */

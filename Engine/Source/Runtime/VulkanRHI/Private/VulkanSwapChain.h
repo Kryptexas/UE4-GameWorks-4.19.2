@@ -22,12 +22,6 @@ protected:
 	VkSwapchainKHR SwapChain;
 	FVulkanDevice& Device;
 
-	PFN_vkCreateSwapchainKHR CreateSwapchainKHR;
-	PFN_vkDestroySwapchainKHR DestroySwapchainKHR;
-	PFN_vkGetSwapchainImagesKHR GetSwapchainImagesKHR;
-	PFN_vkQueuePresentKHR QueuePresentKHR;
-	PFN_vkAcquireNextImageKHR AcquireNextImageKHR;
-
 	VkSurfaceKHR Surface;
 
 	int32 CurrentImageIndex;

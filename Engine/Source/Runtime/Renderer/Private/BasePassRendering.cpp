@@ -200,18 +200,17 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 
 	FMatrix BoxTransformVal = FMatrix::Identity;
 	FVector4 PositionAndRadius = FVector::ZeroVector;
-	FVector4 BoxScalesVal = FVector::ZeroVector;
+	FVector4 BoxScalesVal(0, 0, 0, 0);
 	FVector CaptureOffsetVal = FVector::ZeroVector;
 	EReflectionCaptureShape::Type CaptureShape = EReflectionCaptureShape::Box;
 	
-
 	if (PrimitiveSceneInfo && ReflectionProxy)
 	{
 		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
 		PositionAndRadius = FVector4(ReflectionProxy->Position, ReflectionProxy->InfluenceRadius);
 		CaptureShape = ReflectionProxy->Shape;
 		BoxTransformVal = ReflectionProxy->BoxTransform;
-		BoxScalesVal = ReflectionProxy->BoxScales;
+		BoxScalesVal = FVector4(ReflectionProxy->BoxScales, ReflectionProxy->BoxTransitionDistance);
 		CaptureOffsetVal = ReflectionProxy->CaptureOffset;
 	}
 
@@ -451,18 +450,27 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// When rendering masked materials in the shader complexity viewmode, 
-		// We want to overwrite complexity for the pixels which get depths written,
-		// And accumulate complexity for pixels which get killed due to the opacity mask being below the clip value.
-		// This is accomplished by forcing the masked materials to render depths in the depth only pass, 
-		// Then rendering in the base pass with additive complexity blending, depth tests on, and depth writes off.
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
+			// When rendering masked materials in the shader complexity viewmode, 
+			// We want to overwrite complexity for the pixels which get depths written,
+			// And accumulate complexity for pixels which get killed due to the opacity mask being below the clip value.
+			// This is accomplished by forcing the masked materials to render depths in the depth only pass, 
+			// Then rendering in the base pass with additive complexity blending, depth tests on, and depth writes off.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 		}
-
-		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		else if (View.Family->UseDebugViewPS() && View.Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
+		{
+			if (Parameters.PrimitiveSceneProxy && Parameters.PrimitiveSceneProxy->IsSelected())
+			{
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+			}
+			else // If not selected, use depth equal to make alpha test stand out (goes with EarlyZPassMode = DDM_AllOpaque) 
+			{
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Equal>::GetRHI());
+			}
+		}
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 

@@ -242,12 +242,12 @@ VkImage FVulkanSurface::CreateImage(
 #endif
 
 	VkImage Image;
-	VERIFYVULKANRESULT(vkCreateImage(InDevice.GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateImage(InDevice.GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
 
 	// Fetch image size
 	VkMemoryRequirements tmpMemReq;
 	VkMemoryRequirements& MemReq = OutMemoryRequirements ? *OutMemoryRequirements : tmpMemReq;
-	vkGetImageMemoryRequirements(InDevice.GetInstanceHandle(), Image, &MemReq);
+	VulkanRHI::vkGetImageMemoryRequirements(InDevice.GetInstanceHandle(), Image, &MemReq);
 
 	return Image;
 }
@@ -406,7 +406,7 @@ void FVulkanSurface::Destroy()
 
 		if (Image != VK_NULL_HANDLE)
 		{
-			vkDestroyImage(Device->GetInstanceHandle(), Image, nullptr);
+			Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Image, Image);
 			Image = VK_NULL_HANDLE;
 			ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		}
@@ -441,7 +441,7 @@ void* FVulkanSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode
 	// Get buffer size
 	// Pitch can be only retrieved from linear textures.
 	VkSubresourceLayout SubResourceLayout;
-	vkGetImageSubresourceLayout(Device->GetInstanceHandle(), Image, &ImageSubResource, &SubResourceLayout);
+	VulkanRHI::vkGetImageSubresourceLayout(Device->GetInstanceHandle(), Image, &ImageSubResource, &SubResourceLayout);
 
 	// Set linear row-pitch
 	GetMipStride(MipIndex, DestStride);
@@ -471,7 +471,7 @@ void* FVulkanSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode
 	Usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 	VkMemoryPropertyFlags Flags = 0;
-	Flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+	Flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT;
 
 	LinearBuffer = new FVulkanBuffer(*Device, Bytes, Usage, Flags, false, __FILE__, __LINE__);
 
@@ -507,7 +507,7 @@ void FVulkanSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 
 	VkSubresourceLayout SubResourceLayout;
 	
-	vkGetImageSubresourceLayout(Device->GetInstanceHandle(), Image, &ImageSubResource, &SubResourceLayout);
+	VulkanRHI::vkGetImageSubresourceLayout(Device->GetInstanceHandle(), Image, &ImageSubResource, &SubResourceLayout);
 
 	VkBufferImageCopy Region;
 	FMemory::Memzero(Region);
@@ -537,7 +537,7 @@ uint32 FVulkanSurface::GetMemorySize()
 {
 	//#todo-rco: Slow!
 	VkMemoryRequirements MemReqs;
-	vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
+	VulkanRHI::vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
 
 	return MemReqs.size;
 }
@@ -640,7 +640,7 @@ void FVulkanSurface::Clear(const FClearValueBinding& ClearValueBinding, bool bTr
 		Color.float32[2] = ClearValueBinding.Value.Color[2];
 		Color.float32[3] = ClearValueBinding.Value.Color[3];
 		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Image, ImageLayout, VK_IMAGE_LAYOUT_GENERAL);
-		vkCmdClearColorImage(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, &Color, 1, &Range);
+		VulkanRHI::vkCmdClearColorImage(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, &Color, 1, &Range);
 		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, bTransitionToPresentable ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	}
@@ -653,7 +653,7 @@ void FVulkanSurface::Clear(const FClearValueBinding& ClearValueBinding, bool bTr
 		Value.depth = ClearValueBinding.Value.DSValue.Depth;
 		Value.stencil = ClearValueBinding.Value.DSValue.Stencil;
 		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Image, ImageLayout, VK_IMAGE_LAYOUT_GENERAL, Range.aspectMask);
-		vkCmdClearDepthStencilImage(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, &Value, 1, &Range);
+		VulkanRHI::vkCmdClearDepthStencilImage(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, &Value, 1, &Range);
 		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, Range.aspectMask);
 		ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	}
@@ -827,7 +827,7 @@ void FVulkanDynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint
 	Region.imageExtent.width = MipWidth;
 	Region.imageExtent.height = MipHeight;
 	Region.imageExtent.depth = 1;
-	vkCmdCopyBufferToImage(StagingCommandBuffer, StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
+	VulkanRHI::vkCmdCopyBufferToImage(StagingCommandBuffer, StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
 
 	VulkanSetImageLayout(StagingCommandBuffer, Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, SubresourceRange);
 
@@ -903,7 +903,7 @@ void FVulkanDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uin
 	Region.imageExtent.width = UpdateRegion.Width;
 	Region.imageExtent.height = UpdateRegion.Height;
 	Region.imageExtent.depth = UpdateRegion.Depth;
-	vkCmdCopyBufferToImage(Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer()->GetHandle(), StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_GENERAL, 1, &Region);
+	VulkanRHI::vkCmdCopyBufferToImage(Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer()->GetHandle(), StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_GENERAL, 1, &Region);
 
 	Device->GetStagingManager().ReleaseBuffer(nullptr, StagingBuffer);
 }
@@ -925,14 +925,14 @@ void FVulkanTextureView::Create(FVulkanDevice& Device, VkImage Image, VkImageVie
 	ViewInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, NumMips, 0, ArraySize*FaceCount };
 	ViewInfo.subresourceRange.aspectMask = AspectFlags;
 
-	VERIFYVULKANRESULT(vkCreateImageView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateImageView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
 void FVulkanTextureView::Destroy(FVulkanDevice& Device)
 {
 	if (View)
 	{
-		vkDestroyImageView(Device.GetInstanceHandle(), View, nullptr);
+		Device.GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::ImageView, View);
 		View = VK_NULL_HANDLE;
 	}
 }
@@ -1034,7 +1034,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	VulkanSetImageLayout(CmdBuffer->GetHandle(), Surface.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, SubresourceRange);
 
 	// Copy buffer to image
-	vkCmdCopyBufferToImage(CmdBuffer->GetHandle(), StagingBuffer->GetHandle(), Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
+	VulkanRHI::vkCmdCopyBufferToImage(CmdBuffer->GetHandle(), StagingBuffer->GetHandle(), Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
 
 	VulkanSetImageLayout(CmdBuffer->GetHandle(), Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, SubresourceRange);
 
@@ -1085,14 +1085,6 @@ FVulkanTexture2D::~FVulkanTexture2D()
 	{
 		Surface.Device->NotifyDeletedRenderTarget(this);
 	}
-
-	Destroy(*Surface.Device);
-}
-
-void FVulkanTexture2D::Destroy(FVulkanDevice& Device)
-{
-	View.Destroy(Device);
-	Surface.Destroy();
 }
 
 
@@ -1215,7 +1207,7 @@ void FVulkanDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture
 	Region.imageExtent.width = MipWidth;
 	Region.imageExtent.height = MipHeight;
 	Region.imageExtent.depth = 1;
-	vkCmdCopyBufferToImage(StagingCommandBuffer, StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
+	VulkanRHI::vkCmdCopyBufferToImage(StagingCommandBuffer, StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
 
 	VulkanSetImageLayout(StagingCommandBuffer, Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, SubresourceRange);
 
@@ -1224,6 +1216,16 @@ void FVulkanDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture
 
 void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, const TCHAR* Name)
 {
+#if VULKAN_ENABLE_DUMP_LAYER
+	{
+		if (FRHITexture2D* Tex2d = TextureRHI->GetTexture2D())
+		{
+			FVulkanTexture2D* VTex2d = (FVulkanTexture2D*)Tex2d;
+			VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)"), VTex2d->Surface.Image, Name));
+		}
+	}
+#endif
+
 #if VULKAN_ENABLE_DRAW_MARKERS
 	//if (Device->SupportsDebugMarkers())
 	/*
@@ -1296,7 +1298,7 @@ uint64 FVulkanDynamicRHI::RHICalcTexture2DPlatformSize(uint32 SizeX, uint32 Size
 		false, 0, NumMips, Flags,
 		&InternalFormat, &CreateInfo, &MemReq);
 
-	vkDestroyImage(Device->GetInstanceHandle(), TmpImage, nullptr);
+	VulkanRHI::vkDestroyImage(Device->GetInstanceHandle(), TmpImage, nullptr);
 
 	OutAlign = MemReq.alignment;
 

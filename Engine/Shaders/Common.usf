@@ -965,6 +965,9 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 	return float2(OffsetNDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz);
 }
 
+Texture2D		SceneColorCopyTexture;
+SamplerState	SceneColorCopyTextureSampler;
+
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 {
@@ -972,11 +975,16 @@ float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 	// Hit proxies rendering pass doesn't have access to valid render buffers
 	return float3(0.0f, 0.0f, 0.0f);
 #else
-	float4 EncodedSceneColor = Texture2DSample(LightAttenuationTexture, LightAttenuationTextureSampler, ScreenUV);
+	float4 EncodedSceneColor = Texture2DSample(SceneColorCopyTexture, SceneColorCopyTextureSampler, ScreenUV);
 
 	// Undo the function in EncodeSceneColorForMaterialNode
 	return pow(EncodedSceneColor.rgb, 4) * 10;
 #endif
+}
+
+float4 GetPerPixelLightAttenuation(float2 UV)
+{
+	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
 }
 
 // also see ConvertToDeviceZ()
@@ -1270,7 +1278,7 @@ float AntialiasedTextureMask( Texture2D Tex, SamplerState Sampler, float2 UV, fl
 	return Result;
 }
 
-float Noise3D_Multiplexer(int Function, float3 Position)
+float Noise3D_Multiplexer(int Function, float3 Position, bool bTiling, uint RepeatSize)
 {
 	// verified, HLSL compiled out the switch if Function is a constant
 	switch(Function)
@@ -1278,22 +1286,20 @@ float Noise3D_Multiplexer(int Function, float3 Position)
 		case 0:
 			return SimplexNoise3D_TEX(Position);
 		case 1:
-			return GradientNoise3D_TEX(Position);
+			return GradientNoise3D_TEX(Position, bTiling, RepeatSize);
 		case 2:
-			return PerlinNoise3D_ALU(Position);
-		case 3:
 			return FastGradientPerlinNoise3D_TEX(Position);
-
-		// currently not accessible through UI
+		case 3:
+			return GradientNoise3D_ALU(Position, bTiling, RepeatSize);
 		default:
-			return ComputeRandomFrom3DPosition((int3)Position).x;
+			return ValueNoise3D_ALU(Position, bTiling, RepeatSize);
 	}
 	return 0;
 }
 
 // @param LevelScale usually 2 but higher values allow efficient use of few levels
 // @return in user defined range (OutputMin..OutputMax)
-float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth)
+float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth, bool bTiling, float RepeatSize)
 {
 	Position *= Scale;
 	FilterWidth *= Scale;
@@ -1309,14 +1315,15 @@ float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Fun
 
 		if(bTurbulence)
 		{
-			Out += abs(Noise3D_Multiplexer(Function, Position)) * OutScale;
+			Out += abs(Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize)) * OutScale;
 		}
 		else
 		{
-			Out += Noise3D_Multiplexer(Function, Position) * OutScale;
+			Out += Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize) * OutScale;
 		}
 
 		Position *= LevelScale;
+		RepeatSize *= LevelScale;
 		OutScale *= InvLevelScale;
 		FilterWidth *= LevelScale;
 	}

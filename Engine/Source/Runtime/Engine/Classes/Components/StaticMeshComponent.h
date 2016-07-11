@@ -3,7 +3,6 @@
 #pragma once
 
 #include "SceneTypes.h"
-#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
 #include "RawIndexBuffer.h"
@@ -339,6 +338,22 @@ public:
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
 
 	/**
+	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	*
+	* @param	bCheckTexCoordScales		If true, section data must contains texcoord scales to be valid.
+	*
+	* @return	true if some sections have missing data. If this component is not expected to have data, this should return false.
+	*/
+	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const override;
+
+	/**
+	*	Update the precomputed streaming debug data of this component.
+	*
+	*	@param	TexCoordScales				The texcoord scales for each texture register of each relevant materials.
+	*/
+	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) override;
+
+	/**
 	 *	Update the precomputed streaming data of this component.
 	 *
 	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
@@ -347,13 +362,6 @@ public:
 	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
 	 */
 	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel);
-
-	/**
-	*	Update the precomputed streaming debug data of this component.
-	*
-	*	@param	TexCoordScales				The texcoord scales for each texture register of each relevant materials.
-	*/
-	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales);
 
 	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;

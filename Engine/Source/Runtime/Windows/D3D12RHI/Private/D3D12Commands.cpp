@@ -2059,15 +2059,22 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	uint32 ClearFlags = 0;
 	if (ClearDSV)
 	{
-		if (bClearDepth)
+		if (bClearDepth && DepthStencilView->HasDepth())
 		{
 			ClearFlags |= D3D12_CLEAR_FLAG_DEPTH;
-			check(DepthStencilView->HasDepth());
 		}
-		if (bClearStencil)
+		else if (bClearDepth)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Asking to clear a DSV that does not store depth."));
+		}
+
+		if (bClearStencil && DepthStencilView->HasStencil())
 		{
 			ClearFlags |= D3D12_CLEAR_FLAG_STENCIL;
-			check(DepthStencilView->HasStencil());
+		}
+		else if (bClearStencil)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Asking to clear a DSV that does not store stencil."));
 		}
 
 		if (bClearDepth && (!DepthStencilView->HasStencil() || bClearStencil))

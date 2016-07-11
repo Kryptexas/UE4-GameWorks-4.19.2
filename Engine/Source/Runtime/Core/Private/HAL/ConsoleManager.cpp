@@ -1954,14 +1954,6 @@ static TAutoConsoleVariable<int32> CVarUseDXT5NormalMaps(
 	// Changing this causes a full shader recompile
 	ECVF_ReadOnly);
 
-// Changing this is currently unsupported after content has been chunked with the previous setting
-// Changing this causes a full shader recompile
-static TAutoConsoleVariable<int32> CVarMaxGPUSkinBones(
-	TEXT("Compat.MAX_GPUSKIN_BONES"),
-	256,
-	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
-	ECVF_ReadOnly);
-
 static TAutoConsoleVariable<int32> CVarContactShadows(
 	TEXT("r.ContactShadows"),
 	1,

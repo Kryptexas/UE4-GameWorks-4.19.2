@@ -48,15 +48,38 @@ extern TAutoConsoleVariable<int32> CVarSetTextureStreaming;
 #endif
 
 extern TAutoConsoleVariable<float> CVarStreamingBoost;
-extern TAutoConsoleVariable<float> CVarStreamingScreenSizeEffectiveMax;
 extern TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingPoolSize;
-extern TAutoConsoleVariable<int32> CVarStreamingMaxTempMemoryAllowed;
-extern TAutoConsoleVariable<int32> CVarStreamingDropMips;
-extern TAutoConsoleVariable<int32> CVarStreamingHLODStrategy;
-extern TAutoConsoleVariable<float> CVarStreamingHiddenPrimitiveScale;
-extern TAutoConsoleVariable<float> CVarStreamingMipBias;
-extern TAutoConsoleVariable<int32> CVarOnlyStreamInTextures;
+
+struct FTextureStreamingSettings
+{
+	FTextureStreamingSettings() { Update(); }
+	void Update();
+
+	FORCEINLINE bool operator ==(const FTextureStreamingSettings& Rhs) const { return FMemory::Memcmp(this, &Rhs, sizeof(FTextureStreamingSettings)) == 0; }
+	FORCEINLINE bool operator !=(const FTextureStreamingSettings& Rhs) const { return FMemory::Memcmp(this, &Rhs, sizeof(FTextureStreamingSettings)) != 0; }
+
+	FORCEINLINE float GlobalMipBias() const { return !bUsePerTextureBias ? MipBias : 0; }
+	FORCEINLINE int32 GlobalMipBiasAsInt() const { return !bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
+	FORCEINLINE float GlobalMipBiasAsScale() const { return !bUsePerTextureBias ? FMath::Exp2(-MipBias) : 1.f; }
+
+	FORCEINLINE int32 MaxPerTextureMipBias() const { return bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
+
+	float MaxEffectiveScreenSize;
+	int32 MaxTempMemoryAllowed;
+	int32 DropMips;
+	int32 HLODStrategy;
+	float HiddenPrimitiveScale;
+	int32 PoolSize;
+	bool bUseNewMetrics;
+	bool bFullyLoadUsedTextures;
+	bool bUseAllMips;
+
+protected:
+
+	bool bUsePerTextureBias;
+	float MipBias;
+};
 
 typedef TArray<int32, TMemStackAllocator<> > FStreamingRequests;
 typedef TArray<const UTexture2D*, TInlineAllocator<12> > FRemovedTextureArray;

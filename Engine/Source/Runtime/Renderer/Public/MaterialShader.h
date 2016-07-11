@@ -164,8 +164,8 @@ private:
 	TArray<FShaderParameter> PerFramePrevScalarExpressions;
 	TArray<FShaderParameter> PerFramePrevVectorExpressions;
 	FDeferredPixelShaderParameters DeferredParameters;
-	FShaderResourceParameter LightAttenuation;
-	FShaderResourceParameter LightAttenuationSampler;
+	FShaderResourceParameter SceneColorCopyTexture;
+	FShaderResourceParameter SceneColorCopyTextureSampler;
 
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	FShaderResourceParameter EyeAdaptation;

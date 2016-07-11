@@ -38,12 +38,12 @@ FVulkanQueryPool::FVulkanQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries,
 	PoolCreateInfo.queryType = QueryType;
 	PoolCreateInfo.queryCount = NumQueries;
 
-	VERIFYVULKANRESULT(vkCreateQueryPool(Device->GetInstanceHandle(), &PoolCreateInfo, nullptr, &QueryPool));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateQueryPool(Device->GetInstanceHandle(), &PoolCreateInfo, nullptr, &QueryPool));
 }
 
 void FVulkanQueryPool::Destroy()
 {
-	vkDestroyQueryPool(Device->GetInstanceHandle(), QueryPool, nullptr);
+	VulkanRHI::vkDestroyQueryPool(Device->GetInstanceHandle(), QueryPool, nullptr);
 	QueryPool = VK_NULL_HANDLE;
 }
 
@@ -70,10 +70,10 @@ void FVulkanTimestampQueryPool::WriteStartFrame(VkCommandBuffer CmdBuffer)
 	}
 	static_assert(StartFrame + 1 == EndFrame, "Enums required to be contiguous!");
 
-	vkCmdResetQueryPool(CmdBuffer, QueryPool, StartFrame, TotalQueries);
+	VulkanRHI::vkCmdResetQueryPool(CmdBuffer, QueryPool, StartFrame, TotalQueries);
 
 	// Start Frame Timestamp
-	vkCmdWriteTimestamp(CmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, StartFrame);
+	VulkanRHI::vkCmdWriteTimestamp(CmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, StartFrame);
 }
 
 void FVulkanTimestampQueryPool::WriteEndFrame(VkCommandBuffer CmdBuffer)
@@ -81,7 +81,7 @@ void FVulkanTimestampQueryPool::WriteEndFrame(VkCommandBuffer CmdBuffer)
 	if (!bFirst)
 	{
 		// End Frame Timestamp
-		vkCmdWriteTimestamp(CmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, EndFrame);
+		VulkanRHI::vkCmdWriteTimestamp(CmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, EndFrame);
 	}
 }
 
@@ -92,7 +92,7 @@ void FVulkanTimestampQueryPool::CalculateFrameTime()
 	{
 		VkDevice DeviceHandle = Device->GetInstanceHandle();
 		VkResult Result;
-		Result = vkGetQueryPoolResults(DeviceHandle, QueryPool, StartFrame, 2, sizeof(Results), Results, sizeof(uint64), /*VK_QUERY_RESULT_WAIT_BIT | */VK_QUERY_RESULT_64_BIT);
+		Result = VulkanRHI::vkGetQueryPoolResults(DeviceHandle, QueryPool, StartFrame, 2, sizeof(Results), Results, sizeof(uint64), /*VK_QUERY_RESULT_WAIT_BIT | */VK_QUERY_RESULT_64_BIT);
 		if (Result != VK_SUCCESS)
 		{
 			GGPUFrameTime = 0;
@@ -122,7 +122,7 @@ int32 FVulkanTimestampQueryPool::AllocateUserQuery()
 void FVulkanTimestampQueryPool::WriteTimestamp(VkCommandBuffer CmdBuffer, int32 UserQuery, VkPipelineStageFlagBits PipelineStageBits)
 {
 	check(UserQuery != -1);
-	vkCmdWriteTimestamp(CmdBuffer, PipelineStageBits, QueryPool, StartUser + UserQuery);
+	VulkanRHI::vkCmdWriteTimestamp(CmdBuffer, PipelineStageBits, QueryPool, StartUser + UserQuery);
 }
 
 uint32 FVulkanTimestampQueryPool::CalculateTimeFromUserQueries(int32 UserBegin, int32 UserEnd, bool bWait)
@@ -133,13 +133,13 @@ uint32 FVulkanTimestampQueryPool::CalculateTimeFromUserQueries(int32 UserBegin, 
 	VkDevice DeviceHandle = Device->GetInstanceHandle();
 	VkResult Result;
 
-	Result = vkGetQueryPoolResults(DeviceHandle, QueryPool, StartUser + UserBegin, 1, sizeof(uint64_t), &Begin, 0, /*(bWait ? VK_QUERY_RESULT_WAIT_BIT : 0) |*/ VK_QUERY_RESULT_64_BIT);
+	Result = VulkanRHI::vkGetQueryPoolResults(DeviceHandle, QueryPool, StartUser + UserBegin, 1, sizeof(uint64_t), &Begin, 0, /*(bWait ? VK_QUERY_RESULT_WAIT_BIT : 0) |*/ VK_QUERY_RESULT_64_BIT);
 	if (Result != VK_SUCCESS)
 	{
 		return 0;
 	}
 
-	Result = vkGetQueryPoolResults(DeviceHandle, QueryPool, StartUser + UserEnd, 1, sizeof(uint64_t), &End, 0, (bWait ? VK_QUERY_RESULT_WAIT_BIT : 0) | VK_QUERY_RESULT_64_BIT);
+	Result = VulkanRHI::vkGetQueryPoolResults(DeviceHandle, QueryPool, StartUser + UserEnd, 1, sizeof(uint64_t), &End, 0, (bWait ? VK_QUERY_RESULT_WAIT_BIT : 0) | VK_QUERY_RESULT_64_BIT);
 	if (Result != VK_SUCCESS)
 	{
 		return 0;

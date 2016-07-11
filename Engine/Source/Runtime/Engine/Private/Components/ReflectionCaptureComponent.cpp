@@ -1381,7 +1381,7 @@ void ReadbackFromSM4Cubemap(FReflectionTextureCubeResource* SM4FullHDRCubemapTex
 
 void UReflectionCaptureComponent::ReadbackFromGPU(UWorld* WorldToUpdate)
 {
-	if (bDerivedDataDirty && !IsRunningCommandlet() && WorldToUpdate->FeatureLevel >= ERHIFeatureLevel::SM4)
+	if (bDerivedDataDirty && !IsRunningCommandlet() && WorldToUpdate && WorldToUpdate->FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FReflectionCaptureFullHDR* NewDerivedData = new FReflectionCaptureFullHDR();
 

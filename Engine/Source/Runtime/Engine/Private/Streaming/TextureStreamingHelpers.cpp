@@ -134,11 +134,47 @@ TAutoConsoleVariable<float> CVarStreamingMipBias(
 	ECVF_Scalability
 	);
 
-TAutoConsoleVariable<int32> CVarOnlyStreamInTextures(
-	TEXT("r.OnlyStreamInTextures"),
+TAutoConsoleVariable<int32> CVarStreamingUsePerTextureBias(
+	TEXT("r.Streaming.UsePerTextureBias"),
 	0,
-	TEXT("If set to 1, texture will only be streamed in, not out"),
-	ECVF_RenderThreadSafe);
+	TEXT("If non-zero, each texture will be assigned a mip bias between 0 and MipBias as required to fit in budget."),
+	ECVF_Default);
+
+
+TAutoConsoleVariable<int32> CVarStreamingFullyLoadUsedTextures(
+	TEXT("r.Streaming.FullyLoadUsedTextures"),
+	0,
+	TEXT("If non-zero, all used texture will be fully streamed in as fast as possible"),
+	ECVF_Default);
+
+TAutoConsoleVariable<int32> CVarStreamingUseAllMips(
+	TEXT("r.Streaming.UseAllMips"),
+	0,
+	TEXT("If non-zero, all available mips will be used"),
+	ECVF_Default);
+
+
+void FTextureStreamingSettings::Update()
+{
+	MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
+	MaxTempMemoryAllowed = CVarStreamingMaxTempMemoryAllowed.GetValueOnAnyThread();
+	DropMips = CVarStreamingDropMips.GetValueOnAnyThread();
+	HLODStrategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
+	HiddenPrimitiveScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
+	MipBias = FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread());
+	PoolSize = CVarStreamingPoolSize.GetValueOnAnyThread();
+	bUsePerTextureBias = CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
+	bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
+	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
+	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
+
+	if (bUseAllMips)
+	{
+		bUsePerTextureBias = false;
+		MipBias = 0;
+	}
+}
+
 
 extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 

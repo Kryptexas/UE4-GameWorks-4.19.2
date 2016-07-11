@@ -231,7 +231,7 @@ enum ETranslucencyLightingMode
 {
 	/** 
 	 * Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.
-	 * This is the cheapest lighting method, however the material normal is not taken into account.
+	 * This is the cheapest per-pixel lighting method, however the material normal is not taken into account.
 	 */
 	TLM_VolumetricNonDirectional UMETA(DisplayName="Volumetric NonDirectional"),
 
@@ -262,8 +262,10 @@ enum ETranslucencyLightingMode
 
 	/** 
 	 * Lighting will be calculated for a surface. Use this on translucent surfaces like glass and water.
+	 * This is implemented with forward shading so specular highlights from local lights are supported, however many deferred-only features are not.
+	 * This is the most expensive translucency lighting method as each light's contribution is computed per-pixel.
 	 */
-	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface PerPixel (currently uses TranslucencyVolume)"),
+	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface ForwardShading"),
 
 	TLM_MAX,
 };

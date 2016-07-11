@@ -4,8 +4,7 @@
 	LightMapRendering.h: Light map rendering definitions.
 =============================================================================*/
 
-#ifndef __LIGHTMAPRENDERING_H__
-#define __LIGHTMAPRENDERING_H__
+#pragma once
 
 #include "Engine/ShadowMapTexture2D.h"
 
@@ -868,4 +867,3 @@ public:
 		) const;
 };
 
-#endif // __LIGHTMAPRENDERING_H__

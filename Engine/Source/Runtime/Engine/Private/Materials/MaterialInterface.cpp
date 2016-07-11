@@ -26,6 +26,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bUsesGlobalDistanceField = bUsesGlobalDistanceField;
 	OutViewRelevance.bUsesWorldPositionOffset = bUsesWorldPositionOffset;
 	OutViewRelevance.bDecal = bDecal;
+	OutViewRelevance.bTranslucentSurfaceLighting = bTranslucentSurfaceLighting;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -91,6 +92,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 			MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;	
 			MaterialRelevance.bUsesGlobalDistanceField = MaterialResource->UsesGlobalDistanceField_GameThread();
 			MaterialRelevance.bUsesWorldPositionOffset = MaterialResource->UsesWorldPositionOffset_GameThread();
+			MaterialRelevance.bTranslucentSurfaceLighting = bIsTranslucent && (MaterialResource->GetTranslucencyLightingMode() == TLM_SurfacePerPixelLighting);
 		}
 		return MaterialRelevance;
 	}

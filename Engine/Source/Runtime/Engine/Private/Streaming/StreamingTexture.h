@@ -15,13 +15,13 @@ StreamingTexture.h: Definitions of classes used for texture streaming.
 /** Self-contained structure to manage a streaming texture, possibly on a separate thread. */
 struct FStreamingTexture
 {
-	FStreamingTexture(UTexture2D* InTexture, float GlobalMipBias, const int32 NumStreamedMips[TEXTUREGROUP_MAX], bool bOnlyStreamIn, int32 HLODStrategy);
+	FStreamingTexture(UTexture2D* InTexture, const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings);
 
 	/** Update data that should not change unless changing settings. */
-	void UpdateStaticData(float GlobalMipBias);
+	void UpdateStaticData(const FTextureStreamingSettings& Settings);
 
 	/** Update data that the engine could change through gameplay. */
-	void UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], bool bOnlyStreamIn, int32 GlobalMipBias, int32 HLODStrategy);
+	void UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings);
 
 	/** Lightweight version of UpdateDynamicData. */
 	void UpdateStreamingStatus();
@@ -38,18 +38,18 @@ struct FStreamingTexture
 		return TextureSizes[ InMipCount - 1 ];
 	}
 
-	static float GetExtraBoost(TextureGroup	LODGroup, float GlobalBias);
+	static float GetExtraBoost(TextureGroup	LODGroup, const FTextureStreamingSettings& Settings);
 
-	FORCEINLINE int32 GetWantedMipsFromSize(float Size, int32 MipBias) const;
+	FORCEINLINE int32 GetWantedMipsFromSize(float Size) const;
 
 	/** Set the wanted mips from the async task data */
-	void SetPerfectWantedMips_Async(float MaxSize, float MaxSize_VisibleOnly, float MipBias, bool InLooksLowRes);
+	void SetPerfectWantedMips_Async(float MaxSize, float MaxSize_VisibleOnly, bool InLooksLowRes, const FTextureStreamingSettings& Settings);
 
 	/** Init BudgetedMip and update RetentionPriority. Returns the size that would be taken if all budgeted mips where loaded. */
 	int64 UpdateRetentionPriority_Async();
 
 	/** Reduce BudgetedMip by 1 and return the size freed by doing so. */
-	int64 DropOneMip_Async();
+	int64 DropOneMip_Async(int32 MaxPerTextureMipBias = 0);
 
 	/** Increase BudgetedMip by 1, up to resident mips, and return the size taken. */
 	int64 KeepOneMip_Async();
@@ -113,7 +113,7 @@ struct FStreamingTexture
 	/** Max mip to be requested by the streaming  */
 	int32			MaxAllowedMips;
 
-	/** Last time this texture was rendered, 0-based from GStartTime. */
+	/** How much game time has elapsed since the texture was bound for rendering. Based on FApp::GetCurrentTime(). */
 	float			LastRenderTime;
 
 	/*****************************************************************************************
@@ -121,7 +121,10 @@ struct FStreamingTexture
 	 *****************************************************************************************/
 
 	/** Whether the texture is currently being streamed in/out. */
-	bool			bInFlight;
+	uint32			bInFlight : 1;
+
+	/** Whether an attemp to cancel the inflight request has been attempted. */
+	uint32			bCancelRequestAttempted : 1;
 
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;
@@ -163,4 +166,7 @@ struct FStreamingTexture
 	int32			LoadOrderPriority;	
 	/** The mip that will be requested. Note, that some texture are loaded using split requests, so that the first request can be smaller than budgeted mip. */
 	int32			WantedMips;
+
+	/** A persistent bias applied to this texture. Increase whenever the streamer needs to make sacrifices to fit in budget */
+	int32			BudgetMipBias;
 };

@@ -318,8 +318,6 @@ public:
 	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
 	virtual ~FVulkanTexture2D();
 
-	void Destroy(FVulkanDevice& Device);
-
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const override final
 	{
@@ -972,19 +970,7 @@ public:
 		return *Shader;
 	}
 
-	inline void BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline)
-	{
-		if (LastBoundPipeline != NewPipeline)
-		{
-			//#todo-rco: Compute
-#if	VULKAN_COMMANDWRAPPERS_ENABLE
-			vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
-#else
-			VulkanRHI::vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
-#endif
-			LastBoundPipeline = NewPipeline;
-		}
-	}
+	void BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline);
 
 private:
 	void InitGlobalUniforms(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings);

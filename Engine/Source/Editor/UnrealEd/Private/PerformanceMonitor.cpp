@@ -268,6 +268,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	{
 		static IConsoleVariable* CVarMinFPS = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.FineMinFPS"));
 		static IConsoleVariable* CVarPercentThreshold = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.FinePercentThreshold"));
+		static IConsoleVariable* CVarSampleTime = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.FineSampleTime"));
 
 		PercentUnderTarget = FineMovingAverage.PercentageBelowThreshold(CVarMinFPS->GetFloat());
 
@@ -275,7 +276,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 		{
 			Arguments.Add(TEXT("Framerate"), CVarMinFPS->GetInt());
 			Arguments.Add(TEXT("Percentage"), FMath::FloorToFloat(PercentUnderTarget));
-			SampleTime = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.FineSampleTime"))->GetInt();
+			SampleTime = CVarSampleTime->GetInt();
 
 			bLowFramerate = true;
 		}

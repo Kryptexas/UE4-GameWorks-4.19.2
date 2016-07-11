@@ -512,6 +512,44 @@ public:
 	void UpdateParameterData(float MaxOcclusionDistance);
 };
 
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FForwardGlobalLightData,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,HasDirectionalLight)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector,CulledGridSize)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,MaxCulledLightsPerCell)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightGridPixelSizeShift)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,LightGridZParams)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,DirectionalLightDirection)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,DirectionalLightColor)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,DirectionalLightShadowMapChannelMask)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,DirectionalLightDistanceFadeMAD)
+END_UNIFORM_BUFFER_STRUCT(FForwardGlobalLightData)
+
+class FForwardLightingViewResources
+{
+public:
+	TUniformBufferRef<FForwardGlobalLightData> ForwardGlobalLightData;
+	FDynamicReadBuffer ForwardLocalLightBuffer;
+	FRWBuffer NumCulledLightsGrid;
+	FRWBuffer CulledLightDataGrid;
+	FRWBuffer NextCulledLightLink;
+	FRWBuffer StartOffsetGrid;
+	FRWBuffer CulledLightLinks;
+	FRWBuffer NextCulledLightData;
+
+	void Release()
+	{
+		ForwardGlobalLightData.SafeRelease();
+		ForwardLocalLightBuffer.Release();
+		NumCulledLightsGrid.Release();
+		CulledLightDataGrid.Release();
+		NextCulledLightLink.Release();
+		StartOffsetGrid.Release();
+		CulledLightLinks.Release();
+		NextCulledLightData.Release();
+	}
+};
+
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
 {
@@ -645,6 +683,7 @@ public:
 	/** Whether the view has any materials that use the global distance field. */
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesLightingChannels : 1;
+	uint32 bTranslucentSurfaceLighting : 1;
 	/** 
 	 * true if the scene has at least one decal. Used to disable stencil operations in the mobile base pass when the scene has no decals.
 	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
@@ -672,6 +711,12 @@ public:
 
 	// Hierarchical Z Buffer
 	TRefCountPtr<IPooledRenderTarget> HZB;
+
+	/** Points to the view state's resources if a view state exists. */
+	FForwardLightingViewResources* ForwardLightingResources;
+
+	/** Used when there is no view state, buffers reallocate every frame. */
+	FForwardLightingViewResources ForwardLightingResourcesStorage;
 
 	// Size of the HZB's mipmap 0
 	// NOTE: the mipmap 0 is downsampled version of the depth buffer
@@ -1059,7 +1104,7 @@ protected:
 
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
 
-	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bMobileModulatedProjections);
+	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bProjectingForForwardShading, bool bMobileModulatedProjections);
 
 	/** Finds a matching cached preshadow, if one exists. */
 	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(

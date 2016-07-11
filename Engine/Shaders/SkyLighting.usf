@@ -114,8 +114,7 @@ void SkyLightDiffusePS(
 		DiffuseLookup *= DirectionalOcclusion;
 
 		// Apply AO to the sky diffuse and account for darkening due to the geometry term
-
-		Lighting += ((ScalarFactors * DotProductFactor) * DiffuseLookup) * DiffuseColor + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz;
+		Lighting += ((ScalarFactors * DotProductFactor) * DiffuseLookup + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz) * DiffuseColor;
 
 		Lighting += DiffuseIrradiance * GBuffer.DiffuseColor * (GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion);
 

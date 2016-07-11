@@ -1386,7 +1386,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		SceneContext.SetSceneColor(0);
 	}
 
-	if (ViewFamily.Scene && !ViewFamily.Scene->ShouldUseDeferredRenderer())
+	if (ViewFamily.Scene && ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
 	{
 		// Double buffer tonemapper output for temporal AA.
 		if(View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)

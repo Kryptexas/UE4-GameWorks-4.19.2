@@ -9,6 +9,10 @@
  */
 struct FPrimitiveViewRelevance
 {
+	// Warning: This class is memzeroed externally as 0 is assumed a
+	// valid value for all members meaning 'not relevant'. If this
+	// changes existing class usage should be re-evaluated
+
 	// from FMaterialRelevance (could be made the base class):
 
 	/** The LightingProfile supported by this primitive, as a bitmask. */
@@ -48,12 +52,14 @@ struct FPrimitiveViewRelevance
 	uint32 bEditorNoDepthTestPrimitiveRelevance : 1;
 	/** The primitive should have GatherSimpleLights called on the proxy when gathering simple lights. */
 	uint32 bHasSimpleLights : 1;
-	/**  The primitive has one or more elements that have World Position Offset. */
+	/** The primitive has one or more elements that have World Position Offset. */
 	uint32 bUsesWorldPositionOffset : 1;
-	/** */
+	/** Whether the primitive uses non-default lighting channels. */
 	uint32 bUsesLightingChannels : 1;
 	/** */
 	uint32 bDecal : 1;
+	/** Whether the primitive has materals that use translucent surface lighting. */
+	uint32 bTranslucentSurfaceLighting : 1;
 
 	/** 
 	 * Whether this primitive view relevance has been initialized this frame.  

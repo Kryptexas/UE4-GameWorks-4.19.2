@@ -118,7 +118,7 @@ FVulkanShader::~FVulkanShader()
 
 	if (ShaderModule != VK_NULL_HANDLE)
 	{
-		VulkanRHI::vkDestroyShaderModule(Device->GetInstanceHandle(), ShaderModule, nullptr);
+		Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::ShaderModule, ShaderModule);
 		ShaderModule = VK_NULL_HANDLE;
 	}
 }
@@ -343,7 +343,8 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 
 	if (PipelineLayout != VK_NULL_HANDLE)
 	{
-		vkDestroyPipelineLayout(Device->GetInstanceHandle(), PipelineLayout, nullptr);
+		Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::PipelineLayout, PipelineLayout);
+		PipelineLayout = VK_NULL_HANDLE;
 	}
 
 	DEC_DWORD_STAT(STAT_VulkanNumBoundShaderState);
@@ -436,9 +437,19 @@ const VkPipelineLayout& FVulkanBoundShaderState::GetPipelineLayout() const
 	CreateInfo.pushConstantRangeCount = 0;
 	CreateInfo.pPushConstantRanges = nullptr;
 
-	VERIFYVULKANRESULT(vkCreatePipelineLayout(Device->GetInstanceHandle(), &CreateInfo, nullptr, &PipelineLayout));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineLayout(Device->GetInstanceHandle(), &CreateInfo, nullptr, &PipelineLayout));
 
 	return PipelineLayout;
+}
+
+void FVulkanBoundShaderState::BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline)
+{
+	if (LastBoundPipeline != NewPipeline)
+	{
+		//#todo-rco: Compute
+		VulkanRHI::vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
+		LastBoundPipeline = NewPipeline;
+	}
 }
 
 void FVulkanBoundShaderState::InitGlobalUniforms(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings)
@@ -690,7 +701,7 @@ void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, c
 		// Incorrect:	1, 0, 2, 3
 		// Incorrect:	0, 2, 3, 5
 		// Reordering and creation of stream binding index is done in "GenerateVertexInputStateInfo()"
-		vkCmdBindVertexBuffers(Cmd->GetHandle(), 0, Tmp.VertexBuffers.Num(), Tmp.VertexBuffers.GetData(), Tmp.VertexOffsets.GetData());
+		VulkanRHI::vkCmdBindVertexBuffers(Cmd->GetHandle(), 0, Tmp.VertexBuffers.Num(), Tmp.VertexBuffers.GetData(), Tmp.VertexOffsets.GetData());
 	}
 }
 
@@ -1202,7 +1213,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 		SCOPE_CYCLE_COUNTER(STAT_VulkanVkUpdateDS);
 #endif
-		vkUpdateDescriptorSets(Device->GetInstanceHandle(), DescriptorWrites.Num(), DescriptorWrites.GetData(), 0, nullptr);
+		VulkanRHI::vkUpdateDescriptorSets(Device->GetInstanceHandle(), DescriptorWrites.Num(), DescriptorWrites.GetData(), 0, nullptr);
 	}
 
 	{

@@ -469,11 +469,17 @@ inline FString FMath::FormatIntToHumanReadable(int32 Val)
 }
 
 template<class U>
-FORCEINLINE_DEBUGGABLE FRotator FMath::Lerp( const FRotator& A, const FRotator& B, const U& Alpha)
+FORCEINLINE_DEBUGGABLE FRotator FMath::Lerp(const FRotator& A, const FRotator& B, const U& Alpha)
 {
-	return (A * (1 - Alpha) + B * Alpha).GetNormalized();
+	return A + (B - A).GetNormalized() * Alpha;
 }
 
+template<class U>
+FORCEINLINE_DEBUGGABLE FRotator FMath::LerpRange(const FRotator& A, const FRotator& B, const U& Alpha)
+{
+	// Similar to Lerp, but does not take the shortest path. Allows interpolation over more than 180 degrees.
+	return (A * (1 - Alpha) + B * Alpha).GetNormalized();
+}
 
 template<class U>
 FORCEINLINE_DEBUGGABLE FQuat FMath::Lerp( const FQuat& A, const FQuat& B, const U& Alpha)

@@ -89,6 +89,14 @@ static TAutoConsoleVariable<int32> CVarFXSystemPreRenderAfterPrepass(
 	ECVF_RenderThreadSafe
 	);
 
+int32 GbEnableAsyncComputeTranslucencyLightingVolumeClear = 1;
+static FAutoConsoleVariableRef CVarEnableAsyncComputeTranslucencyLightingVolumeClear(
+	TEXT("r.EnableAsyncComputeTranslucencyLightingVolumeClear"),
+	GbEnableAsyncComputeTranslucencyLightingVolumeClear,
+	TEXT("Whether to clear the translucency lighting volume using async compute.\n"),
+	ECVF_RenderThreadSafe | ECVF_Scalability
+);
+
 DECLARE_CYCLE_STAT(TEXT("PostInitViews FlushDel"), STAT_PostInitViews_FlushDel, STATGROUP_InitViews);
 DECLARE_CYCLE_STAT(TEXT("InitViews Intentional Stall"), STAT_InitViews_Intentional_Stall, STATGROUP_InitViews);
 
@@ -120,6 +128,40 @@ DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer RenderFinish"), STAT_FDefe
 DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Dispatch"), STAT_OcclusionSubmittedFence_Dispatch, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Wait"), STAT_OcclusionSubmittedFence_Wait, STATGROUP_SceneRendering);
 
+bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
+{
+	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+
+	static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
+	bool bStencilLODDither = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
+
+	// Note: ShouldForceFullDepthPass affects which static draw lists meshes go into, so nothing it depends on can change at runtime, unless you do a FGlobalComponentRecreateRenderStateContext to propagate the cvar change
+	return bDBufferAllowed || bStencilLODDither || IsForwardShadingEnabled(FeatureLevel);
+}
+
+const TCHAR* GetDepthPassReason(bool bDitheredLODTransitionsUseStencil, ERHIFeatureLevel::Type FeatureLevel)
+{
+	if (IsForwardShadingEnabled(FeatureLevel))
+	{
+		return TEXT("(Forced by ForwardShading)");
+	}
+
+	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
+	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
+
+	if (bDBufferAllowed)
+	{
+		return TEXT("(Forced by DBuffer)");
+	}
+
+	if (bDitheredLODTransitionsUseStencil)
+	{
+		return TEXT("(Forced by StencilLODDither)");
+	}
+
+	return TEXT("");
+}
 
 /*-----------------------------------------------------------------------------
 	FDeferredShadingSceneRenderer
@@ -154,7 +196,7 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	}
 
 	// Shader complexity requires depth only pass to display masked material cost correctly
-	if (ViewFamily.EngineShowFlags.ShaderComplexity)
+	if (ViewFamily.UseDebugViewPS() && ViewFamily.GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
 	{
 		EarlyZPassMode = DDM_AllOpaque;
 	}
@@ -163,13 +205,10 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 
 	bEarlyZPassMovable = GEarlyZPassMovable != 0;
 
-	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
-	bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
-
 	static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
 	bDitheredLODTransitionsUseStencil = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
 
-	if (bDBufferAllowed || bDitheredLODTransitionsUseStencil)
+	if (ShouldForceFullDepthPass(FeatureLevel))
 	{
 		// DBuffer decals and stencil LOD dithering force a full prepass
 		EarlyZPassMode = DDM_AllOccluders;
@@ -570,7 +609,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	bool bRequiresRHIClear = true;
 	bool bRequiresFarZQuadClear = false;
 
-	bool bUseGBuffer = !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel));
+	const bool bUseGBuffer = !IsAnyForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel));
 
 	if (ClearMethodCVar)
 	{
@@ -712,7 +751,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
-	bool bOcclusionBeforeBasePass = (CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass;	
+	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);	
 	bool bHZBBeforeBasePass = bOcclusionBeforeBasePass && (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders);
 
 	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass, bHZBBeforeBasePass);
@@ -736,6 +775,18 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_CustomDepthPass0);
 		RenderCustomDepthPassAtLocation(RHICmdList, 0);
+	}
+
+	ComputeLightGrid(RHICmdList);
+
+	if (IsForwardShadingEnabled(FeatureLevel))
+	{
+		RenderForwardShadingShadowProjections(RHICmdList);
+
+		RenderIndirectCapsuleShadows(
+			RHICmdList, 
+			NULL, 
+			NULL);
 	}
 
 	// only temporarily available after early z pass and until base pass
@@ -785,6 +836,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// make sure the GBuffer is set, in case we didn't need to clear above
 		ERenderTargetLoadAction DepthLoadAction = bDepthWasCleared ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
 		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, ViewFamily.EngineShowFlags.ShaderComplexity);
+	}
+
+	if (GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute)
+	{
+		ClearTranslucentVolumeLightingAsyncCompute(RHICmdList);
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));
@@ -884,6 +940,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Copy lighting channels out of stencil before deferred decals which overwrite those values
 	CopyStencilToLightingChannelTexture(RHICmdList);
 
+	{
+		GCompositionLighting.GfxWaitForAsyncSSAO(RHICmdList);
+	}
+
 	// Pre-lighting composition lighting stage
 	// e.g. deferred decals, SSAO
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
@@ -918,10 +978,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
 	}
 
-	{
-		GCompositionLighting.GfxWaitForAsyncSSAO(RHICmdList);
-	}
-
 	// Render lighting.
 	if (ViewFamily.EngineShowFlags.Lighting
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
@@ -933,14 +989,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		GRenderTargetPool.AddPhaseEvent(TEXT("Lighting"));
 
 		// These modulate the scenecolor output from the basepass, which is assumed to be indirect lighting
-		RenderIndirectCapsuleShadows(RHICmdList);
+		RenderIndirectCapsuleShadows(
+			RHICmdList, 
+			SceneContext.GetSceneColorSurface(), 
+			SceneContext.bScreenSpaceAOIsValid ? SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture : NULL);
 
 		TRefCountPtr<IPooledRenderTarget> DynamicBentNormalAO;
 		// These modulate the scenecolor output from the basepass, which is assumed to be indirect lighting
 		RenderDFAOAsIndirectShadowing(RHICmdList, VelocityRT, DynamicBentNormalAO);
 
 		// Clear the translucent lighting volumes before we accumulate
-		ClearTranslucentVolumeLighting(RHICmdList);
+		if ((GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute) == false)
+		{
+			ClearTranslucentVolumeLighting(RHICmdList);
+		}
 
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Lighting));
 		RenderLights(RHICmdList);

@@ -435,7 +435,7 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material)
 	uint32 TwoSided:1;
 
-	/** Whether the material should support a dithered LOD transition when used with the foliage system. */
+	/** Whether the material should support a dithered LOD transition. */
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
 	uint32 DitheredLODTransition:1;
 
@@ -628,7 +628,7 @@ public:
 	uint32 bAutomaticallySetUsageInEditor:1;
 
 	/* Forces the material to be completely rough. Saves a number of instructions and one sampler. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Material, AdvancedDisplay)
 	uint32 bFullyRough:1;
 
 	/** 
@@ -647,8 +647,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "High Quality Reflections"))
 	uint32 bUseHQForwardReflections : 1;
 
-	/* Enables planar reflection when using the forward renderer. Enabling this setting reduces the number of samplers available to the material as one more sampler will be used for the planar reflection. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "Planar Reflections"))
+	/* Enables planar reflection when using the forward renderer or mobile. Enabling this setting reduces the number of samplers available to the material as one more sampler will be used for the planar reflection. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ForwardShading, meta = (DisplayName = "Planar Reflections"))
 	uint32 bUsePlanarForwardReflections : 1;
 
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */

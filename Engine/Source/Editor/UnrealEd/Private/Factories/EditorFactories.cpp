@@ -4245,8 +4245,8 @@ UObject* UTextureFactory::FactoryCreateBinary
 	TextureFilter						ExistingFilter		= TF_Default;
 	TextureGroup						ExistingLODGroup	= TEXTUREGROUP_World;
 	TextureCompressionSettings			ExistingCompressionSettings = TC_Default;
-	int32									ExistingLODBias		= 0;
-	int32									ExistingNumCinematicMipLevels = 0;
+	int32								ExistingLODBias		= 0;
+	int32								ExistingNumCinematicMipLevels = 0;
 	bool								ExistingNeverStream = false;
 	bool								ExistingSRGB		= false;
 	bool								ExistingPreserveBorder = false;
@@ -4263,6 +4263,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 	float								ExistingAdjustHue = 0.0f;
 	float								ExistingAdjustMinAlpha = 0.0f;
 	float								ExistingAdjustMaxAlpha = 1.0f;
+	FVector4							ExistingAlphaCoverageThresholds = FVector4(0, 0, 0, 0);
 	TextureMipGenSettings				ExistingMipGenSettings = TextureMipGenSettings(0);
 
 	bUsingExistingSettings = bSuppressImportOverwriteDialog;
@@ -4323,6 +4324,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		ExistingDeferCompression = ExistingTexture->DeferCompression;
 		ExistingFlipGreenChannel = ExistingTexture->bFlipGreenChannel;
 		ExistingDitherMipMapAlpha = ExistingTexture->bDitherMipMapAlpha;
+		ExistingAlphaCoverageThresholds = ExistingTexture->AlphaCoverageThresholds;
 		ExistingAdjustBrightness = ExistingTexture->AdjustBrightness;
 		ExistingAdjustBrightnessCurve = ExistingTexture->AdjustBrightnessCurve;
 		ExistingAdjustVibrance = ExistingTexture->AdjustVibrance;
@@ -4410,6 +4412,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 	Texture->CompressionNoAlpha		= NoAlpha;
 	Texture->DeferCompression		= bDeferCompression;
 	Texture->bDitherMipMapAlpha		= bDitherMipMapAlpha;
+	Texture->AlphaCoverageThresholds = AlphaCoverageThresholds;
 	
 	if(Texture->MipGenSettings == TMGS_FromTextureGroup)
 	{
@@ -4444,6 +4447,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		Texture->CompressionNoAlpha = ExistingNoAlpha;
 		Texture->DeferCompression = ExistingDeferCompression;
 		Texture->bDitherMipMapAlpha = ExistingDitherMipMapAlpha;
+		Texture->AlphaCoverageThresholds = ExistingAlphaCoverageThresholds;
 		Texture->bFlipGreenChannel = ExistingFlipGreenChannel;
 		Texture->AdjustBrightness = ExistingAdjustBrightness;
 		Texture->AdjustBrightnessCurve = ExistingAdjustBrightnessCurve;

@@ -324,9 +324,12 @@ FD3D11BoundRenderTargets::FD3D11BoundRenderTargets(ID3D11DeviceContext* InDevice
 		&RenderTargetViews[0],
 		&DepthStencilView
 		);
-	for (NumActiveTargets = 0; NumActiveTargets < MaxSimultaneousRenderTargets; ++NumActiveTargets)
+
+	// Find the last non-null rendertarget to determine the max 
+	// We traverse the array backwards, since they can be sparse
+	for (NumActiveTargets = MaxSimultaneousRenderTargets; NumActiveTargets > 0; --NumActiveTargets)
 	{
-		if (RenderTargetViews[NumActiveTargets] == NULL)
+		if (RenderTargetViews[NumActiveTargets-1] != NULL)
 		{
 			break;
 		}
@@ -339,7 +342,10 @@ FD3D11BoundRenderTargets::~FD3D11BoundRenderTargets()
 	// to make a corresponding call to Release.
 	for (int32 TargetIndex = 0; TargetIndex < NumActiveTargets; ++TargetIndex)
 	{
-		RenderTargetViews[TargetIndex]->Release();
+		if (RenderTargetViews[TargetIndex] != nullptr)
+		{
+			RenderTargetViews[TargetIndex]->Release();
+		}
 	}
 	if (DepthStencilView)
 	{

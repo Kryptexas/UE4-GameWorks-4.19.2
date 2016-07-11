@@ -313,6 +313,13 @@ RENDERCORE_API bool PlatformSupportsSimpleForwardShading(EShaderPlatform Platfor
 
 RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform);
 
+RENDERCORE_API bool IsForwardShadingEnabled(ERHIFeatureLevel::Type FeatureLevel);
+
+inline bool IsAnyForwardShadingEnabled(EShaderPlatform Platform)
+{
+	return IsForwardShadingEnabled(GetMaxSupportedFeatureLevel(Platform)) || IsSimpleForwardShadingEnabled(Platform);
+}
+
 /** Unit cube vertex buffer (VertexDeclarationFVector4) */
 RENDERCORE_API FVertexBufferRHIRef& GetUnitCubeVertexBuffer();
 

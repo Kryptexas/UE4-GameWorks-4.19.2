@@ -56,7 +56,7 @@ float2 ComputeDOFFocalMask(float SceneDepth, float SkyWithoutHorizonMask)
 		Ret.x = lerp(Ret.x, 0,  SkyWithoutHorizonMask);
 	}
 
-#if FORWARD_SHADING
+#if MOBILE_SHADING
 	Ret = DecodeDOFFocalMask(SceneDepth);
 #endif
 
@@ -66,7 +66,7 @@ float2 ComputeDOFFocalMask(float SceneDepth, float SkyWithoutHorizonMask)
 float4 ReadFullResAndDepth(float2 UV, in out float Depth)
 {
 	float4 Color = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV, 0);
-#if FORWARD_SHADING
+#if MOBILE_SHADING
 	Depth = Color.a;
 #endif
 	Color.a = 1.0;
@@ -185,7 +185,7 @@ void MainRecombinePS(
 	ViewportUV.x = clamp(ViewportUV.x, DepthOfFieldUVLimit.x, DepthOfFieldUVLimit.z);
 	ViewportUV.y = clamp(ViewportUV.y, DepthOfFieldUVLimit.y, DepthOfFieldUVLimit.w);
 
-#if FORWARD_SHADING
+#if MOBILE_SHADING
 	float4 SceneColorAndDepth = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FullResUV);
 #else
 	float4 SceneColorAndDepth = float4(Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FullResUV).rgb, CalcSceneDepth(FullResUV));
@@ -213,7 +213,7 @@ void MainRecombinePS(
 //	float Layer2Mask = 1.0f - DOFAccumLayer1.a;
 	float Layer3Mask = DOFAccumLayer3.a;
 	float PerPixelNearMask = ComputeDOFNearFocalMask(SceneColorAndDepth.a);
-#if FORWARD_SHADING
+#if MOBILE_SHADING
 	float2 DoFMasks = DecodeDOFFocalMask(SceneColorAndDepth.a);
 	Layer2Mask = 1.0-DoFMasks.x;
 #endif

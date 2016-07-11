@@ -818,11 +818,12 @@ struct FMath : public FPlatformMath
 	}
 
 	// Rotator specific interpolation
-	template< class U > static FRotator Lerp( const FRotator& A, const FRotator& B, const U& Alpha);
+	template< class U > static FRotator Lerp(const FRotator& A, const FRotator& B, const U& Alpha);
+	template< class U > static FRotator LerpRange(const FRotator& A, const FRotator& B, const U& Alpha);
 
 	// Quat-specific interpolation
 
-	template< class U > static FQuat Lerp( const FQuat& A, const FQuat& B, const U& Alpha);
+	template< class U > static FQuat Lerp(const FQuat& A, const FQuat& B, const U& Alpha);
 	template< class U > static FQuat BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY);
 
 	/**

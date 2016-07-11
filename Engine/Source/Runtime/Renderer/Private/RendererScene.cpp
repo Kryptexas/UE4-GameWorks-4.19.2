@@ -998,7 +998,7 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		SimpleDirectionalLight = LightSceneInfo;
 
 		// if we are mobile rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
-		bool bMobileRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
+		bool bMobileRendererRequiresLightPolicyChange = GetShadingPath() == EShadingPath::Mobile &&
 			(
 			// this light is a dynamic shadowcast 
 			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
@@ -1443,6 +1443,23 @@ void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy
 	}
 }
 
+int64 FScene::GetCachedWholeSceneShadowMapsSize() const
+{
+	int64 CachedShadowmapMemory = 0;
+
+	for (TMap<int32, FCachedShadowMapData>::TConstIterator CachedShadowMapIt(CachedShadowMaps); CachedShadowMapIt; ++CachedShadowMapIt)
+	{
+		const FCachedShadowMapData& ShadowMapData = CachedShadowMapIt.Value();
+
+		if (ShadowMapData.ShadowMap.IsValid())
+		{
+			CachedShadowmapMemory += ShadowMapData.ShadowMap.ComputeMemorySize();
+		}
+	}
+
+	return CachedShadowmapMemory;
+}
+
 void FScene::AddPrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -1559,7 +1576,7 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 					// thus, lights that change state in this way must update the draw lists.
 					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
 						Scene->bScenesPrimitivesNeedStaticMeshElementUpdate ||
-						( !Scene->ShouldUseDeferredRenderer() 
+						( Scene->GetShadingPath() == EShadingPath::Mobile 
 						&& Parameters.NewColor.IsAlmostBlack() != LightSceneInfo->Proxy->GetColor().IsAlmostBlack() );
 
 					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
@@ -1584,7 +1601,7 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
 			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (!ShouldUseDeferredRenderer() && (!SimpleDirectionalLight->Proxy->HasStaticShadowing() || SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()));
+			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (GetShadingPath() == EShadingPath::Mobile && (!SimpleDirectionalLight->Proxy->HasStaticShadowing() || SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()));
 			SimpleDirectionalLight = NULL;
 		}
 
@@ -2088,7 +2105,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 	TArray<FPrimitiveSceneInfo*> PrimitivesToUpdate;
 	auto SceneFeatureLevel = GetFeatureLevel();
 
-	if (ShouldUseDeferredRenderer())
+	if (GetShadingPath() == EShadingPath::Deferred)
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
@@ -2098,7 +2115,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 			BasePassUniformLightMapPolicyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
-	else
+	else if (GetShadingPath() == EShadingPath::Mobile)
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{

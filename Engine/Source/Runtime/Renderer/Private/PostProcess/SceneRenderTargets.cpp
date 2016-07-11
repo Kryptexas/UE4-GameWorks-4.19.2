@@ -264,12 +264,12 @@ inline const TCHAR* GetReflectionBrightnessTargetName(uint32 Index)
 	return Names[Index];
 }
 
-inline const TCHAR* GetSceneColorTargetName(FSceneRenderTargets::EShadingPath ShadingPath)
+inline const TCHAR* GetSceneColorTargetName(EShadingPath ShadingPath)
 {
-	const TCHAR* SceneColorNames[(uint32)FSceneRenderTargets::EShadingPath::Num] =
+	const TCHAR* SceneColorNames[(uint32)EShadingPath::Num] =
 	{ 
 		TEXT("SceneColorMobile"), 
-		TEXT("SceneColorDeferred") 
+		TEXT("SceneColorDeferred")
 	};
 	check((uint32)ShadingPath < ARRAY_COUNT(SceneColorNames));
 	return SceneColorNames[(uint32)ShadingPath];
@@ -375,7 +375,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
 	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
-	CurrentShadingPath = ViewFamily.Scene->ShouldUseDeferredRenderer() ? EShadingPath::Deferred : EShadingPath::Mobile;
+	CurrentShadingPath = ViewFamily.Scene->GetShadingPath();
 
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
@@ -403,7 +403,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	int32 RSMResolution = FMath::Clamp(CVarRSMResolution.GetValueOnRenderThread(), 1, 2048);
 
-	if (!ViewFamily.Scene->ShouldUseDeferredRenderer())
+	if (ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
 	{
 		// ensure there is always enough space for mobile renderer's tiled shadow maps
 		// by reducing the shadow map resolution.
@@ -514,10 +514,10 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor);
 
-	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
+	if (IsAnyForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		// in this non-standard case, just render to scene color with default mode
-		BeginRenderingSceneColor(RHICmdList);
+		BeginRenderingSceneColor(RHICmdList, ColorLoadAction == ERenderTargetLoadAction::EClear ? ESimpleRenderTargetMode::EClearColorExistingDepth : ESimpleRenderTargetMode::EUninitializedColorExistingDepth);
 		return;
 	}
 
@@ -604,7 +604,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 
 void FSceneRenderTargets::FinishRenderingGBuffer(FRHICommandListImmediate& RHICmdList)
 {
-	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
+	if (IsAnyForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		// in this non-standard case, just render to scene color with default mode
 		FinishRenderingSceneColor(RHICmdList, true);
@@ -634,7 +634,7 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 {
 	int32 NumGBufferTargets = 1;
 
-	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsAnyForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		// This needs to match TBasePassPixelShaderBaseType::ModifyCompilationEnvironment()
 		NumGBufferTargets = bAllowStaticLighting ? 6 : 5;
@@ -928,7 +928,7 @@ const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetLightAttenuatio
 		{
 			bFirst = false;
 
-			// First we need to call AllocLightAttenuation(), contact MartinM if that happens
+			// First we need to call AllocLightAttenuation()
 			ensure(LightAttenuation);
 		}
 
@@ -948,7 +948,7 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetLightAttenuation()
 		{
 			bFirst = false;
 
-			// the first called should be AllocLightAttenuation(), contact MartinM if that happens
+			// the first called should be AllocLightAttenuation()
 			ensure(LightAttenuation);
 		}
 
@@ -1164,7 +1164,8 @@ void FSceneRenderTargets::FinishRenderingSceneAlphaCopy(FRHICommandListImmediate
 
 void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingLightAttenuation);
+	SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, ClearLightAttenuation, bClearToWhite);
+	SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, BeginRenderingLightAttenuation, !bClearToWhite);
 
 	AllocLightAttenuation(RHICmdList);
 
@@ -1654,6 +1655,13 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		}
 		
 		{
+			uint32 TranslucencyTargetFlags = TexCreate_ShaderResource | TexCreate_RenderTargetable;
+
+			if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
+			{
+				TranslucencyTargetFlags |= TexCreate_UAV;
+			}
+
 			for (int32 RTSetIndex = 0; RTSetIndex < NumTranslucentVolumeRenderTargetSets; RTSetIndex++)
 			{
 				GRenderTargetPool.FindFreeElement(
@@ -1665,7 +1673,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 						PF_FloatRGBA,
 						FClearValueBinding::None,
 						0,
-						TexCreate_ShaderResource | TexCreate_RenderTargetable,
+						TranslucencyTargetFlags,
 						false,
 						1,
 						false)),
@@ -1682,7 +1690,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 						PF_FloatRGBA,
 						FClearValueBinding::None,
 						0,
-						TexCreate_ShaderResource | TexCreate_RenderTargetable,
+						TranslucencyTargetFlags,
 						false,
 						1,
 						false)),
@@ -2221,12 +2229,13 @@ void FSceneTextureShaderParameters::Set(
 	{
 		bool bDirectionalOcclusion = false;
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-		if(ViewState && ViewState->GetLightPropagationVolume(View.GetFeatureLevel()))
+		if (ViewState != nullptr)
 		{
-			const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
-
-			bDirectionalOcclusion = LPVSettings.LPVIntensity > 0.0f && LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f;
+			FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+		    if(Lpv != nullptr)
+		    {
+			    bDirectionalOcclusion = Lpv->IsDirectionalOcclusionEnabled(); 
+		    }
 		}
 
 		FTextureRHIParamRef DirectionalOcclusion = nullptr;

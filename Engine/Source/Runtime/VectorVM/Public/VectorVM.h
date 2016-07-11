@@ -9,7 +9,6 @@
 #define VECTOR_WIDTH_BYTES (16)
 #define VECTOR_WIDTH_FLOATS (4)
 
-class UNiagaraDataObject;
 class FVectorVMSharedDataView;
 struct FVectorVMContext;
 
@@ -130,7 +129,6 @@ namespace VectorVM
 		VectorRegister** OutputRegisters,
 		int32 NumOutputRegisters,
 		FVector4 const* ConstantTable,
-		UNiagaraDataObject* *DataObjTable,
 		FVectorVMSharedDataView* SharedDataTable,
 		int32 NumVectors
 		);

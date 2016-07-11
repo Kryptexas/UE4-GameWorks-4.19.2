@@ -31,6 +31,7 @@
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "EditorBuildUtils.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -4619,6 +4620,10 @@ void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	if (IsPerspective())
 	{
+		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshTexCoordSizeAccuracy || InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy)
+		{
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy, true);
+		}
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
 		bForcingUnlitForNewMap = false;

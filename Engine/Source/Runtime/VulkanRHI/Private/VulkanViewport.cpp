@@ -38,6 +38,7 @@ FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevi
 	, AcquiredImageIndex(-1)
 	, SwapChain(nullptr)
 	, WindowHandle(InWindowHandle)
+	, PresentCount(0)
 	, AcquiredSemaphore(nullptr)
 {
 	check(IsInGameThread());
@@ -255,14 +256,17 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	Info.width  = RTLayout.GetExtent3D().width;
 	Info.height = RTLayout.GetExtent3D().height;
 	Info.layers = 1;
-	VERIFYVULKANRESULT_EXPANDED(vkCreateFramebuffer(Device.GetInstanceHandle(), &Info, nullptr, &Framebuffer));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateFramebuffer(Device.GetInstanceHandle(), &Info, nullptr, &Framebuffer));
 
 	RTInfo = InRTInfo;
+	Extents.width = Info.width;
+	Extents.height = Info.height;
 }
 
 void FVulkanFramebuffer::Destroy(FVulkanDevice& Device)
 {
-	vkDestroyFramebuffer(Device.GetInstanceHandle(), Framebuffer, nullptr);
+	Device.GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Framebuffer, Framebuffer);
+	Framebuffer = VK_NULL_HANDLE;
 }
 
 bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
@@ -347,7 +351,7 @@ void FVulkanViewport::CreateSwapchain()
 			VkClearColorValue Color;
 			FMemory::Memzero(Color);
 			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-			vkCmdClearColorImage(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, &Color, 1, &Range);
+			VulkanRHI::vkCmdClearColorImage(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, &Color, 1, &Range);
 			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		}
 	}
@@ -439,6 +443,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		Device->GetTimestampQueryPool(QueryNextFrameIndex)->WriteStartFrame(CmdBufferManager->GetActiveCmdBuffer()->GetHandle());
 	}
 #endif
+	++PresentCount;
 	return bResult;
 }
 
@@ -492,6 +497,7 @@ void FVulkanDynamicRHI::WriteEndFrameTimestamp(void* Data)
 	VulkanRHI::GManager.GPUProfilingData.EndFrameBeforeSubmit();
 }
 
+#if 0
 void FVulkanDynamicRHI::Present()
 {
 #if 0
@@ -597,6 +603,7 @@ void FVulkanDynamicRHI::Present()
 #endif
 	PresentCount++;
 }
+#endif
 
 FTexture2DRHIRef FVulkanDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {

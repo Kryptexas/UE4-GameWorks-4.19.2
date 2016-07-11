@@ -53,7 +53,6 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 	{
 		FVector ViewToObject = SectionData->BoxOrigin - View.ViewMatrices.ViewOrigin;
 
-
 		float DistSqMinusRadiusSq = 0;
 		if (bUseNewMetrics)
 		{
@@ -73,9 +72,11 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 #endif
 	// Because the streamer use FMath::FloorToFloat, here we need to use -1 to have a useful result.
 	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPULogDistanceParameter, CPULogDistance);
+	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), PrimitiveAlphaParameter, (!Proxy || Proxy->IsSelected()) ? 1.f : .2f);
 }
 
 void FPrimitiveDistanceAccuracyPS::SetMesh(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPULogDistanceParameter, -1.f);
+	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), PrimitiveAlphaParameter, 1.f);
 }

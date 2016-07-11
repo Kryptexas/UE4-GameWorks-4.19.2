@@ -34,6 +34,14 @@ FAutoConsoleVariableRef CVarCacheWholeSceneShadows(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+int32 GWholeSceneShadowCacheMb = 150;
+FAutoConsoleVariableRef CVarWholeSceneShadowCacheMb(
+	TEXT("r.Shadow.WholeSceneShadowCacheMb"),
+	GWholeSceneShadowCacheMb,
+	TEXT("Amount of memory that can be spent caching whole scene shadows.  ShadowMap allocations in a single frame can cause this to be exceeded."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 int32 GCachedShadowsCastFromMovablePrimitives = 1;
 FAutoConsoleVariableRef CVarCachedWholeSceneShadowsCastFromMovablePrimitives(
 	TEXT("r.Shadow.CachedShadowsCastFromMovablePrimitives"),
@@ -1757,10 +1765,21 @@ void ComputeWholeSceneShadowCacheModes(
 				}
 				else
 				{
-					OutNumShadowMaps = 2;
-					// Note: ShadowMap with static primitives rendered first so movable shadowmap can composite
-					OutCacheModes[0] = SDCM_StaticPrimitivesOnly;
-					OutCacheModes[1] = SDCM_MovablePrimitivesOnly;
+					int64 CachedShadowMapsSize = Scene->GetCachedWholeSceneShadowMapsSize();
+
+					if (CachedShadowMapsSize < GWholeSceneShadowCacheMb * 1024 * 1024)
+					{
+						OutNumShadowMaps = 2;
+						// Note: ShadowMap with static primitives rendered first so movable shadowmap can composite
+						OutCacheModes[0] = SDCM_StaticPrimitivesOnly;
+						OutCacheModes[1] = SDCM_MovablePrimitivesOnly;
+					}
+					else
+					{
+						OutNumShadowMaps = 1;
+						OutCacheModes[0] = SDCM_Uncached;
+						CachedShadowMapData->ShadowMap.DepthTarget = NULL;
+					}
 				}
 			}
 			else
@@ -1775,12 +1794,22 @@ void ComputeWholeSceneShadowCacheModes(
 		}
 		else
 		{
-			OutNumShadowMaps = 2;
-			// Note: ShadowMap with static primitives rendered first so movable shadowmap can composite
-			OutCacheModes[0] = SDCM_StaticPrimitivesOnly;
-			OutCacheModes[1] = SDCM_MovablePrimitivesOnly;
+			int64 CachedShadowMapsSize = Scene->GetCachedWholeSceneShadowMapsSize();
 
-			Scene->CachedShadowMaps.Add(LightSceneInfo->Id, FCachedShadowMapData(ProjectedShadowInitializer, RealTime));
+			if (CachedShadowMapsSize < GWholeSceneShadowCacheMb * 1024 * 1024)
+			{
+				OutNumShadowMaps = 2;
+				// Note: ShadowMap with static primitives rendered first so movable shadowmap can composite
+				OutCacheModes[0] = SDCM_StaticPrimitivesOnly;
+				OutCacheModes[1] = SDCM_MovablePrimitivesOnly;
+
+				Scene->CachedShadowMaps.Add(LightSceneInfo->Id, FCachedShadowMapData(ProjectedShadowInitializer, RealTime));
+			}
+			else
+			{
+				OutNumShadowMaps = 1;
+				OutCacheModes[0] = SDCM_Uncached;
+			}
 		}
 	}
 	else
@@ -2640,8 +2669,15 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 
 			if (FeatureLevel < ERHIFeatureLevel::SM4 
 				// Mobile renderer only supports opaque per-object shadows or CSM
-				&& (!ProjectedShadowInfo->bPerObjectOpaqueShadow || !(ProjectedShadowInfo->bDirectionalLight && ProjectedShadowInfo->bWholeSceneShadow)))
+				&& (!ProjectedShadowInfo->bPerObjectOpaqueShadow && !(ProjectedShadowInfo->bDirectionalLight && ProjectedShadowInfo->bWholeSceneShadow)))
 			{
+				bShadowIsVisible = false;
+			}
+
+			if (IsForwardShadingEnabled(FeatureLevel) 
+				&& (!ProjectedShadowInfo->GetLightSceneInfo().Proxy->HasStaticShadowing() || ProjectedShadowInfo->GetLightSceneInfo().Proxy->GetPreviewShadowMapChannel() == -1))
+			{
+				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned ShadowMapChannel
 				bShadowIsVisible = false;
 			}
 
@@ -2763,30 +2799,14 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 	{
 		FCachedShadowMapData& ShadowMapData = CachedShadowMapIt.Value();
 
-		if (ShadowMapData.ShadowMap.IsValid() && ViewFamily.CurrentRealTime - ShadowMapData.LastUsedTime > 5.0f)
+		if (ShadowMapData.ShadowMap.IsValid() && ViewFamily.CurrentRealTime - ShadowMapData.LastUsedTime > 2.0f)
 		{
 			ShadowMapData.ShadowMap.Release();
 		}
 	}
 
-#if STATS
-	int64 CachedShadowmapMemory = 0;
-
-	for (TMap<int32, FCachedShadowMapData>::TConstIterator CachedShadowMapIt(Scene->CachedShadowMaps); CachedShadowMapIt; ++CachedShadowMapIt)
-	{
-		const FCachedShadowMapData& ShadowMapData = CachedShadowMapIt.Value();
-
-		if (ShadowMapData.ShadowMap.IsValid())
-		{
-			CachedShadowmapMemory += ShadowMapData.ShadowMap.ComputeMemorySize();
-		}
-	}
-
-	SET_MEMORY_STAT(STAT_CachedShadowmapMemory, CachedShadowmapMemory);
-
-	int64 ReferencedShadowmapMemory = SortedShadowsForShadowDepthPass.ComputeMemorySize();
-	SET_MEMORY_STAT(STAT_ShadowmapAtlasMemory, ReferencedShadowmapMemory);
-#endif
+	SET_MEMORY_STAT(STAT_CachedShadowmapMemory, Scene->GetCachedWholeSceneShadowMapsSize());
+	SET_MEMORY_STAT(STAT_ShadowmapAtlasMemory, SortedShadowsForShadowDepthPass.ComputeMemorySize());
 }
 
 void FSceneRenderer::AllocatePerObjectShadowDepthTargets(FRHICommandListImmediate& RHICmdList, TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& Shadows)

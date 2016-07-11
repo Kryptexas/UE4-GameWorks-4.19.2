@@ -574,10 +574,11 @@ void DistanceFieldShadowingCS(
 				bool bUseCulling = false;
 			#endif
 
-			FGBufferData GBufferData = GetGBufferData(ScreenUV);
-
 			float SubsurfaceDensity = 0;
 			bool bUseSubsurfaceTransmission = false;
+
+#if !FORWARD_SHADING
+			FGBufferData GBufferData = GetGBufferData(ScreenUV);
 
 			BRANCH
 			if (IsSubsurfaceModel(GBufferData.ShadingModelID))
@@ -587,6 +588,7 @@ void DistanceFieldShadowingCS(
 				SubsurfaceDensity = -.05f * log(1 - min(GBufferData.CustomData.a, .999f));
 				bUseSubsurfaceTransmission = true;
 			}
+#endif
 
 			Result = ShadowRayTraceThroughCulledObjects(
 				WorldRayStart, 

@@ -10,6 +10,120 @@
 #include "ShaderParameterUtils.h"
 #include "SceneCore.h"
 
+
+/** Uniform buffer for rendering deferred lights. */
+BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,LightPosition)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,LightInvRadius)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,LightColor)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,LightFalloffExponent)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,NormalizedLightDirection)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,SpotAngles)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,SourceRadius)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,SourceLength)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,MinRoughness)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,ContactShadowLength)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,DistanceFadeMAD)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ShadowMapChannelMask)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,ShadowedBits)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightingChannelMask)
+END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
+
+extern float GMinScreenRadiusForLights;
+extern uint32 GetShadowQuality();
+
+template<typename ShaderRHIParamRef>
+void SetDeferredLightParameters(
+	FRHICommandList& RHICmdList, 
+	const ShaderRHIParamRef ShaderRHI, 
+	const TShaderUniformBufferParameter<FDeferredLightUniformStruct>& DeferredLightUniformBufferParameter, 
+	const FLightSceneInfo* LightSceneInfo,
+	const FSceneView& View)
+{
+	FVector4 LightPositionAndInvRadius;
+	FVector4 LightColorAndFalloffExponent;
+		
+	FDeferredLightUniformStruct DeferredLightUniformsValue;
+
+	// Get the light parameters
+	LightSceneInfo->Proxy->GetParameters(
+		LightPositionAndInvRadius,
+		LightColorAndFalloffExponent,
+		DeferredLightUniformsValue.NormalizedLightDirection,
+		DeferredLightUniformsValue.SpotAngles,
+		DeferredLightUniformsValue.SourceRadius,
+		DeferredLightUniformsValue.SourceLength,
+		DeferredLightUniformsValue.MinRoughness);
+	
+	DeferredLightUniformsValue.LightPosition = LightPositionAndInvRadius;
+	DeferredLightUniformsValue.LightInvRadius = LightPositionAndInvRadius.W;
+	DeferredLightUniformsValue.LightColor = LightColorAndFalloffExponent;
+	DeferredLightUniformsValue.LightFalloffExponent = LightColorAndFalloffExponent.W;
+
+	const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel(), LightSceneInfo->IsPrecomputedLightingValid());
+
+	// use MAD for efficiency in the shader
+	DeferredLightUniformsValue.DistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);
+
+	int32 ShadowMapChannel = LightSceneInfo->Proxy->GetShadowMapChannel();
+
+	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
+
+	if (!bAllowStaticLighting)
+	{
+		ShadowMapChannel = INDEX_NONE;
+	}
+
+	DeferredLightUniformsValue.ShadowMapChannelMask = FVector4(
+		ShadowMapChannel == 0 ? 1 : 0,
+		ShadowMapChannel == 1 ? 1 : 0,
+		ShadowMapChannel == 2 ? 1 : 0,
+		ShadowMapChannel == 3 ? 1 : 0);
+
+	const bool bDynamicShadows = View.Family->EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
+	const bool bHasLightFunction = LightSceneInfo->Proxy->GetLightFunctionMaterial() != NULL;
+	DeferredLightUniformsValue.ShadowedBits  = LightSceneInfo->Proxy->CastsStaticShadow() || bHasLightFunction ? 1 : 0;
+	DeferredLightUniformsValue.ShadowedBits |= LightSceneInfo->Proxy->CastsDynamicShadow() && View.Family->EngineShowFlags.DynamicShadows ? 3 : 0;
+
+	static auto* ContactShadowsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ContactShadows"));
+	DeferredLightUniformsValue.ContactShadowLength = 0;
+
+	if (ContactShadowsCVar && ContactShadowsCVar->GetValueOnRenderThread() != 0)
+	{
+		DeferredLightUniformsValue.ContactShadowLength = LightSceneInfo->Proxy->GetContactShadowLength();
+	}
+
+	if( LightSceneInfo->Proxy->IsInverseSquared() )
+	{
+		// Correction for lumen units
+		DeferredLightUniformsValue.LightColor *= 16.0f;
+	}
+
+	// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
+	if (View.bIsReflectionCapture)
+	{
+		DeferredLightUniformsValue.LightColor *= LightSceneInfo->Proxy->GetIndirectLightingScale();
+	}
+
+	const ELightComponentType LightType = (ELightComponentType)LightSceneInfo->Proxy->GetLightType();
+
+	if (LightType == LightType_Point || LightType == LightType_Spot)
+	{
+		// Distance fade
+		FSphere Bounds = LightSceneInfo->Proxy->GetBoundingSphere();
+
+		const float DistanceSquared = ( Bounds.Center - View.ViewMatrices.ViewOrigin ).SizeSquared();
+		float Fade = FMath::Square( FMath::Min( 0.0002f, GMinScreenRadiusForLights / Bounds.W ) * View.LODDistanceFactor ) * DistanceSquared;
+		Fade = FMath::Clamp( 6.0f - 6.0f * Fade, 0.0f, 1.0f );
+		DeferredLightUniformsValue.LightColor *= Fade;
+	}
+
+	DeferredLightUniformsValue.LightingChannelMask = LightSceneInfo->Proxy->GetLightingChannelMask();
+
+	SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI,DeferredLightUniformBufferParameter,DeferredLightUniformsValue);
+}
+
 // Forward declarations.
 class FProjectedShadowInfo;
 
@@ -720,16 +834,26 @@ public:
 	/** Renders shadow maps for translucent primitives. */
 	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
 
+	static void SetBlendStateForProjection(
+		FRHICommandListImmediate& RHICmdList,
+		int32 ShadowMapChannel,
+		bool bIsWholeSceneDirectionalShadow,
+		bool bUseFadePlane,
+		bool bProjectingForForwardShading,
+		bool bMobileModulatedProjections);
+
+	void SetBlendStateForProjection(FRHICommandListImmediate& RHICmdList, bool bProjectingForForwardShading, bool bMobileModulatedProjections) const;
+
 	/**
 	 * Projects the shadow onto the scene for a particular view.
 	 */
-	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, bool bMobile) const;
+	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, bool bProjectingForForwardShading, bool bMobile) const;
 
 	/** Renders ray traced distance field shadows. */
-	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View) const;
+	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bProjectingForForwardShading) const;
 
 	/** Render one pass point light shadow projections. */
-	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View) const;
+	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View, bool bProjectingForForwardShading) const;
 
 	/**
 	 * Renders the projected shadow's frustum wireframe with the given FPrimitiveDrawInterface.
@@ -809,7 +933,7 @@ public:
 	void SortSubjectMeshElements();
 
 	// 0 if Setup...() wasn't called yet
-	const FLightSceneInfo & GetLightSceneInfo() const { return *LightSceneInfo; }
+	const FLightSceneInfo& GetLightSceneInfo() const { return *LightSceneInfo; }
 	const FLightSceneInfoCompact& GetLightSceneInfoCompact() const { return LightSceneInfoCompact; }
 	/**
 	 * Parent primitive of the shadow group that created this shadow, if not a bWholeSceneShadow.
@@ -1329,6 +1453,13 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowFadeFraction, ShadowInfo->FadeAlphas[ViewIndex] );
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowSharpen, ShadowInfo->GetLightSceneInfo().Proxy->GetShadowSharpen() * 7.0f + 1.0f );
+
+		auto DeferredLightParameter = GetUniformBufferParameter<FDeferredLightUniformStruct>();
+
+		if (DeferredLightParameter.IsBound())
+		{
+			SetDeferredLightParameters(RHICmdList, ShaderRHI, DeferredLightParameter, &ShadowInfo->GetLightSceneInfo(), View);
+		}
 	}
 
 	/**
@@ -1654,6 +1785,13 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, PointLightDepthBiasParameters, FVector2D(ShadowInfo->GetShaderDepthBias(), 0.0f));
 
 		SetSamplerParameter(RHICmdList, ShaderRHI, ShadowDepthTextureSampler, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+
+		auto DeferredLightParameter = GetUniformBufferParameter<FDeferredLightUniformStruct>();
+
+		if (DeferredLightParameter.IsBound())
+		{
+			SetDeferredLightParameters(RHICmdList, ShaderRHI, DeferredLightParameter, &ShadowInfo->GetLightSceneInfo(), View);
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override

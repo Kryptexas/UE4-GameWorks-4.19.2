@@ -729,7 +729,7 @@ namespace VulkanRHI
 		// Owner maintains lifetime
 		virtual ~FStagingBuffer();
 
-		void Destroy(VkDevice DeviceHandle);
+		void Destroy(FVulkanDevice* Device);
 
 		friend class FStagingManager;
 	};
@@ -870,12 +870,33 @@ namespace VulkanRHI
 		FDeferredDeletionQueue(FVulkanDevice* InDevice);
 		~FDeferredDeletionQueue();
 
-		void EnqueueResource(FVulkanCmdBuffer* CmdBuffer, FRefCount* Resource);
-		void ReleaseResources(/*bool bDeleteImmediately = false*/);
+		enum class EType
+		{
+			RenderPass,
+			Buffer,
+			BufferView,
+			Image,
+			ImageView,
+			Pipeline,
+			PipelineLayout,
+			Framebuffer,
+			DescriptorSetLayout,
+			Sampler,
+			Semaphore,
+			ShaderModule,
+		};
+
+		template <typename T>
+		inline void EnqueueResource(EType Type, T Handle)
+		{
+			EnqueueGenericResource(Type, (void*)Handle);
+		}
+
+		void ReleaseResources(bool bDeleteImmediately = false);
 
 		inline void Clear()
 		{
-			ReleaseResources(/*true*/);
+			ReleaseResources(true);
 		}
 /*
 		class FVulkanAsyncDeletionWorker : public FVulkanDeviceChild, FNonAbandonableTask
@@ -891,11 +912,17 @@ namespace VulkanRHI
 */
 	private:
 		//TQueue<FAsyncTask<FVulkanAsyncDeletionWorker>*> DeleteTasks;
+
+		void EnqueueGenericResource(EType Type, void* Handle);
+
 		struct FEntry
 		{
 			uint64 FenceCounter;
 			FVulkanCmdBuffer* CmdBuffer;
-			FRefCount* Resource;
+			void* Handle;
+			EType StructureType;
+
+			//FRefCount* Resource;
 		};
 		FCriticalSection CS;
 		TArray<FEntry> Entries;

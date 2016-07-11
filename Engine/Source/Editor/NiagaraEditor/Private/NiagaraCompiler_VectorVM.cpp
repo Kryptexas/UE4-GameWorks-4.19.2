@@ -9,6 +9,12 @@
 #include "ComponentReregisterContext.h"
 #include "NiagaraCompiler_VectorVM.h"
 
+#include "NiagaraNodeOutput.h"
+#include "NiagaraNodeInput.h"
+#include "NiagaraNodeFunctionCall.h"
+#include "NiagaraNodeReadDataSet.h"
+#include "NiagaraNodeWriteDataSet.h"
+
 #define LOCTEXT_NAMESPACE "NiagaraCompiler_VectorVM"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNiagaraCompiler_VectorVM, All, All);
@@ -1033,18 +1039,6 @@ bool FNiagaraCompiler_VectorVM::GreaterThan_Internal(TArray<TNiagaraExprPtr>& In
 bool FNiagaraCompiler_VectorVM::Select_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(EVectorVMOp::select, InputExpressions));
-	return true;
-}
-
-bool FNiagaraCompiler_VectorVM::Sample_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
-{
-	OutputExpressions.Add(Expression_VMNative(EVectorVMOp::sample, InputExpressions));
-	return true;
-}
-
-bool FNiagaraCompiler_VectorVM::Write_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
-{
-	OutputExpressions.Add(Expression_VMNative(EVectorVMOp::bufferwrite, InputExpressions));
 	return true;
 }
 

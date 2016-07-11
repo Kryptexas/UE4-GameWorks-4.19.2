@@ -448,8 +448,7 @@ void FNiagaraSimulation::RunVMScript(FNiagaraEmitterScriptProperties& ScriptProp
 
 	//Fill constant table with required emitter constants and internal script constants.
 	TArray<FVector4> ConstantTable;
-	TArray<UNiagaraDataObject *>DataObjTable;
-	Script->ConstantData.FillConstantTable(Constants, ConstantTable, DataObjTable);
+	Script->ConstantData.FillConstantTable(Constants, ConstantTable);
 
 
 	//Fill in the shared data table
@@ -508,7 +507,6 @@ void FNiagaraSimulation::RunVMScript(FNiagaraEmitterScriptProperties& ScriptProp
 		OutputRegisters,
 		NumOutputRegitsers,
 		ConstantTable.GetData(),
-		DataObjTable.GetData(),
 		SharedDataTable.Num() > 0 ? SharedDataTable.GetData() : NULL,
 		NumParticles
 		);

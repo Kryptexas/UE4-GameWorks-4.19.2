@@ -473,8 +473,9 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TA
 	for (int32 CaptureIndex = ComponentArray.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
 	{
 		USkyLightComponent* CaptureComponent = ComponentArray[CaptureIndex];
+		AActor* Owner = CaptureComponent->GetOwner();
 
-		if ((!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
+		if ((!Owner || !Owner->GetLevel() || (WorldToUpdate->ContainsActor(Owner) && Owner->GetLevel()->bIsVisible))
 			// Only process sky capture requests once async shader compiling completes, otherwise we will capture the scene with temporary shaders
 			&& (!bIsCompilingShaders || CaptureComponent->SourceType == SLS_SpecifiedCubemap))
 		{

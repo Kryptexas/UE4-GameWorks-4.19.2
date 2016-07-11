@@ -374,7 +374,11 @@ bool FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
 		// @todo vulkan - we don't track the format of the depth buffer in the key, only if depth is enabled (write/test) - should be enough, but worth checking that
 		// if either bit is set that we have a depth buffer attached
 	}
-		
+
+	{
+		const VkExtent2D& LayoutExtents = CurrentState.RenderPass->GetLayout().GetExtent2D();
+		ensure(LayoutExtents.width == CurrentState.FrameBuffer->GetWidth() && LayoutExtents.height == CurrentState.FrameBuffer->GetHeight());
+	}
 	CmdBuffer->BeginRenderPass(CurrentState.RenderPass->GetLayout(), CurrentState.RenderPass->GetHandle(), CurrentState.FrameBuffer->GetHandle(), ClearValues);
 
 	bBeginRenderPass = true;
@@ -469,7 +473,7 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	PoolInfo.pPoolSizes = Types.GetData();
 	PoolInfo.maxSets = MaxDescriptorSets;
 
-	VERIFYVULKANRESULT(vkCreateDescriptorPool(Device->GetInstanceHandle(), &PoolInfo, nullptr, &DescriptorPool));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), &PoolInfo, nullptr, &DescriptorPool));
 
 	for (int32 Index = 0; Index < Types.Num(); ++Index)
 	{
@@ -482,7 +486,7 @@ FVulkanDescriptorPool::~FVulkanDescriptorPool()
 {
 	if (DescriptorPool != VK_NULL_HANDLE)
 	{
-		vkDestroyDescriptorPool(Device->GetInstanceHandle(), DescriptorPool, nullptr);
+		VulkanRHI::vkDestroyDescriptorPool(Device->GetInstanceHandle(), DescriptorPool, nullptr);
 		DescriptorPool = VK_NULL_HANDLE;
 	}
 }
@@ -544,7 +548,7 @@ void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& 
 inline void FVulkanDescriptorSets::Bind(FVulkanCmdBuffer* Cmd, FVulkanBoundShaderState* State)
 {
 	//#todo-rco: Compute
-	vkCmdBindDescriptorSets(Cmd->GetHandle(),
+	VulkanRHI::vkCmdBindDescriptorSets(Cmd->GetHandle(),
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		State->GetPipelineLayout(),
 		0, Sets.Num(), Sets.GetData(),
@@ -841,6 +845,8 @@ void FVulkanPendingState::SetRasterizerState(FVulkanRasterizerState* NewState)
 
 void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
 {
+	check(IsInRenderingThread());
+	//TArray<VkFramebuffer> FramebuffersToDelete;
 	for (auto& Pair : FrameBufferMap)
 	{
 		TArray<FVulkanFramebuffer*>& FrameBuffers = Pair.Value;
@@ -849,9 +855,10 @@ void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Te
 			FVulkanFramebuffer* FB = FrameBuffers[Index];
 			if (FB->ContainsRenderTarget(Texture))
 			{
+				//FramebuffersToDelete.Add(FB->GetHandle());
+				FrameBuffers.RemoveAtSwap(Index, 1, false);
 				FB->Destroy(*Device);
 				delete FB;
-				FrameBuffers.RemoveAtSwap(Index, 1, false);
 			}
 		}
 	}

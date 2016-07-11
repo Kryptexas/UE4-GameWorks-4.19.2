@@ -69,6 +69,7 @@ protected:
 	int32 AcquiredImageIndex;
 	FVulkanSwapChain* SwapChain;
 	void* WindowHandle;
+	uint32 PresentCount;
 
 	// Just a pointer, not owned by this class
 	FVulkanSemaphore* AcquiredSemaphore;

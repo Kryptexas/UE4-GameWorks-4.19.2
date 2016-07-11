@@ -175,6 +175,8 @@ public:
 	FUnorderedAccessViewRHIParamRef GetGvListBufferUav()				{ return GvListBuffer->UAV; }
 	FUnorderedAccessViewRHIParamRef GetGvListHeadBufferUav()			{ return GvListHeadBuffer->UAV; }
 
+	bool IsEnabled() const												{ return bEnabled;	}
+	bool IsDirectionalOcclusionEnabled() const							{ return bDirectionalOcclusionEnabled; }
 
 	const FBox&	GetBoundingBox()										{ return BoundingBox; }
 
@@ -215,6 +217,7 @@ public:
 	float								CubeSize;
 	float								Strength;
 	bool								bEnabled;
+	bool								bDirectionalOcclusionEnabled;
 	bool								bGeometryVolumeNeeded;
 
 	uint32								mWriteBufferIndex;

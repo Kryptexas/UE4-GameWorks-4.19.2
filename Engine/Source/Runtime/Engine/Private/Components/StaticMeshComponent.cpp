@@ -636,6 +636,39 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 #endif
 }
 
+bool UStaticMeshComponent::HasMissingStreamingSectionData(bool bCheckTexCoordScales) const
+{
+#if WITH_EDITORONLY_DATA
+	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
+	const bool bNeedsPrecomputedData = !bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && StaticMesh && StaticMesh->RenderData;
+
+	if (bUseMetrics && bNeedsPrecomputedData)
+	{
+		if (!StreamingSectionData.IsValid())
+		{
+			return true;
+		}
+		else if (bCheckTexCoordScales)
+		{
+			for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
+			{
+				// If at least one section has data, then it's enough to say it was built with TexCoordScales.
+				if (SectionData.TexCoordData.Num())
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+		else
+		{
+			return !StreamingSectionData->Num();
+		}
+	}
+#endif
+	return false;
+}
+
 void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales)
 {
 #if WITH_EDITORONLY_DATA

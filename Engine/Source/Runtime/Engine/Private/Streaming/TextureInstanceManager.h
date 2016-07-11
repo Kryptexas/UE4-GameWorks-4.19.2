@@ -303,7 +303,7 @@ public:
 
 	FTextureInstanceAsyncView(const TRefCountPtr<const FTextureInstanceState>& InState) : State(InState) {}
 
-	void UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseNewMetrics, float MaxEffectiveScreenSize);
+	void UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, const FTextureStreamingSettings& Settings);
 
 	// MaxSize : Biggest texture size for all instances.
 	// MaxSize_VisibleOnly : Biggest texture size for visble instances only.
@@ -396,7 +396,6 @@ class FLevelTextureManager
 public:
 
 	FLevelTextureManager(ULevel* InLevel) : Level(InLevel), bHasTextures(false), bToDelete(false) {}
-	~FLevelTextureManager() { check(bToDelete); }
 
 
 	ULevel* GetLevel() const { return Level; }

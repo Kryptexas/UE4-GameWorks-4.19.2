@@ -26,6 +26,8 @@ public:
 	EDepthDrawingMode EarlyZPassMode;
 	bool bEarlyZPassMovable;
 	bool bDitheredLODTransitionsUseStencil;
+	
+	FComputeFenceRHIRef TranslucencyLightingVolumeClearEndFence;
 
 	FDeferredShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer);
 
@@ -58,6 +60,9 @@ public:
 	 * @return true if the depth was cleared
 	 */
 	bool RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList, TFunctionRef<void()> AfterTasksAreStarted, bool bDoPrePre);
+
+	/** Culls local lights to a grid in frustum space.  Needed for forward shading or translucency using the Surface lighting mode. */
+	void ComputeLightGrid(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the basepass for the static data of a given View. */
 	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
@@ -295,19 +300,26 @@ private:
 	bool RenderCapsuleDirectShadows(
 		const FLightSceneInfo& LightSceneInfo,
 		FRHICommandListImmediate& RHICmdList, 
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows) const;
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows, 
+		bool bProjectingForForwardShading) const;
 
 	/** Sets up ViewState buffers for rendering capsule shadows. */
 	void SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes) const;
 
 	/** Renders indirect shadows from capsules modulated onto scene color. */
-	void RenderIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList) const;
+	void RenderIndirectCapsuleShadows(
+		FRHICommandListImmediate& RHICmdList, 
+		FTextureRHIParamRef IndirectLightingTexture, 
+		FTextureRHIParamRef ExistingIndirectOcclusionTexture) const;
 
 	/** Renders capsule shadows for movable skylights, using the cone of visibility (bent normal) from DFAO. */
 	void RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const;
 
 	/** Render deferred projections of shadows for a given light into the light attenuation buffer. */
 	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool& bInjectedTranslucentVolume);
+
+	/** Render shadow projections when forward rendering. */
+	void RenderForwardShadingShadowProjections(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	  * Used by RenderLights to render a light function to the attenuation buffer.
@@ -337,6 +349,9 @@ private:
 
 	/** Clears the translucency lighting volumes before light accumulation. */
 	void ClearTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList);
+
+	/** Clears the translucency lighting volume via an async compute shader overlapped with the basepass. */
+	void ClearTranslucentVolumeLightingAsyncCompute(FRHICommandListImmediate& RHICmdList);
 
 	/** Add AmbientCubemap to the lighting volumes. */
 	void InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandList& RHICmdList);

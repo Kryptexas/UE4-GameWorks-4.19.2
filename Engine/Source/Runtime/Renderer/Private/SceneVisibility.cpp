@@ -1392,6 +1392,7 @@ struct FRelevancePacket
 	uint16 CombinedShadingModelMask;
 	bool bUsesGlobalDistanceField;
 	bool bUsesLightingChannels;
+	bool bTranslucentSurfaceLighting;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -1416,6 +1417,7 @@ struct FRelevancePacket
 		, CombinedShadingModelMask(0)
 		, bUsesGlobalDistanceField(false)
 		, bUsesLightingChannels(false)
+		, bTranslucentSurfaceLighting(false)
 	{
 	}
 
@@ -1430,6 +1432,7 @@ struct FRelevancePacket
 		CombinedShadingModelMask = 0;
 		bUsesGlobalDistanceField = false;
 		bUsesLightingChannels = false;
+		bTranslucentSurfaceLighting = false;
 
 		SCOPE_CYCLE_COUNTER(STAT_ComputeViewRelevance);
 		for (int32 Index = 0; Index < Input.NumPrims; Index++)
@@ -1497,6 +1500,7 @@ struct FRelevancePacket
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
 			bUsesLightingChannels |= ViewRelevance.bUsesLightingChannels;
+			bTranslucentSurfaceLighting |= ViewRelevance.bTranslucentSurfaceLighting;
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -1526,17 +1530,15 @@ struct FRelevancePacket
 				*(PrimitiveSceneInfo->ComponentLastRenderTimeOnScreen) = CurrentWorldTime;
 			}
 
-			uint32 bHasClearCoat = ViewRelevance.ShadingModelMaskRelevance & (1 << MSM_ClearCoat);
-
 			// Cache the nearest reflection proxy if needed
 			if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
 				// For mobile, the per-object reflection is used for everything
-				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance || bHasClearCoat))
+				&& (Scene->GetShadingPath() == EShadingPath::Mobile || bTranslucentRelevance || IsForwardShadingEnabled(Scene->GetFeatureLevel())))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
 				PrimitiveSceneInfo->CachedPlanarReflectionProxy = Scene->FindClosestPlanarReflection(Scene->PrimitiveBounds[BitIndex]);
 
-				if (!Scene->ShouldUseDeferredRenderer())
+				if (Scene->GetShadingPath() == EShadingPath::Mobile)
 				{
 					// mobile HQ reflections
 					Scene->FindClosestReflectionCaptures(Scene->PrimitiveBounds[BitIndex].Origin, PrimitiveSceneInfo->CachedReflectionCaptureProxies);
@@ -1685,6 +1687,7 @@ struct FRelevancePacket
 		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
 		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
 		WriteView.bUsesLightingChannels |= bUsesLightingChannels;
+		WriteView.bTranslucentSurfaceLighting |= bTranslucentSurfaceLighting;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(TranslucencyPrims.Prims, TranslucencyPrims.NumPrims, TranslucencyPrimCount);
@@ -2819,11 +2822,15 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		// initialize per-view uniform buffer.
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			// Initialize the view's RHI resources.
-			Views[ViewIndex].InitRHIResources(nullptr);
+			FViewInfo& View = Views[ViewIndex];
+
+			View.ForwardLightingResources = View.ViewState ? &View.ViewState->ForwardLightingResources : &View.ForwardLightingResourcesStorage;
 
 			// Possible stencil dither optimization approach
-			Views[ViewIndex].bAllowStencilDither = bDitheredLODTransitionsUseStencil;
+			View.bAllowStencilDither = bDitheredLODTransitionsUseStencil;
+
+			// Initialize the view's RHI resources.
+			View.InitRHIResources(nullptr);
 		}
 	}
 
@@ -2925,6 +2932,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 	PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 	PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 	FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
+	TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
 
 	++UpdateCount;
 
@@ -2954,14 +2962,16 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			const int32 NodeIndex = Node.SceneInfo->GetIndex();
 			bool bIsVisible = VisibilityFlags[NodeIndex];
 
+			// Determine desired HLOD state
+			const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+			const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+			const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
+
+			const bool bWasFadingPreUpdate = Node.bIsFading;
+
 			// Update fading state
 			if (NodeMeshes[0].bDitheredLODTransition)
-			{	
-				// Determine desired HLOD state
-				const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
-				const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
-				const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
-
+			{
 				// Fade when HLODs change threshold on-screen, else snap
 				// TODO: This logic can still be improved to clear state and
 				//       transitions when off-screen, but needs better detection
@@ -2996,13 +3006,13 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 					bIsVisible = Node.bWasVisible;
 				}
 			}
-#if WITH_EDITOR
 			else
 			{
-				// Force the default state in-case material edits cause an object to get stuck
+				// Instant transitions without dithering
+				Node.bWasVisible = Node.bIsVisible;
+				Node.bIsVisible = bIsInDrawRange;
 				Node.bIsFading = false;
 			}
-#endif
 
 			if (Node.bIsFading)
 			{
@@ -3013,6 +3023,25 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			{
 				// If stable and visible, override hierarchy visibility
 				HideNodeChildren(Node, VisibilityFlags);
+			}
+
+			// Flush cached lighting data when changing visible contents
+			if (Node.bIsVisible != Node.bWasVisible || bWasFadingPreUpdate || Node.bIsFading)
+			{
+				FLightPrimitiveInteraction* NodeLightList = Node.SceneInfo->LightList;
+				while (NodeLightList)
+				{
+					NodeLightList->FlushCachedShadowMapData();
+					NodeLightList = NodeLightList->GetNextLight();
+				}
+			}
+
+			// Force fully disabled view relevance so shadows don't attempt to recompute
+			if (!Node.bIsVisible)
+			{
+				FPrimitiveViewRelevance& ViewRelevance = RelevanceMap[NodeIndex];
+				FMemory::Memzero(&ViewRelevance, sizeof(FPrimitiveViewRelevance));
+				ViewRelevance.bInitializedThisFrame = true;
 			}
 		}
 	}

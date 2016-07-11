@@ -18,6 +18,14 @@ enum EBasePassDrawListType
 	EBasePass_Masked,
 	EBasePass_MAX
 };
+
+enum class EShadingPath
+{
+	Mobile,
+	Deferred,
+	Num,
+};
+
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
  * The scene
@@ -335,14 +343,21 @@ public:
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GMaxRHIFeatureLevel; }
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
-	static bool ShouldUseDeferredRenderer(ERHIFeatureLevel::Type InFeatureLevel)
+	static EShadingPath GetShadingPath(ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		return InFeatureLevel >= ERHIFeatureLevel::SM4;
+		if (InFeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			return EShadingPath::Deferred;
+		}
+		else
+		{
+			return EShadingPath::Mobile;
+		}
 	}
 
-	bool ShouldUseDeferredRenderer() const
+	EShadingPath GetShadingPath() const
 	{
-		return ShouldUseDeferredRenderer(GetFeatureLevel());
+		return GetShadingPath(GetFeatureLevel());
 	}
 
 #if WITH_EDITOR

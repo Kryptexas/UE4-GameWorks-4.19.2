@@ -199,8 +199,6 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 		TrackTextureInit();
 	}
 
-	float MipBias =  Manager ? Manager->MipBias : 0;
-
 	int32 NumTrackedTextures = GTrackedTextureNames.Num();
 	if ( NumTrackedTextures )
 	{
@@ -1063,6 +1061,12 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 		//Remove the texture streaming manager if needed.
 		if( TextureStreamingManager )
 		{
+			TextureStreamingManager->BlockTillAllRequestsFinished();
+
+			RemoveStreamingManager(TextureStreamingManager);
+			delete TextureStreamingManager;
+			TextureStreamingManager = nullptr;
+
 			for( TObjectIterator<UTexture2D>It; It; ++It )
 			{
 				if( It->bIsStreamable )
@@ -1070,11 +1074,6 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 					It->UpdateResource();
 				}
 			}
-			TextureStreamingManager->BlockTillAllRequestsFinished();
-
-			RemoveStreamingManager(TextureStreamingManager);
-			delete TextureStreamingManager;
-			TextureStreamingManager = nullptr;
 		}
 	}
 }

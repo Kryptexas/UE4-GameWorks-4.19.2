@@ -17,9 +17,9 @@ public:
 	void Init(TArray<FStreamingViewInfo> InViewInfos, float InWorldTime, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager);
 
 	/** Update everything internally so to allow calls to CalcWantedMips */
-	void UpdateBoundSizes_Async();
+	void UpdateBoundSizes_Async(const FTextureStreamingSettings& Settings);
 
-	void UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, float MipBias, bool bOutputToLog = false) const;
+	void UpdatePerfectWantedMips_Async(FStreamingTexture& StreamingTexture, const FTextureStreamingSettings& Settings, bool bOutputToLog = false) const;
 
 	uint32 GetAllocatedSize() const { return ViewInfos.GetAllocatedSize() + StaticInstancesViews.GetAllocatedSize(); }
 

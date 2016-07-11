@@ -3729,7 +3729,7 @@ private:
 	 */
 	void InitLocalVectorField()
 	{
-		LocalVectorFieldRotation = FMath::Lerp(
+		LocalVectorFieldRotation = FMath::LerpRange(
 			EmitterInfo.LocalVectorField.MinInitialRotation,
 			EmitterInfo.LocalVectorField.MaxInitialRotation,
 			RandomStream.GetFraction() );

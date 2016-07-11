@@ -68,8 +68,8 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 	}
 
 	DeferredParameters.Bind(Initializer.ParameterMap);
-	LightAttenuation.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTexture"));
-	LightAttenuationSampler.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTextureSampler"));
+	SceneColorCopyTexture.Bind(Initializer.ParameterMap, TEXT("SceneColorCopyTexture"));
+	SceneColorCopyTextureSampler.Bind(Initializer.ParameterMap, TEXT("SceneColorCopyTextureSampler"));
 	EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 
 }
@@ -319,13 +319,13 @@ void FMaterialShader::SetParameters(
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// for copied scene color
-		if(LightAttenuation.IsBound())
+		if(SceneColorCopyTexture.IsBound())
 		{
 			SetTextureParameter(
 				RHICmdList,
 				ShaderRHI,
-				LightAttenuation,
-				LightAttenuationSampler,
+				SceneColorCopyTexture,
+				SceneColorCopyTextureSampler,
 				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 				FSceneRenderTargets::Get(RHICmdList).GetLightAttenuationTexture());
 		}
@@ -374,8 +374,8 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << MaterialUniformBuffer;
 	Ar << ParameterCollectionUniformBuffers;
 	Ar << DeferredParameters;
-	Ar << LightAttenuation;
-	Ar << LightAttenuationSampler;
+	Ar << SceneColorCopyTexture;
+	Ar << SceneColorCopyTextureSampler;
 	Ar << DebugUniformExpressionSet;
 	if (Ar.IsLoading())
 	{

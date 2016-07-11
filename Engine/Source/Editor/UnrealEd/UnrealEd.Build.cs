@@ -86,8 +86,6 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
-                "Niagara",
-                "VectorVM",
                 "FunctionalTesting"
             }
 		);

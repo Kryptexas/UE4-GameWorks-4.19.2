@@ -175,7 +175,6 @@ protected:
 	void InitGPU(FVulkanDevice* Device);
 	void InitDevice(FVulkanDevice* Device);
 	
-	void Present();
 	friend class FVulkanCommandListContext;
 
 	friend class FVulkanViewport;

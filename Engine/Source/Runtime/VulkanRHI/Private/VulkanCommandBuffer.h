@@ -61,14 +61,14 @@ public:
 	void EndRenderPass()
 	{
 		check(IsInsideRenderPass());
-		vkCmdEndRenderPass(CommandBufferHandle);
+		VulkanRHI::vkCmdEndRenderPass(CommandBufferHandle);
 		State = EState::IsInsideBegin;
 	}
 
 	void End()
 	{
 		check(IsOutsideRenderPass());
-		VERIFYVULKANRESULT(vkEndCommandBuffer(GetHandle()));
+		VERIFYVULKANRESULT(VulkanRHI::vkEndCommandBuffer(GetHandle()));
 		State = EState::HasEnded;
 	}
 

@@ -181,6 +181,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "The cubemap resolution for all reflection capture probes. Must be power of 2. Note that for very high values the memory and performance impact may be severe."))
 	int32 ReflectionCaptureResolution;
 
+	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
+		ConsoleVariable="r.ForwardShading",
+		ToolTip="Whether to use forward shading on desktop platforms.  Requires Shader Model 5 hardware.  Forward shading has lower constant cost, but fewer features supported.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bForwardShading:1;
+
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.AllowStaticLighting",
 		ToolTip="Whether to allow any static lighting to be generated and used, like lightmaps and shadowmaps. Games that only use dynamic lighting should set this to 0 to save some static lighting overhead. Changing this setting requires restarting the editor.",

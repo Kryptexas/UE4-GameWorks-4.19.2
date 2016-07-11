@@ -73,7 +73,7 @@ public class AssetTools : ModuleRules
 				"FontEditor",
 				"SoundCueEditor",
 				"SoundClassEditor"
-			}
+            }
 		);
 	}
 }

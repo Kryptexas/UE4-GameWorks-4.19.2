@@ -329,6 +329,11 @@ void UTexture2D::LinkStreaming()
 	{
 		IStreamingManager::Get().GetTextureStreamingManager().AddStreamingTexture(this);
 	}
+	else
+	{
+		StreamingIndex = INDEX_NONE;
+	}
+
 }
 
 void UTexture2D::UnlinkStreaming()
@@ -911,8 +916,7 @@ bool UTexture2D::ShouldMipLevelsBeForcedResident() const
 	{
 		return true;
 	}
-	float CurrentTime = float(FPlatformTime::Seconds() - GStartTime);
-	if ( ForceMipLevelsToBeResidentTimestamp >= CurrentTime )
+	if ( ForceMipLevelsToBeResidentTimestamp >= FApp::GetCurrentTime() )
 	{
 		return true;
 	}
@@ -976,7 +980,7 @@ void UTexture2D::SetForceMipLevelsToBeResident( float Seconds, int32 CinematicTe
 	uint32 TextureGroupBitfield = (uint32) CinematicTextureGroups;
 	uint32 MyTextureGroup = FMath::BitFlag[LODGroup];
 	bUseCinematicMipLevels = (TextureGroupBitfield & MyTextureGroup) ? true : false;
-	ForceMipLevelsToBeResidentTimestamp = float(FPlatformTime::Seconds() - GStartTime) + Seconds;
+	ForceMipLevelsToBeResidentTimestamp = FApp::GetCurrentTime() + Seconds;
 }
 
 int32 UTexture2D::Blueprint_GetSizeX() const

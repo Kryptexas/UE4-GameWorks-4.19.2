@@ -115,14 +115,14 @@ static inline void GetInstanceLayerExtensions(const ANSICHAR* LayerName, FLayerE
 	{
 		//@TODO: Currently unsupported on device, so just make sure it doesn't cause problems
 		uint32 Count = 0;
-		Result = vkEnumerateInstanceExtensionProperties(LayerName, &Count, nullptr);
+		Result = VulkanRHI::vkEnumerateInstanceExtensionProperties(LayerName, &Count, nullptr);
 		check(Result >= VK_SUCCESS);
 
 		if (Count > 0)
 		{
 			OutLayer.ExtensionProps.Empty(Count);
 			OutLayer.ExtensionProps.AddUninitialized(Count);
-			Result = vkEnumerateInstanceExtensionProperties(LayerName, &Count, OutLayer.ExtensionProps.GetData());
+			Result = VulkanRHI::vkEnumerateInstanceExtensionProperties(LayerName, &Count, OutLayer.ExtensionProps.GetData());
 			check(Result >= VK_SUCCESS);
 		}
 	}
@@ -135,14 +135,14 @@ static inline void GetDeviceLayerExtensions(VkPhysicalDevice Device, const ANSIC
 	do
 	{
 		uint32 Count = 0;
-		Result = vkEnumerateDeviceExtensionProperties(Device, LayerName, &Count, nullptr);
+		Result = VulkanRHI::vkEnumerateDeviceExtensionProperties(Device, LayerName, &Count, nullptr);
 		check(Result >= VK_SUCCESS);
 
 		if (Count > 0)
 		{
 			OutLayer.ExtensionProps.Empty(Count);
 			OutLayer.ExtensionProps.AddUninitialized(Count);
-			Result = vkEnumerateDeviceExtensionProperties(Device, LayerName, &Count, OutLayer.ExtensionProps.GetData());
+			Result = VulkanRHI::vkEnumerateDeviceExtensionProperties(Device, LayerName, &Count, OutLayer.ExtensionProps.GetData());
 			check(Result >= VK_SUCCESS);
 		}
 	}
@@ -166,14 +166,14 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	do
 	{
 		uint32 InstanceLayerCount = 0;
-		Result = vkEnumerateInstanceLayerProperties(&InstanceLayerCount, nullptr);
+		Result = VulkanRHI::vkEnumerateInstanceLayerProperties(&InstanceLayerCount, nullptr);
 		check(Result >= VK_SUCCESS);
 
 		if (InstanceLayerCount > 0)
 		{
 			GlobalLayers.Empty(InstanceLayerCount);
 			GlobalLayerProperties.AddZeroed(InstanceLayerCount);
-			Result = vkEnumerateInstanceLayerProperties(&InstanceLayerCount, &GlobalLayerProperties[GlobalLayerProperties.Num() - InstanceLayerCount]);
+			Result = VulkanRHI::vkEnumerateInstanceLayerProperties(&InstanceLayerCount, &GlobalLayerProperties[GlobalLayerProperties.Num() - InstanceLayerCount]);
 			check(Result >= VK_SUCCESS);
 		}
 	}
@@ -274,9 +274,9 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	TArray<VkLayerProperties> LayerProperties;
 	{
 		uint32 Count = 0;
-		VERIFYVULKANRESULT(vkEnumerateDeviceLayerProperties(Gpu, &Count, nullptr));
+		VERIFYVULKANRESULT(VulkanRHI::vkEnumerateDeviceLayerProperties(Gpu, &Count, nullptr));
 		LayerProperties.AddZeroed(Count);
-		VERIFYVULKANRESULT(vkEnumerateDeviceLayerProperties(Gpu, &Count, (VkLayerProperties*)LayerProperties.GetData()));
+		VERIFYVULKANRESULT(VulkanRHI::vkEnumerateDeviceLayerProperties(Gpu, &Count, (VkLayerProperties*)LayerProperties.GetData()));
 		check(Count == LayerProperties.Num());
 	}
 

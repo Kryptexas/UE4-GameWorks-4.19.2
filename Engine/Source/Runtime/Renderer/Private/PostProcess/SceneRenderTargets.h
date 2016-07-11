@@ -196,14 +196,6 @@ protected:
 	FSceneRenderTargets(const FViewInfo& InView, const FSceneRenderTargets& SnapshotSource);
 public:
 
-	enum class EShadingPath
-	{
-		Mobile,
-		Deferred,
-
-		Num,
-	};
-
 	/**
 	 * Checks that scene render targets are ready for rendering a view family of the given dimensions.
 	 * If the allocated render targets are too small, they are reallocated.
@@ -670,7 +662,11 @@ private:
 	bool AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const;
 
 	/** Determine whether the render targets for any shading path have been allocated */
-	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Mobile); }
+	bool AreAnyShadingPathRenderTargetsAllocated() const 
+	{ 
+		return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) 
+			|| AreShadingPathRenderTargetsAllocated(EShadingPath::Mobile); 
+	}
 
 	/** Gets all GBuffers to use.  Returns the number actually used. */
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex);

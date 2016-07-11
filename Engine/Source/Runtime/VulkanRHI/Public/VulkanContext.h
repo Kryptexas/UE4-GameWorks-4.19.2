@@ -159,4 +159,6 @@ protected:
 	FVulkanPendingState* PendingState;
 
 	void SubmitCurrentCommands();
+
+	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 };

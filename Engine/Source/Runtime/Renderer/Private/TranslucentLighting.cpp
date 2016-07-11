@@ -1109,6 +1109,132 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting(FRHICommandLi
 	}
 }
 
+class FClearTranslucentLightingVolumeCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FClearTranslucentLightingVolumeCS, Global)
+public:
+
+	static const int32 CLEAR_BLOCK_SIZE = 4;
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("CLEAR_COMPUTE_SHADER"), 1);
+		OutEnvironment.SetDefine(TEXT("CLEAR_BLOCK_SIZE"), CLEAR_BLOCK_SIZE);
+	}
+
+	FClearTranslucentLightingVolumeCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		Ambient0.Bind(Initializer.ParameterMap, TEXT("Ambient0"));
+		Directional0.Bind(Initializer.ParameterMap, TEXT("Directional0"));
+		Ambient1.Bind(Initializer.ParameterMap, TEXT("Ambient1"));
+		Directional1.Bind(Initializer.ParameterMap, TEXT("Directional1"));
+	}
+
+	FClearTranslucentLightingVolumeCS()
+	{
+	}
+
+	void SetParameters(
+		FRHIAsyncComputeCommandListImmediate& RHICmdList,
+		FUnorderedAccessViewRHIParamRef* VolumeUAVs,
+		int32 NumUAVs
+	)
+	{
+		check(NumUAVs == 4);
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		Ambient0.SetTexture(RHICmdList, ShaderRHI, NULL, VolumeUAVs[0]);
+		Directional0.SetTexture(RHICmdList, ShaderRHI, NULL, VolumeUAVs[1]);
+		Ambient1.SetTexture(RHICmdList, ShaderRHI, NULL, VolumeUAVs[2]);
+		Directional1.SetTexture(RHICmdList, ShaderRHI, NULL, VolumeUAVs[3]);
+	}
+
+	void UnsetParameters(FRHIAsyncComputeCommandListImmediate& RHICmdList)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		Ambient0.UnsetUAV(RHICmdList, ShaderRHI);
+		Directional0.UnsetUAV(RHICmdList, ShaderRHI);
+		Ambient1.UnsetUAV(RHICmdList, ShaderRHI);
+		Directional1.UnsetUAV(RHICmdList, ShaderRHI);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << Ambient0;
+		Ar << Directional0;
+		Ar << Ambient1;
+		Ar << Directional1;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+	FRWShaderParameter Ambient0;
+	FRWShaderParameter Directional0;
+	FRWShaderParameter Ambient1;
+	FRWShaderParameter Directional1;
+};
+
+IMPLEMENT_SHADER_TYPE(, FClearTranslucentLightingVolumeCS, TEXT("TranslucentLightInjectionShaders"), TEXT("ClearTranslucentLightingVolumeCS"), SF_Compute)
+
+void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLightingAsyncCompute(FRHICommandListImmediate& RHICmdList)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+	ensure(FeatureLevel >= ERHIFeatureLevel::SM5);
+	ensure(SceneContext.TranslucencyLightingVolumeAmbient[0]);
+	ensure(SceneContext.TranslucencyLightingVolumeDirectional[0]);
+	ensure(SceneContext.TranslucencyLightingVolumeAmbient[1]);
+	ensure(SceneContext.TranslucencyLightingVolumeDirectional[1]);
+
+	FUnorderedAccessViewRHIParamRef VolumeUAVs[4] = {
+	SceneContext.TranslucencyLightingVolumeAmbient[0]->GetRenderTargetItem().UAV,
+	SceneContext.TranslucencyLightingVolumeDirectional[0]->GetRenderTargetItem().UAV,
+	SceneContext.TranslucencyLightingVolumeAmbient[1]->GetRenderTargetItem().UAV,
+	SceneContext.TranslucencyLightingVolumeDirectional[1]->GetRenderTargetItem().UAV
+	};
+
+	FClearTranslucentLightingVolumeCS* ComputeShader = *TShaderMapRef<FClearTranslucentLightingVolumeCS>(GetGlobalShaderMap(FeatureLevel));
+	static const FName EndComputeFenceName(TEXT("TranslucencyLightingVolumeClearEndComputeFence"));
+	TranslucencyLightingVolumeClearEndFence = RHICmdList.CreateComputeFence(EndComputeFenceName);
+
+	static const FName BeginComputeFenceName(TEXT("TranslucencyLightingVolumeClearBeginComputeFence"));
+	FComputeFenceRHIRef ClearBeginFence = RHICmdList.CreateComputeFence(BeginComputeFenceName);
+
+	//Grab the async compute commandlist.
+	FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
+	{
+		SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ClearTranslucencyLightingVolume, TEXT("Translucency lighting volume clear compute shader. %d"), GTranslucencyLightingVolumeDim);
+
+		RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, VolumeUAVs, 4, ClearBeginFence);
+
+		//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
+		RHICmdListComputeImmediate.WaitComputeFence(ClearBeginFence);
+
+		//standard compute setup, but on the async commandlist.
+		RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
+
+		ComputeShader->SetParameters(RHICmdListComputeImmediate, VolumeUAVs, 4);
+		
+		int32 GroupsPerDim = GTranslucencyLightingVolumeDim / FClearTranslucentLightingVolumeCS::CLEAR_BLOCK_SIZE;
+		DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupsPerDim, GroupsPerDim, GroupsPerDim);
+
+		ComputeShader->UnsetParameters(RHICmdListComputeImmediate);
+
+		//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
+		RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, VolumeUAVs, 4, TranslucencyLightingVolumeClearEndFence);
+	}
+
+	//immediately dispatch our async compute commands to the RHI thread to be submitted to the GPU as soon as possible.
+	//dispatch after the scope so the drawevent pop is inside the dispatch
+	FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
+}
 
 /** Encapsulates a pixel shader that is adding ambient cubemap to the volume. */
 class FInjectAmbientCubemapPS : public FGlobalShader

@@ -702,7 +702,7 @@ TRefCountPtr<const FTextureInstanceState> FDynamicTextureInstanceManager::GetAsy
 	return TRefCountPtr<const FTextureInstanceState>(AsyncState);
 }
 
-void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, bool bUseNewMetrics, float MaxEffectiveScreenSize)
+void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, const FTextureStreamingSettings& Settings)
 {
 	if (!State.IsValid())  return;
 
@@ -742,7 +742,7 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 		{
 			const FStreamingViewInfo& ViewInfo = ViewInfos[ViewIndex];
 
-			const float EffectiveScreenSize = (MaxEffectiveScreenSize > 0.0f) ? FMath::Min(MaxEffectiveScreenSize, ViewInfo.ScreenSize) : ViewInfo.ScreenSize;
+			const float EffectiveScreenSize = (Settings.MaxEffectiveScreenSize > 0.0f) ? FMath::Min(Settings.MaxEffectiveScreenSize, ViewInfo.ScreenSize) : ViewInfo.ScreenSize;
 			const float ScreenSizeFloat = EffectiveScreenSize * ViewInfo.BoostFactor * .5f; // Multiply by half since the ratio factors map to half the screen only
 
 			const VectorRegister ScreenSize = VectorLoadFloat1( &ScreenSizeFloat );
@@ -751,7 +751,7 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 			const VectorRegister ViewOriginZ = VectorLoadFloat1( &ViewInfo.ViewOrigin.Z );
 
 			VectorRegister DistSqMinusRadiusSq = VectorZero();
-			if (bUseNewMetrics)
+			if (Settings.bUseNewMetrics)
 			{
 				// In this case DistSqMinusRadiusSq will contain the distance to the box^2
 				VectorRegister Temp = VectorSubtract( ViewOriginX, OriginX );

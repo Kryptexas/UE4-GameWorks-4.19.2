@@ -127,6 +127,12 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	TEXT("Global tessellation factor multiplier"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarForwardShading(
+	TEXT("r.ForwardShading"),
+	0,
+	TEXT("Whether to use forward shading on desktop platforms.  Requires Shader Model 5 hardware.  Forward shading has lower constant cost, but fewer features supported.  0:off, 1:on"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarSupportSimpleForwardShading(
 	TEXT("r.SupportSimpleForwardShading"),
 	0,
@@ -382,6 +388,7 @@ void FViewInfo::Init()
 	
 	bUsesGlobalDistanceField = false;
 	bUsesLightingChannels = false;
+	bTranslucentSurfaceLighting = false;
 
 	ExponentialFogParameters = FVector4(0,1,1,0);
 	ExponentialFogColor = FVector::ZeroVector;
@@ -411,6 +418,8 @@ void FViewInfo::Init()
 	bIsSnapshot = false;
 
 	bAllowStencilDither = false;
+
+	ForwardLightingResources = &ForwardLightingResourcesStorage;
 }
 
 FViewInfo::~FViewInfo()
@@ -1622,13 +1631,15 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
 {
-	bool bUseDeferred = InViewFamily->Scene->ShouldUseDeferredRenderer();
-	if (bUseDeferred)
+	EShadingPath ShadingPath = InViewFamily->Scene->GetShadingPath();
+
+	if (ShadingPath == EShadingPath::Deferred)
 	{
 		return new FDeferredShadingSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
-	else
+	else 
 	{
+		check(ShadingPath == EShadingPath::Mobile);
 		return new FMobileSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
 }

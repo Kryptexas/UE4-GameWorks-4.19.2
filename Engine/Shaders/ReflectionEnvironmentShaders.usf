@@ -433,9 +433,11 @@ void ReflectionApplyPS(
 
 		// Indirect occlusion from DFAO, which should be applied to reflection captures and skylight specular, but not SSR
 		float IndirectSpecularOcclusion = 1.0f;
+		float3 ExtraIndirectSpecular = 0;
+
 #if SUPPORT_DFAO_INDIRECT_OCCLUSION
 		float IndirectDiffuseOcclusion = 1.0f;
-		GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion); 
+		GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion, ExtraIndirectSpecular); 
 		// Apply DFAO to IndirectIrradiance before mixing with indirect specular
 		IndirectIrradiance *= IndirectDiffuseOcclusion;
 #endif
@@ -531,7 +533,7 @@ void ReflectionApplyPS(
 				SkyLighting *= IndirectIrradiance;
 			}
 
-			SpecularLighting.rgb += SpecularLighting.a * SkyLighting * IndirectSpecularOcclusion;
+			SpecularLighting.rgb += SpecularLighting.a * (SkyLighting * IndirectSpecularOcclusion + ExtraIndirectSpecular * SpecularColor);
 		}
 #endif
 

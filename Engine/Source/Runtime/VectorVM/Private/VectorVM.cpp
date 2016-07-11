@@ -2,7 +2,6 @@
 
 #include "VectorVMPrivate.h"
 #include "CurveVector.h"
-#include "VectorVMDataObject.h"
 #include "ModuleManager.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
@@ -17,10 +16,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 #define OP1_CONST (1 << 1)
 #define OP2_CONST (1 << 2)
 #define OP3_CONST (1 << 3)
-#define OP0_DATAOBJ (1 << 4)
-#define OP1_DATAOBJ (1 << 5)
-#define OP2_DATAOBJ (1 << 6)
-#define OP3_DATAOBJ (1 << 7)
 
 #define SRCOP_RRRR (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP_REGISTER)
 #define SRCOP_RRRC (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP0_CONST)
@@ -39,56 +34,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 #define SRCOP_CCCR (OP3_CONST | OP2_CONST | OP1_CONST | OP_REGISTER)
 #define SRCOP_CCCC (OP3_CONST | OP2_CONST | OP1_CONST | OP0_CONST)
 
-#define SRCOP_RRRB (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP0_DATAOBJ)
-#define SRCOP_RRBR (OP_REGISTER | OP_REGISTER | OP1_DATAOBJ | OP_REGISTER)
-#define SRCOP_RRBB (OP_REGISTER | OP_REGISTER | OP1_DATAOBJ | OP0_DATAOBJ)
-
-#define SRCOP_RRCB (OP_REGISTER | OP_REGISTER | OP1_CONST | OP0_DATAOBJ)
-
 uint8 VectorVM::CreateSrcOperandMask(EVectorVMOperandLocation Type1, EVectorVMOperandLocation Type2, EVectorVMOperandLocation Type3, EVectorVMOperandLocation Type4)
 {
 	return	(Type1 == EVectorVMOperandLocation::Constant ? OP0_CONST : OP_REGISTER) |
 		(Type2 == EVectorVMOperandLocation::Constant ? OP1_CONST : OP_REGISTER) |
 		(Type3 == EVectorVMOperandLocation::Constant ? OP2_CONST : OP_REGISTER) |
-		(Type4 == EVectorVMOperandLocation::Constant ? OP3_CONST : OP_REGISTER) |
-		(Type1 == EVectorVMOperandLocation::DataObjConstant ? OP0_DATAOBJ : OP_REGISTER) |
-		(Type2 == EVectorVMOperandLocation::DataObjConstant ? OP1_DATAOBJ : OP_REGISTER) |
-		(Type3 == EVectorVMOperandLocation::DataObjConstant ? OP2_DATAOBJ : OP_REGISTER) |
-		(Type4 == EVectorVMOperandLocation::DataObjConstant ? OP3_DATAOBJ : OP_REGISTER);
+		(Type4 == EVectorVMOperandLocation::Constant ? OP3_CONST : OP_REGISTER);
 }
 
-
-UNiagaraDataObject::UNiagaraDataObject(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-}
-
-UNiagaraCurveDataObject::UNiagaraCurveDataObject(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer), CurveObj(nullptr)
-{
-}
-
-FVector4 UNiagaraCurveDataObject::Sample(const FVector4& InCoords) const
-{
-	FVector Vec = CurveObj->GetVectorValue(InCoords.X);
-	return FVector4(Vec, 0.0f);
-}
-
-UNiagaraSparseVolumeDataObject::UNiagaraSparseVolumeDataObject(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-	Size = 64;
-	NumBuckets = Size*Size*Size;
-	//Data.AddZeroed(NumBuckets);
-
-	// avoid allocation in CDO
-	if (!HasAnyFlags(RF_ClassDefaultObject))
-	{
-		Data.Init(FVector4(0.1f, 0.1f, 0.1f, 0.1f), NumBuckets);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
 
 #if WITH_EDITOR
 TArray<FString> OpNames;
@@ -106,8 +59,6 @@ struct FVectorVMContext
 	VectorRegister* RESTRICT * RESTRICT RegisterTable;
 	/** Pointer to the constant table. */
 	FVector4 const* RESTRICT ConstantTable;
-	/** Pointer to the data object constant table. */
-	UNiagaraDataObject * RESTRICT *DataObjConstantTable;
 	/** Pointer to the shared data table. */
 	FVectorVMSharedDataView* RESTRICT SharedDataTable;
 
@@ -127,7 +78,6 @@ struct FVectorVMContext
 		const uint8* InCode,
 		VectorRegister** InRegisterTable,
 		const FVector4* InConstantTable,
-		UNiagaraDataObject** InDataObjTable,
 		FVectorVMSharedDataView* InSharedDataTable,
 		int32 InNumVectors,
 		int32 InNumInstances,
@@ -136,7 +86,6 @@ struct FVectorVMContext
 		: Code(InCode)
 		, RegisterTable(InRegisterTable)
 		, ConstantTable(InConstantTable)
-		, DataObjConstantTable(InDataObjTable)
 		, SharedDataTable(InSharedDataTable)
 		, NumVectors(InNumVectors)
 		, NumInstances(InNumInstances)
@@ -211,19 +160,6 @@ struct FConstantHandler<VectorRegister> : public FConstantHandlerBase
 };
 
 typedef FConstantHandler<VectorRegister> FVectorConstantHandler;
-
-//////////////////////////////////////////////////////////////////////////
-struct FDataObjectConstantHandler
-{
-	int32 ConstantIndex;
-	UNiagaraDataObject *Constant;
-	FDataObjectConstantHandler(FVectorVMContext& Context)
-		: ConstantIndex(DecodeU8(Context))
-		, Constant(Context.DataObjConstantTable[ConstantIndex])
-	{}
-	VM_FORCEINLINE void Advance(){ }
-	VM_FORCEINLINE UNiagaraDataObject *Get(){ return Constant; }
-};
 
 //////////////////////////////////////////////////////////////////////////
 // Register handlers.
@@ -393,47 +329,6 @@ struct TBinaryVectorKernel
 		};
 	}
 };
-
-
-
-
-/** Base class of Vector kernels with 2 operands, one of which can be a data object. */
-template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
-struct TBinaryVectorKernelData
-{
-	static const int32 NumInstancesPerOp = 1;
-	static void Exec(FVectorVMContext& Context)
-	{
-		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
-		switch (SrcOpTypes)
-		{
-		case SRCOP_RRRB:	TBinaryKernel<Kernel, DstHandler, FDataObjectConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRCB:	TBinaryKernel<Kernel, DstHandler, FDataObjectConstantHandler, FVectorConstantHandler>::Exec(Context); break;
-		default: check(0); break;
-		};
-	}
-};
-
-
-
-/** Base class of Vector kernels with 2 operands, one of which can be a data object. */
-template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
-struct TTrinaryVectorKernelData
-{
-	static const int32 NumInstancesPerOp = 1;
-	static void Exec(FVectorVMContext& Context)
-	{
-		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
-		switch (SrcOpTypes)
-		{
-		case SRCOP_RRRB:	TTrinaryKernel<Kernel, DstHandler, FDataObjectConstantHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		default: check(0); break;
-		};
-	}
-};
-
-
-
 
 /** Base class of Vector kernels with 3 operands. */
 template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
@@ -739,34 +634,6 @@ struct FVectorKernelSelect : public TTrinaryVectorKernel<FVectorKernelSelect>
 	{
 		//Currently works by cmpgt 0 to match the current, all vector float vm/scripts but with int support, this should probably change to direct use of a mask.
 		*Dst = VectorSelect(VectorCompareGT(Mask, GlobalVectorConstants::FloatZero), A, B);
-	}
-};
-
-
-struct FVectorKernelSample : public TBinaryVectorKernelData<FVectorKernelSample>
-{
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, UNiagaraDataObject *Src0, VectorRegister Src1)
-	{
-		if (Src0)
-		{
-			float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);
-			FVector4 Tmp = Src0->Sample(FVector4(FloatSrc1[0], FloatSrc1[1], FloatSrc1[2], FloatSrc1[3]));
-			*Dst = VectorLoad(&Tmp);
-		}
-	}
-};
-
-struct FVectorKernelBufferWrite : public TTrinaryVectorKernelData<FVectorKernelBufferWrite>
-{
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, UNiagaraDataObject *Src0, VectorRegister Src1, VectorRegister Src2)
-	{
-		if (Src0)
-		{
-			float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);	// Coords
-			float const* FloatSrc2 = reinterpret_cast<float const*>(&Src2);	// Value
-			FVector4 Tmp = Src0->Write(FVector4(FloatSrc1[0], FloatSrc1[1], FloatSrc1[2], FloatSrc1[3]), FVector4(FloatSrc2[0], FloatSrc2[1], FloatSrc2[2], FloatSrc2[3]));
-			*Dst = VectorLoad(&Tmp);
-		}
 	}
 };
 
@@ -1313,7 +1180,6 @@ void VectorVM::Exec(
 	VectorRegister** OutputRegisters,
 	int32 NumOutputRegisters,
 	FVector4 const* ConstantTable,
-	UNiagaraDataObject* *DataObjConstTable,
 	FVectorVMSharedDataView* SharedDataTable,
 	int32 NumVectors
 	)
@@ -1344,7 +1210,7 @@ void VectorVM::Exec(
 		// Setup execution context.
 		int32 VectorsThisChunk = FMath::Min<int32>(NumVectors, VectorsPerChunk);
 		int32 InstancesThisChunk = VectorsThisChunk;
-		FVectorVMContext Context(Code, RegisterTable, ConstantTable, DataObjConstTable, SharedDataTable, VectorsThisChunk, InstancesThisChunk, VectorsPerChunk * ChunkIndex);
+		FVectorVMContext Context(Code, RegisterTable, ConstantTable, SharedDataTable, VectorsThisChunk, InstancesThisChunk, VectorsPerChunk * ChunkIndex);
 		EVectorVMOp Op = EVectorVMOp::done;
 
 		// Execute VM on all vectors in this chunk.
@@ -1404,8 +1270,6 @@ void VectorVM::Exec(
 			case EVectorVMOp::composez: FVectorKernelCompose<2, 2, 2, 2>::Exec(Context); break;
 			case EVectorVMOp::composew: FVectorKernelCompose<3, 3, 3, 3>::Exec(Context); break;
 			case EVectorVMOp::lessthan: FVectorKernelLessThan::Exec(Context); break;
-			case EVectorVMOp::sample: FVectorKernelSample::Exec(Context); break;
-			case EVectorVMOp::bufferwrite: FVectorKernelBufferWrite::Exec(Context); break;
 			case EVectorVMOp::easein: FVectorKernelEaseIn::Exec(Context); break;
 			case EVectorVMOp::easeinout: FVectorKernelEaseInOut::Exec(Context); break;
 			case EVectorVMOp::aquireshareddataindex: FKernelSharedDataGetAppendIndex::Exec(Context); break;

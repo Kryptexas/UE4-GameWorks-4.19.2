@@ -18,6 +18,129 @@ extern int32 GIndirectLightingCache;
 /** Whether some GBuffer targets are optional. */
 extern bool UseSelectiveBasePassOutputs();
 
+class FForwardLocalLightData
+{
+public:
+	FVector4 LightPositionAndInvRadius;
+	FVector4 LightColorAndFalloffExponent;
+	FVector4 LightDirectionAndShadowMapChannelMask;
+	FVector4 SpotAnglesAndSourceRadius;
+};
+
+/** Parameters for computing forward lighting. */
+class FForwardLightingParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		ForwardGlobalLightData.Bind(ParameterMap, TEXT("ForwardGlobalLightData"));
+		ForwardLocalLightBuffer.Bind(ParameterMap, TEXT("ForwardLocalLightBuffer"));
+		NumCulledLightsGrid.Bind(ParameterMap, TEXT("NumCulledLightsGrid"));
+		CulledLightDataGrid.Bind(ParameterMap, TEXT("CulledLightDataGrid"));
+		LightAttenuationTexture.Bind(ParameterMap, TEXT("LightAttenuationTexture"));
+		LightAttenuationTextureSampler.Bind(ParameterMap, TEXT("LightAttenuationTextureSampler"));
+		IndirectOcclusionTexture.Bind(ParameterMap, TEXT("IndirectOcclusionTexture"));
+		IndirectOcclusionTextureSampler.Bind(ParameterMap, TEXT("IndirectOcclusionTextureSampler"));
+	}
+
+	template<typename ShaderRHIParamRef>
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, FShader* Shader, const FViewInfo& View)
+	{
+		//@todo - put all of these in a shader resource table
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, ForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
+		SetSRVParameter(RHICmdList, ShaderRHI, ForwardLocalLightBuffer, View.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
+		NumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NumCulledLightsGrid);
+		CulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->CulledLightDataGrid);
+
+		if (LightAttenuationTexture.IsBound() || IndirectOcclusionTexture.IsBound())
+		{
+			FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				LightAttenuationTexture,
+				LightAttenuationTextureSampler,
+				TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(),
+				SceneRenderTargets.GetEffectiveLightAttenuationTexture(true)
+				);
+
+			IPooledRenderTarget* IndirectOcclusion = SceneRenderTargets.ScreenSpaceAO;
+
+			if (!SceneRenderTargets.bScreenSpaceAOIsValid)
+			{
+				IndirectOcclusion = GSystemTextures.WhiteDummy;
+			}
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				IndirectOcclusionTexture,
+				IndirectOcclusionTextureSampler,
+				TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(),
+				IndirectOcclusion->GetRenderTargetItem().ShaderResourceTexture
+				);
+		}
+	}
+
+	template<typename ShaderRHIParamRef>
+	void UnsetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View)
+	{
+		NumCulledLightsGrid.UnsetUAV(RHICmdList, ShaderRHI);
+		CulledLightDataGrid.UnsetUAV(RHICmdList, ShaderRHI);
+
+		TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<2>> OutUAVs;
+
+		if (NumCulledLightsGrid.IsBound())
+		{
+			OutUAVs.Add(View.ForwardLightingResources->NumCulledLightsGrid.UAV);
+		}
+
+		if (CulledLightDataGrid.IsBound())
+		{
+			OutUAVs.Add(View.ForwardLightingResources->CulledLightDataGrid.UAV);
+		}
+
+		if (OutUAVs.Num() > 0)
+		{
+			RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, OutUAVs.GetData(), OutUAVs.Num());
+		}
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("LOCAL_LIGHT_DATA_STRIDE"), FMath::DivideAndRoundUp<int32>(sizeof(FForwardLocalLightData), sizeof(FVector4)));
+		extern int32 NumCulledLightsGridStride;
+		OutEnvironment.SetDefine(TEXT("NUM_CULLED_LIGHTS_GRID_STRIDE"), NumCulledLightsGridStride);
+	}
+
+	/** Serializer. */
+	friend FArchive& operator<<(FArchive& Ar,FForwardLightingParameters& P)
+	{
+		Ar << P.ForwardGlobalLightData;
+		Ar << P.ForwardLocalLightBuffer;
+		Ar << P.NumCulledLightsGrid;
+		Ar << P.CulledLightDataGrid;
+		Ar << P.LightAttenuationTexture;
+		Ar << P.LightAttenuationTextureSampler;
+		Ar << P.IndirectOcclusionTexture;
+		Ar << P.IndirectOcclusionTextureSampler;
+		return Ar;
+	}
+
+private:
+
+	FShaderUniformBufferParameter ForwardGlobalLightData;
+	FShaderResourceParameter ForwardLocalLightBuffer;
+	FRWShaderParameter NumCulledLightsGrid;
+	FRWShaderParameter CulledLightDataGrid;
+	FShaderResourceParameter LightAttenuationTexture;
+	FShaderResourceParameter LightAttenuationTextureSampler;
+	FShaderResourceParameter IndirectOcclusionTexture;
+	FShaderResourceParameter IndirectOcclusionTextureSampler;
+};
+
 /** Parameters needed for looking up into translucency lighting volumes. */
 class FTranslucentLightingVolumeParameters
 {
@@ -515,6 +638,8 @@ public:
 			const int32 VelocityIndex = 4; // As defined in BasePassPixelShader.usf
 			OutEnvironment.SetRenderTargetOutputFormat(VelocityIndex, PF_G16R16);
 		}
+
+		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	/** Initialization constructor. */
@@ -525,8 +650,8 @@ public:
 		ReflectionParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 		EditorCompositeParams.Bind(Initializer.ParameterMap);
-		LightGrid.Bind(Initializer.ParameterMap,TEXT("LightGrid"));
 		DownsampleFactorFromSceneBufferSize.Bind(Initializer.ParameterMap, TEXT("DownsampleFactorFromSceneBufferSize"));
+		ForwardLightingParameters.Bind(Initializer.ParameterMap);
 	}
 	TBasePassPixelShaderPolicyParamType() {}
 
@@ -544,18 +669,17 @@ public:
 
 		FMeshMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialRenderProxy, MaterialResource, *View, TextureMode);
 
-		if (View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
-		{
-			ReflectionParameters.Set(RHICmdList, ShaderRHI, View);
+		ReflectionParameters.Set(RHICmdList, ShaderRHI, View);
 
-			if (IsTranslucentBlendMode(BlendMode))
-			{
-				SetShaderValue(RHICmdList, ShaderRHI, DownsampleFactorFromSceneBufferSize, DownsampleFactorFromSceneBufferSizeValue);
-				TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
-			}
+		if (IsTranslucentBlendMode(BlendMode))
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, DownsampleFactorFromSceneBufferSize, DownsampleFactorFromSceneBufferSizeValue);
+			TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
 		}
 		
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
+
+		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, this, *View);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode);
@@ -567,8 +691,8 @@ public:
 		Ar << ReflectionParameters;
 		Ar << TranslucentLightingParameters;
  		Ar << EditorCompositeParams;
-		Ar << LightGrid;
 		Ar << DownsampleFactorFromSceneBufferSize;
+		Ar << ForwardLightingParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -576,8 +700,8 @@ private:
 	FBasePassReflectionParameters ReflectionParameters;
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FEditorCompositingParameters EditorCompositeParams;
-	FShaderResourceParameter LightGrid;
 	FShaderParameter DownsampleFactorFromSceneBufferSize;
+	FForwardLightingParameters ForwardLightingParameters;
 };
 
 /**
@@ -831,12 +955,17 @@ public:
 
 		if (UseDebugViewPS())
 		{
-			// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
-			if (View->Family->EngineShowFlags.ShaderComplexity && IsTranslucentBlendMode(BlendMode))
+			if (IsTranslucentBlendMode(BlendMode))
 			{
-				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
+				if (View->Family->EngineShowFlags.ShaderComplexity)
+				{	// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
+				}
+				else if (View->Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
+				{	// Otherwise, force translucent blend mode (shaders will use an hardcoded alpha).
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+				}
 			}
-
 			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
@@ -960,7 +1089,7 @@ public:
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}
 
-		if (bEnableReceiveDecalOutput)
+		if (bEnableReceiveDecalOutput && !UseDebugViewPS())
 		{
 			// Set stencil value for this draw call
 			// This is effectively extending the GBuffer using the stencil bits

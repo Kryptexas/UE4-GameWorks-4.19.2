@@ -796,6 +796,7 @@ FLightPropagationVolume::FLightPropagationVolume() :
 	, SecondaryBounceStrength( 0.0f )
 	, CubeSize( 5312.0f )
 	, bEnabled( false )
+	, bDirectionalOcclusionEnabled( false )
 	, bGeometryVolumeNeeded( false )
 	, mWriteBufferIndex( 0 )
 	, bNeedsBufferClear( true )
@@ -932,11 +933,12 @@ void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList,
 	Strength	 = LPVSettings.LPVIntensity;
 	bEnabled     = Strength > 0.0f;
 	CubeSize	 = LPVSettings.LPVSize;
+	bDirectionalOcclusionEnabled = bEnabled && ( LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f );
 
-	SecondaryOcclusionStrength =LPVSettings.LPVSecondaryOcclusionIntensity;
-	SecondaryBounceStrength =LPVSettings.LPVSecondaryBounceIntensity;
+	SecondaryOcclusionStrength = LPVSettings.LPVSecondaryOcclusionIntensity;
+	SecondaryBounceStrength = LPVSettings.LPVSecondaryBounceIntensity;
 
-	bGeometryVolumeNeeded =LPVSettings.LPVSecondaryOcclusionIntensity > 0.001f ||LPVSettings.LPVDirectionalOcclusionIntensity > 0.001;
+	bGeometryVolumeNeeded = LPVSettings.LPVSecondaryOcclusionIntensity > 0.001f || bDirectionalOcclusionEnabled;
 	GeometryVolumeGenerated = false;
 
 	if ( !bEnabled )

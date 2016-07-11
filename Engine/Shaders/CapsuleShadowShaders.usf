@@ -332,55 +332,61 @@ uint CullCapsuleShapesToTile(
 		#endif
 
 		float4 SphereCenterAndRadius = ShadowCapsuleShapes[ShapeIndex * 2];
+		float3 TransformedSphereCenter = SphereCenterAndRadius.xyz;
+		float TransformedSphereRadius = SphereCenterAndRadius.w;
+		float3 TransformedTileBoundingSphereCenter0 = TileCullingData0.BoundingSphere.xyz;
+		float3 TransformedTileBoundingSphereCenter1 = TileCullingData1.BoundingSphere.xyz;
 
 		#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_FROM_RECEIVER
-
 			float3 TransformedConeAxis0 = ConeAxis0;
 			float3 TransformedConeAxis1 = ConeAxis1;
-			float3 TransformedTileBoundingSphereCenter0 = TileCullingData0.BoundingSphere.xyz;
-			float3 TransformedTileBoundingSphereCenter1 = TileCullingData1.BoundingSphere.xyz;
-			float3 TransformedSphereCenter = SphereCenterAndRadius.xyz;
+		#endif
 
-			#if USE_SCALED_SPHERE_INTERSECTION
+		#if USE_SCALED_SPHERE_INTERSECTION
 			
-				float4 CapsuleCenterAndRadius = SphereCenterAndRadius;
-				float4 CapsuleOrientationAndLength = ShadowCapsuleShapes[ShapeIndex * 2 + 1];
+			float4 CapsuleCenterAndRadius = SphereCenterAndRadius;
+			float4 CapsuleOrientationAndLength = ShadowCapsuleShapes[ShapeIndex * 2 + 1];
 
-				float3 CapsuleSpaceX;
-				float3 CapsuleSpaceY;
-				float3 CapsuleSpaceZ = CapsuleOrientationAndLength.xyz;
-				GenerateCoordinateSystem(CapsuleSpaceZ, CapsuleSpaceX, CapsuleSpaceY);
+			float3 CapsuleSpaceX;
+			float3 CapsuleSpaceY;
+			float3 CapsuleSpaceZ = CapsuleOrientationAndLength.xyz;
+			GenerateCoordinateSystem(CapsuleSpaceZ, CapsuleSpaceX, CapsuleSpaceY);
 
-				// Scale required along the capsule's axis to turn it into a sphere (assuming it was originally a scaled sphere instead of a capsule)
-				float CapsuleZScale = CapsuleCenterAndRadius.w / (.5f * CapsuleOrientationAndLength.w + CapsuleCenterAndRadius.w);
-				CapsuleSpaceZ *= CapsuleZScale;
+			// Scale required along the capsule's axis to turn it into a sphere (assuming it was originally a scaled sphere instead of a capsule)
+			float CapsuleZScale = CapsuleCenterAndRadius.w / (.5f * CapsuleOrientationAndLength.w + CapsuleCenterAndRadius.w);
+			CapsuleSpaceZ *= CapsuleZScale;
 
-				// The capsule is centered at 0 in the scaled sphere space
-				TransformedSphereCenter = 0;
+			// The capsule is centered at 0 in the scaled sphere space
+			TransformedSphereCenter = 0;
 
-				// Transform the sphere center and cone axis into the scaled sphere space
-				float3 CapsuleCenterToTileCenter0 = TileCullingData0.BoundingSphere.xyz - CapsuleCenterAndRadius.xyz;
-				TransformedTileBoundingSphereCenter0 = float3(dot(CapsuleCenterToTileCenter0, CapsuleSpaceX), dot(CapsuleCenterToTileCenter0, CapsuleSpaceY), dot(CapsuleCenterToTileCenter0, CapsuleSpaceZ));
+			// After scaling along the capsule axis it will become a sphere with the original radius
+			TransformedSphereRadius = SphereCenterAndRadius.w;
+
+			// Transform the sphere center and cone axis into the scaled sphere space
+			float3 CapsuleCenterToTileCenter0 = TileCullingData0.BoundingSphere.xyz - CapsuleCenterAndRadius.xyz;
+			TransformedTileBoundingSphereCenter0 = float3(dot(CapsuleCenterToTileCenter0, CapsuleSpaceX), dot(CapsuleCenterToTileCenter0, CapsuleSpaceY), dot(CapsuleCenterToTileCenter0, CapsuleSpaceZ));
 			
-				float3 CapsuleCenterToTileCenter1 = TileCullingData1.BoundingSphere.xyz - CapsuleCenterAndRadius.xyz;
-				TransformedTileBoundingSphereCenter1 = float3(dot(CapsuleCenterToTileCenter1, CapsuleSpaceX), dot(CapsuleCenterToTileCenter1, CapsuleSpaceY), dot(CapsuleCenterToTileCenter1, CapsuleSpaceZ));
+			float3 CapsuleCenterToTileCenter1 = TileCullingData1.BoundingSphere.xyz - CapsuleCenterAndRadius.xyz;
+			TransformedTileBoundingSphereCenter1 = float3(dot(CapsuleCenterToTileCenter1, CapsuleSpaceX), dot(CapsuleCenterToTileCenter1, CapsuleSpaceY), dot(CapsuleCenterToTileCenter1, CapsuleSpaceZ));
 
+			#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_FROM_RECEIVER
 				// Renormalize the cone axis as it went through a non-uniformly scaled transform
 				TransformedConeAxis0 = normalize(float3(dot(ConeAxis0, CapsuleSpaceX), dot(ConeAxis0, CapsuleSpaceY), dot(ConeAxis0, CapsuleSpaceZ)));
 				TransformedConeAxis1 = normalize(float3(dot(ConeAxis1, CapsuleSpaceX), dot(ConeAxis1, CapsuleSpaceY), dot(ConeAxis1, CapsuleSpaceZ)));
-
-			#else
-				float CapsuleLength = ShadowCapsuleShapes[ShapeIndex * 2 + 1].w;
-
-				// Add half capsule length to bounding sphere
-				SphereCenterAndRadius.w += .5f * CapsuleLength;
 			#endif
+
+		#else
+
+			float CapsuleLength = ShadowCapsuleShapes[ShapeIndex * 2 + 1].w;
+
+			// Add half capsule length to bounding sphere
+			TransformedSphereRadius = SphereCenterAndRadius.w + .5f * CapsuleLength;
 		#endif
 
 		BRANCH
-		if (SphereIntersectSphere(float4(SphereCenterAndRadius.xyz, SphereCenterAndRadius.w + MaxOcclusionDistance), TileCullingData0.BoundingSphere)
+		if (SphereIntersectSphere(float4(TransformedSphereCenter, TransformedSphereRadius + MaxOcclusionDistance), float4(TransformedTileBoundingSphereCenter0, TileCullingData0.BoundingSphere.w))
 			#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_FROM_RECEIVER
-			&& SphereIntersectConeWithMaxDistance(float4(TransformedSphereCenter, SphereCenterAndRadius.w + TileCullingData0.BoundingSphere.w), TransformedTileBoundingSphereCenter0, TransformedConeAxis0, ConeAngleCos0, ConeAngleSin0, MaxOcclusionDistance)
+				&& SphereIntersectConeWithMaxDistance(float4(TransformedSphereCenter, TransformedSphereRadius + TileCullingData0.BoundingSphere.w), TransformedTileBoundingSphereCenter0, TransformedConeAxis0, ConeAngleCos0, ConeAngleSin0, MaxOcclusionDistance)
 			#endif
 			)
 		{
@@ -392,9 +398,9 @@ uint CullCapsuleShapesToTile(
 		}
 
 		BRANCH
-		if (SphereIntersectSphere(float4(SphereCenterAndRadius.xyz, SphereCenterAndRadius.w + MaxOcclusionDistance), TileCullingData1.BoundingSphere)
+		if (SphereIntersectSphere(float4(TransformedSphereCenter, TransformedSphereRadius + MaxOcclusionDistance), float4(TransformedTileBoundingSphereCenter1, TileCullingData1.BoundingSphere.w))
 			#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_FROM_RECEIVER
-			&& SphereIntersectConeWithMaxDistance(float4(TransformedSphereCenter, SphereCenterAndRadius.w + TileCullingData1.BoundingSphere.w), TransformedTileBoundingSphereCenter1, TransformedConeAxis1, ConeAngleCos1, ConeAngleSin1, MaxOcclusionDistance)
+				&& SphereIntersectConeWithMaxDistance(float4(TransformedSphereCenter, TransformedSphereRadius + TileCullingData1.BoundingSphere.w), TransformedTileBoundingSphereCenter1, TransformedConeAxis1, ConeAngleCos1, ConeAngleSin1, MaxOcclusionDistance)
 			#endif
 			)
 		{
@@ -678,7 +684,7 @@ void CapsuleShadowingCS(
 #endif
 	}
 
-#if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE
+#if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE && !FORWARD_SHADING
 	BRANCH
 	if (ReduceSelfShadowingIntensity > 0)
 	{
@@ -793,8 +799,7 @@ void CapsuleShadowingUpsamplePS(
 
 	if (OutputtingToLightAttenuation > 0)
 	{
-		OutColor.xy = 1;
-		OutColor.zw = EncodeLightAttenuation(Output).xx;
+		OutColor = EncodeLightAttenuation(Output).xxxx;
 	}
 	else
 	{

@@ -302,7 +302,7 @@ static void UpdateSceneCaptureContent_RenderThread(
 			SCOPED_DRAW_EVENT(RHICmdList, FlipCapture);
 			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FlippedRenderTarget.GetTextureParamRef(), true);
 		}
-		else if (!FSceneInterface::ShouldUseDeferredRenderer(View.GetFeatureLevel()))
+		else if (FSceneInterface::GetShadingPath(View.GetFeatureLevel()) == EShadingPath::Mobile)
 		{
 			// Copy the captured scene into the destination texture
 			SCOPED_DRAW_EVENT(RHICmdList, CaptureSceneColor);

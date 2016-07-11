@@ -414,11 +414,12 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 {
 	// Indirect occlusion from DFAO, which should be applied to reflection captures and skylight specular, but not SSR
 	float IndirectSpecularOcclusion = 1.0f;
+	float3 ExtraIndirectSpecular = 0;
 
 #if SUPPORT_DFAO_INDIRECT_OCCLUSION
 	float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 	float IndirectDiffuseOcclusion;
-	GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion);
+	GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion, ExtraIndirectSpecular);
 	// Apply DFAO to IndirectIrradiance before mixing with indirect specular
 	IndirectIrradiance *= IndirectDiffuseOcclusion;
 #endif
@@ -523,7 +524,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 			SkyLighting *= IndirectIrradiance;
 		}
 
-		Color.rgb += Color.a * SkyLighting * IndirectSpecularOcclusion;
+		Color.rgb += Color.a * (SkyLighting * IndirectSpecularOcclusion + ExtraIndirectSpecular);
 	}
 #endif
 }

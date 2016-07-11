@@ -10,6 +10,7 @@
 
 float4 AccuracyColors[5];
 float CPUTexelFactor; // In world space units.
+float PrimitiveAlpha;
 
 // Needed because UAV accesses disable early depth test otherwises.
 EARLYDEPTHSTENCIL
@@ -43,5 +44,5 @@ void Main(
 		Result = lerp(AccuracyColors[ColorIndex].rgb, AccuracyColors[ColorIndex + 1].rgb, frac(Accuracy));
 	}
 
-	OutColor = RETURN_COLOR(float4(Result, .25f));
+	OutColor = RETURN_COLOR(float4(Result, PrimitiveAlpha));
 }

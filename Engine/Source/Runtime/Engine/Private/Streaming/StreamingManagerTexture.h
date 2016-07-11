@@ -247,7 +247,7 @@ protected:
 	/** Cached from the system settings. */
 	int32 NumStreamedMips[TEXTUREGROUP_MAX];
 
-	float MipBias;
+	FTextureStreamingSettings Settings;
 
 	/** Async work for calculating priorities for all textures. */
 	FAsyncTask<FAsyncTextureStreamingTask>*	AsyncWork;
@@ -300,7 +300,7 @@ protected:
 	bool bPauseTextureStreaming;
 
 	/** Last time all data were fully updated. Instances are considered visible if they were rendered between that last time and the current time. */
-	float LastUpdateTime;
+	float LastWorldUpdateTime;
 
 	FTextureStreamingStats DisplayedStats;
 	FTextureStreamingStats GatheredStats;

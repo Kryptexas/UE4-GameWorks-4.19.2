@@ -225,6 +225,7 @@ public:
 typedef TMap<UMaterialInterface*, TArray<FMaterialTexCoordBuildInfo> > FTexCoordScaleMap;
 
 /** Build the shaders required for the texture streaming build. Returns whether or not the action was successful. */
-ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, FSlowTask& BuildTextureStreamingTask);
+ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
+ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
 ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FSlowTask& BuildTextureStreamingTask);
 extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;

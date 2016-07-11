@@ -23,6 +23,7 @@
 #include "MeshBoneReduction.h"
 #include "MeshMergeData.h"
 #include "Editor/EditorPerProjectUserSettings.h"
+#include "GPUSkinVertexFactory.h"
 
 #include "Landscape.h"
 #include "LandscapeProxy.h"
@@ -4551,8 +4552,8 @@ public:
 		SkeletalMeshTools::BuildSkeletalMeshChunks(BuildData.Faces, RawVertices, VertIndexAndZ, BuildData.BuildOptions.bKeepOverlappingVertices, BuildData.Chunks, BuildData.bTooManyVerts);
 
 		// Chunk vertices to satisfy the requested limit.
-		static const auto MaxBonesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.MAX_GPUSKIN_BONES"));
-		const int32 MaxGPUSkinBones = MaxBonesVar->GetValueOnAnyThread();
+		const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
+		check(MaxGPUSkinBones <= FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones);
 		SkeletalMeshTools::ChunkSkinnedVertices(BuildData.Chunks, MaxGPUSkinBones);
 
 		EndSlowTask();
