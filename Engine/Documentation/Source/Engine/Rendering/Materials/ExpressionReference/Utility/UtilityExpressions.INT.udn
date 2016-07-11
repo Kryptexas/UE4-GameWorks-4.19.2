@@ -234,12 +234,14 @@ The **Noise** expression creates a procedural noise field, giving you control ov
 | [REGION:tablesection]Properties[/REGION] ||
 | **Scale** | Changes the overall size of the noise cells. Lower numbers make the noise bigger. |
 | **Quality** | A look/performance setting. 0 is fast. Higher values are slower but may look better. |
-| **Function** | Controls the type of noise being calculated. Options include Simplex, Perlin, and Gradient. |
+| **Function** | Controls the type of noise being calculated. Options include texture-based and purely computational versions of Simplex, Gradient, and Value noise. |
 | **Turbulence** | Whether or not to calculate multiple levels of noise on top of one another. |
 | **Levels** | How many different levels of noise are combined. Only useful is Turbulence is active. |
 | **Output Min** | The lowest value output by the noise calculation. |
 | **Output Max** | The highest value output by the noise calculation. |
 | **Level Scale** | Controls the scale of individual levels when Turbulence is active. This defaults to 2, but higher values can result in more efficient use of low numbers of levels.
+| **Tiling** | For noise functions that support it, allows noise to tile. This is more expensive, but useful when baking noise into a seamless wrapping texture. |
+| **Repeat Size** | When tiling, how often should the noise repeat? |
 || [REGION:tablesection]Inputs[/REGION] ||
 | **Position** | Allows the texture size to be adjusted via a 3D vector. |
 | **FilterWidth** | In effect, controls how much blur will be applied to the noise texture. |
