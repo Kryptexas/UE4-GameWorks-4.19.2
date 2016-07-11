@@ -1,27 +1,27 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011466
 Availability:Public
-Title:Game Flow Overview
+Title:游戏流程总览
 Crumbs:%ROOT%, Gameplay/Framework
-Description:The process of starting the engine and launching a game or play-in-editor session.
-Version: 4.12
+Description:启动引擎，运行游戏或 play-in-editor 会话的过程。
+Version:4.12
 type:reference
 parent:Gameplay/Framework
 order:5
 tags:Gameplay Framework
 
-This document explains the process of starting the engine and launching a game. There are two main paths shown here: the editor path, and the standalone path. The general order of events is to initialize the engine, create and initialize a **GameInstance**, then load a level, and finally start playing. However, there are differences between standalone and editor modes, both in terms of the exact order of some of the functions that are called, and in which functions are called. The flowchart below shows the two paths running in parallel until they converge at the start of the game.
+此文档解释启用引擎和运行游戏的过程。此处说明两种主要路径：编辑器路径、standalone 路径。事件的一般顺序为初始化引擎、创建并初始化 **GameInstance**、加载关卡，最后开始游戏。然而在部分被调用函数的准确排序和函数被调用的位置方面，standalone 模式和编辑器模式之间存在差异。以下流程图展示两个平行运行的路径，它们在游戏开始之前汇聚。
 
-## Game Flow Breakdown
+## 游戏流程详解
 
 [![](GameFlowChart.png)(w:320)](GameFlowChart.png)
 [REGION:caption]
-Click to view full size image
+点击查看全图
 [/REGION]
 
 ## Standalone
 
-In Standalone mode, which is the mode used by games played outside of the editor, the objects needed to play the game are created and initialized immediately following engine initialization on startup. Objects such as the **GameInstance** are created and initialized before starting the engine (distinct from creating and initializing the Engine), and the starting map is loaded immediately after the engine's start function is called. Gameplay officially begins at that point with the level creating the appropriate [](Gameplay/Framework/GameMode), and then the other [](Programming/UnrealArchitecture/Actors).
+在 Standalone 模式中（在编辑器外进行的游戏使用该模式），引擎启动和初始化之后将立即对进行游戏所需的对象进行创建和初始化。诸如 **GameInstance** 之类的对象在引擎启用之前被创建和初始化（与创建和初始化引擎不同）。引擎的启动函数被调用后，将立即加载初始地图。关卡创建适当的 [](Gameplay/Framework/GameMode)，然后创建其他 [](Programming/UnrealArchitecture/Actors) 后，游戏进程便正式开始。
 
-## Editor
+## 编辑器
 
-In Editor mode, which is used by **Play In Editor** and **Simulate In Editor**, a different flow is used. The engine initializes and starts immediately, as it is needed to run the editor, but creation and initialization of objects such as the **GameInstance** are deferred until the user presses the button to launch the PIE or SIE session. In addition, the [](Programming/UnrealArchitecture/Actors) in the level are duplicated so that in-game changes do not affect the level in the editor, and every object, including the **GameInstance** object, has a separate copy for each PIE instance. The editor path rejoins the standalone path with the beginning of gameplay in the **UWorld** class.
+编辑器模式由 **Play In Editor** 和 **Simulate In Editor** 使用，流程完全不同。引擎立即初始化并启动，因为需要它运行编辑器，但诸如 **GameInstance** 之类对象的创建和初始化将被延迟，直到玩家按下按钮启动 PIE 或 SIE 会话。此外，关卡中的 [](Programming/UnrealArchitecture/Actors) 将被复制，使游戏中的变更不影响编辑器中的关卡，每个对象（包括 **GameInstance**）均有每个 PIE 实例的单独副本。在 **UWorld** 类中游戏进程开始时，编辑器路径和 standalone 路径再次结合。

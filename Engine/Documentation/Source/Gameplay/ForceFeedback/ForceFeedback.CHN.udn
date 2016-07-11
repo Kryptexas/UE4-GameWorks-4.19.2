@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2862698
 Availability:Public
-Title: Force Feedback
+Title:力反馈
 Crumbs:
-Description: Using the vibration functionality of mobile devices and controllers to convey a force occuring in the game to the player.
+Description:使用移动设备和控制器的震动功能将游戏中的力传达给玩家。
 Parent:Gameplay
 
 [VAR:Topic]
@@ -41,82 +41,82 @@ Parent:Gameplay
 
 [TOC]
 
-**Force Feedback** (sometimes referred to as rumble or haptic feedback) refers to the vibrating of a device or controller used in games to convey a force occuring in the game to the player. A simple example is when an explosion occurs in the game and force feedback is used to simulate the shockwave, which gives an additional dimension to the immersion.
+**力反馈（Force Feedback）** 指的是游戏设备或控制器通过震动将游戏中的力传达给玩家。举一个简单的例子：游戏中发生爆炸，力反馈用于模拟冲击波，形成另一个层面的代入感。
 
-Once implemented, Force Feedback will work on all platforms where it is supported. This includes iOS (as of 4.10), Android, and controllers.
+应用之后即可在支持的所有平台上实现力反馈。支持平台包括 iOS（从 4.10 起）、安卓，以及各种控制器。
 
-## Force Feedback Effect Assets
+## 力反馈效果资源
 
-A **Force Feedback Effect Asset** contains the properties used to define a specific force feedback effect. This enables designers to customize the force feedback to each situation it is used in.
+**力反馈效果资源（Force Feedback Effect Asset）** 包含用于定义特定力反馈效果的属性。设计师可通过它自定义不同状况下的力反馈。
 
 ![image alt text](image_0.png)(w:640 convert:false)
 
-Each Force Feedback Effect can have multiple channels, each of which can play a diferent effect. For instance, one channel could play one large, long vibration on the right side of the controller while a second channel could play small, short bursts on the left side. The pattern of the effect for each channel is controlled by a curve.
+每个力反馈效果可拥有多个通道，每个通道可拥有不同效果。例如：一个通道是控制器右侧长时间的强烈震动，而另一个通道是控制器左侧短促的轻微震动。每个通道效果的模式由曲线进行控制。
 
-The duration of the force feedback effect will be calculated automatically, based on the position of the last key in the curves for all channels. For example, if there are 3 channels and the last key in each is at 1.25, 1.5, and 1.75, then the duration for the overall effect will be 1.75.
+力反馈效果的持续时间基于所有通道曲线中最后一个键的位置自动进行计算。例如三个通道中最后一个键的位置分别为 1.25、1.5 和 1.75，则整体效果的持续时间为 1.75。
 
-### Channel Properties
+### 通道属性
 
-Each channel has the following properties that control how the effect for the channel is played.
+以下通道属性控制通道效果的播放方式。
 
-| Item | Description |
+| 项目 | 描述 |
 | ---- | ----------- |
-| **Affects Left Large** | If true, the left large motor will be used to play the effect. |
-| **Affects Left Small** | If true, the left small motor will be used to play the effect. |
-| **Affects Right Large** | If true, the right large motor will be used to play the effect. |
-| **Affects Right Large** | If true, the right small motor will be used to play the effect. |
-| **Curve** | A curve that controls the intensity of the effect over time. In other words, this defines the pattern of the vibration. Values above 0.5 will vibrate, while values below 0.5 will not vibrate. |
+| **Affects Left Large** | 如为 true，将使用左侧大马达播放效果。|
+| **Affects Left Small** | 如为 true，将使用左侧小马达播放效果。|
+| **Affects Right Large** | 如为 true，将使用右侧大马达播放效果。|
+| **Affects Right Small** | 如为 true，将使用右侧小马达播放效果。|
+| **Curve** | 随时间控制效果强度的曲线。换言之，它定义震动的模式。数值高于 0.5，则出现震动；数值低于 0.5 时不会出现震动。|
 
-## Creating a Force Feedback Effect Asset
+## 创建力反馈效果资源
 
-Force Feedback Effect assets are created using the **Content Browser**:
+使用 **内容浏览器** 创建力反馈效果资源：
 
-1. In the **Content Browser**, click **Add New** and choose **Miscellaneous > Force Feedback Effect**. By default, the asset will have one channel, but you can add more.
+1. 在 **内容浏览器** 中点击 **Add New** 并选择 **Miscellaneous > Force Feedback Effect**。资源默认包含一个通道，但可进行添加。
 
-1. Select whether the force feedback affects the left and/or right of the device, as well as whether it's large or small on either side.
+1. 选择力反馈效果影响设备的左侧和/或右侧，以及每侧的强弱。
 
-1. Hold **Shift** and click the **Left Mouse Button** on the curve to add one or more keys.
+1. 长按 **Shift** 并在曲线上点击 **鼠标左键** 添加一个或多个键。
 
 	![](curve.png)(convert:false)
 
-1. Manipulate the keys by entering values directly or dragging them in the curve editor.
+1. 直接输入键的值，或将键拖入曲线编辑器中进行操作。
 
 	[REGION:note]
-	Unlike in other curve editors, the keys can only be connected by straight lines. 
+	和其他曲线编辑器不同的是，此处的键只能以直线连接。 
 	[/REGION]
 
-## Playing Force Feedback
+## 播放力反馈
 
-Force Feedback is implemented in the base PlayerController class. You will need access to the local Player Controller in order to play the force feedback on the target device or controller.
+力反馈在基础 PlayerController 类中实现。需要访问本地 Player Controller，以便在目标设备或控制器上播放力反馈。
 
-**Playing Force Feedback in Blueprints:**
+**在蓝图中播放力反馈：**
 
-1. Get a reference to your Player Controller, either with a **Get Player Controller** node or a saved reference.
+1. 通过 **Get Player Controller** 节点或保存的引用为玩家控制器设置一个引用。
 
 	![](effect_controller.png)(w:640)
 
-1. Drag off of the output pin of the reference, then type _Play Force Feedback_ into the context menu and select **Client Play Force Feedback**.
+1. 从引用的输出引脚引出连线，然后在快捷菜单中输入 _Play Force Feedback_，然后选择 **Client Play Force Feedback**。
 
 	![](effect_play.png)(w:640)
 
 	[REGION:note]
-	The force feedback will be replicated to the owning client if called on the server.
+	如在服务器上调用，力反馈将被复制到拥有的客户端。
 	[/REGION]
 
-1. Specify the Force Feedback Effect to use directly on the node or with a connected variable.
+1. 直接在节点上（或使用连接的变量）指定使用的力反馈效果。
 
 	![](effect_select.png)(w:640)
 
-1. Check **Looping** if you want the effect to loop.
+1. 如需循环效果，勾选 **Looping**。
 
 	![](effect_looping.png)(w:640)
 
-1. Optionally, set a tag for the effect. The tag allows you to stop the effect; if an effect with the same tag is already playing, it will be stopped and the new effect will play instead.
+1. 还可为效果设置一个标签。通过标签可停止效果；如带有相同标签的效果已在播放，它将停止播放此效果并播放新的效果。
 
 	![](effect_tag.png)(w:640)
 
-**Playing Force Feedback in C++:**
+**在 C++ 中播放力反馈：**
 
-Call [](API:APlayerController::ClientPlayForceFeedback) on the local Player Controller, passing it the Force Feedback Effect to use as well as whether or not the effect should loop, and an optional tag for the effect. The tag allows you to stop the effect; if an effect with the same tag is already playing, it will be stopped and the new effect will play instead.
+在本地 Player Controller 上调用 [](API:APlayerController::ClientPlayForceFeedback)、传递使用的力反馈效果、确定效果是否循环，并为效果选择一个标签。通过标签可停止效果；如带有相同标签的效果已在播放，它将停止播放此效果并播放新的效果。
 
 
