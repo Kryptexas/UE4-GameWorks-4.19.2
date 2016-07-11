@@ -115,6 +115,18 @@ order:8
 	[/PARAM]
 [/OBJECT]
 
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+
 
 
 
