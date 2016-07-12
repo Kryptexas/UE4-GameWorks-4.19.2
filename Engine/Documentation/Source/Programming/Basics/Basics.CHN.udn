@@ -1,14 +1,17 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2744667
 Availability:Public
-Title:Programming Basics
+Title: 编程基础
 Crumbs: %ROOT%, Programming
-Description:Information for programmers developing with Unreal Engine.
+Description: 为程序员准备的使用虚幻引擎进行开发工作的信息。
+related: Programming\UnrealArchitecture\Reference\Classes
+related: Programming\UnrealArchitecture\Reference\Functions
+related: Programming\UnrealArchitecture\Reference\Properties
+related: Programming\UnrealArchitecture\Reference\Structs
+related: Programming\UnrealArchitecture\Reference\Interfaces
+version: 4.9
 
 
-An individual game is defined by a game project that contains all of the code, content, and settings specific to that particular game. Gameplay code is contained within one or more 
-gameplay modules, and each game project must contain at least one module. The content, such as art assets, sounds, etc., is imported into the editor and saved into 
-packages and maps. Configurable settings for the game are defined in [configuration files](Programming/Basics/ConfigurationFiles) which are loaded at startup. Together these form the basis for 
-every game made with Unreal Engine.
+一个游戏项目包括了代码、内容，以及面向该游戏的特定的设置。游戏代码需要包含一个或多个游戏模块，每个游戏项目至少应该具有一个模块。内容的部分，比如美术资源、声音等，是导入到编辑器的资源，并且保存于数据包或者地图中。游戏设置有一些 [配置文件](Programming/Basics/ConfigurationFiles) 定义，并且在游戏启动时就会读取。这些合在一起，便是每个使用虚幻引擎开发的游戏都应该涵盖的最基础的形式。
 
 
 [REGION:raw]
@@ -16,70 +19,42 @@ every game made with Unreal Engine.
 [/REGION]
 
 
-The [Creating a Game Project](Engine/Basics/Projects/Browser#bookmarkcreatingnewprojects) page walks you through the steps of creating a new game project. Once you have created your game project, you should familiarize yourself 
-with the [](Engine/Basics/DirectoryStructure) of the project. This will help you to know what any existing files represent and what goes where when adding new files to the project. You can 
-also supply [](Programming\Basics\CommandLineArguments) when running the editor with your project to do things like jump straight into game preview mode or start on a particular map.
+[新建一个游戏项目](Engine/Basics/Projects/Browser#bookmarkcreatingnewprojects) 页面已经一步步的解释了如何新建一个游戏项目。项目创建后，就应该对项目的 [](Engine/Basics/DirectoryStructure) 比较熟悉。这个信息会帮助了解目录中的一些文件是什么作用，以及如何为项目添加新文件。还可以通过在启动编辑器的时候传入 [](Programming\Basics\CommandLineArguments) 来达到直接进入游戏预览画面或者直接打开某个指定地图的作用。
 
 
-## Modules
+## 模块
 
 [INCLUDE:Programming/Modules/Gameplay#Intro]
 
-See the [](Programming/Modules/Gameplay) page for details on creating and using gameplay modules.
+查阅 [](Programming/Modules/Gameplay) 页面来了解创建和使用游戏模块的详细信息。
 
 
-#### Module APIs
+#### 模块接口（API）
 
-Functions and classes that need to be accessed outside of their module must be exposed via the `*_API` macros. Each item that is exposed comes with a compile-time cost, so be sure to only expose what is needed. If you only need access to a single function in a class, exposing just that function instead of the class can save a significant amount of time when compiling.
+对于一些需要被模块外部访问的函数和类，需要通过 `*_API` 的宏标记出来。每个被暴露在外的单项都会带来编译时间的额外消耗，因此请务必仅暴露出必须暴露的接口。如果外部只需要访问一个类中的某个函数，那么比起暴露整个类而言，仅暴露出这个函数能够节省出相当可观的编译时间。
 
-See the [](Programming/Modules/API) page for more details on exposing classes and functions to other modules.
+查阅 [](Programming/Modules/API) 页面来了解如何将类和函数暴露给其他模块使用。
 
-## Classes
+## 类
 
-Gameplay classes are defined using standard C++ header files and syntax in conjunction with special macros defined in the engine to help with defining aspects of the classes unique to Unreal Engine.
+游戏逻辑的类使用标准的 C++ 头文件来定义，并结合引擎中定义的宏和语法，定义出虚幻引擎能够使用的的一个类。
 
-See the [](Programming/UnrealArchitecture/Reference) for a complete explanation of class structure and creation.
+查阅 [](Programming/UnrealArchitecture/Reference) 来了解类结构的完整说明，以及如何创建。
 
-### Class Implementation
+### 类的实现
 
-At the most fundamental level, an Actor is any gameplay Object that you can place in a level. All Actors extend from the `AActor` class, which is the base class of _spawnable_ gameplay Objects.
+在最最基本的层面上，任意可以被放置到关卡中的游戏物体都是一个 Actor。所有的 Actor 都是继承于 `AActor` 类，该类是所有可生成的游戏对象的基类。
 
-Actors can be thought of, in one sense, as containers that hold special types of Objects called [Components](Programming/UnrealArchitecture/Actors/Components). For instance, a _CameraActor_ contains a _CameraComponent_.
+在某种逻辑层面，Actor 可以被认为维系了一些特殊 Object 的容器，这些特殊 Object 被称为组件（Component）。比如，一个 CameraActor 会包含一个摄像机组件（CameraComponent）。
 
 ![](camera_actor.png)
 
-The functionality of a camera, like the field of view, is all contained within the _CameraComponent_.  That means that the _CameraComponent_ can be included in other Actors, like a Character, 
-to give the same camera functionality to those Objects.
+一个摄像机所具有的功能，比如视野，都是在 _CameraComponent_ 中实现。同时也就是说其他 Actor 同样可以包含  _CameraComponent_，比如 Character，也能具有同样的摄像机的功能。
 
 ![](pawn_actor.png)
 
-Different types of components can be used to control how Actors move, how they are rendered, and many other parts of their functionality. All Objects, including Components, extend from the 
-UObject class, which is the base class of all gameplay Objects.  This means they cannot be directly instanced into the world; they must belong to an Actor.
+不同类型的组件能够用来控制如何使用一个 Actor，如何渲染绘制该 Actor，以及其他诸多功能。所有的对象，包括组件，都是继承于 UObject 类，该类也是所有游戏逻辑代码类的基类（AActor 也继承于 UObject）。但 UObject 类无法直接被放置于场景中并实例化出来，需要放置于场景中并实例化的必须属于一个 Actor。
 
-Each Actor or Object is a single instance of a class.  The class sets up the template for the Actor or Object. It defines the variables that can be set for that Actor or Object, and the functions that
-can be carried out within that Actor or Object.  You can create new classes, or types of Objects and Actors, with C++ code. _Blueprint Classes_ primarily allow you to create classes that set up new Actors, 
-although you can extend a few Objects with _Blueprint Classes_ as well. You can also combine the two, by creating a new C++ class and then making a _Blueprint Class_ derived from that C++ class. To learn more about 
-creating classes so you can make new kinds of Actors and Objects, see the [Class Creation Basics](Gameplay\ClassCreation) page.
+每个 Actor 或 Object 都是类的一个具体实例化对象。类为 Actor 或者 Object 设置了模板，定义了该 Actor 或者 Object 可以用到的变量有哪些，以及能够有哪些函数可以被调用。在 C++ 的代码中可以创建新的 Actor 或者 Object 的类型。而蓝图更多的是用来创建并设置 Acotr 的，当然仍然可以通过蓝图来继承本扩展某些 Object 的功能或属性。如果想要了解更多关于如何新建类，来实现新的 Actor 或者 Object 的话，请查阅 [新建类的基础](Gameplay\ClassCreation) 页面。
 
-For more on Objects, Actors, and Components, see the [](Programming/UnrealArchitecture) documentation.
-
-
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Pages
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\UnrealArchitecture\Reference\Classes)
-	* [](Programming\UnrealArchitecture\Reference\Functions)
-	* [](Programming\UnrealArchitecture\Reference\Properties)
-	* [](Programming\UnrealArchitecture\Reference\Structs)
-	* [](Programming\UnrealArchitecture\Reference\Interfaces)
-	[/PARAM]
-[/OBJECT]
-
-
+关于 Object，Actor 和 Component 的更多信息，请参考 [](Programming/UnrealArchitecture) 文档。
