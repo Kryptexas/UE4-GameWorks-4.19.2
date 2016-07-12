@@ -1,53 +1,53 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Applying Burn Ins
+﻿INTSourceChangelist:3041695
+Availability:Docs
+Title:Burn In（バーンイン、焼き付け）を適用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Shows how you can apply overlays from UMG to rendered Sequencer movies.  
-Version: 4.13
-SkillLevel: Intermediate
+Description:UMG からレンダリングしたシーケンサー ムービーにオーバーレイを適用する方法について説明します。  
+Version:4.13
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-When creating and rendering out cinematic movies, you may want to include overlays with information about the scene you are viewing such as the name of the shot, the date, time or frame information. 
-These overlays are referred to as **Burn Ins** as they are burned into the movie when it is rendered out. 
-Often times you will see this process as part of real world movie making to provide directors, editors or anyone viewing the scene with contextual information about the scene (some will even be watermarked with copyright information). 
+シネマティックス ムービーを作成し、出力する場合、ショット名、日付、時刻、フレーム情報などの表示しているシーンに関する情報を持ったオーバーレイを含めることができます。 
+こうしたオーバーレイは、**Burn In (バーンイン、焼き付け) ** と呼ばれます。出力時にムービーに焼き付けられるからです。 
+多くの場合、現実の映画製作でも、監督、映像編集者やシーンを見ている人に対してその内容に関する情報を示すプロセスがあります (中には版権情報の透かしが入るものもあります)。 
 
-**Sequencer** allows you to apply burn ins to your rendered out movies and provides a default burn in with general information about the shot. 
-In this guide we take a look at how to enable the default burn in options when rendering out your cinematics. 
+**シーケンサー** では、出力したムービーにバーンインを適用できます。ショットに関する一般情報を示すデフォルトのバーンインを利用することができます。 
+このガイドでは、シネマティックスの出力時にデフォルトのバーンイン オプションを有効にする方法を説明します。 
 
 
 [REGION:note]
-For this how-to we are using the **Blueprint Third Person Template** project and have created a small sample cinematic.
+ここでは **Blueprint Third Person Template** プロジェクトを使い、小さなサンプル シネマティックスを作成しました。
 [/REGION]
 
 
-## Steps
+## ステップ
 
-1.	Once you are ready to render out your **Level Sequence**, inside a **Level Sequence** click the **Render Movie** button. 
+1.	**レベル シーケンス** を出力する準備が整ったら、**レベル シーケンス** 内で **[Render Movie (ムービー出力)]** ボタンをクリックします。 
 
 	![](Overlay01.png)
 
-1.	In the **Render Movie Settings** window, click the **Show Advanced** expand button. 
+1.	**[Render Movie Settings (ムービー出力設定)]** ウィンドウで、**[Show Advanced (詳細を表示)]** 拡張ボタンをクリックします。 
 
 	![](Overlay02.png)
 
-1.	Under **Burn in Options**, click the **Burn in Class** dropdown and select **DefaultBurnIn**. 
+1.	**[Burn in Options (バーンイン オプション)]** で、**[Burn in Class (バーンイン クラス)]** ドロップダウンをクリックし、**[DefaultBurnIn (デフォルトのバーンイン)]** を選択します。 
 
 	![](Overlay03.png)
 
-	This will enable the ability to define the burn in settings. 
+	これでバーンイン設定を定義できるようになります。 
 
 	![](Overlay04.png)
 
-1.	Leave the options as default, then click **Capture Movie**. 
+1.	オプションをデフォルトのままにして、**[Capture Movie]** をクリックします。 
 
 
-## End Result
+## 最終結果
 
-When the capturing of your movie is complete, upon playing back your movie you will notice similar overlays applied to the cinematic. 
+ムービーのキャプチャが完了したら、ムービー再生時にシネマティックスに類似のオーバーレイ表示が適用されているのがわかります。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -62,14 +62,14 @@ DRIykPNZBAs
 [/OBJECT]
 
 [REGION:caption]
-You may want to view the video above in full screen or on YouTube to see the overlays more clearly.
+上の動画をフルスクリーンや、 YouTube で見るとオーバーレイ表示が一層クリアに見えます。
 [/REGION]
 
-The Default Burn in applies the name of your Level Sequence across the Top Center followed by the current date. In the Bottom Left, the current Shot Name is applied (or Level Sequence name if no shots are used). 
-The Bottom Center displays the time and frame count for the Master Sequence while the Bottom Right shows the current Shot Frame. 
+デフォルトのバーンインは、上部中央にレベル シーケンス名を、その後に現在の日付を適用します。左下部には、現在のショット名が適用されます (またはショットを使っていない場合は、レベル シーケンス名)。 
+下部中央には、マスター シーケンスの時間とフレーム カウントが表示されます。下部右側には、現在のショット フレームが表示されます。 
 
-Each of these options can be changed to display your own text inside the **Settings** section of the **Burn in Options**. Additionally, you can apply Watermarks or make Font changes within the Default Burn In options. 
-If the default information is not enough for you, you can also take a look at [](Engine\Sequencer\HowTo\CustomBurnIns) to include your desired content. 
+こうした各オプションを変更して、 **[Burn in Options]** の **[Settings]** セクション内で独自のテキストを表示することができます。さらに、デフォルトの Burn In オプションで透かしを適用したり、フォントを変更したりすることができます。 
+デフォルトの情報では不十分な場合は、[](Engine\Sequencer\HowTo\CustomBurnIns) を参照して必要なものを含めてください。 
 
 
 
