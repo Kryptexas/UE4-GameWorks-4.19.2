@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3041566
 Availability:Public
 Title:モバイル プラットフォーム上でのポストプロセス エフェクト
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -13,106 +13,211 @@ tags:mobile
 [TOC(start:2)]
 
 
+モバイルのポストプロセスは、 PC / コンソールでのポストプロセスとは別のコードパスとして実施されます。その結果、依存するテクスチャの読み取り速度の低下、ハードウェア機能の不足、余分なレンダリング ターゲットの転換負荷、全般的なパフォーマンスの低下につながります。ポストプロセス ボリューム (あるいはカメラ アクタ) には以下のカテゴリがあります。
 
-モバイルのポストプロセスは、 PC / コンソールでのポストプロセスとは別のコードパスとして実施されます。その結果、依存するテクスチャの読み取り速度の低下、ハードウェア機能の不足、
-余分なレンダリング ターゲットの転換負荷、全般的なパフォーマンスの低下につながります。ポストプロセス ボリューム (あるいは カメラ アクタ) には以下のカテゴリがあります。
+[region:note]
+プロジェクト設定でモバイル HDR を必ず有効にしてください。以下にあげるほとんどの設定ではエフェクトを使うためにこの設定を有効にする必要があります。
+[/region]
+
+## モバイル デバイス用にトーンマッパを有効にする
+モバイル デバイスで Tonemapper Post Processing オプションを使うためには、**r.tonemapperfilm** の値をデフォルト値の **0** から **1** へ変更する必要があります。アンリアル エンジン (UE4) でトーンマッパの変更や有効無効の切り替えを行うには、以下の手順に従います。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Tonemapper On](Tonemapper_On.png)
+	[/PARAM]
+	[PARAM:after]
+	![Tonemapper Off](Tonemapper_Off.png)
+	[/PARAM]
+[/OBJECT]
 
 
-## Post Process カテゴリ
+### コンソールを使ってトーンマッパ フィルムを有効にする
+トーンマッパを有効にするには、まず **Backtick key(`)** を押してコンソールを開いてから、**r.tonemapperfilm 1** と入力してトーンマッパを有効にします。トーンマッパを無効にするには、コンソールを開いて **r.tonemapperfilm 0** と入力します。 
+
+[region:note]
+このメソッドでは、このセッションのみにトーンマッパを有効にします。常にトーンマッパを有効にしておきたい場合は、使用したいトーンマッパ設定を DefaultEngine.INI に追加する必要があります。
+[/region]
+
+[REGION:lightbox]
+[![](TM_Console.png)(w:468 h:315)](TM_Console.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+### .INI ファイルを使ってトーンマッパ フィルムを有効にする
+プロジェクト全体でトーンマッパの有効無効を切り替えるには、プロジェクトの **DefaultEngine.ini** の **[Rendering Settings (レンダリング設定)]** に **r.tonemapperfilm=1** を追加します。
+
+[REGION:lightbox]
+[![](TM_Default_Engine_INI.png)(w:422 h:199)](TM_Default_Engine_INI.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+[REGION:lightbox]
+[![](TM_INI_Location.png)(w:422 h:199)](TM_INI_Location.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+### モバイル デバイス上でトーンマッパを有効にする
+モバイル デバイス上でトーンマッパを有効にするには、**4 本の指** で同時に画面をタップして **コンソール ウィンドウ** を立ち上げ、次に **r.tonemapperfilm 1** を入力してトーンマッパを有効にする、または **r.tonemapperfilm 0** を入力してトーンマッパを無効にします。
+
+[REGION:lightbox]
+[![](TM_Phone_Console.png)(w:640 h:360)](TM_Phone_Console.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+## モバイルでサポートされているポストプロセス エフェクトと設定
+次のセクションでは、モバイル デバイスでサポートされているポストプロセス エフェクトと設定、およびトーンマッパを有効にする必要があるかどうかを説明します。
+
+[REGION:lightbox]
+[![](TM_PostProcess_Settings.png)(w:275 h:355)](TM_PostProcess_Settings.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+### White Balance
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Temp|有|1|
+|Tint|有|1|
+
+### Color Grading
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Saturation|有|1|
+|Contrast|有|1|
+|Gamma|有|1|
+|Gain|有|1|
+|Offset|有|1|
 
 ### Film (フィルム)
-
-全てデスクトップ / コンソールと同様に動作します。 
-
-[REGION:tip]
-最高のパフォーマンスのためには、[Tint Shadow Amount (シャドウ量をティントする)] 設定をゼロにして [Tint Shadow (シャドウをティントする)] を無効にします。[Channel Mixer] コントロールのチェックを外したままにし [Saturation (サチュレーション)] のチェックを外したままにする、あるいは 1 に設定してもモバイル上のトーンマッパのパフォーマンスをあげることができます。
-[/REGION]
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Tint|有|0|
+|Tint Shadow|有|0|
+|Tint Shadow Blend|有|0|
+|Tint Shadow Amount|有|0|
+|Saturation|有|0|
+|Channel Mixer Red|有|0|
+|Channel Mixer Green|有|0|
+|Channel Mixer Blue|有|0|
+|Contrast|有|0|
+|Crush Shadows|有|0|
+|Crush Highlights|有|0|
+|Dynamic Range|有|0|
+|Slope|有|1|
+|Toe|有|1|
+|Shoulder|有|1|
+|Black Clip|有|1|
+|White Clip|有|1|
 
 ### Scene Color (シーン カラー)
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Scene Color Tint|有|1|
+|Fringe Intensity|有|0 & 1|
+|Vignette Intensity|有|0 & 1|
+|Grain Jitter |有|0 & 1|
+|Grain Intensity |有|0 & 1|
+|Color Grading Intensity |有|1|
+|Color Grading |有|1|
 
-以下の機能は、モバイル プラットフォームでサポートされています。
-* Fringe Intensity
-* Color Grading
-* Color Grading Intensity
-
-[REGION:tip]
-最高のパフォーマンスのためには、[Grain Jitter (グレイン ジッター)] と [Grain Intensity (グレイン強度)] 設定を再びゼロにします。[Vignette Intensity (ビネット強度)] をゼロに設定してビネット効果をオフにすると、ブルームが無効の場合パフォーマンスが若干改善されます。
-[/REGION]
-
-### ブルーム (Bloom)
-
-以下の機能は、モバイル プラットフォームでサポートされています。
-* Dirt Mask Intensity
-* Dirt Mask
-* Dirt Mask Tint
-
-[REGION:tip]
-モバイル ブルームをエミュレートする際に、ための PC 上の設定は {#1 Size, #2 Size . . .  5 Size} に対して {4, 8, 16, 32, 64} です。ただし、 PC サイズ値はスクリーン比率なので、
-これは特定のビューポート サイズにしか当てはまりません。一致モバイル ブルームを PC にポートすることで、整合性を高め、 PC のロースペック オプションを増やしていく予定です。
-[/REGION]
-
-### Light Propagation Volume
-
-サポートされていません。[Intensity] をゼロに設定して、デスクトップ上でモバイルをエミュレートします。
-
-###アンビエント キューブマップ
-
-サポートされていません。[Intensity] をゼロに設定して、デスクトップ上でモバイルをエミュレートします。
+### Bloom (ブルーム)
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Intensity|有|0 & 1|
+|Threshold|有|0 & 1|
+|Size Scale |有|0 & 1|
+|#1 Size|無|n/a|
+|#2 Size|無|n/a|
+|#3 Size|無|n/a|
+|#4 Size|無|n/a|
+|#5 Size|無|n/a|
+|#1 Tint|無|n/a|
+|#2 Tint|無|n/a|
+|#3 Tint|無|n/a|
+|#4 Tint|無|n/a|
+|#5 Tint|無|n/a|
+|#6 Tint|無|n/a|
+|Dirt Mask Intensity|有|1|
+|Dirt Mask Tint |有|1|
+|Dirt Mask |有|1|
 
 ### 自動露光
-
-自動露光はモバイル上ではサポートされていませんが、[Auto Exposure Bias (自動露光バイアス)] 設定はサポートされています。
-[Min Brightness (最低輝度)] と [Max Brightness (最高輝度)] を 1 に設定して、デスクトップ上でモバイルをエミュレートします (これにより自動露光の範囲をクランプするので、自動露光にはエフェクトがありません)。
-その後で、[Auto Exposure Bias (自動露光バイアス)] 設定を使ってシーンの明暗を調整できます。
-
-###レンズフレア
-
-サポートされていません。[Intensity (強度)] をゼロに設定して、デスクトップ上でモバイルをエミュレートします。
-
-### Ambient Occlusion (環境オクルージョン)
-
-サポートされていません。[Intensity (強度)] をゼロに設定して、デスクトップ上でモバイルをエミュレートします。
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Auto Exposure Histogram|有|0 & 1|
+|Auto Exposure Basic|有|0 & 1|
+|Low Percent|無|n/a|
+|High Percent|無|n/a|
+|Min Brightness|無|n/a|
+|Max Brightness|無|n/a|
+|Speed Up|無|n/a|
+|Speed Down|無|n/a|
+|Exposure Bias|有|0 & 1|
+|Histogram Log Min|無|n/a|
+|Histogram Log Max|無|n/a|
 
 ### DOF (Depth of field:被写界深度)
-
-被写界深度をオフにするには、[Scale] をゼロに設定します。パフォーマンス向上のために、これをデフォルト設定にすることを推奨します。
-
-モバイルの被写界深度は現在 PC と互換性がありません。
-現在のところデスクトップ版でモバイル設定を確認するために視覚化する方法は、エディタ開始時にサポートされていない [-FeatureLevelES2] 起動フラグを使う他にはありません。
-
-以下の設定は、モバイル プラットフォームでサポートされていません。
-* Near Transition Region
-* Far Transition Region
-* Max Bokeh Size
-* Near Blur Size
-* Far Blur Size
-
-モバイルの被写界深度には焦点プレーンが 2 つあります (近くと遠くのボケが 1 つずつ)。"Focal Distance" と "Focal Region" が
-これらのプレーンをデスクトップ上と同様に制御します。Scale パラメータは、 0 (オフ) から 1 (フルサイズ) 、 2 (フルサイズへ急速に遷移) となります。
-モバイルの被写界深度の最大サイズは比較的小さいです。
-
-###モーション ブラー
-
-サポートされていません。[Amount] をゼロに設定して、デスクトップ上でモバイルをエミュレートします。
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|BokehDOF|有|0 |
+|GaussianDOF|有|0 |
+|CircleDOF|無|n/a |
+|High Quality Gaussian DoF on Mobile|有|1|
+|Aperture F - Stop|無|n/a|
+|Focal Distance |有|0|
+|Depth Blur km for 50%|無|n/a|
+|Depth Blur Radius|無|n/a|
+|Focal Region|無|n/a|
+|Near Transition Region|有|0|
+|Far Transition Region|有|0|
+|Scale|有|0|
+|Max Bokeh Size|無|n/a|
+|Near Blur Size|無|n/a|
+|Far Blur Size|無|n/a|
+|Shape|無|n/a|
+|Occlusion|無|n/a|
+|Color Threshold|無|n/a|
+|Sky Distance|無|n/a|
+|Vignette Size|無|n/a|
 
 ### その他
-
-「スクリーン比」はサポートされていません。100.0 設定のみが機能します。「AA メソッド」は、「None」(最速) と、 2xSGSSAA で若干動きが激しくなる
-特別なモバイル テンポラル AA を提供する「テンポラル アンチエイリアシング」をサポートします。
-(Blendables による) ポストプロセス マテリアルは、モバイル プラットフォームでサポートされていません。
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Screen Percentage|無|n/a |
+|AA Methods|有|0 & 1|
+[region:note]
+「AA メソッド」は、「None」(最速) と、2xSGSSAA で若干動きが激しくなる特別なモバイル テンポラル AA を提供する「テンポラル アンチエイリアシング」をサポートします。
+[/region]
 
 ### スクリーン空間の反射
+|ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+|Intensity|有|0 & 1|
+|Quality|Yes|0 & 1|
+|Max Roughness|Yes|0 & 1|
 
-サポートされていません。[Intensity (強度)] をゼロに設定して、デスクトップ上でモバイルをエミュレートします。
 
 ## パフォーマンスに関する一般的なヒント
 
-* 最高のパフォーマンスと品質のためには、ブルームとテンポラル AA にこだわってください。
-* 被写界深度、ライトシャフト、フィルム粒子、カラー グレーディング LUT 、アンビエント キューブマップなどが無効になっていることをご確認ください。
-
+* 最高のパフォーマンスと品質のためには、ブルームとテンポラル AA を使用してください。
 
 [REGION:note]
-よりよりパフォーマンスのために、コンソール変数 r.RenderTargetSwitchWorkaround で制御される特別なワークアラウンドを実装しています。BaseDeviceProfiles.ini で、
+よりよりパフォーマンスのために、コンソール変数 r.RenderTargetSwitchWorkaround で制御される特別なワークアラウンドを実装しています。**BaseDeviceProfiles.ini** で、
 これが幾つかのデバイスに対して有効になっていることが分かります。一定のパフォーマンス特性をもつデバイスでは、ブルーム エフェクトの外見に若干変化が生じることにご注意ください。コンソール変数ヘルプ テキストで詳細が説明されています。
 
 	r.RenderTargetSwitchWorkaround
@@ -120,5 +225,5 @@ tags:mobile
 	レンダー ターゲットの切り替えに関連したパフォーマンスの低下を避けるため、幾つかのモバイル プラットフォーム上で必要とされるワークアラウンドです。
 	いくつかのハードウェア上でのみ有効にされます。ブルームの質に多少影響します。通常のコードパスより遅いですが、
 	レンダー ターゲットの切り替えの多くを避けるので、それでも速くなります。(デフォルト: 0)
-	すべての 32 bit の iOS デバイス上 (DeviceProfiles で実行された) で有効にしたいです。
+	すべての 32 bit の iOS デバイス上 (DeviceProfiles で実行された) で有効にしてください。
 [/REGION]
