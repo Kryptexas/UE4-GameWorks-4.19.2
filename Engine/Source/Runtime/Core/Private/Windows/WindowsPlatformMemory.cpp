@@ -195,9 +195,10 @@ void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 	return VirtualAlloc( NULL, Size, MEM_COMMIT, PAGE_READWRITE );
 }
 
-void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr )
+void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 {
 	CA_SUPPRESS(6001)
+	// Windows maintains the size of allocation internally, so Size is unused
 	verify(VirtualFree( Ptr, 0, MEM_RELEASE ) != 0);
 }
 

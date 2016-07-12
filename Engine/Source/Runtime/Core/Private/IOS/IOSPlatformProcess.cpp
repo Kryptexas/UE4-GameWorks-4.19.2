@@ -58,6 +58,12 @@ bool FIOSPlatformProcess::CanLaunchURL(const TCHAR* URL)
 
 	return Result;
 }
+
+FString FIOSPlatformProcess::GetGameBundleId()
+{
+	return FString([[NSBundle mainBundle] bundleIdentifier]);
+}
+
 void FIOSPlatformProcess::SetRealTimeMode()
 {
 	if ([IOSAppDelegate GetDelegate].OSVersion < 7 && FPlatformMisc::NumberOfCores() > 1)

@@ -10,6 +10,7 @@
 #include <sys/syscall.h>
 #include <pthread.h>
 
+#include "Android/AndroidApplication.h"
 
 const TCHAR* FAndroidPlatformProcess::ComputerName()
 {
@@ -56,4 +57,26 @@ void FAndroidPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FS
 	{
 		*Error = TEXT("");
 	}
+}
+
+FString FAndroidPlatformProcess::GetGameBundleId()
+{
+	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		jclass Class = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
+		if (nullptr != Class)
+		{
+			jmethodID getAppPackageNameMethodId = JEnv->GetStaticMethodID(Class, "getAppPackageName", "()Ljava/lang/String;");
+			jstring JPackageName = (jstring)JEnv->CallStaticObjectMethod(Class, getAppPackageNameMethodId, nullptr);
+			const char * NativePackageNameString = JEnv->GetStringUTFChars(JPackageName, 0);
+			FString PackageName = FString(NativePackageNameString);
+			JEnv->ReleaseStringUTFChars(JPackageName, NativePackageNameString);
+			JEnv->DeleteLocalRef(JPackageName);
+			JEnv->DeleteLocalRef(Class);
+			return PackageName;
+		}
+	}
+	
+	return TEXT("");
 }

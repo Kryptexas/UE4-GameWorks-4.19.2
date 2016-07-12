@@ -80,9 +80,8 @@ public:
 	/** The binding for the buffer side-table if present */
 	int32 SideTableBinding;
 	
-	TArray<ANSICHAR> GlslCode;
+	/** The debuggable text source */
 	NSString* GlslCodeNSString;
-	const ANSICHAR*  GlslCodeString; // make it easier in VS to see shader code in debug mode; points to begin of GlslCode
 };
 
 typedef TMetalBaseShader<FRHIVertexShader, SF_Vertex> FMetalVertexShader;
@@ -153,11 +152,28 @@ public:
 	/**
 	 * Prepare a pipeline state object for the current state right before drawing
 	 */
-	void PrepareToDraw(FMetalContext* Context, const struct FMetalRenderPipelineDesc& RenderPipelineDesc);
+	void PrepareToDraw(FMetalContext* Context, MTLVertexDescriptor* VertexDesc, const struct FMetalRenderPipelineDesc& RenderPipelineDesc);
 
 protected:
 	FCriticalSection PipelineMutex;
-	TMap<FMetalRenderPipelineHash, id<MTLRenderPipelineState> > PipelineStates;
+	
+	struct FMetalPipelineHash
+	{
+		FMetalRenderPipelineHash RenderPipelineHash;
+		NSUInteger VertexDescHash;
+		
+		bool operator==(FMetalPipelineHash const& Other) const
+		{
+			return (RenderPipelineHash == Other.RenderPipelineHash && VertexDescHash == Other.VertexDescHash);
+		}
+		
+		friend uint32 GetTypeHash(FMetalPipelineHash const& Hash)
+		{
+			return GetTypeHash(Hash.RenderPipelineHash) ^ GetTypeHash((uint64)Hash.VertexDescHash);
+		}
+	};
+	
+	TMap<FMetalPipelineHash, id<MTLRenderPipelineState> > PipelineStates;
 };
 
 

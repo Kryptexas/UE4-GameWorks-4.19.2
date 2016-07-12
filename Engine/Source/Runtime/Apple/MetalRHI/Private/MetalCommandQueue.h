@@ -63,6 +63,14 @@ public:
 
 	/** Inserts a boundary that marks the end of a frame for the debug capture tool. */
 	void InsertDebugCaptureBoundary(void);
+	
+#if !UE_BUILD_SHIPPING
+	/** Enable or disable runtime debugging features. */
+	void SetRuntimeDebuggingLevel(int32 const Level);
+	
+	/** @returns The level of runtime debugging features enabled. */
+	int32 GetRuntimeDebuggingLevel(void) const;
+#endif
 
 #if METAL_STATISTICS
 #pragma mark - Public Statistics Extensions -
@@ -78,4 +86,7 @@ private:
 	class IMetalStatistics* Statistics;
 #endif
 	TArray<NSArray<id<MTLCommandBuffer>>*> CommandBuffers;
+#if !UE_BUILD_SHIPPING
+	int32 RuntimeDebuggingLevel;
+#endif
 };

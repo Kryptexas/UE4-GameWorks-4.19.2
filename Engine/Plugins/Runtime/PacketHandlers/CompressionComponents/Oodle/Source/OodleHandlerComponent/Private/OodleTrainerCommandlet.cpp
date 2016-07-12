@@ -873,7 +873,7 @@ void FOodleDictionaryGenerator::ReadPackets(const TArray<FString>& InputCaptureF
 
 bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 {
-#if PLATFORM_PS4
+#if PLATFORM_PS4 || PLATFORM_XBOXONE
 	return false;
 #else
 	bool bSuccess = false;

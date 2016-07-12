@@ -57,6 +57,7 @@ UGeneralEngineSettings::UGeneralEngineSettings( const FObjectInitializer& Object
 
 UGeneralProjectSettings::UGeneralProjectSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
+	, bShouldWindowPreserveAspectRatio(true)
 { }
 
 

@@ -57,6 +57,9 @@ public:
 	 * @returns True iff the command-list submits immediately to the command-queue, false if it performs any buffering.
 	 */
 	bool IsImmediate(void) const { return bImmediate; }
+
+	/** @returns The command queue to which this command-list submits command-buffers. */
+	FMetalCommandQueue& GetCommandQueue(void) const { return CommandQueue; }
 	
 private:
 #pragma mark - Private Member Variables -

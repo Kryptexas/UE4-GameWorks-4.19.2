@@ -484,8 +484,8 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr)
-		? PropertyChangedEvent.Property->GetFName()
+	const FName Name = (PropertyChangedEvent.MemberProperty != nullptr)
+		? PropertyChangedEvent.MemberProperty->GetFName()
 		: NAME_None;
 
 	if (Name == FName((TEXT("DirectoriesToAlwaysCook"))))
@@ -544,6 +544,14 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 				HttpChunkInstallDataVersion = TEXT("release1");
 			}
 		}
+	}
+	else if (Name == FName((TEXT("ApplocalPrerequisitesDirectory"))))
+	{
+		// fix up path
+		FString Path = ApplocalPrerequisitesDirectory.Path;
+		FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
+		FPaths::MakePathRelativeTo(Path, *ProjectPath);
+		ApplocalPrerequisitesDirectory.Path = Path;
 	}
 }
 

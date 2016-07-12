@@ -340,6 +340,12 @@ namespace UnrealBuildTool
 		public static bool bGeneratedSYMFile;
 
 		/// <summary>
+		/// Whether to generate a dSYM bundle or not.
+		/// </summary>
+		[XmlConfig]
+		public static bool bGeneratedSYMBundle;
+
+		/// <summary>
 		/// Whether to strip iOS symbols or not (implied by bGeneratedSYMFile).
 		/// </summary>
 		[XmlConfig]
@@ -566,6 +572,7 @@ namespace UnrealBuildTool
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
 			bGeneratedSYMFile = false;
+			bGeneratedSYMBundle = false;
 			bStripSymbolsOnIOS = bGeneratedSYMFile;
 
 			// By default we don't bother relinking targets if only a dependent .lib has changed, as chances are that

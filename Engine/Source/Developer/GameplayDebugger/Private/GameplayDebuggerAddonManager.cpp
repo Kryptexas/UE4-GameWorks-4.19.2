@@ -51,14 +51,20 @@ void FGameplayDebuggerAddonManager::NotifyCategoriesChanged()
 	int32 CategoryId = 0;
 	for (auto It : CategoryMap)
 	{
+		const int32 SanitizedSlotIdx = (It.Value.SlotIdx < 0) ? INDEX_NONE : FMath::Min(100, It.Value.SlotIdx);
+
 		FSlotInfo SlotInfo;
 		SlotInfo.CategoryId = CategoryId;
 		SlotInfo.CategoryName = It.Key;
-		SlotInfo.SlotIdx = It.Value.SlotIdx;
+		SlotInfo.SlotIdx = SanitizedSlotIdx;
 		CategoryId++;
 
 		AssignList.Add(SlotInfo);
-		OccupiedSlots.Add(It.Value.SlotIdx);
+
+		if (SanitizedSlotIdx >= 0)
+		{
+			OccupiedSlots.Add(SanitizedSlotIdx);
+		}
 	}
 
 	AssignList.Sort();

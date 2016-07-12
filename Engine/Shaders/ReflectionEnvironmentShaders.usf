@@ -318,7 +318,7 @@ void AccumulateCubeFacesPS(
 }
 
 // Used during reflection captures to get bounce light from specular surfaces
-void SpecularBouncePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void SpecularBouncePS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 

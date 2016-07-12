@@ -126,6 +126,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
 
+	/** A directory containing prerequisite packages that should be staged in the executable directory. Relative to the project path. */
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay)
+	FDirectoryPath ApplocalPrerequisitesDirectory;
+
 	/**
 	 * Specifies whether to include the crash reporter in the packaged project. 
 	 * This is included by default for Blueprint based projects, but can optionally be disabled.

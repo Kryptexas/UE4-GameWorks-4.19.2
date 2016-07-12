@@ -19,6 +19,8 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bSupportsIPhone = true;
 	MinimumiOSVersion = EIOSVersion::IOS_7;
 	bGeneratedSYMFile = false;
+	bGeneratedSYMBundle = false;
+	bGenerateXCArchive = false;
 	bDevForArmV7 = true;
 	bDevForArm64 = false;
 	bDevForArmV7S = false;

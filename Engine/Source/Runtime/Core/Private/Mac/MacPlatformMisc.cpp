@@ -237,6 +237,43 @@ struct FMacApplicationInfo
 		{
 			SystemLogSize = IFileManager::Get().FileSize(TEXT("/var/log/system.log"));
 		}
+		
+		if (!FPlatformMisc::IsDebuggerPresent() && FParse::Param(FCommandLine::Get(), TEXT("RedirectNSLog")))
+		{
+			fflush(stderr);
+			StdErrPipe = [NSPipe new];
+			int StdErr = dup2([StdErrPipe fileHandleForWriting].fileDescriptor, STDERR_FILENO);
+			if(StdErr > 0)
+			{
+				@try
+				{
+					NSFileHandle* StdErrFile = [StdErrPipe fileHandleForReading];
+					if(StdErrFile)
+					{
+						StdErrFile.readabilityHandler = ^(NSFileHandle* Handle){
+							NSData* FileData = Handle.availableData;
+							if (FileData.length > 0)
+							{
+								NSString* NewString = (NSString*)[[[NSString alloc] initWithData:FileData encoding:NSUTF8StringEncoding] autorelease];
+								UE_LOG(LogMac, Error, TEXT("NSLog: %s"), *FString(NewString));
+							}
+						};
+					}
+				}
+				@catch (NSException* Exc)
+				{
+					UE_LOG(LogMac, Warning, TEXT("Exception redirecting stderr to capture NSLog messages: %s"), *FString([Exc description]));
+					[StdErrPipe release];
+					StdErrPipe = nil;
+				}
+			}
+			else
+			{
+				UE_LOG(LogMac, Warning, TEXT("Failed to redirect stderr in order to capture NSLog messages."));
+				[StdErrPipe release];
+				StdErrPipe = nil;
+			}
+		}
 	}
 	
 	~FMacApplicationInfo()
@@ -331,6 +368,7 @@ struct FMacApplicationInfo
 	NSOperatingSystemVersion OSXVersion;
 	FGuid RunUUID;
 	FString XcodePath;
+	NSPipe* StdErrPipe;
 	static PLCrashReporter* CrashReporter;
 	static FMacMallocCrashHandler* CrashMalloc;
 };
@@ -452,6 +490,19 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 		[NSApp setMainMenu:MenuBar];
 		[AppMenuItem setSubmenu:AppMenu];
 
+		if (FApp::IsGame())
+		{
+			NSMenu* ViewMenu = [[FCocoaMenu new] autorelease];
+			[ViewMenu setTitle:@"View"];
+			NSMenuItem* ViewMenuItem = [[NSMenuItem new] autorelease];
+			[ViewMenuItem setSubmenu:ViewMenu];
+			[[NSApp mainMenu] addItem:ViewMenuItem];
+
+			NSMenuItem* ToggleFullscreenItem = [[[NSMenuItem alloc] initWithTitle:@"Enter Full Screen" action:@selector(toggleFullScreen:) keyEquivalent:@"f"] autorelease];
+			[ToggleFullscreenItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSControlKeyMask];
+			[ViewMenu addItem:ToggleFullscreenItem];
+		}
+		
 		UpdateWindowMenu();
 	}
 
@@ -474,6 +525,16 @@ void FMacPlatformMisc::PlatformTearDown()
 		CommandletActivity = nil;
 	}
 	FApplePlatformSymbolication::EnableCoreSymbolication(false);
+	
+	if (GMacAppInfo.StdErrPipe)
+	{
+		NSFileHandle* StdErrFile = [GMacAppInfo.StdErrPipe fileHandleForReading];
+		if (StdErrFile)
+		{
+			StdErrFile.readabilityHandler = nil;
+		}
+		[GMacAppInfo.StdErrPipe release];
+	}
 }
 
 void FMacPlatformMisc::UpdateWindowMenu()
@@ -2342,6 +2403,8 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 {
 	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0)
 	{
+		bool bHasMetal = false;
+		
 		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
 		if (FPlatformMisc::MacOSXVersionCompare(10, 11, 4) >= 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
@@ -2349,18 +2412,21 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
 			if (DLLHandle)
 			{
-				// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
-				MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
-				if (CopyDevicesPtr)
+				TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
+				for (FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 				{
-					SCOPED_AUTORELEASE_POOL;
-					NSArray* MetalDevices = CopyDevicesPtr();
-					[MetalDevices autorelease];
-					FPlatformProcess::FreeDllHandle(DLLHandle);
-					return MetalDevices && [MetalDevices count] > 0;
+					if (GPU.GPUMetalBundle && GPU.GPUMetalBundle.length > 0)
+					{
+						bHasMetal = true;
+						break;
+					}
 				}
+				
+				FPlatformProcess::FreeDllHandle(DLLHandle);
 			}
 		}
+		
+		return bHasMetal;
 	}
 
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);

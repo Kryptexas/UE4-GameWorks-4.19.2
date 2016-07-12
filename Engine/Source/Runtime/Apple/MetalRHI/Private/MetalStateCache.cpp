@@ -430,21 +430,30 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		RenderTargetArraySize = 1;
 		
-#if METAL_API_1_1 && PLATFORM_MAC
-		
 		if(ArrayTargets)
 		{
-			if (ArrayTargets == BoundTargets)
+			if (!GetMetalDeviceContext().SupportsFeature(EMetalFeaturesLayeredRendering))
 			{
-				RenderTargetArraySize = ArrayRenderLayers;
-				RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+				if (ArrayRenderLayers != 1)
+				{
+					UE_LOG(LogMetal, Fatal, TEXT("Layered rendering is unsupported on this device."));
+				}
 			}
+#if PLATFORM_MAC
 			else
 			{
-				UE_LOG(LogMetal, Fatal, TEXT("All color render targets must be layered when performing multi-layered rendering under Metal."));
+				if (ArrayTargets == BoundTargets)
+				{
+					RenderTargetArraySize = ArrayRenderLayers;
+					RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+				}
+				else
+				{
+					UE_LOG(LogMetal, Fatal, TEXT("All color render targets must be layered when performing multi-layered rendering under Metal."));
+				}
 			}
-		}
 #endif
+		}
 	
 		// default to invalid
 		PipelineDesc.PipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
@@ -458,7 +467,6 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		{
 			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
 			
-#if METAL_API_1_1 && PLATFORM_MAC
 			switch(Surface.Type)
 			{
 				case RRT_Texture2DArray:
@@ -472,10 +480,18 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			}
 			if(!ArrayTargets && ArrayRenderLayers > 1)
 			{
-				RenderTargetArraySize = ArrayRenderLayers;
-				RenderPass.renderTargetArrayLength = ArrayRenderLayers;
-			}
+				if (!GetMetalDeviceContext().SupportsFeature(EMetalFeaturesLayeredRendering))
+				{
+					UE_LOG(LogMetal, Fatal, TEXT("Layered rendering is unsupported on this device."));
+				}
+#if PLATFORM_MAC
+				else
+				{
+					RenderTargetArraySize = ArrayRenderLayers;
+					RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+				}
 #endif
+			}
 			
 			if(!bFramebufferSizeSet)
 			{
@@ -585,8 +601,6 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 					PipelineDesc.SampleCount = DepthAttachment.texture.sampleCount;
 				}
 				
-				bHasValidRenderTarget = true;
-	
 				bHasValidRenderTarget = true;
 				
 				// and assign it
@@ -831,6 +845,7 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 			//    If we switch to Load, no need to switch as we can re-use what we already have
 			//    If we switch to Clear, we have to always switch to a new RT to force the clear
 			//    If we switch to DontCare, there's definitely no need to switch
+			//    If we switch *from* Clear then we must change target as we *don't* want to clear again.
 			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear || PreviousRenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
 			{
 				bAllChecksPassed = false;
@@ -848,17 +863,21 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 //			}
 		}
 		
-		if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture && (InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
+		if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture)
 		{
-			bAllChecksPassed = false;
-		}
-		
+			if ((InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear)
+				|| (InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear || RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
+			{
+				bAllChecksPassed = false;
+			}
+
 #if PLATFORM_MAC
-		if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
-		{
-			bAllChecksPassed = false;
-		}
+			if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
+			{
+				bAllChecksPassed = false;
+			}
 #endif
+		}
 	}
 
 	// if we are setting them to nothing, then this is probably end of frame, and we can't make a framebuffer

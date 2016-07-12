@@ -205,6 +205,11 @@ void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 	}
 }
 
+FString FMacPlatformProcess::GetGameBundleId()
+{
+	return FString([[NSBundle mainBundle] bundleIdentifier]);
+}
+
 @interface NSAutoReadPipe : NSObject
 
 /** The pipe itself */

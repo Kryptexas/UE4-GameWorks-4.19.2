@@ -247,6 +247,7 @@ FWindowsWindow::FWindowsWindow()
 	: HWnd(NULL)
 	, WindowMode( EWindowMode::Windowed )
 	, OLEReferenceCount(0)
+	, AspectRatio(1.0f)
 	, bIsVisible( false )
 {
 	FMemory::Memzero(PreFullscreenWindowPlacement);
@@ -350,6 +351,8 @@ void FWindowsWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int3
 	FMemory::Memzero( WindowInfo );
 	WindowInfo.cbSize = sizeof( WindowInfo );
 	::GetWindowInfo( HWnd, &WindowInfo );
+
+	AspectRatio = (float)NewWidth / (float)NewHeight;
 
 	// X,Y, Width, Height defines the top-left pixel of the client area on the screen
 	if( Definition->HasOSWindowBorder )

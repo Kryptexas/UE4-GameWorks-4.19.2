@@ -182,6 +182,11 @@ public:
 		OutEnvironment.SetDefine(TEXT("ONEPASS_POINTLIGHT_SHADOW"), (uint32)(ShaderMode == VertexShadowDepth_OnePassPointLight));
 		OutEnvironment.SetDefine(TEXT("REFLECTIVE_SHADOW_MAP"), (uint32)bRenderReflectiveShadowMap);
 		OutEnvironment.SetDefine(TEXT("POSITION_ONLY"), (uint32)bUsePositionOnlyStream);
+
+		if( bIsForGeometryShader )
+		{
+			OutEnvironment.CompilerFlags.Add( CFLAG_VertexToGeometryShader );
+		}
 	}
 };
 
@@ -1684,25 +1689,52 @@ void FProjectedShadowInfo::CopyCachedShadowMap(FRHICommandList& RHICmdList, FSce
 
 		if (bOnePassPointLightShadow)
 		{
-			// Set shaders and texture
-			TShaderMapRef<FScreenVSForGS> ScreenVertexShader(View.ShaderMap);
-			TShaderMapRef<FCopyShadowMapsCubeGS> GeometryShader(View.ShaderMap);
-			TShaderMapRef<FCopyShadowMapsCubePS> PixelShader(View.ShaderMap);
+			if (RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[SceneRenderer->FeatureLevel]))
+			{
+				// Set shaders and texture
+				TShaderMapRef<TScreenVSForGS<false>> ScreenVertexShader(View.ShaderMap);
+				TShaderMapRef<FCopyShadowMapsCubeGS> GeometryShader(View.ShaderMap);
+				TShaderMapRef<FCopyShadowMapsCubePS> PixelShader(View.ShaderMap);
 
-			SetGlobalBoundShaderState(RHICmdList, SceneRenderer->FeatureLevel, CopyShadowMapsCubeBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader, *GeometryShader);
+				SetGlobalBoundShaderState(RHICmdList, SceneRenderer->FeatureLevel, CopyShadowMapsCubeBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader, *GeometryShader);
 
-			PixelShader->SetParameters(RHICmdList, View, CachedShadowMapData.ShadowMap.DepthTarget.GetReference());
+				PixelShader->SetParameters(RHICmdList, View, CachedShadowMapData.ShadowMap.DepthTarget.GetReference());
 
-			DrawRectangle(
-				RHICmdList,
-				0, 0,
-				ResolutionX, ResolutionY,
-				BorderSize, BorderSize,
-				ResolutionX, ResolutionY,
-				FIntPoint(ResolutionX, ResolutionY),
-				CachedShadowMapData.ShadowMap.GetSize(),
-				*ScreenVertexShader,
-				EDRF_Default);
+				DrawRectangle(
+					RHICmdList,
+					0, 0,
+					ResolutionX, ResolutionY,
+					BorderSize, BorderSize,
+					ResolutionX, ResolutionY,
+					FIntPoint(ResolutionX, ResolutionY),
+					CachedShadowMapData.ShadowMap.GetSize(),
+					*ScreenVertexShader,
+					EDRF_Default);
+			}
+			else
+			{
+				check(RHISupportsVertexShaderLayer(GShaderPlatformForFeatureLevel[SceneRenderer->FeatureLevel]));
+				
+				// Set shaders and texture
+				TShaderMapRef<TScreenVSForGS<true>> ScreenVertexShader(View.ShaderMap);
+				TShaderMapRef<FCopyShadowMapsCubePS> PixelShader(View.ShaderMap);
+				
+				SetGlobalBoundShaderState(RHICmdList, SceneRenderer->FeatureLevel, CopyShadowMapsCubeBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+				
+				PixelShader->SetParameters(RHICmdList, View, CachedShadowMapData.ShadowMap.DepthTarget.GetReference());
+				
+				DrawRectangle(
+					  RHICmdList,
+					  0, 0,
+					  ResolutionX, ResolutionY,
+					  BorderSize, BorderSize,
+					  ResolutionX, ResolutionY,
+					  FIntPoint(ResolutionX, ResolutionY),
+					  CachedShadowMapData.ShadowMap.GetSize(),
+					  *ScreenVertexShader,
+					  EDRF_Default,
+					  6);
+			}
 		}
 		else
 		{

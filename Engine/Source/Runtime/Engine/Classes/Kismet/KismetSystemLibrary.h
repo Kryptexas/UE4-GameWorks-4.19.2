@@ -106,6 +106,14 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Game")
 	static FString GetGameName();
 
+	/**
+	 * Retrieves the game's platform-specific bundle identifier or package name of the game
+	 *
+	 * @return The game's bundle identifier or package name.
+	 */
+	UFUNCTION(BlueprintPure, Category="Game", meta=(Keywords = "bundle id package name"))
+	static FString GetGameBundleId();
+
 	/** Get the current user name from the OS */
 	UFUNCTION(BlueprintPure, Category="Utilities|Platform")
 	static FString GetPlatformUserName();

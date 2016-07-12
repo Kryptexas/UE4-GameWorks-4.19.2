@@ -960,7 +960,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 					UPackage* SubLevelPackage = NextStreamingLevel->GetLoadedLevel()->GetOutermost();
 					if (!SavePackageHelper(SubLevelPackage, StreamingLevelPackageFilename))
 					{
-						UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: "), *StreamingLevelPackageFilename);
+						UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
 					}
 					/*if (GEditor->SavePackage(SubLevelPackage, NULL, , *StreamingLevelPackageFilename, GWarn))
 					{
@@ -971,7 +971,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		}
 		else
 		{
-			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to complete steps necessary to start a lightmass build of "), *World->GetName());
+			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to complete steps necessary to start a lightmass build of %s"), *World->GetName());
 		}
 
 		if ((bShouldProceedWithLightmapRebuild == false)||(bSavePackage == false))

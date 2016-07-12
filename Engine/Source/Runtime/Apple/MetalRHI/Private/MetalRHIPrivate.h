@@ -15,6 +15,7 @@ const uint32 MaxMetalRenderTargets = 6;
 const uint32 BufferOffsetAlignment = 256;
 
 #define METAL_API_1_1 (__IPHONE_9_0 || __MAC_10_11)
+#define METAL_API_1_2 ((__IPHONE_10_0 && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0) || (__MAC_10_12 && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_12))
 
 #if METAL_API_1_1
 #define BUFFER_CACHE_MODE MTLResourceCPUCacheModeWriteCombined
@@ -23,9 +24,9 @@ const uint32 BufferOffsetAlignment = 256;
 #endif
 
 #if PLATFORM_MAC
-#define BUFFER_MANAGED_MEM MTLResourceStorageModeShared
-#define BUFFER_STORAGE_MODE MTLStorageModeShared
-#define BUFFER_RESOURCE_STORAGE_MANAGED MTLResourceStorageModeShared
+#define BUFFER_MANAGED_MEM MTLResourceStorageModeManaged
+#define BUFFER_STORAGE_MODE MTLStorageModeManaged
+#define BUFFER_RESOURCE_STORAGE_MANAGED MTLResourceStorageModeManaged
 #define BUFFER_DYNAMIC_REALLOC BUF_AnyDynamic
 // How many possible vertex streams are allowed
 const uint32 MaxMetalStreams = 31;
@@ -48,10 +49,25 @@ const uint32 MaxMetalStreams = 30;
 
 // Dependencies
 #include "MetalRHI.h"
-#include "MetalGlobalUniformBuffer.h"
 #include "RHI.h"
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+
+#if !METAL_API_1_1
+#define MTLVisibilityResultModeCounting ((MTLVisibilityResultMode)2)
+#endif
+
+#if !METAL_API_1_2
+#define MTLFeatureSet_iOS_GPUFamily3_v1 ((MTLFeatureSet)4)
+#define MTLFeatureSet_iOS_GPUFamily1_v3 ((MTLFeatureSet)5)
+#define MTLFeatureSet_iOS_GPUFamily2_v3 ((MTLFeatureSet)6)
+#define MTLFeatureSet_iOS_GPUFamily3_v2 ((MTLFeatureSet)7)
+#define MTLFeatureSet_tvOS_GPUFamily1_v2 ((MTLFeatureSet)30001)
+#define MTLFeatureSet_OSX_GPUFamily1_v2 ((MTLFeatureSet)10001)
+#define MTLPixelFormatDepth16Unorm ((MTLPixelFormat)250)
+#define MTLPixelFormatX24_Stencil8 ((MTLPixelFormat)262)
+#define MTLPixelFormatX32_Stencil8 ((MTLPixelFormat)261)
+#endif
 
 // Access the internal context for the device-owning DynamicRHI object
 FMetalDeviceContext& GetMetalDeviceContext();

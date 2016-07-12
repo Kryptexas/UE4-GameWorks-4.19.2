@@ -177,6 +177,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate dSYM file for code debugging and profiling"))
 	bool bGeneratedSYMFile;
 
+	// Enable generation of dSYM bundle
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate dSYM bundle for third party crash tools"))
+	bool bGeneratedSYMBundle;
+
+	// Enable generation of xcode archive package
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate xcode archive package"))
+	bool bGenerateXCArchive;	
+	
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 in Development"))
 	bool bDevForArmV7;
@@ -202,7 +210,7 @@ public:
 	bool bShipForArmV7S;
 
 	// Enable bitcode compiling?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support bitcode compiling"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support bitcode in Shipping"))
 	bool bShipForBitcode;
 	
 	// Any additional linker flags to pass to the linker in non-shipping builds

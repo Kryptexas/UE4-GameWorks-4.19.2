@@ -882,7 +882,79 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_SIZING:
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam, 0, 0 );
-			}
+		
+				if (CurrentNativeEventWindowPtr->GetDefinition().ShouldPreserveAspectRatio)
+				{
+					// The rect we get in lParam is window rect, but we need to preserve client's aspect ratio,
+					// so we need to find what the border and title bar sizes are, if window has them and adjust the rect.
+					WINDOWINFO WindowInfo;
+					FMemory::Memzero(WindowInfo);
+					WindowInfo.cbSize = sizeof(WindowInfo);
+					::GetWindowInfo(hwnd, &WindowInfo);
+
+					RECT TestRect;
+					TestRect.left = TestRect.right = TestRect.top = TestRect.bottom = 0;
+					AdjustWindowRectEx(&TestRect, WindowInfo.dwStyle, false, WindowInfo.dwExStyle);
+
+					RECT* Rect = (RECT*)lParam;
+					Rect->left -= TestRect.left;
+					Rect->right -= TestRect.right;
+					Rect->top -= TestRect.top;
+					Rect->bottom -= TestRect.bottom;
+
+					const float AspectRatio = CurrentNativeEventWindowPtr->GetAspectRatio();
+					int32 NewWidth = Rect->right - Rect->left;
+					int32 NewHeight = Rect->bottom - Rect->top;
+
+					switch (wParam)
+					{
+					case WMSZ_LEFT:
+					case WMSZ_RIGHT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->top -= (AdjustedHeight - NewHeight) / 2;
+							Rect->bottom += (AdjustedHeight - NewHeight) / 2;
+							break;
+						}
+					case WMSZ_TOP:
+					case WMSZ_BOTTOM:
+						{
+							int32 AdjustedWidth = NewHeight * AspectRatio;
+							Rect->left -= (AdjustedWidth - NewWidth) / 2;
+							Rect->right += (AdjustedWidth - NewWidth) / 2;
+							break;
+						}
+					case WMSZ_TOPLEFT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->top -= AdjustedHeight - NewHeight;
+							break;
+						}
+					case WMSZ_TOPRIGHT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->top -= AdjustedHeight - NewHeight;
+							break;
+						}
+					case WMSZ_BOTTOMLEFT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->bottom += AdjustedHeight - NewHeight;
+							break;
+						}
+					case WMSZ_BOTTOMRIGHT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->bottom += AdjustedHeight - NewHeight;
+							break;
+						}
+					}
+
+					AdjustWindowRectEx(Rect, WindowInfo.dwStyle, false, WindowInfo.dwExStyle);
+
+					return TRUE;
+				}
+		}
 			break;
 		case WM_ENTERSIZEMOVE:
 			{
@@ -1700,7 +1772,13 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 
 					const bool bWasMinimized = (wParam == SIZE_MINIMIZED);
 
-					const bool Result = MessageHandler->OnSizeChanged( CurrentNativeEventWindowPtr.ToSharedRef(), NewWidth, NewHeight, bWasMinimized );
+					const bool bIsFullscreen = (CurrentNativeEventWindowPtr->GetWindowMode() == EWindowMode::Type::Fullscreen);
+
+					// When in fullscreen Windows rendering size should be determined by the application. Do not adjust based on WM_SIZE messages.
+ 					if ( !bIsFullscreen )
+					{
+						const bool Result = MessageHandler->OnSizeChanged(CurrentNativeEventWindowPtr.ToSharedRef(), NewWidth, NewHeight, bWasMinimized);
+					}
 				}
 			}
 			break;

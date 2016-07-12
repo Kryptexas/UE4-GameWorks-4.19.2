@@ -542,8 +542,6 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClear = 1 << 25,
 	// Texture is a depth stencil resolve target
 	TexCreate_DepthStencilResolveTarget = 1 << 26,
-	// RenderTarget will create with delta color compression
-	TexCreate_DeltaColorCompression = 1 << 27,
 };
 
 enum EAsyncComputePriority

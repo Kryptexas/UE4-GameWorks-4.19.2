@@ -9,6 +9,7 @@ using UnrealBuildTool;
 using System.Text.RegularExpressions;
 using Ionic.Zip;
 using Ionic.Zlib;
+using System.Security.Principal; 
 
 static class IOSEnvVarNames
 {
@@ -94,10 +95,10 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler()
+	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject)
 	{
 		Console.WriteLine("Getting IOS Deploy()");
-		return new UnrealBuildTool.UEDeployIOS();
+		return new UnrealBuildTool.UEDeployIOS(InProject);
 	}
 
 	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
@@ -173,7 +174,7 @@ public class IOSPlatform : Platform
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			// copy in all of the artwork and plist
-			var DeployHandler = GetDeployHandler();
+			var DeployHandler = GetDeployHandler(Params.RawProjectPath);
 
 			DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
 				Params.ShortProjectName,
@@ -696,7 +697,7 @@ public class IOSPlatform : Platform
 					{
 						UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);
 					}
-					GetDeployHandler().GeneratePList((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
+					GetDeployHandler(new FileReference(SC.ProjectRoot)).GeneratePList((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
 				}
 
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
@@ -725,125 +726,149 @@ public class IOSPlatform : Platform
 			throw new AutomationException("ARCHIVE FAILED - {0} was not found", ProjectIPA);
 		}
 
-		// create a temporary archive
-		string ArchivePath = CombinePaths((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), "Intermediate", PlatformName, "Archive");
-		if (!DirectoryExists(ArchivePath))
+		ConfigCacheIni PlatformGameConfig;
+		bool bXCArchive = false;
+		if (Params.EngineConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
 		{
-			CreateDirectory(ArchivePath);
-		}
-		string ArchiveName = Path.Combine(ArchivePath, Path.GetFileNameWithoutExtension(ProjectIPA) + ".xcarchive");
-		if (!DirectoryExists(ArchiveName))
-		{
-			CreateDirectory(ArchiveName);
-		}
-		DeleteDirectoryContents(ArchiveName);
-
-		// create the Products archive folder
-		CreateDirectory(Path.Combine(ArchiveName, "Products", "Applications"));
-
-		// copy in the application
-		string AppName = Path.GetFileNameWithoutExtension(ProjectIPA) + ".app";
-		using (ZipFile Zip = new ZipFile(ProjectIPA))
-		{
-			Zip.ExtractAll(ArchivePath, ExtractExistingFileAction.OverwriteSilently);
-
-			List<string> Dirs = new List<string>(Directory.EnumerateDirectories(Path.Combine(ArchivePath, "Payload"), "*.app"));
-			AppName = Dirs[0].Substring(Dirs[0].LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
-			CopyDirectory_NoExceptions(Path.Combine(ArchivePath, "Payload", AppName), Path.Combine(ArchiveName, "Products", "Applications", AppName));
+			PlatformGameConfig.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateXCArchive", out bXCArchive);
 		}
 
-		// copy in the dSYM if found
-		var ProjectExe = MakeExeFileName( TargetConfiguration, Params );
-		string dSYMName = (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game") + ".dSYM";
-		string dSYMSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName);
-
-		if (File.Exists(dSYMSrcPath))
+		if (bXCArchive && Utils.IsRunningOnMono)
 		{
-			// Create the dsyms archive folder
-			CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));
-			string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMName);
-			CopyFile_NoExceptions(dSYMSrcPath, dSYMDstPath);
-		}
-
-		// copy in the bitcode symbol maps if found
-		string[] bcmapfiles = Directory.GetFiles(SC.ProjectBinariesFolder, "*.bcsymbolmap");
-		if(bcmapfiles.Length > 0)
-		{
-			// Create the dsyms archive folder
-			CreateDirectory(Path.Combine(ArchiveName, "BCSymbolMaps"));
-			foreach (string symbolSrcFilePath in bcmapfiles)
+			// Always put the archive in the current user's Library/Developer/Xcode/Archives path
+			WindowsIdentity id = WindowsIdentity.GetCurrent(); 
+			string ArchivePath = "/Users/" + id.Name + "/Library/Developer/Xcode/Archives";
+			if (!DirectoryExists(ArchivePath))
 			{
-				string symbolLeafFileName = Path.GetFileName(symbolSrcFilePath);
-				string bcDstFilePath = Path.Combine(ArchiveName, "BCSymbolMaps", symbolLeafFileName);
-				CopyFile_NoExceptions(symbolSrcFilePath, bcDstFilePath);
+				CreateDirectory(ArchivePath);
 			}
+
+			Console.WriteLine("Generating xc archive package in " + ArchivePath);
+
+			string ArchiveName = Path.Combine(ArchivePath, Path.GetFileNameWithoutExtension(ProjectIPA) + ".xcarchive");
+			if (!DirectoryExists(ArchiveName))
+			{
+				CreateDirectory(ArchiveName);
+			}
+			DeleteDirectoryContents(ArchiveName);
+
+			// create the Products archive folder
+			CreateDirectory(Path.Combine(ArchiveName, "Products", "Applications"));
+
+			// copy in the application
+			string AppName = Path.GetFileNameWithoutExtension(ProjectIPA) + ".app";
+			using (ZipFile Zip = new ZipFile(ProjectIPA))
+			{
+				Zip.ExtractAll(ArchivePath, ExtractExistingFileAction.OverwriteSilently);
+
+				List<string> Dirs = new List<string>(Directory.EnumerateDirectories(Path.Combine(ArchivePath, "Payload"), "*.app"));
+				AppName = Dirs[0].Substring(Dirs[0].LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
+				CopyDirectory_NoExceptions(Path.Combine(ArchivePath, "Payload", AppName), Path.Combine(ArchiveName, "Products", "Applications", AppName));
+			}
+
+			// copy in the dSYM if found
+			var ProjectExe = MakeExeFileName( TargetConfiguration, Params );
+			string dSYMName = (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game") + ".dSYM";
+			string dSYMSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName);
+
+			if(DirectoryExists(new string[] { dSYMSrcPath } ))
+			{
+				// Create the dsyms archive folder
+				CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));
+				string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMName);
+				// /Volumes/MacOSDrive1/pfEpicWorkspace/Dev-Platform/Samples/Sandbox/PlatformShowcase/Binaries/IOS/PlatformShowcase.dSYM/Contents/Resources/DWARF/PlatformShowcase
+				CopyFile_NoExceptions(Path.Combine(dSYMSrcPath, "Contents", "Resources", "DWARF", SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game"), dSYMDstPath);
+			}
+			else if (File.Exists(dSYMSrcPath))
+			{
+				// Create the dsyms archive folder
+				CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));
+				string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMName);
+				CopyFile_NoExceptions(dSYMSrcPath, dSYMDstPath);
+			}
+
+			// copy in the bitcode symbol maps if found
+			string[] bcmapfiles = Directory.GetFiles(SC.ProjectBinariesFolder, "*.bcsymbolmap");
+			if(bcmapfiles.Length > 0)
+			{
+				// Create the dsyms archive folder
+				CreateDirectory(Path.Combine(ArchiveName, "BCSymbolMaps"));
+				foreach (string symbolSrcFilePath in bcmapfiles)
+				{
+					string symbolLeafFileName = Path.GetFileName(symbolSrcFilePath);
+					string bcDstFilePath = Path.Combine(ArchiveName, "BCSymbolMaps", symbolLeafFileName);
+					CopyFile_NoExceptions(symbolSrcFilePath, bcDstFilePath);
+				}
+			}
+
+			// get the settings from the app plist file
+			string AppPlist = Path.Combine(ArchiveName, "Products", "Applications", AppName, "Info.plist");
+			string OldPListData = File.Exists(AppPlist) ? File.ReadAllText(AppPlist) : "";
+
+			// bundle identifier
+			int index = OldPListData.IndexOf("CFBundleIdentifier");
+			index = OldPListData.IndexOf("<string>", index) + 8;
+			int length = OldPListData.IndexOf("</string>", index) - index;
+			string BundleIdentifier = OldPListData.Substring(index, length);
+
+			// short version
+			index = OldPListData.IndexOf("CFBundleShortVersionString");
+			index = OldPListData.IndexOf("<string>", index) + 8;
+			length = OldPListData.IndexOf("</string>", index) - index;
+			string BundleShortVersion = OldPListData.Substring(index, length);
+
+			// bundle version
+			index = OldPListData.IndexOf("CFBundleVersion");
+			index = OldPListData.IndexOf("<string>", index) + 8;
+			length = OldPListData.IndexOf("</string>", index) - index;
+			string BundleVersion = OldPListData.Substring(index, length);
+
+			// date we made this
+			const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
+			string TimeStamp = DateTime.UtcNow.ToString(Iso8601DateTimeFormat);
+
+			// create the archive plist
+			StringBuilder Text = new StringBuilder();
+			Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+			Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+			Text.AppendLine("<plist version=\"1.0\">");
+			Text.AppendLine("<dict>");
+			Text.AppendLine("\t<key>ApplicationProperties</key>");
+			Text.AppendLine("\t<dict>");
+			Text.AppendLine("\t\t<key>ApplicationPath</key>");
+			Text.AppendLine("\t\t<string>Applications/" + AppName + "</string>");
+			Text.AppendLine("\t\t<key>CFBundleIdentifier</key>");
+			Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleIdentifier));
+			Text.AppendLine("\t\t<key>CFBundleShortVersionString</key>");
+			Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleShortVersion));
+			Text.AppendLine("\t\t<key>CFBundleVersion</key>");
+			Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleVersion));
+			Text.AppendLine("\t\t<key>SigningIdentity</key>");
+			Text.AppendLine(string.Format("\t\t<string>{0}</string>", Params.Certificate));
+			Text.AppendLine("\t</dict>");
+			Text.AppendLine("\t<key>ArchiveVersion</key>");
+			Text.AppendLine("\t<integer>2</integer>");
+			Text.AppendLine("\t<key>CreationDate</key>");
+			Text.AppendLine(string.Format("\t<date>{0}</date>", TimeStamp));
+			Text.AppendLine("\t<key>DefaultToolchainInfo</key>");
+			Text.AppendLine("\t<dict>");
+			Text.AppendLine("\t\t<key>DisplayName</key>");
+			Text.AppendLine("\t\t<string>Xcode 7.3 Default</string>");
+			Text.AppendLine("\t\t<key>Identifier</key>");
+			Text.AppendLine("\t\t<string>com.apple.dt.toolchain.XcodeDefault</string>");
+			Text.AppendLine("\t</dict>");
+			Text.AppendLine("\t<key>Name</key>");
+			Text.AppendLine(string.Format("\t<string>{0}</string>", SC.ShortProjectName));
+			Text.AppendLine("\t<key>SchemeName</key>");
+			Text.AppendLine(string.Format("\t<string>{0}</string>", SC.ShortProjectName));
+			Text.AppendLine("</dict>");
+			Text.AppendLine("</plist>");
+			File.WriteAllText(Path.Combine(ArchiveName, "Info.plist"), Text.ToString());
 		}
-
-		// get the settings from the app plist file
-		string AppPlist = Path.Combine(ArchiveName, "Products", "Applications", AppName, "Info.plist");
-		string OldPListData = File.Exists(AppPlist) ? File.ReadAllText(AppPlist) : "";
-
-		// bundle identifier
-		int index = OldPListData.IndexOf("CFBundleIdentifier");
-		index = OldPListData.IndexOf("<string>", index) + 8;
-		int length = OldPListData.IndexOf("</string>", index) - index;
-		string BundleIdentifier = OldPListData.Substring(index, length);
-
-		// short version
-		index = OldPListData.IndexOf("CFBundleShortVersionString");
-		index = OldPListData.IndexOf("<string>", index) + 8;
-		length = OldPListData.IndexOf("</string>", index) - index;
-		string BundleShortVersion = OldPListData.Substring(index, length);
-
-		// bundle version
-		index = OldPListData.IndexOf("CFBundleVersion");
-		index = OldPListData.IndexOf("<string>", index) + 8;
-		length = OldPListData.IndexOf("</string>", index) - index;
-		string BundleVersion = OldPListData.Substring(index, length);
-
-		// date we made this
-		const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
-		string TimeStamp = DateTime.UtcNow.ToString(Iso8601DateTimeFormat);
-
-		// create the archive plist
-		StringBuilder Text = new StringBuilder();
-		Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-		Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
-		Text.AppendLine("<plist version=\"1.0\">");
-		Text.AppendLine("<dict>");
-		Text.AppendLine("\t<key>ApplicationProperties</key>");
-		Text.AppendLine("\t<dict>");
-		Text.AppendLine("\t\t<key>ApplicationPath</key>");
-		Text.AppendLine("\t\t<string>Applications/" + AppName + "</string>");
-		Text.AppendLine("\t\t<key>CFBundleIdentifier</key>");
-		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleIdentifier));
-		Text.AppendLine("\t\t<key>CFBundleShortVersionString</key>");
-		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleShortVersion));
-		Text.AppendLine("\t\t<key>CFBundleVersion</key>");
-		Text.AppendLine(string.Format("\t\t<string>{0}</string>", BundleVersion));
-		Text.AppendLine("\t\t<key>SigningIdentity</key>");
-		Text.AppendLine(string.Format("\t\t<string>{0}</string>", Params.Certificate));
-		Text.AppendLine("\t</dict>");
-		Text.AppendLine("\t<key>ArchiveVersion</key>");
-		Text.AppendLine("\t<integer>2</integer>");
-		Text.AppendLine("\t<key>CreationDate</key>");
-		Text.AppendLine(string.Format("\t<date>{0}</date>", TimeStamp));
-		Text.AppendLine("\t<key>DefaultToolchainInfo</key>");
-		Text.AppendLine("\t<dict>");
-		Text.AppendLine("\t\t<key>DisplayName</key>");
-		Text.AppendLine("\t\t<string>Xcode 7.3 Default</string>");
-		Text.AppendLine("\t\t<key>Identifier</key>");
-		Text.AppendLine("\t\t<string>com.apple.dt.toolchain.XcodeDefault</string>");
-		Text.AppendLine("\t</dict>");
-		Text.AppendLine("\t<key>Name</key>");
-		Text.AppendLine(string.Format("\t<string>{0}</string>", SC.ShortProjectName));
-		Text.AppendLine("\t<key>SchemeName</key>");
-		Text.AppendLine(string.Format("\t<string>{0}</string>", SC.ShortProjectName));
-		Text.AppendLine("</dict>");
-		Text.AppendLine("</plist>");
-		File.WriteAllText(Path.Combine(ArchiveName, "Info.plist"), Text.ToString());
-
-		SC.ArchiveFiles(ArchiveName, "*", true, null, Path.GetFileNameWithoutExtension(ProjectIPA) + ".xcarchive");
+		else if (bXCArchive && !Utils.IsRunningOnMono)
+		{
+			LogWarning("Can not produce an XCArchive on windows");
+		}
 		SC.ArchiveFiles(Path.GetDirectoryName(ProjectIPA), Path.GetFileName(ProjectIPA));
 	}
 

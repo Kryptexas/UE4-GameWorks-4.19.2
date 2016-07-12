@@ -294,6 +294,7 @@ namespace AutomationTool
 			this.CreateAppBundle = InParams.CreateAppBundle;
 			this.Distribution = InParams.Distribution;
 			this.Prereqs = InParams.Prereqs;
+			this.AppLocalDirectory = InParams.AppLocalDirectory;
 			this.NoBootstrapExe = InParams.NoBootstrapExe;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
@@ -379,6 +380,7 @@ namespace AutomationTool
 			bool? Package = null,
 			bool? Pak = null,
 			bool? Prereqs = null,
+			string AppLocalDirectory = null,
 			bool? NoBootstrapExe = null,
             bool? SignedPak = null,
             bool? NullRHI = null,
@@ -566,6 +568,7 @@ namespace AutomationTool
 			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
+			this.AppLocalDirectory = ParseParamValueIfNotSpecified(Command, AppLocalDirectory, "applocaldir", String.Empty, true);
 			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -1542,7 +1545,10 @@ namespace AutomationTool
 		[Help("prereqs", "stage prerequisites along with the project")]
 		public bool Prereqs { get; set; }
 
-        [Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
+		[Help("applocaldir", "location of prerequisites for applocal deployment")]
+		public string AppLocalDirectory { get; set; }
+
+		[Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
         public bool Prebuilt { get; private set; }
 
         [Help("RunTimeoutSeconds", "timeout to wait after we lunch the game")]
@@ -2290,6 +2296,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("Distribution={0}", Distribution);
                 CommandUtils.LogLog("Prebuilt={0}", Prebuilt);
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);
+				CommandUtils.LogLog("AppLocalDirectory={0}", AppLocalDirectory);
 				CommandUtils.LogLog("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.LogLog("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.LogLog("Run={0}", Run);

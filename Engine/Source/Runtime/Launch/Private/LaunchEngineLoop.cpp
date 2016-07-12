@@ -18,6 +18,7 @@
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "MallocProfiler.h"
 
 #include "NetworkVersion.h"
 
@@ -2428,8 +2429,6 @@ void FEngineLoop::Exit()
 	}
 #endif // WITH_ENGINE
 
-	MALLOC_PROFILER( GEngine->Exec( nullptr, TEXT( "MPROF STOP" ) ); )
-
 	if ( GEngine != nullptr )
 	{
 		GEngine->ShutdownAudioDeviceManager();
@@ -2455,6 +2454,9 @@ void FEngineLoop::Exit()
 
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
+#else
+	// AppPreExit() stops malloc profiler, do it here instead
+	MALLOC_PROFILER( GMalloc->Exec(nullptr, TEXT("MPROF STOP"), *GLog);	);
 #endif // !ANDROID
 
 	// Stop the rendering thread.
@@ -3368,6 +3370,8 @@ void FEngineLoop::AppPreExit( )
 	UE_LOG(LogExit, Log, TEXT("Preparing to exit.") );
 
 	FCoreDelegates::OnPreExit.Broadcast();
+
+	MALLOC_PROFILER( GMalloc->Exec(nullptr, TEXT("MPROF STOP"), *GLog);	);
 
 #if WITH_ENGINE
 	if (FString(FCommandLine::Get()).Contains(TEXT("CreatePak")) && GetDerivedDataCache())

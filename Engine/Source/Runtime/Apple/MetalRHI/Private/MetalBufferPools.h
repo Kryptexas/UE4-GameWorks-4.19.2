@@ -52,7 +52,7 @@ public:
 		NumPoolBucketSizes = 22, /** Number of pool bucket sizes */
 		NumPoolBuckets = NumPoolBucketSizes * 3, /** Number of pool bucket sizes * 2 for Shared/Managed/Private storage */
 		NumToDrainPerFrame = 65536, /** Max. number of resources to cull in a single frame */
-		CullAfterFramesNum = 30 * 60 /** Resources are culled if unused for more frames than this */
+		CullAfterFramesNum = 30 /** Resources are culled if unused for more frames than this */
 	};
 	
 	/** Get the pool bucket index from the size

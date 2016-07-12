@@ -26,7 +26,7 @@ namespace UnrealBuildTool
 			ProjectFile = InProjectFile;
 		}
 
-		private AndroidPluginLanguage APL = null;
+		private UnrealPluginLanguage UPL = null;
 
 		public void SetAndroidPluginData(List<string> Architectures, List<string> inPluginExtraData)
 		{
@@ -35,7 +35,7 @@ namespace UnrealBuildTool
 			{
 				NDKArches.Add(GetNDKArch(Arch));
 			}
-			APL = new AndroidPluginLanguage(ProjectFile, inPluginExtraData, NDKArches);
+			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "xmlns:android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
 		}
 
@@ -1447,7 +1447,7 @@ namespace UnrealBuildTool
 				throw new BuildException("AndroidManifest.xml is invalid {0}\n{1}", e, Text.ToString());
 			}
 
-			APL.ProcessPluginNode(Arch, "androidManifestUpdates", "", ref XDoc);
+			UPL.ProcessPluginNode(Arch, "androidManifestUpdates", "", ref XDoc);
 			return XDoc.ToString();
 		}
 
@@ -1474,7 +1474,7 @@ namespace UnrealBuildTool
 			}
 
 			// add plugin additions
-			return APL.ProcessPluginNode(Arch, "proguardAdditions", Text.ToString());
+			return UPL.ProcessPluginNode(Arch, "proguardAdditions", Text.ToString());
 		}
 
 		private void ValidateGooglePlay(string UE4BuildPath)
@@ -1750,7 +1750,7 @@ namespace UnrealBuildTool
 			{
 				NDKArches.Add(GetNDKArch(Arch));
 			}
-			APL.Init(NDKArches, bForDistribution, EngineDirectory, UE4BuildPath);
+			UPL.Init(NDKArches, bForDistribution, EngineDirectory, UE4BuildPath);
 
 			IEnumerable<Tuple<string, string, string>> BuildList = null;
 
@@ -1882,7 +1882,7 @@ namespace UnrealBuildTool
 				File.WriteAllText(ManifestFile, Manifest);
 
 				// copy prebuild plugin files
-				APL.ProcessPluginNode(NDKArch, "prebuildCopies", "");
+				UPL.ProcessPluginNode(NDKArch, "prebuildCopies", "");
 
 				// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
 				UpdateProjectProperties(ToolChain, UE4BuildPath, ProjectName);
@@ -1967,7 +1967,7 @@ namespace UnrealBuildTool
 				CopyGfxDebugger(UE4BuildPath, Arch, NDKArch);
 
 				// copy postbuild plugin files
-				APL.ProcessPluginNode(NDKArch, "resourceCopies", "");
+				UPL.ProcessPluginNode(NDKArch, "resourceCopies", "");
 
 				Log.TraceInformation("\n===={0}====PERFORMING FINAL APK PACKAGE OPERATION================================================", DateTime.Now.ToString());
 
@@ -2144,17 +2144,17 @@ namespace UnrealBuildTool
 			string DestFilename = Path.Combine(UE4BuildPath, "src", "com", "epicgames", "ue4", "GameActivity.java");
 
 			Dictionary<string, string> Replacements = new Dictionary<string, string>{
-				{ "//$${gameActivityImportAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityImportAdditions", "")},
-				{ "//$${gameActivityClassAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityClassAdditions", "")},
-				{ "//$${gameActivityReadMetadataAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityReadMetadataAdditions", "")},
-				{ "//$${gameActivityOnCreateAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnCreateAdditions", "")},
-				{ "//$${gameActivityOnDestroyAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnDestroyAdditions", "")},
-				{ "//$${gameActivityOnStartAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnStartAdditions", "")},
-				{ "//$${gameActivityOnStopAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnStopAdditions", "")},
-				{ "//$${gameActivityOnPauseAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnPauseAdditions", "")},
-				{ "//$${gameActivityOnResumeAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnResumeAdditions", "")},
-				{ "//$${gameActivityOnActivityResultAdditions}$$", APL.ProcessPluginNode(NDKArch, "gameActivityOnActivityResultAdditions", "")},
-				{ "//$${soLoadLibrary}$$", APL.ProcessPluginNode(NDKArch, "soLoadLibrary", "")}
+				{ "//$${gameActivityImportAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityImportAdditions", "")},
+				{ "//$${gameActivityClassAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityClassAdditions", "")},
+				{ "//$${gameActivityReadMetadataAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityReadMetadataAdditions", "")},
+				{ "//$${gameActivityOnCreateAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnCreateAdditions", "")},
+				{ "//$${gameActivityOnDestroyAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnDestroyAdditions", "")},
+				{ "//$${gameActivityOnStartAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnStartAdditions", "")},
+				{ "//$${gameActivityOnStopAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnStopAdditions", "")},
+				{ "//$${gameActivityOnPauseAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnPauseAdditions", "")},
+				{ "//$${gameActivityOnResumeAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnResumeAdditions", "")},
+				{ "//$${gameActivityOnActivityResultAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnActivityResultAdditions", "")},
+				{ "//$${soLoadLibrary}$$", UPL.ProcessPluginNode(NDKArch, "soLoadLibrary", "")}
 			};
 
 			string[] TemplateSrc = File.ReadAllLines(SourceFilename);

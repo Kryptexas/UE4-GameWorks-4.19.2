@@ -271,6 +271,19 @@ public abstract class BaseWinPlatform : Platform
 
 		return true;
 	}
+
+	public void StageAppLocalDependencies(ProjectParams Params, DeploymentContext SC, string PlatformDir)
+	{
+		string BaseAppLocalDependenciesPath = Path.IsPathRooted(Params.AppLocalDirectory) ? CombinePaths(Params.AppLocalDirectory, PlatformDir) : CombinePaths(SC.ProjectRoot, Params.AppLocalDirectory, PlatformDir);
+		if (Directory.Exists(BaseAppLocalDependenciesPath))
+		{
+			string RelativeBinaryPath = new DirectoryReference(SC.ProjectBinariesFolder).MakeRelativeTo(new DirectoryReference(CombinePaths(SC.ProjectRoot, "..")));
+			foreach (string DependencyDirectory in Directory.EnumerateDirectories(BaseAppLocalDependenciesPath))
+			{
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, RelativeBinaryPath);
+			}
+		}
+	}
 }
 
 public class Win64Platform : BaseWinPlatform
@@ -290,6 +303,11 @@ public class Win64Platform : BaseWinPlatform
 		{
 			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x64.exe", false, null, InstallerRelativePath);
+
+			if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
+			{
+				StageAppLocalDependencies(Params, SC, "Win64");
+			}
 		}
 	}
 }
@@ -311,6 +329,11 @@ public class Win32Platform : BaseWinPlatform
 		{
 			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x86.exe", false, null, InstallerRelativePath);
+
+			if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
+			{
+				StageAppLocalDependencies(Params, SC, "Win32");
+			}
 		}
 	}
 }

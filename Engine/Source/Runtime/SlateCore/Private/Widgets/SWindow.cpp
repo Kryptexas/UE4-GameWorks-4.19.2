@@ -236,6 +236,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bHasMinimizeButton = InArgs._SupportsMinimize;
 	this->bHasMaximizeButton = InArgs._SupportsMaximize;
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
+	this->bShouldPreserveAspectRatio = InArgs._ShouldPreserveAspectRatio;
 	this->LayoutBorder = InArgs._LayoutBorder;
 	this->UserResizeBorder = InArgs._UserResizeBorder;
 	this->SizeLimits = FWindowSizeLimits()
@@ -1725,6 +1726,7 @@ SWindow::SWindow()
 	, bHasMaximizeButton( false )
 	, bHasSizingFrame( false )
 	, bIsModalWindow( false )
+	, bShouldPreserveAspectRatio( false )
 	, InitialDesiredScreenPosition( FVector2D::ZeroVector )
 	, InitialDesiredSize( FVector2D::ZeroVector )
 	, ScreenPosition( FVector2D::ZeroVector )

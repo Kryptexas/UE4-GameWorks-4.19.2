@@ -32,7 +32,19 @@ enum EMetalFeatures
 	/** Support for specifying resource usage & memory options */
 	EMetalFeaturesResourceOptions = 1 << 3,
 	/** Supports texture->buffer blit options for depth/stencil blitting */
-	EMetalFeaturesDepthStencilBlitOptions = 1 << 4
+	EMetalFeaturesDepthStencilBlitOptions = 1 << 4,
+    /** Supports creating a native stencil texture view from a depth/stencil texture */
+    EMetalFeaturesStencilView = 1 << 5,
+    /** Supports a depth-16 pixel format */
+    EMetalFeaturesDepth16 = 1 << 6,
+	/** Supports NSUInteger counting visibility queries */
+	EMetalFeaturesCountingQueries = 1 << 7,
+	/** Supports base vertex/instance for draw calls */
+	EMetalFeaturesBaseVertexInstance = 1 << 8,
+	/** Supports indirect buffers for draw calls */
+	EMetalFeaturesIndirectBuffer = 1 << 9,
+	/** Supports layered rendering */
+	EMetalFeaturesLayeredRendering = 1 << 10
 };
 
 /**
@@ -89,7 +101,7 @@ public:
 	/**
 	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
 	 */
-	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bReset = true);
 	
 	/**
 	 * Allocate from a dynamic ring buffer - by default align to the allowed alignment for offset field when setting buffers
@@ -116,7 +128,7 @@ public:
 	void SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
-#if PLATFORM_MAC
+#if METAL_API_1_1
 	void DispatchIndirect(FMetalVertexBuffer* ArgumentBuffer, uint32 ArgumentOffset);
 #endif
 
@@ -161,6 +173,8 @@ private:
 	
 	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState, float CurrentTime);
 	
+	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV, float CurrentTime);
+	
 	template <typename MetalResourceType>
 	inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex);
 	
@@ -203,7 +217,7 @@ protected:
 	
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
-
+	
 	/** The side table for runtiem validation of buffer access */
 	uint32 BufferSideTable[SF_NumFrequencies][MaxMetalStreams];
 	
@@ -275,7 +289,6 @@ private:
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
 		NSMutableSet<id<MTLBuffer>>* FreeBuffers;
-        int FrameCount;
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	

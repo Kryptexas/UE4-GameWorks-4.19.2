@@ -124,7 +124,7 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	FPlatformMemoryStats PlatformMemoryStats = FPlatformMemory::GetStats();
 	if (BackupOOMMemoryPool)
 	{
-		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool);
+		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, BackupOOMMemoryPoolSize);
 		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), BackupOOMMemoryPoolSize);
 	}
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
@@ -201,7 +201,7 @@ void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 	return nullptr;
 }
 
-void FGenericPlatformMemory::BinnedFreeToOS( void* Ptr )
+void FGenericPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 {
 	UE_LOG(LogMemory, Error, TEXT("FGenericPlatformMemory::BinnedFreeToOS not implemented on this platform"));
 }

@@ -303,6 +303,15 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 		IConsoleManager::Get().CallAllConsoleVariableSinks();
 	}
 
+	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
+	const FText WindowTitleComponent = WindowTitleOverride.IsEmpty() ? NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName}") : WindowTitleOverride;
+
+	FText WindowDebugInfoComponent;
+#if !UE_BUILD_SHIPPING
+	const FText WindowDebugInfoOverride = GetDefault<UGeneralProjectSettings>()->ProjectDebugTitleInfo;
+	WindowDebugInfoComponent = WindowDebugInfoOverride.IsEmpty() ? NSLOCTEXT("UnrealEd", "GameWindowTitleDebugInfo", "({PlatformArchitecture}-bit, {RHIName})") : WindowDebugInfoOverride;
+#endif
+
 #if PLATFORM_64BITS
 	//These are invariant strings so they don't need to be localized
 	const FText PlatformBits = FText::FromString( TEXT( "64" ) );
@@ -310,15 +319,15 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const FText PlatformBits = FText::FromString( TEXT( "32" ) );
 #endif	//PLATFORM_64BITS
 
-	// Note: If these parameters are updated or renamed, please update the tooltip on the ProjectDisplayedTitle property
+	// Note: If these parameters are updated or renamed, please update the tooltip on the ProjectDisplayedTitle and ProjectDebugTitleInfo properties
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetGameName() ) );
 	Args.Add( TEXT("PlatformArchitecture"), PlatformBits );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
 
-	const FText DefaultWindowTitle = NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName} ({PlatformArchitecture}-bit, {RHIName})");
-	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
-	const FText WindowTitle = FText::Format(WindowTitleOverride.IsEmpty() ? DefaultWindowTitle : WindowTitleOverride, Args);
+	const FText WindowTitleVar = FText::Format(FText::FromString(TEXT("{0} {1}")), WindowTitleComponent, WindowDebugInfoComponent);
+	const FText WindowTitle = FText::Format(WindowTitleVar, Args);
+	const bool bShouldPreserveAspectRatio = GetDefault<UGeneralProjectSettings>()->bShouldWindowPreserveAspectRatio;
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -360,7 +369,8 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.MaxHeight(MaxWindowHeight)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
-	.UseOSWindowBorder(true);
+	.UseOSWindowBorder(true)
+	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio);
 
 	const bool bShowImmediately = false;
 

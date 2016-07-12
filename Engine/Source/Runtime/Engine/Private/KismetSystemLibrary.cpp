@@ -85,6 +85,11 @@ FString UKismetSystemLibrary::GetGameName()
 	return FString(FApp::GetGameName());
 }
 
+FString UKismetSystemLibrary::GetGameBundleId()
+{
+	return FString(FPlatformProcess::GetGameBundleId());
+}
+
 FString UKismetSystemLibrary::GetPlatformUserName()
 {
 	return FString(FPlatformProcess::UserName());

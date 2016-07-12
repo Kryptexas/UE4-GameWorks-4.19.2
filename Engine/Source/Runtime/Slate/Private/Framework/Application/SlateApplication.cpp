@@ -1721,6 +1721,7 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->IsRegularWindow = InSlateWindow->IsRegularWindow();
 	Definition->HasSizingFrame = InSlateWindow->HasSizingFrame();
 	Definition->SizeWillChangeOften = InSlateWindow->SizeWillChangeOften();
+	Definition->ShouldPreserveAspectRatio = InSlateWindow->ShouldPreserveAspectRatio();
 	Definition->ExpectedMaxWidth = InSlateWindow->GetExpectedMaxWidth();
 	Definition->ExpectedMaxHeight = InSlateWindow->GetExpectedMaxHeight();
 

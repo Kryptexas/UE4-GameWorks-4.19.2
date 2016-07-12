@@ -19,7 +19,7 @@
 #include "HAL/ExceptionHandling.h"
 #include "AsyncLoadingPrivate.h"
 
-#define FIND_MEMORY_STOMPS (1 && PLATFORM_WINDOWS && !WITH_EDITORONLY_DATA)
+#define FIND_MEMORY_STOMPS (1 && (PLATFORM_WINDOWS || PLATFORM_LINUX) && !WITH_EDITORONLY_DATA)
 
 //#pragma clang optimize off
 
@@ -2689,11 +2689,7 @@ static uint8* MallocAsyncBuffer(const SIZE_T Size, SIZE_T& OutAllocatedSize)
 	const SIZE_T AllocFullPageSize = AlignedSize + (PageSize - 1) & ~(PageSize - 1U);
 	check(AllocFullPageSize >= Size);
 	OutAllocatedSize = AllocFullPageSize;
-#if PLATFORM_LINUX || PLATFORM_MAC
-	Result = (uint8*)mmap(nullptr, AllocFullPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-#else
 	Result = (uint8*)FPlatformMemory::BinnedAllocFromOS(AllocFullPageSize);
-#endif // PLATFORM_LINUX || PLATFORM_MAC
 #else
 	OutAllocatedSize = Size;
 	Result = (uint8*)FMemory::Malloc(Size);
@@ -2706,11 +2702,7 @@ static void FreeAsyncBuffer(uint8* Buffer, const SIZE_T AllocatedSize)
 	if (Buffer)
 	{
 #if FIND_MEMORY_STOMPS
-#if PLATFORM_LINUX || PLATFORM_MAC
-		munmap(Buffer, AllocatedSize);
-#else
-		FPlatformMemory::BinnedFreeToOS(Buffer);
-#endif // PLATFORM_LINUX || PLATFORM_MAC
+		FPlatformMemory::BinnedFreeToOS(Buffer, AllocatedSize);
 #else
 		FMemory::Free(Buffer);
 #endif // FIND_MEMORY_STOMPS

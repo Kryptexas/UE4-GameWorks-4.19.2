@@ -76,6 +76,8 @@ public:
 	/** Called by the owning application when the level of transparency support has changed */
 	void OnTransparencySupportChanged(EWindowTransparency NewTransparency);
 
+	float GetAspectRatio() const { return AspectRatio; }
+
 public:
 
 	// FGenericWindow interface
@@ -165,6 +167,9 @@ private:
 		it and incurring a GPU buffer resize performance hit */
 	int32 VirtualWidth;
 	int32 VirtualHeight;
+
+	/** Current aspect ratio of window's client area */
+	float AspectRatio;
 
 	bool bIsVisible : 1;
 };
