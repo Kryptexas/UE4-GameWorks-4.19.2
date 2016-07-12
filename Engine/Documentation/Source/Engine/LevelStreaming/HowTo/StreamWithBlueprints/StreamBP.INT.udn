@@ -1,5 +1,5 @@
 Availability: Docs
-Title:Stream Sublevels with Blueprints
+Title:Load and Unload Levels with Blueprints
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to stream levels with a custom streaming Actor created with Blueprints
 parent:Engine/LevelStreaming/HowTo
