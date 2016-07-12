@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3041817
 Availability:Public
 Title:ブループリントの概要
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -50,7 +50,7 @@ order:2
 
 [TOC (start:2)]
 
-[INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
+[INCLUDE:Engine/Blueprints/GettingStarted/#Intro]
 
 つまり、ブループリントがアンリアル スクリプトに取って替わるということでしょうか？どちらとも言えません。 
 昔はアンリアル スクリプトを使用したゲームプレイ プログラミングやその他すべてのゲームプレイ要素は、今もまだ C++ 言語で処理することができます。同時に、ブループリントはアンリアル・スクリプトの代替ではないものの、 
@@ -148,7 +148,7 @@ _ブループリント_ にエクスポーズされた全ての機能を実行�
 <!--
 ### ブループリントのモード
 
-ブループリントの _モード_ は、ウィンドウの表示状態を決定します。Level ブループリントにはグラフモードだけしかありませんが、、ブループリント Class には次の 3 つのモードがあります。
+ブループリントの _モード_ は、ウィンドウの表示状態を決定します。Level ブループリントにはグラフモードだけしかありませんが、ブループリント Class には次の 3 つのモードがあります。
 
 * **[グラフ モード](Engine/Blueprints\Editor\Modes\GraphPanel)** - レベルのゲームプレイ機能を作成するために、スクリプティングノードを追加したり接続するモードです。
 * **[デフォルト モード](Engine/Blueprints\Editor\Modes\Defaults)** - ブループリントのデフォルトを設定するモードです。
