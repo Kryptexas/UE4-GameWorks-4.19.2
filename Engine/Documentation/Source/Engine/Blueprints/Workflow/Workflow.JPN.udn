@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3042570
 Availability:Public
-Title: Working with Blueprints
+Title:Blueprint Workflow ツール
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
-version: 4.9
+Description:コメント付けおよびブレークポイントなどのツールによって、コードの流れを追って、同じシステムで作業をするチームメンバーや自分用にメモを残すことができます。
+version:4.9
 parent:Engine/Blueprints
 order:3
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/Workflow:title%](Engine/Blueprints/blueprintcheatsheet.png)
+		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
@@ -29,7 +29,7 @@ order:3
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Blueprints/Workflow:title%](Engine/Blueprints/blueprintcheatsheet.png)
+		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
@@ -47,7 +47,7 @@ order:3
 [/VAR]
 
 
-When working in Blueprints, commenting your graphs, searching through all the Blueprints in your project, and using breakpoints to debug systems are key tools available to you.
+ブループリントで作業する際に、グラフへのコメント付け、プロジェクト内のすべてのブループリント対象の検索、ブレークポイントによるシステムのデバッグという主要ツールを使用することができます。
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Workflow")]
 
