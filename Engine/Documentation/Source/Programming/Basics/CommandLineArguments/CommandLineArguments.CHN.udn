@@ -159,7 +159,6 @@ URL由两部分组成： 地图名称或服务器IP地址以及一系列的可�
 * `NoVSync`: 通过命令行禁用VSYNC。
 * `BENCHMARK`: 为了不跳任何帧来处理每一帧，则以固定步长来运行游戏。当把这个参数和DUMPMOVIE选项结合使用时是非常有用的。
 * `DUMPMOVIE`: 把渲染的帧使用当前的分辨率转存到文件中。
-* `DUMPMOVIE_TILEDSHOT`: 使用指定的分辨率乘数把渲染的帧转存到文件中。使用为高分辨率帧使用平铺截图(比如 `DUMPMOVIE_TILEDSHOT=4`)。
 * `EXEC`: 执行指定的exec文件。
 * `FPS`: 设置性能基准测试中每秒钟的帧数。
 * `FULLSCREEN`: 设置游戏以全屏模式运行。
