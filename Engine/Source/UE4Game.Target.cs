@@ -9,6 +9,12 @@ public class UE4GameTarget : TargetRules
 	{
 		Type = TargetType.Game;
 
+		// Use Shipping PhysX libraries in shipping builds so they're included for installed builds
+		if (Target.Configuration == UnrealTargetConfiguration.Shipping && (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32))
+		{
+			BuildConfiguration.bUseShippingPhysXLibraries = true;
+		}
+
 		// Output to Engine/Binaries/<PLATFORM> even if built as monolithic
 		bOutputToEngineBinaries = true;
 	}

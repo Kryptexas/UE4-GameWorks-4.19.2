@@ -28,6 +28,12 @@ namespace BuildGraph.Tasks
 		public string Output;
 
 		/// <summary>
+		/// Path to a Response File that contains a list of files to add to the pak file, instead of specifying them individually
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string ResponseFile;
+
+		/// <summary>
 		/// Directories to rebase the files relative to. If specified, the shortest path under a listed directory will be used for each file.
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -103,26 +109,36 @@ namespace BuildGraph.Tasks
 			// Get the output parameter
 			FileReference OutputFile = ResolveFile(Parameters.Output);
 
-			// Get a unique filename for the response file
-			FileReference ResponseFile = FileReference.Combine(new DirectoryReference(CommandUtils.CmdEnv.LogFolder), String.Format("PakList_{0}.txt", OutputFile.GetFileNameWithoutExtension()));
-			for(int Idx = 2; ResponseFile.Exists(); Idx++)
+			// Check for a ResponseFile parameter
+			FileReference ResponseFile = null;
+			if (!String.IsNullOrEmpty(Parameters.ResponseFile))
 			{
-				ResponseFile = FileReference.Combine(ResponseFile.Directory, String.Format("PakList_{0}_{1}.txt", OutputFile.GetFileNameWithoutExtension(), Idx));
+				ResponseFile = ResolveFile(Parameters.ResponseFile);
 			}
 
-			// Write out the response file
-			HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
-			using(StreamWriter Writer = new StreamWriter(ResponseFile.FullName, false, new System.Text.UTF8Encoding(true)))
+			if (ResponseFile == null)
 			{
-				foreach(FileReference File in Files)
+				// Get a unique filename for the response file
+				ResponseFile = FileReference.Combine(new DirectoryReference(CommandUtils.CmdEnv.LogFolder), String.Format("PakList_{0}.txt", OutputFile.GetFileNameWithoutExtension()));
+				for (int Idx = 2; ResponseFile.Exists(); Idx++)
 				{
-					string RelativePath = FindShortestRelativePath(File, RebaseDirs);
-					if(RelativePath == null)
+					ResponseFile = FileReference.Combine(ResponseFile.Directory, String.Format("PakList_{0}_{1}.txt", OutputFile.GetFileNameWithoutExtension(), Idx));
+				}
+
+				// Write out the response file
+				HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
+				using (StreamWriter Writer = new StreamWriter(ResponseFile.FullName, false, new System.Text.UTF8Encoding(true)))
+				{
+					foreach (FileReference File in Files)
 					{
-						CommandUtils.LogError("Couldn't find relative path for '{0}' - not under any rebase directories", File.FullName);
-						return false;
+						string RelativePath = FindShortestRelativePath(File, RebaseDirs);
+						if (RelativePath == null)
+						{
+							CommandUtils.LogError("Couldn't find relative path for '{0}' - not under any rebase directories", File.FullName);
+							return false;
+						}
+						Writer.WriteLine("\"{0}\" \"{1}\"{2}", File.FullName, RelativePath, Parameters.Compress ? " -compress" : "");
 					}
-					Writer.WriteLine("\"{0}\" \"{1}\"{2}", File.FullName, RelativePath, Parameters.Compress? " -compress" : "");
 				}
 			}
 

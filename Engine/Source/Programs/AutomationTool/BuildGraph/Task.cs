@@ -185,8 +185,7 @@ namespace AutomationTool
 		{
 			if(!String.IsNullOrEmpty(Filespec))
 			{
-				string[] Patterns = SplitDelimitedList(Filespec);
-				foreach(string Pattern in Patterns)
+				foreach(string Pattern in SplitDelimitedList(Filespec))
 				{
 					if(Pattern.StartsWith("#"))
 					{
@@ -205,8 +204,7 @@ namespace AutomationTool
 		{
 			if(!String.IsNullOrEmpty(TagList))
 			{
-				string[] TagNames = SplitDelimitedList(TagList);
-				foreach(string TagName in TagNames)
+				foreach(string TagName in SplitDelimitedList(TagList))
 				{
 					yield return TagName;
 				}
@@ -311,11 +309,23 @@ namespace AutomationTool
 		public static HashSet<FileReference> ResolveFilespecWithExcludePatterns(DirectoryReference DefaultDirectory, string DelimitedPatterns, List<string> ExcludePatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Split the argument into a list of patterns
-			string[] Patterns = SplitDelimitedList(DelimitedPatterns);
+			List<string> Patterns = SplitDelimitedList(DelimitedPatterns);
+			return ResolveFilespecWithExcludePatterns(DefaultDirectory, Patterns, ExcludePatterns, TagNameToFileSet);
+		}
 
+		/// <summary>
+		/// Resolve a list of files, tag names or file specifications as above, but preserves any directory references for further processing.
+		/// </summary>
+		/// <param name="DefaultDirectory">The default directory to resolve relative paths to</param>
+		/// <param name="DelimitedPatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
+		/// <param name="ExcludePatterns">Set of patterns to apply to directory searches. This can greatly speed up enumeration by earlying out of recursive directory searches if large directories are excluded (eg. .../Intermediate/...).</param>
+		/// <param name="TagNameToFileSet">Mapping of tag name to fileset, as passed to the Execute() method</param>
+		/// <returns>Set of matching files.</returns>
+		public static HashSet<FileReference> ResolveFilespecWithExcludePatterns(DirectoryReference DefaultDirectory, List<string> FilePatterns, List<string> ExcludePatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		{
 			// Parse each of the patterns, and add the results into the given sets
 			HashSet<FileReference> Files = new HashSet<FileReference>();
-			foreach(string Pattern in Patterns)
+			foreach(string Pattern in FilePatterns)
 			{
 				// Check if it's a tag name
 				if(Pattern.StartsWith("#"))
@@ -365,9 +375,9 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Text">The input string</param>
 		/// <returns>Array of the parsed items</returns>
-		public static string[] SplitDelimitedList(string Text)
+		public static List<string> SplitDelimitedList(string Text)
 		{
-			return Text.Split(';').Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
+			return Text.Split(';').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
 		}
 	}
 }

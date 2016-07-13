@@ -22,6 +22,12 @@ namespace AutomationTool.Tasks
 		public string AppName;
 
 		/// <summary>
+		/// The application id
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public int AppID = 1;
+
+		/// <summary>
 		/// Platform we are staging for.
 		/// </summary>
 		[TaskParameter]
@@ -68,6 +74,25 @@ namespace AutomationTool.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public BuildPatchToolBase.ToolVersion ToolVersion = BuildPatchToolBase.ToolVersion.Live;
+
+		/// <summary>
+		/// Location of a file listing attributes to apply to chunked files.
+		/// Should contain quoted InputDir relative files followed by optional attribute keywords readonly compressed executable, separated by \\r\\n line endings.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string AttributesFileName;
+
+		/// <summary>
+		/// The prerequisites installer to launch on successful product install, must be relative to, and inside of InputDir.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string PrereqPath;
+
+		/// <summary>
+		/// The commandline to send to prerequisites installer on launch.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string PrereqArgs;
 	}
 
 	/// <summary>
@@ -128,16 +153,20 @@ namespace AutomationTool.Tasks
 			}
 
 			// Create the staging info
-			BuildPatchToolStagingInfo StagingInfo = new BuildPatchToolStagingInfo(Job.OwnerCommand, Parameters.AppName, 1, Parameters.BuildVersion, Parameters.Platform, Parameters.CloudDir);
+			BuildPatchToolStagingInfo StagingInfo = new BuildPatchToolStagingInfo(Job.OwnerCommand, Parameters.AppName, Parameters.AppID, Parameters.BuildVersion, Parameters.Platform, Parameters.CloudDir);
 
 			// Set the patch generation options
 			BuildPatchToolBase.PatchGenerationOptions Options = new BuildPatchToolBase.PatchGenerationOptions();
 			Options.StagingInfo = StagingInfo;
 			Options.BuildRoot = ResolveDirectory(Parameters.InputDir).FullName;
 			Options.FileIgnoreList = (IgnoreList != null) ? IgnoreList.FullName : null;
+			Options.FileAttributeList = Parameters.AttributesFileName ?? "";
 			Options.AppLaunchCmd = Parameters.Launch ?? "";
 			Options.AppLaunchCmdArgs = Parameters.LaunchArgs ?? "";
 			Options.AppChunkType = BuildPatchToolBase.ChunkType.Chunk;
+			Options.Platform = Parameters.Platform;
+			Options.PrereqPath = Parameters.PrereqPath ?? "";
+			Options.PrereqArgs = Parameters.PrereqArgs ?? "";
 
 			// Run the chunking
 			BuildPatchToolBase.Get().Execute(Options, Parameters.ToolVersion);

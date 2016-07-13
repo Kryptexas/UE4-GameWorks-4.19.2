@@ -120,7 +120,6 @@ namespace AutomationTool
 		Notify,
 		Include,
 		Property,
-		Local,
 		Warning,
 		Error,
 		Name,
@@ -282,8 +281,7 @@ namespace AutomationTool
 			NewSchema.Items.Add(CreateBadgeType());
 			NewSchema.Items.Add(CreateNotifyType());
 			NewSchema.Items.Add(CreateIncludeType());
-			NewSchema.Items.Add(CreatePropertyType(ScriptSchemaStandardType.Property));
-			NewSchema.Items.Add(CreatePropertyType(ScriptSchemaStandardType.Local));
+			NewSchema.Items.Add(CreatePropertyType());
 			NewSchema.Items.Add(CreateDiagnosticType(ScriptSchemaStandardType.Warning));
 			NewSchema.Items.Add(CreateDiagnosticType(ScriptSchemaStandardType.Error));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.Name), "(" + NamePattern + "|" + StringWithPropertiesPattern + ")"));
@@ -398,7 +396,6 @@ namespace AutomationTool
 			GraphChoice.MaxOccursString = "unbounded";
 			GraphChoice.Items.Add(CreateSchemaElement("Include", ScriptSchemaStandardType.Include));
 			GraphChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
-			GraphChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
 			GraphChoice.Items.Add(CreateSchemaElement("Agent", ScriptSchemaStandardType.Agent));
 			GraphChoice.Items.Add(CreateSchemaElement("Trigger", ScriptSchemaStandardType.Trigger));
 			GraphChoice.Items.Add(CreateSchemaElement("Aggregate", ScriptSchemaStandardType.Aggregate));
@@ -409,7 +406,7 @@ namespace AutomationTool
 			GraphChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 			GraphChoice.Items.Add(CreateDoElement(ScriptSchemaStandardType.Graph));
 			GraphChoice.Items.Add(CreateChooseElement(ScriptSchemaStandardType.Graph));
-
+			GraphChoice.Items.Add(CreateForEachElement(ScriptSchemaStandardType.Graph));
 			XmlSchemaComplexType GraphType = new XmlSchemaComplexType();
 			GraphType.Name = GetTypeName(ScriptSchemaStandardType.Graph);
 			GraphType.Particle = GraphChoice;
@@ -446,13 +443,13 @@ namespace AutomationTool
 			TriggerChoice.MinOccurs = 0;
 			TriggerChoice.MaxOccursString = "unbounded";
 			TriggerChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
-			TriggerChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
 			TriggerChoice.Items.Add(CreateSchemaElement("Agent", ScriptSchemaStandardType.Agent));
 			TriggerChoice.Items.Add(CreateSchemaElement("Aggregate", ScriptSchemaStandardType.Aggregate));
 			TriggerChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
 			TriggerChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 			TriggerChoice.Items.Add(CreateDoElement(ScriptSchemaStandardType.TriggerBody));
 			TriggerChoice.Items.Add(CreateChooseElement(ScriptSchemaStandardType.TriggerBody));
+			TriggerChoice.Items.Add(CreateForEachElement(ScriptSchemaStandardType.TriggerBody));
 
 			XmlSchemaComplexType TriggerType = new XmlSchemaComplexType();
 			TriggerType.Name = GetTypeName(ScriptSchemaStandardType.TriggerBody);
@@ -491,12 +488,12 @@ namespace AutomationTool
 			AgentChoice.MinOccurs = 0;
 			AgentChoice.MaxOccursString = "unbounded";
 			AgentChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
-			AgentChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
 			AgentChoice.Items.Add(CreateSchemaElement("Node", ScriptSchemaStandardType.Node));
 			AgentChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
 			AgentChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 			AgentChoice.Items.Add(CreateDoElement(ScriptSchemaStandardType.AgentBody));
 			AgentChoice.Items.Add(CreateChooseElement(ScriptSchemaStandardType.AgentBody));
+			AgentChoice.Items.Add(CreateForEachElement(ScriptSchemaStandardType.AgentBody));
 
 			XmlSchemaComplexType AgentType = new XmlSchemaComplexType();
 			AgentType.Name = GetTypeName(ScriptSchemaStandardType.AgentBody);
@@ -539,11 +536,11 @@ namespace AutomationTool
 			NodeChoice.MinOccurs = 0;
 			NodeChoice.MaxOccursString = "unbounded";
 			NodeChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
-			NodeChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
 			NodeChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
 			NodeChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 			NodeChoice.Items.Add(CreateDoElement(ScriptSchemaStandardType.NodeBody));
 			NodeChoice.Items.Add(CreateChooseElement(ScriptSchemaStandardType.NodeBody));
+			NodeChoice.Items.Add(CreateForEachElement(ScriptSchemaStandardType.NodeBody));
 			foreach (KeyValuePair<string, XmlSchemaComplexType> Pair in TaskNameToType.OrderBy(x => x.Key))
 			{
 				NodeChoice.Items.Add(CreateSchemaElement(Pair.Key, new XmlQualifiedName(Pair.Value.Name, NamespaceURI)));
@@ -635,12 +632,14 @@ namespace AutomationTool
 		/// Creates the schema type representing a property type
 		/// </summary>
 		/// <returns>Type definition for a property</returns>
-		static XmlSchemaType CreatePropertyType(ScriptSchemaStandardType StandardType)
+		static XmlSchemaType CreatePropertyType()
 		{
 			XmlSchemaComplexType PropertyType = new XmlSchemaComplexType();
-			PropertyType.Name = GetTypeName(StandardType);
+			PropertyType.Name = GetTypeName(ScriptSchemaStandardType.Property);
 			PropertyType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
-			PropertyType.Attributes.Add(CreateSchemaAttribute("Value", StringTypeName, XmlSchemaUse.Required));
+			PropertyType.Attributes.Add(CreateSchemaAttribute("Value", StringTypeName, XmlSchemaUse.Optional));
+			PropertyType.Attributes.Add(CreateSchemaAttribute("Restrict", StringTypeName, XmlSchemaUse.Optional));
+			PropertyType.Attributes.Add(CreateSchemaAttribute("Default", StringTypeName, XmlSchemaUse.Optional));
 			PropertyType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return PropertyType;
 		}
@@ -724,6 +723,31 @@ namespace AutomationTool
 			ChooseElement.Name = "Choose";
 			ChooseElement.SchemaType = ChooseSchemaType;
 			return ChooseElement;
+		}
+
+		/// <summary>
+		/// Creates an element representing a conditional "ForEach" block, which recursively contains another type
+		/// </summary>
+		/// <param name="InnerType">The base type for the foreach block to contain</param>
+		/// <returns>New schema element for the block</returns>
+		static XmlSchemaElement CreateForEachElement(ScriptSchemaStandardType InnerType)
+		{
+			XmlSchemaComplexContentExtension Extension = new XmlSchemaComplexContentExtension();
+			Extension.BaseTypeName = GetQualifiedTypeName(InnerType);
+			Extension.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Required));
+			Extension.Attributes.Add(CreateSchemaAttribute("Values", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Required));
+			Extension.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
+
+			XmlSchemaComplexContent ContentModel = new XmlSchemaComplexContent();
+			ContentModel.Content = Extension;
+
+			XmlSchemaComplexType SchemaType = new XmlSchemaComplexType();
+			SchemaType.ContentModel = ContentModel;
+
+			XmlSchemaElement Element = new XmlSchemaElement();
+			Element.Name = "ForEach";
+			Element.SchemaType = SchemaType;
+			return Element;
 		}
 
 		/// <summary>

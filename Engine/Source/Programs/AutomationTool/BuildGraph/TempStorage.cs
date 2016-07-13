@@ -361,11 +361,11 @@ namespace AutomationTool
 			{
 				if(File.IsUnderDirectory(RootDir))
 				{
-					NewLocalFiles.Add(File.MakeRelativeTo(RootDir));
+					NewLocalFiles.Add(File.MakeRelativeTo(RootDir).Replace(Path.DirectorySeparatorChar, '/'));
 				}
 				else
 				{
-					NewExternalFiles.Add(File.FullName);
+					NewExternalFiles.Add(File.FullName.Replace(Path.DirectorySeparatorChar, '/'));
 				}
 			}
 			LocalFiles = NewLocalFiles.ToArray();

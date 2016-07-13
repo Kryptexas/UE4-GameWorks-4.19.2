@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../Misc/Build.h"
 
 // define all other platforms to be zero
 //@port Define the platform here to be zero when compiling for other platforms
@@ -759,3 +760,30 @@ namespace TypeTests
 	static_assert(sizeof(SIZE_T) == sizeof(void *), "SIZE_T type size test failed.");
 	static_assert(SIZE_T(-1) > SIZE_T(0), "SIZE_T type sign test failed.");
 }
+
+// Platform specific compiler setup.
+#if PLATFORM_WINDOWS
+	#include "Windows/WindowsPlatformCompilerSetup.h"
+#elif PLATFORM_PS4
+	#include "PS4/PS4CompilerSetup.h"
+#elif PLATFORM_XBOXONE
+	#include "XboxOne/XboxOneCompilerSetup.h"
+#elif PLATFORM_MAC
+	#include "Mac/MacPlatformCompilerSetup.h"
+#elif PLATFORM_IOS
+	#include "IOS/IOSPlatformCompilerSetup.h"
+#elif PLATFORM_ANDROID
+	#include "Android/AndroidCompilerSetup.h"
+#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
+	#include "WinRT/WinRTCompilerSetup.h"
+#elif PLATFORM_HTML5
+	#include "HTML5/HTML5PlatformCompilerSetup.h"
+#elif PLATFORM_LINUX
+	#include "Linux/LinuxPlatformCompilerSetup.h"
+#else
+	#error Unknown Compiler
+#endif
+
+// Include defaults for defines that aren't explicitly set by the platform
+#include "UMemoryDefines.h"
+#include "../Misc/CoreMiscDefines.h"

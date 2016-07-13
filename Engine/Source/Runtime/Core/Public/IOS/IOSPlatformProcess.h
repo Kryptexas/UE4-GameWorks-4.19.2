@@ -6,6 +6,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformProcess.h"
+#import "IOSAsyncTask.h"
 
 /** Dummy process handle for platforms that use generic implementation. */
 struct FProcHandle : public TProcHandle<void*, nullptr>
@@ -44,19 +45,5 @@ private:
 };
 
 typedef FIOSPlatformProcess FPlatformProcess;
-
-class CORE_API FIOSPlatformAffinity : public FGenericPlatformAffinity
-{
-public:
-	static const uint64 GetMainGameMask();
-	static const uint64 GetRenderingThreadMask();
-	static const uint64 GetRTHeartBeatMask();
-	static const uint64 GetPoolThreadMask();
-	static const uint64 GetTaskGraphThreadMask();
-	static const uint64 GetStatsThreadMask();
-	static const uint64 GetNoAffinityMask();
-};
-
-typedef FIOSPlatformAffinity FPlatformAffinity;
 
 typedef FSystemWideCriticalSectionNotImplemented FSystemWideCriticalSection;

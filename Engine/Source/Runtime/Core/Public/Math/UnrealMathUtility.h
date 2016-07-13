@@ -1172,32 +1172,61 @@ struct FMath : public FPlatformMath
 	* @param F		Floating point value to convert
 	* @return		The rounded integer
 	*/
-	static float RoundFromZero(float F);
-	static double RoundFromZero(double F);
+	static FORCEINLINE float RoundFromZero(float F)
+	{
+		return (F < 0.0f) ? FloorToFloat(F) : CeilToFloat(F);
+	}
+
+	static FORCEINLINE double RoundFromZero(double F)
+	{
+		return (F < 0.0) ? FloorToDouble(F) : CeilToDouble(F);
+	}
 
 	/**
 	* Converts a floating point number to an integer which is closer to zero, "smaller" in absolute value: 0.1 becomes 0, -0.1 becomes 0
 	* @param F		Floating point value to convert
 	* @return		The rounded integer
 	*/
-	static float RoundToZero(float F);
-	static double RoundToZero(double F);
+	static FORCEINLINE float RoundToZero(float F)
+	{
+		return (F < 0.0f) ? CeilToFloat(F) : FloorToFloat(F);
+	}
+
+	static FORCEINLINE double RoundToZero(double F)
+	{
+		return (F < 0.0) ? CeilToDouble(F) : FloorToDouble(F);
+	}
 
 	/**
 	* Converts a floating point number to an integer which is more negative: 0.1 becomes 0, -0.1 becomes -1
 	* @param F		Floating point value to convert
 	* @return		The rounded integer
 	*/
-	static float RoundToNegativeInfinity(float F);
-	static double RoundToNegativeInfinity(double F);
+	static FORCEINLINE float RoundToNegativeInfinity(float F)
+	{
+		return FloorToFloat(F);
+	}
+
+	static FORCEINLINE double RoundToNegativeInfinity(double F)
+	{
+		return FloorToDouble(F);
+	}
 
 	/**
 	* Converts a floating point number to an integer which is more positive: 0.1 becomes 1, -0.1 becomes 0
 	* @param F		Floating point value to convert
 	* @return		The rounded integer
 	*/
-	static float RoundToPositiveInfinity(float F);
-	static double RoundToPositiveInfinity(double F);
+	static FORCEINLINE float RoundToPositiveInfinity(float F)
+	{
+		return CeilToFloat(F);
+	}
+
+	static FORCEINLINE double RoundToPositiveInfinity(double F)
+	{
+		return CeilToDouble(F);
+	}
+
 
 	// Formatting functions
 
@@ -1207,7 +1236,7 @@ struct FMath : public FPlatformMath
 	 * @param	Val		The value to use
 	 * @return	FString	The human readable string
 	 */
-	static FString FormatIntToHumanReadable(int32 Val);
+	static CORE_API FString FormatIntToHumanReadable(int32 Val);
 
 
 	// Utilities
@@ -1355,34 +1384,4 @@ struct FMath : public FPlatformMath
 	}
 };
 
-// Platform specific vector intrinsics include.
-#if WITH_DIRECTXMATH
-	#define SIMD_ALIGNMENT (16)
-	#include "UnrealMathDirectX.h"
-#elif PLATFORM_ENABLE_VECTORINTRINSICS
-	#define SIMD_ALIGNMENT (16)
-	#include "UnrealMathSSE.h"
-#elif PLATFORM_ENABLE_VECTORINTRINSICS_NEON
-	#define SIMD_ALIGNMENT (16)
-	#include "UnrealMathNeon.h"
-#else
-	#define SIMD_ALIGNMENT (4)
-	#include "UnrealMathFPU.h"
-#endif
-
-// 'Cross-platform' vector intrinsics (built on the platform-specific ones defined above)
-#include "UnrealMathVectorCommon.h"
-
-/** Vector that represents (1/255,1/255,1/255,1/255) */
-extern CORE_API const VectorRegister VECTOR_INV_255;
-
-/**
-* Below this weight threshold, animations won't be blended in.
-*/
-#define ZERO_ANIMWEIGHT_THRESH (0.00001f)
-
-namespace GlobalVectorConstants
-{
-	static const VectorRegister AnimWeightThreshold = MakeVectorRegister( ZERO_ANIMWEIGHT_THRESH, ZERO_ANIMWEIGHT_THRESH, ZERO_ANIMWEIGHT_THRESH, ZERO_ANIMWEIGHT_THRESH );
-	static const VectorRegister RotationSignificantThreshold = MakeVectorRegister( 1.0f - DELTA*DELTA, 1.0f - DELTA*DELTA, 1.0f - DELTA*DELTA, 1.0f - DELTA*DELTA );
-}
+#include "VectorRegister.h"

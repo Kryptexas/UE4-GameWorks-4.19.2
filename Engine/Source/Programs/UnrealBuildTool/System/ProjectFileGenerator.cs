@@ -282,6 +282,56 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Finds all csproj within Engine/Source/Programs, and add them if their UE4CSharp.prog file exists.
+		/// </summary>
+		void DiscoverCSharpProgramProjects(MasterProjectFolder ProgramsFolder)
+		{
+			List<FileReference> FoundProjects = new List<FileReference>();
+			DirectoryReference EngineProgramsSource = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Source", "Programs");
+			DiscoverCSharpProgramProjectsRecursively(EngineProgramsSource, FoundProjects);
+			foreach (FileReference FoundProject in FoundProjects)
+			{
+				VCSharpProjectFile Project = new VCSharpProjectFile(FoundProject);
+				Project.ShouldBuildForAllSolutionTargets = false;
+				Project.ShouldBuildByDefaultForSolutionTargets = true;
+				AddExistingProjectFile(Project, bForceDevelopmentConfiguration: false);
+				ProgramsFolder.ChildProjects.Add(Project);
+			}
+		}
+
+		private static void DiscoverCSharpProgramProjectsRecursively(DirectoryReference SearchFolder, List<FileReference> FoundProjects)
+		{
+			// Scan all the files in this directory
+			bool bSearchSubFolders = true;
+			foreach (FileReference File in DirectoryLookupCache.EnumerateFiles(SearchFolder))
+			{
+				// If we find a csproj or sln, we should not recurse this directory.
+				bool bIsCsProj = File.HasExtension(".csproj");
+				bool bIsSln = File.HasExtension(".sln");
+				bSearchSubFolders &= !(bIsCsProj || bIsSln);
+				// If we found an sln, ignore completely.
+				if (bIsSln)
+				{
+					break;
+				}
+				// For csproj files, add them to the sln if the UE4CSharp.prog file also exists.
+				if (bIsCsProj && FileReference.Combine(SearchFolder, "UE4CSharp.prog").Exists())
+				{
+					FoundProjects.Add(File);
+				}
+			}
+
+			// If we didn't find anything to stop the search, search all the subdirectories too
+			if (bSearchSubFolders)
+			{
+				foreach (DirectoryReference SubDirectory in DirectoryLookupCache.EnumerateDirectories(SearchFolder))
+				{
+					DiscoverCSharpProgramProjectsRecursively(SubDirectory, FoundProjects);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Finds the game projects that we're generating project files for
 		/// </summary>
 		/// <returns>List of project files</returns>
@@ -533,6 +583,9 @@ namespace UnrealBuildTool
                     AddPS4Projects( ProgramsFolder );
 
 					AddHTML5Projects( ProgramsFolder );
+
+					// Discover C# programs which should additionally be included in the solution.
+					DiscoverCSharpProgramProjects(ProgramsFolder);
                 }
 
 

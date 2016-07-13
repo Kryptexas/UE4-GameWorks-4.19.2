@@ -74,8 +74,8 @@ namespace BuildGraph.Tasks
 			string FromPattern = Parameters.From;
 			if (FromPattern == null)
 			{
-				string[] Patterns = SplitDelimitedList(Parameters.Files);
-				if (Patterns.Length != 1 || Patterns[0].StartsWith("#"))
+				List<string> Patterns = SplitDelimitedList(Parameters.Files);
+				if (Patterns.Count != 1 || Patterns[0].StartsWith("#"))
 				{
 					CommandUtils.LogError("Missing 'From' attribute specifying pattern to match source files against");
 					return false;

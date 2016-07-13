@@ -136,6 +136,15 @@ namespace AutomationTool
 			DefaultProperties["IsBuildMachine"] = IsBuildMachine ? "true" : "false";
 			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
 
+			// Attempt to read existing Build Version information
+			BuildVersion Version;
+			if (BuildVersion.TryRead(FileReference.Combine(CommandUtils.RootDirectory, "Engine", "Build", "Build.version").FullName, out Version))
+			{
+				DefaultProperties["EngineMajorVersion"] = Version.MajorVersion.ToString();
+				DefaultProperties["EngineMinorVersion"] = Version.MinorVersion.ToString();
+				DefaultProperties["EnginePatchVersion"] = Version.PatchVersion.ToString();
+			}
+
 			// Add any additional custom parameters from the command line (of the form -Set:X=Y)
 			foreach (string Param in Params)
 			{

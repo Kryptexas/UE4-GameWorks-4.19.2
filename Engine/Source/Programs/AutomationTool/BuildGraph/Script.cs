@@ -164,15 +164,16 @@ namespace AutomationTool
 		Graph Graph = new Graph();
 
 		/// <summary>
-		/// Mapping of global property name to values.
-		/// </summary>
-		Dictionary<string, string> GlobalProperties = new Dictionary<string, string>();
-
-		/// <summary>
 		/// List of property name to value lookups. Modifications to properties are scoped to nodes and agents. EnterScope() pushes an empty dictionary onto the end of this list, and LeaveScope() removes one. 
 		/// ExpandProperties() searches from last to first lookup when trying to resolve a property name, and takes the first it finds.
 		/// </summary>
 		List<Dictionary<string, string>> ScopedProperties = new List<Dictionary<string, string>>();
+
+		/// <summary>
+		/// When declaring a property in a nested scope, we enter its name into a set for each parent scope which prevents redeclaration in an OUTER scope later. Subsequent NESTED scopes can redeclare it.
+		/// The former is likely a coding error, since it implies that the scope of the variable was meant to be further out, whereas the latter is common for temporary and loop variables.
+		/// </summary>
+		List<HashSet<string>> ShadowProperties = new List<HashSet<string>>();
 
 		/// <summary>
 		/// Schema for the script
@@ -191,8 +192,11 @@ namespace AutomationTool
 		/// <param name="InSchema">Schema for the script</param>
 		private ScriptReader(IDictionary<string, string> Properties, ScriptSchema InSchema)
 		{
-			GlobalProperties = new Dictionary<string, string>(Properties, StringComparer.InvariantCultureIgnoreCase);
-			ScopedProperties.Add(GlobalProperties);
+			EnterScope();
+			foreach(KeyValuePair<string, string> Pair in Properties)
+			{
+				ScopedProperties[ScopedProperties.Count - 1].Add(Pair.Key, Pair.Value);
+			}
 			Schema = InSchema;
 		}
 
@@ -254,7 +258,6 @@ namespace AutomationTool
 		/// <param name="BaseDirectory">Base directory to resolve includes against</param>
 		void ReadGraphBody(XmlElement Element, DirectoryReference BaseDirectory)
 		{
-			EnterScope();
 			foreach (ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
 			{
 				switch (ChildElement.Name)
@@ -264,9 +267,6 @@ namespace AutomationTool
 						break;
 					case "Property":
 						ReadProperty(ChildElement);
-						break;
-					case "Local":
-						ReadLocalProperty(ChildElement);
 						break;
 					case "Agent":
 						ReadAgent(ChildElement, null);
@@ -298,12 +298,14 @@ namespace AutomationTool
 					case "Choose":
 						ReadChoice(ChildElement, x => ReadGraphBody(x, BaseDirectory));
 						break;
+					case "ForEach":
+						ReadForEach(ChildElement, x => ReadGraphBody(x, BaseDirectory));
+						break;
 					default:
 						LogError(ChildElement, "Invalid element '{0}'", ChildElement.Name);
 						break;
 				}
 			}
-			LeaveScope();
 		}
 
 		/// <summary>
@@ -330,6 +332,7 @@ namespace AutomationTool
 		void EnterScope()
 		{
 			ScopedProperties.Add(new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase));
+			ShadowProperties.Add(new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
 		}
 
 		/// <summary>
@@ -338,6 +341,7 @@ namespace AutomationTool
 		void LeaveScope()
 		{
 			ScopedProperties.RemoveAt(ScopedProperties.Count - 1);
+			ShadowProperties.RemoveAt(ShadowProperties.Count - 1);
 		}
 
 		/// <summary>
@@ -402,9 +406,6 @@ namespace AutomationTool
 					case "Property":
 						ReadProperty(ChildElement);
 						break;
-					case "Local":
-						ReadLocalProperty(ChildElement);
-						break;
 					case "Agent":
 						ReadAgent(ChildElement, Trigger);
 						break;
@@ -425,6 +426,9 @@ namespace AutomationTool
 						break;
 					case "Choose":
 						ReadChoice(ChildElement, x => ReadTriggerBody(x, Trigger));
+						break;
+					case "ForEach":
+						ReadForEach(ChildElement, x => ReadTriggerBody(x, Trigger));
 						break;
 					default:
 						LogError(ChildElement, "Invalid element '{0}'", ChildElement.Name);
@@ -466,23 +470,52 @@ namespace AutomationTool
 				string Name = ReadAttribute(Element, "Name");
 				if (ValidateName(Element, Name))
 				{
-					GlobalProperties[Name] = ReadAttribute(Element, "Value");
-				}
-			}
-		}
+					// Find the scope containing this property, defaulting to the current scope
+					int ScopeIdx = 0;
+					while(ScopeIdx < ScopedProperties.Count - 1 && !ScopedProperties[ScopeIdx].ContainsKey(Name))
+					{
+						ScopeIdx++;
+					}
 
-		/// <summary>
-		/// Reads a local property assignment.
-		/// </summary>
-		/// <param name="Element">Xml element to read the definition from</param>
-		void ReadLocalProperty(ScriptElement Element)
-		{
-			if (EvaluateCondition(Element))
-			{
-				string Name = ReadAttribute(Element, "Name");
-				if (ValidateName(Element, Name))
-				{
-					ScopedProperties[ScopedProperties.Count - 1][Name] = ReadAttribute(Element, "Value");
+					// Make sure this property name was not already used in a child scope; it likely indicates an error.
+					if(ShadowProperties[ScopeIdx].Contains(Name))
+					{
+						LogError(Element, "Property '{0}' was already used in a child scope. Move this definition before the previous usage if they are intended to share scope, or use a different name.", Name);
+					}
+					else
+					{
+						// Make sure it's added to the shadow property list for every parent scope
+						for(int Idx = 0; Idx < ScopeIdx; Idx++)
+						{
+							ShadowProperties[Idx].Add(Name);
+						}
+
+						// Assign the property value
+						if(Element.HasAttribute("Value"))
+						{
+							ScopedProperties[ScopeIdx][Name] = ReadAttribute(Element, "Value");
+						}
+						if(Element.HasAttribute("Default") && !ScopedProperties[ScopeIdx].ContainsKey(Name))
+						{
+							ScopedProperties[ScopeIdx][Name] = ReadAttribute(Element, "Default");
+						}
+						if(Element.HasAttribute("Restrict"))
+						{
+							// Find the valid values for this property
+							string[] Values = ReadListAttribute(Element, "Restrict");
+
+							// Get the property value, and check it matches
+							string Value;
+							if(!ScopedProperties[ScopeIdx].TryGetValue(Name, out Value))
+							{
+								LogError(Element, "Property '{0}' is not defined.", Name);
+							}
+							else if(!Values.Any(x => String.Compare(x, Value, StringComparison.InvariantCultureIgnoreCase) == 0))
+							{
+								LogError(Element, "Property '{0}' is set to an invalid value ({1}). Valid values are {2}.", Name, Value, String.Join(", ", Values));
+							}
+						}
+					}
 				}
 			}
 		}
@@ -546,9 +579,6 @@ namespace AutomationTool
 					case "Property":
 						ReadProperty(ChildElement);
 						break;
-					case "Local":
-						ReadLocalProperty(ChildElement);
-						break;
 					case "Node":
 						ReadNode(ChildElement, ParentAgent, ControllingTrigger);
 						break;
@@ -566,6 +596,9 @@ namespace AutomationTool
 						break;
 					case "Choose":
 						ReadChoice(ChildElement, x => ReadAgentBody(x, ParentAgent, ControllingTrigger));
+						break;
+					case "ForEach":
+						ReadForEach(ChildElement, x => ReadAgentBody(x, ParentAgent, ControllingTrigger));
 						break;
 					default:
 						LogError(ChildElement, "Unexpected element type '{0}'", ChildElement.Name);
@@ -759,9 +792,6 @@ namespace AutomationTool
 					case "Property":
 						ReadProperty(ChildElement);
 						break;
-					case "Local":
-						ReadLocalProperty(ChildElement);
-						break;
 					case "Warning":
 						ReadDiagnostic(ChildElement, LogEventType.Warning, NewNode, ParentAgent, ControllingTrigger);
 						break;
@@ -773,6 +803,9 @@ namespace AutomationTool
 						break;
 					case "Choose":
 						ReadChoice(ChildElement, x => ReadNodeBody(x, NewNode, ParentAgent, ControllingTrigger));
+						break;
+					case "ForEach":
+						ReadForEach(ChildElement, x => ReadNodeBody(x, NewNode, ParentAgent, ControllingTrigger));
 						break;
 					default:
 						ReadTask(ChildElement, NewNode);
@@ -810,6 +843,38 @@ namespace AutomationTool
 					break;
 				}
 			}
+		}
+
+		/// <summary>
+		/// Reads a "ForEach" element 
+		/// </summary>
+		/// <param name="Element">Xml element to read the definition from</param>
+		/// <param name="ReadContents">Delegate to read the contents of the element, if the condition evaluates to true</param>
+		void ReadForEach(ScriptElement Element, Action<ScriptElement> ReadContents)
+		{
+			EnterScope();
+			if(EvaluateCondition(Element))
+			{
+				string Name = ReadAttribute(Element, "Name");
+				if (ValidateName(Element, Name))
+				{
+					if(ScopedProperties.Any(x => x.ContainsKey(Name)))
+					{
+						LogError(Element, "Loop variable '{0}' already exists as a local property in an outer scope", Name);
+					}
+					else
+					{
+						// Loop through all the values
+						string[] Values = ReadListAttribute(Element, "Values");
+						foreach(string Value in Values)
+						{
+							ScopedProperties[ScopedProperties.Count - 1][Name] = Value;
+							ReadContents(Element);
+						}
+					}
+				}
+			}
+			LeaveScope();
 		}
 
 		/// <summary>
@@ -855,7 +920,7 @@ namespace AutomationTool
 						}
 
 						// Expand variables in the value
-						string ExpandedValue = ExpandProperties(Attribute.Value);
+						string ExpandedValue = ExpandProperties(Element, Attribute.Value);
 
 						// Parse it and assign it to the parameters object
 						object Value;
@@ -1208,7 +1273,7 @@ namespace AutomationTool
 		/// <returns>Array of names, with all leading and trailing whitespace removed</returns>
 		string ReadAttribute(ScriptElement Element, string Name)
 		{
-			return ExpandProperties(Element.GetAttribute(Name));
+			return ExpandProperties(Element, Element.GetAttribute(Name));
 		}
 
 		/// <summary>
@@ -1293,6 +1358,17 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Outputs a warning message to the log and increments the number of errors, referencing the file and line number of the element that caused it.
+		/// </summary>
+		/// <param name="Element">The script element causing the error</param>
+		/// <param name="Format">Standard String.Format()-style format string</param>
+		/// <param name="Args">Optional arguments</param>
+		void LogWarning(ScriptElement Element, string Format, params object[] Args)
+		{
+			CommandUtils.LogWarning("{0}({1}): {2}", Element.File.FullName, Element.LineNumber, String.Format(Format, Args));
+		}
+
+		/// <summary>
 		/// Evaluates the (optional) conditional expression on a given XML element via the If="..." attribute, and returns true if the element is enabled.
 		/// </summary>
 		/// <param name="Element">The element to check</param>
@@ -1309,7 +1385,7 @@ namespace AutomationTool
 			// If it does, try to evaluate it.
 			try
 			{
-				string Text = ExpandProperties(Element.GetAttribute("If"));
+				string Text = ExpandProperties(Element, Element.GetAttribute("If"));
 				return Condition.Evaluate(Text);
 			}
 			catch (ConditionException Ex)
@@ -1322,9 +1398,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Expand all the property references (of the form $(PropertyName)) in a string.
 		/// </summary>
+		/// <param name="Element">The element containing the string. Used for diagnostic messages.</param>
 		/// <param name="Text">The input string to expand properties in</param>
 		/// <returns>The expanded string</returns>
-		string ExpandProperties(string Text)
+		string ExpandProperties(ScriptElement Element, string Text)
 		{
 			string Result = Text;
 			for (int Idx = Result.IndexOf("$("); Idx != -1; Idx = Result.IndexOf("$(", Idx))
@@ -1348,7 +1425,13 @@ namespace AutomationTool
 						break;
 					}
 				}
-				Value = Value ?? "";
+
+				// Write a warning if the property does not exist
+				if(Value == null)
+				{
+					LogWarning(Element, "Property '{0}' is not defined", Name);
+					Value = "";
+				}
 
 				// Replace the variable, or skip past it
 				Result = Result.Substring(0, Idx) + Value + Result.Substring(EndIdx + 1);

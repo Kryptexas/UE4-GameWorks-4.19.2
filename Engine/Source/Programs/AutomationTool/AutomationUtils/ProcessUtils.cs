@@ -696,9 +696,28 @@ namespace AutomationTool
 				Options &= ~ERunOptions.AppMustExist;
 			}
 
+			// Check if the application exists, including the PATH directories.
 			if (Options.HasFlag(ERunOptions.AppMustExist) && !FileExists(Options.HasFlag(ERunOptions.NoLoggingOfRunCommand) ? true : false, App))
 			{
-				throw new AutomationException("BUILD FAILED: Couldn't find the executable to Run: {0}", App);
+				bool bExistsInPath = false;
+				if(!App.Contains(Path.DirectorySeparatorChar) && !App.Contains(Path.AltDirectorySeparatorChar))
+				{
+					string[] PathDirectories = Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator);
+					foreach(string PathDirectory in PathDirectories)
+					{
+						string TryApp = Path.Combine(PathDirectory, App);
+						if(FileExists(Options.HasFlag(ERunOptions.NoLoggingOfRunCommand), TryApp))
+						{
+							App = TryApp;
+							bExistsInPath = true;
+							break;
+						}
+					}
+				}
+				if(!bExistsInPath)
+				{
+					throw new AutomationException("BUILD FAILED: Couldn't find the executable to Run: {0}", App);
+				}
 			}
 			var StartTime = DateTime.UtcNow;
 

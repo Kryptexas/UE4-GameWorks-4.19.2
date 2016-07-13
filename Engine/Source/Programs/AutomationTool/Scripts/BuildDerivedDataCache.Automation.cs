@@ -31,12 +31,15 @@ public class BuildDerivedDataCache : BuildCommand
 		// loop through all the projects first and bail out if one of them doesn't exist.
 		foreach (string FeaturePack in FeaturePacks)
 		{
-			string FeaturePackPath = CommandUtils.CombinePaths(CommandUtils.RootDirectory.FullName, FeaturePack);
-			if (!CommandUtils.FileExists(FeaturePackPath))
+			if (!String.IsNullOrWhiteSpace(FeaturePack))
 			{
-				throw new AutomationException("Could not find project: " + FeaturePack);
+				string FeaturePackPath = CommandUtils.CombinePaths(CommandUtils.RootDirectory.FullName, FeaturePack);
+				if (!CommandUtils.FileExists(FeaturePackPath))
+				{
+					throw new AutomationException("Could not find project: " + FeaturePack);
+				}
+				FeaturePackPaths.Add(FeaturePackPath);
 			}
-			FeaturePackPaths.Add(FeaturePackPath);
 		}
 
 		// loop through all the paths and generate ddc data for them
