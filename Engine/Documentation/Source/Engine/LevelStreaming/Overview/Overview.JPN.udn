@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Level Streaming Overview
+﻿INTSourceChangelist:3046164
+Availability:Docs
+Title: レベル ストリーミングの概要
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:Streaming Levels can be loaded with Level Streaming Volumes or programmatically with Blueprints or C++.
+Description:ストリーミング レベルは、Level Streaming Volume あるいはブループリントまたは C++ でプログラム的にロードすることができます。
+Version:4.12
 parent:Engine/LevelStreaming
 type:reference
 order:1
@@ -51,108 +52,121 @@ tags:Level Streaming
 
 [INCLUDE:Engine/LevelStreaming#intro]
 
-## The Persistent Level
+## パーシスタント レベル
 
-The first step towards getting your levels to blend together seamlessly is creating the persistent level. This can be thought of as a master level that is primarily used to govern which 
-levels will be streamed in and out. 
+レベルをシームレスにブレンドするために、まず パーシスタント レベルを作成します。これは、ストリームインおよびストリーム アウトするレベルを管理するために 
+主に使用するマスター レベルと考えることができます。 
+
+## ストリーミング レベル
+
+ストリーミング レベルは [**Levels** ウィンドウ](Engine/Levels/LevelsWindow) で管理します。パーシスタント レベルをオーバーラップしたり、オフセットしてより大きいワールドを作成することができます。ストリーミング レベルごとに、ストリーミング タイプに合わせて 
+**[Always Loaded (常にロード)]** または **[Blueprint (ブループリント)]** に設定することができます。この設定は、サブレベルを右クリックして表示される **[Levels (レベル)]** ウィンドウで切り替えることができます。
+
+ストリーミング レベルを **[Always Loaded (常にロード)]** に設定した場合、パーシスタント レベルも一緒にロードされます。同時にパーシスタント レベルとして表示もされます。 
+ブループリントまたは C++ から送られたロード / アンロード要求、および割り当てられたストリーミング ボリュームを無視します。このタイプのサブレベルは、アーティスト同士が邪魔することなく同時に共同作業ができるように、 
+通常はパーシスタント レベルで複数の「レイヤー」にするためにコンテンツの分割に使われることが多いです。このワークフローの詳細は、
+[](Engine/Levels/CollaborateWithSublevels) をご覧ください。ゲームでは、ゲームがパーシスタント レベルを変更しない限り、**Always Loaded** サブレベルは決してストリーミングされません。 
+
+**Blueprint** ストリーミング タイプのあるストリーミング レベルは実際、Level Streaming Volume、ブループリント、C++ コードで制御することができます。これらのレベルは、
+動的にロード / アンロードすることができます。 
 
 
-## Level Streaming Volumes
+## Level Streaming Volume
 
-Level streaming volumes make controlling level streaming very easy.  The idea is simple: load/unload requests for a streaming level are issued based on whether the viewpoint is inside any of the 
-LevelStreamingVolume volumes associated with a level.
+**Level Streaming Volume** を使うと、レベル ストリーミングが非常に簡単にできるようになります。発想はシンプルです。ビューポートがレベルと関連づいている LevelStreamingVolume ボリューム内にあるかどうかによって、 
+ストリーミング レベルに対するロード / アンロードのリクエストが発行されます。
 
-Specifically, level streaming volumes can be used in two ways:
-
-
-* In the **game**, level streaming volumes cause levels to load when the player is inside the volume and unload when the player is outside the volume.
-
-* In the **editor**, level streaming volumes can be used to preview level streaming by automatically hiding/unhiding levels based on the location of the perspective viewport's camera.
+具体的には、Level Streaming Volume は 2 通りの使い方があります。
 
 
-Volume-based level streaming is simple to use and does not require any scripting, making it an ideal way to control level streaming.  Furthermore, volume-based level streaming is much easier to 
-maintain than scripted streaming: when demands on the loading system change, level loading/unloading behavior can be modified by simply resizing the streaming volumes.
+* **ゲーム** では、Level Streaming Volumes を使って、レベルがプレイヤーがボリューム内にいる時にロードし、プレイヤーがボリュームの外にいる時にアンロードします。
 
-### Associating Streaming Volumes With Levels
+* **エディタ** では、パースペクティブ ビューポート カメラの位置に合わせてレベルを自動的に表示 / 非表示にして、Level Streaming Volumes を使ってレベル ストリーミングをプレビューすることができます。
 
-Volume-based level streaming works as follows: each streaming level can have associated with it a set of volumes of type LevelStreamingVolume.  Each frame, the engine iterates over each level and 
-checks to see if the player viewpoint is inside any of the Level Streaming Volumes associated with that level.  If the viewpoint is inside at least one LevelStreamingVolume, a request is issued to 
-begin loading that level.  If the viewpoint is outside all Level Streaming Volumes, the level is marked for unloading.
+
+ボリューム ベースのレベル ストリーミングは使い方が簡単な上にスクリプト処理が必要ないので、レベル ストリーミングの制御には理想的です。さらに、ボリューム ベースはスクリプト処理に比べてはるかに管理が容易です。 
+システムのロード要求が変化しても、ストリーミング ボリュームの大きさを変更すればレベルのロード / アンロード ビヘイビアを修正できます。
+
+### Streaming Volume とレベルの関連づけ
+
+ボリューム ベースのレベル ストリーミングは、以下のように使用します。各ストリーミング レベルは Level Streaming Volume と関連づけることができます。フレームごとに、エンジンは各レベルをイタレートし、 
+プレイヤーの視点がそのレベルに関連づいている Level Streaming Volume 内にあるかを確認します。視点が少なくとも 1 つの LevelStreamingVolume 内にあれば、 
+そのレベルのロード開始要求が発行されます。視点がすべての Level Streaming Volume の外にある場合、レベルはアンロードとしてマークされます。
 
 * [](Engine/LevelStreaming/HowTo/StreamWithVolumes)
 
-### Important Details
+### 重要な詳細情報
 
-* All Level Streaming Volumes must exist in the persistent level.  Level Streaming Volumes that live in other levels cannot be used for level streaming, and will generate warnings when the map is checked 
-for errors.
+* Streaming Volumes はすべてパーシスタント レベルに存在しなければなりません。他のレベルに存在する Level Streaming Volume は、レベル ストリーミングには使用することはできません。 
+マップがエラー状態と判断されると警告が出されます。
 
-* If a level has any streaming volumes associated with it, other methods of streaming the level will not behave correctly.
+* レベルに関連付けられたストリーミング ボリュームがある場合、その他のレベル ストリーミングの方法では正しく動作しません。
 
-* A single LevelStreamingVolume can affect multiple levels.  Similarly, a single level can be affected by multiple Level Streaming Volumes.
+* たった 1 つの Level Streaming Volume でも複数のレベルに影響を与えることができます。同様に、たった 1 つのレベルでも複数の Level Streaming Volume から影響を受けることがあります。
 
-* Volume-based streaming works for split screen.  The viewpoints of all local players are considered before any loading/unloading requests are issued.
-
-
-
-
-### Testing Your Streaming Volume Setup
-
-It is critical that volume-based level streaming be tested in game on the target platform.  Streaming in **Play in Editor** mode (PIE) will show where the loads/unloads will happen, but streaming in 
-PIE is not representative of real, in-game loading-unloading.  This is because in PIE, the levels are already in memory, and so "loading" a level is simply a matter of unhiding it and is thus instantaneous.
-
-Running the level in the standalone game on the target platform is critical in making sure your streaming setups work.  Note that on some platforms, it can take several seconds to stream in a level.  
-Size your Level Streaming Volumes appropriately, so that the level is loaded by the time the player can reach it.  Level loading behaviour can be modified by resizing the Level Streaming Volumes associated 
-with a level.  Growing a volume causes associated levels to load sooner and unload later, while shrinking a volume causes later loads and earlier unloads.
-
-
-### Level Streaming Volumes for Previs
-
-Volume-based level streaming can be easily previewed by enabling the "Level Streaming Volume Previs" button on the perspective viewport toolbar.  When this mode is enabled, levels will be hide/unhide 
-based on the location of the perspective viewport camera.  Note that this hiding/unhiding will affect the set of visible levels in the Level Browser.
-
-A LevelStreamingVolume can be marked for editor previs only by setting the bEditorPreVisOnly flag on the LevelStreamingVolume.  In this manner, volume-based level streaming can still be used for editor 
-previs while at the same time using another streaming method for in-game streaming.
+* ボリューム ベースのストリーミングは分割画面で機能します。すべてのローカル プレイヤーの視点は、ロード / アンロードのリクエスト発行前に考慮されます。
 
 
 
-### Cost of Level Streaming Volumes
 
-Each frame, UWorld::ProcessLevel Streaming Volumes iterates over each streaming level and for each level, that level will begin loading if any local player is within any of the volumes associated with 
-that level.  Likewise, the level will be begin unloading if all local players are outside all volumes.
+### ストリーミング ボリューム設定をテストする
 
-UWorld::ProcessLevel Streaming Volumes exploits coherency in the following manner: for each level, the volume that most recently contained a player is cached.  This cached volume is checked first, so 
-that levels a player is in or returns to are quickly accepted.
+ボリューム ベースのレベル ストリーミングをターゲットとするプラットフォーム上のゲームでテストすることは非常に重要です。**Play in Editor** モード (PIE) でのストリーミングはロード / アンロードが行われる <i>場所</i> を示しますが、 
+PIE でのストリーミングは、実際のインゲームでのロード / アンロードとは異なります。なぜなら、PIE ではレベルはすでにメモリ内にあるため、 
+レベルを「ロードすること」はレベルの非表示を解除するだけの瞬間的な動作になります。
 
-Volumes of any shape are fine, although obviously the fewer the better.  An upper bound on the cost of level streaming volumes can be approximated by the sum of the number of level streaming volumes 
-associated with unloaded levels.
-
-Two stats exist under the "Streaming" stats group for monitoring level streaming performance.  The "Streaming Volumes" stat tracks the number of Level Streaming Volumes tested against player viewpoints 
-per frame, while the "Volume Streaming Tick" stat tracks the amount of time spent in UWorld::ProcessLevel Streaming Volumes per frame.
+ターゲットとするプラットフォーム上のスタンドアローンでレベルを実行することは、ストリーミング設定がきちんと動作していることの確認をする上で非常に重要になります。プラットフォームが複数の場合は、 
+レベル内のストリーム処理に数秒かかることがあることに留意してください。Level Streaming Volume を適切な大きさに調整して、プレイヤーの到達時までにレベルがロードされるようにします。レベル ロードのビヘイビアの修正は、 
+レベルに関連付けられた Level Streaming Volume の大きさを変更して行います。ボリュームを大きくすると、関連付けられたレベルはロードが先でアンロードが後になります。 
+逆にボリュームを小さくすると、ロードが後でアンロードが先に行われます。
 
 
+### Level Streaming Volume を使ってプレビジュアル化をする
 
-### Adding Hysteresis to Unloading Requests
-
-A player moving back and forth across a LevelStreamingVolume boundary causes spurious load/unload requests to be issued.  To address this, hysteresis has been added to unloading requests.   No hysteresis 
-exists for loading requests, because if a level needs to be loaded, we always want it loaded ASAP.
-
-The amount of unloading hysteresis can be adjusted by modifying the MinTimeBetweenVolumeUnloadRequests property of the LevelStreaming object (LevelStreaming properties can be accessed from the Level 
-Browser context menu).  The default unloading hysteresis is 2.0 seconds.
+Level Streaming Volume 上に **Editor Pre Vis Only** フラグを設定すれば、Level Streaming Volume をエディタ プレビューのみとしてマークすることができます。こうすると、インゲーム ストリーミング用に別のメソッドを使いながら、 
+ボリューム ベースのレベル ストリーミングを使ってエディタのプレビジュアル化ができます。
 
 
+### レベル ストリーミング ボリュームの負荷
 
-### Disabling Level Streaming Volumes
+フレームごとに `UWorld::ProcessLevelStreamingVolumes` はそれぞれのストリーミング レベルをイタレートし、 
+各レベルに関連付けられたボリュームのどれかにローカル プレイヤーがいる場合、そのレベルはロードを開始します。同様に、すべてのローカル プレイヤーがすべてのボリュームの外にいる場合、レベルはアンロードを開始します。
 
-There is a property on Level Streaming Volumes called bDisabled.  When set to true, the volume will be ignored by the streaming volume code, both in-game and in the editor.  bDisabled can be used to disable 
-a LevelStreamingVolume without disassociating it from the level.  
+`UWorld::ProcessLevelStreamingVolumes` は次の方法で一貫性を利用します。レベルごとに、一番最後にプレイヤーが入ったボリュームをキャッシュします。キャッシュされたボリュームを最初にチェックして、 
+プレイヤーが出入りするレベルをすぐに許可します。
 
-As an example of where the bDisabled flag is useful, imagine a door leading to a Level whose streaming is controlled with streaming volumes. The streaming volume extends out past the door, so that the 
-Level will be streamed in by the time the player can reach the door and open it.  Initially, however, the door is locked, and will become unlocked when the player achieves an objective in another part of the Level.  
-So, even though the streaming volume extends past the door, we don't want the Level on the other side of the door to stream in unless the door is actually unlocked ("openable").
+ボリュームはどんな形状でも構いませんが、少ない方が良いことは確かです。Level Streaming Volume の負荷の上限は、 
+アンロードされるレベルに関連付けられた Level Streaming Volume の合計と近似されます。
 
-Blueprints and C++ could both be used to toggle the **Disabled** state of **Level Streaming Volumes**.
+「Streaming」統計グループの中にある 2 種類の統計で、レベル ストリーミングのパフォーマンスをモニタリングすることができます。「Streaming Volumes」統計は、フレームごとにプレイヤー ビューポートに対してテストされた Level Streaming Volume 数を追跡します。 
+「Volume Streaming Tick」統計はフレームごとに `UWorld::ProcessLevelStreamingVolumes` にかかった時間の合計を追跡します。
 
-## Programmatic Level Streaming
 
-If you want to set up more complex behavior for loading and unloading Levels, similar to the door unlocking example above, you can also set up Blueprint or C++ logic for Level loading and unloading. The key functions are
-**Load Stream Level** and **Unload Stream Level**, and you designate the Level to load by its name. See [](Engine/LevelStreaming/HowTo/StreamWithBlueprints) and [](Engine/LevelStreaming/HowTo/StreamWithC++) for examples. 
+
+### ヒステリシスをロード リクエストに追加する
+
+プレイヤーが Level Streaming Volume の境界を行ったり来たりすると、誤ったロード / アンロード リクエストを発行する原因となります。それを防ぐために、 
+アンロード リスエストにヒステリシスを追加します。レベルをロードする必要がある時は常に緊急を要しているので、ロード リクエスト用のヒステリシスは存在していません。
+
+アンロードされるヒステリシスの量は [レベル ウィンドウ](Engine/Levels/LevelsWindow) のストリーミング レベルの **Min Time Between Volume Unload Requests** プロパティを変更して調整することができます。 
+ヒステリシスのアンロードはデフォルトで 2.0 秒です。
+
+
+
+### Level Streaming Volume を無効にする
+
+Level Streaming Volume には **bDisabled** と呼ばれるプロパティがあります。これを true に設定すると、ストリーミング ボリューム コードによって、インゲームとエディタ内の両方でボリュームが無視されます。 
+**bDisabled** は、レベルとの関連付けを解除せずに Level Streaming Volume を無効にします。  
+
+**bDisabled** フラグが便利なケースとしては、ストリーミング ボリュームでストリーミングを制御するレベルにドアがつながることを想像してください。ストリーミング ボリュームはドアを通り過ぎて左方向に延びるので、 
+プレイヤーがドアに到達して開けるまでにレベルはストリームされます。ただし、最初はドアは鍵がかかっています。 
+プレイヤーがレベルの別の個所でオブジェクトに到達すると鍵が解除されます。従って、ストリーミング ボリュームが伸びてドアを通りこしても、ドアの鍵が実際に解除される (「開けることができる状態」) までは、 
+ドアの反対側のレベルはストリームインしたくありません。
+
+ブループリントでも C++ でも、**Level Streaming Volumes** の無効ステートの切り替えができます。
+
+## プログラム的なストリーミング レベル
+
+レベルのロード / アンロードをより複雑な設定にしたい場合は、ドアを解除する上記の例と同様に、 
+レベルのロード / アンロードに対してブループリントあるいは C++ ロジックを設定することができます。主要な機能は **Load Stream Level** と **Unload Stream Level** です。ロードするレベルを名前で使用します。例は、 
+[](Engine/LevelStreaming/HowTo/StreamWithBlueprints) と [](Engine/LevelStreaming/HowTo/StreamWithC++) をご覧ください。 
