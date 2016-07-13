@@ -26,10 +26,10 @@ public class UE4GameTarget : TargetRules
 	{
 		OutExtraModuleNames.Add("UE4Game");
 		// this is important - for some reason achievements etc intertwined with the onlinesubsystem and they saved without using a fake OSS. :/
-		if (Target.Platform == UnrealTargetPlatform.HTML5)
-		{
-			OutExtraModuleNames.Add("OnlineSubsystemNull");
-		}
+		//if (Target.Platform == UnrealTargetPlatform.HTML5)
+		//{
+		//	OutExtraModuleNames.Add("OnlineSubsystemNull");
+		//}
 	}
 
 	public override void SetupGlobalEnvironment(

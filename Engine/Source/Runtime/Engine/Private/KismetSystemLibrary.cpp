@@ -8,15 +8,12 @@
 #include "DelayAction.h"
 #include "InterpolateComponentToAction.h"
 #include "Advertising.h"
-#include "Online.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "SlateCore.h"
 #include "Engine/StreamableManager.h"
-#include "OnlineSubsystemTypes.h"
-#include "OnlineSubsystemUtils.h"
-#include "OnlineIdentityInterface.h"
+#include "Net/OnlineEngineInterface.h"
 #include "UserActivityTracking.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -3166,40 +3163,32 @@ void UKismetSystemLibrary::ForceCloseAdBanner()
 
 void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName)
 {
-	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
-	if(ExternalUI.IsValid())
-	{
-		ExternalUI->ShowLeaderboardUI(CategoryName);
-	}
+	// not PIE safe, doesn't have world context
+	UOnlineEngineInterface::Get()->ShowLeaderboardUI(nullptr, CategoryName);
 }
 
-void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer)
+void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(APlayerController* SpecificPlayer)
 {
-	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
-	if(ExternalUI.IsValid())
+	UWorld* World = SpecificPlayer ? SpecificPlayer->GetWorld() : nullptr;
+
+	// Get the controller id from the player
+	int LocalUserNum = 0;
+	if (SpecificPlayer)
 	{
-		// Get the controller id from the player
-		int LocalUserNum = 0;
-		if(SpecificPlayer)
+		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
+		if (LocalPlayer)
 		{
-			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
-			if(LocalPlayer)
-			{
-				LocalUserNum = LocalPlayer->GetControllerId();
-			}
+			LocalUserNum = LocalPlayer->GetControllerId();
 		}
-		ExternalUI->ShowAchievementsUI(LocalUserNum);
 	}
+
+	UOnlineEngineInterface::Get()->ShowAchievementsUI(World, LocalUserNum);
 }
+
 bool UKismetSystemLibrary::IsLoggedIn(APlayerController* SpecificPlayer)
 {
-	IOnlineIdentityPtr Identity = Online::GetIdentityInterface();
-	
-	if (!Identity.IsValid())
-	{
-		return false;
-	}
-	
+	UWorld* World = SpecificPlayer ? SpecificPlayer->GetWorld() : nullptr;
+
 	int LocalUserNum = 0;
 	if (SpecificPlayer != nullptr)
 	{
@@ -3209,7 +3198,8 @@ bool UKismetSystemLibrary::IsLoggedIn(APlayerController* SpecificPlayer)
 			LocalUserNum = LocalPlayer->GetControllerId();
 		}
 	}
-	return Identity->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn;
+
+	return UOnlineEngineInterface::Get()->IsLoggedIn(World, LocalUserNum);
 }
 
 void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)

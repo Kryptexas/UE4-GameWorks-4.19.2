@@ -52,7 +52,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Marshaller->AppendInlineDecorator(Decorator);
 		}
 
-		TextLayoutCache = MakeUnique<FTextBlockLayout>(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), nullptr);
+		TextLayoutCache = MakeUnique<FTextBlockLayout>(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, InArgs._CreateSlateTextLayout, Marshaller.ToSharedRef(), nullptr);
 		TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 }

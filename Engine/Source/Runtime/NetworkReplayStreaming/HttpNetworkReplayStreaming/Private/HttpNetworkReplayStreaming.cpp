@@ -16,7 +16,7 @@ static TAutoConsoleVariable<FString> CVarMetaFilterOverride( TEXT( "httpReplay.M
 static TAutoConsoleVariable<float> CVarChunkUploadDelayInSeconds( TEXT( "httpReplay.ChunkUploadDelayInSeconds" ), 10.0f, TEXT( "" ) );
 static TAutoConsoleVariable<int> CVarMaxCacheSize( TEXT( "httpReplay.MaxCacheSize" ), 1024 * 1024 * 10, TEXT( "" ) );		// 10 MB cache by default
 
-class FNetworkReplayListItem : public FOnlineJsonSerializable
+class FNetworkReplayListItem : public FJsonSerializable
 {
 public:
 	FNetworkReplayListItem() : SizeInBytes( 0 ), DemoTimeInMs( 0 ), NumViewers( 0 ), bIsLive( false ), Changelist( 0 ), bShouldKeep( false ) {}
@@ -33,22 +33,22 @@ public:
 	int32		Changelist;
 	bool		bShouldKeep;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE( "AppName",		AppName );
-		ONLINE_JSON_SERIALIZE( "SessionName",	SessionName );
-		ONLINE_JSON_SERIALIZE( "FriendlyName",	FriendlyName );
-		ONLINE_JSON_SERIALIZE( "Timestamp",		Timestamp );
-		ONLINE_JSON_SERIALIZE( "SizeInBytes",	SizeInBytes );
-		ONLINE_JSON_SERIALIZE( "DemoTimeInMs",	DemoTimeInMs );
-		ONLINE_JSON_SERIALIZE( "NumViewers",	NumViewers );
-		ONLINE_JSON_SERIALIZE( "bIsLive",		bIsLive );
-		ONLINE_JSON_SERIALIZE( "Changelist",	Changelist );
-		ONLINE_JSON_SERIALIZE( "shouldKeep",	bShouldKeep );
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE( "AppName",		AppName );
+		JSON_SERIALIZE( "SessionName",	SessionName );
+		JSON_SERIALIZE( "FriendlyName",	FriendlyName );
+		JSON_SERIALIZE( "Timestamp",		Timestamp );
+		JSON_SERIALIZE( "SizeInBytes",	SizeInBytes );
+		JSON_SERIALIZE( "DemoTimeInMs",	DemoTimeInMs );
+		JSON_SERIALIZE( "NumViewers",	NumViewers );
+		JSON_SERIALIZE( "bIsLive",		bIsLive );
+		JSON_SERIALIZE( "Changelist",	Changelist );
+		JSON_SERIALIZE( "shouldKeep",	bShouldKeep );
+	END_JSON_SERIALIZER
 };
 
-class FNetworkReplayList : public FOnlineJsonSerializable
+class FNetworkReplayList : public FJsonSerializable
 {
 public:
 	FNetworkReplayList()
@@ -57,13 +57,13 @@ public:
 
 	TArray< FNetworkReplayListItem > Replays;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE_ARRAY_SERIALIZABLE( "replays", Replays, FNetworkReplayListItem );
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE_ARRAY_SERIALIZABLE( "replays", Replays, FNetworkReplayListItem );
+	END_JSON_SERIALIZER
 };
 
-class FNetworkReplayUserList : public FOnlineJsonSerializable
+class FNetworkReplayUserList : public FJsonSerializable
 {
 public:
 	FNetworkReplayUserList()
@@ -75,13 +75,13 @@ public:
 
 	TArray< FString > Users;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE_ARRAY( "users", Users );
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE_ARRAY( "users", Users );
+	END_JSON_SERIALIZER
 };
 
-class FNetworkReplayStartUploadingResponse : public FOnlineJsonSerializable
+class FNetworkReplayStartUploadingResponse : public FJsonSerializable
 {
 public:
 	FNetworkReplayStartUploadingResponse()
@@ -90,13 +90,13 @@ public:
 
 	FString SessionId;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE("sessionId", SessionId);
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE("sessionId", SessionId);
+	END_JSON_SERIALIZER
 };
 
-class FNetworkReplayStartDownloadingResponse : public FOnlineJsonSerializable
+class FNetworkReplayStartDownloadingResponse : public FJsonSerializable
 {
 public:
 	FNetworkReplayStartDownloadingResponse()
@@ -108,13 +108,13 @@ public:
 	int32 Time;
 	int32 NumChunks;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE("state", State);
-		ONLINE_JSON_SERIALIZE("numChunks", NumChunks);
-		ONLINE_JSON_SERIALIZE("time", Time);
-		ONLINE_JSON_SERIALIZE("viewerId", Viewer);
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE("state", State);
+		JSON_SERIALIZE("numChunks", NumChunks);
+		JSON_SERIALIZE("time", Time);
+		JSON_SERIALIZE("viewerId", Viewer);
+	END_JSON_SERIALIZER
 };
 
 void FHttpStreamFArchive::Serialize( void* V, int64 Length ) 

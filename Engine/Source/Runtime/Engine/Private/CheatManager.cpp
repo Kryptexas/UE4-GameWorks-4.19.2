@@ -4,7 +4,7 @@
 #include "UnrealNetwork.h"
 #include "SlateBasics.h"
 #include "NavDataGenerator.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "GameFramework/Character.h"
@@ -978,29 +978,17 @@ void UCheatManager::SetNavDrawDistance(float DrawDistance)
 
 void UCheatManager::DumpOnlineSessionState()
 {
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
-	if (SessionInt.IsValid())
-	{
-		SessionInt->DumpSessionState();
-	}
+	UOnlineEngineInterface::Get()->DumpSessionState(GetWorld());
 }
 
 void UCheatManager::DumpPartyState()
 {
-	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
-	if (PartyInt.IsValid())
-	{
-		PartyInt->DumpPartyState();
-	}
+	UOnlineEngineInterface::Get()->DumpPartyState(GetWorld());
 }
 
 void UCheatManager::DumpChatState()
 {
-	IOnlineChatPtr ChatInt = Online::GetChatInterface(GetWorld());
-	if (ChatInt.IsValid())
-	{
-		ChatInt->DumpChatState();
-	}
+	UOnlineEngineInterface::Get()->DumpChatState(GetWorld());
 }
 
 void UCheatManager::DumpVoiceMutingState()
@@ -1010,11 +998,7 @@ void UCheatManager::DumpVoiceMutingState()
 	UE_LOG(LogCheatManager, Display, TEXT(""));
 
 	// Log the online view of the voice state
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(GetWorld());
-	if (VoiceInt.IsValid())
-	{
-		UE_LOG(LogCheatManager, Display, TEXT("\n%s"), *VoiceInt->GetVoiceDebugState());
-	}
+	UOnlineEngineInterface::Get()->DumpVoiceState(GetWorld());
 
 	// For each player list their gameplay mutes and system wide mutes
 	UE_LOG(LogCheatManager, Display, TEXT("\n%s"), *DumpMutelistState(GetWorld()));

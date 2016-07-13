@@ -7,7 +7,7 @@
 #include "Matinee/InterpGroupInst.h"
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "PhysicsPublic.h"
 
 #include "RenderCore.h"
@@ -1446,32 +1446,20 @@ void ULocalPlayer::SetControllerId( int32 NewControllerId )
 
 FString ULocalPlayer::GetNickname() const
 {
-	// Try to get platform identity first
-	IOnlineSubsystem* PlatformSubsystem = IOnlineSubsystem::GetByPlatform(false);
-	if (PlatformSubsystem)
-	{
-		IOnlineIdentityPtr OnlineIdentityInt = PlatformSubsystem->GetIdentityInterface();
-		if (OnlineIdentityInt.IsValid())
-		{
-			FString PlayerNickname = OnlineIdentityInt->GetPlayerNickname(ControllerId);
-			if (!PlayerNickname.IsEmpty())
-			{
-				return PlayerNickname;
-			}
-		}
-	}
-
 	UWorld* World = GetWorld();
 	if (World != NULL)
 	{
-		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
-		if (OnlineIdentityInt.IsValid())
+		// Try to get platform identity first
+		FString PlatformNickname;
+		if (UOnlineEngineInterface::Get()->GetPlayerPlatformNickname(World, ControllerId, PlatformNickname))
 		{
-			auto UniqueId = GetPreferredUniqueNetId();
-			if (UniqueId.IsValid())
-			{
-				return OnlineIdentityInt->GetPlayerNickname(*UniqueId);
-			}
+			return PlatformNickname;
+		}
+
+		auto UniqueId = GetPreferredUniqueNetId();
+		if (UniqueId.IsValid())
+		{
+			return UOnlineEngineInterface::Get()->GetPlayerNickname(World, *UniqueId);
 		}
 	}
 
@@ -1481,20 +1469,12 @@ FString ULocalPlayer::GetNickname() const
 TSharedPtr<const FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
 {
 	UWorld* World = GetWorld();
-	if (World != NULL)
-	{
-		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
-		if (OnlineIdentityInt.IsValid())
-		{
-			TSharedPtr<const FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
-			if (UniqueId.IsValid())
-			{
-				return UniqueId;
-			}
-		}
+	if (World != nullptr)
+	{		
+		return UOnlineEngineInterface::Get()->GetUniquePlayerId(World, ControllerId);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 TSharedPtr<const FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const

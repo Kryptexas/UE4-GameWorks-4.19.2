@@ -7,7 +7,7 @@
 DEFINE_LOG_CATEGORY_STATIC( LogNullReplay, Log, All );
 
 /* Class to hold stream event information */
-class FNullCheckpointListItem : public FOnlineJsonSerializable
+class FNullCheckpointListItem : public FJsonSerializable
 {
 public:
 	FNullCheckpointListItem() : Time1(0), Time2(0) {}
@@ -17,13 +17,13 @@ public:
 	uint32		Time1;
 	uint32		Time2;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE( "group",			Group );
-		ONLINE_JSON_SERIALIZE( "meta",			Metadata );
-		ONLINE_JSON_SERIALIZE( "time1",			Time1 );
-		ONLINE_JSON_SERIALIZE( "time2",			Time2 );
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE( "group",			Group );
+		JSON_SERIALIZE( "meta",			Metadata );
+		JSON_SERIALIZE( "time1",			Time1 );
+		JSON_SERIALIZE( "time2",			Time2 );
+	END_JSON_SERIALIZER
 };
 
 /**

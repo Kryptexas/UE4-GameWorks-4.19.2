@@ -16,6 +16,7 @@
 #include "DataChannel.h"
 #include "OnlineBeaconClient.h"
 #include "NetworkVersion.h"
+#include "OnlineSubsystemTypes.h"
 
 // Forward declarations
 class FWorldTickHook;

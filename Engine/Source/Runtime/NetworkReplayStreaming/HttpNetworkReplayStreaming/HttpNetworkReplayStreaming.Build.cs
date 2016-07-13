@@ -6,8 +6,6 @@ namespace UnrealBuildTool.Rules
     {
         public HttpNetworkReplayStreaming(TargetInfo Target)
         {
-			PrivateIncludePathModuleNames.Add( "OnlineSubsystem" );
-
 			PrivateDependencyModuleNames.AddRange(
                 new string[]
 				{

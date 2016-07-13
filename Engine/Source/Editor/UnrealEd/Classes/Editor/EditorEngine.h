@@ -2490,11 +2490,10 @@ private:
 	 * 
 	 * @param LocalUserNum local user id, for PIE is going to be 0 (there is no splitscreen)
 	 * @param bWasSuccessful was the login successful
-	 * @param UserId userid of the logged in account
 	 * @param ErrorString descriptive error when applicable
 	 * @param DataStruct data required to continue PIE creation, set at login time
 	 */
-	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
+	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ErrorString, FPieLoginStruct DataStruct);
 
 	/** Above function but called a frame later, to stop PIE login from happening from a network callback */
 	virtual void OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct);
@@ -2845,9 +2844,6 @@ private:
 	* @param	bActiveViewportOnly		If true, move/reorient only the active viewport.
 	*/
 	void MoveViewportCamerasToBox(const FBox& BoundingBox, bool bActiveViewportOnly) const;
-
-	/** Mapping of delegate handles for each online Login() call while in flight */
-	TMap<FName, FDelegateHandle> OnLoginPIECompleteDelegateHandlesForPIEInstances;
 
 public:
 	// Launcher Worker

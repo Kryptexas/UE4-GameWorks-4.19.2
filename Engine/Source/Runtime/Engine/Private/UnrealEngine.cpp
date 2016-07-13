@@ -9,6 +9,7 @@
 #include "Engine/LevelStreamingPersistent.h"
 #include "Engine/ObjectReferencer.h"
 #include "Net/UnrealNetwork.h"
+#include "Net/OnlineEngineInterface.h"
 #include "Engine/Console.h"
 #include "VisualLogger/VisualLogger.h"
 #include "FileManagerGeneric.h"
@@ -24,8 +25,6 @@
 #include "Networking.h"
 #include "ProfilingHelpers.h"
 #include "ImageWrapper.h"
-#include "OnlineSubsystem.h"
-#include "OnlineExternalUIInterface.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #if WITH_EDITOR
@@ -951,32 +950,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	UE_LOG(LogInit, Log, TEXT("Texture streaming: %s"), IStreamingManager::Get().IsTextureStreamingEnabled() ? TEXT("Enabled") : TEXT("Disabled") );
 
 	// Initialize the online subsystem as early as possible
-	IOnlineSubsystem* SubSystem = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr;
-	if (SubSystem != nullptr)
-	{
-		IOnlineExternalUIPtr ExternalUI = SubSystem->GetExternalUIInterface();
-		if(ExternalUI.IsValid())
-		{
-			FOnExternalUIChangeDelegate OnExternalUIChangeDelegate;
-			OnExternalUIChangeDelegate.BindUObject(this, &UEngine::OnExternalUIChange);
-
-			ExternalUI->AddOnExternalUIChangeDelegate_Handle(OnExternalUIChangeDelegate);
-		}
-	}
-	// Initialize the platform online subsystem as early as possible also
-	IOnlineSubsystem* SubSystemConsole = IOnlineSubsystem::GetByPlatform();
-	if (SubSystemConsole != nullptr &&
-		SubSystem != SubSystemConsole)
-	{
-		IOnlineExternalUIPtr ExternalUI = SubSystemConsole->GetExternalUIInterface();
-		if (ExternalUI.IsValid())
-		{
-			FOnExternalUIChangeDelegate OnExternalUIChangeDelegate;
-			OnExternalUIChangeDelegate.BindUObject(this, &UEngine::OnExternalUIChange);
-
-			ExternalUI->AddOnExternalUIChangeDelegate_Handle(OnExternalUIChangeDelegate);
-		}
-	}
+	FOnlineExternalUIChanged OnExternalUIChangeDelegate;
+	OnExternalUIChangeDelegate.BindUObject(this, &UEngine::OnExternalUIChange);
+	UOnlineEngineInterface::Get()->BindToExternalUIOpening(OnExternalUIChangeDelegate);
 
 	// Initialise buffer visualization system data
 	GetBufferVisualizationData().Initialize();

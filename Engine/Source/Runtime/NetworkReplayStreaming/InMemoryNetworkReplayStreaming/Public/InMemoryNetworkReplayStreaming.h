@@ -6,7 +6,7 @@
 #include "Core.h"
 #include "ModuleManager.h"
 #include "UniquePtr.h"
-#include "OnlineJsonSerializer.h"
+#include "JsonSerializer.h"
 #include "Tickable.h"
 
 class FInMemoryNetworkReplayStreamingFactory;

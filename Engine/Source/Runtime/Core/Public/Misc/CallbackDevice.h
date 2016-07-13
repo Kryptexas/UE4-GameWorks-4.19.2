@@ -6,7 +6,6 @@
 
 
 class AActor;
-class FUniqueNetIdString;
 
 
 /**
@@ -82,7 +81,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnSafeFrameChangedEvent);
 
 	// Callback for handling accepting invitations - generally for engine code
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FUniqueNetIdString&);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FString&);
 
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.

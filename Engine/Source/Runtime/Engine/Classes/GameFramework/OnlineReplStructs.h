@@ -5,12 +5,10 @@
 //
 
 #pragma once
-#include "Runtime/Online/OnlineSubsystem/Public/OnlineSubsystemTypes.h"
-#include "Runtime/Online/OnlineSubsystem/Public/UniqueNetIdWrapper.h"
+#include "CoreOnline.h"
 #include "OnlineReplStructs.generated.h"
 
 class FJsonValue;
-class FUniqueNetId;
 
 /**
  * Wrapper for opaque type FUniqueNetId
@@ -27,10 +25,10 @@ struct FUniqueNetIdRepl
 	{
 	}
 
-	FUniqueNetIdRepl(const FUniqueNetIdWrapper& InWrapper)
-	: UniqueNetId(InWrapper.GetUniqueNetId())
-	{
-	}
+ 	FUniqueNetIdRepl(const FUniqueNetIdWrapper& InWrapper)
+ 	: UniqueNetId(InWrapper.GetUniqueNetId())
+ 	{
+ 	}
 
 	FUniqueNetIdRepl(const TSharedRef<const FUniqueNetId>& InUniqueNetId) :
 		UniqueNetId(InUniqueNetId)
@@ -143,10 +141,10 @@ struct FUniqueNetIdRepl
 	/**
 	 * implicit cast operator to FUniqueNetIdWrapper
 	 */
-	FORCEINLINE operator FUniqueNetIdWrapper() const
-	{
-		return FUniqueNetIdWrapper(UniqueNetId);
-	}
+ 	FORCEINLINE operator FUniqueNetIdWrapper() const
+ 	{
+ 		return FUniqueNetIdWrapper(UniqueNetId);
+ 	}
 
 	friend inline uint32 GetTypeHash(FUniqueNetIdRepl const& Value)
 	{

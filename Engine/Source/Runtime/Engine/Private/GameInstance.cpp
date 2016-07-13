@@ -11,8 +11,6 @@
 #include "Engine/DemoNetDriver.h"
 #include "Engine/LatentActionManager.h"
 #include "Engine/NetworkObjectList.h"
-#include "OnlineSubsystem.h"
-#include "OnlineSessionInterface.h"
 #include "GameFramework/OnlineSession.h"
 #include "GameFramework/PlayerState.h"
 
@@ -61,23 +59,12 @@ void UGameInstance::Init()
 
 	if (!IsRunningCommandlet())
 	{
-		const auto OnlineSub = IOnlineSubsystem::Get();
-		if (OnlineSub != nullptr)
+		UClass* SpawnClass = GetOnlineSessionClass();
+		OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
+		if (OnlineSession)
 		{
-			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-			if (SessionInt.IsValid())
-			{
-				SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(
-					FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
-			}
+			OnlineSession->RegisterOnlineDelegates();
 		}
-	}
-
-	UClass* SpawnClass = GetOnlineSessionClass();
-	OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
-	if (OnlineSession)
-	{
-		OnlineSession->RegisterOnlineDelegates();
 	}
 }
 
@@ -85,17 +72,10 @@ void UGameInstance::Shutdown()
 {
 	ReceiveShutdown();
 
-	if (!IsRunningCommandlet())
+	if (OnlineSession)
 	{
-		const auto OnlineSub = IOnlineSubsystem::Get();
-		if (OnlineSub != nullptr)
-		{
-			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-			if (SessionInt.IsValid())
-			{
-				SessionInt->ClearOnSessionUserInviteAcceptedDelegate_Handle(OnSessionUserInviteAcceptedDelegateHandle);
-			}
-		}
+		OnlineSession->ClearOnlineDelegates();
+		OnlineSession = nullptr;
 	}
 
 	for (int32 PlayerIdx = LocalPlayers.Num() - 1; PlayerIdx >= 0; --PlayerIdx)
@@ -899,30 +879,6 @@ void UGameInstance::AddUserToReplay(const FString& UserString)
 TSubclassOf<UOnlineSession> UGameInstance::GetOnlineSessionClass()
 {
 	return UOnlineSession::StaticClass();
-}
-
-
-void UGameInstance::HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
-{
-	OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
-}
-
-void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
-{
-	UE_LOG(LogPlayerManagement, Verbose, TEXT("OnSessionUserInviteAccepted LocalUserNum: %d bSuccess: %d"), ControllerId, bWasSuccess);
-	// Don't clear invite accept delegate
-
-	if (bWasSuccess)
-	{
-		if (InviteResult.IsValid())
-		{
-			GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
-		}
-		else
-		{
-			UE_LOG(LogPlayerManagement, Warning, TEXT("Invite accept returned invalid search result."));
-		}
-	}
 }
 
 bool UGameInstance::IsDedicatedServerInstance() const

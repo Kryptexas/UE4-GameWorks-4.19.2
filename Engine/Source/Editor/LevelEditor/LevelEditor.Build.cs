@@ -44,7 +44,6 @@ public class LevelEditor : ModuleRules
                 "EditorStyle",
 				"Engine",
 				"MessageLog",
-				"NewsFeed",
                 "SourceControl",
                 "SourceControlWindows",
                 "StatsViewer",

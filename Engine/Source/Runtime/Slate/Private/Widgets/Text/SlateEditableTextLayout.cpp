@@ -58,13 +58,19 @@ bool IsCharAllowed(const TCHAR InChar)
 
 }
 
-FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InOwnerWidget, const TAttribute<FText>& InInitialText, FTextBlockStyle InTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InTextMarshaller, TSharedRef<ITextLayoutMarshaller> InHintTextMarshaller)
+FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InOwnerWidget, const TAttribute<FText>& InInitialText, FTextBlockStyle InTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, const FCreateSlateTextLayout& InCreateSlateTextLayout, TSharedRef<ITextLayoutMarshaller> InTextMarshaller, TSharedRef<ITextLayoutMarshaller> InHintTextMarshaller)
 {
+	CreateSlateTextLayout = InCreateSlateTextLayout;
+	if (!CreateSlateTextLayout.IsBound())
+	{
+		CreateSlateTextLayout.BindStatic(&FSlateTextLayout::Create);
+	}
+
 	OwnerWidget = &InOwnerWidget;
 	Marshaller = InTextMarshaller;
 	HintMarshaller = InHintTextMarshaller;
 	TextStyle = InTextStyle;
-	TextLayout = FSlateTextLayout::Create(TextStyle);
+	TextLayout = CreateSlateTextLayout.Execute(TextStyle);
 
 	WrapTextAt = 0.0f;
 	AutoWrapText = false;
@@ -250,7 +256,7 @@ void FSlateEditableTextLayout::SetHintText(const TAttribute<FText>& InHintText)
 	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
 	{
 		HintTextStyle = TextStyle;
-		HintTextLayout = MakeUnique<FTextBlockLayout>(HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), HintMarshaller.ToSharedRef(), nullptr);
+		HintTextLayout = MakeUnique<FTextBlockLayout>(HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), CreateSlateTextLayout, HintMarshaller.ToSharedRef(), nullptr);
 		HintTextLayout->SetDebugSourceInfo(DebugSourceInfo);
 	}
 	else

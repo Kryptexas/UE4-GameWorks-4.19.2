@@ -14,8 +14,8 @@ TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaul
 }
 
 FSlateTextLayout::FSlateTextLayout(FTextBlockStyle InDefaultTextStyle)
-	: Children()
-	, DefaultTextStyle(MoveTemp(InDefaultTextStyle))
+	: DefaultTextStyle(MoveTemp(InDefaultTextStyle))
+	, Children()
 	, bIsPassword(false)
 	, LocalizedFallbackFontRevision(INDEX_NONE)
 {

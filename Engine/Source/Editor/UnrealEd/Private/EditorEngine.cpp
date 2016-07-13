@@ -510,7 +510,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UpdateAutoLoadProject();
 
 	// Load any modules that might be required by commandlets
-	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+	//FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
 	if ( FSlateApplication::IsInitialized() )
 	{
@@ -643,7 +643,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("EditorSettingsViewer"),
 			TEXT("ProjectSettingsViewer"),
 			TEXT("Blutility"),
-			TEXT("OnlineBlueprintSupport"),
+			//TEXT("OnlineBlueprintSupport"),
 			TEXT("XmlParser"),
 			TEXT("UserFeedback"),
 			TEXT("GameplayTagsEditor"),

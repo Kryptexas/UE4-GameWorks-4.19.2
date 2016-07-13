@@ -5,10 +5,10 @@
 // Dependencies.
 #include "ModuleManager.h"
 #include "Core.h"
-#include "OnlineJsonSerializer.h"
+#include "Json.h"
 #include "NetworkVersion.h"
 
-class FReplayEventListItem : public FOnlineJsonSerializable
+class FReplayEventListItem : public FJsonSerializable
 {
 public:
 	FReplayEventListItem() {}
@@ -20,17 +20,17 @@ public:
 	uint32		Time1;
 	uint32		Time2;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-	ONLINE_JSON_SERIALIZE("id", ID);
-	ONLINE_JSON_SERIALIZE("group", Group);
-	ONLINE_JSON_SERIALIZE("meta", Metadata);
-	ONLINE_JSON_SERIALIZE("time1", Time1);
-	ONLINE_JSON_SERIALIZE("time2", Time2);
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE("id", ID);
+		JSON_SERIALIZE("group", Group);
+		JSON_SERIALIZE("meta", Metadata);
+		JSON_SERIALIZE("time1", Time1);
+		JSON_SERIALIZE("time2", Time2);
+	END_JSON_SERIALIZER
 };
 
-class FReplayEventList : public FOnlineJsonSerializable
+class FReplayEventList : public FJsonSerializable
 {
 public:
 	FReplayEventList()
@@ -39,10 +39,10 @@ public:
 
 	TArray< FReplayEventListItem > ReplayEvents;
 
-	// FOnlineJsonSerializable
-	BEGIN_ONLINE_JSON_SERIALIZER
-		ONLINE_JSON_SERIALIZE_ARRAY_SERIALIZABLE("events", ReplayEvents, FReplayEventListItem);
-	END_ONLINE_JSON_SERIALIZER
+	// FJsonSerializable
+	BEGIN_JSON_SERIALIZER
+		JSON_SERIALIZE_ARRAY_SERIALIZABLE("events", ReplayEvents, FReplayEventListItem);
+	END_JSON_SERIALIZER
 };
 
 /** Struct to store information about a stream, returned from search results. */

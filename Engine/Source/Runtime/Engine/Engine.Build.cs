@@ -14,8 +14,6 @@ public class Engine : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Developer/DerivedDataCache/Public",
-				"Runtime/Online/OnlineSubsystem/Public",
-				"Runtime/Online/OnlineSubsystemUtils/Public",
                 "Runtime/SynthBenchmark/Public",
                 "Runtime/Engine/Private",
 			}
@@ -23,7 +21,6 @@ public class Engine : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {				
-				"OnlineSubsystem",
 				"TargetPlatform",
 				"ImageWrapper",
 				"HeadMountedDisplay",
@@ -266,8 +263,6 @@ public class Engine : ModuleRules
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
 				"HttpNetworkReplayStreaming",
-				"OnlineSubsystem", 
-				"OnlineSubsystemUtils",
 				"Advertising"
 			}
 		);

@@ -9,7 +9,7 @@
 #include "Interfaces/NetworkPredictionInterface.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "GameFramework/OnlineSession.h"
 #include "IHeadMountedDisplay.h"
 #include "IMotionController.h"
@@ -3007,17 +3007,13 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	if (LP != NULL)
 	{
 		UWorld* World = GetWorld();
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
-		if (VoiceInt.IsValid())
+		if (bSpeaking)
 		{
-			if (bSpeaking)
-			{
-				VoiceInt->StartNetworkedVoice(LP->GetControllerId());
-			}
-			else
-			{
-				VoiceInt->StopNetworkedVoice(LP->GetControllerId());
-			}
+			UOnlineEngineInterface::Get()->StartNetworkedVoice(World, LP->GetControllerId());
+		}
+		else
+		{
+			UOnlineEngineInterface::Get()->StopNetworkedVoice(World, LP->GetControllerId());
 		}
 	}
 }

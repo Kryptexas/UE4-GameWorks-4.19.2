@@ -2,6 +2,7 @@
 #pragma once
 
 #include "UniquePtr.h"
+#include "SlateTextLayoutFactory.h"
 
 #if WITH_FANCY_TEXT
 
@@ -50,6 +51,9 @@ public:
 
 		/** The marshaller used to get/set the raw text to/from the text layout. */
 		SLATE_ARGUMENT(TSharedPtr<class FRichTextLayoutMarshaller>, Marshaller)
+
+		/** Delegate used to create text layouts for this widget. If none is provided then FSlateTextLayout will be used. */
+		SLATE_EVENT(FCreateSlateTextLayout, CreateSlateTextLayout)
 
 		/** The style set used for looking up styles used by decorators*/
 		SLATE_ARGUMENT( const ISlateStyle*, DecoratorStyleSet )

@@ -4,7 +4,6 @@
 #include "NetworkReplayStreaming.h"
 #include "Http.h"
 #include "Runtime/Engine/Public/Tickable.h"
-#include "OnlineJsonSerializer.h"
 
 /**
  * Archive used to buffer stream over http

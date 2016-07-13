@@ -86,7 +86,6 @@ public class CrashReportClientTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 		UEBuildConfiguration.bUseLoggingInShipping = true;
-		UEBuildConfiguration.bCompileSteamOSS = false;
 
 		UEBuildConfiguration.bIncludeADO = false;
 		

@@ -8,7 +8,7 @@
 #include "Engine/LevelScriptActor.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "Matinee/MatineeActor.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/DefaultPawn.h"
 #include "GameFramework/SpectatorPawn.h"
@@ -169,15 +169,9 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 
 	if (GetNetMode() != NM_Standalone)
 	{
-		FOnlineSessionSettings* SessionSettings = NULL;
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-		if (SessionInt.IsValid())
-		{
-			SessionSettings = SessionInt->GetSessionSettings(GameSession->SessionName);
-		}
-
 		// Attempt to login, returning true means an async login is in flight
-		if (!SessionSettings && !GameSession->ProcessAutoLogin())
+		if (!UOnlineEngineInterface::Get()->DoesSessionExist(World, GameSession->SessionName) &&
+			!GameSession->ProcessAutoLogin())
 		{
 			GameSession->RegisterServer();
 		}
