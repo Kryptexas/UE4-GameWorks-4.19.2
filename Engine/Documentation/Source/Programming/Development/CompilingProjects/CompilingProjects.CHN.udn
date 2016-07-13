@@ -1,23 +1,23 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability:Public
-Title:编译游戏项目
+Title: 编译游戏项目
 Crumbs: %ROOT%, Programming, Programming/Development
-Description:使用Windows的Visual Studio或Mac的Xcode编译单独的游戏项目。
+Description: 使用 Windows 的 Visual Studio 或 Mac 的 Xcode 编译单独的游戏项目。
 
 [TOC (start:2 end:3)]
 
 [EXCERPT:Main]
 
-虚幻引擎通过UnrealBuildTool来使用自定义编译方式，而此工具会处理编译项目的所有复杂的方面并将其与引擎进行链接。该过程的发生是透明的，这样您就可以直接通过标准Visual Studio编译工作流程来编译项目。
+虚幻引擎通过 UnrealBuildTool 来使用自定义编译方式，而此工具会处理编译项目的所有复杂的方面并将其与引擎进行链接。该过程的发生是透明的，这样您就可以直接通过标准 Visual Studio 编译工作流程来编译项目。
 
-UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs`文件来编译游戏项目。当项目使用C++模板来创建，或当使用[](Programming\Development\ManagingGameCode\CppClassWizard)来添加代码到一个仅使用蓝图的模板中创建的项目时，它们会被自动生成。
+UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs` 文件来编译游戏项目。当项目使用C++模板来创建，或当使用 [](Programming\Development\ManagingGameCode\CppClassWizard) 来添加代码到一个仅使用蓝图的模板中创建的项目时，它们会被自动生成。
 
 ## 编译配置
 
-虚幻引擎4和UnrealBuildTool使用不同的版本配置来决定引擎如何被编译。使用何种配置将会由您创建版本的目的来决定。
+虚幻引擎 4 和 UnrealBuildTool 使用不同的版本配置来决定引擎如何被编译。使用何种配置将会由您创建版本的目的来决定。
 
 [EXCERPT:winbuildconfig]
-每种编译配置包含两种关键字。第一种表明了引擎以及您游戏项目的状态。比如，如果您使用 **Debug** 配置来进行编译，您将可以调试游戏代码。第二个关键字表明您正在编译的对象。如果您想要在Unreal中打开一个项目，您需要采用 **Editor** （编辑器）对象关键字来编译，但如果您正在编译您的游戏的可执行版本，您需要使用 **empty** （空白）对象关键字来进行编译。
+每种编译配置包含两种关键字。第一种表明了引擎以及游戏项目的状态。比如，如果使用 **Debug** 配置来进行编译，将可以调试游戏代码。第二个关键字表明正在编译的对象。如果想要在 Unreal 中打开一个项目，需要采用 **Editor** 对象关键字来编译。
 
 |编译配置 - 状态 | 描述 |
 |-------------|-------------|
@@ -31,141 +31,126 @@ UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs`文件来编译游戏项目�
 | ------------------| ----------|
 |  [empty]  （空白）   | 该配置编译了您项目的一个独立可执行版本，但需要平台特定的已烘焙内容。 |
 | **Editor**   （编辑器）| 为能在虚幻编辑器内打开项目并查看所有变更的代码，该项目必须在 **Editor** （编辑器）配置内进行编译。|  
-| **Client**  (客户端）| 如存在`<Game>Client.Target.cs`文件，则 **Client** （客户端）编译配置将可用。 |
-| **Server**  (服务器）| 如存在`<Game>Server.Target.cs`文件，则 **Server** （服务器）编译配置将可用。|
+| **Client**  (客户端）| 如存在 `<Game>Client.Target.cs` 文件，则 **Client** （客户端）编译配置将可用。 |
+| **Server**  (服务器）| 如存在 `<Game>Server.Target.cs` 文件，则 **Server** （服务器）编译配置将可用。|
 [/EXCERPT:winbuildconfig]
 
 [/EXCERPT:Main]
 
 [EXCERPT:VS]
-## 使用Visual Studio编译
+## 使用 Visual Studio 编译
+
+编译配置可在 Visual Studio 工具条中进行设置。
 
 ### 设置编译配置
 
-编译配置可在Visual Studio工具条中进行设置。
-
-[PUBLISH:Rocket]
 ![Project - Configuration Menu](rocket_configuration_menu.png)
-[/PUBLISH:Rocket]
-[PUBLISH:Licensee]
-![UE4 Solution - Configuration Menu](configuration_menu.png)
-[/PUBLISH:Licensee]
+<!--
+### Solution - Configuration Menu
 
+![UE4 Solution - Configuration Menu](configuration_menu.png)
+-->
 ### 设置解决方案平台
 
-[PUBLISH:Rocket]
+编译配置可在 Visual Studio 工具条中进行设置。
+<!--
 虚幻引擎当前支持以下平台：
 
 * **Windows 64位**
 
-
 ![Project - Platform Menu](rocket_platform_menu.png)
-[/PUBLISH:Rocket]
-
-[PUBLISH:Licensee]
-虚幻引擎4当前支持以下平台：
+![UE4 Solution - Platform Menu](platform_menu.png)
+-->
+虚幻引擎 4 当前支持以下平台：
 
 * **Windows 32位**
 * **Windows 64位**
 
-
-在使用虚幻引擎4工作时，一般您都会使用 **Win64** 平台。这是生成项目文件时唯一默认包含的文件；[](Programming/UnrealBuildSystem/ProjectFileGenerator)页面有在其它平台生成项目文件的指示。
-
-![UE4 Solution - Platform Menu](platform_menu.png)
-[/PUBLISH:Licensee]
+在使用虚幻引擎 4 工作时，一般您都会使用 **Win64** 平台。这是生成项目文件时唯一默认包含的文件；
+[](Programming/UnrealBuildSystem/ProjectFileGenerator) 页面有在其它平台生成项目文件的指示。
 
 ### 编译项目
 
-[PUBLISH:Rocket]
 [REGION:note]
-在继续前请确认您安装的是Windows平台的Visual Studio 2013专业版或Visual Studio2013高级版。如果您使用的是Mac，请确认您已经安装了Xcode。
+在继续前请确认您安装的是 Windows 平台的 Visual Studio 2013 专业版或 Visual Studio 2013 高级版。如果您使用的是 Mac，请确认您已经安装了 Xcode。
+[/REGION]
+
+<!--
+
+[REGION:tip]
+当您在 Visual Studio 中编译时，您实际上仅仅在编译游戏项目，而不是 Unreal 编辑器。
 [/REGION]
 [REGION:tip]
-当您在Visual Studio中编译时，您实际上仅仅在编译游戏项目，而不是Unreal编辑器。
+当您在 Visual Studio 中编译时，您编译的不仅是引擎，还有游戏项目。
 [/REGION]
-[/PUBLISH:Rocket]
-[PUBLISH:Licensee]
-[REGION:tip]
-当您在Visual Studio中编译时，您编译的不仅是引擎，还有游戏项目。
-[/REGION]
-[/PUBLISH:Licensee]
 
-**如需编译项目:**
 
-[PUBLISH:Licensee]
+
 1.	设置 **Solution Configuration** （解决方案配置文件）为您想要编译的配置。在本示例中，它被设置为 **Development Editor** （开发编辑器）。请参照 [编译配置](#编译配置) 章节以获得每个可用配置的描述。
 
 	![Project - Set Configuration to Development](config_development_menu.png)
 
 1. **右键点击** 您的游戏项目并选择 **Rebuild** （重新编译）以进行重新编译。
 
-	![](rebuild_project_outside.png)
-
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
+	![](rebuild_project_rocket.png)
+-->
 1.	设置 **Solution Configuration** （解决方案配置文件）为您想要编译的配置。在本示例中，它被设置为 **Development** （开发）。请参照 [编译配置](#编译配置) 章节以获得每个可用配置的描述。
 
 	![](rocket_config_development_menu.png)
 
 1. **右键点击** 您的游戏项目并选择 **Rebuild** （重新编译）以进行重新编译。
 
-	![](rebuild_project_rocket.png)
-[/PUBLISH:Rocket]
+	![](rebuild_project_outside.png)
 
-您现在可以使用编译项目来[运行引擎](GettingStarted/RunningUnrealEngine)。
+
+
+您现在可以使用编译项目来 [运行引擎](GettingStarted/RunningUnrealEngine)。
 
 
 [EXCERPT:MatchEXE]
-[PUBLISH:Licensee]
 [REGION:note]
-在运行引擎时，很重要的一点是使用虚幻引擎可执行文件来匹配您重建项目所用的编译配置。例如，如果您使用 **DebugGame Uncooked** 编译配置来编译项目，您可以将游戏信息作为`UE4-Win64-DebugGame.exe`可执行文件的参数来运行。更多关于二进制命名规则的信息可以在[编译虚幻引擎](Programming/Development/BuildingUnrealEngine) 页面找到。
+在运行引擎时，很重要的一点是使用虚幻引擎可执行文件来匹配您重建项目所用的编译配置。例如，如果您使用 **DebugGame Uncooked** 编译配置来编译项目，您可以将游戏信息作为 `UE4-Win64-DebugGame.exe` 可执行文件的参数来运行。更多关于二进制命名规则的信息可以在[编译虚幻引擎](Programming/Development/BuildingUnrealEngine) 页面找到。
 [/REGION:note]
-[/PUBLISH:Licensee]	
 
-[PUBLISH:Rocket]
 [REGION:note]
-在运行Unreal时，如果您在任意 **Uncooked** （未烘焙）配置下重建您的项目，很重要的一点是添加`-game`标识，如果您在任意 **Debug** （调试）配置下重建您的项目，很重要的一点是添加`-debug`标识。
+在运行 Unreal 时，如果您在任意 **Uncooked** （未烘焙）配置下重建您的项目，很重要的一点是添加`-game`标识，如果您在任意 **Debug** （调试）配置下重建您的项目，很重要的一点是添加`-debug`标识。
 [/REGION:note]
-[/PUBLISH:Rocket]	
 [/EXCERPT:MatchEXE]
 
-[PUBLISH:Rocket]
-### Visual Studio已知问题
+### Visual Studio 已知问题
 
 
 | 问题 | 解决方案 |
 | ----- | -------- |
-| "项目过期"信息总是出现 | 当项目已经是最新时，Visual Studio仍认为该项目过期。您可以方便地通过勾选 **不再显示该对话框** 选框并按下 **No（不）** 按钮来禁止该信息。|
-| 当使用 Debug(调试) 配置时出现 **无调试信息** 窗口 | 产生的原因是UE4editor.exe是通过 _Development_ （开发）配置来进行编译的。尽管有这个警告，但当您使用 _ Debug_ (调试) 配置来编译该游戏项目时仍然可以对其进行调试。您可以方便地通过勾选 **不再显示该对话框** 选框并按下 **Yes（是）** 按钮来禁止该信息。|
-[/PUBLISH:Rocket]
+| "项目过期"信息总是出现 | 当项目已经是最新时，Visual Studio 仍认为该项目过期。您可以方便地通过勾选 **不再显示该对话框** 选框并按下 **No（不）** 按钮来禁止该信息。|
+| 当使用 Debug（调试） 配置时出现 **无调试信息** 窗口 | 产生的原因是 UE4editor.exe 是通过 _Development_ （开发）配置来进行编译的。尽管有这个警告，但当您使用 _Debug_（调试）配置来编译该游戏项目时仍然可以对其进行调试。您可以方便地通过勾选 **不再显示该对话框** 选框并按下 **Yes（是）** 按钮来禁止该信息。|
 [/EXCERPT:VS]
 
 [EXCERPT:Xcode]
-[PUBLISH:Rocket]
-## 使用Xcode来编译
+## 使用 Xcode 来编译
 
 [REGION:tip]
-当您使用Xcode来编译时，您实际上仅仅在编译游戏项目，而不是编辑器。
+当您使用 Xcode 来编译时，您实际上仅仅在编译游戏项目，而不是编辑器。
 [/REGION]
 
 **如需编译项目:**
 
-当您使用Xcode的 **Product > Build** （产品>编译）选项时，虚幻引擎Xcode项目被配置为Debug（调试）的编译配置，当您使用Xcode的 **Product > Build For > Profiling** （产品>编译>分析器）选项时，虚幻引擎Xcode项目被配置为Development（开发）的编译配置。您可以通过编辑目标计划来编辑此操作。
+当您使用 Xcode 的 **Product > Build** （产品>编译）选项时，虚幻引擎 Xcode 项目被配置为 Debug（调试）的编译配置，当您使用 Xcode 的 **Product > Build For > Profiling** （产品>编译>分析器）选项时，虚幻引擎 Xcode 项目被配置为 Development（开发）的编译配置。您可以通过编辑目标计划来编辑此操作。
 
-您现在可以使用编译项目来[运行引擎](GettingStarted/RunningUnrealEngine)。
+您现在可以使用编译项目来 [运行引擎](GettingStarted/RunningUnrealEngine)。
 
 [EXCERPT:MatchDMG]
 [REGION:note]
-在运行二进制编辑器时，如果您在任意 **Uncooked** （未烘焙）配置下重建您的项目，很重要的一点是添加`-game`标识，如果您在任意 **Debug** （调试）配置下重建您的项目，很重要的一点是添加`-debug`标识。
+在运行二进制编辑器时，如果您在任意 **Uncooked** （未烘焙）配置下重建您的项目，很重要的一点是添加 `-game` 标识，如果您在任意 **Debug** （调试）配置下重建您的项目，很重要的一点是添加 `-debug` 标识。
 [/REGION:note]	
 [/EXCERPT:MatchDMG]
 
-### Xcode的已知问题
+### Xcode 的已知问题
 
 
 | 问题 | 解决方案 |
 | ----- | -------- |
-| Xcode未在断点处停止 | [INCLUDE:#XcodeDebug] |
+| Xcode 未在断点处停止 | [INCLUDE:#XcodeDebug] |
 
 <!--
 [EXCERPT:XcodeDebug]
@@ -174,5 +159,9 @@ Xcode的LLDB调试器需要被配置，以正确处理虚幻引擎项目的断�
 	settings set target.inline-breakpoint-strategy always
 [/EXCERPT:XcodeDebug]
 -->
-[/PUBLISH:Rocket]
+
 [/EXCERPT:Xcode]
+
+<!-- The following was deprecated per LaurenR 29.7.15
+| **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | 
+-->
