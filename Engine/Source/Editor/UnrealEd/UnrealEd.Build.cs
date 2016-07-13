@@ -141,7 +141,9 @@ public class UnrealEd : ModuleRules
 				"Analytics",
                 "AnalyticsET",
                 "PluginWarden",
-                "PixelInspectorModule"
+                "PixelInspectorModule",
+				"MovieScene",
+				"MovieSceneTracks",
             }
 		);
 

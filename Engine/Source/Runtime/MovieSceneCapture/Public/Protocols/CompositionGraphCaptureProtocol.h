@@ -45,6 +45,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category="Composition Graph Options")
 	bool bCaptureFramesInHDR;
 
+	/** Compression Quality for HDR Frames (0 for no compression, 1 for default compression which can be slow) */
+	UPROPERTY(config, EditAnywhere, Category="Composition Graph Options", meta = (EditCondition = "bCaptureFramesInHDR"))
+	int32 HDRCompressionQuality;
+
 	/** The color gamut to use when storing HDR captured data. The gamut depends on whether the bCaptureFramesInHDR option is enabled. */
 	UPROPERTY(config, EditAnywhere, Category="Composition Graph Options", meta = (EditCondition = "bCaptureFramesInHDR"))
 	TEnumAsByte<enum EHDRCaptureGamut> CaptureGamut;

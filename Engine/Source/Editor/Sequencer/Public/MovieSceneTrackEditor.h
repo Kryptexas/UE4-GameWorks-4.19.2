@@ -65,15 +65,6 @@ public:
 		return Sequencer.Pin()->GetCurrentLocalTime( *InMovieSceneSequence );
 	}
 
-	void NotifyMovieSceneDataChanged()
-	{
-		TSharedPtr<ISequencer> SequencerPin = Sequencer.Pin();
-		if( SequencerPin.IsValid()  )
-		{
-			SequencerPin->NotifyMovieSceneDataChanged();
-		}
-	}
-
 	void UpdatePlaybackRange()
 	{
 		TSharedPtr<ISequencer> SequencerPin = Sequencer.Pin();
@@ -104,8 +95,9 @@ public:
 
 				if( OnKeyProperty.Execute( KeyTime ) )
 				{
-					// Movie scene data has changed
-					NotifyMovieSceneDataChanged();
+					// TODO: This should pass an appropriate change type here instead of always passing structure changed since most
+					// changes will be value changes.
+					Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 				}
 
 				UpdatePlaybackRange();

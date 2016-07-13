@@ -20,6 +20,7 @@
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackFloatBase.h"
 #include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpTrackColorScale.h"
 #include "Matinee/InterpTrackColorProp.h"
 #include "Matinee/InterpTrackFloatProp.h"

@@ -73,7 +73,7 @@ public:
 	 * @param UnlockIfCameraObject If this is not nullptr, release actor lock only if currently locked to this object.
 	 * @param bJumpCut Whether this is a jump cut, ie. the cut jumps from one shot to another shot
 	 */
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr, bool bJumpCut = false) const = 0;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr, bool bJumpCut = false) = 0;
 
 	/*
 	 * Set the perspective viewport settings

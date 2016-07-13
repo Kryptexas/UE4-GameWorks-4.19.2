@@ -216,7 +216,7 @@ void UCineCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& Desi
 	UpdateCameraLens(DeltaTime, DesiredView);
 
 #if WITH_EDITORONLY_DATA
-	if (FocusSettings.bDrawDebugFocusPlane && DebugFocusPlaneMesh)
+	if (FocusSettings.bDrawDebugFocusPlane && DebugFocusPlaneMesh && DebugFocusPlaneComponent)
 	{
 		FVector const CamDir = DesiredView.Rotation.Vector();
 		FVector const FocusPoint = DesiredView.Location + CamDir * CurrentFocusDistance;

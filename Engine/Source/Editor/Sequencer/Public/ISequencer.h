@@ -67,6 +67,27 @@ enum ESnapTimeMode
 	STM_All = STM_Interval | STM_Keys
 };
 
+
+/**
+ * Defines different types of movie scene data changes. 
+ */
+enum class EMovieSceneDataChangeType
+{
+	/** Data owned by a track has been modified such as adding or removing keys, or changing their values. */
+	TrackValueChanged,
+	/** The structure of the movie scene has changed by adding folders, object bindings, tracks, or sections. */
+	MovieSceneStructureItemAdded,
+	/** The structure of the movie scene has changed by removing folders, object bindings, tracks, or sections. */
+	MovieSceneStructureItemRemoved,
+	/** The structure of the movie scene has changed by adding and removing folders, object bindings, tracks, or sections. */
+	MovieSceneStructureItemsChanged,
+	/** The active movie scene has been changed to a new movie scene. */
+	ActiveMovieSceneChanged,
+	/** It's not known what data has changed. */
+	Unknown
+};
+
+
 /**
  * Interface for sequencers.
  */
@@ -77,6 +98,7 @@ class ISequencer
 public:
 	
 	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
+	DECLARE_MULTICAST_DELEGATE(FOnMovieSceneDataChanged);
 
 public:
 
@@ -200,13 +222,13 @@ public:
 	 *
 	 * @param Time The global time to set.
 	 * @param SnapTimeMode The type of time snapping allowed.
-	 * @param bLooped Whether the time has been looped
+	 * @param bRestarted Whether the time has been restarted from the beginning or looped.
 	 * @see GetGlobalTime
 	 */
-	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) = 0;
+	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bRestarted = false) = 0;
 
 	/** Set the global time directly, without performing any auto-scroll */
-	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) = 0;
+	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bRestarted = false) = 0;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const
@@ -302,7 +324,14 @@ public:
 
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) = 0;
 
-	virtual void NotifyMovieSceneDataChanged() = 0;
+	DEPRECATED( 4.13, "NotifyMovieSceneDataChanged() is deprecated, use the version that takes EMovieSceneDataChangeType" )
+	void NotifyMovieSceneDataChanged() { NotifyMovieSceneDataChangedInternal(); };
+
+protected:
+	virtual void NotifyMovieSceneDataChangedInternal() = 0;
+
+public:
+	virtual void NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType ) = 0;
 
 	virtual void UpdateRuntimeInstances() = 0;
 
@@ -320,6 +349,9 @@ public:
 
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
+
+	/** Gets a multicast delegate which is executed whenever the movie scene data is changed. */
+	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() = 0;
 
 	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() = 0;

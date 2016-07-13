@@ -284,8 +284,9 @@ protected:
 			ObjectGuid = NewSequence->FindPossessableObjectId(*PropObject);
 			if (!ObjectGuid.IsValid())
 			{
+				UObject* BindingContext = InActor->GetWorld();
 				ObjectGuid = NewMovieScene->AddPossessable(PropObject->GetName(), PropObject->GetClass());
-				NewSequence->BindPossessableObject(ObjectGuid, *PropObject, GWorld);
+				NewSequence->BindPossessableObject(ObjectGuid, *PropObject, BindingContext);
 			}
 
 			// cbb: String manipulations to get the property path in the rigth form for sequencer
@@ -353,8 +354,9 @@ protected:
 		// Bind the group actor as a possessable						
 		if (GroupActor)
 		{
+			UObject* BindingContext = GroupActor->GetWorld();
 			PossessableGuid = NewMovieScene->AddPossessable(GroupActor->GetActorLabel(), GroupActor->GetClass());
-			NewSequence->BindPossessableObject(PossessableGuid, *GroupActor, GWorld);
+			NewSequence->BindPossessableObject(PossessableGuid, *GroupActor, BindingContext);
 	
 			FindOrAddFolder(NewMovieScene, GroupActor, PossessableGuid);
 		}
@@ -457,6 +459,18 @@ protected:
 					if (ColorTrack)
 					{
 						FMatineeImportTools::CopyInterpColorTrack(MatineeColorTrack, ColorTrack);
+					}
+				}
+			}
+			else if (Track->IsA(UInterpTrackLinearColorProp::StaticClass()))
+			{
+				UInterpTrackLinearColorProp* MatineeLinearColorTrack = StaticCast<UInterpTrackLinearColorProp*>(Track);
+				if (MatineeLinearColorTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
+				{
+					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeLinearColorTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
+					if (ColorTrack)
+					{
+						FMatineeImportTools::CopyInterpLinearColorTrack(MatineeLinearColorTrack, ColorTrack);
 					}
 				}
 			}

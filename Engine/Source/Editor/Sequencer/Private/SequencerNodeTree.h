@@ -92,6 +92,11 @@ public:
 	 */
 	const TSharedPtr<FSequencerDisplayNode>& GetHoveredNode() const;
 
+	/*
+	 * Get the object binding map from guid to object binding nodes
+	 */
+	const TMap< FGuid, TSharedPtr<FSequencerObjectBindingNode> > GetObjectBindingMap() const { return ObjectBindingMap; }
+
 private:
 	/**
 	 * Finds or adds a type editor for the track

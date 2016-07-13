@@ -71,6 +71,7 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 	, LevelSequence(nullptr)
 	, bIsPlaying(false)
+	, bReversePlayback(false)
 	, TimeCursorPosition(0.0f)
 	, LastCursorPosition(0.0f)
 	, StartTime(0.f)
@@ -115,18 +116,32 @@ bool ULevelSequencePlayer::IsPlaying() const
 
 void ULevelSequencePlayer::Pause()
 {
-	bIsPlaying = false;
+	if (bIsPlaying)
+	{
+		bIsPlaying = false;
+
+		if (OnPause.IsBound())
+		{
+			OnPause.Broadcast();
+		}
+	}
 }
 
 void ULevelSequencePlayer::Stop()
 {
-	bIsPlaying = false;
-	TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
-	CurrentNumLoops = 0;
+	if (bIsPlaying)
+	{
+		bIsPlaying = false;
+		TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
+		CurrentNumLoops = 0;
 
-	SetTickPrerequisites(false);
+		SetTickPrerequisites(false);
 
-	// todo: Trigger an event?
+		if (OnStop.IsBound())
+		{
+			OnStop.Broadcast();
+		}
+	}
 }
 
 void GetDescendantSequences(UMovieSceneSequence* InSequence, TArray<UMovieSceneSequence*> & InSequences)
@@ -243,18 +258,47 @@ void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 
 void ULevelSequencePlayer::Play()
 {
-	// Start playing
-	StartPlayingNextTick();
+	bReversePlayback = false;
 
-	// Update now
-	bPendingFirstUpdate = false;
-	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
+	PlayInternal();
+}
+
+void ULevelSequencePlayer::PlayReverse() 
+{
+	bReversePlayback = true;
+
+	PlayInternal();
+}
+
+void ULevelSequencePlayer::ChangePlaybackDirection()
+{
+	bReversePlayback = !bReversePlayback;
+
+	PlayInternal();
+}
+
+void ULevelSequencePlayer::PlayInternal()
+{
+	if (!bIsPlaying)
+	{
+		// Start playing
+		StartPlayingNextTick();
+
+		// Update now
+		bPendingFirstUpdate = false;
+		UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
+
+		if (OnPlay.IsBound())
+		{
+			OnPlay.Broadcast();
+		}
+	}
 }
 
 void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
 {
 	PlaybackSettings.LoopCount = NumLoops;
-	Play();
+	PlayInternal();
 }
 
 void ULevelSequencePlayer::StartPlayingNextTick()
@@ -323,7 +367,7 @@ void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 		bPendingFirstUpdate = false;
 	}
 
-	if ((NewPosition >= Length) || (NewPosition < 0))
+	if (ShouldStopOrLoop(NewPosition))
 	{
 		// loop playback
 		if (PlaybackSettings.LoopCount < 0 || CurrentNumLoops < PlaybackSettings.LoopCount)
@@ -339,12 +383,26 @@ void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 		}
 
 		// stop playback
-		bIsPlaying = false;
-		CurrentNumLoops = 0;
+		Stop();
 	}
 
 	LastCursorPosition = TimeCursorPosition;
 	TimeCursorPosition = NewPosition;
+}
+
+bool ULevelSequencePlayer::ShouldStopOrLoop(float NewPosition)
+{
+	bool bShouldStopOrLoop = false;
+	if (!bReversePlayback)
+	{
+		bShouldStopOrLoop = NewPosition >= GetLength();
+	}
+	else
+	{
+		bShouldStopOrLoop = NewPosition < 0.f;
+	}
+
+	return bShouldStopOrLoop;
 }
 
 /* ULevelSequencePlayer implementation
@@ -352,6 +410,7 @@ void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 
 void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings)
 {
+	CurrentPlayer = this;
 	LevelSequence = InLevelSequence;
 
 	World = InWorld;
@@ -381,7 +440,7 @@ void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInsta
 }
 
 
-void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) const
+void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut)
 {
 	// skip missing player controller
 	APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
@@ -476,30 +535,36 @@ TArray<UObject*> ULevelSequencePlayer::GetEventContexts() const
 	TArray<UObject*> EventContexts;
 	if (World.IsValid())
 	{
-		if (World->GetLevelScriptActor())
-		{
-			EventContexts.Add(World->GetLevelScriptActor());
-		}
-
-		for (ULevelStreaming* StreamingLevel : World->StreamingLevels)
-		{
-			if (StreamingLevel->GetLevelScriptActor())
-			{
-				EventContexts.Add(StreamingLevel->GetLevelScriptActor());
-			}
-		}
+		GetEventContexts(*World, EventContexts);
 	}
 	return EventContexts;
+}
+
+void ULevelSequencePlayer::GetEventContexts(UWorld& InWorld, TArray<UObject*>& OutContexts)
+{
+	if (InWorld.GetLevelScriptActor())
+	{
+		OutContexts.Add(InWorld.GetLevelScriptActor());
+	}
+
+	for (ULevelStreaming* StreamingLevel : InWorld.StreamingLevels)
+	{
+		if (StreamingLevel->GetLevelScriptActor())
+		{
+			OutContexts.Add(StreamingLevel->GetLevelScriptActor());
+		}
+	}
 }
 
 void ULevelSequencePlayer::Update(const float DeltaSeconds)
 {
 	if (bIsPlaying)
 	{
-		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlaybackSettings.PlayRate);
+		float PlayRate = bReversePlayback ? -PlaybackSettings.PlayRate : PlaybackSettings.PlayRate;
+		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlayRate);
 		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 	}
-	else if (!bHasCleanedUpSequence && TimeCursorPosition >= GetLength())
+	else if (!bHasCleanedUpSequence && ShouldStopOrLoop(TimeCursorPosition))
 	{
 		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 
@@ -561,7 +626,11 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 
 		if (ActiveShot)
 		{
-			const float ShotOffset = ActiveShot->StartOffset + ActiveShot->GetSequence()->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() - ActiveShot->PrerollTime;
+			// Assume that shots with no sequence start at 0.
+			const float ShotLowerBound = ActiveShot->GetSequence() 
+				? ActiveShot->GetSequence()->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() 
+				: 0;
+			const float ShotOffset = ActiveShot->StartOffset + ShotLowerBound - ActiveShot->PrerollTime;
 			const float ShotPosition = ShotOffset + (CurrentTime - (ActiveShot->GetStartTime() - ActiveShot->PrerollTime)) / ActiveShot->TimeScale;
 
 			OutSnapshot.CurrentShotName = ActiveShot->GetShotDisplayName();

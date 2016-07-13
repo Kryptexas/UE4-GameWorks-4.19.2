@@ -538,6 +538,11 @@ public:
 	  */
 	FKeyHandle AddKey(float InTime, float InValue, const bool bUnwindRotation = false, FKeyHandle KeyHandle = FKeyHandle());
 
+	/**
+	 * Sets the keys with the supplied times and values. Expects that the times and values are already sorted.
+	 */
+	void SetKeys(const TArray<float>& InTimes, const TArray<float>& InValues);
+
 	/** Remove the specified key from the curve.*/
 	void DeleteKey(FKeyHandle KeyHandle);
 

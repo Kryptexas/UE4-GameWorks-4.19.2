@@ -243,7 +243,7 @@ void CopyInterpMoveTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackMove* Mov
 {
 	if (FMatineeImportTools::CopyInterpMoveTrack(MoveTrack, TransformTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 
@@ -961,7 +961,7 @@ void F3DTransformTrackEditor::ImportAnimSequenceTransforms(const FAssetData& Ass
 				Section->AddKey(TempKey.Time, FTransformKey(EKey3DTransformChannel::Scale, EAxis::Z, Scale.Z, bUnwindRotation), EMovieSceneKeyInterpolation::Linear);
 			}
 
-			Sequencer->NotifyMovieSceneDataChanged();
+			Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 		}
 	}
 }

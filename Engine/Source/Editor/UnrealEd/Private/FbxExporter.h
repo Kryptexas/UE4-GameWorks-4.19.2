@@ -14,6 +14,11 @@ class ALight;
 class UInterpTrackInstMove;
 class AMatineeActor;
 
+class UMovieScene;
+class IMovieScenePlayer;
+class UMovieScene3DTransformTrack;
+class UMovieSceneFloatTrack;
+
 namespace UnFbx
 {
 
@@ -71,6 +76,13 @@ public:
 	 * @return	true, if sucessful
 	 */
 	virtual bool ExportMatinee(class AMatineeActor* InMatineeActor);
+
+	/**
+	* Exports the given level sequence information into a FBX document.
+	*
+	* @return	true, if successful
+	*/
+	bool ExportLevelSequence( UMovieScene* MovieScene, IMovieScenePlayer* MovieScenePlayer );
 
 	/**
 	 * Exports all the animation sequences part of a single Group in a Matinee sequence
@@ -132,11 +144,6 @@ public:
 	 */
 	void ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const ASkeletalMeshActor* SkelMeshActor, const FString& ExportName, const TArray<UAnimSequence*>& AnimSeqList, const TArray<FAnimControlTrackKey>& TrackKeys );
 
-	/**
-	 * Export Anim Track of the given SkeletalMeshComponent
-	 */
-	void ExportAnimTrack(class AMatineeActor* MatineeActor, USkeletalMeshComponent* SkeletalMeshComponent);
-
 private:
 	FFbxExporter();
 
@@ -161,6 +168,45 @@ private:
 	
 	/** Whether or not to export vertices unwelded */
 	static bool bStaticMeshExportUnWeldedVerts;
+
+	/** Adapter interface which allows ExportAnimTrack to act on both sequencer and matinee data. */
+	class IAnimTrackAdapter
+	{
+	public:
+		/** Gets the length of the animation track. */
+		virtual float GetAnimationLength() const = 0;
+		/** Updates the runtime state of the animation track to the specified time. */
+		virtual void UpdateAnimation( float Time ) = 0;
+	};
+
+	/** An anim track adapter for matinee. */
+	class FMatineeAnimTrackAdapter : public IAnimTrackAdapter
+	{
+	public:
+		FMatineeAnimTrackAdapter( AMatineeActor* InMatineeActor );
+		virtual float GetAnimationLength() const override;
+		virtual void UpdateAnimation( float Time ) override;
+
+	private:
+		AMatineeActor* MatineeActor;
+	};
+
+	/** An anim track adapter for a level sequence. */
+	class FLevelSequenceAnimTrackAdapter : public FFbxExporter::IAnimTrackAdapter
+	{
+	public:
+		FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer );
+		virtual float GetAnimationLength() const override;
+		virtual void UpdateAnimation( float Time ) override;
+
+	private:
+		IMovieScenePlayer* MovieScenePlayer;
+	};
+
+	/**
+	* Export Anim Track of the given SkeletalMeshComponent
+	*/
+	void ExportAnimTrack( IAnimTrackAdapter& AnimTrackAdapter, USkeletalMeshComponent* SkeletalMeshComponent );
 
 	void ExportModel(UModel* Model, FbxNode* Node, const char* Name);
 	
@@ -285,6 +331,28 @@ private:
 	void ExportMoveSubTrack(FbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMoveAxis* SubTrack, UInterpTrackInstMove* MoveTrackInst, bool bPosCurve, int32 CurveIndex, bool bNegative, float InterpLength);
 	
 	void ExportAnimatedFloat(FbxProperty* FbxProperty, FInterpCurveFloat* Curve, bool IsCameraFoV);
+
+	/**
+	 * Exports a level sequence 3D transform track into the FBX animation stack.
+	 */
+	void ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovieScene3DTransformTrack& TransformTrack );
+
+	/** 
+	 * Exports a level sequence float track into the FBX animation stack. 
+	 */
+	void ExportLevelSequenceFloatTrack( FbxNode& FbxActor, UMovieSceneFloatTrack& FloatTrack );
+
+	/** Defines value export modes for the EportRichCurveToFbxCurve method. */
+	enum class ERichCurveValueMode
+	{
+		/** Export values directly */
+		Default,
+		/** Export fov values which get processed to focal length. */
+		Fov
+	};
+
+	/** Exports an unreal rich curve to an fbx animation curve. */
+	void ExportRichCurveToFbxCurve( FRichCurve& RichCurve, FbxAnimCurve& FbxCurve, TRange<float> InterpolationRange, ERichCurveValueMode ValueMode = ERichCurveValueMode::Default );
 
 	/**
 	 * Finds the given actor in the already-exported list of structures

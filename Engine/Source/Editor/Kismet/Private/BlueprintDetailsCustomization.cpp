@@ -363,24 +363,24 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(PrivateTooltip)
 	];
 
-	TSharedPtr<SToolTip> ExposeToMatineeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToMatinee_Tooltip", "Should this variable be exposed for Matinee to modify?"), NULL, DocLink, TEXT("ExposeToMatinee"));
+	TSharedPtr<SToolTip> ExposeToCinematicsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToCinematics_Tooltip", "Should this variable be exposed for Matinee or Sequencer to modify?"), NULL, DocLink, TEXT("ExposeToCinematics"));
 
-	Category.AddCustomRow( LOCTEXT("VariableExposeToMatinee", "Expose to Matinee") )
-	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeToMatineeVisibility))
+	Category.AddCustomRow( LOCTEXT("VariableExposeToCinematics", "Expose to Cinematics") )
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeToCinematicsVisibility))
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.ToolTip(ExposeToMatineeTooltip)
-		.Text( LOCTEXT("VariableExposeToMatinee", "Expose to Matinee") )
+		.ToolTip(ExposeToCinematicsTooltip)
+		.Text( LOCTEXT("VariableExposeToCinematics", "Expose to Cinematics") )
 		.Font( DetailFontInfo )
 	]
 	.ValueContent()
 	[
 		SNew(SCheckBox)
-		.IsChecked( this, &FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState )
-		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnExposedToMatineeChanged )
+		.IsChecked( this, &FBlueprintVarActionDetails::OnGetExposedToCinematicsCheckboxState )
+		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnExposedToCinematicsChanged )
 		.IsEnabled(IsVariableInBlueprint())
-		.ToolTip(ExposeToMatineeTooltip)
+		.ToolTip(ExposeToCinematicsTooltip)
 	];
 
 	// Build the property specific config variable tool tip
@@ -1619,7 +1619,7 @@ EVisibility FBlueprintVarActionDetails::ExposePrivateVisibility() const
 	return EVisibility::Collapsed;
 }
 
-ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToCinematicsCheckboxState() const
 {
 	UProperty* Property = CachedVariableProperty.Get();
 	if (Property)
@@ -1629,19 +1629,19 @@ ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState() 
 	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnExposedToMatineeChanged(ECheckBoxState InNewState)
+void FBlueprintVarActionDetails::OnExposedToCinematicsChanged(ECheckBoxState InNewState)
 {
 	// Toggle the flag on the blueprint's version of the variable description, based on state
-	const bool bExposeToMatinee = (InNewState == ECheckBoxState::Checked);
+	const bool bExposeToCinematics = (InNewState == ECheckBoxState::Checked);
 	
 	const FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		FBlueprintEditorUtils::SetInterpFlag(GetBlueprintObj(), VarName, bExposeToMatinee);
+		FBlueprintEditorUtils::SetInterpFlag(GetBlueprintObj(), VarName, bExposeToCinematics);
 	}
 }
 
-EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
+EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 {
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 	if (VariableProperty && !IsALocalVariable(VariableProperty))

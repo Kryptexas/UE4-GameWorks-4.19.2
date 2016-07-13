@@ -3896,11 +3896,11 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 		if (PreviousCamera != Cam)
 		{
 			PreviousCamera = Cam;
-			InViewportClient->bEditorCameraCut = true;
+			InViewportClient->SetIsCameraCut(true);
 		}
 		else
 		{
-			InViewportClient->bEditorCameraCut = false;
+			InViewportClient->SetIsCameraCut(false);
 		}
 	}
 	else
@@ -3910,7 +3910,7 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 		InViewportClient->FadeAmount = InFadeAmount;
 		InViewportClient->bEnableFading = true;
 
-		InViewportClient->bEditorCameraCut = false;
+		InViewportClient->SetIsCameraCut(false);
 	}
 
 	// Set the actor lock.

@@ -69,6 +69,9 @@ struct FSequencerInitParams
 
 	/** Domain-specific spawn register for the movie scene */
 	TSharedPtr<IMovieSceneSpawnRegister> SpawnRegister;
+
+	/** Accessor for event contexts */
+	TAttribute<TArray<UObject*>> EventContexts;
 };
 
 

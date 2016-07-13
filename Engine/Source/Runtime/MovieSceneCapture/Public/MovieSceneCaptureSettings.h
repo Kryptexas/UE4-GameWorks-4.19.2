@@ -49,6 +49,7 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	 * {world}		- The name of the current world
 	 * {quality}	- The image compression quality setting
 	 * {material}   - The material/render pass
+	 * {shot}       - The name of the level sequence asset shot being played
 	 */
 	UPROPERTY(config, EditAnywhere, Category=General, DisplayName="Filename Format")
 	FString OutputFormat;

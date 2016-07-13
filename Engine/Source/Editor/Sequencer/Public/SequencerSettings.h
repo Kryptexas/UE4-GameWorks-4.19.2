@@ -168,6 +168,11 @@ public:
 	/** Sets whether or not the label browser is visible. */
 	void SetLabelBrowserVisible(bool Visible);
 
+	/** Gets whether to jump to the start of the sequence when we start a recording or not. */
+	bool ShouldRewindOnRecord() const;
+	/** Sets whether to jump to the start of the sequence when we start a recording. */
+	void SetRewindOnRecord(bool bInRewindOnRecord);
+
 	/** Get zoom in/out position (mouse position or current time). */
 	ESequencerZoomPosition GetZoomPosition() const;
 	/** Set zoom in/out position (mouse position or current time). */
@@ -232,6 +237,11 @@ public:
 	bool GetShowViewportTransportControls() const;
 	/** Toggle whether to show transport controls in level editor viewports */
 	void SetShowViewportTransportControls(bool bVisible);
+
+	/** @return Whether to allow possession of PIE viewports */
+	bool ShouldAllowPossessionOfPIEViewports() const;
+	/** Toggle whether to allow possession of PIE viewports */
+	void SetAllowPossessionOfPIEViewports(bool bInAllowPossessionOfPIEViewports);
 
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
@@ -323,6 +333,10 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bLabelBrowserVisible;
 
+	/** Defines whether to jump back to the start of the sequence when a recording is started */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	bool bRewindOnRecord;
+
 	/** Whether to zoom in on the current position or the current time in the timeline. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	TEnumAsByte<ESequencerZoomPosition> ZoomPosition;
@@ -374,6 +388,10 @@ protected:
 	/** Enable or disable transport controls in the viewport. */
 	UPROPERTY( config )
 	bool bShowViewportTransportControls;
+
+	/** When enabled, sequencer is able to possess viewports that represent PIE worlds */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	bool bAllowPossessionOfPIEViewports;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 

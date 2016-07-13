@@ -4589,10 +4589,13 @@ void FEditorViewportClient::UpdateHiddenCollisionDrawing()
 			bool bCollisionMode = EngineShowFlags.Collision || EngineShowFlags.CollisionVisibility || EngineShowFlags.CollisionPawn;
 
 			// Tell engine to create proxies for hidden components, so we can still draw collision
-			World->bCreateRenderStateForHiddenComponents = bCollisionMode;
+			if (World->bCreateRenderStateForHiddenComponents != bCollisionMode)
+			{
+				World->bCreateRenderStateForHiddenComponents = bCollisionMode;
 
-			// Need to recreate scene proxies when this flag changes.
-			FGlobalComponentRecreateRenderStateContext Recreate;
+				// Need to recreate scene proxies when this flag changes.
+				FGlobalComponentRecreateRenderStateContext Recreate;
+			}
 		}
 	}
 }

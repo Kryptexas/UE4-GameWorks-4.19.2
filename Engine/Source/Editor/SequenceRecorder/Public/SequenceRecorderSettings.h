@@ -6,6 +6,20 @@
 #include "SequenceRecorderActorFilter.h"
 #include "SequenceRecorderSettings.generated.h"
 
+USTRUCT()
+struct FPropertiesToRecordForClass
+{
+	GENERATED_BODY()
+
+	/** The class of the object we can record */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TSubclassOf<UObject> Class;
+
+	/** List of properties we want to record for this class */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TArray<FName> Properties;
+};
+
 UCLASS(config=Editor)
 class SEQUENCERECORDER_API USequenceRecorderSettings : public UObject
 {
@@ -69,4 +83,8 @@ public:
 	/** Whether to record actors that are spawned by sequencer itself (this is usually disabled as results can be unexpected) */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	bool bRecordSequencerSpawnedActors;
+
+	/** The properties to record for specified classes */
+	UPROPERTY(Config, EditAnywhere, Category = "General Property Recording")
+	TArray<FPropertiesToRecordForClass> PropertiesToRecord;
 };

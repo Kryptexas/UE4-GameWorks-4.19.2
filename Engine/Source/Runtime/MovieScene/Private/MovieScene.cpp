@@ -630,6 +630,17 @@ void UMovieScene::UpgradeTimeRanges()
 void UMovieScene::PostLoad()
 {
 	UpgradeTimeRanges();
+
+	for (FMovieSceneSpawnable& Spawnable : Spawnables)
+	{
+		if (UObject* Template = Spawnable.GetObjectTemplate())
+		{
+			// Spawnables are no longer marked archetype
+			Template->ClearFlags(RF_ArchetypeObject);
+			
+			FMovieSceneSpawnable::MarkSpawnableTemplate(*Template);
+		}
+	}
 	Super::PostLoad();
 }
 

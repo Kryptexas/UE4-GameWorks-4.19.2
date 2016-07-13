@@ -104,6 +104,7 @@ private:
 
 	/** Stored data about the waveform to determine when it is invalidated. */
 	TRange<float> StoredDrawRange;
+	bool StoredShowIntensity;
 	int32 StoredXOffset;
 	int32 StoredXSize;
 	FColor StoredColor;

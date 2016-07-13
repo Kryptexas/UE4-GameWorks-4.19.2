@@ -581,7 +581,22 @@ void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrac
 
 void FSequencerObjectBindingNode::HandleLabelsSubMenuCreate(FMenuBuilder& MenuBuilder)
 {
-	MenuBuilder.AddWidget(SNew(SSequencerLabelEditor, GetSequencer(), ObjectBinding), FText::GetEmpty(), true);
+	const TSet< TSharedRef<FSequencerDisplayNode> >& SelectedNodes = GetSequencer().GetSelection().GetSelectedOutlinerNodes();
+	TArray<FGuid> ObjectBindingIds;
+	for (TSharedRef<const FSequencerDisplayNode> SelectedNode : SelectedNodes )
+	{
+		if (SelectedNode->GetType() == ESequencerNode::Object)
+		{
+			TSharedRef<const FSequencerObjectBindingNode> ObjectBindingNode = StaticCastSharedRef<const FSequencerObjectBindingNode>(SelectedNode);
+			FGuid ObjectBindingId = ObjectBindingNode->GetObjectBinding();
+			if (ObjectBindingId.IsValid())
+			{
+				ObjectBindingIds.Add(ObjectBindingId);
+			}
+		}
+	}
+
+	MenuBuilder.AddWidget(SNew(SSequencerLabelEditor, GetSequencer(), ObjectBindingIds), FText::GetEmpty(), true);
 }
 
 

@@ -192,7 +192,7 @@ void FCameraCutSection::HandleSetCameraMenuEntryExecute(AActor* InCamera)
 	
 		CameraCutSection->SetCameraGuid(ObjectGuid);
 	
-		Sequencer->NotifyMovieSceneDataChanged();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 	}
 }
 

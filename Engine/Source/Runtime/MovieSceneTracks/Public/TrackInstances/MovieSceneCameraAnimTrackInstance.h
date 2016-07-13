@@ -45,7 +45,7 @@ private:
 
 	TWeakObjectPtr<ACameraActor> TempCameraActor;
 
-	ACameraActor* GetTempCameraActor();
+	ACameraActor* GetTempCameraActor(IMovieScenePlayer& InMovieScenePlayer);
 
 	TMap<UMovieSceneCameraAnimSection*, FMovieSceneCameraAnimSectionInstanceData> SectionInstanceDataMap;
 };

@@ -207,6 +207,9 @@ private:
 	/** Add an animation track for the supplied material property path to the current animation. */
 	void AddMaterialTrack( UWidget* Widget, TArray<UProperty*> MaterialPropertyPath, FText MaterialPropertyDisplayName );
 
+	/** Handler which is called whenever sequencer movie scene data changes. */
+	void OnMovieSceneDataChanged();
+
 private:
 	/** The preview scene that owns the preview GUI */
 	FPreviewScene PreviewScene;
@@ -265,4 +268,7 @@ private:
 
 	/** Messages we want to append to the compiler results. */
 	TArray< TSharedRef<class FTokenizedMessage> > DesignerCompilerMessages;
+
+	/** When true the animation data in the generated class should be replaced with the current animation data. */
+	bool bRefreshGeneratedClassAnimations;
 };

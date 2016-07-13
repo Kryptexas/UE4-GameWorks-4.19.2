@@ -138,6 +138,13 @@ public:
 	void UpdateBindings( const TArray<TWeakObjectPtr<UObject>>& InRuntimeObjects );
 
 	/**
+	 * Rebuilds the property and function mappings for a single runtime object
+	 *
+	 * @param InRuntimeObject	The object to rebuild mappings for
+	 */
+	void UpdateBinding( const TWeakObjectPtr<UObject>& InRuntimeObject );
+
+	/**
 	 * Gets the UProperty that is bound to the track instance
 	 *
 	 * @param Object	The Object that owns the property
@@ -187,6 +194,18 @@ public:
 				*Val = InValue;
 			}
 		}
+	}
+
+	/** @return the property path that this binding was initialized from */
+	const FString& GetPropertyPath() const
+	{
+		return PropertyPath;
+	}
+
+	/** @return the property name that this binding was initialized from */
+	const FName& GetPropertyName() const
+	{
+		return PropertyName;
 	}
 
 private:

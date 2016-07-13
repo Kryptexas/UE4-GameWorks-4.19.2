@@ -123,7 +123,7 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 		if (Asset)
 		{
 			// Spawn a new actor
-			Actor = GWorld->SpawnActor<ALevelSequenceActor>();
+			Actor = InViewport->GetClient()->GetWorld()->SpawnActor<ALevelSequenceActor>();
 			Actor->SetSequence(Asset);
 			// Ensure it doesn't loop (-1 is indefinite)
 			Actor->PlaybackSettings.LoopCount = 0;

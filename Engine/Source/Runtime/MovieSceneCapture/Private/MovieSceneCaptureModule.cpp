@@ -86,8 +86,16 @@ private:
 		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 		if (GameEngine && StartupMovieCaptureHandle.IsValid())
 		{
-			IMovieSceneCaptureInterface* StartupCaptureInterface = RetrieveMovieSceneInterface(StartupMovieCaptureHandle);
-			StartupCaptureInterface->Initialize(GameEngine->SceneViewport.ToSharedRef());
+			if (!GameEngine->SceneViewport->GetClient()->GetWorld())
+			{
+				// @todo: Set exit code to EMovieSceneCaptureExitCode::WorldNotFound when we have the ability to do so
+				FPlatformMisc::RequestExit(false);
+			}
+			else
+			{
+				IMovieSceneCaptureInterface* StartupCaptureInterface = RetrieveMovieSceneInterface(StartupMovieCaptureHandle);
+				StartupCaptureInterface->Initialize(GameEngine->SceneViewport.ToSharedRef());
+			}
 		}
 
 		StartupMovieCaptureHandle = FMovieSceneCaptureHandle();

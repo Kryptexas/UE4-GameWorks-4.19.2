@@ -697,6 +697,19 @@ FKeyHandle FRichCurve::AddKey( const float InTime, const float InValue, const bo
 	return GetKeyHandle(Index);
 }
 
+void FRichCurve::SetKeys(const TArray<float>& InTimes, const TArray<float>& InValues)
+{
+	Reset();
+
+	for (int32 Index = 0; Index < InTimes.Num(); ++Index)
+	{
+		Keys.Add(FRichCurveKey(InTimes[Index], InValues[Index]));
+		KeyHandlesToIndices.Add(FKeyHandle(), Index);
+	}
+
+	AutoSetTangents();
+}
+
 
 void FRichCurve::DeleteKey(FKeyHandle InKeyHandle)
 {

@@ -23,8 +23,8 @@ public:
 	 *
 	 * @param InMovieScene The movie scene with the cinematic shot track and audio tracks to export
 	 * @param InFrameRate The frame rate to export the EDL at
-	 * @param InSaveDirectory The directory path to save to.
+	 * @param InSaveFilename The file path to save to.
 	 * @return Whether the export was successful
 	 */
-	static bool ExportEDL(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory);
+	static bool ExportEDL(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveFilename);
 };

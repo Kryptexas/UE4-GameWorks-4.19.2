@@ -44,6 +44,14 @@ void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition, IM
 		return;
 	}
 
+	// Don't allow events to fire when playback is in a stopped state. This can occur when stopping 
+	// playback and returning the current position to the start of playback. It's not desireable to have 
+	// all the events from the last playback position to the start of playback be fired.
+	if (Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped)
+	{
+		return;
+	}
+
 	bool Backwards = Position < LastPosition;
 
 	if ((!Backwards && !bFireEventsWhenForwards) ||

@@ -33,7 +33,6 @@
 #include "SSequencerShotFilterOverlay.h"
 #include "GenericCommands.h"
 #include "SequencerContextMenus.h"
-#include "SSequencerTreeViewBox.h"
 #include "NumericTypeInterface.h"
 #include "NumericUnitTypeInterface.inl"
 #include "SNumericEntryBox.h"
@@ -348,7 +347,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 									+ SHorizontalBox::Slot()
 									.FillWidth( FillCoefficient_0 )
 									[
-										SNew(SSequencerTreeViewBox, InSequencer, SharedThis(this))
+										SNew(SBox)
 										[
 											TreeView.ToSharedRef()
 										]
@@ -969,17 +968,26 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetSelectionRangeStart);
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetSelectionRangeEnd);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().ResetSelectionRange);
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SelectKeysInSelectionRange);
 	}
 	MenuBuilder.EndSection();
 
 	// other options
 	MenuBuilder.AddMenuSeparator();
+
 	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
 	}
 	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixFrameTiming);
+
+	MenuBuilder.AddMenuSeparator();
+
+	if ( SequencerPtr.Pin()->IsLevelEditorSequencer() )
+	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExportSceneAndSequence );
+	}
 
 	return MenuBuilder.MakeWidget();
 }
@@ -1366,7 +1374,7 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 	if( bObjectAdded )
 	{
 		// Update the sequencers view of the movie scene data when any object is added
-		SequencerRef.UpdateRuntimeInstances();
+		SequencerRef.NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 
 		// Update the tree and synchronize selection
 		UpdateLayoutTree();
@@ -1388,12 +1396,6 @@ void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 			UObject* Object = Class->GetDefaultObject();
 
 			FGuid NewGuid = SequencerRef.MakeNewSpawnable( *Object );
-
-			if (NewGuid.IsValid())
-			{
-				// Update the sequencers view of the movie scene data
-				SequencerRef.NotifyMovieSceneDataChanged();
-			}
 		}
 	}
 }
@@ -1440,10 +1442,6 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 		if( Object != nullptr )
 		{
 			FGuid NewGuid = SequencerRef.MakeNewSpawnable( *Object );
-			if (NewGuid.IsValid())
-			{
-				SequencerRef.NotifyMovieSceneDataChanged();
-			}
 		}
 	}
 }

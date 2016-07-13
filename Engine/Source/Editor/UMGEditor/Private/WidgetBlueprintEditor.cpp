@@ -37,6 +37,7 @@ FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	, PreviewBlueprint(nullptr)
 	, bIsSimulateEnabled(false)
 	, bIsRealTime(true)
+	, bRefreshGeneratedClassAnimations(false)
 {
 	PreviewScene.GetWorld()->bBegunPlay = false;
 
@@ -58,7 +59,11 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 
 	GEditor->OnObjectsReplaced().RemoveAll(this);
 	
-	Sequencer.Reset();
+	if ( Sequencer.IsValid() )
+	{
+		Sequencer->OnMovieSceneDataChanged().RemoveAll( this );
+		Sequencer.Reset();
+	}
 
 	// Un-Register sequencer menu extenders.
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
@@ -418,6 +423,19 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 		}
 	}
 
+	// Whenever animations change the generated class animations need to be updated since they are copied on compile.  This
+	// update is deferred to tick since some edit operations (e.g. drag/drop) cause large numbers of changes to the data.
+	if ( bRefreshGeneratedClassAnimations )
+	{
+		TArray<UWidgetAnimation*>& PreviewAnimations = Cast<UWidgetBlueprintGeneratedClass>( PreviewBlueprint->GeneratedClass )->Animations;
+		PreviewAnimations.Empty();
+		for ( UWidgetAnimation* WidgetAnimation : PreviewBlueprint->Animations )
+		{
+			PreviewAnimations.Add( DuplicateObject<UWidgetAnimation>( WidgetAnimation, PreviewBlueprint->GeneratedClass ) );
+		}
+		bRefreshGeneratedClassAnimations = false;
+	}
+
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we 
 	//       look to see if we can find the new instance in the preview world and then update the weak ptr.
 	if ( PreviewWidgetPtr.IsStale(true) || bPreviewInvalidated )
@@ -628,6 +646,7 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 		};
 
 		Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
+		Sequencer->OnMovieSceneDataChanged().AddSP( this, &FWidgetBlueprintEditor::OnMovieSceneDataChanged );
 		ChangeViewedAnimation(*UWidgetAnimation::GetNullAnimation());
 	}
 
@@ -1018,9 +1037,14 @@ void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, TArray<UProperty
 			NewTrack->SetBrushPropertyNamePath( MaterialPropertyNamePath );
 			NewTrack->SetDisplayName( FText::Format( LOCTEXT( "TrackDisplayNameFormat", "{0} Material"), MaterialPropertyDisplayName ) );
 
-			Sequencer->NotifyMovieSceneDataChanged();
+			Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 		}
 	}
+}
+
+void FWidgetBlueprintEditor::OnMovieSceneDataChanged()
+{
+	bRefreshGeneratedClassAnimations = true;
 }
 
 #undef LOCTEXT_NAMESPACE

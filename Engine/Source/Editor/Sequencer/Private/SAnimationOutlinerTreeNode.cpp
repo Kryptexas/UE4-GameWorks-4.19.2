@@ -224,6 +224,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.ContentPadding(0)
 				.VAlign(VAlign_Fill)
 				.HasDownArrow(false)
+				.IsFocusable(false)
 				.ButtonStyle(FEditorStyle::Get(), "Sequencer.AnimationOutliner.ColorStrip")
 				.OnGetMenuContent(this, &SAnimationOutlinerTreeNode::OnGetColorPicker)
 				.OnMenuOpenChanged_Lambda([](bool bIsOpen){

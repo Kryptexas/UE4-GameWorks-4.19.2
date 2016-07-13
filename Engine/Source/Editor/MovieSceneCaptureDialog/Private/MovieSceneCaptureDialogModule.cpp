@@ -26,6 +26,8 @@
 #include "ISessionInfo.h"
 #include "ISessionManager.h"
 
+#include "ErrorCodes.h"
+
 #include "SLevelViewport.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneCaptureDialog"
@@ -136,12 +138,35 @@ enum class ECaptureState
 
 DECLARE_DELEGATE_OneParam(FOnCaptureFinished, bool /*bCancelled*/);
 
+// Structure used to store the state of the capture
+struct FCaptureState
+{
+	/** Construction from an enum */
+	explicit FCaptureState(ECaptureState InState = ECaptureState::Pending) : State(InState), Code(0){}
+	/** Construction from a process exit code */
+	explicit FCaptureState(int32 InCode) : State(InCode == 0 ? ECaptureState::Success : ECaptureState::Failure), Code(InCode){}
+
+	/** Get any additional detailed text */
+	FText GetDetailText()
+	{
+		switch(uint32(Code))
+		{
+		case uint32(EMovieSceneCaptureExitCode::WorldNotFound): return LOCTEXT("WorldNotFound", "Specified world does not exist. Did you forget to save it?");
+		}
+
+		return FText();
+	}
+
+	ECaptureState State;
+	int32 Code;
+};
+
 class SCaptureMovieNotification : public SCompoundWidget, public INotificationWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SCaptureMovieNotification){}
 
-		SLATE_ATTRIBUTE(ECaptureState, CaptureState)
+		SLATE_ATTRIBUTE(FCaptureState, CaptureState)
 
 		SLATE_EVENT(FOnCaptureFinished, OnCaptureFinished)
 
@@ -157,7 +182,7 @@ public:
 		OnCaptureFinished = InArgs._OnCaptureFinished;
 		OnCancel = InArgs._OnCancel;
 
-		CachedState = ECaptureState::Pending;
+		CachedState = FCaptureState(ECaptureState::Pending);
 
 		FString CapturePath = FPaths::ConvertRelativePathToFull(InArgs._CapturePath);
 		CapturePath.RemoveFromEnd(TEXT("\\"));
@@ -199,6 +224,16 @@ public:
 
 				+ SVerticalBox::Slot()
 				.AutoHeight()
+				.Padding(FMargin(0,0,0,5.0f))
+				.HAlign(HAlign_Right)
+				[
+					SAssignNew(DetailedTextBlock, STextBlock)
+					.Visibility(EVisibility::Collapsed)
+					.Font(FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontLight")))
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
 				.HAlign(HAlign_Right)
 				[
 					SNew(SHorizontalBox)
@@ -233,20 +268,26 @@ public:
 			return;
 		}
 
-		ECaptureState StateThisFrame = CaptureState.Get();
+		FCaptureState StateThisFrame = CaptureState.Get();
 
-		if (CachedState != StateThisFrame)
+		if (CachedState.State != StateThisFrame.State)
 		{
 			CachedState = StateThisFrame;
 			
-			if (CachedState == ECaptureState::Success)
+			if (CachedState.State == ECaptureState::Success)
 			{
 				TextBlock->SetText(LOCTEXT("CaptureFinished", "Capture Finished"));
 				OnCaptureFinished.ExecuteIfBound(true);
 			}
-			else if (CachedState == ECaptureState::Failure)
+			else if (CachedState.State == ECaptureState::Failure)
 			{
 				TextBlock->SetText(LOCTEXT("CaptureFailed", "Capture Failed"));
+				FText DetailText = CachedState.GetDetailText();
+				if (!DetailText.IsEmpty())
+				{
+					DetailedTextBlock->SetText(DetailText);
+					DetailedTextBlock->SetVisibility(EVisibility::Visible);
+				}
 				OnCaptureFinished.ExecuteIfBound(false);
 			}
 			else
@@ -286,11 +327,12 @@ private:
 private:
 	TSharedPtr<SWidget> Button, Throbber, Hyperlink;
 	TSharedPtr<STextBlock> TextBlock;
+	TSharedPtr<STextBlock> DetailedTextBlock;
 	SNotificationItem::ECompletionState State;
 
 	FSimpleDelegate OnCancel;
-	ECaptureState CachedState;
-	TAttribute<ECaptureState> CaptureState;
+	FCaptureState CachedState;
+	TAttribute<FCaptureState> CaptureState;
 	FOnCaptureFinished OnCaptureFinished;
 };
 
@@ -332,7 +374,7 @@ struct FInEditorCapture
 		UGameViewportClient::OnViewportCreated().AddRaw(this, &FInEditorCapture::OnStart);
 		FEditorDelegates::EndPIE.AddRaw(this, &FInEditorCapture::OnEndPIE);
 		
-		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if (AudioDevice != nullptr)
 		{
 			TransientMasterVolume = AudioDevice->GetTransientMasterVolume();
@@ -451,7 +493,7 @@ struct FInEditorCapture
 
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
-		FAudioDevice* AudioDevice = GWorld->GetAudioDevice();
+		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if (AudioDevice != nullptr)
 		{
 			AudioDevice->SetTransientMasterVolume(TransientMasterVolume);
@@ -596,11 +638,11 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			{
 				if (Context.WorldType == EWorldType::PIE)
 				{
-					return ECaptureState::Pending;
+					return FCaptureState(ECaptureState::Pending);
 				}
 			}
 
-			return ECaptureState::Success;
+			return FCaptureState(ECaptureState::Success);
 		};
 
 		auto OnCaptureStarted = [=]{
@@ -654,7 +696,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			return LOCTEXT("UnableToSaveCaptureManifest", "Unable to save capture manifest");
 		}
 
-		FString EditorCommandLine = FString::Printf(TEXT("%s -MovieSceneCaptureManifest=\"%s\" -game"), *MapNameToLoad, *Filename);
+		FString EditorCommandLine = FString::Printf(TEXT("%s -MovieSceneCaptureManifest=\"%s\" -game -NoLoadingScreen -ForceRes -Windowed"), *MapNameToLoad, *Filename);
 
 		if( CaptureObject->Settings.bCreateTemporaryCopiesOfLevels )
 		{
@@ -718,11 +760,11 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 				{
 					int32 RetCode = 0;
 					FPlatformProcess::GetProcReturnCode(*SharedProcHandle, &RetCode);
-					return RetCode == 0 ? ECaptureState::Success : ECaptureState::Failure;
+					return FCaptureState(RetCode);
 				}
 				else
 				{
-					return ECaptureState::Pending;
+					return FCaptureState(ECaptureState::Pending);
 				}
 			};
 

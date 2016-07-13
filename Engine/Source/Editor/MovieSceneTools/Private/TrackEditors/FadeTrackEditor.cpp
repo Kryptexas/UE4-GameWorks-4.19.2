@@ -91,7 +91,7 @@ void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 
 	FadeTrack->AddSection(*NewSection);
 
-	GetSequencer()->NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 

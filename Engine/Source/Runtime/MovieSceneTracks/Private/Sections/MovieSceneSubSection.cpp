@@ -75,16 +75,15 @@ bool UMovieSceneSubSection::IsSetAsRecording()
 	return GetRecordingSection() != nullptr;
 }
 
-const FString& UMovieSceneSubSection::GetActorToRecord()
+AActor* UMovieSceneSubSection::GetActorToRecord()
 {
 	UMovieSceneSubSection* RecordingSection = GetRecordingSection();
 	if(RecordingSection)
 	{
-		return RecordingSection->NameOfActorToRecord;
+		return RecordingSection->ActorToRecord.Get();
 	}
 
-	static FString EmptyString;
-	return EmptyString;
+	return nullptr;
 }
 
 #if WITH_EDITOR

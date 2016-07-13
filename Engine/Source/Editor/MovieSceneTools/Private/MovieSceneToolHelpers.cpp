@@ -555,45 +555,54 @@ bool MovieSceneToolHelpers::ShowImportEDLDialog(UMovieScene* InMovieScene, float
 
 bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory)
 {
+	TArray<FString> SaveFilenames;
 	FString SequenceName = InMovieScene->GetOuter()->GetName();
-	FString SequencePath = InMovieScene->GetOuter()->GetPathName();
-	SequencePath = FPaths::GetPath(SequencePath);
 
 	// Pop open a dialog to request the location of the edl
-	FString SaveDirectory = InSaveDirectory;
-	if (InSaveDirectory.IsEmpty())
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bSave = false;
+	if (DesktopPlatform)
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		bool bSave = false;
-		if (DesktopPlatform)
-		{
-			void* ParentWindowWindowHandle = NULL;
+		void* ParentWindowWindowHandle = NULL;
 
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
-
-			bSave = DesktopPlatform->OpenDirectoryDialog(
-				ParentWindowWindowHandle,
-				NSLOCTEXT("UnrealEd", "MovieSceneToolHelpersExportEDL", "Export EDL to...").ToString(), 
-				SequencePath,
-				SaveDirectory 
-				);
-		}
-		if (!bSave)
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
 		{
-			return false;
+			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
+
+		FString ExtensionStr;
+		ExtensionStr += TEXT("CMX 3600 EDL (*.edl)|*.edl|");
+		ExtensionStr += TEXT("RV (*.rv)|*.rv|");
+
+		bSave = DesktopPlatform->SaveFileDialog(
+			ParentWindowWindowHandle,
+			NSLOCTEXT("UnrealEd", "MovieSceneToolHelpersExportEDL", "Export EDL to...").ToString(), 
+			InSaveDirectory,
+			SequenceName + TEXT(".edl"), 
+			*ExtensionStr,
+			EFileDialogFlags::None,
+			SaveFilenames
+			);
+	}
+	if (!bSave)
+	{
+		return false;
 	}
 
-	if (MovieSceneCaptureHelpers::ExportEDL(InMovieScene, InFrameRate, SaveDirectory))
+	if (!SaveFilenames.Num())
 	{
+		return false;
+	}
+
+	if (MovieSceneCaptureHelpers::ExportEDL(InMovieScene, InFrameRate, SaveFilenames[0]))
+	{
+		const FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SaveFilenames[0]);
+		const FString SaveDirectory = FPaths::GetPath(AbsoluteFilename);
+
 		FNotificationInfo NotificationInfo(NSLOCTEXT("MovieSceneTools", "EDLExportFinished", "EDL Export finished"));
 		NotificationInfo.ExpireDuration = 5.f;
-		NotificationInfo.bFireAndForget = true;
 		NotificationInfo.Hyperlink = FSimpleDelegate::CreateStatic( [](FString InDirectory) { FPlatformProcess::ExploreFolder( *InDirectory ); }, SaveDirectory);
 		NotificationInfo.HyperlinkText = NSLOCTEXT("MovieSceneTools", "OpenEDLExportFolder", "Open EDL Export Folder...");
 		FSlateNotificationManager::Get().AddNotification(NotificationInfo);

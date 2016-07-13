@@ -5,6 +5,7 @@
 #include "ISequenceRecorder.h"
 #include "MovieSceneAnimationSectionRecorder.h"
 #include "MovieScene3DTransformSectionRecorder.h"
+#include "MovieSceneMultiPropertyRecorder.h"
 
 struct FSequenceRecorder
 {
@@ -152,4 +153,7 @@ private:
 
 	/** Built-in transform recorder factory */
 	FMovieScene3DTransformSectionRecorderFactory TransformSectionRecorderFactory;
+
+	/** Built in multi-property recorder */
+	FMovieSceneMultiPropertyRecorderFactory MultiPropertySectionRecorder;
 };

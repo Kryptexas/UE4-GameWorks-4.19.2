@@ -1503,7 +1503,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, FadeAmount(0.f)	
 	, bEnableFading(false)
 	, bEnableColorScaling(false)
-	, bEditorCameraCut(false)
 	, bDrawBaseInfo(false)
 	, bDuplicateOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
@@ -1520,6 +1519,8 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bWasControlledByOtherViewport(false)
 	, ActorLockedByMatinee(nullptr)
 	, ActorLockedToCamera(nullptr)
+	, bEditorCameraCut(false)
+	, bWasEditorCameraCut(false)
 {
 	// By default a level editor viewport is pointed to the editor world
 	SetReferenceToWorldContext(GEditor->GetEditorWorldContext());
@@ -2002,6 +2003,12 @@ static FMatrix GPerspViewMatrix;
 
 void FLevelEditorViewportClient::Tick(float DeltaTime)
 {
+	if (bWasEditorCameraCut && bEditorCameraCut)
+	{
+		bEditorCameraCut = false;
+	}
+	bWasEditorCameraCut = bEditorCameraCut;
+
 	FEditorViewportClient::Tick(DeltaTime);
 
 	if (!GUnrealEd->IsPivotMovedIndependently() && GCurrentLevelEditingViewportClient == this &&

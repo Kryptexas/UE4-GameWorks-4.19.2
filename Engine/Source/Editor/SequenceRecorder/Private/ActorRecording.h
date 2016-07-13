@@ -38,6 +38,12 @@ public:
 		return Guid;
 	}
 
+	/** Get the actor to record. This finds the corresponding actor in the Simulation / PIE world. */
+	AActor* GetActorToRecord() const;
+
+	/** Set the actor to record */
+	void SetActorToRecord(AActor* InActor) { ActorToRecord = InActor; }
+
 private:
 	/** Check component validity for recording */
 	bool ValidComponent(USceneComponent* SceneComponent) const;
@@ -60,11 +66,8 @@ private:
 	/** Sync up tracked components with the actor */
 	void SyncTrackedComponents(bool bIncludeNonCDO = true);
 
-public:
-	/** The actor we want to record */
-	UPROPERTY(EditAnywhere, Category = "Actor Recording")
-	TLazyObjectPtr<AActor> ActorToRecord;
 
+public:
 	UPROPERTY(EditAnywhere, Category = "Actor Recording")
 	FActorRecordingSettings ActorSettings;
 
@@ -84,6 +87,10 @@ public:
 	bool bWasSpawnedPostRecord;
 
 private:
+	/** The actor we want to record */
+	UPROPERTY(EditAnywhere, Category = "Actor Recording")
+	TLazyObjectPtr<AActor> ActorToRecord;
+
 	/** This actor's current set of section recorders */
 	TArray<TSharedPtr<class IMovieSceneSectionRecorder>> SectionRecorders;
 

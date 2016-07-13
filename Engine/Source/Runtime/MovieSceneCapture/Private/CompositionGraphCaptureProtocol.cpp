@@ -10,14 +10,20 @@
 
 struct FSceneViewExtension : ISceneViewExtension
 {
-	FSceneViewExtension(const TArray<FString>& InRenderPasses, bool bInCaptureFramesInHDR, int32 InCaptureGamut, UMaterialInterface* InPostProcessingMaterial)
-		: RenderPasses(InRenderPasses), bNeedsCapture(true), CaptureGamut(InCaptureGamut), RestoreDumpHDR(0), RestoreDumpGamut(HCGM_Rec709)
+	FSceneViewExtension(const TArray<FString>& InRenderPasses, bool bInCaptureFramesInHDR, int32 InHDRCompressionQuality, int32 InCaptureGamut, UMaterialInterface* InPostProcessingMaterial)
+		: RenderPasses(InRenderPasses)
+		, bNeedsCapture(true)
+		, bCaptureFramesInHDR(bInCaptureFramesInHDR)
+		, HDRCompressionQuality(InHDRCompressionQuality)
+		, CaptureGamut(InCaptureGamut)
+		, PostProcessingMaterial(InPostProcessingMaterial)
+		, RestoreDumpHDR(0)
+		, RestoreHDRCompressionQuality(0)
+		, RestoreDumpGamut(HCGM_Rec709)
 	{
-		PostProcessingMaterial = InPostProcessingMaterial;
-		bCaptureFramesInHDR = bInCaptureFramesInHDR;
-
 		CVarDumpFrames = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BufferVisualizationDumpFrames"));
 		CVarDumpFramesAsHDR = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+		CVarHDRCompressionQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SaveEXR.CompressionQuality"));
 		CVarDumpGamut = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TonemapperOutputGamut"));
 
 		Disable();
@@ -38,10 +44,13 @@ struct FSceneViewExtension : ISceneViewExtension
 		OutputFilename = MoveTemp(InFilename);
 
 		bNeedsCapture = true;
+
 		RestoreDumpHDR = CVarDumpFramesAsHDR->GetInt();
+		RestoreHDRCompressionQuality = CVarHDRCompressionQuality->GetInt();
 		RestoreDumpGamut = CVarDumpGamut->GetInt();
 
 		CVarDumpFramesAsHDR->Set(bCaptureFramesInHDR);
+		CVarHDRCompressionQuality->Set(HDRCompressionQuality);
 		CVarDumpGamut->Set(CaptureGamut);
 		CVarDumpFrames->Set(1);
 	}
@@ -54,8 +63,10 @@ struct FSceneViewExtension : ISceneViewExtension
 			if (bFinalize)
 			{
 				RestoreDumpHDR = 0;
+				RestoreHDRCompressionQuality = 0;
 			}
 			CVarDumpFramesAsHDR->Set(RestoreDumpHDR);
+			CVarHDRCompressionQuality->Set(RestoreHDRCompressionQuality);
 			CVarDumpGamut->Set(RestoreDumpGamut);
 			CVarDumpFrames->Set(0);
 		}
@@ -112,19 +123,22 @@ struct FSceneViewExtension : ISceneViewExtension
 private:
 	const TArray<FString>& RenderPasses;
 
+	bool bNeedsCapture;
+	FString OutputFilename;
+
 	bool bCaptureFramesInHDR;
+	int32 HDRCompressionQuality;
+	int32 CaptureGamut;
 
 	UMaterialInterface* PostProcessingMaterial;
 
-	bool bNeedsCapture;
-	int32 CaptureGamut;
-	FString OutputFilename;
-
 	IConsoleVariable* CVarDumpFrames;
 	IConsoleVariable* CVarDumpFramesAsHDR;
+	IConsoleVariable* CVarHDRCompressionQuality;
 	IConsoleVariable* CVarDumpGamut;
 
 	int32 RestoreDumpHDR;
+	int32 RestoreHDRCompressionQuality;
 	int32 RestoreDumpGamut;
 };
 
@@ -175,6 +189,7 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 	SceneViewport = InSettings.SceneViewport;
 
 	bool bCaptureFramesInHDR = false;
+	int32 HDRCompressionQuality = 0;
 	int32 CaptureGamut = HCGM_Rec709;
 
 	UMaterialInterface* PostProcessingMaterial = nullptr;
@@ -183,6 +198,7 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 	{
 		RenderPasses = ProtocolSettings->IncludeRenderPasses.Value;
 		bCaptureFramesInHDR = ProtocolSettings->bCaptureFramesInHDR;
+		HDRCompressionQuality = ProtocolSettings->HDRCompressionQuality;
 		CaptureGamut = ProtocolSettings->CaptureGamut;
 		PostProcessingMaterial = Cast<UMaterialInterface>(ProtocolSettings->PostProcessingMaterial.TryLoad());
 
@@ -198,6 +214,12 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 			bCaptureFramesInHDR = bOverrideCaptureFramesInHDR;
 		}
 
+		int32 OverrideHDRCompressionQuality;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-HDRCompressionQuality=" ), OverrideHDRCompressionQuality ) )
+		{
+			HDRCompressionQuality = OverrideHDRCompressionQuality;
+		}
+
 		int32 OverrideCaptureGamut;
 		if (FParse::Value(FCommandLine::Get(), TEXT("-CaptureGamut="), OverrideCaptureGamut))
 		{
@@ -205,7 +227,7 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 		}
 	}
 
-	ViewExtension = MakeShareable(new FSceneViewExtension(RenderPasses, bCaptureFramesInHDR, CaptureGamut, PostProcessingMaterial));
+	ViewExtension = MakeShareable(new FSceneViewExtension(RenderPasses, bCaptureFramesInHDR, HDRCompressionQuality, CaptureGamut, PostProcessingMaterial));
 
 	return true;
 }

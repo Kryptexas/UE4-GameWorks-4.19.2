@@ -411,14 +411,14 @@ public:
 					// cached LinkInfo data may now be invalid. This could happen in the fast path, since the original
 					// Actor instance will not be replaced in that case, and thus might still have latent actions pending.
 					World->GetLatentActionManager().RemoveActionsForObject(Actor);
-				}
 
-				Actor->ReregisterAllComponents();
-				Actor->RerunConstructionScripts();
+					Actor->ReregisterAllComponents();
+					Actor->RerunConstructionScripts();
 
-				if (SelectedObjecs.Contains(Obj))
-				{
-					GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true, false, true);
+					if (SelectedObjecs.Contains(Obj))
+					{
+						GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true, false, true);
+					}
 				}
 			}
 		}

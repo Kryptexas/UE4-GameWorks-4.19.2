@@ -4,7 +4,7 @@
 
 #include "MovieSceneSpawnable.generated.h"
 
-class UMovieScene;
+class UMovieSceneSequence;
 
 UENUM()
 enum class ESpawnOwnership : uint8
@@ -23,7 +23,7 @@ enum class ESpawnOwnership : uint8
  * MovieSceneSpawnable describes an object that can be spawned for this MovieScene
  */
 USTRUCT()
-struct FMovieSceneSpawnable 
+struct FMovieSceneSpawnable
 {
 	GENERATED_BODY()
 
@@ -48,10 +48,23 @@ struct FMovieSceneSpawnable
 		, GeneratedClass_DEPRECATED(nullptr)
 #endif
 	{
-		ObjectTemplate->SetFlags(RF_ArchetypeObject);
+		MarkSpawnableTemplate(InObjectTemplate);
 	}
 
 public:
+
+	/**
+	 * Check if the specified object is a spawnable template
+	 * @param InObject 		The object to test
+	 * @return true if the specified object is a spawnable template, false otherwise
+	 */
+	MOVIESCENE_API static bool IsSpawnableTemplate(const UObject& InObject);
+
+	/**
+	 * Indicate that the specified object is a spawnable template object
+	 * @param InObject 		The object to mark
+	 */
+	MOVIESCENE_API static void MarkSpawnableTemplate(const UObject& InObject);
 
 	/**
 	 * Get the template object for this spawnable
@@ -68,9 +81,9 @@ public:
 	 * Copy the specified object into this spawnable's template
 	 *
 	 * @param InSourceObject The source object to use. This object will be duplicated into the spawnable.
-	 * @param OwnerMovieScene The outer movie scene to which this spawnable belongs
+	 * @param MovieSceneSequence The movie scene sequence to which this spawnable belongs
 	 */
-	MOVIESCENE_API void CopyObjectTemplate(UObject& InSourceObject, UMovieScene& OwnerMovieScene);
+	MOVIESCENE_API void CopyObjectTemplate(UObject& InSourceObject, UMovieSceneSequence& MovieSceneSequence);
 
 	/**
 	 * Get the unique identifier of the spawnable object.

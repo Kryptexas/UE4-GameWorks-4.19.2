@@ -5,6 +5,7 @@
 #include "MovieSceneSubTrackInstance.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieSceneSubSection.h"
+#include "MovieSceneCinematicShotTrack.h"
 #include "MovieSceneSequence.h"
 #include "IMovieScenePlayer.h"
 
@@ -251,6 +252,7 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 	SubUpdateData.UpdatePass = UpdateData.UpdatePass;
 	SubUpdateData.bPreroll = UpdateData.Position < SubSection->GetStartTime();
 	SubUpdateData.bSubSceneDeactivate = bSectionWasDeactivated;
+	SubUpdateData.bUpdateCameras = SubTrack->GetClass() == UMovieSceneCinematicShotTrack::StaticClass();
 
 	// update sub sections
 
