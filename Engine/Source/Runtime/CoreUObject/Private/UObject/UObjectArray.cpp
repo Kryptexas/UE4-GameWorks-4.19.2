@@ -14,7 +14,7 @@ FUObjectArray::FUObjectArray()
 : ObjFirstGCIndex(0)
 , ObjLastNonGCIndex(INDEX_NONE)
 , MaxObjectsNotConsideredByGC(0)
-, OpenForDisregardForGC(!IS_PROGRAM)
+, OpenForDisregardForGC(!HACK_HEADER_GENERATOR)
 , MasterSerialNumber(START_SERIAL_NUMBER)
 {
 	FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate().BindStatic(GetObjectArrayForDebugVisualizers);

@@ -1,6 +1,8 @@
 using System;
 using Microsoft.Practices.Unity;
 using Microsoft.Practices.Unity.Configuration;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
+using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
 
 namespace Tools.CrashReporter.CrashReportWebSite.App_Start
 {
@@ -36,6 +38,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.App_Start
             // container.LoadConfiguration();
 
             // TODO: Register your types here
+
+            container.RegisterType<IUnitOfWork, UnitOfWork>();
             // container.RegisterType<IProductRepository, ProductRepository>();
         }
     }

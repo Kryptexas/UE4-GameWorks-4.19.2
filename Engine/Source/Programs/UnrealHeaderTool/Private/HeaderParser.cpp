@@ -13,6 +13,7 @@
 #include "Manifest.h"
 #include "UnitConversion.h"
 #include "GeneratedCodeVersion.h"
+#include "FileLineException.h"
 
 #include "Algo/FindSortedStringCaseInsensitive.h"
 
@@ -2053,12 +2054,10 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 				}
 				PushCompilerDirective(ECompilerDirective::WithEditor);
 			}
-			else if (MatchIdentifier(TEXT("CPP")))
+			else if (MatchIdentifier(TEXT("CPP")) || MatchConstInt(TEXT("0")) || MatchConstInt(TEXT("1")) || MatchIdentifier(TEXT("WITH_HOT_RELOAD")) || MatchIdentifier(TEXT("WITH_HOT_RELOAD_CTORS")))
 			{
 				bConsumeAsCppText = !bInvertConditional;
 				PushCompilerDirective(ECompilerDirective::Insignificant);
-				//@todo: UCREMOVAL, !CPP should be interpreted as noexport and you should not need the no export.
-				// this applies to structs, enums, and everything else
 			}
 			else
 			{
@@ -2629,27 +2628,39 @@ void FHeaderParser::CompileDirective(FClasses& AllClasses)
 		// Eat the ! if present
 		bool bNotDefined = MatchSymbol(TEXT("!"));
 
-		FToken Define;
-		if (!GetIdentifier(Define))
-		{
-			FError::Throwf(TEXT("Missing define name '#if'") );
-		}
-
-		if ( Define.Matches(TEXT("WITH_EDITORONLY_DATA")) )
-		{
-			PushCompilerDirective(ECompilerDirective::WithEditorOnlyData);
-		}
-		else if ( Define.Matches(TEXT("WITH_EDITOR")) )
-		{
-			PushCompilerDirective(ECompilerDirective::WithEditor);
-		}
-		else if (Define.Matches(TEXT("CPP")) && bNotDefined)
+		int32 TempInt;
+		if (GetConstInt(TempInt) && TempInt == 0 || TempInt == 1)
 		{
 			PushCompilerDirective(ECompilerDirective::Insignificant);
 		}
 		else
 		{
-			FError::Throwf(TEXT("Unknown define '#if %s' in class or global scope"), Define.Identifier);
+			FToken Define;
+			if (!GetIdentifier(Define))
+			{
+				FError::Throwf(TEXT("Missing define name '#if'") );
+			}
+
+			if ( Define.Matches(TEXT("WITH_EDITORONLY_DATA")) )
+			{
+				PushCompilerDirective(ECompilerDirective::WithEditorOnlyData);
+			}
+			else if ( Define.Matches(TEXT("WITH_EDITOR")) )
+			{
+				PushCompilerDirective(ECompilerDirective::WithEditor);
+			}
+			else if (Define.Matches(TEXT("WITH_HOT_RELOAD")) || Define.Matches(TEXT("WITH_HOT_RELOAD_CTORS")) || Define.Matches(TEXT("1")))
+			{
+				PushCompilerDirective(ECompilerDirective::Insignificant);
+			}
+			else if ( Define.Matches(TEXT("CPP")) && bNotDefined)
+			{
+				PushCompilerDirective(ECompilerDirective::Insignificant);
+			}
+			else
+			{
+				FError::Throwf(TEXT("Unknown define '#if %s' in class or global scope"), Define.Identifier);
+			}
 		}
 	}
 	else if (Directive.Matches(TEXT("endif")))
@@ -4044,16 +4055,7 @@ EFindName FHeaderParser::GetFindFlagForPropertyName(const TCHAR* PropertyName)
 	}
 	// Add it to the list for future look ups
 	PreviousNames.Add(UpperPropertyStr,1);
-	// Check for a mismatch between the INI file and the config property name
-	FName CurrentText(PropertyName,FNAME_Find);
-	if (CurrentText != NAME_None &&
-		FCString::Strcmp(PropertyName,*CurrentText.ToString()) != 0)
-	{
-		FError::Throwf(
-			TEXT("INI file contains an incorrect case for (%s) should be (%s)"),
-			*CurrentText.ToString(),
-			PropertyName);
-	}
+	FName CurrentText(PropertyName,FNAME_Find); // keep generating this FName in case it has been affecting the case of future FNames.
 	return FNAME_Replace_Not_Safe_For_Threading;
 }
 
@@ -7366,8 +7368,98 @@ void FHeaderParser::ParseClassName(const TCHAR* Temp, FString& ClassName)
 	}
 }
 
+enum class EBlockDirectiveType
+{
+	// We're in a CPP block
+	CPPBlock,
+
+	// We're in a !CPP block
+	NotCPPBlock,
+
+	// We're in a 0 block
+	ZeroBlock,
+
+	// We're in a 1 block
+	OneBlock,
+
+	// We're in a WITH_HOT_RELOAD block
+	WithHotReload,
+
+	// We're in a WITH_EDITOR block
+	WithEditor,
+
+	// We're in a WITH_EDITORONLY_DATA block
+	WithEditorOnlyData,
+
+	// We're in a block with an unrecognized directive
+	UnrecognizedBlock
+};
+
+bool ShouldKeepBlockContents(EBlockDirectiveType DirectiveType)
+{
+	switch (DirectiveType)
+	{
+		case EBlockDirectiveType::NotCPPBlock:
+		case EBlockDirectiveType::OneBlock:
+		case EBlockDirectiveType::WithHotReload:
+		case EBlockDirectiveType::WithEditor:
+		case EBlockDirectiveType::WithEditorOnlyData:
+			return true;
+
+		case EBlockDirectiveType::CPPBlock:
+		case EBlockDirectiveType::ZeroBlock:
+		case EBlockDirectiveType::UnrecognizedBlock:
+			return false;
+	}
+
+	check(false);
+	ASSUME(false);
+}
+
+EBlockDirectiveType ParseCommandToBlockDirectiveType(const TCHAR** Str)
+{
+	if (FParse::Command(Str, TEXT("0")))
+	{
+		return EBlockDirectiveType::ZeroBlock;
+	}
+
+	if (FParse::Command(Str, TEXT("1")))
+	{
+		return EBlockDirectiveType::OneBlock;
+	}
+
+	if (FParse::Command(Str, TEXT("CPP")))
+	{
+		return EBlockDirectiveType::CPPBlock;
+	}
+
+	if (FParse::Command(Str, TEXT("!CPP")))
+	{
+		return EBlockDirectiveType::NotCPPBlock;
+	}
+
+#if WITH_HOT_RELOAD_CTORS
+	if (FParse::Command(Str, TEXT("WITH_HOT_RELOAD")))
+	{
+		return EBlockDirectiveType::WithHotReload;
+	}
+#endif
+
+	if (FParse::Command(Str, TEXT("WITH_EDITOR")))
+	{
+		return EBlockDirectiveType::WithEditor;
+	}
+
+	if (FParse::Command(Str, TEXT("WITH_EDITORONLY_DATA")))
+	{
+		return EBlockDirectiveType::WithEditorOnlyData;
+	}
+
+	return EBlockDirectiveType::UnrecognizedBlock;
+}
+
 // Performs a preliminary parse of the text in the specified buffer, pulling out useful information for the header generation process
-void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifiedParsingClassInfo>& OutParsedClassArray, TArray<FHeaderProvider>& DependentOn, FStringOutputDevice& ClassHeaderTextStrippedOfCppText)
+void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InBuffer, TArray<FSimplifiedParsingClassInfo>& OutParsedClassArray, TArray<FHeaderProvider>& DependentOn, FStringOutputDevice& ClassHeaderTextStrippedOfCppText)
 {
 	FHeaderPreParser Parser;
 	FString StrLine;
@@ -7398,127 +7490,121 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 		bool bIf = FParse::Command(&Str,TEXT("#if"));
 		if( bIf || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 		{
-			FStringOutputDevice TextDumpDummy;
-			FStringOutputDevice* Target = NULL;
-			FStringOutputDevice* SpacerTarget = NULL;
-			TArray<bool, TInlineAllocator<8>> KeepPreprocessorDirectiveStack;
-			KeepPreprocessorDirectiveStack.Push(true);
-			bool bNotCPP = false;
-			bool bCPP = false;
-			bool bUnknownDirective = false;
-
-			if( bIf && FParse::Command(&Str,TEXT("CPP")) )
+			EBlockDirectiveType RootDirective;
+			if (bIf)
 			{
-				Target = &TextDumpDummy;
-				SpacerTarget = &ClassHeaderTextStrippedOfCppText;
-				bCPP = true;
-			}
-			else if( bIf && FParse::Command(&Str,TEXT("!CPP")) )
-			{
-				Target = &ClassHeaderTextStrippedOfCppText;
-				KeepPreprocessorDirectiveStack.Top() = false;
-				bNotCPP = true;
-			}
-#if WITH_HOT_RELOAD_CTORS
-			else if (bIf && FParse::Command(&Str, TEXT("WITH_HOT_RELOAD")))
-			{
-				Target = &ClassHeaderTextStrippedOfCppText;
-				KeepPreprocessorDirectiveStack.Top() = false;
-			}
-#endif // WITH_HOT_RELOAD_CTORS
-			else if (bIf && (FParse::Command(&Str,TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str,TEXT("WITH_EDITOR"))))
-			{
-				Target = &ClassHeaderTextStrippedOfCppText;
-				bUnknownDirective = true;
+				RootDirective = ParseCommandToBlockDirectiveType(&Str);
 			}
 			else
 			{
-				// Unknown directives or #ifdef or #ifndef are always treated as CPP
-				bUnknownDirective = true;
-				Target = &TextDumpDummy;
-				SpacerTarget = &ClassHeaderTextStrippedOfCppText;
+				// #ifdef or #ifndef are always treated as CPP
+				RootDirective = EBlockDirectiveType::UnrecognizedBlock;
 			}
 
-			if (KeepPreprocessorDirectiveStack.Top())
-			{
-				Target->Logf( TEXT("%s\r\n"), *StrLine );
-			}
-			else
-			{
-				Target->Logf( TEXT("\r\n") );
-			}
+			TArray<EBlockDirectiveType, TInlineAllocator<8>> DirectiveStack;
+			DirectiveStack.Push(RootDirective);
 
-			if (SpacerTarget != NULL)
-			{
-				// Make sure script line numbers don't get out of whack if there is an inline CPP block in there
-				SpacerTarget->Logf( TEXT("\r\n") );
-			}
+			bool bShouldKeepBlockContents = ShouldKeepBlockContents(RootDirective);
+			bool bIsZeroBlock = RootDirective == EBlockDirectiveType::ZeroBlock;
 
-			while ((KeepPreprocessorDirectiveStack.Num() > 0) && FParse::Line(&Buffer, StrLine, 1))
-			{
-				if (SpacerTarget != NULL)
-				{
-					// Make sure script line numbers don't get out of whack if there is an inline CPP block in there
-					SpacerTarget->Logf( TEXT("\r\n") );
-				}
+			ClassHeaderTextStrippedOfCppText.Logf(TEXT("%s\r\n"), bShouldKeepBlockContents ? *StrLine : TEXT(""));
 
+			while ((DirectiveStack.Num() > 0) && FParse::Line(&Buffer, StrLine, 1))
+			{
 				CurrentLine++;
 				Str = *StrLine;
-				bool bKeepPreprocessorDirective = KeepPreprocessorDirectiveStack.Top();
-				bool bIsPrep = false;
+
+				bool bIsDirective = false;
 				if( FParse::Command(&Str,TEXT("#endif")) )
 				{
-					KeepPreprocessorDirectiveStack.Pop();
-					bIsPrep = true;
+					DirectiveStack.Pop();
+
+					bIsDirective = true;
 				}
 				else if( FParse::Command(&Str,TEXT("#if")) || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 				{
-					bKeepPreprocessorDirective = FParse::Command(&Str, TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str, TEXT("WITH_EDITOR"));
-					KeepPreprocessorDirectiveStack.Push(bKeepPreprocessorDirective);
-					bIsPrep = true;
+					EBlockDirectiveType Directive = ParseCommandToBlockDirectiveType(&Str);
+					DirectiveStack.Push(Directive);
+
+					bIsDirective = true;
 				}
-				else if (FParse::Command(&Str, TEXT("#ifndef")))
+				else if (FParse::Command(&Str,TEXT("#elif")))
 				{
-					KeepPreprocessorDirectiveStack.Push(false);
-					bIsPrep = true;
+					EBlockDirectiveType Directive = ParseCommandToBlockDirectiveType(&Str);
+					DirectiveStack.Top() = Directive;
+
+					bIsDirective = true;
 				}
-				else if( FParse::Command(&Str,TEXT("#elif")) )
+				else if (FParse::Command(&Str, TEXT("#else")))
 				{
-					bIsPrep = true;
-				}
-				else if (KeepPreprocessorDirectiveStack.Num() == 1 && FParse::Command(&Str, TEXT("#else")))
-				{
-					if (!bUnknownDirective)
+					switch (DirectiveStack[0])
 					{
-						if (!bNotCPP && !bCPP)
-						{
-							FError::Throwf(TEXT("Bad preprocessor directive in metadata declaration: %s; Only 'CPP' can have ! or #else directives"),*ClassName);
-						}
-						Swap(bNotCPP,bCPP);
-						if( bCPP)
-						{
-							Target = &TextDumpDummy;
-							SpacerTarget = &ClassHeaderTextStrippedOfCppText;
-							KeepPreprocessorDirectiveStack.Top() = true;
-							StrLine = TEXT("#if CPP\r\n");
-						}
-						else
-						{
-							KeepPreprocessorDirectiveStack.Top() = false;
-							Target = &ClassHeaderTextStrippedOfCppText;
-							SpacerTarget = NULL;
-						}
+						case EBlockDirectiveType::ZeroBlock:
+							DirectiveStack.Top() = EBlockDirectiveType::OneBlock;
+							break;
+
+						case EBlockDirectiveType::OneBlock:
+							DirectiveStack.Top() = EBlockDirectiveType::ZeroBlock;
+							break;
+
+						case EBlockDirectiveType::CPPBlock:
+							DirectiveStack.Top() = EBlockDirectiveType::NotCPPBlock;
+							break;
+
+						case EBlockDirectiveType::NotCPPBlock:
+							DirectiveStack.Top() = EBlockDirectiveType::CPPBlock;
+							break;
+
+						case EBlockDirectiveType::WithHotReload:
+							FFileLineException::Throwf(Filename, CurrentLine, TEXT("Bad preprocessor directive in metadata declaration: %s; Only 'CPP', '1' and '0' can have #else directives"), *ClassName);
+
+						case EBlockDirectiveType::UnrecognizedBlock:
+						case EBlockDirectiveType::WithEditor:
+						case EBlockDirectiveType::WithEditorOnlyData:
+							// We allow unrecognized directives, WITH_EDITOR and WITH_EDITORONLY_DATA to have #else blocks.
+							// However, we don't actually change how UHT processes these #else blocks.
+							break;
 					}
-					bIsPrep = true;
+
+					bIsDirective = true;
 				}
 
-				if (bKeepPreprocessorDirective || !bIsPrep)
+				// Check for UHT identifiers inside skipped blocks, unless it's a zero block, because the compiler is going to skip those anyway.
+				if (!bShouldKeepBlockContents && !bIsZeroBlock)
 				{
-					Target->Logf( TEXT("%s\r\n"), *StrLine );
+					auto FindInitialStr = [](const TCHAR*& FoundSubstr, const FString& StrToSearch, const TCHAR* ConstructName) -> bool
+					{
+						if (StrToSearch.StartsWith(ConstructName, ESearchCase::CaseSensitive))
+						{
+							FoundSubstr = ConstructName;
+							return true;
+						}
+
+						return false;
+					};
+
+					FString TrimmedStrLine = StrLine;
+					TrimmedStrLine.Trim();
+
+					const TCHAR* FoundSubstr = nullptr;
+					if (FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UPROPERTY"))
+						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UCLASS"))
+						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("USTRUCT"))
+						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UENUM"))
+						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UINTERFACE"))
+						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UDELEGATE"))
+						|| FindInitialStr(FoundSubstr, TrimmedStrLine, TEXT("UFUNCTION")))
+					{
+						FFileLineException::Throwf(Filename, CurrentLine, TEXT("%s inside this preprocessor block will be skipped"), FoundSubstr);
+					}
 				}
-				else
+
+				ClassHeaderTextStrippedOfCppText.Logf(TEXT("%s\r\n"), bShouldKeepBlockContents ? *StrLine : TEXT(""));
+
+				if (bIsDirective)
 				{
-					Target->Logf( TEXT("\r\n") );
+					bShouldKeepBlockContents = !DirectiveStack.ContainsByPredicate([](EBlockDirectiveType Directive) { return !ShouldKeepBlockContents(Directive); });
+					bIsZeroBlock = DirectiveStack.Contains(EBlockDirectiveType::ZeroBlock);
 				}
 			}
 		}

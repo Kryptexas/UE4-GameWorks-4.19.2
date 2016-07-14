@@ -179,7 +179,8 @@ bool FStaticMeshEditorTest::RunTest(const FString& Parameters)
 		FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
 
 		const FText ExpectedTitle = FText::FromString(LoadedObjectType);
-		if (auto* Window = AllWindows.FindByPredicate([&](const TSharedRef<SWindow>& In) { return In->GetTitle().EqualTo(ExpectedTitle); }))
+		TSharedRef<SWindow>* Window = AllWindows.FindByPredicate([&](const TSharedRef<SWindow>& In) { return In->GetTitle().EqualTo(ExpectedTitle); });
+		if (Window)
 		{
 			WindowParameters.CurrentWindow = *Window;
 		}

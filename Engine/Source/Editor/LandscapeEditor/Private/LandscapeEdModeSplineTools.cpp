@@ -648,6 +648,7 @@ public:
 					if (ToLandscape->SplineComponent == nullptr)
 					{
 						CreateSplineComponent(ToLandscape, FromProxy->SplineComponent->RelativeScale3D);
+						check(ToLandscape->SplineComponent);
 					}
 					ToLandscape->SplineComponent->Modify();
 
@@ -737,6 +738,7 @@ public:
 					if (ToLandscape->SplineComponent == nullptr)
 					{
 						CreateSplineComponent(ToLandscape, FromProxy->SplineComponent->RelativeScale3D);
+						check(ToLandscape->SplineComponent);
 					}
 					ToLandscape->SplineComponent->Modify();
 
@@ -858,6 +860,7 @@ public:
 				if (!Landscape->SplineComponent)
 				{
 					CreateSplineComponent(Landscape, FVector(1.0f) / Landscape->GetRootComponent()->RelativeScale3D);
+					check(Landscape->SplineComponent);
 				}
 				SplinesComponent = Landscape->SplineComponent;
 			}
@@ -1820,6 +1823,7 @@ public:
 		if (!Landscape->SplineComponent)
 		{
 			CreateSplineComponent(Landscape, FVector(1.0f) / Landscape->GetRootComponent()->RelativeScale3D);
+			check(Landscape->SplineComponent);
 		}
 		Landscape->SplineComponent->Modify();
 

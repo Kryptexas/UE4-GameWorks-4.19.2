@@ -211,10 +211,17 @@ public:
 	 *
 	 * @param InModuleName The name of the module to unload.
 	 * @param Ar The archive to receive error messages, if any.
-	 * @param bAbandonOnly Do not try to unload the module, only abandon.
 	 * @see LoadModuleWithCallback
 	 */
-	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar, bool bAbandonOnly = false);
+	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar);
+
+	/**
+	 * Calls PreUnload then abandons a module in memory.
+	 *
+	 * @param InModuleName The name of the module to unload.
+	 * @see LoadModuleWithCallback
+	 */
+	void AbandonModuleWithCallback( const FName InModuleName );
 
 	/** Delegate that's used by the module manager to find all the valid modules in a directory matching a pattern */
 	typedef TMap<FString, FString> FModuleNamesMap;

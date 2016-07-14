@@ -14,6 +14,7 @@
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "UHTMakefile/UHTMakefile.h"
 #include "ScopeExit.h"
+#include "FileLineException.h"
 
 /////////////////////////////////////////////////////
 // Globals
@@ -5755,6 +5756,20 @@ ECompilationResult::Type PreparseModules(FUHTMakefile& UHTMakefile, const FStrin
 					}
 				}
 			#if !PLATFORM_EXCEPTIONS_DISABLED
+				catch (const FFileLineException& Ex)
+				{
+					TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
+
+					FString AbsFilename           = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Ex.Filename);
+					FString Prefix                = FString::Printf(TEXT("%s(%d): "), *AbsFilename, Ex.Line);
+					FString FormattedErrorMessage = FString::Printf(TEXT("%sError: %s\r\n"), *Prefix, *Ex.Message);
+					Result = GCompilationResult;
+
+					UE_LOG(LogCompile, Log, TEXT("%s"), *FormattedErrorMessage);
+					GWarn->Log(ELogVerbosity::Error, FormattedErrorMessage);
+
+					++NumFailures;
+				}
 				catch (TCHAR* ErrorMsg)
 				{
 					TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
@@ -5815,7 +5830,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 {
 	check(GIsUCCMakeStandaloneHeaderGenerator);
 	ECompilationResult::Type Result = ECompilationResult::Succeeded;
-	
+
 	FString ModuleInfoPath = FPaths::GetPath(ModuleInfoFilename);
 
 	// Load the manifest file, giving a list of all modules to be processed, pre-sorted by dependency ordering
@@ -6118,7 +6133,7 @@ TSharedRef<FUnrealSourceFile> PerformInitialParseOnHeader(UPackage* InParent, co
 	// Parse the header to extract the information needed
 	FUHTStringBuilder ClassHeaderTextStrippedOfCppText;
 	TArray<FSimplifiedParsingClassInfo> ParsedClassArray;
-	FHeaderParser::SimplifiedClassParse(Buffer, /*out*/ ParsedClassArray, /*out*/ DependsOn, ClassHeaderTextStrippedOfCppText);
+	FHeaderParser::SimplifiedClassParse(FileName, Buffer, /*out*/ ParsedClassArray, /*out*/ DependsOn, ClassHeaderTextStrippedOfCppText);
 
 	FUnrealSourceFile* UnrealSourceFilePtr = new FUnrealSourceFile(InParent, FileName, MoveTemp(ClassHeaderTextStrippedOfCppText));
 	TSharedRef<FUnrealSourceFile> UnrealSourceFile = MakeShareable(UnrealSourceFilePtr);

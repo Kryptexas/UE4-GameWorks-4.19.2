@@ -291,7 +291,7 @@ public:
 	 *
 	 * @return true if iterator points to a suitable actor, false if it has reached the end
 	 */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		return !State->ReachedEnd;
 	}

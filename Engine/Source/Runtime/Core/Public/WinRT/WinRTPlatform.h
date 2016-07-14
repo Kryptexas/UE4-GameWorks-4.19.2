@@ -53,7 +53,6 @@ typedef FWinRTTypes FPlatformTypes;
 #if _MSC_VER < 1900
 	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS		0
 #endif
-#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS			1
 
 //@todo.WinRT: Fixup once sockets are supported
 #define PLATFORM_SUPPORTS_MESSAGEBUS						0

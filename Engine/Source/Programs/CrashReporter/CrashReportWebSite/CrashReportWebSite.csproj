@@ -29,9 +29,9 @@
     <OldToolsVersion>4.0</OldToolsVersion>
     <UpgradeBackupLocation />
     <IISExpressSSLPort />
-    <IISExpressAnonymousAuthentication />
-    <IISExpressWindowsAuthentication />
-    <IISExpressUseClassicPipelineMode />
+    <IISExpressAnonymousAuthentication>enabled</IISExpressAnonymousAuthentication>
+    <IISExpressWindowsAuthentication>enabled</IISExpressWindowsAuthentication>
+    <IISExpressUseClassicPipelineMode>false</IISExpressUseClassicPipelineMode>
     <MvcProjectUpgradeChecked>true</MvcProjectUpgradeChecked>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -52,6 +52,14 @@
     </Reference>
     <Reference Include="Common.Logging.Core, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <HintPath>packages\Common.Logging.Core.3.3.1\lib\net40\Common.Logging.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Hangfire.Core, Version=1.5.3.0, Culture=neutral, processorArchitecture=MSIL">
@@ -109,7 +117,6 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data.Entity" />
     <Reference Include="System.Data.Linq">
       <Private>True</Private>
     </Reference>
@@ -117,6 +124,8 @@
     <Reference Include="System.ComponentModel.DataAnnotations">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Web.ApplicationServices" />
     <Reference Include="System.Web.DynamicData" />
     <Reference Include="System.Web.Entity" />
@@ -177,27 +186,67 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ReportsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
-    <Compile Include="Models\BuggsViewModel.cs" />
-    <Compile Include="Models\CachedDataService.cs" />
-    <Compile Include="Models\BuggRepository.cs" />
-    <Compile Include="Models\BuggViewModel.cs" />
-    <Compile Include="Models\CSVViewModel.cs" />
-    <Compile Include="Models\DashboardViewModel.cs" />
-    <Compile Include="Models\CrashReport.cs">
-      <DependentUpon>CrashReport.dbml</DependentUpon>
+    <Compile Include="DataModels\Bugg.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
     </Compile>
-    <Compile Include="Models\CrashReport.designer.cs">
+    <Compile Include="DataModels\BuggDerived.cs" />
+    <Compile Include="DataModels\Buggs_Users.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\CallStackPattern.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\Crash.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\CrashReports.Context.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>CrashReport.dbml</DependentUpon>
+      <DependentUpon>CrashReports.Context.tt</DependentUpon>
     </Compile>
-    <Compile Include="Models\CrashViewModel.cs" />
+    <Compile Include="DataModels\CrashReports.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\CrashReports.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CrashReports.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\ErrorMessage.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\FunctionCall.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\Repositories\BuggRespository.cs" />
+    <Compile Include="DataModels\Repositories\CallStackRepository.cs" />
+    <Compile Include="DataModels\CrashDerived.cs" />
+    <Compile Include="DataModels\Repositories\CrashRepository.cs" />
+    <Compile Include="DataModels\Repositories\DataRepository.cs" />
+    <Compile Include="DataModels\Repositories\ErrorMessageRepository.cs" />
+    <Compile Include="DataModels\Repositories\FunctionRepository.cs" />
+    <Compile Include="DataModels\Repositories\IBuggRepository.cs" />
+    <Compile Include="DataModels\Repositories\ICallstackRepository.cs" />
+    <Compile Include="DataModels\Repositories\ICrashRepository.cs" />
+    <Compile Include="DataModels\Repositories\IDataRepository.cs" />
+    <Compile Include="DataModels\Repositories\IErrorMessageRepository.cs" />
+    <Compile Include="DataModels\Repositories\IFunctionRepository.cs" />
+    <Compile Include="DataModels\Repositories\IUserGroupRepository.cs" />
+    <Compile Include="DataModels\Repositories\IUserRepository.cs" />
+    <Compile Include="DataModels\Repositories\UnitOfWork.cs" />
+    <Compile Include="DataModels\Repositories\UserGroupRepository.cs" />
+    <Compile Include="DataModels\Repositories\UserRepository.cs" />
+    <Compile Include="DataModels\User.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DataModels\UserGroup.cs">
+      <DependentUpon>CrashReports.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\CachedDataService.cs" />
     <Compile Include="Models\EmailSubscriptionResponseModel.cs" />
-    <Compile Include="Models\FormHelper.cs" />
     <Compile Include="Models\PerformanceTimers.cs" />
-    <Compile Include="Models\ReportsViewModel.cs" />
-    <Compile Include="Models\Repository.cs" />
-    <Compile Include="Models\UsersViewModel.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
@@ -210,10 +259,17 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\CrashDataFormater.cs" />
-    <Compile Include="Models\CrashesViewModel.cs" />
-    <Compile Include="Models\CrashRepository.cs" />
-    <Compile Include="Models\PagingInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ViewModels\BuggsViewModel.cs" />
+    <Compile Include="ViewModels\BuggViewModel.cs" />
+    <Compile Include="ViewModels\CrashesViewModel.cs" />
+    <Compile Include="ViewModels\CrashViewModel.cs" />
+    <Compile Include="ViewModels\CSVViewModel.cs" />
+    <Compile Include="ViewModels\DashboardViewModel.cs" />
+    <Compile Include="ViewModels\FormHelper.cs" />
+    <Compile Include="ViewModels\PagingInfo.cs" />
+    <Compile Include="ViewModels\ReportsViewModel.cs" />
+    <Compile Include="ViewModels\UsersViewModel.cs" />
     <Compile Include="Views\Helpers\UrlHelperExtension.cs" />
     <Compile Include="Views\Helpers\PagingHelper.cs" />
   </ItemGroup>
@@ -270,6 +326,16 @@
     <Content Include="Content\themes\base\jquery.ui.slider.css" />
     <Content Include="Content\themes\base\jquery.ui.tabs.css" />
     <Content Include="Content\themes\base\jquery.ui.theme.css" />
+    <Content Include="DataModels\CrashReports.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>CrashReports.edmx</DependentUpon>
+      <LastGenOutput>CrashReports.Context.cs</LastGenOutput>
+    </Content>
+    <Content Include="DataModels\CrashReports.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>CrashReports.edmx</DependentUpon>
+      <LastGenOutput>CrashReports.cs</LastGenOutput>
+    </Content>
     <Content Include="Global.asax" />
     <Content Include="Properties\PublishProfiles\CRTest.pubxml.user" />
     <Content Include="Scripts\jquery-1.5.1-vsdoc.js" />
@@ -301,6 +367,13 @@
     <Content Include="Views\Crashes\ViewCrash.ascx" />
     <Content Include="Views\Home\Index.aspx" />
     <Content Include="Views\Reports\Index.aspx" />
+    <EntityDeploy Include="DataModels\CrashReports.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>CrashReports.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <Content Include="DataModels\CrashReports.edmx.diagram">
+      <DependentUpon>CrashReports.edmx</DependentUpon>
+    </Content>
     <None Include="Views\Reports\SignUpResponse.cshtml" />
     <Content Include="Views\Reports\Unsubscribe.aspx" />
     <Content Include="Views\Reports\ViewReports.ascx" />
@@ -330,13 +403,9 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{3259AA49-8AA1-44D3-9025-A0B520596A8C}" />
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Models\CrashReport.dbml">
-      <Generator>MSLinqToSQLGenerator</Generator>
-      <LastGenOutput>CrashReport.designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
     <Content Include="packages.config" />
     <None Include="Properties\PublishProfiles\CrashReportDev.pubxml" />
     <None Include="Properties\PublishProfiles\CRTest.pubxml" />
@@ -347,11 +416,6 @@
     </None>
     <None Include="Web.Development.config">
       <DependentUpon>Web.config</DependentUpon>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Models\CrashReport.dbml.layout">
-      <DependentUpon>CrashReport.dbml</DependentUpon>
     </None>
   </ItemGroup>
   <ItemGroup>

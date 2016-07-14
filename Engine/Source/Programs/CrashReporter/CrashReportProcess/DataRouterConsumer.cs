@@ -52,16 +52,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			try
 			{
-				Int64 Size = GetVarInt(InStream);
-				Int64 MessageStart = InStream.Position;
-
-				Message = Serializer.Deserialize<ProtocolBufferRecord>(InStream);
-
-				Int64 MessageEnd = InStream.Position;
-				if (MessageEnd - MessageStart != Size)
-				{
-					throw new CrashReporterException(string.Format("DataRouterConsumer size mismatch in TryParse() - Embedded Size {0}  Actual Size {1}", Size, MessageEnd - MessageStart));
-				}
+				Message = Serializer.DeserializeWithLengthPrefix<ProtocolBufferRecord>(InStream, PrefixStyle.Base128);
 
 				return Message.HasPayload;
 			}
@@ -71,25 +62,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 				Message = new ProtocolBufferRecord();
 				return false;
 			}
-		}
-
-		private static Int64 GetVarInt(Stream InStream)
-		{
-			Int64 VarInt = 0;
-			for (int ByteIndex = 0, LeftShift = 0; ByteIndex < 9; ByteIndex++, LeftShift += 7)
-			{
-				int Byte = InStream.ReadByte();
-				if (Byte < 0)
-				{
-					throw new CrashReporterException("DataRouterConsumer encountered unexpected end of stream in GetVarInt()");
-				}
-				VarInt |= (Int64) (Byte & 0x7F) << LeftShift;
-				if ((Byte & 0x80) == 0)
-				{
-					break;
-				}
-			}
-			return VarInt;
 		}
 	}
 }

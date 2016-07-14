@@ -252,7 +252,7 @@ void UEnum::AddNamesToMasterList()
 		{
 			AllEnumNames.Add(Kvp.Key, this);
 		}
-		else if (Enum != this)
+		else if (Enum != this && Enum->GetOutermost() != GetTransientPackage())
 		{
 			UE_LOG(LogEnum, Warning, TEXT("Enum name collision: '%s' is in both '%s' and '%s'"), *Kvp.Key.ToString(), *GetPathName(), *Enum->GetPathName());
 		}

@@ -172,16 +172,34 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <param name="DirInfo">The directory to delete</param>
 		public static void CleanReport(DirectoryInfo DirInfo)
 		{
+			const int MaxRetries = 3;
+
 			bool bWriteException = true;
-			for( int Retry = 0; Retry < 3; ++Retry )
+			for( int Retry = 0; Retry < MaxRetries; ++Retry )
 			{
 				try
 				{
-					foreach( FileInfo Info in DirInfo.GetFiles() )
+					if (!DirInfo.Exists)
+					{
+						break;
+					}
+
+					foreach ( FileInfo Info in DirInfo.GetFiles() )
 					{
 						Info.IsReadOnly = false;
+						Info.Attributes = FileAttributes.Normal;
 					}
 					DirInfo.Delete( true /* delete contents */);
+
+					// Random failures to delete with no exception seen regularly - retry
+					DirInfo.Refresh();
+					if (DirInfo.Exists)
+                    {
+						CrashReporterProcessServicer.WriteEvent("CleanReport: Failed to delete folder without an Exception " + DirInfo);
+						Thread.Sleep(500);
+                        continue;
+                    }
+
 					break;
 				}
 				catch( Exception Ex )
@@ -194,6 +212,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				}
 				System.Threading.Thread.Sleep( 100 );
+			}
+
+			DirInfo.Refresh();
+			if (DirInfo.Exists)
+			{
+				CrashReporterProcessServicer.WriteEvent(string.Format("CleanReport: Failed to delete folder {0} after {1} retries", DirInfo, MaxRetries));
 			}
 		}
 
@@ -215,13 +239,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			try
 			{
-				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingConstants.ProcessingFailedEvent);
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingFailedEvent);
 
 				DirectoryInfo DirInfo = new DirectoryInfo( ReportName );
 				// Rename the report directory, so we should be able to quickly find the invalid reports.
 				Directory.CreateDirectory( Config.Default.InvalidReportsDirectory );
-				string CleanFilename = String.Concat( ReportNameAsFilename.Split( Path.GetInvalidFileNameChars() ) );
-				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, CleanFilename );
+				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, ReportQueueBase.GetSafeFilename(ReportNameAsFilename));
 
 				Directory.CreateDirectory( DestinationDirectory );
 
@@ -291,6 +314,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				// Create a new crash description for uploading
 				CrashDescription NewCrash = new CrashDescription();
 
+				NewCrash.CrashType = NewContext.PrimaryCrashProperties.GetCrashType();
 				NewCrash.BranchName = EngineVersion.GetCleanedBranch();
 				NewCrash.GameName = NewContext.PrimaryCrashProperties.GameName;
 				NewCrash.Platform = NewContext.PrimaryCrashProperties.PlatformFullName;
@@ -554,7 +578,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				UpdateProcessedReports();
 				WebAddCounter.AddEvent();
-				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingConstants.ProcessingSucceededEvent);
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingSucceededEvent);
 				double Ratio = (double)WebAddCounter.TotalEvents / (double)ProcessedReports * 100;
 
 				double AddedPerDay = (double)WebAddCounter.TotalEvents / Timer.Elapsed.TotalDays;

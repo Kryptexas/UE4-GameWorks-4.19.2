@@ -7,6 +7,7 @@ using System;
 using System.Data.Linq;
 using System.Diagnostics;
 using System.Web.UI.WebControls;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
 using Tools.DotNETCommon;
 using System.Web;
 
@@ -813,7 +814,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			CrashRepository Crashes = new CrashRepository();
 			return Crashes.GetCallStack( this );
 		}
-
 
 		/// <summary>
 		/// Build a callstack pattern for a crash to ease bucketing of crashes into Buggs.

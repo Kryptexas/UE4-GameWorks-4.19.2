@@ -1,7 +1,7 @@
 ﻿<%-- // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<BuggsViewModel>" %>
-<%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
+<%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.ViewModels" %>
 
 <asp:Content ID="StyleSheet" ContentPlaceHolderID="CssContent" runat="server">
 	<link href="../../Content/Site.css" rel="stylesheet" type="text/css" />

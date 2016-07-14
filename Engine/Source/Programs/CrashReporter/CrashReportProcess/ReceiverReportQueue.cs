@@ -12,7 +12,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{ 
 			get
 			{
-				return StatusReportingConstants.ProcessingStartedReceiverEvent;
+				return StatusReportingEventNames.ProcessingStartedReceiverEvent;
 			}
 		}
 

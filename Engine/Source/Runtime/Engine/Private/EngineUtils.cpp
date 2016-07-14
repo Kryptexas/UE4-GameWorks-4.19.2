@@ -458,7 +458,7 @@ void FConsoleOutputDevice::Serialize(const TCHAR* Text, ELogVerbosity::Type Verb
 
 		if(CVar)
 		{
-			int MinVerbosity = CVar->GetValueOnGameThread();
+			int MinVerbosity = CVar->GetValueOnAnyThread(true);
 
 			if((int)Verbosity <= MinVerbosity)
 			{

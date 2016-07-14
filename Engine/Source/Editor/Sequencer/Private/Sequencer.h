@@ -491,7 +491,7 @@ public:
 	//~ ISequencer Interface
 
 	virtual void Close() override;
-	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
+	virtual TSharedRef<SWidget> GetSequencerWidget() const override;
 	virtual UMovieSceneSequence* GetRootMovieSceneSequence() const override;
 	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const override;
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;

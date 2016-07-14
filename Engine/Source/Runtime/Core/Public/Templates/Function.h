@@ -184,7 +184,7 @@ namespace UE4Function_Private
 	struct TFunctionRefCaller;
 
 	/**
-	 * A class which is used to instantiate the code needed to assert when called - used for null bindings.
+	 * A class which is used to instantiate the code needed to assert when called - used for unset bindings.
 	 */
 	template <typename FuncType>
 	struct TFunctionRefAsserter;
@@ -225,66 +225,6 @@ namespace UE4Function_Private
 	{
 	}
 
-	template <typename FuncType, typename CallableType>
-	struct TFunctionRefBaseCommon
-	{
-		explicit TFunctionRefBaseCommon(ENoInit)
-		{
-			// Not really designed to be initialized directly, but want to be explicit about that.
-		}
-
-		template <typename FunctorType>
-		void Set(FunctorType* Functor)
-		{
-			Callable = &UE4Function_Private::TFunctionRefCaller<FunctorType, FuncType>::Call;
-
-			#if ENABLE_TFUNCTIONREF_VISUALIZATION
-				// We placement new over the top of the same object each time.  This is illegal,
-				// but it ensures that the vptr is set correctly for the bound type, and so is
-				// visualizable.  We never depend on the state of this object at runtime, so it's
-				// ok.
-				new ((void*)&DebugPtrStorage) UE4Function_Private::TDebugHelper<FunctorType>;
-				DebugPtrStorage.Ptr = (void*)Functor;
-			#endif
-		}
-
-		void CopyAndReseat(const TFunctionRefBaseCommon& Other, void* Functor)
-		{
-			Callable = Other.Callable;
-
-			#if ENABLE_TFUNCTIONREF_VISUALIZATION
-				// Use Memcpy to copy the other DebugPtrStorage, including vptr (because we don't know the bound type
-				// here), and then reseat the underlying pointer.  Possibly even more evil than the Set code.
-				FMemory::Memcpy(&DebugPtrStorage, &Other.DebugPtrStorage, sizeof(DebugPtrStorage));
-				DebugPtrStorage.Ptr = Functor;
-			#endif
-		}
-
-		void Unset()
-		{
-			Callable = &UE4Function_Private::TFunctionRefAsserter<FuncType>::Call;
-		}
-
-		CallableType* GetCallable() const
-		{
-			return Callable;
-		}
-
-	private:
-		// A pointer to a function which invokes the call operator on the callable object
-		CallableType* Callable;
-
-		#if ENABLE_TFUNCTIONREF_VISUALIZATION
-			// To help debug visualizers
-			UE4Function_Private::TDebugHelper<void> DebugPtrStorage;
-		#endif
-	};
-
-	/**
-	 * Switch on the existence of variadics.  Once all our supported compilers support variadics, a lot of this code
-	 * can be collapsed into FFunctionRefCaller.  They're currently separated out to minimize the amount of workarounds
-	 * needed.
-	 */
 	template <typename Functor, typename Ret, typename... ParamTypes>
 	struct TFunctionRefCaller<Functor, Ret (ParamTypes...)>
 	{
@@ -311,7 +251,7 @@ namespace UE4Function_Private
 	{
 		static Ret Call(void* Obj, ParamTypes&...)
 		{
-			checkf(false, TEXT("Attempting to call a null TFunction!"));
+			checkf(false, TEXT("Attempting to call an unbound TFunction!"));
 
 			// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
 			return FakeCall((Ret*)Obj);
@@ -319,26 +259,59 @@ namespace UE4Function_Private
 	};
 
 	template <typename DerivedType, typename Ret, typename... ParamTypes>
-	struct TFunctionRefBase<DerivedType, Ret (ParamTypes...)> : TFunctionRefBaseCommon<Ret (ParamTypes...), Ret (void*, ParamTypes&...)>
+	struct TFunctionRefBase<DerivedType, Ret (ParamTypes...)>
 	{
-		typedef TFunctionRefBaseCommon<Ret (ParamTypes...), Ret (void*, ParamTypes&...)> Super;
-
 		explicit TFunctionRefBase(ENoInit)
-			: Super(NoInit)
 		{
-		}
-
-		template <typename FunctorType>
-		explicit TFunctionRefBase(FunctorType* Functor)
-			: Super(Functor)
-		{
+			// Not really designed to be initialized directly, but we want to be explicit about that.
 		}
 
 		Ret operator()(ParamTypes... Params) const
 		{
 			const DerivedType* Derived = static_cast<const DerivedType*>(this);
-			return this->GetCallable()(Derived->GetPtr(), Params...);
+			return Callable(Derived->GetPtr(), Params...);
 		}
+
+		template <typename FunctorType>
+		void Set(FunctorType* Functor)
+		{
+			Callable = &UE4Function_Private::TFunctionRefCaller<FunctorType, Ret (ParamTypes...)>::Call;
+
+			#if ENABLE_TFUNCTIONREF_VISUALIZATION
+				// We placement new over the top of the same object each time.  This is illegal,
+				// but it ensures that the vptr is set correctly for the bound type, and so is
+				// visualizable.  We never depend on the state of this object at runtime, so it's
+				// ok.
+				new ((void*)&DebugPtrStorage) UE4Function_Private::TDebugHelper<FunctorType>;
+				DebugPtrStorage.Ptr = (void*)Functor;
+			#endif
+		}
+
+		void CopyAndReseat(const TFunctionRefBase& Other, void* Functor)
+		{
+			Callable = Other.Callable;
+
+			#if ENABLE_TFUNCTIONREF_VISUALIZATION
+				// Use Memcpy to copy the other DebugPtrStorage, including vptr (because we don't know the bound type
+				// here), and then reseat the underlying pointer.  Possibly even more evil than the Set code.
+				FMemory::Memcpy(&DebugPtrStorage, &Other.DebugPtrStorage, sizeof(DebugPtrStorage));
+				DebugPtrStorage.Ptr = Functor;
+			#endif
+		}
+
+		void Unset()
+		{
+			Callable = &UE4Function_Private::TFunctionRefAsserter<Ret (ParamTypes...)>::Call;
+		}
+
+	private:
+		// A pointer to a function which invokes the call operator on the callable object
+		Ret (*Callable)(void*, ParamTypes&...);
+
+		#if ENABLE_TFUNCTIONREF_VISUALIZATION
+			// To help debug visualizers
+			UE4Function_Private::TDebugHelper<void> DebugPtrStorage;
+		#endif
 	};
 }
 
@@ -456,7 +429,7 @@ public:
 
 	// We delete the assignment operators because we don't want it to be confused with being related to
 	// regular C++ reference assignment - i.e. calling the assignment operator of whatever the reference
-	// is bound to - because that's not what TFunctionRef does, or is it even capable of doing that.
+	// is bound to - because that's not what TFunctionRef does, nor is it even capable of doing that.
 	#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
 		#if !ENABLE_TFUNCTIONREF_VISUALIZATION
@@ -488,15 +461,6 @@ private:
 
 		Ptr  = (void*)Functor;
 		Super::Set(Functor);
-	}
-
-	/**
-	 * 'Nulls' the TFunctionRef.
-	 */
-	void Unset()
-	{
-		Ptr = nullptr;
-		Super::Unset();
 	}
 
 	/**
@@ -647,7 +611,7 @@ public:
 	}
 
 	/**
-	 * Nullptr assignment operator.
+	 * Nullptr assignment operator - unbinds any bound function.
 	 */
 	TFunction& operator=(TYPE_OF_NULLPTR)
 	{
@@ -675,16 +639,10 @@ public:
 	/**
 	 * Tests if the TFunction is callable.
 	 */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		return !!Storage.GetBoundObject();
 	}
-
-	/**
-	 * TFunctions are not usefully comparable, but we need to define operators for FORCEINLINE_EXPLICIT_OPERATOR_BOOL to work
-	 * in the case where explicit operator bool is not supported by the compiler.
-	 */
-	SAFE_BOOL_OPERATORS(TFunction)
 
 private:
 	/**

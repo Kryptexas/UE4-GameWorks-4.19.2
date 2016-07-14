@@ -24,6 +24,7 @@
 
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
+	#include "CoreUObject.h"
 #endif
 
 #if WITH_EDITOR
@@ -1652,12 +1653,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// At least one startup package failed to load, return 1 to indicate an error
 		return 1;
 	}
+#endif // WITH_ENGINE
 
+#if WITH_COREUOBJECT
 	if (GUObjectArray.IsOpenForDisregardForGC())
 	{
 		GUObjectArray.CloseDisregardForGC();
 	}
+#endif // WITH_COREUOBJECT
 
+#if WITH_ENGINE
 	if (UOnlineEngineInterface::Get()->IsLoaded())
 	{
 		SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));

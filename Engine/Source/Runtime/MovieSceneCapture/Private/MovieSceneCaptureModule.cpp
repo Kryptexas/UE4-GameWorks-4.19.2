@@ -5,6 +5,7 @@
 #include "MovieSceneCaptureModule.h"
 #include "JsonObjectConverter.h"
 #include "ActiveMovieSceneCaptures.h"
+#include "SceneViewport.h"
 
 #include "Protocols/ImageSequenceProtocol.h"
 #include "Protocols/CompositionGraphCaptureProtocol.h"

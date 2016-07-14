@@ -252,10 +252,6 @@ public:
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
-	virtual bool NeedsLoadForServer() const override
-	{
-		return false;
-	}
 	//~ End UObject interface
 
 	/**

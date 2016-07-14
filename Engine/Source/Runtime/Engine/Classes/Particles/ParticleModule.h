@@ -536,12 +536,6 @@ class UParticleModule : public UObject
 	/** Returns whether this module is used in any GPU emitters. */
 	ENGINE_API bool IsUsedInGPUEmitter()const;
 
-	/** Ignore this object in dedicated server builds */
-	virtual bool NeedsLoadForServer() const override
-	{
-		return false;
-	}
-
 #if WITH_EDITOR
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 

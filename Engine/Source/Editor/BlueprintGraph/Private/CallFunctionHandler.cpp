@@ -210,16 +210,19 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 										}
 
 										int32 StructSize = Struct->GetStructureSize();
-										uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
-										StructProperty->InitializeValue(StructData);
-
-										// Import the literal text to a dummy struct to verify it's well-formed
-										FImportTextErrorContext ErrorPipe(CompilerContext.MessageLog, Node);
-										StructProperty->ImportText(*((*Term)->Name), StructData, 0, NULL, &ErrorPipe);
-										if(ErrorPipe.NumErrors > 0)
+										[this, StructSize, StructProperty, Node, Term, &bMatchedAllParams]()
 										{
-											bMatchedAllParams = false;
-										}
+											uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
+											StructProperty->InitializeValue(StructData);
+
+											// Import the literal text to a dummy struct to verify it's well-formed
+											FImportTextErrorContext ErrorPipe(CompilerContext.MessageLog, Node);
+											StructProperty->ImportText(*((*Term)->Name), StructData, 0, NULL, &ErrorPipe);
+											if(ErrorPipe.NumErrors > 0)
+											{
+												bMatchedAllParams = false;
+											}
+										}();
 									}
 									
 								}

@@ -62,6 +62,10 @@ namespace PackageTools
 		// Assemble a list of packages.  Only show packages that match the current resource type filter.
 		for (UObject* Obj : TObjectRange<UObject>())
 		{
+			// This is here to hopefully catch a bit more info about a spurious in-the-wild problem which ultimately
+			// crashes inside UObjectBaseUtility::GetOutermost(), which is called inside IsObjectBrowsable().
+			checkf(Obj->IsValidLowLevel(), TEXT("GetFilteredPackageList: bad object found, address: %p, name: %s"), Obj, *Obj->GetName());
+
 			// Make sure that we support displaying this object type
 			bool bIsSupported = ObjectTools::IsObjectBrowsable( Obj );
 			if( bIsSupported )

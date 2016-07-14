@@ -642,7 +642,7 @@ public:
 		friend bool operator!=(const TIterator& Lhs, const TIterator& Rhs) { return Lhs.Index != Rhs.Index; }
 
 		/** Conversion to "bool" returning true if the iterator is valid. */
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{ 
 			return !!CurrentObject;
 		}

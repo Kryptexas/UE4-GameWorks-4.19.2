@@ -1039,14 +1039,14 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 }
 
 
-void FModuleManager::UnloadOrAbandonModuleWithCallback(const FName InModuleName, FOutputDevice &Ar, bool bAbandonOnly)
+void FModuleManager::UnloadOrAbandonModuleWithCallback(const FName InModuleName, FOutputDevice &Ar)
 {
 	auto Module = FindModuleChecked(InModuleName);
 	
 	Module->Module->PreUnloadCallback();
 
 	const bool bIsHotReloadable = DoesLoadedModuleHaveUObjects( InModuleName );
-	if (!bAbandonOnly && bIsHotReloadable && Module->Module->SupportsDynamicReloading())
+	if (bIsHotReloadable && Module->Module->SupportsDynamicReloading())
 	{
 		if( !UnloadModule( InModuleName ))
 		{
@@ -1056,12 +1056,22 @@ void FModuleManager::UnloadOrAbandonModuleWithCallback(const FName InModuleName,
 	else
 	{
 		// Don't warn if abandoning was the intent here
-		if (!bAbandonOnly)
-		{			
-			Ar.Logf(TEXT("Module being reloaded does not support dynamic unloading -- abandoning existing loaded module so that we can load the recompiled version!"));
-		}
+		Ar.Logf(TEXT("Module being reloaded does not support dynamic unloading -- abandoning existing loaded module so that we can load the recompiled version!"));
 		AbandonModule( InModuleName );
 	}
+
+	// Ensure module is unloaded
+	check(!IsModuleLoaded(InModuleName));
+}
+
+
+void FModuleManager::AbandonModuleWithCallback(const FName InModuleName)
+{
+	auto Module = FindModuleChecked(InModuleName);
+	
+	Module->Module->PreUnloadCallback();
+
+	AbandonModule( InModuleName );
 
 	// Ensure module is unloaded
 	check(!IsModuleLoaded(InModuleName));

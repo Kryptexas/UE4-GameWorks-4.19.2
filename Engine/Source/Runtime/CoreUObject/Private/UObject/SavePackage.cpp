@@ -4343,7 +4343,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 #if WITH_EDITOR
 							// If we still didn't find index, maybe it was a duplicate export which got removed.
 							// Check if we have a redirect to original.
-							if (DependencyIndex.IsNull())
+							if (DependencyIndex.IsNull() && DuplicateRedirects.Contains(DependentObject))
 							{
 								DependencyIndex = ExportToIndexMap.FindRef(DuplicateRedirects[DependentObject]);
 							}

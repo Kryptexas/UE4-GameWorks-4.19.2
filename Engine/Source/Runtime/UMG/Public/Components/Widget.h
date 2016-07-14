@@ -628,7 +628,6 @@ private:
 	void VerifySynchronizeProperties();
 
 	/** Did we route the synchronize properties call? */
-	UPROPERTY(Transient)
 	bool bRoutedSynchronizeProperties;
 
 #else

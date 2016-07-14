@@ -25,8 +25,8 @@ enum EDistributionVectorMirrorFlags
 	EDVMF_MAX,
 };
 
-/** Type-safe vector distribution. */
 #if !CPP      //noexport struct
+/** Type-safe vector distribution. */
 USTRUCT(noexport)
 struct FVectorDistribution
 {
@@ -36,8 +36,8 @@ struct FVectorDistribution
 };
 #endif
 
-/** Type-safe 4-vector distribution. */
 #if !CPP      //noexport struct
+/** Type-safe 4-vector distribution. */
 USTRUCT(noexport)
 struct FVector4Distribution
 {

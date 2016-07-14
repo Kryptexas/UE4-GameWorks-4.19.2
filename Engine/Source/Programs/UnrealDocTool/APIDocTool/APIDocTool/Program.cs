@@ -260,7 +260,6 @@ namespace APIDocTool
 			"MSVC_PRAGMA(X)=",
 			"MS_ALIGN(X)= ",
 			"GCC_ALIGN(X)= ",
-			"SAFE_BOOL_OPERATORS(X)= ",
 			"VARARGS=",
 			"VARARG_DECL(FuncRet,StaticFuncRet,Return,FuncName,Pure,FmtType,ExtraDecl,ExtraCall)=FuncRet FuncName(ExtraDecl FmtType Fmt, ...)",
 			"VARARG_BODY(FuncRet,FuncName,FmtType,ExtraDecl)=FuncRet FuncName(ExtraDecl FmtType Fmt, ...)",

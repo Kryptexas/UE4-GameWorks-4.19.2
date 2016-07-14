@@ -1181,12 +1181,6 @@ UNavMeshRenderingComponent::UNavMeshRenderingComponent(const FObjectInitializer&
 	bCollectNavigationData = false;
 }
 
-bool UNavMeshRenderingComponent::NeedsLoadForServer() const
-{
-	// This rendering component is not needed in dedicated server builds
-	return false;
-}
-
 bool UNavMeshRenderingComponent::IsNavigationShowFlagSet(const UWorld* World)
 {
 	bool bShowNavigation = false;

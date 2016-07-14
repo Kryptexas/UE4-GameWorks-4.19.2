@@ -670,7 +670,7 @@ private:
 		FORCEINLINE friend bool operator!=(const TBaseIterator& Lhs, const TBaseIterator& Rhs) { return Lhs.BitArrayIt != Rhs.BitArrayIt || &Lhs.Array != &Rhs.Array; }
 
 		/** conversion to "bool" returning true if the iterator is valid. */
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{ 
 			return !!BitArrayIt; 
 		}
@@ -769,7 +769,7 @@ public:
 		FORCEINLINE int32 GetIndex() const { return BitArrayIt.GetIndex(); }
 		
 		/** conversion to "bool" returning true if the iterator is valid. */
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{ 
 			return !!BitArrayIt; 
 		}

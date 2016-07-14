@@ -41,9 +41,22 @@
 
 	#include <far/stencilTableFactory.h>
 
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable : 6011)  // Dereferencing NULL pointer 'X'
+	#pragma warning(disable : 6308)  // 'realloc' might return null pointer: assigning null pointer to 'X', which is passed as an argument to 'realloc', will cause the original memory block to be leaked.
+	#pragma warning(disable : 6385)  // Reading invalid data from 'X':  the readable size is 'Y' bytes, but 'Z' bytes may be read.
+	#pragma warning(disable : 6386)  // Buffer overrun while writing to 'X':  the writable size is 'Y' bytes, but 'Z' bytes might be written.
+	#pragma warning(disable : 28182) // Dereferencing NULL pointer. 'X' contains the same NULL value as 'Y' did.
+#endif
+
 // for non manifold
 	#include <hbr/mesh.h>
 	#include <hbr/catmark.h>
+
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 
 #undef and
 #undef not

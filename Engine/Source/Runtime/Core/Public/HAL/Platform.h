@@ -175,9 +175,6 @@
 #ifndef PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS	1
 #endif
-#ifndef PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS
-	#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS	1
-#endif
 #ifndef PLATFORM_COMPILER_COMMON_LANGUAGE_RUNTIME_COMPILATION
 	#define PLATFORM_COMPILER_COMMON_LANGUAGE_RUNTIME_COMPILATION 0
 #endif
@@ -554,38 +551,6 @@ struct THasOperatorNotEquals
 {
 	enum { Value = FHasOperatorImpl::NotEquals<T>::Value };
 };
-
-#if PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS
-	#define FORCEINLINE_EXPLICIT_OPERATOR_BOOL FORCEINLINE explicit operator bool
-	#define SAFE_BOOL_OPERATORS(...)		// not needed when compiler supports explicit operator bool()
-#elif PLATFORM_COMPILER_COMMON_LANGUAGE_RUNTIME_COMPILATION
-	// unsafe version
-	#define FORCEINLINE_EXPLICIT_OPERATOR_BOOL FORCEINLINE operator bool
-	#define SAFE_BOOL_OPERATORS(...)
-#else
-	#define FORCEINLINE_EXPLICIT_OPERATOR_BOOL \
-					private: \
-						template <typename TheClassType> \
-						static TheClassType UE_ClassTypeHelper(const TheClassType&); \
-						struct UE_PrivateBoolType \
-						{ \
-							int x; \
-						}; \
-					public: \
-						FORCEINLINE operator int UE_PrivateBoolType::*() const \
-						{ \
-							static_assert(THasOperatorEquals   <decltype(UE_ClassTypeHelper(*this))>::Value, "Class needs operator==()."); \
-							static_assert(THasOperatorNotEquals<decltype(UE_ClassTypeHelper(*this))>::Value, "Class needs operator!=()."); \
-							return UE_OperatorBool() ? &UE_PrivateBoolType::x : 0; \
-						} \
-						FORCEINLINE bool UE_OperatorBool
-
-	// these are left unimplemented to cause link errors if used
-	#define SAFE_BOOL_OPERATORS(...)	\
-			void operator ==( const __VA_ARGS__ & RHS ) const; \
-			void operator !=( const __VA_ARGS__ & RHS ) const;
-#endif
-
 
 // Console ANSICHAR/TCHAR command line handling
 #if PLATFORM_COMPILER_HAS_TCHAR_WMAIN

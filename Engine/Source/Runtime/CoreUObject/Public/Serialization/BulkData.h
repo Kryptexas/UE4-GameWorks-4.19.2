@@ -102,12 +102,10 @@ private:
 			return Ptr;
 		}
 
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{
 			return bAllocated;
 		}
-
-		SAFE_BOOL_OPERATORS(FAllocatedPtr)
 
 		void Reallocate(int32 Count, int32 Alignment = DEFAULT_ALIGNMENT)
 		{

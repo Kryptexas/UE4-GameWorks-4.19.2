@@ -207,14 +207,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		}
 
 		/// <summary> Converts WER metadata xml file to the crash context. </summary>
-		private static void ConvertMetadataToCrashContext(WERReportMetadata Metadata, string NewReportPath, ref FGenericCrashContext OutCrashContext)
+		private static void ConvertMetadataToCrashContext(FReportData ReportData, string NewReportPath, ref FGenericCrashContext OutCrashContext)
 		{
 			if (OutCrashContext == null)
 			{
 				OutCrashContext = new FGenericCrashContext();
 			}
-
-			FReportData ReportData = new FReportData(Metadata, NewReportPath);
 
 			OutCrashContext.PrimaryCrashProperties.CrashVersion = (int)ECrashDescVersions.VER_1_NewCrashFormat;
 
@@ -272,11 +270,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// 			OutCrashContext.PrimaryCrashProperties.SourceContext
 			OutCrashContext.PrimaryCrashProperties.UserDescription = string.Join("\n", ReportData.UserDescription);
 
-			if (string.IsNullOrEmpty(OutCrashContext.PrimaryCrashProperties.ErrorMessage))
-			{
-				OutCrashContext.PrimaryCrashProperties.ErrorMessage = string.Join("\n", ReportData.ErrorMessage);
-			}
-
 			// 			OutCrashContext.PrimaryCrashProperties.CrashDumpMode
 			// 			OutCrashContext.PrimaryCrashProperties.Misc.NumberOfCores
 			// 			OutCrashContext.PrimaryCrashProperties.Misc.NumberOfCoresIncludingHyperthreads
@@ -303,6 +296,21 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.OOMAllocationAlignment
 			OutCrashContext.PrimaryCrashProperties.TimeofCrash = new DateTime(ReportData.Ticks);
 			OutCrashContext.PrimaryCrashProperties.bAllowToBeContacted = ReportData.AllowToBeContacted;
+
+			OutCrashContext.PrimaryCrashProperties.DeploymentName = ReportData.DeploymentName;
+			OutCrashContext.PrimaryCrashProperties.IsEnsure = ReportData.IsEnsure;
+			OutCrashContext.PrimaryCrashProperties.IsAssert = ReportData.IsAssert;
+			OutCrashContext.PrimaryCrashProperties.CrashType = ReportData.CrashType;
+
+			GetErrorMessageFromMetadata(ReportData, OutCrashContext);
+		}
+
+		private static void GetErrorMessageFromMetadata(FReportData ReportData, FGenericCrashContext CrashContext)
+		{
+			if (string.IsNullOrEmpty(CrashContext.PrimaryCrashProperties.ErrorMessage))
+			{
+				CrashContext.PrimaryCrashProperties.ErrorMessage = string.Join("\n", ReportData.ErrorMessage);
+			}
 		}
 
 		/// <summary> Looks for the WER metadata xml file, if found, will return a new instance of the WERReportMetadata. </summary>
@@ -412,15 +420,23 @@ namespace Tools.CrashReporter.CrashReportProcess
 			FGenericCrashContext GenericContext = FindCrashContext(NewReportPath);
 			FGenericCrashContext Context = GenericContext;
 
-			bool bFromWER = false;
-			if (Context == null || !Context.HasProcessedData())
+			bool bContextDirty = false;
+			WERReportMetadata MetaData = FindMetadata(NewReportPath);
+			if (MetaData != null)
 			{
-				WERReportMetadata MetaData = FindMetadata(NewReportPath);
-				if (MetaData != null)
+				if (Context == null)
 				{
+					// Missing crash context
 					FReportData ReportData = new FReportData(MetaData, NewReportPath);
-					ConvertMetadataToCrashContext(MetaData, NewReportPath, ref Context);
-					bFromWER = true;
+					ConvertMetadataToCrashContext(ReportData, NewReportPath, ref Context);
+					bContextDirty = true;
+				}
+				else if (!Context.HasProcessedData())
+				{
+					// Missing data - try to get from WER metadata
+					FReportData ReportData = new FReportData(MetaData, NewReportPath);
+					GetErrorMessageFromMetadata(ReportData, Context);
+					bContextDirty = true;
 				}
 			}
 
@@ -435,7 +451,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			Context.PrimaryCrashProperties.SetPlatformFullName();
 
 			// Added data from WER, save to the crash context file.
-			if (bFromWER)
+			if (bContextDirty)
 			{
 				Context.ToFile();
 			}
@@ -480,6 +496,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					// Crash report not accepted by index
 					CrashReporterProcessServicer.WriteEvent(string.Format(
 						"EnqueueNewReport: Duplicate report skipped {0} in queue {1}", NewReportPath, QueueName));
+					CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
 					ReportProcessor.CleanReport(new DirectoryInfo(NewReportPath));
 					return false;
 				}
@@ -490,7 +507,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				NewCrashContexts.Enqueue(Context);
 			}
 			EnqueueCounter.AddEvent();
-			CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingConstants.QueuedEvent);
+			CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.QueuedEvent);
 			CrashReporterProcessServicer.WriteEvent("+ Enqueued: BuiltFromCL=" + string.Format("{0,7}", BuiltFromCL) + " Path=" + NewReportPath);
 			return true;
 		}
@@ -574,11 +591,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 				}
 
 				string Filename = FBinaryReaderHelper.ReadFixedSizeString(BinaryData);
+				string SafeFilename = GetSafeFilename(Filename);
 				Int32 FiledataLength = BinaryData.ReadInt32();
 				byte[] Filedata = BinaryData.ReadBytes(FiledataLength);
 
 				Directory.CreateDirectory(DestinationFolderPath);
-				File.WriteAllBytes(Path.Combine(DestinationFolderPath, Filename), Filedata);
+				File.WriteAllBytes(Path.Combine(DestinationFolderPath, SafeFilename), Filedata);
 				return true;
 			}
 			catch (Exception Ex)
@@ -587,10 +605,15 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 		}
 
-		// FIELDS
+        public static string GetSafeFilename(string UnsafeName)
+        {
+            return string.Join("X", UnsafeName.Split(Path.GetInvalidFileNameChars()));
+        }
 
-		/// <summary> A list of freshly landed crash reports. </summary>
-		private readonly Queue<FGenericCrashContext> NewCrashContexts = new Queue<FGenericCrashContext>();
+        // FIELDS
+
+        /// <summary> A list of freshly landed crash reports. </summary>
+        private readonly Queue<FGenericCrashContext> NewCrashContexts = new Queue<FGenericCrashContext>();
 
 		/// <summary> Object used to synchronize the access to the NewReport. </summary>
 		private readonly Object NewReportsLock = new Object();
@@ -608,7 +631,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private readonly EventCounter EnqueueCounter = new EventCounter(TimeSpan.FromMinutes(90), 20);
 
-		private static Object ReportIndexLock = new Object();
+		protected static Object ReportIndexLock = new Object();
 	}
 }
 

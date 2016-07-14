@@ -22,7 +22,6 @@ class UObjectRedirector : public UObject
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	void Serialize( FArchive& Ar ) override;
 	virtual bool NeedsLoadForClient() const override;
-	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 

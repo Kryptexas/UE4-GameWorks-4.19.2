@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +59,14 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			CrashReporterProcessServicer.WriteSlack(StartupMessage.ToString());
 
+			// Init events by enumerating event names
+			FieldInfo[] EventNameFields = typeof(StatusReportingEventNames).GetFields(BindingFlags.Static | BindingFlags.Public);
+			foreach (FieldInfo EventNameField in EventNameFields)
+			{
+				string CountName = (string)EventNameField.GetValue(null);
+				Counters.Add(CountName, 0);
+			}
+
 			StatusReportingTask = Task.Factory.StartNew(() =>
 			{
 				var Cancel = CancelSource.Token;
@@ -81,9 +90,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 							if (SetQueueSizesCallCount >= QueueSizes.Count)
 							{
 								int ProcessingStartedInPeriodReceiver = 0;
-								CountsInPeriod.TryGetValue(StatusReportingConstants.ProcessingStartedReceiverEvent, out ProcessingStartedInPeriodReceiver);
+								CountsInPeriod.TryGetValue(StatusReportingEventNames.ProcessingStartedReceiverEvent, out ProcessingStartedInPeriodReceiver);
 								int ProcessingStartedInPeriodDataRouter = 0;
-								CountsInPeriod.TryGetValue(StatusReportingConstants.ProcessingStartedDataRouterEvent, out ProcessingStartedInPeriodDataRouter);
+								CountsInPeriod.TryGetValue(StatusReportingEventNames.ProcessingStartedDataRouterEvent, out ProcessingStartedInPeriodDataRouter);
 								int ProcessingStartedInPeriod = ProcessingStartedInPeriodReceiver + ProcessingStartedInPeriodDataRouter;
 
 								if (ProcessingStartedInPeriod > 0)
@@ -115,10 +124,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 								}
 
 								StatusReportMessage.AppendLine("Queue sizes...");
+								StatusReportMessage.Append("> ");
 								foreach (var Queue in QueueSizes)
 								{
-									StatusReportMessage.AppendLine("> " + Queue.Key + " " + Queue.Value);
+									StatusReportMessage.Append(Queue.Key + " " + Queue.Value + "                ");
 								}
+								StatusReportMessage.AppendLine();
 							}
 							if (CountsInPeriod.Count > 0)
 							{
@@ -145,6 +156,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 					}
 				}
 			});
+		}
+
+		public void OnPreStopping()
+		{
+			CrashReporterProcessServicer.WriteSlack("CRP stopping...");
 		}
 
 		public void Dispose()

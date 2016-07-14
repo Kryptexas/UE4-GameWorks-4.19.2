@@ -129,7 +129,8 @@ void UActorComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (OwnerPrivate)
+	// Instance components will be added during the owner's initialization
+	if (OwnerPrivate && CreationMethod != EComponentCreationMethod::Instance)
 	{
 		OwnerPrivate->AddOwnedComponent(this);
 	}

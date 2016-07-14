@@ -10,6 +10,7 @@
 #include "ActorRecording.h"
 #include "ActorRecordingSettings.h"
 #include "Animation/AnimSequence.h"
+#include "SequenceRecorder.h"
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieScene3DTransformSectionRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const
 {

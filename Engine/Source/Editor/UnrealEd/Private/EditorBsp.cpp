@@ -313,9 +313,16 @@ void UEditorEngine::bspMergeCoplanars( UModel* Model, bool RemapLinks, bool Merg
 	}
 	Model->Polys->Element.RemoveAt( j, Model->Polys->Element.Num()-j );
 	if( RemapLinks )
+	{
 		for( int32 i=0; i<Model->Polys->Element.Num(); i++ )
+		{
 			if( Model->Polys->Element[i].iLink != INDEX_NONE )
+			{
+				CA_SUPPRESS(6001); // warning C6001: Using uninitialized memory '*Remap'.
 				Model->Polys->Element[i].iLink = Remap[Model->Polys->Element[i].iLink];
+			}
+		}
+	}
 // 	UE_LOG(LogEditorBsp, Log,  TEXT("BspMergeCoplanars reduced %i->%i"), OriginalNum, Model->Polys->Element.Num() );
 	Mark2.Pop();
 }
@@ -1702,13 +1709,23 @@ void MergeNearPoints( UModel *Model, float Dist )
 
 	// Remap VertPool.
 	for( int32 i=0; i<Model->Verts.Num(); i++ )
+	{
 		if( Model->Verts[i].pVertex>=0 && Model->Verts[i].pVertex<Model->Points.Num() )
+		{
+			CA_SUPPRESS(6001); // warning C6001: Using uninitialized memory '*PointRemap'.
 			Model->Verts[i].pVertex = PointRemap[Model->Verts[i].pVertex];
+		}
+	}
 
 	// Remap Surfs.
 	for( int32 i=0; i<Model->Surfs.Num(); i++ )
+	{
 		if( Model->Surfs[i].pBase>=0 && Model->Surfs[i].pBase<Model->Points.Num() )
+		{
+			CA_SUPPRESS(6001); // warning C6001: Using uninitialized memory '*PointRemap'.
 			Model->Surfs[i].pBase = PointRemap[Model->Surfs[i].pBase];
+		}
+	}
 
 	// Remove duplicate points from nodes.
 	for( int32 i=0; i<Model->Nodes.Num(); i++ )

@@ -18,6 +18,10 @@
 	#include <dbghelp.h>
 	#include <Shlwapi.h>
 
+#ifndef UE_LOG_CRASH_CALLSTACK
+	#define UE_LOG_CRASH_CALLSTACK 1
+#endif
+
 #pragma comment( lib, "version.lib" )
 #pragma comment( lib, "Shlwapi.lib" )
 
@@ -565,6 +569,7 @@ class FCrashReportingThread
 		{
 			if (WaitForSingleObject(CrashEvent, 500) == WAIT_OBJECT_0)
 			{
+				ResetEvent(CrashHandledEvent);
 				HandleCrashInternal();
 				ResetEvent(CrashEvent);
 				// Let the thread that crashed know we're done.				
@@ -596,7 +601,7 @@ public:
 			SetThreadPriority(Thread, THREAD_PRIORITY_BELOW_NORMAL);
 			// Synchronization objects
 			CrashEvent = CreateEvent(nullptr, true, 0, nullptr);
-			CrashHandledEvent = CreateEvent(nullptr, false, 0, nullptr);
+			CrashHandledEvent = CreateEvent(nullptr, true, 0, nullptr);
 		}
 	}
 
@@ -669,7 +674,12 @@ private:
 		// Then try run time crash processing and broadcast information about a crash.
 		FCoreDelegates::OnHandleSystemError.Broadcast();
 
-		const bool bGenerateRuntimeCallstack = FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+		const bool bGenerateRuntimeCallstack =
+#if UE_LOG_CRASH_CALLSTACK
+			true;
+#else
+			FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+#endif // UE_LOG_CRASH_CALLSTACK
 		if (bGenerateRuntimeCallstack)
 		{
 			const SIZE_T StackTraceSize = 65535;

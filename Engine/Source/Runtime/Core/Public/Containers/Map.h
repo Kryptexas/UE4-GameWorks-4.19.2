@@ -616,7 +616,7 @@ protected:
 		}
 
 		/** conversion to "bool" returning true if the iterator is valid. */
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{ 
 			return !!PairIt; 
 		}
@@ -661,10 +661,8 @@ protected:
 			return *this;
 		}
 
-		SAFE_BOOL_OPERATORS(TBaseKeyIterator<bConst>)
-
 		/** conversion to "bool" returning true if the iterator is valid. */
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{ 
 			return !!SetIt; 
 		}

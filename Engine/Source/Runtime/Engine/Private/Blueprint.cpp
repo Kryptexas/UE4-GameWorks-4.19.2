@@ -788,10 +788,12 @@ UWorld* UBlueprint::GetWorldBeingDebugged()
 
 void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	UClass* GenClass = Cast<UClass>(GeneratedClass);
-	if ( GenClass && GenClass->GetDefaultObject() )
+	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
 	{
-		GenClass->GetDefaultObject()->GetAssetRegistryTags(OutTags);
+		if (UObject* CDO = GenClass->GetDefaultObject())
+		{
+			CDO->GetAssetRegistryTags(OutTags);
+		}
 	}
 
 	Super::GetAssetRegistryTags(OutTags);

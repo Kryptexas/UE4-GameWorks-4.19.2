@@ -3453,8 +3453,9 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 
 					FString UncookedFilename = ConvertCookedPathToUncookedPath(CookedFilename);
 					
-					FDateTime DependentTimestamp;
 					FName StandardUnCookedFileFName = FName(*UncookedFilename);
+					
+					FDateTime DependentTimestamp = IFileManager::Get().GetTimeStamp(*StandardUnCookedFileFName.ToString());
 #if 1 // asset registry dependency checking instead of using DependencyInfo module
 					//////////////////////////////////////////////////////////////////////////
 
