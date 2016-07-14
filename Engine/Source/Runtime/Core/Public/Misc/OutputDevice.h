@@ -358,6 +358,9 @@ struct CORE_API FDebug
 	/** Logs final assert message and exits the program. */
 	static void VARARGS AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);
 
+	/** Records the calling of AssertFailed() */
+	static bool bHasAsserted;
+
 #if DO_CHECK || DO_GUARD_SLOW
 	/** Failed assertion handler.  Warning: May be called at library startup time. */
 	static void VARARGS LogAssertFailedMessage( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format=TEXT(""), ... );

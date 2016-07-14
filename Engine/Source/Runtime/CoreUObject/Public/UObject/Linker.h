@@ -1855,6 +1855,7 @@ private:
 	// this fixes the warning : 'ULinkerSave::Serialize' hides overloaded virtual function
 	using FLinker::Serialize;
 	virtual void Serialize( void* V, int64 Length ) override;
+	using FArchiveUObject::operator<<; // For visibility of the overloads we don't override
 	virtual FArchive& operator<<( UObject*& Object ) override;
 	virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr) override;
 	virtual FArchive& operator<<( FAssetPtr& AssetPtr) override;
@@ -2271,6 +2272,7 @@ public:
 	FPackageIndex MapObject(const UObject* Object) const;
 
 	// FArchive interface.
+	using FArchiveUObject::operator<<; // For visibility of the overloads we don't override
 	FArchive& operator<<( FName& InName );
 	FArchive& operator<<( UObject*& Obj );
 	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );

@@ -1505,7 +1505,7 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 
 		if (MyActor == TheirActor && MyActor && MyActor->GetRootComponent() == this)
 		{
-			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("AttachToSelfWarning", "AttachTo: '{0}' root component cannot be attached to other components in the same actor. Aborting."),
+			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("AttachToSelfRootWarning", "AttachTo: '{0}' root component cannot be attached to other components in the same actor. Aborting."),
 				FText::FromString(GetPathName())));
 			return false;
 		}

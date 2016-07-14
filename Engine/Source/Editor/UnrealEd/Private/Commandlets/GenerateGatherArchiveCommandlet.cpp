@@ -139,68 +139,63 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		ShouldPurgeOldEmptyEntries = false;
 	}
 
-	FString ManifestFilePath = DestinationPath / ManifestName;
-	TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile( ManifestFilePath );
-
-	if( !ManifestJsonObject.IsValid() )
+	// Prepare the manifest
+	TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable(new FInternationalizationManifest());
 	{
-		UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Could not read manifest file %s."), *ManifestFilePath);
-		return -1;
+		const FString ManifestFileName = DestinationPath / ManifestName;
+		if (!FPaths::FileExists(ManifestFileName))
+		{
+			UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to find manifest '%s'."), *ManifestFileName);
+			return -1;
+		}
+
+		const TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile(ManifestFileName);
+		if (!ManifestJsonObject.IsValid())
+		{
+			UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to parse manifest '%s'."), *ManifestFileName);
+			return -1;
+		}
+
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
+		if (!ManifestSerializer.DeserializeManifest(ManifestJsonObject.ToSharedRef(), InternationalizationManifest))
+		{
+			UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to deserialize manifest '%s'."), *ManifestFileName);
+			return -1;
+		}
 	}
 
-	FJsonInternationalizationManifestSerializer ManifestSerializer;
-	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
-
-	ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
-
-	const FString NativeCulturePath = DestinationPath / *(NativeCulture);
-	TArray<FString> NativeArchiveFileNames;
-	IFileManager::Get().FindFiles(NativeArchiveFileNames, *(NativeCulturePath / TEXT("*.archive")), true, false);
-
-	TArray< TSharedPtr<FInternationalizationArchive> > NativeArchives;
-	for (const FString& NativeArchiveFileName : NativeArchiveFileNames)
+	// Load the native archive info
+	TSharedPtr<FInternationalizationArchive> NativeArchive;
 	{
-		// Read each archive file from the culture-named directory in the source path.
-		FString ArchiveFilePath = NativeCulturePath / NativeArchiveFileName;
-		ArchiveFilePath = FPaths::ConvertRelativePathToFull(ArchiveFilePath);
-		TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive);
+		const FString NativeCulturePath = DestinationPath / NativeCulture;
 
-		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-#if 0 // @todo Json: Serializing from FArchive is currently broken
-		FArchive* ArchiveFile = IFileManager::Get().CreateFileReader(*ArchiveFilePath);
-
-		if (ArchiveFile == nullptr)
+		// The native archive may not exist if this is the first time we've run a gather, so this shouldn't fail the commandlet
+		const FString NativeArchiveFileName = NativeCulturePath / ArchiveName;
+		if (FPaths::FileExists(NativeArchiveFileName))
 		{
-			UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("No archive found at %s."), *ArchiveFilePath);
-			continue;
+			const TSharedPtr<FJsonObject> ArchiveJsonObject = ReadJSONTextFile(NativeArchiveFileName);
+			if (!ArchiveJsonObject.IsValid())
+			{
+				UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to read archive file %s."), *NativeArchiveFileName);
+				return -1;
+			}
+
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+			NativeArchive = MakeShareable(new FInternationalizationArchive());
+			if (!ArchiveSerializer.DeserializeArchive(ArchiveJsonObject.ToSharedRef(), NativeArchive.ToSharedRef()))
+			{
+				UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to deserialize archive '%s'."), *NativeArchiveFileName);
+				return -1;
+			}
 		}
-
-		ArchiveSerializer.DeserializeArchive(*ArchiveFile, InternationalizationArchive);
-#else
-		FString ArchiveContent;
-
-		if (!FFileHelper::LoadFileToString(ArchiveContent, *ArchiveFilePath))
-		{
-			UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to load file %s."), *ArchiveFilePath);
-			continue;
-		}
-
-		if (!ArchiveSerializer.DeserializeArchive(ArchiveContent, InternationalizationArchive))
-		{
-			UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("Failed to serialize archive from file %s."), *ArchiveFilePath);
-			continue;
-		}
-#endif
-
-		NativeArchives.Add(InternationalizationArchive);
 	}
 
-	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
+	for (const FString& CultureName : CulturesToGenerate)
 	{
 		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
-		BuildArchiveFromManifest( InternationalizationManifest, InternationalizationArchive, NativeCulture, CulturesToGenerate[Culture] );
+		BuildArchiveFromManifest( InternationalizationManifest, InternationalizationArchive, NativeCulture, CultureName );
 
-		const FString CulturePath = DestinationPath / CulturesToGenerate[Culture];
+		const FString CulturePath = DestinationPath / CultureName;
 		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 		TSharedRef< FInternationalizationArchive > OutputInternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 
@@ -301,7 +296,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 
 			ArchiveSerializer.DeserializeArchive( ExistingArchiveJsonObject.ToSharedRef(), OutputInternationalizationArchive );
 
-			if (CulturesToGenerate[Culture] != NativeCulture)
+			if (NativeArchive.IsValid() && CultureName != NativeCulture)
 			{
 				for(TManifestEntryByContextIdContainer::TConstIterator i = InternationalizationManifest->GetEntriesByContextIdIterator(); i; ++i)
 				{
@@ -316,23 +311,19 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 
 					for (const auto& Context : ManifestEntry->Contexts)
 					{
-						for (const auto& NativeArchive : NativeArchives)
+						const TSharedPtr<FArchiveEntry> NativeArchiveEntry = NativeArchive->FindEntryBySource(Namespace, Source, Context.KeyMetadataObj);
+						if (NativeArchiveEntry.IsValid() && !NativeArchiveEntry->Source.IsExactMatch(NativeArchiveEntry->Translation))
 						{
-							const TSharedPtr<FArchiveEntry> NativeArchiveEntry = NativeArchive->FindEntryBySource(Namespace, Source, Context.KeyMetadataObj);
-							if (NativeArchiveEntry.IsValid() && !NativeArchiveEntry->Source.IsExactMatch(NativeArchiveEntry->Translation))
-							{
-								FLocItem NewSource = NativeArchiveEntry->Translation;
-								ConditionSource(NewSource);
-								FLocItem NewTranslation = NativeArchiveEntry->Translation;
-								ConditionTranslation(NewTranslation);
-								OutputInternationalizationArchive->AddEntry(Namespace, NewSource, NewTranslation, Context.KeyMetadataObj, Context.bIsOptional);
-								break;
-							}
+							FLocItem NewSource = NativeArchiveEntry->Translation;
+							ConditionSource(NewSource);
+							FLocItem NewTranslation = NativeArchiveEntry->Translation;
+							ConditionTranslation(NewTranslation);
+							OutputInternationalizationArchive->AddEntry(Namespace, NewSource, NewTranslation, Context.KeyMetadataObj, Context.bIsOptional);
+							break;
 						}
 					}
 				}
 			}
-
 		}
 
 		if (InternationalizationArchive->GetFormatVersion() < FInternationalizationArchive::EFormatVersion::Latest)
@@ -348,7 +339,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		TSharedRef< FJsonObject > OutputArchiveJsonObj = MakeShareable( new FJsonObject );
 		ArchiveSerializer.SerializeArchive( OutputInternationalizationArchive, OutputArchiveJsonObj );
 
-		const FString ArchivePath = FPaths::ConvertRelativePathToFull(DestinationPath) / CulturesToGenerate[Culture] / ArchiveName;
+		const FString ArchivePath = FPaths::ConvertRelativePathToFull(DestinationPath) / CultureName / ArchiveName;
 		if( !WriteArchiveToFile( OutputArchiveJsonObj, ArchivePath ) )
 		{
 			UE_LOG( LogGenerateArchiveCommandlet, Error,TEXT("Failed to write archive to %s."), *ArchivePath );				
@@ -382,7 +373,7 @@ void UGenerateGatherArchiveCommandlet::BuildArchiveFromManifest( TSharedRef< con
 
 		for( auto ContextIter = UnstructuredManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
 		{
-			const FContext& Context = *ContextIter;
+			const FManifestContext& Context = *ContextIter;
 
 			// We only add the non-optional entries
 			if( !Context.bIsOptional )

@@ -29,6 +29,7 @@
 
 #include "PackageTools.h"
 #include "ObjectTools.h"
+#include "TextPackageNamespaceUtil.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/LevelStreaming.h"
@@ -316,11 +317,11 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 		break;
 
 	case FI_ImportScene:
-		Result = TEXT("FBX (*.fbx) OBJ (.obj)|*.fbx;*.obj|FBX (*.fbx)|*.fbx|OBJ (*.obj)|*.obj|All Files|*.*");
+		Result = TEXT("FBX (*.fbx) OBJ (*.obj)|*.fbx;*.obj|FBX (*.fbx)|*.fbx|OBJ (*.obj)|*.obj");
 		break;
 
 	case FI_ExportScene:
-		Result = TEXT("FBX (*.fbx)|*.fbx|Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj|All Files|*.*");
+		Result = TEXT("FBX (*.fbx)|*.fbx|Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj");
 		break;
 
 	default:
@@ -848,7 +849,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 				}
 			}
 
-
 			if( bCanRenameStreamingLevels )
 			{
 				// Prompt to update streaming levels and such
@@ -881,6 +881,10 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 						}
 					}
 
+#if USE_STABLE_LOCALIZATION_KEYS
+					TextNamespaceUtil::ClearPackageNamespace(InWorld);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 					// Save the level!
 					bStatus = FEditorFileUtils::SaveMap( InWorld, SaveFilename );
 				}
@@ -891,6 +895,10 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 			}
 			else
 			{
+#if USE_STABLE_LOCALIZATION_KEYS
+				TextNamespaceUtil::ClearPackageNamespace(InWorld);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 				// Save the level
 				bStatus = FEditorFileUtils::SaveMap( InWorld, SaveFilename );
 			}
@@ -914,8 +922,18 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 		*OutSavedFilename = SaveFilename;
 	}
 
-	return bStatus;
+	if (bStatus)
+	{
+		FSelectionStateOfLevel SelectionStateOfLevel;
+		GEditor->GetSelectionStateOfLevel(SelectionStateOfLevel);
 
+		// Reload the world now as "Save As..." may have updated some IDs
+		FEditorFileUtils::LoadMap(SaveFilename, /*bLoadAsTemplate*/false, /*bShowProgress*/true);
+
+		GEditor->SetSelectionStateOfLevel(SelectionStateOfLevel);
+	}
+
+	return bStatus;
 }
 
 /**
@@ -3453,7 +3471,7 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(FPaths::ConvertRelativePathToFull(Filename), EStateCacheUsage::Use);
 
 		// Only include non-map packages that are currently checked out or packages not under source control
-		if (SourceControlState.IsValid() && 
+		if (SourceControlState.IsValid() && SourceControlState->IsCurrent() && 
 			(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())) &&
 			(bIncludeMaps || !IsMapPackageAsset(*Filename)))
 		{

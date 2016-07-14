@@ -1472,6 +1472,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FCoreStyle::ResetToDefault();
 	}
 
+	if (GIsEditor)
+	{
+		// The editor makes use of all cultures in its UI, so pre-load the resource data now to avoid a hitch later
+		FInternationalization::Get().LoadAllCultureData();
+	}
+
 	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
 
 	SlowTask.EnterProgressFrame(10);

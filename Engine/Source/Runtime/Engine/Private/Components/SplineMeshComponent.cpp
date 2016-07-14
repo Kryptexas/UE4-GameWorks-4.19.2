@@ -510,8 +510,7 @@ void USplineMeshComponent::UpdateRenderStateAndCollision()
 	MarkRenderStateDirty();
 
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
-	DestroyBodySetup();
-	RecreateCollision();
+	CachedMeshBodySetupGuid.Invalidate();
 	RecreatePhysicsState();
 #endif // WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 
@@ -862,28 +861,49 @@ bool USplineMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) cons
 
 void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 {
+	// First get the base mesh id from the static mesh
+	if (StaticMesh)
+	{
+		StaticMesh->GetMeshId(OutMeshId);
+	}
+
 	// new method: Same guid as the base mesh but with a unique DDC-id based on the spline params.
 	// This fixes the bug where running a blueprint construction script regenerates the guid and uses
 	// a new DDC slot even if the mesh hasn't changed
 	// If BodySetup is null that means we're *currently* duplicating one, and haven't transformed its data
 	// to fit the spline yet, so just use the data from the base mesh by using a blank MeshId
 	// It would be better if we could stop it building data in that case at all...
+
 	if (BodySetup != nullptr && BodySetup->BodySetupGuid == CachedMeshBodySetupGuid)
 	{
-		OutMeshId += FString::Printf(TEXT("(%s,%s,%s,%f,%s)_(%s,%s,%s,%f,%s)_%s_%d_%c"),
-			*SplineParams.StartPos.ToString(),
-			*SplineParams.StartTangent.ToString(),
-			*SplineParams.StartScale.ToString(),
-			SplineParams.StartRoll,
-			SplineParams.StartOffset != FVector2D::ZeroVector ? *SplineParams.StartOffset.ToString() : TEXT(""),
-			*SplineParams.EndPos.ToString(),
-			*SplineParams.EndTangent.ToString(),
-			*SplineParams.EndScale.ToString(),
-			SplineParams.EndRoll,
-			SplineParams.EndOffset != FVector2D::ZeroVector ? *SplineParams.EndOffset.ToString() : TEXT(""),
-			SplineUpDir != FVector::UpVector ? *SplineUpDir.ToString() : TEXT(""),
-			(int32)bSmoothInterpRollScale,
-			TEXT("XYZ")[(int32)ForwardAxis.GetValue()]);
+		TArray<uint8> TempBytes;
+		TempBytes.Reserve(256);
+
+		FMemoryWriter Ar(TempBytes);
+		Ar << SplineParams.StartPos;
+		Ar << SplineParams.StartTangent;
+		Ar << SplineParams.StartScale;
+		Ar << SplineParams.StartRoll;
+		Ar << SplineParams.StartOffset;
+		Ar << SplineParams.EndPos;
+		Ar << SplineParams.EndTangent;
+		Ar << SplineParams.EndScale;
+		Ar << SplineParams.EndRoll;
+		Ar << SplineParams.EndOffset;
+		Ar << SplineUpDir;
+		bool bSmoothInterp = bSmoothInterpRollScale;
+		Ar << bSmoothInterp; // can't write a bitfield member into an archive
+		Ar << ForwardAxis;
+		Ar << SplineBoundaryMin;
+		Ar << SplineBoundaryMax;
+
+		// Now convert the raw bytes to a string.
+		const uint8* SettingsAsBytes = TempBytes.GetData();
+		OutMeshId.Reserve(OutMeshId.Len() + TempBytes.Num() + 1);
+		for (int32 ByteIndex = 0; ByteIndex < TempBytes.Num(); ++ByteIndex)
+		{
+			ByteToHex(SettingsAsBytes[ByteIndex], OutMeshId);
+		}
 	}
 }
 
@@ -1017,8 +1037,6 @@ void USplineMeshComponent::RecreateCollision()
 				SphereElem.Center *= Mask;
 
 				SphereElem.Radius *= SliceTransform.GetMaximumAxisScale();
-
-				SliceTransform.RemoveScaling();
 				SphereElem.Center = SliceTransform.TransformPosition(SphereElem.Center);
 			}
 
@@ -1033,7 +1051,6 @@ void USplineMeshComponent::RecreateCollision()
 				SphylElem.Length = (TM * SliceTransform).TransformVector(FVector(0, 0, SphylElem.Length)).Size();
 				SphylElem.Radius *= SliceTransform.GetMaximumAxisScale();
 
-				SliceTransform.RemoveScaling();
 				SphylElem.SetTransform(TM * SliceTransform);
 			}
 
@@ -1061,11 +1078,17 @@ void USplineMeshComponent::RecreateCollision()
 			// transform the points of the convex hulls into spline space
 			for (FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 			{
+				FTransform TM = ConvexElem.GetTransform();
 				for (FVector& Point : ConvexElem.VertexData)
 				{
-					Point = CalcSliceTransform(GetAxisValue(Point, ForwardAxis)).TransformPosition(Point * Mask);
+					// pretransform the point by its local transform so we are working in untransformed local space
+					FVector TransformedPoint = TM.TransformPosition(Point);
+					// apply the transform to spline space
+					Point = CalcSliceTransform(GetAxisValue(TransformedPoint, ForwardAxis)).TransformPosition(TransformedPoint * Mask);
 				}
 
+				// Set the local transform as an identity as points have already been transformed
+				ConvexElem.SetTransform(FTransform::Identity);
 				ConvexElem.UpdateElemBox();
 			}
 		}

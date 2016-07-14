@@ -150,15 +150,18 @@ public:
 	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false, bool bOverrideLock = false ) = 0;
 
 	/**
-	 * Sets a single objects that details view is viewing
+	 * Sets a single object that details view is viewing
 	 *
-	 * @param InObject		The objects to view
+	 * @param InObject		The object to view
 	 * @param bForceRefresh	If true, doesn't check if new objects are being set
 	 */
 	virtual void SetObject( UObject* InObject, bool bForceRefresh = false ) = 0;
 
 	/** Removes all invalid objects being observed by this details panel */
 	virtual void RemoveInvalidObjects() = 0;
+
+	/** Set overrides that should be used when looking for packages that contain the given object (used when editing a transient copy of an object, but you need access to th real package) */
+	virtual void SetObjectPackageOverrides(const TMap<TWeakObjectPtr<UObject>, TWeakObjectPtr<UPackage>>& InMapping) = 0;
 
 	/**
 	 * Returns true if the details view is locked and cant have its observed objects changed 

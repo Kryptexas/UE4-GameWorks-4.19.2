@@ -337,6 +337,11 @@ struct FPrimaryCrashProperties
 	FCrashProperty PlatformCallbackResult;
 
 	/**
+	 *	CRC sets this to the current version of the software.
+	 */
+	FCrashProperty CrashReportClientVersion;
+
+	/**
 	 * Whether this crash has a minidump file.
 	 * @HasMiniDumpFile bit 
 	 */

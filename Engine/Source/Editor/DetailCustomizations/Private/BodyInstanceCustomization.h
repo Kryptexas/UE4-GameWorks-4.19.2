@@ -149,6 +149,7 @@ private:
 	bool bDisplayConstraints;
 	bool bDisplayEnablePhysics;
 
+	TSharedPtr<IPropertyHandle> MassInKgOverrideHandle;
 	TSharedPtr<IPropertyHandle> DOFModeProperty;
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 };

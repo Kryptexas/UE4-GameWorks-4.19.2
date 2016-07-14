@@ -105,8 +105,8 @@ uint32 FLauncherWorker::Run( )
 
 	if (Status == ELauncherWorkerStatus::Canceling)
 	{
-		Status = ELauncherWorkerStatus::Canceled;
 		LaunchCanceled.Broadcast(FPlatformTime::Seconds() - LaunchStartTime);
+		Status = ELauncherWorkerStatus::Canceled;
 	}
 	else
 	{
@@ -131,6 +131,19 @@ void FLauncherWorker::Cancel( )
 	if (Status == ELauncherWorkerStatus::Busy)
 	{
 		Status = ELauncherWorkerStatus::Canceling;
+	}
+}
+
+
+void FLauncherWorker::CancelAndWait( )
+{
+	if (Status == ELauncherWorkerStatus::Busy)
+	{
+		Status = ELauncherWorkerStatus::Canceling;
+		while (Status != ELauncherWorkerStatus::Canceled)
+		{
+			FPlatformProcess::Sleep(0);
+		}
 	}
 }
 

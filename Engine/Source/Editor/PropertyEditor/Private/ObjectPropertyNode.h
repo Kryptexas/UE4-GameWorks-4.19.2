@@ -32,6 +32,13 @@ public:
 	UObject* GetUObject(int32 InIndex);
 	const UObject* GetUObject(int32 InIndex) const;
 
+	/**
+	 * Returns the UPackage at index "n" of the Objects Array
+	 * @param InIndex - index to read out of the array
+	 */
+	UPackage* GetUPackage(int32 InIndex);
+	const UPackage* GetUPackage(int32 InIndex) const;
+
 	/** Returns the number of objects for which properties are currently being edited. */
 	int32 GetNumObjects() const	{ return Objects.Num(); }
 
@@ -47,6 +54,11 @@ public:
 	 * Removes all objects from the list.
 	 */
 	void RemoveAllObjects();
+
+	/** Set overrides that should be used when looking for packages that contain the given object */
+	void SetObjectPackageOverrides(const TMap<TWeakObjectPtr<UObject>, TWeakObjectPtr<UPackage>>& InMapping);
+	/** Clear overrides that should be used when looking for packages that contain the given object */
+	void ClearObjectPackageOverrides();
 
 	/**
 	 * Purges any objects marked pending kill from the object list
@@ -132,5 +144,8 @@ private:
 	 * Set of all category names hidden by the objects in this node
 	 */
 	TSet<FName> HiddenCategories;
+
+	/** Object -> Package re-mapping */
+	TMap<TWeakObjectPtr<UObject>, TWeakObjectPtr<UPackage>> ObjectToPackageMapping;
 };
 

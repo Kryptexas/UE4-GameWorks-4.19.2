@@ -400,6 +400,10 @@ public:
 	 */ 
 	virtual UWorld* GetWorld() const;
 
+	/**
+	 * Whether or not the current selection has a scene component selected
+ 	 */
+	bool SelectionHasSceneComponent() const;
 protected:
 	/** 
 	 * Delegate handlers
@@ -431,6 +435,8 @@ protected:
 	/** if true, the viewports will hide all UI overlays */
 	bool bHideViewportUI;
 
+	/** if true the current selection has a scene component */
+	bool bSelectionHasSceneComponent;
 private:
 
 	/** The coordinate system the widget is operating within. */

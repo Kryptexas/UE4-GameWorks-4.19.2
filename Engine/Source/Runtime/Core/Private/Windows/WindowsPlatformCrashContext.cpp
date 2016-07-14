@@ -304,7 +304,7 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 
 		// Create a crash event report
 		HREPORT ReportHandle = NULL;
-		if( WerReportCreate( APPCRASH_EVENT, WerReportApplicationCrash, &ReportInformation, &ReportHandle ) == S_OK )
+		if( WerReportCreate( FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted), WerReportApplicationCrash, &ReportInformation, &ReportHandle ) == S_OK )
 		{
 			// Set the standard set of a crash parameters
 			SetReportParameters( ReportHandle, ExceptionInfo, ErrorMessage );

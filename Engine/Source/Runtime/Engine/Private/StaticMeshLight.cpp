@@ -350,7 +350,6 @@ ELightMapInteractionType UStaticMeshComponent::GetStaticLightingType() const
 	if( HasValidSettingsForStaticLighting(false) )
 	{
 		// Process each LOD separately.
-		TArray<FStaticMeshStaticLightingMesh*> StaticLightingMeshes;
 		for(int32 LODIndex = 0;LODIndex < StaticMesh->RenderData->LODResources.Num();LODIndex++)
 		{
 			const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[LODIndex];

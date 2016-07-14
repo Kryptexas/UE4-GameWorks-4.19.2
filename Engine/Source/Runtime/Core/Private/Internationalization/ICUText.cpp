@@ -4,7 +4,7 @@
 
 #if UE_ENABLE_ICU
 #include "Text.h"
-#include "ICUText.h"
+#include "TextData.h"
 
 #if defined(_MSC_VER) && USING_CODE_ANALYSIS
 	#pragma warning(push)
@@ -12,6 +12,8 @@
 	#pragma warning(disable:28252)
 	#pragma warning(disable:28253)
 #endif
+    #include <unicode/utypes.h>
+	#include <unicode/unistr.h>
 	PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#include <unicode/coll.h>
 	#include <unicode/sortkey.h>
@@ -24,6 +26,8 @@
 	#pragma warning(pop)
 #endif
 
+#include "ICUUtilities.h"
+#include "ICUCulture.h"
 #include "ICUTextCharacterIterator.h"
 
 bool FText::IsWhitespace( const TCHAR Char )
@@ -32,21 +36,6 @@ bool FText::IsWhitespace( const TCHAR Char )
 	// check, since whitespace is never a pair of UTF-16 characters
 	const UChar32 ICUChar = static_cast<UChar32>(Char);
 	return u_isWhitespace(ICUChar) != 0;
-}
-
-// static
-FText FText::AsCurrencyBase(int64 BaseVal, const FString& CurrencyCode, const FCulturePtr& TargetCulture)
-{
-	FInternationalization& I18N = FInternationalization::Get();
-	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
-
-	const FDecimalNumberFormattingRules& FormattingRules = Culture.Implementation->GetCurrencyFormattingRules(CurrencyCode);
-	const FNumberFormattingOptions& FormattingOptions = FormattingRules.CultureDefaultFormattingOptions;
-	double Val = static_cast<double>(BaseVal) / FMath::Pow(10.0f, FormattingOptions.MaximumFractionalDigits);
-	FString NativeString = FastDecimalFormat::NumberToString(Val, FormattingRules, FormattingOptions);
-
-	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsCurrency>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, nullptr, TargetCulture))));
 }
 
 FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)

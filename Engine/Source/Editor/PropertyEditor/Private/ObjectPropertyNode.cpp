@@ -31,6 +31,21 @@ const UObject* FObjectPropertyNode::GetUObject(int32 InIndex) const
 	return Objects[InIndex].Get();
 }
 
+UPackage* FObjectPropertyNode::GetUPackage(int32 InIndex)
+{
+	UObject* Obj = GetUObject(InIndex);
+	if (Obj)
+	{
+		TWeakObjectPtr<UPackage>* Package = ObjectToPackageMapping.Find(Obj);
+		return Package ? Package->Get() : Obj->GetOutermost();
+	}
+	return nullptr;
+}
+
+const UPackage* FObjectPropertyNode::GetUPackage(int32 InIndex) const
+{
+	return const_cast<FObjectPropertyNode*>(this)->GetUPackage(InIndex);
+}
 
 // Adds a new object to the list.
 void FObjectPropertyNode::AddObject( UObject* InObject )
@@ -53,6 +68,16 @@ void FObjectPropertyNode::RemoveObject( UObject* InObject )
 void FObjectPropertyNode::RemoveAllObjects()
 {
 	Objects.Empty();
+}
+
+void FObjectPropertyNode::SetObjectPackageOverrides(const TMap<TWeakObjectPtr<UObject>, TWeakObjectPtr<UPackage>>& InMapping)
+{
+	ObjectToPackageMapping = InMapping;
+}
+
+void FObjectPropertyNode::ClearObjectPackageOverrides()
+{
+	ObjectToPackageMapping.Empty();
 }
 
 // Purges any objects marked pending kill from the object list

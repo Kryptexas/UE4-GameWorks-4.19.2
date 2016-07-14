@@ -44,5 +44,7 @@ private:
 	TAttribute<bool> bIsPassword;
 
 	/** The localized fallback font revision the last time the text layout was updated. Used to force a flush if the font changes. */
-	int32 LocalizedFallbackFontRevision;
+	uint16 LocalizedFallbackFontRevision;
+
+	friend class FSlateTextLayoutFactory;
 };

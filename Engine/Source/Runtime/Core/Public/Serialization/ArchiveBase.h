@@ -6,6 +6,7 @@
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
+#include "TextNamespaceFwd.h"
 
 class FAssetPtr;
 class FCustomVersionContainer;
@@ -52,6 +53,14 @@ public:
 	{
 		return *this;
 	}
+
+	/**
+	 * Serializes an FText value from or into an archive.
+	 *
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
+	 */
+	virtual FArchive& operator<<(class FText& Value);
 
 	/**
 	 * Serializes an UObject value from or into this archive.
@@ -316,7 +325,6 @@ public:
 	 * @param Value The value to serialize.
 	 */
 	friend CORE_API FArchive& operator<<(FArchive& Ar, FString& Value);
-
 
 public:
 
@@ -980,6 +988,20 @@ public:
 		return SerializedProperty;
 	}
 
+#if USE_STABLE_LOCALIZATION_KEYS
+	/**
+	 * Set the localization namespace that this archive should use when serializing text properties.
+	 * This is typically the namespace used by the package being serialized (if serializing a package, or an object within a package).
+	 */
+	virtual void SetLocalizationNamespace(const FString& InLocalizationNamespace);
+
+	/**
+	 * Get the localization namespace that this archive should use when serializing text properties.
+	 * This is typically the namespace used by the package being serialized (if serializing a package, or an object within a package).
+	 */
+	virtual FString GetLocalizationNamespace() const;
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 protected:
 
 	/** Resets all of the base archive members. */
@@ -1176,9 +1198,24 @@ private:
 	class UProperty* SerializedProperty;
 
 #if WITH_EDITORONLY_DATA
-	/** Non-zero if on the current stack of serialized properties there's an editor-only property. Needs to live in FArchive becasuse of SerializedProperty. */
+	/** Non-zero if on the current stack of serialized properties there's an editor-only property. Needs to live in FArchive because of SerializedProperty. */
 	int32 EditorOnlyPropertyStack;
 #endif
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	/**
+	 * The localization namespace that this archive should use when serializing text properties.
+	 * This is typically the namespace used by the package being serialized (if serializing a package, or an object within a package).
+	 * Stored as a pointer to a heap-allocated string because of a dependency between TArray (thus FString) and FArchive; null should be treated as an empty string.
+	 */
+	class FString* LocalizationNamespacePtr;
+
+	/** See SetLocalizationNamespace */
+	void SetBaseLocalizationNamespace(const FString& InLocalizationNamespace);
+
+	/** See GetLocalizationNamespace */
+	FString GetBaseLocalizationNamespace() const;
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 	/**
 	 * Indicates if the custom versions container is in a 'reset' state.  This will be used to defer the choice about how to
@@ -1216,6 +1253,12 @@ public:
 	CORE_API FArchiveProxy(FArchive& InInnerArchive);
 
 	virtual FArchive& operator<<(class FName& Value) override
+	{
+		InnerArchive << Value;
+		return *this;
+	}
+
+	virtual FArchive& operator<<(class FText& Value) override
 	{
 		InnerArchive << Value;
 		return *this;
@@ -1264,6 +1307,11 @@ public:
 	{
 		return InnerArchive.GetLinker();
 	}
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	CORE_API virtual void SetLocalizationNamespace(const FString& InLocalizationNamespace) override;
+	CORE_API virtual FString GetLocalizationNamespace() const override;
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 	virtual int64 Tell() override
 	{

@@ -2301,7 +2301,7 @@ static void MikkSetTSpaceBasic_Skeletal(const SMikkTSpaceContext* Context, const
 	FVector Bitangent;
 	// Get different normals depending on whether they've been calculated or not.
 	if (UserData->bComputeNormals) {
-		Bitangent = BitangentSign * FVector::CrossProduct(UserData->TangentsZ[UserData->wedges[UserData->faces[FaceIdx].iWedge[VertIdx]].iVertex], VertexTangent);
+		Bitangent = BitangentSign * FVector::CrossProduct(UserData->TangentsZ[FaceIdx * 3 + VertIdx], VertexTangent);
 	}
 	else
 	{
@@ -3186,6 +3186,8 @@ public:
 					check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
 				}
 			}
+
+			verifyf(Vertices.Num() != 0, TEXT("No valid vertices found for the mesh."));
 
 			// Initialize the vertex buffer.
 			int32 NumTexCoords = ComputeNumTexCoords(RawMesh, MAX_STATIC_TEXCOORDS);

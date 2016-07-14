@@ -187,10 +187,23 @@ namespace
 {
 	void GatherBlueprintForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 	{
-		const UBlueprintCore* const Blueprint = CastChecked<UBlueprintCore>(Object);
+		const UBlueprintCore* const BlueprintCore = CastChecked<UBlueprintCore>(Object);
 
 		// Blueprint assets never exist at runtime, so treat all of their properties as editor-only, but allow their script (which is available at runtime) to be gathered by a game
-		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(Blueprint, GatherTextFlags | EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties);
+		EPropertyLocalizationGathererTextFlags BlueprintGatherFlags = GatherTextFlags | EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties;
+
+#if WITH_EDITOR
+		if (const UBlueprint* const Blueprint = Cast<UBlueprint>(Object))
+		{
+			if (!FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+			{
+				// Force non-data-only blueprints to set the HasScript flag, as they may not currently have bytecode due to a compilation error
+				BlueprintGatherFlags |= EPropertyLocalizationGathererTextFlags::ForceHasScript;
+			}
+		}
+#endif
+
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(BlueprintCore, BlueprintGatherFlags);
 	}
 }
 #endif
@@ -199,13 +212,7 @@ UBlueprintCore::UBlueprintCore(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	static struct FAutomaticRegistrationOfLocalizationGatherer
-	{
-		FAutomaticRegistrationOfLocalizationGatherer()
-		{
-			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UBlueprintCore::StaticClass(), &GatherBlueprintForLocalization);
-		}
-	} AutomaticRegistrationOfLocalizationGatherer;
+	{ static const FAutoRegisterLocalizationDataGatheringCallback AutomaticRegistrationOfLocalizationGatherer(UBlueprintCore::StaticClass(), &GatherBlueprintForLocalization); }
 #endif
 
 	bLegacyGeneratedClassIsAuthoritative = false;

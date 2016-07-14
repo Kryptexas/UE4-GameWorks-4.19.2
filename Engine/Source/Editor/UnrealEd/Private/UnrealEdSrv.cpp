@@ -1466,7 +1466,7 @@ void UUnrealEdEngine::ShowPackageNotification()
 			{
 				static void OpenCheckOutDialog()
 				{
-					GUnrealEd->PromptToCheckoutModifiedPackages();
+					GUnrealEd->PromptToCheckoutModifiedPackages(true);
 				}
 			};
 
@@ -1476,15 +1476,30 @@ void UUnrealEdEngine::ShowPackageNotification()
 			}
 			else
 			{
-				FNotificationInfo ErrorNotification(NSLOCTEXT("SourceControl", "CheckOutNotification", "Files need check-out!"));
-				ErrorNotification.bFireAndForget = true;
-				ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&Local::OpenCheckOutDialog);
-				ErrorNotification.HyperlinkText = NSLOCTEXT("SourceControl", "CheckOutHyperlinkText", "Check-Out");
-				ErrorNotification.ExpireDuration = 10.0f; // Need this message to last a little longer than normal since the user will probably want to click the hyperlink to check out files
-				ErrorNotification.bUseThrobber = true;
+				int32 NumPackagesToCheckOut = GetNumDirtyPackagesThatNeedCheckout();
 
-				// For adding notifications.
-				FSlateNotificationManager::Get().AddNotification(ErrorNotification);
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("NumFiles"), NumPackagesToCheckOut);
+
+				FText ErrorText = FText::Format(NSLOCTEXT("SourceControl", "CheckOutNotification", "{NumFiles} files need check-out!"), Args);
+
+				if (!CheckOutNotificationWeakPtr.IsValid())
+				{
+					FNotificationInfo ErrorNotification(ErrorText);
+					ErrorNotification.bFireAndForget = true;;
+					ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&Local::OpenCheckOutDialog);
+					ErrorNotification.HyperlinkText = NSLOCTEXT("SourceControl", "CheckOutHyperlinkText", "Check-Out");
+					ErrorNotification.ExpireDuration = 10.0f; // Need this message to last a little longer than normal since the user will probably want to click the hyperlink to check out files
+					ErrorNotification.bUseThrobber = true;
+
+					// For adding notifications.
+					CheckOutNotificationWeakPtr = FSlateNotificationManager::Get().AddNotification(ErrorNotification);
+				}
+				else
+				{
+					CheckOutNotificationWeakPtr.Pin()->SetText(ErrorText);
+					CheckOutNotificationWeakPtr.Pin()->ExpireAndFadeout();
+				}
 			}
 		}
 	}
@@ -1575,29 +1590,42 @@ void UUnrealEdEngine::PromptToCheckoutModifiedPackages( bool bPromptAll )
 	FEditorFileUtils::PromptToCheckoutPackages( bCheckDirty, PackagesToCheckout, NULL, NULL, bPromptingAfterModify );
 }
 
-
-bool UUnrealEdEngine::DoDirtyPackagesNeedCheckout() const
+int32 UUnrealEdEngine::InternalGetNumDirtyPackagesThatNeedCheckout(bool bCheckIfAny) const
 {
-	bool bPackagesNeedCheckout = false;
-	if( ISourceControlModule::Get().IsEnabled() )
+	int32 PackageCount = 0;
+		
+	if (ISourceControlModule::Get().IsEnabled())
 	{
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-		for( TMap<TWeakObjectPtr<UPackage>,uint8>::TConstIterator It(PackageToNotifyState); It; ++It )
+		for (TMap<TWeakObjectPtr<UPackage>, uint8>::TConstIterator It(PackageToNotifyState); It; ++It)
 		{
 			const UPackage* Package = It.Key().Get();
-			if ( Package != NULL )
+			if (Package != NULL)
 			{
 				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package, EStateCacheUsage::Use);
-				if( SourceControlState.IsValid() && ( SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther() ) )
+				if (SourceControlState.IsValid() && (SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther()))
 				{
-					bPackagesNeedCheckout = true;
-					break;
+					++PackageCount;
+					if (bCheckIfAny)
+					{
+						break;
+					}
 				}
 			}
 		}
 	}
-	
-	return bPackagesNeedCheckout;
+
+	return PackageCount;
+}
+
+int32 UUnrealEdEngine::GetNumDirtyPackagesThatNeedCheckout() const
+{
+	return InternalGetNumDirtyPackagesThatNeedCheckout(false);
+}
+
+bool UUnrealEdEngine::DoDirtyPackagesNeedCheckout() const
+{
+	return InternalGetNumDirtyPackagesThatNeedCheckout(true) > 0;
 }
 
 bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar )

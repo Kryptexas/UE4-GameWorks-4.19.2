@@ -1619,11 +1619,6 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 			}
 		}
 
-// 		if ( Texture2D && Texture2D->Resource && Texture2D->LODGroup == TEXTUREGROUP_UI )
-// 		{
-// 			UITexels += Texture2D->GetSizeX() * Texture2D->GetSizeY();
-// 		}
-// 
 		if ( Texture2D && (Texture2D->GetPixelFormat() == PF_DXT1 || Texture2D->GetPixelFormat() == PF_DXT5) )
 		{
 			NumDXT[Texture2D->GetPixelFormat()]++;

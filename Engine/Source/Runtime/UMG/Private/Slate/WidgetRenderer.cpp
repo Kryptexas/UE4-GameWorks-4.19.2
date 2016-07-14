@@ -18,6 +18,7 @@ void SVirtualWindow::Construct(const FArguments& InArgs)
 {
 	bIsPopupWindow = true;
 	bVirtualWindow = true;
+	bIsFocusable = false;
 	SetCachedSize(InArgs._Size);
 	SetNativeWindow(MakeShareable(new FGenericWindow()));
 
@@ -45,6 +46,16 @@ bool SVirtualWindow::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 	TooltipPresenter->SetContent(TooltipContent.IsValid() ? TooltipContent.ToSharedRef() : SNullWidget::NullWidget);
 
 	return true;
+}
+
+void SVirtualWindow::SetIsFocusable(bool bFocusable)
+{
+	bIsFocusable = bFocusable;
+}
+
+bool SVirtualWindow::SupportsKeyboardFocus() const
+{
+	return bIsFocusable;
 }
 
 void SVirtualWindow::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const

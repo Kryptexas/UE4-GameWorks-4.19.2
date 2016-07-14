@@ -3661,44 +3661,6 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	/** Actor will fail to spawn. */
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
-/** Intermediate material merging data */
-struct FMaterialMergeData
-{
-	/** Input data */
-	/** Material that is being baked out */
-	class UMaterialInterface* Material;
-	/** Material proxy cache, eliminates shader compilations when a material is baked out multiple times for different meshes */
-	struct FExportMaterialProxyCache* ProxyCache;
-	/** Raw mesh data used to bake out the material with, optional */
-	const struct FRawMesh* Mesh;
-	/** LODModel data used to bake out the material with, optional */
-	const class FStaticLODModel* LODModel;
-	/** Material index to use when the material is baked out using mesh data (face material indices) */
-	int32 MaterialIndex;
-	/** Optional tex coordinate bounds of original texture coordinates set */
-	const FBox2D& TexcoordBounds;
-	/** Optional new set of non-overlapping texture coordinates */
-	const TArray<FVector2D>& TexCoords;
-
-	/** Output emissive scale, maximum baked out emissive value (used to scale other samples, 1/EmissiveScale * Sample) */
-	float EmissiveScale;
-
-	FMaterialMergeData(
-		UMaterialInterface* InMaterial,
-		const FRawMesh* InMesh,
-		const FStaticLODModel* InLODModel,
-		int32 InMaterialIndex,
-		const FBox2D& InTexcoordBounds,
-		const TArray<FVector2D>& InTexCoords)
-		: Material(InMaterial)
-		, Mesh(InMesh)
-		, LODModel(InLODModel)
-		, MaterialIndex(InMaterialIndex)
-		, TexcoordBounds(InTexcoordBounds)
-		, TexCoords(InTexCoords)
-		, EmissiveScale(0.0f)
-	{}
-};
 
 /**
  * The description of a user activity

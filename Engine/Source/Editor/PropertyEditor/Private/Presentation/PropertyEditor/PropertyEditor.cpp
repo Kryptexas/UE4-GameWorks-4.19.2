@@ -202,6 +202,12 @@ void FPropertyEditor::OnAddItem()
 	PropertyNode->SetNodeFlags( EPropertyNodeFlags::Expanded, true );
 
 	ArrayHandle->AddItem();
+
+	//In case the property is show in the favorite category refresh the whole tree
+	if (PropertyNode->IsFavorite())
+	{
+		ForceRefresh();
+	}
 }
 
 void FPropertyEditor::ClearItem()
@@ -256,6 +262,12 @@ void FPropertyEditor::OnInsertItem()
 
 	int32 Index = PropertyNode->GetArrayIndex();
 	ArrayHandle->Insert( Index );
+
+	//In case the property is show in the favorite category refresh the whole tree
+	if (PropertyNode->IsFavorite() || (PropertyNode->GetParentNode() != nullptr && PropertyNode->GetParentNode()->IsFavorite()))
+	{
+		ForceRefresh();
+	}
 }
 
 void FPropertyEditor::DeleteItem()
@@ -271,6 +283,12 @@ void FPropertyEditor::OnDeleteItem()
 
 	int32 Index = PropertyNode->GetArrayIndex();
 	ArrayHandle->DeleteItem( Index );
+
+	//In case the property is show in the favorite category refresh the whole tree
+	if (PropertyNode->IsFavorite() || (PropertyNode->GetParentNode() != nullptr && PropertyNode->GetParentNode()->IsFavorite()))
+	{
+		ForceRefresh();
+	}
 }
 
 void FPropertyEditor::DuplicateItem()
@@ -286,6 +304,12 @@ void FPropertyEditor::OnDuplicateItem()
 
 	int32 Index = PropertyNode->GetArrayIndex();
 	ArrayHandle->DuplicateItem( Index );
+
+	//In case the property is show in the favorite category refresh the whole tree
+	if (PropertyNode->IsFavorite() || (PropertyNode->GetParentNode() != nullptr && PropertyNode->GetParentNode()->IsFavorite()))
+	{
+		ForceRefresh();
+	}
 }
 
 void FPropertyEditor::BrowseTo()
@@ -311,6 +335,12 @@ void FPropertyEditor::OnEmptyArray()
 	check( ArrayHandle.IsValid() );
 
 	ArrayHandle->EmptyArray();
+
+	//In case the property is show in the favorite category refresh the whole tree
+	if (PropertyNode->IsFavorite())
+	{
+		ForceRefresh();
+	}
 }
 
 bool FPropertyEditor::DoesPassFilterRestrictions() const
@@ -450,6 +480,11 @@ bool FPropertyEditor::IsPropertyEditingEnabled() const
 		(EditConditionProperty == NULL || IsEditConditionMet( EditConditionProperty, PropertyEditConditions ));
 }
 
+void FPropertyEditor::ForceRefresh()
+{
+	PropertyUtilities->ForceRefresh();
+}
+
 void FPropertyEditor::RequestRefresh()
 {
 	PropertyUtilities->RequestRefresh();
@@ -478,7 +513,7 @@ bool FPropertyEditor::IsResetToDefaultAvailable() const
 	const bool bFixedSized = Property && Property->PropertyFlags & CPF_EditFixedSize;
 	const bool bCanResetToDefault = !(Property && Property->PropertyFlags & CPF_Config);
 
-	return Property && !PropertyHandle->IsEditConst() && bCanResetToDefault && !bFixedSized && PropertyHandle->DiffersFromDefault();
+	return Property && bCanResetToDefault && !bFixedSized && PropertyHandle->DiffersFromDefault();
 }
 
 bool FPropertyEditor::ValueDiffersFromDefault() const

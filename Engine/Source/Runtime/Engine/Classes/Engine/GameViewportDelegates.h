@@ -36,3 +36,10 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportClientPlayerAction, int32);
  * @see UGameViewportClient
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportTick, float);
+
+/**
+* Delegate type used by UGameViewportClient when received focus
+*
+* @see UGameViewportClient
+*/
+DECLARE_DELEGATE(FOnFocusReceived);

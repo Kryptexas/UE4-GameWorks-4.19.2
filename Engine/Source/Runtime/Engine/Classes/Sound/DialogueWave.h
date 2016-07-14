@@ -16,8 +16,10 @@ class UDialogueSoundWaveProxy;
 struct ENGINE_API FDialogueConstants
 {
 	static const FString DialogueNamespace;
+	static const FString DialogueNotesNamespace;
 	static const FString SubtitleKeySuffix;
 #if WITH_EDITORONLY_DATA
+	static const FString ActingDirectionKeySuffix;
 	static const FString PropertyName_AudioFile;
 	static const FString PropertyName_VoiceActorDirection;
 	static const FString PropertyName_Speaker;
@@ -63,8 +65,8 @@ struct ENGINE_API FDialogueContextMapping
 	FString GetLocalizationKey(const FString& InOwnerDialogueWaveKey) const;
 };
 
-bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
-bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
+ENGINE_API bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
+ENGINE_API bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 
 class UDialogueWaveFactory;
 

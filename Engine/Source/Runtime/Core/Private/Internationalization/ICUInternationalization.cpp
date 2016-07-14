@@ -140,12 +140,12 @@ bool FICUInternationalization::Initialize()
 	bHasInitializedDisabledCultures = false;
 	ConditionalInitializeDisabledCultures();
 
-	I18N->InvariantCulture = FindOrMakeCulture(TEXT("en-US-POSIX"), false);
+	I18N->InvariantCulture = FindOrMakeCulture(TEXT("en-US-POSIX"), EAllowDefaultCultureFallback::No);
 	if (!I18N->InvariantCulture.IsValid())
 	{
-		I18N->InvariantCulture = FindOrMakeCulture(TEXT(""), true);
+		I18N->InvariantCulture = FindOrMakeCulture(TEXT(""), EAllowDefaultCultureFallback::Yes);
 	}
-	I18N->DefaultCulture = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale(), true);
+	I18N->DefaultCulture = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale(), EAllowDefaultCultureFallback::Yes);
 	SetCurrentCulture( I18N->GetDefaultCulture()->GetName() );
 	return U_SUCCESS(ICUStatus) ? true : false;
 }
@@ -253,6 +253,14 @@ namespace
 }
 #endif
 
+void FICUInternationalization::LoadAllCultureData()
+{
+	for (const FICUCultureData& CultureData : AllAvailableCultures)
+	{
+		FindOrMakeCulture(CultureData.Name, EAllowDefaultCultureFallback::No);
+	}
+}
+
 void FICUInternationalization::InitializeAvailableCultures()
 {
 	// Build up the data about all available locales
@@ -317,6 +325,12 @@ void FICUInternationalization::InitializeAvailableCultures()
 		{
 			AppendCultureData(LanguageCode, ScriptCode, CountryCode);
 		}
+	}
+
+	// Also add our invariant culture if it wasn't found when processing the ICU locales
+	if (!AllAvailableCulturesMap.Contains(TEXT("en-US-POSIX")))
+	{
+		AppendCultureData(TEXT("en"), FString(), TEXT("US-POSIX"));
 	}
 }
 
@@ -482,7 +496,7 @@ bool FICUInternationalization::IsCultureDisabled(const FString& Name)
 
 bool FICUInternationalization::SetCurrentCulture(const FString& Name)
 {
-	FCulturePtr NewCurrentCulture = FindOrMakeCulture(Name);
+	FCulturePtr NewCurrentCulture = FindOrMakeCulture(Name, EAllowDefaultCultureFallback::No);
 
 	if (NewCurrentCulture.IsValid())
 	{
@@ -531,7 +545,7 @@ TArray<FString> FICUInternationalization::GetPrioritizedCultureNames(const FStri
 		}
 		
 		// Failing that, try and find the culture directly (this will cause its resource data to be loaded)
-		FCulturePtr Culture = FindOrMakeCulture(InCultureName);
+		FCulturePtr Culture = FindOrMakeCulture(InCultureName, EAllowDefaultCultureFallback::No);
 		if (Culture.IsValid())
 		{
 			OutCultureData.Name = Culture->GetName();
@@ -628,44 +642,52 @@ TArray<FString> FICUInternationalization::GetPrioritizedCultureNames(const FStri
 
 FCulturePtr FICUInternationalization::GetCulture(const FString& Name)
 {
-	return FindOrMakeCulture(Name);
+	return FindOrMakeCulture(Name, EAllowDefaultCultureFallback::No);
 }
 
-FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, const bool AllowDefaultFallback)
+FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, const EAllowDefaultCultureFallback AllowDefaultFallback)
 {
 	const FString CanonicalName = FCulture::GetCanonicalName(Name);
 
 	// Find the cached culture.
-	FCultureRef* FoundCulture = nullptr;
 	{
 		FScopeLock Lock(&CachedCulturesCS);
-		FoundCulture = CachedCultures.Find(CanonicalName);
+		FCultureRef* FoundCulture = CachedCultures.Find(CanonicalName);
+		if (FoundCulture)
+		{
+			return *FoundCulture;
+		}
 	}
 
 	// If no cached culture is found, try to make one.
-	if (!FoundCulture)
-	{
-		UErrorCode ICUStatus = U_ZERO_ERROR;
+	FCulturePtr NewCulture;
 
-		// Confirm if data for the desired culture exists.
+	// Is this in our list of available cultures?
+	if (AllAvailableCulturesMap.Contains(CanonicalName))
+	{
+		NewCulture = FCulture::Create(CanonicalName);
+	}
+	else
+	{
+		// We need to use a resource load in order to get the correct culture
+		UErrorCode ICUStatus = U_ZERO_ERROR;
 		if (UResourceBundle* ICUResourceBundle = ures_open(nullptr, StringCast<char>(*CanonicalName).Get(), &ICUStatus))
 		{
-			// Make the culture only if it actually has some form of data and doesn't fallback to default "root" data, unless overidden to allow it.
-			if (ICUStatus != U_USING_DEFAULT_WARNING || AllowDefaultFallback)
+			if (ICUStatus != U_USING_DEFAULT_WARNING || AllowDefaultFallback == EAllowDefaultCultureFallback::Yes)
 			{
-				FCulturePtr NewCulture = FCulture::Create(CanonicalName);
-				if (NewCulture.IsValid())
-				{
-					FScopeLock Lock(&CachedCulturesCS);
-					FoundCulture = &(CachedCultures.Add(CanonicalName, NewCulture.ToSharedRef()));
-				}
+				NewCulture = FCulture::Create(CanonicalName);
 			}
-
 			ures_close(ICUResourceBundle);
 		}
 	}
 
-	return FoundCulture ? FCulturePtr(*FoundCulture) : FCulturePtr(nullptr);
+	if (NewCulture.IsValid())
+	{
+		FScopeLock Lock(&CachedCulturesCS);
+		CachedCultures.Add(CanonicalName, NewCulture.ToSharedRef());
+	}
+
+	return NewCulture;
 }
 
 UBool FICUInternationalization::OpenDataFile(const void* context, void** fileContext, void** contents, const char* path)

@@ -26,6 +26,28 @@ enum ERoundingMode
 	ToPositiveInfinity,
 };
 
+UENUM(BlueprintType)
+enum class ETextGender : uint8
+{
+	Masculine,
+	Feminine,
+	Neuter,
+};
+
+UENUM(BlueprintType)
+namespace EFormatArgumentType
+{
+	enum Type
+	{
+		Int,
+		UInt,
+		Float,
+		Double,
+		Text,
+		Gender,
+	};
+}
+
 /**
  * Used to pass argument/value pairs into FText::Format.
  * The full C++ struct is located here: Engine\Source\Runtime\Core\Public\Internationalization\Text.h
@@ -33,11 +55,23 @@ enum ERoundingMode
 USTRUCT(noexport)
 struct FFormatArgumentData
 {
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentName)
 	FString ArgumentName;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
+	TEnumAsByte<EFormatArgumentType::Type> ArgumentValueType;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
 	FText ArgumentValue;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
+	int32 ArgumentValueInt;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
+	float ArgumentValueFloat;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
+	ETextGender ArgumentValueGender;
 };
 #endif
 

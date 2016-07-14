@@ -63,4 +63,6 @@ private:
 	static void ReplaceWidgetWithChildren(UWidgetBlueprint* BP, FWidgetReference Widget);
 
 	static void ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass);
+
+	static bool CanBeReplaced(TSet<FWidgetReference> Widgets);
 };

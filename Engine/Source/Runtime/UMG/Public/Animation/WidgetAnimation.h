@@ -74,6 +74,17 @@ public:
 	virtual UObject* GetParentObject(UObject* Object) const override;
 	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
 
+	// UWidgetAnimation specific
+	/**
+	 * Replace the PossessedObject with a NewObject
+	 * 
+	 * @param OldId the Guid of the object is about to be replaced
+	 * @param NewId the Guid of the new object
+	 * @param OldObject the object is about to be replaced
+	 * @param NewObject the new object to replace
+	 */
+	UMG_API void ReplacePossessableObject(const FGuid& OldId, const FGuid& NewId, UObject& OldObject, UObject& NewObject);
+
 	const TArray<FWidgetAnimationBinding>& GetBindings() const { return AnimationBindings; }
 public:
 

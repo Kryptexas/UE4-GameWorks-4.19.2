@@ -1523,7 +1523,10 @@ void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit
 {
 	UPrimitiveComponent* Comp = nullptr;
 	UBodySetup* BS = nullptr;
+	
+	FScopedTransaction SetBodyMassTransaction(FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), MassInKgOverrideHandle->GetPropertyDisplayName()));
 
+	MassInKgOverrideHandle->NotifyPreChange();
 	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
 	{
 		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
@@ -1537,6 +1540,7 @@ void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit
 			BS->DefaultInstance.SetMassOverride(BodyMass);
 		}
 	}
+	MassInKgOverrideHandle->NotifyPostChange();
 }
 
 
@@ -1603,7 +1607,7 @@ void FBodyInstanceCustomizationHelper::AddMassInKg(IDetailCategoryBuilder& Physi
 {
 	if (bDisplayMass)
 	{
-		TSharedRef<IPropertyHandle> MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
+		MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
 		
 		PhysicsCategory.AddProperty(MassInKgOverrideHandle).CustomWidget()
 		.NameContent()

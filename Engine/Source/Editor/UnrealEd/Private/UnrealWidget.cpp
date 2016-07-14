@@ -692,20 +692,23 @@ void FWidget::Render_Scale( const FSceneView* View,FPrimitiveDrawInterface* PDI,
 	const EAxisList::Type DrawAxis = GetAxisToDraw( ViewportClient->GetWidgetMode() );
     FSpaceDescriptor Space(View, ViewportClient, InLocation);
 
+	// Use a constant uniform scale for this widget since orthographic view for it is not supported.
+	const FVector UniformScale(Space.UniformScale);
+
 	// Draw the axis lines with cube heads	
     if (Space.ShouldDrawAxisX(DrawAxis))
     {
-        Render_Axis(View, PDI, EAxisList::X, WidgetMatrix, XMaterial, XColor, XAxisDir, Space.Scale, bDrawWidget, true);
+        Render_Axis(View, PDI, EAxisList::X, WidgetMatrix, XMaterial, XColor, XAxisDir, UniformScale, bDrawWidget, true);
     }
 
     if (Space.ShouldDrawAxisY(DrawAxis))
     {
-        Render_Axis(View, PDI, EAxisList::Y, WidgetMatrix, YMaterial, YColor, YAxisDir, Space.Scale, bDrawWidget, true);
+        Render_Axis(View, PDI, EAxisList::Y, WidgetMatrix, YMaterial, YColor, YAxisDir, UniformScale, bDrawWidget, true);
     }
 
     if (Space.ShouldDrawAxisZ(DrawAxis))
     {
-        Render_Axis(View, PDI, EAxisList::Z, WidgetMatrix, ZMaterial, ZColor, ZAxisDir, Space.Scale, bDrawWidget, true);
+        Render_Axis(View, PDI, EAxisList::Z, WidgetMatrix, ZMaterial, ZColor, ZAxisDir, UniformScale, bDrawWidget, true);
     }
 
 	// Draw grabber handles and center cube
@@ -713,33 +716,34 @@ void FWidget::Render_Scale( const FSceneView* View,FPrimitiveDrawInterface* PDI,
 	{
 		const bool bDisabled = IsWidgetDisabled();
 
-		// Grabber handles
-		if( !Space.bIsOrthoYZ && !Space.bIsOrthoXZ && ((DrawAxis&(EAxisList::X|EAxisList::Y)) == (EAxisList::X|EAxisList::Y)) )
+		// Grabber handles - since orthographic scale widgets are not supported, we should always draw grabber handles if we're drawing
+		// the corresponding axes.
+		if( (DrawAxis&(EAxisList::X|EAxisList::Y)) == (EAxisList::X|EAxisList::Y) )
 		{
 			PDI->SetHitProxy( new HWidgetAxis(EAxisList::XY, bDisabled) );
 			{
-				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(24,0,0) * Space.Scale), WidgetMatrix.TransformPosition(FVector(12,12,0) * Space.Scale), XColor, SDPG_Foreground );
-				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(12,12,0) * Space.Scale), WidgetMatrix.TransformPosition(FVector(0,24,0) * Space.Scale), YColor, SDPG_Foreground );
+				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(24,0,0) * UniformScale), WidgetMatrix.TransformPosition(FVector(12,12,0) * UniformScale), XColor, SDPG_Foreground );
+				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(12,12,0) * UniformScale), WidgetMatrix.TransformPosition(FVector(0,24,0) * UniformScale), YColor, SDPG_Foreground );
 			}
 			PDI->SetHitProxy( NULL );
 		}
 
-		if( !Space.bIsOrthoYZ && !Space.bIsOrthoXY && ((DrawAxis&(EAxisList::X|EAxisList::Z)) == (EAxisList::X|EAxisList::Z)) )
+		if( (DrawAxis&(EAxisList::X|EAxisList::Z)) == (EAxisList::X|EAxisList::Z) )
 		{
 			PDI->SetHitProxy( new HWidgetAxis(EAxisList::XZ, bDisabled) );
 			{
-				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(24,0,0) * Space.Scale), WidgetMatrix.TransformPosition(FVector(12,0,12) * Space.Scale), XColor, SDPG_Foreground );
-				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(12,0,12) * Space.Scale), WidgetMatrix.TransformPosition(FVector(0,0,24) * Space.Scale), ZColor, SDPG_Foreground );
+				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(24,0,0) * UniformScale), WidgetMatrix.TransformPosition(FVector(12,0,12) * UniformScale), XColor, SDPG_Foreground );
+				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(12,0,12) * UniformScale), WidgetMatrix.TransformPosition(FVector(0,0,24) * UniformScale), ZColor, SDPG_Foreground );
 			}
 			PDI->SetHitProxy( NULL );
 		}
 
-		if( !Space.bIsOrthoXY && !Space.bIsOrthoXZ && ((DrawAxis&(EAxisList::Y|EAxisList::Z)) == (EAxisList::Y|EAxisList::Z)) )
+		if( (DrawAxis&(EAxisList::Y|EAxisList::Z)) == (EAxisList::Y|EAxisList::Z) )
 		{
 			PDI->SetHitProxy( new HWidgetAxis(EAxisList::YZ, bDisabled) );
 			{
-				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(0,24,0) * Space.Scale), WidgetMatrix.TransformPosition(FVector(0,12,12) * Space.Scale), YColor, SDPG_Foreground );
-				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(0,12,12) * Space.Scale), WidgetMatrix.TransformPosition(FVector(0,0,24) * Space.Scale), ZColor, SDPG_Foreground );
+				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(0,24,0) * UniformScale), WidgetMatrix.TransformPosition(FVector(0,12,12) * UniformScale), YColor, SDPG_Foreground );
+				PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(0,12,12) * UniformScale), WidgetMatrix.TransformPosition(FVector(0,0,24) * UniformScale), ZColor, SDPG_Foreground );
 			}
 			PDI->SetHitProxy( NULL );
 		}
@@ -749,7 +753,7 @@ void FWidget::Render_Scale( const FSceneView* View,FPrimitiveDrawInterface* PDI,
 		{
 			PDI->SetHitProxy( new HWidgetAxis(EAxisList::XYZ, bDisabled) );
 
-			Render_Cube(PDI, WidgetMatrix, XYZMaterial, Space.Scale * 4 );
+			Render_Cube(PDI, WidgetMatrix, XYZMaterial, UniformScale * 4 );
 
 			PDI->SetHitProxy( NULL );
 		}

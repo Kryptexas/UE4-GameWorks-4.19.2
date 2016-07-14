@@ -168,19 +168,29 @@ namespace LocalizationConfigurationScript
 		{
 			FConfigSection& ConfigSection = Script.CommonSettings();
 
+			TArray<ULocalizationTarget*> AllLocalizationTargets;
+
+			ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
+			if (EngineTargetSet)
+			{
+				AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
+			}
+
+			// Engine targets may not depend on game targets
+			if (!Target->IsMemberOfEngineTargetSet())
+			{
+				ULocalizationTargetSet* GameTargetSet = ULocalizationSettings::GetGameTargetSet();
+				if (GameTargetSet)
+				{
+					AllLocalizationTargets.Append(GameTargetSet->TargetObjects);
+				}
+			}
+
 			const ULocalizationTargetSet* const LocalizationTargetSet = GetDefault<ULocalizationTargetSet>(ULocalizationTargetSet::StaticClass());
 			for (const FGuid& TargetDependencyGuid : Target->Settings.TargetDependencies)
 			{
-				TArray<ULocalizationTarget*> AllLocalizationTargets;
-				ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
-				if (EngineTargetSet != LocalizationTargetSet)
-				{
-					AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
-				}
-				AllLocalizationTargets.Append(LocalizationTargetSet->TargetObjects);
-
-				ULocalizationTarget* const * OtherTarget = AllLocalizationTargets.FindByPredicate([&TargetDependencyGuid](ULocalizationTarget* const InOtherTarget)->bool{return InOtherTarget->Settings.Guid == TargetDependencyGuid;});
-				if (OtherTarget)
+				const ULocalizationTarget* const * OtherTarget = AllLocalizationTargets.FindByPredicate([&TargetDependencyGuid](ULocalizationTarget* const InOtherTarget)->bool{return InOtherTarget->Settings.Guid == TargetDependencyGuid;});
+				if (OtherTarget && Target != *OtherTarget)
 				{
 					ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeForCommandletProcess(GetManifestPath(*OtherTarget), !Target->IsMemberOfEngineTargetSet()) );
 				}
@@ -933,6 +943,7 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
 
 			ConfigSection.Add( TEXT("ManifestName"), GetManifestFileName(Target) );
+			ConfigSection.Add( TEXT("ArchiveName"), GetArchiveFileName(Target) );
 			ConfigSection.Add( TEXT("ResourceName"), GetLocResFileName(Target) );
 
 			if (Target->Settings.SupportedCulturesStatistics.IsValidIndex(Target->Settings.NativeCultureIndex))

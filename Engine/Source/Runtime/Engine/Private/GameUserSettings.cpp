@@ -501,7 +501,7 @@ FIntPoint UGameUserSettings::GetDefaultWindowPosition()
 
 EWindowMode::Type UGameUserSettings::GetDefaultWindowMode()
 {
-	return EWindowMode::WindowedFullscreen;
+	return EWindowMode::Windowed;
 }
 
 void UGameUserSettings::ResetToCurrentSettings()

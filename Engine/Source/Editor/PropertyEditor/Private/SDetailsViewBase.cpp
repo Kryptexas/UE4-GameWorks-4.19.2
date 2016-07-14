@@ -1219,6 +1219,11 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 							//Duplicate the row
 							CategoryFavImpl.AddPropertyNode(ChildNodePtr.ToSharedRef(), RootInstanceName);
 						}
+
+						if (bIsStruct)
+						{
+							LocalUpdateFavoriteSystemOnly = true;
+						}
 					}
 				}
 				ChildNodePtr->SetCanDisplayFavorite(bCanDisplayFavorite);

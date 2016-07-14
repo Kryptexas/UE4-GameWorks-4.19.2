@@ -31,6 +31,9 @@ public:
 
 	/** Called after the widget preview has been updated */
 	DECLARE_MULTICAST_DELEGATE(FOnWidgetPreviewUpdated)
+
+	DECLARE_EVENT(FWidgetBlueprintEditor, FOnEnterWidgetDesigner)
+
 public:
 	FWidgetBlueprintEditor();
 
@@ -79,6 +82,9 @@ public:
 
 	/** Changes the currently viewed animation in Sequencer to the new one*/
 	void ChangeViewedAnimation( UWidgetAnimation& InAnimationToView );
+
+	/** Get the current animation*/
+	UWidgetAnimation* GetCurrentAnimation() { return CurrentAnimation.Get(); }
 
 	/** Updates the current animation if it is invalid */
 	const UWidgetAnimation* RefreshCurrentAnimation();
@@ -129,6 +135,8 @@ public:
 
 	void AddPostDesignerLayoutAction(TFunction<void()> Action);
 
+	void OnEnteringDesigner();
+
 	TArray< TFunction<void()> >& GetQueuedDesignerActions();
 
 	/** Get the current designer flags that are in effect for the current user widget we're editing. */
@@ -149,6 +157,9 @@ public:
 
 	/** Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
+
+	/** Fires after the mode change to Designer*/
+	FOnEnterWidgetDesigner OnEnterWidgetDesigner;
 
 	/** Command list for handling widget actions in the WidgetBlueprintEditor */
 	TSharedPtr< FUICommandList > DesignerCommandList;
@@ -196,10 +207,18 @@ private:
 	void AddObjectToAnimation(UObject* ObjectToAnimate);
 
 	/** Gets the extender to use for sequencers context sensitive menus and toolbars. */
-	TSharedRef<FExtender> GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects );
+	TSharedRef<FExtender> GetAddTrackSequencerExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
+
+	TSharedRef<FExtender> GetObjectBindingContextMenuExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
 
 	/** Extends the sequencer add track menu. */
 	void ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, const TArray<UObject*> ContextObjects );
+
+	/** Replace track with selected widget function */
+	void ReplaceTrackWithSelectedWidget(FWidgetReference SelectedWidget, UWidget* BoundWidget);
+
+	/** Extends the sequencer add track menu. */
+	void ExtendSequencerObjectBindingMenu(FMenuBuilder& ObjectBindingMenuBuilder, const TArray<UObject*> ContextObjects);
 
 	/** Add an animation track for the supplied slot to the current animation. */
 	void AddSlotTrack( UPanelSlot* Slot );
@@ -264,7 +283,9 @@ private:
 	/** The currently viewed animation, if any. */
 	TWeakObjectPtr<UWidgetAnimation> CurrentAnimation;
 
-	FDelegateHandle SequencerExtenderHandle;
+	FDelegateHandle SequencerAddTrackExtenderHandle;
+
+	FDelegateHandle SequencerObjectBindingExtenderHandle;
 
 	/** Messages we want to append to the compiler results. */
 	TArray< TSharedRef<class FTokenizedMessage> > DesignerCompilerMessages;

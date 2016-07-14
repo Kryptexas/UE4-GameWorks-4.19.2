@@ -107,6 +107,7 @@
 #include "SNotificationList.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "TextPackageNamespaceUtil.h"
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
 
@@ -3018,7 +3019,6 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 		ULevel* CurrentLevel = *it;
 		if (CurrentLevel)
 		{
-			ErrorMessage = TEXT( "No LevelScriptActor found for CE processing" );
 
 			if (CurrentLevel->GetLevelScriptActor())
 			{
@@ -6479,18 +6479,15 @@ void UEngine::StartHardwareSurvey()
 	// The hardware survey costs time and we don't want to slow down debug builds.
 	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
 	// Never run the survey in games, only in the editor.
-#if WITH_EDITOR
-	if (GIsEditor && !IsRunningCommandlet() && FEngineAnalytics::IsAvailable())
+	if (FEngineAnalytics::IsAvailable() && FEngineAnalytics::IsEditorRun())
 	{
 		IHardwareSurveyModule::Get().StartHardwareSurvey(FEngineAnalytics::GetProvider());
 	}
-#endif
 }
 
 void UEngine::InitHardwareSurvey()
 {
 	StartHardwareSurvey();
-
 }
 
 void UEngine::TickHardwareSurvey()
@@ -11163,8 +11160,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
 		{
 		public:
-			FCopyPropertiesArchiveObjectWriter(UObject* Obj, TArray<uint8>& InBytes, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 AdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
-				: FObjectWriter(InBytes)
+			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 AdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
+				: FObjectWriter(InSrcBytes)
 			{	
 				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
 				ArIgnoreClassRef = bIgnoreClassRef;
@@ -11172,7 +11169,14 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 				ArNoDelta = !bDoDelta;
 				ArPortFlags |= AdditionalPortFlags;
 
-				Obj->Serialize(*this);
+#if USE_STABLE_LOCALIZATION_KEYS
+				if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+				{
+					SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(InDstObject));
+				}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+				InSrcObj->Serialize(*this);
 			}
 
 #if WITH_EDITOR
@@ -11183,10 +11187,11 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			}
 #endif
 
+		private:
 			bool bSkipCompilerGeneratedDefaults;
 		};
 
-		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, true, true, Params.bDoDelta, AdditinalPortFlags, Params.bSkipCompilerGeneratedDefaults);
+		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditinalPortFlags, Params.bSkipCompilerGeneratedDefaults);
 	}
 
 	{

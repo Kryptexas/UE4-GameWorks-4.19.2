@@ -226,6 +226,11 @@ FString& FInternationalization::Leetify(FString& SourceString)
 }
 #endif
 
+void FInternationalization::LoadAllCultureData()
+{
+	Implementation->LoadAllCultureData();
+}
+
 void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 {
 	Implementation->GetCultureNames(CultureNames);

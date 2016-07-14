@@ -161,7 +161,7 @@ public:
 		}
 	}
 
-	/* Set new viewer loation */
+	/* Set new viewer location */
 	virtual void SetViewLocation(const FVector2D& Location, float ZoomAmount)
 	{
 		if (Implementation.IsValid())

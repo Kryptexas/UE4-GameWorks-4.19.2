@@ -456,6 +456,9 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	// Initialize expression previews.
 	if (MaterialFunction)
 	{
+		// Support undo/redo for the material function if it exists
+		MaterialFunction->SetFlags(RF_Transactional);
+
 		Material->Expressions = MaterialFunction->FunctionExpressions;
 		Material->EditorComments = MaterialFunction->FunctionEditorComments;
 
@@ -4164,6 +4167,7 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			PickerArgs.ParentWidget = GraphEditor;//AsShared();
 			PickerArgs.bUseAlpha = Constant4Expression != NULL || VectorExpression != NULL;
 			PickerArgs.bOnlyRefreshOnOk = false;
+			PickerArgs.bOnlyRefreshOnMouseUp = true;
 			PickerArgs.bExpandAdvancedSection = true;
 			PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
 			PickerArgs.ColorChannelsArray = &Channels;

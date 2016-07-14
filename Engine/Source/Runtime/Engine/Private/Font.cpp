@@ -140,12 +140,6 @@ void UFont::CacheCharacterCountAndMaxCharHeight()
 	MaxCharHeight.Add( MaxCharHeightForThisFont );
 }
 
-bool UFont::IsLocalizedResource()
-{
-	//@todo: maybe this should be a flag?
-	return true;
-}
-
 TCHAR UFont::RemapChar(TCHAR CharCode) const
 {
 	const uint16 UCode = CharCast<UCS2CHAR>(CharCode);

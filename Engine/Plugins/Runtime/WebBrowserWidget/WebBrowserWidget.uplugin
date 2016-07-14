@@ -19,7 +19,7 @@
 		{
 			"Name" : "WebBrowserWidget",
 			"Type" : "Runtime",
-			"LoadingPhase" : "Default",
+			"LoadingPhase" : "PreDefault",
 			"WhitelistPlatforms" :
 			[
 				"Win64",

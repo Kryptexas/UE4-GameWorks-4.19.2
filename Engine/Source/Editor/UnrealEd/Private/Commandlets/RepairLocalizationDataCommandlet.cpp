@@ -69,7 +69,7 @@ void RepairManifestAndArchives(TSharedRef<FInternationalizationManifest> Manifes
 
 		// Identify if this entry comes from source text only.
 		bool AreAllContextsFromSource = ManifestEntry->Contexts.Num() > 0;
-		for (const FContext& Context : ManifestEntry->Contexts)
+		for (const FManifestContext& Context : ManifestEntry->Contexts)
 		{
 			FRegexMatcher Matcher(Pattern, Context.SourceLocation);
 			AreAllContextsFromSource = Matcher.FindNext();

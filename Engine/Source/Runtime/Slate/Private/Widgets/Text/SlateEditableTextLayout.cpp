@@ -563,6 +563,7 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
 		if (TextInputMethodSystem)
 		{
+			TextInputMethodContext->CacheWindow();
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 		}
 	}
@@ -1929,6 +1930,7 @@ bool FSlateEditableTextLayout::MoveCursor(const FMoveCursor& InArgs)
 		if (TextInputMethodSystem)
 		{
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			TextInputMethodContext->CacheWindow();
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 		}
 	}
@@ -3417,10 +3419,15 @@ void FSlateEditableTextLayout::FTextInputMethodContext::GetScreenBounds(FVector2
 	Size = CachedGeometry.GetDrawSize();
 }
 
-TSharedPtr<FGenericWindow> FSlateEditableTextLayout::FTextInputMethodContext::GetWindow()
+void FSlateEditableTextLayout::FTextInputMethodContext::CacheWindow()
 {
 	const TSharedRef<const SWidget> OwningSlateWidgetPtr = OwnerLayout->OwnerWidget->GetSlateWidget();
-	const TSharedPtr<SWindow> SlateWindow = FSlateApplication::Get().FindWidgetWindow(OwningSlateWidgetPtr);
+	CachedParentWindow = FSlateApplication::Get().FindWidgetWindow(OwningSlateWidgetPtr);
+}
+
+TSharedPtr<FGenericWindow> FSlateEditableTextLayout::FTextInputMethodContext::GetWindow()
+{
+	const TSharedPtr<SWindow> SlateWindow = CachedParentWindow.Pin();
 	return SlateWindow.IsValid() ? SlateWindow->GetNativeWindow() : nullptr;
 }
 

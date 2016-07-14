@@ -759,7 +759,7 @@ FReply SColorThemeBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPo
 
 TArray< TSharedPtr<FColorTheme> > SColorThemesViewer::ColorThemes;
 TWeakPtr<FColorTheme> SColorThemesViewer::CurrentlySelectedThemePtr;
-bool SColorThemesViewer::bSRGBEnabled = false;
+bool SColorThemesViewer::bSRGBEnabled = true;
 
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION

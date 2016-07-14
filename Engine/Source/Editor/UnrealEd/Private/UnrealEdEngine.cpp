@@ -77,6 +77,9 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	FEditorSupportDelegates::PreWindowsMessage.AddUObject(this, &UUnrealEdEngine::OnPreWindowsMessage);
 	FEditorSupportDelegates::PostWindowsMessage.AddUObject(this, &UUnrealEdEngine::OnPostWindowsMessage);
 
+	USelection::SelectionChangedEvent.AddUObject(this, &UUnrealEdEngine::OnEditorSelectionChanged);
+	OnObjectsReplaced().AddUObject(this, &UUnrealEdEngine::ReplaceCachedVisualizerObjects);
+
 	// Initialize the snap manager
 	FSnappingUtils::InitEditorSnappingTools();
 
@@ -1336,58 +1339,50 @@ TSharedPtr<class FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(
 
 void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
-	// Iterate over all selected actors
-	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
+	for(FCachedComponentVisualizer& CachedVisualizer : VisualizersForSelection)
 	{
-		AActor* Actor = Cast<AActor>(*It);
-		if(Actor != NULL)
-		{
-			// Then iterate over components of that actor
-			TInlineComponentArray<UActorComponent*> Components;
-			Actor->GetComponents(Components);
-
-			for(int32 CompIdx=0; CompIdx<Components.Num(); CompIdx++)
-			{
-				UActorComponent* Comp = Components[CompIdx];
-				if(Comp->IsRegistered())
-				{
-					// Try and find a visualizer
-					
-					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
-					if(Visualizer.IsValid())
-					{
-						Visualizer->DrawVisualization(Comp, View, PDI);
-					}
-				}
-			}
-		}
+		CachedVisualizer.Visualizer->DrawVisualization(CachedVisualizer.Component.Get(), View, PDI);
 	}
 }
 
 
 void UUnrealEdEngine::DrawComponentVisualizersHUD(const FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
 {
-	// Iterate over all selected actors
-	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	for(FCachedComponentVisualizer& CachedVisualizer : VisualizersForSelection)
 	{
-		AActor* Actor = Cast<AActor>(*It);
-		if (Actor != NULL)
+		CachedVisualizer.Visualizer->DrawVisualizationHUD(CachedVisualizer.Component.Get(), Viewport, View, Canvas);
+	}
+}
+
+void UUnrealEdEngine::OnEditorSelectionChanged(UObject* SelectionThatChanged)
+{
+	if(SelectionThatChanged == GetSelectedActors())
+	{
+		// actor selection changed.  Update the list of component visualizers
+		// This is expensive so we do not search for visualizers each time they want to draw
+		VisualizersForSelection.Empty();
+
+		// Iterate over all selected actors
+		for(FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
 		{
-			// Then iterate over components of that actor
-			TInlineComponentArray<UActorComponent*> Components;
-			Actor->GetComponents(Components);
-
-			for (int32 CompIdx = 0; CompIdx<Components.Num(); CompIdx++)
+			AActor* Actor = Cast<AActor>(*It);
+			if(Actor != nullptr)
 			{
-				UActorComponent* Comp = Components[CompIdx];
-				if (Comp->IsRegistered())
-				{
-					// Try and find a visualizer
+				// Then iterate over components of that actor
+				TInlineComponentArray<UActorComponent*> Components;
+				Actor->GetComponents(Components);
 
-					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
-					if (Visualizer.IsValid())
+				for(int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+				{
+					UActorComponent* Comp = Components[CompIdx];
+					if(Comp->IsRegistered())
 					{
-						Visualizer->DrawVisualizationHUD(Comp, Viewport, View, Canvas);
+						// Try and find a visualizer
+						TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
+						if(Visualizer.IsValid())
+						{
+							VisualizersForSelection.Add(FCachedComponentVisualizer(Comp, Visualizer));
+						}
 					}
 				}
 			}
@@ -1395,6 +1390,18 @@ void UUnrealEdEngine::DrawComponentVisualizersHUD(const FViewport* Viewport, con
 	}
 }
 
+void UUnrealEdEngine::ReplaceCachedVisualizerObjects(const TMap<UObject*, UObject*>& ReplacementMap)
+{
+	for(FCachedComponentVisualizer& Visualizer : VisualizersForSelection)
+	{
+		UObject* OldObject = Visualizer.Component.Get(true);
+		UActorComponent* NewComponent = Cast<UActorComponent>(ReplacementMap.FindRef(OldObject));
+		if(NewComponent)
+		{
+			Visualizer.Component = NewComponent;
+		}
+	}
+}
 
 EWriteDisallowedWarningState UUnrealEdEngine::GetWarningStateForWritePermission(const FString& PackageName) const
 {

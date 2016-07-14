@@ -295,7 +295,7 @@ int32 UExportDialogueScriptCommandlet::Main(const FString& Params)
 				}
 
 				// Find the correct entry for our context
-				const FContext* ContextManifestEntryContext = ContextManifestEntry->FindContextByKey(ContextLocalizationKey);
+				const FManifestContext* ContextManifestEntryContext = ContextManifestEntry->FindContextByKey(ContextLocalizationKey);
 				check(ContextManifestEntryContext); // This should never fail as we pass in the key to FindEntryByKey
 
 				// We might have a native translation for this text, in which case we need to export the translation for that text, rather than for the source text
@@ -341,11 +341,46 @@ int32 UExportDialogueScriptCommandlet::Main(const FString& Params)
 				}
 			}
 
+			// Get the localized voice actor direction
+			FString LocalizedVoiceActorDirection = DialogueWave->VoiceActorDirection;
+			{
+				// We might have a native translation for this text, in which case we need to export the translation for that text, rather than for the source text
+				{
+					TSharedPtr<FArchiveEntry> NativeArchiveEntry = NativeArchive->FindEntryBySource(FDialogueConstants::DialogueNotesNamespace, LocalizedVoiceActorDirection, nullptr);
+					if (NativeArchiveEntry.IsValid())
+					{
+						LocalizedVoiceActorDirection = NativeArchiveEntry->Translation.Text;
+					}
+				}
+
+				// Find the archive entry so we can export the correct text
+				if (!bIsNativeCulture)
+				{
+					TSharedPtr<FArchiveEntry> ArchiveEntry = CultureArchive->FindEntryBySource(FDialogueConstants::DialogueNotesNamespace, LocalizedVoiceActorDirection, nullptr);
+					if (ArchiveEntry.IsValid())
+					{
+						LocalizedVoiceActorDirection = ArchiveEntry->Translation.Text;
+					}
+				}
+			}
+
+			// Get the localized version of the dialogue wave for the current culture
+			UDialogueWave* LocalizedDialogueWave = nullptr;
+			{
+				const FString LocalizedDialogueWavePackagePath = FPackageName::GetLocalizedPackagePath(AssetData.PackageName.ToString(), CultureName);
+				const FAssetData LocalizedDialogueWaveAssetData = AssetRegistry.GetAssetByObjectPath(*FString::Printf(TEXT("%s.%s"), *LocalizedDialogueWavePackagePath, *AssetData.AssetName.ToString()));
+				LocalizedDialogueWave = Cast<UDialogueWave>(LocalizedDialogueWaveAssetData.GetAsset());
+				if (LocalizedDialogueWave == DialogueWave)
+				{
+					LocalizedDialogueWave = nullptr;
+				}
+			}
+
 			// Iterate over the unique contexts and generate exported data for them
 			for (const auto& CollapsedDialogueContextPair : CollapsedDialogueContexts)
 			{
 				TSharedRef<FDialogueScriptEntry> ExportedDialogueLine = MakeShareable(new FDialogueScriptEntry());
-				PopulateDialogueScriptEntry(CollapsedDialogueContextPair.Key.DialogueWave, *CollapsedDialogueContextPair.Key.Context, CollapsedDialogueContextPair.Value, CollapsedDialogueContextPair.Key.LocalizedSpokenText, *ExportedDialogueLine);
+				PopulateDialogueScriptEntry(DialogueWave, LocalizedDialogueWave, *CollapsedDialogueContextPair.Key.Context, CollapsedDialogueContextPair.Value, CollapsedDialogueContextPair.Key.LocalizedSpokenText, LocalizedVoiceActorDirection, *ExportedDialogueLine);
 				ExportedDialogueLines.Add(ExportedDialogueLine);
 			}
 		}
@@ -426,7 +461,7 @@ FString UExportDialogueScriptCommandlet::GenerateCSVRow(const FDialogueScriptEnt
 		}
 
 		FString PropertyValue;
-		PropertyIt->ExportText_Direct(PropertyValue, PropertyIt->ContainerPtrToValuePtr<void>(&InDialogueScriptEntry), nullptr, nullptr, PPF_None);
+		PropertyIt->ExportTextItem(PropertyValue, PropertyIt->ContainerPtrToValuePtr<void>(&InDialogueScriptEntry), nullptr, nullptr, PPF_None);
 
 		CSVRow += TEXT("\"");
 		CSVRow += PropertyValue.Replace(TEXT("\""), TEXT("\"\""));
@@ -436,7 +471,7 @@ FString UExportDialogueScriptCommandlet::GenerateCSVRow(const FDialogueScriptEnt
 	return CSVRow;
 }
 
-void UExportDialogueScriptCommandlet::PopulateDialogueScriptEntry(const UDialogueWave* InDialogueWave, const FDialogueContextMapping& InPrimaryContext, const TArray<const FDialogueContextMapping*>& InAdditionalContexts, const FString& InLocalizedDialogue, FDialogueScriptEntry& OutDialogueScriptEntry)
+void UExportDialogueScriptCommandlet::PopulateDialogueScriptEntry(const UDialogueWave* InDialogueWave, const UDialogueWave* InLocalizedDialogueWave, const FDialogueContextMapping& InPrimaryContext, const TArray<const FDialogueContextMapping*>& InAdditionalContexts, const FString& InLocalizedDialogue, const FString& InLocalizedVoiceActorDirection, FDialogueScriptEntry& OutDialogueScriptEntry)
 {
 	auto AppendTargetVoices = [&](const FDialogueContext& InContext)
 	{
@@ -504,10 +539,26 @@ void UExportDialogueScriptCommandlet::PopulateDialogueScriptEntry(const UDialogu
 		}
 	};
 
+	auto HasLocalizedSoundWave = [&](const FDialogueContext& InContext) -> bool
+	{
+		if (InLocalizedDialogueWave)
+		{
+			for (const FDialogueContextMapping& LocalizedContextMapping : InLocalizedDialogueWave->ContextMappings)
+			{
+				if (LocalizedContextMapping.Context == InContext)
+				{
+					return LocalizedContextMapping.SoundWave && LocalizedContextMapping.SoundWave->IsLocalizedResource();
+				}
+			}
+		}
+		return false;
+	};
+
 	OutDialogueScriptEntry.SpokenDialogue = InLocalizedDialogue;
-	OutDialogueScriptEntry.VoiceActorDirection = InDialogueWave->VoiceActorDirection;
+	OutDialogueScriptEntry.VoiceActorDirection = InLocalizedVoiceActorDirection;
 	OutDialogueScriptEntry.AudioFileName = InDialogueWave->GetContextRecordedAudioFilename(InPrimaryContext);
 	OutDialogueScriptEntry.DialogueAsset = InDialogueWave->GetPathName();
+	OutDialogueScriptEntry.IsRecorded = HasLocalizedSoundWave(InPrimaryContext.Context);
 
 	OutDialogueScriptEntry.SpeakingVoice = InPrimaryContext.Context.Speaker->GetName();
 	OutDialogueScriptEntry.SpeakingVoiceGUID = InPrimaryContext.Context.Speaker->LocalizationGUID.ToString();
@@ -519,6 +570,11 @@ void UExportDialogueScriptCommandlet::PopulateDialogueScriptEntry(const UDialogu
 
 	for (const FDialogueContextMapping* AdditionalContext : InAdditionalContexts)
 	{
+		if (!OutDialogueScriptEntry.IsRecorded)
+		{
+			OutDialogueScriptEntry.IsRecorded = HasLocalizedSoundWave(AdditionalContext->Context);
+		}
+
 		OutDialogueScriptEntry.LocalizationKeys.Add(InDialogueWave->GetContextLocalizationKey(*AdditionalContext));
 		AppendTargetVoices(AdditionalContext->Context);
 		AppendTargetVoiceGUIDs(AdditionalContext->Context);

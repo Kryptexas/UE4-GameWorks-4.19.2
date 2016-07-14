@@ -5,6 +5,7 @@
 #include "PropertyNode.h"
 #include "PropertyEditorHelpers.h"
 #include "ObjectPropertyNode.h"
+#include "StructurePropertyNode.h"
 #include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -1698,6 +1699,36 @@ void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects ) cons
 		}
 	}
 
+}
+
+void FPropertyHandleBase::GetOuterPackages(TArray<UPackage*>& OuterPackages) const
+{
+	FComplexPropertyNode* ComplexNode = Implementation->GetPropertyNode()->FindComplexParent();
+	if (ComplexNode)
+	{
+		switch (ComplexNode->GetPropertyType())
+		{
+		case FComplexPropertyNode::EPT_Object:
+			{
+				FObjectPropertyNode* ObjectNode = static_cast<FObjectPropertyNode*>(ComplexNode);
+				for (int32 ObjectIndex = 0; ObjectIndex < ObjectNode->GetNumObjects(); ++ObjectIndex)
+				{
+					OuterPackages.Add(ObjectNode->GetUPackage(ObjectIndex));
+				}
+			}
+			break;
+
+		case FComplexPropertyNode::EPT_StandaloneStructure:
+			{
+				FStructurePropertyNode* StructNode = static_cast<FStructurePropertyNode*>(ComplexNode);
+				OuterPackages.Add(StructNode->GetOwnerPackage());
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
 }
 
 void FPropertyHandleBase::EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback )

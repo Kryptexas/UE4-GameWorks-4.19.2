@@ -432,6 +432,11 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 
 			TSharedRef<FShapedGlyphFaceData> ShapedGlyphFaceData = MakeShareable(new FShapedGlyphFaceData(HarfBuzzTextSequenceEntry.FaceAndMemory, GlyphFlags, InFontInfo.Size, FinalFontScale));
 
+			if (!HarfBuzzTextSequenceEntry.FaceAndMemory.IsValid())
+			{
+				continue;
+			}
+
 			hb_font_t* HarfBuzzFont = HarfBuzzFontFactory.CreateFont(*HarfBuzzTextSequenceEntry.FaceAndMemory, GlyphFlags, InFontInfo.Size, FinalFontScale);
 
 			for (const FHarfBuzzTextSequenceEntry::FSubSequenceEntry& HarfBuzzTextSubSequenceEntry : HarfBuzzTextSequenceEntry.SubSequence)

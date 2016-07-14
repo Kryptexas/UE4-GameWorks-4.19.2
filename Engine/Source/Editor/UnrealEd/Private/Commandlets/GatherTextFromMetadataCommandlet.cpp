@@ -179,7 +179,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 
 					const FString Namespace = Arguments.OutputNamespaces[i];
 					FLocItem LocItem(MetaDataValue);
-					FContext Context;
+					FManifestContext Context;
 					Context.Key = FText::Format(Arguments.OutputKeys[i], PatternArguments).ToString();
 					Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of member %s in %s"), *Arguments.InputKeys[i], *Field->GetName(), *Field->GetFullGroupName(true));
 					ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
@@ -215,7 +215,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 
 							const FString Namespace = Arguments.OutputNamespaces[j];
 							FLocItem LocItem(MetaDataValue);
-							FContext Context;
+							FManifestContext Context;
 							Context.Key = FText::Format(Arguments.OutputKeys[j], PatternArguments).ToString();
 							Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of enum value %s of enum %s in %s"), *Arguments.InputKeys[j], *Enum->GetEnumName(i), *Enum->GetName(), *Enum->GetFullGroupName(true));
 							ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);

@@ -131,9 +131,9 @@ void SPropertyEditorEditInline::GetDesiredWidth( float& OutMinDesiredWidth, floa
 bool SPropertyEditorEditInline::Supports( const FPropertyNode* InTreeNode, int32 InArrayIdx )
 {
 	return InTreeNode
-		&& !InTreeNode->IsEditConst()
+		&& InTreeNode->HasNodeFlags(EPropertyNodeFlags::EditInline)
 		&& InTreeNode->FindObjectItemParent()
-		&& InTreeNode->HasNodeFlags(EPropertyNodeFlags::EditInline);
+		&& !InTreeNode->IsEditConst();
 }
 
 bool SPropertyEditorEditInline::Supports( const TSharedRef< class FPropertyEditor >& InPropertyEditor )

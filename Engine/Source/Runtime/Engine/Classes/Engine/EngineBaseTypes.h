@@ -39,6 +39,17 @@ enum class EMouseCaptureMode : uint8
 	CaptureDuringRightMouseDown,
 };
 
+UENUM()
+enum class EMouseLockMode : uint8
+{
+	/** Do not lock the mouse cursor to the viewport */
+	DoNotLock,
+	/** Only lock the mouse cursor to the viewport when the mouse is captured */
+	LockOnCapture,
+	/** Always lock the mouse cursor to the viewport */
+	LockAlways,
+};
+
 /** Type of tick we wish to perform on the level */
 enum ELevelTick
 {

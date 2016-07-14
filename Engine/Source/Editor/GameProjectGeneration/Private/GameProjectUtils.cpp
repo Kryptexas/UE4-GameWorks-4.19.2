@@ -62,6 +62,9 @@ FText FNewClassInfo::GetClassName() const
 	case EClassType::SlateWidgetStyle:
 		return LOCTEXT("SlateWidgetStyleParentClass", "Slate Widget Style");
 
+	case EClassType::UInterface:
+		return LOCTEXT("UInterfaceParentClass", "Unreal Interface");
+
 	default:
 		break;
 	}
@@ -98,13 +101,16 @@ FText FNewClassInfo::GetClassDescription(const bool bFullDescription/* = true*/)
 		break;
 
 	case EClassType::EmptyCpp:
-		return LOCTEXT("EmptyClassDescription", "An empty C++ class with a default constructor and destructor");
+		return LOCTEXT("EmptyClassDescription", "An empty C++ class with a default constructor and destructor.");
 
 	case EClassType::SlateWidget:
-		return LOCTEXT("SlateWidgetClassDescription", "A custom Slate widget, deriving from SCompoundWidget");
+		return LOCTEXT("SlateWidgetClassDescription", "A custom Slate widget, deriving from SCompoundWidget.");
 
 	case EClassType::SlateWidgetStyle:
-		return LOCTEXT("SlateWidgetStyleClassDescription", "A custom Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class");
+		return LOCTEXT("SlateWidgetStyleClassDescription", "A custom Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class.");
+
+	case EClassType::UInterface:
+		return LOCTEXT("UInterfaceClassDescription", "A UObject Interface class, to be implemented by other UObject-based classes.");
 
 	default:
 		break;
@@ -135,6 +141,9 @@ FString FNewClassInfo::GetClassPrefixCPP() const
 	case EClassType::SlateWidgetStyle:
 		return TEXT("F");
 
+	case EClassType::UInterface:
+		return TEXT("U");
+
 	default:
 		break;
 	}
@@ -156,6 +165,9 @@ FString FNewClassInfo::GetClassNameCPP() const
 
 	case EClassType::SlateWidgetStyle:
 		return TEXT("SlateWidgetStyle");
+
+	case EClassType::UInterface:
+		return TEXT("Interface");
 
 	default:
 		break;
@@ -331,6 +343,9 @@ FString FNewClassInfo::GetHeaderTemplateFilename() const
 	case EClassType::SlateWidgetStyle:
 		return TEXT("SlateWidgetStyle.h.template");
 
+	case EClassType::UInterface:
+		return TEXT("InterfaceClass.h.template");
+
 	default:
 		break;
 	}
@@ -372,6 +387,9 @@ FString FNewClassInfo::GetSourceTemplateFilename() const
 
 	case EClassType::SlateWidgetStyle:
 		return TEXT("SlateWidgetStyle.cpp.template");
+
+	case EClassType::UInterface:
+		return TEXT("InterfaceClass.cpp.template");
 
 	default:
 		break;
@@ -2073,6 +2091,50 @@ TArray<FModuleContextInfo> GameProjectUtils::GetCurrentProjectModules()
 	return RetModuleInfos;
 }
 
+TArray<FModuleContextInfo> GameProjectUtils::GetCurrentProjectPluginModules()
+{
+	const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
+	check(CurrentProject);
+
+	TArray<FModuleContextInfo> RetModuleInfos;
+
+	if (!GameProjectUtils::ProjectHasCodeFiles() || CurrentProject->Modules.Num() == 0)
+	{
+		// Don't get plugins if the game project has no source tree.
+		return RetModuleInfos;
+	}
+
+	// Resolve out the paths for each module and add the cut-down into to our output array
+	for (const auto& Plugin : IPluginManager::Get().GetDiscoveredPlugins())
+	{
+		// Only get plugins that are a part of the game project
+		if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject)
+		{
+			for (const auto& PluginModule : Plugin->GetDescriptor().Modules)
+			{
+				FModuleContextInfo ModuleInfo;
+				ModuleInfo.ModuleName = PluginModule.Name.ToString();
+				ModuleInfo.ModuleType = PluginModule.Type;
+
+				// Try and find the .Build.cs file for this module within the plugin source tree
+				FString TmpPath;
+				if (!FindSourceFileInProject(ModuleInfo.ModuleName + ".Build.cs", Plugin->GetBaseDir(), TmpPath))
+				{
+					continue;
+				}
+
+				// Chop the .Build.cs file off the end of the path
+				ModuleInfo.ModuleSourcePath = FPaths::GetPath(TmpPath);
+				ModuleInfo.ModuleSourcePath = FPaths::ConvertRelativePathToFull(ModuleInfo.ModuleSourcePath / ""); // Ensure trailing /
+
+				RetModuleInfos.Emplace(ModuleInfo);
+			}
+		}
+	}
+
+	return RetModuleInfos;
+}
+
 bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason)
 {
 	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
@@ -3266,7 +3328,15 @@ GameProjectUtils::EAddCodeToProjectResult GameProjectUtils::AddCodeToProject_Int
 	const FString NewHeaderFilename = NewHeaderPath / ParentClassInfo.GetHeaderFilename(NewClassName);
 	{
 		FString UnusedSyncLocation;
-		if ( GenerateClassHeaderFile(NewHeaderFilename, CleanClassName, ParentClassInfo, TArray<FString>(), TEXT(""), TEXT(""), UnusedSyncLocation, ModuleInfo, false, OutFailReason) )
+		TArray<FString> ClassSpecifiers;
+
+		// Set UCLASS() specifiers based on parent class type. Currently, only UInterface uses this.
+		if (ParentClassInfo.ClassType == FNewClassInfo::EClassType::UInterface)
+		{
+			ClassSpecifiers.Add(TEXT("MinimalAPI"));
+		}
+
+		if ( GenerateClassHeaderFile(NewHeaderFilename, CleanClassName, ParentClassInfo, ClassSpecifiers, TEXT(""), TEXT(""), UnusedSyncLocation, ModuleInfo, false, OutFailReason) )
 		{
 			CreatedFiles.Add(NewHeaderFilename);
 		}

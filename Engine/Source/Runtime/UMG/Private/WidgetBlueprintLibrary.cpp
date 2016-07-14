@@ -64,10 +64,15 @@ UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf
 
 void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)
 {
+	SetInputMode_UIOnlyEx(Target, InWidgetToFocus, bLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock);
+}
+
+void UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(APlayerController* Target, UWidget* InWidgetToFocus, EMouseLockMode InMouseLockMode)
+{
 	if (Target != nullptr)
 	{
 		FInputModeUIOnly InputMode;
-		InputMode.SetLockMouseToViewport(bLockMouseToViewport);
+		InputMode.SetLockMouseToViewportBehavior(InMouseLockMode);
 
 		if (InWidgetToFocus != nullptr)
 		{
@@ -79,10 +84,15 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWi
 
 void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
 {
+	SetInputMode_GameAndUIEx(Target, InWidgetToFocus, bLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock, bHideCursorDuringCapture);
+}
+
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(APlayerController* Target, UWidget* InWidgetToFocus, EMouseLockMode InMouseLockMode, bool bHideCursorDuringCapture)
+{
 	if (Target != nullptr)
 	{
 		FInputModeGameAndUI InputMode;
-		InputMode.SetLockMouseToViewport(bLockMouseToViewport);
+		InputMode.SetLockMouseToViewportBehavior(InMouseLockMode);
 		InputMode.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 
 		if (InWidgetToFocus != nullptr)

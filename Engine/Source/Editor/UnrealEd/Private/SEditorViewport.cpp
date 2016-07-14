@@ -10,6 +10,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Settings/EditorProjectSettings.h"
+#include "DebuggerCommands.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 
@@ -39,20 +40,23 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SAssignNew( ViewportWidget, SViewport )
-		.ShowEffectWhenDisabled( false )
-		.EnableGammaCorrection( false ) // Scene rendering handles this
-		.AddMetaData(InArgs.MetaData.Num() > 0 ? InArgs.MetaData[0] : MakeShareable(new FTagMetaData(TEXT("LevelEditorViewport"))))
+		SNew(SGlobalPlayWorldActions)
 		[
-			SAssignNew( ViewportOverlay, SOverlay )
-			+SOverlay::Slot()
+			SAssignNew(ViewportWidget, SViewport)
+			.ShowEffectWhenDisabled(false)
+			.EnableGammaCorrection(false) // Scene rendering handles this
+			.AddMetaData(InArgs.MetaData.Num() > 0 ? InArgs.MetaData[0] : MakeShareable(new FTagMetaData(TEXT("LevelEditorViewport"))))
 			[
-				SNew( SBorder )
-				.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
-				.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
-				.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
+				SAssignNew(ViewportOverlay, SOverlay)
+				+ SOverlay::Slot()
+				[
+				SNew(SBorder)
+				.BorderImage(this, &SEditorViewport::OnGetViewportBorderBrush)
+				.BorderBackgroundColor(this, &SEditorViewport::OnGetViewportBorderColorAndOpacity)
+				.Visibility(this, &SEditorViewport::OnGetViewportContentVisibility)
 				.Padding(0.0f)
-				.ShowEffectWhenDisabled( false )
+				.ShowEffectWhenDisabled(false)
+				]
 			]
 		]
 	];

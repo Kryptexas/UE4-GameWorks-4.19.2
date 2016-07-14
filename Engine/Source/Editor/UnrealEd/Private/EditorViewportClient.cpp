@@ -3908,7 +3908,7 @@ void FEditorViewportClient::ConvertMovementToDragRot(const FVector& InDelta,
 			else if( MiddleMouseButtonDown || bIsUsingTrackpad || ( ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown ) )
 			{
 				// Pan left/right/up/down
-				bool bInvert = !bIsUsingTrackpad && MiddleMouseButtonDown && GetDefault<ULevelEditorViewportSettings>()->bInvertMiddleMousePan;
+				const bool bInvert = !bIsUsingTrackpad && MiddleMouseButtonDown && GetDefault<ULevelEditorViewportSettings>()->bInvertMiddleMousePan;
 
 
 				float Direction = bInvert ? 1 : -1;
@@ -3920,8 +3920,12 @@ void FEditorViewportClient::ConvertMovementToDragRot(const FVector& InDelta,
 			{
 				// Change viewing angle
 
+				// inverting orbit axis is handled elsewhere
+				const bool bInvertY = !ShouldOrbitCamera() && GetDefault<ULevelEditorViewportSettings>()->bInvertMouseLookYAxis;
+				float Direction = bInvertY ? -1 : 1;
+
 				InRotDelta.Yaw = InDelta.X * ViewportSettings->MouseSensitivty;
-				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty;
+				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty * Direction;
 			}
 		}
 		break;
@@ -3981,9 +3985,12 @@ void FEditorViewportClient::ConvertMovementToOrbitDragRot(const FVector& InDelta
 
 			if( IsOrbitRotationMode( Viewport ) )
 			{
+				const bool bInvertY = GetDefault<ULevelEditorViewportSettings>()->bInvertOrbitYAxis;
+				float Direction = bInvertY ? -1 : 1;
+
 				// Change the viewing angle
 				InRotDelta.Yaw = InDelta.X * ViewportSettings->MouseSensitivty;
-				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty;
+				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty * Direction;
 			}
 			else if( IsOrbitPanMode( Viewport ) )
 			{

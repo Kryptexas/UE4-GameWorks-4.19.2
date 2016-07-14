@@ -83,6 +83,35 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 		}
 	}
 
+	private UploadedFile.ExportTranslationState ExportOneSkyTranslationWithRetry(UploadedFile OneSkyFile, string Culture, MemoryStream MemoryStream)
+	{
+		const int MAX_COUNT = 3;
+
+		long StartingMemPos = MemoryStream.Position;
+		int Count = 0;
+		for (;;)
+		{
+			try
+			{
+				return OneSkyFile.ExportTranslation(Culture, MemoryStream).Result;
+			}
+			catch (Exception)
+			{
+				if (++Count < MAX_COUNT)
+				{
+					MemoryStream.Position = StartingMemPos;
+					Console.WriteLine("ExportOneSkyTranslation attempt {0}/{1} failed. Retrying...", Count, MAX_COUNT);
+					continue;
+				}
+
+				Console.WriteLine("ExportOneSkyTranslation attempt {0}/{1} failed.", Count, MAX_COUNT);
+				break;
+			}
+		}
+
+		return UploadedFile.ExportTranslationState.Failure;
+	}
+
 	private void ExportOneSkyFileToDirectory(UploadedFile OneSkyFile, DirectoryInfo DestinationDirectory, string DestinationFilename, IEnumerable<string> Cultures, bool bUseCultureDirectory, int OneSkyDownloadedPOChangeList)
 	{
 		foreach (var Culture in Cultures)
@@ -95,7 +124,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 
 			using (var MemoryStream = new MemoryStream())
 			{
-				var ExportTranslationState = OneSkyFile.ExportTranslation(Culture, MemoryStream).Result;
+				var ExportTranslationState = ExportOneSkyTranslationWithRetry(OneSkyFile, Culture, MemoryStream);
 				if (ExportTranslationState == UploadedFile.ExportTranslationState.Success)
 				{
 					var ExportFile = new FileInfo(Path.Combine(CultureDirectory.FullName, DestinationFilename));
@@ -111,7 +140,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 						}
 
 						MemoryStream.Position = 0;
-						using (Stream FileStream = ExportFile.OpenWrite())
+						using (Stream FileStream = ExportFile.Open(FileMode.Create))
 						{
 							MemoryStream.CopyTo(FileStream);
 							Console.WriteLine("[SUCCESS] Exported '{0}' as '{1}' ({2})", OneSkyFile.Filename, ExportFile.FullName, Culture);
@@ -194,6 +223,35 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 		}
 	}
 
+	private UploadedFile UploadOneSkyTranslationWithRetry(OneSky.Project OneSkyProject, string OneSkyFileName, string Culture, FileStream FileStream)
+	{
+		const int MAX_COUNT = 3;
+
+		long StartingFilePos = FileStream.Position;
+		int Count = 0;
+		for (;;)
+		{
+			try
+			{
+				return OneSkyProject.Upload(OneSkyFileName, FileStream, Culture).Result;
+			}
+			catch (Exception)
+			{
+				if (++Count < MAX_COUNT)
+				{
+					FileStream.Position = StartingFilePos;
+					Console.WriteLine("UploadOneSkyTranslation attempt {0}/{1} failed. Retrying...", Count, MAX_COUNT);
+					continue;
+				}
+
+				Console.WriteLine("UploadOneSkyTranslation attempt {0}/{1} failed.", Count, MAX_COUNT);
+				break;
+			}
+		}
+
+		return null;
+	}
+
 	private void UploadFileToOneSky(OneSky.Project OneSkyProject, FileInfo FileToUpload, string Culture)
 	{
 		using (var FileStream = FileToUpload.OpenRead())
@@ -212,7 +270,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 
 			Console.WriteLine("Uploading: '{0}' as '{1}' ({2})", FileToUpload.FullName, OneSkyFileName, Culture);
 
-			var UploadedFile = OneSkyProject.Upload(OneSkyFileName, FileStream, Culture).Result;
+			var UploadedFile = UploadOneSkyTranslationWithRetry(OneSkyProject, OneSkyFileName, Culture, FileStream);
 
 			if (UploadedFile == null)
 			{

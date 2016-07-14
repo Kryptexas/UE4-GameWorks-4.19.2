@@ -1216,34 +1216,19 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 	struct ExistingSkelMeshData* ExistSkelMeshDataPtr = nullptr;
 
+	USkeletalMesh* ExistingSkelMesh = nullptr;
 	if ( !FbxShapeArray  )
 	{
 		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
-		USkeletalMesh* ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
+		ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
 
-		if (ExistingSkelMesh)
-		{
-#if WITH_APEX_CLOTHING
-			//for supporting re-import 
-			ApexClothingUtils::BackupClothingDataFromSkeletalMesh(ExistingSkelMesh);
-#endif// #if WITH_APEX_CLOTHING
-
-			ExistingSkelMesh->PreEditChange(NULL);
-			ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh,!ImportOptions->bImportMaterials);
-		}
-		// if any other object exists, we can't import with this name
-		else if (ExistingObject)
+		if (!ExistingSkelMesh && ExistingObject)
 		{
 			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_OverlappingName", "Same name but different class: '{0}' already exists"), FText::FromString(ExistingObject->GetName()))), FFbxErrors::Generic_SameNameAssetExists);
 			return NULL;
 		}
 	}
 
-	// [from USkeletalMeshFactory::FactoryCreateBinary]
-	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
-	
-	SkeletalMesh->PreEditChange(NULL);
-	
 	FSkeletalMeshImportData TempData;
 	// Fill with data from buffer - contains the full .FBX file. 	
 	FSkeletalMeshImportData* SkelMeshImportDataPtr = &TempData;
@@ -1252,16 +1237,53 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkelMeshImportDataPtr = OutData;
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// We must do a maximum of fail test before backing up the data since the backup is destructive on the existing skeletal mesh.
+	// See the comment later when we call the following function (SaveExistingSkelMeshData)
+
 	if (FillSkeletalMeshImportData(NodeArray, TemplateImportData, FbxShapeArray, SkelMeshImportDataPtr) == false)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_FillupImportData", "Get Import Data has failed.")), FFbxErrors::SkeletalMesh_FillImportDataFailed);
-
-		// I can't delete object here since this is middle of import
-		// but I can move to transient package, and GC will automatically collect it
-		SkeletalMesh->ClearFlags(RF_Standalone);
-		SkeletalMesh->Rename(NULL, GetTransientPackage());
 		return nullptr;
 	}
+
+	// Create initial bounding box based on expanded version of reference pose for meshes without physics assets. Can be overridden by artist.
+	FBox BoundingBox(SkelMeshImportDataPtr->Points.GetData(), SkelMeshImportDataPtr->Points.Num());
+	FBox Temp = BoundingBox;
+	FVector MidMesh = 0.5f*(Temp.Min + Temp.Max);
+	BoundingBox.Min = Temp.Min + 1.0f*(Temp.Min - MidMesh);
+	BoundingBox.Max = Temp.Max + 1.0f*(Temp.Max - MidMesh);
+	// Tuck up the bottom as this rarely extends lower than a reference pose's (e.g. having its feet on the floor).
+	// Maya has Y in the vertical, other packages have Z.
+	//BEN const int32 CoordToTuck = bAssumeMayaCoordinates ? 1 : 2;
+	//BEN BoundingBox.Min[CoordToTuck]	= Temp.Min[CoordToTuck] + 0.1f*(Temp.Min[CoordToTuck] - MidMesh[CoordToTuck]);
+	BoundingBox.Min[2] = Temp.Min[2] + 0.1f*(Temp.Min[2] - MidMesh[2]);
+	const FVector BoundingBoxSize = BoundingBox.GetSize();
+
+	if (SkelMeshImportDataPtr->Points.Num() > 2 && BoundingBoxSize.X < THRESH_POINTS_ARE_SAME && BoundingBoxSize.Y < THRESH_POINTS_ARE_SAME && BoundingBoxSize.Z < THRESH_POINTS_ARE_SAME)
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_ErrorMeshTooSmall", "Cannot import this mesh, the bounding box of this mesh is smaller then the supported threshold[{0}]."), FText::FromString(FString::Printf(TEXT("%f"), THRESH_POINTS_ARE_SAME)))), FFbxErrors::SkeletalMesh_FillImportDataFailed);
+		return nullptr;
+	}
+
+	//Backup the data before importing the new one
+	if (ExistingSkelMesh)
+	{
+#if WITH_APEX_CLOTHING
+		//for supporting re-import 
+		ApexClothingUtils::BackupClothingDataFromSkeletalMesh(ExistingSkelMesh);
+#endif// #if WITH_APEX_CLOTHING
+
+		ExistingSkelMesh->PreEditChange(NULL);
+		//The backup of the skeletal mesh data empty the LOD array in the ImportedResource of the skeletal mesh
+		//If the import fail after this step the editor can crash when updating the bone later since the LODModel will not exist anymore
+		ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh, !ImportOptions->bImportMaterials);
+	}
+
+	// [from USkeletalMeshFactory::FactoryCreateBinary]
+	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+
+	SkeletalMesh->PreEditChange(NULL);
 
 	// process materials from import data
 	ProcessImportMeshMaterials(SkeletalMesh->Materials, *SkelMeshImportDataPtr);
@@ -1270,9 +1292,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	int32 SkeletalDepth = 0;
 	if (!ProcessImportMeshSkeleton(SkeletalMesh->RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
 	{
-		SkeletalMesh->ClearFlags( RF_Standalone );
+		SkeletalMesh->ClearFlags(RF_Standalone);
 		SkeletalMesh->Rename(NULL, GetTransientPackage());
-		return NULL;
+		return nullptr;
 	}
 
 	UE_LOG(LogFbx, Warning, TEXT("Bones digested - %i  Depth of hierarchy - %i"), SkeletalMesh->RefSkeleton.GetNum(), SkeletalDepth);
@@ -1292,17 +1314,6 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	// set default reduction settings values
 	SkeletalMesh->LODInfo[0].ReductionSettings = Settings;
 
-	// Create initial bounding box based on expanded version of reference pose for meshes without physics assets. Can be overridden by artist.
-	FBox BoundingBox(SkelMeshImportDataPtr->Points.GetData(), SkelMeshImportDataPtr->Points.Num());
-	FBox Temp = BoundingBox;
-	FVector MidMesh		= 0.5f*(Temp.Min + Temp.Max);
-	BoundingBox.Min		= Temp.Min + 1.0f*(Temp.Min - MidMesh);
-	BoundingBox.Max		= Temp.Max + 1.0f*(Temp.Max - MidMesh);
-	// Tuck up the bottom as this rarely extends lower than a reference pose's (e.g. having its feet on the floor).
-	// Maya has Y in the vertical, other packages have Z.
-	//BEN const int32 CoordToTuck = bAssumeMayaCoordinates ? 1 : 2;
-	//BEN BoundingBox.Min[CoordToTuck]	= Temp.Min[CoordToTuck] + 0.1f*(Temp.Min[CoordToTuck] - MidMesh[CoordToTuck]);
-	BoundingBox.Min[2]	= Temp.Min[2] + 0.1f*(Temp.Min[2] - MidMesh[2]);
 	SkeletalMesh->SetImportedBounds(FBoxSphereBounds(BoundingBox));
 
 	// Store whether or not this mesh has vertex colors
@@ -1592,7 +1603,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 	// get meshes in Fbx file
 	//the function also fill the collision models, so we can update collision models correctly
 	TArray< TArray<FbxNode*>* > FbxSkelMeshArray;
-	FillFbxSkelMeshArrayInScene(Scene->GetRootNode(), FbxSkelMeshArray, false);
+	FillFbxSkelMeshArrayInScene(Scene->GetRootNode(), FbxSkelMeshArray, false, ImportOptions->bImportScene);
 
 	if(SkeletalMeshFbxUID != 0xFFFFFFFFFFFFFFFF)
 	{

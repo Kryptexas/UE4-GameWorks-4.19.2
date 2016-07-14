@@ -1540,7 +1540,7 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 	}
 
 	// Make sure the new name only contains valid characters
-	if ( !FName(*ObjectName).IsValidXName( INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &OutErrorMessage ) )
+	if ( !FName::IsValidXName( ObjectName, INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &OutErrorMessage ) )
 	{
 		// Return false to indicate that the user should enter a new name
 		return false;

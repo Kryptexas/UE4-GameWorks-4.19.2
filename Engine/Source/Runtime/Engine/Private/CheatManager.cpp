@@ -930,30 +930,6 @@ void UCheatManager::TestCollisionDistance()
 	}
 }
 
-void UCheatManager::WidgetReflector()
-{
-#if !UE_BUILD_SHIPPING
-	static const FName SlateReflectorModuleName("SlateReflector");
-	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
-#endif // #if !UE_BUILD_SHIPPING
-}
-
-void UCheatManager::TextureAtlasVisualizer()
-{
-#if !UE_BUILD_SHIPPING
-	static const FName SlateReflectorModuleName("SlateReflector");
-	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
-#endif // #if !UE_BUILD_SHIPPING
-}
-
-void UCheatManager::FontAtlasVisualizer()
-{
-#if !UE_BUILD_SHIPPING
-	static const FName SlateReflectorModuleName("SlateReflector");
-	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
-#endif // #if !UE_BUILD_SHIPPING
-}
-
 void UCheatManager::RebuildNavigation()
 {
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());

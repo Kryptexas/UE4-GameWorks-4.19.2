@@ -54,33 +54,83 @@ namespace
 FConfigValue
 -----------------------------------------------------------------------------*/
 
-void FConfigValue::ExpandValue()
+bool FConfigValue::ExpandValue(const FString& InCollapsedValue, FString& OutExpandedValue)
 {
+	int32 NumReplacements = 0;
+	OutExpandedValue = InCollapsedValue;
+
 	// Replace %GAME% with game name.
-	FString PotentiallyExpandedValue = SavedValue.Replace(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
 
 	// Replace %GAMEDIR% with the game directory.
-	PotentiallyExpandedValue = PotentiallyExpandedValue.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive);
 
 	// Replace %ENGINEUSERDIR% with the user's engine directory.
-	PotentiallyExpandedValue = PotentiallyExpandedValue.Replace(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
 
-	// Replace %ENGINEVERSIONAGNOSTICUSERDIR% with the user's engine directory.
-	PotentiallyExpandedValue = PotentiallyExpandedValue.Replace(TEXT("%ENGINEVERSIONAGNOSTICUSERDIR%"), *FPaths::EngineVersionAgnosticUserDir(), ESearchCase::CaseSensitive);
+	// Replace %ENGINEVERSIONAGNOSTICUSERDIR% with the user's engine agnostic directory.
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%ENGINEVERSIONAGNOSTICUSERDIR%"), *FPaths::EngineVersionAgnosticUserDir(), ESearchCase::CaseSensitive);
 
-	// Replace %APPSETTINGSDIR% with the game directory.
+	// Replace %APPSETTINGSDIR% with the application settings directory.
 	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
 	FPaths::NormalizeFilename(AppSettingsDir);
-	PotentiallyExpandedValue = PotentiallyExpandedValue.Replace( TEXT("%APPSETTINGSDIR%"), *AppSettingsDir, ESearchCase::CaseSensitive );
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%APPSETTINGSDIR%"), *AppSettingsDir, ESearchCase::CaseSensitive);
 
-	if (PotentiallyExpandedValue.Compare(SavedValue) != 0)
+	return NumReplacements > 0;
+}
+
+FString FConfigValue::ExpandValue(const FString& InCollapsedValue)
+{
+	FString ExpandedValue;
+	ExpandValue(InCollapsedValue, ExpandedValue);
+	return ExpandedValue;
+}
+
+bool FConfigValue::CollapseValue(const FString& InExpandedValue, FString& OutCollapsedValue)
+{
+	int32 NumReplacements = 0;
+	OutCollapsedValue = InExpandedValue;
+
+	auto ExpandPathValueInline = [&](const FString& InPath, const TCHAR* InReplacement)
 	{
-		ExpandedValue = MoveTemp(PotentiallyExpandedValue);
-	}
-	else
-	{
-		ExpandedValue.Empty();
-	}
+		if (OutCollapsedValue.StartsWith(InPath, ESearchCase::CaseSensitive))
+		{
+			NumReplacements += OutCollapsedValue.ReplaceInline(*InPath, InReplacement, ESearchCase::CaseSensitive);
+		}
+		else if (FPaths::IsRelative(InPath))
+		{
+			const FString AbsolutePath = FPaths::ConvertRelativePathToFull(InPath);
+			if (OutCollapsedValue.StartsWith(AbsolutePath, ESearchCase::CaseSensitive))
+			{
+				NumReplacements += OutCollapsedValue.ReplaceInline(*AbsolutePath, InReplacement, ESearchCase::CaseSensitive);
+			}
+		}
+	};
+
+	// Replace the game directory with %GAMEDIR%.
+	ExpandPathValueInline(FPaths::GameDir(), TEXT("%GAMEDIR%"));
+
+	// Replace the user's engine directory with %ENGINEUSERDIR%.
+	ExpandPathValueInline(FPaths::EngineUserDir(), TEXT("%ENGINEUSERDIR%"));
+
+	// Replace the user's engine agnostic directory with %ENGINEVERSIONAGNOSTICUSERDIR%.
+	ExpandPathValueInline(FPaths::EngineVersionAgnosticUserDir(), TEXT("%ENGINEVERSIONAGNOSTICUSERDIR%"));
+
+	// Replace the application settings directory with %APPSETTINGSDIR%.
+	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
+	FPaths::NormalizeFilename(AppSettingsDir);
+	ExpandPathValueInline(AppSettingsDir, TEXT("%APPSETTINGSDIR%"));
+
+	// Note: We deliberately don't replace the game name with %GAME% here, as the game name may exist in many places (including paths)
+
+	return NumReplacements > 0;
+}
+
+FString FConfigValue::CollapseValue(const FString& InExpandedValue)
+{
+	FString CollapsedValue;
+	CollapseValue(InExpandedValue, CollapsedValue);
+	return CollapsedValue;
 }
 
 /*-----------------------------------------------------------------------------

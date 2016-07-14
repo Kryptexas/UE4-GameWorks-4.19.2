@@ -124,9 +124,12 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			TArray<FString> CustomClassFilterNames;
 			ClassFilterString.ParseIntoArray(CustomClassFilterNames, TEXT(","), true);
 
-			for (auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
+			for (auto It = CustomClassFilterNames.CreateIterator(); It; ++It)
 			{
-				const FString& ClassName = *It;
+				FString& ClassName = *It;
+				// User can potentially list class names with leading or trailing whitespace
+				ClassName.Trim();
+				ClassName.TrimTrailing();
 
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
 
@@ -562,7 +565,7 @@ void SPropertyEditorAsset::SetValue( const FAssetData& AssetData )
 FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutValue ) const
 {
 	// Potentially accessing the value while garbage collecting or saving the package could trigger a crash.
-	// so we fail to get the value when that is occuring.
+	// so we fail to get the value when that is occurring.
 	if ( GIsSavingPackage || IsGarbageCollecting() )
 	{
 		return FPropertyAccess::Fail;
@@ -598,6 +601,14 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 			}
 		}
 
+#if !UE_BUILD_SHIPPING
+		if (Object && !Object->IsValidLowLevel())
+		{
+			const UProperty* Property = PropertyEditor->GetProperty();
+			UE_LOG(LogPropertyNode, Fatal, TEXT("Property \"%s\" (%s) contains invalid data."), *Property->GetName(), *Property->GetCPPType());
+		}
+#endif
+
 		OutValue = FObjectOrAssetData( Object );
 	}
 	else
@@ -610,6 +621,14 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 
 		if (Object != NULL)
 		{
+#if !UE_BUILD_SHIPPING
+			if (!Object->IsValidLowLevel())
+			{
+				const UProperty* Property = PropertyEditor->GetProperty();
+				UE_LOG(LogPropertyNode, Fatal, TEXT("Property \"%s\" (%s) contains invalid data."), *Property->GetName(), *Property->GetCPPType());
+			}
+#endif
+
 			OutValue = FObjectOrAssetData(Object);
 		}
 		else

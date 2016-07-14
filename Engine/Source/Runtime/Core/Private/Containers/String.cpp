@@ -318,28 +318,34 @@ bool FString::RemoveFromEnd( const FString& InSuffix, ESearchCase::Type SearchCa
  */
 void FString::PathAppend(const TCHAR* Str, int32 StrLength)
 {
+	int32 DataNum = Data.Num();
 	if (StrLength == 0)
 	{
-		return;
-	}
-
-	int32 DataNum = Data.Num();
-	if (DataNum > 0)
-	{
-		if (DataNum > 1 && Data[DataNum - 2] != TEXT('/') && Data[DataNum - 2] != TEXT('\\') && *Str != TEXT('/'))
+		if (DataNum > 1 && Data[DataNum - 2] != TEXT('/') && Data[DataNum - 2] != TEXT('\\'))
 		{
 			Data[DataNum - 1] = TEXT('/');
-		}
-		else
-		{
-			Data.Pop(false);
-			--DataNum;
+			Data.Add(TEXT('\0'));
 		}
 	}
+	else
+	{
+		if (DataNum > 0)
+		{
+			if (DataNum > 1 && Data[DataNum - 2] != TEXT('/') && Data[DataNum - 2] != TEXT('\\') && *Str != TEXT('/'))
+			{
+				Data[DataNum - 1] = TEXT('/');
+			}
+			else
+			{
+				Data.Pop(false);
+				--DataNum;
+			}
+		}
 
-	Data.Reserve(DataNum + StrLength + 1);
-	Data.Append(Str, StrLength);
-	Data.Add(TEXT('\0'));
+		Data.Reserve(DataNum + StrLength + 1);
+		Data.Append(Str, StrLength);
+		Data.Add(TEXT('\0'));
+	}
 }
 
 FString FString::Trim()

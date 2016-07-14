@@ -19,6 +19,10 @@ const FString FGenericCrashContext::PlatformPropertiesTag = TEXT( "PlatformPrope
 const FString FGenericCrashContext::UE4MinidumpName = TEXT( "UE4Minidump.dmp" );
 const FString FGenericCrashContext::NewLineTag = TEXT( "&nl;" );
 
+const FString FGenericCrashContext::CrashTypeCrash = TEXT("Crash");
+const FString FGenericCrashContext::CrashTypeAssert = TEXT("Assert");
+const FString FGenericCrashContext::CrashTypeEnsure = TEXT("Ensure");
+
 bool FGenericCrashContext::bIsInitialized = false;
 FPlatformMemoryStats FGenericCrashContext::CrashMemoryStats = FPlatformMemoryStats();
 int32 FGenericCrashContext::StaticCrashContextIndex = 0;
@@ -149,6 +153,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), NCachedCrashContextProperties::bIsPerforceBuild );
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), NCachedCrashContextProperties::bIsSourceDistribution );
 	AddCrashProperty( TEXT( "IsEnsure" ), bIsEnsure );
+	AddCrashProperty( TEXT( "IsAssert" ), FDebug::bHasAsserted );
+	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted) );
 
 	AddCrashProperty( TEXT( "SecondsSinceStart" ), NCachedCrashContextProperties::SecondsSinceStart );
 
@@ -170,7 +176,16 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	}
 	else
 	{
-		AddCrashProperty(TEXT("LanguageLCID"), TEXT("en"));
+		FCulturePtr DefaultCulture = FInternationalization::Get().GetCulture(TEXT("en"));
+		if (DefaultCulture.IsValid())
+		{
+			AddCrashProperty(TEXT("LanguageLCID"), DefaultCulture->GetLCID());
+		}
+		else
+		{
+			const int DefaultCultureLCID = 1033;
+			AddCrashProperty(TEXT("LanguageLCID"), DefaultCultureLCID);
+		}
 	}
 	AddCrashProperty( TEXT( "AppDefaultLocale" ), *NCachedCrashContextProperties::DefaultLocale );
 
@@ -344,6 +359,20 @@ FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
 		.Replace( TEXT( "&lt;" ), TEXT( "<" ) )
 		.Replace( TEXT( "&gt;" ), TEXT( ">" ) )
 		.Replace( *NewLineTag, TEXT( "\n" ) );
+}
+
+const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert)
+{
+	if (InIsEnsure)
+	{
+		return *CrashTypeEnsure;
+	}
+	else if (InIsAssert)
+	{
+		return *CrashTypeAssert;
+	}
+
+	return *CrashTypeCrash;
 }
 
 FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :

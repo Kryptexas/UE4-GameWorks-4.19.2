@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AsyncFileHandle.h"
+#include "TextPackageNamespaceUtil.h"
 struct FObjectInstancingGraph;
 
 
@@ -92,6 +93,14 @@ public:
 		ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 		ArNoDelta = !bDoDelta;
 		ArPortFlags |= AdditionalPortFlags;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+		{
+			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(Obj));
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 		Obj->Serialize(*this);
 	}
 
@@ -126,6 +135,13 @@ public:
 		ArIsPersistent = false;
 		ArIgnoreClassRef = bIgnoreClassRef;
 		ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+		{
+			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(Obj));
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 		Obj->Serialize(*this);
 	}
@@ -940,7 +956,7 @@ public:
 	 * @param	InDuplicatedObjectAnnotation		Annotation for storing a mapping from source to duplicated object
 	 * @param	InObjectData					Object data to read from
 	 */
-	FDuplicateDataReader( FUObjectAnnotationSparse<FDuplicatedObject,false>& InDuplicatedObjectAnnotation, const TArray<uint8>& InObjectData, uint32 InPortFlags );
+	FDuplicateDataReader( FUObjectAnnotationSparse<FDuplicatedObject,false>& InDuplicatedObjectAnnotation, const TArray<uint8>& InObjectData, uint32 InPortFlags, UObject* InDestOuter );
 };
 
 /*----------------------------------------------------------------------------

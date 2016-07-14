@@ -15,6 +15,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Engine/UserDefinedStruct.h"
 
+#include "TextPackageNamespaceUtil.h"
+
 #define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////
 // FScriptBytecodeWriter
@@ -37,6 +39,8 @@ public:
 		int32 iStart = ScriptBuffer.AddUninitialized( Length );
 		FMemory::Memcpy( &(ScriptBuffer[iStart]), V, Length );
 	}
+
+	using FArchiveUObject::operator<<; // For visibility of the overloads we don't override
 
 	FArchive& operator<<(FName& Name) override
 	{
@@ -552,6 +556,15 @@ public:
 
 					if (bIsLocalized)
 					{
+#if USE_STABLE_LOCALIZATION_KEYS
+						// We need to make sure the package namespace is correct at this point
+						// Note: We don't test GIsEditor here as we need to mimic using compile-on-load what the compile during cook would have done when running with -game
+						{
+							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->Source);
+							Namespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
+						}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 						Writer << EBlueprintTextLiteralType::LocalizedText;
 						EmitStringLiteral(*SourceString);
 						EmitStringLiteral(Key);

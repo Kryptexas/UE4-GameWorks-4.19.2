@@ -250,7 +250,14 @@ public:
 #if WITH_EDITOR
 	ENGINE_API virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform* TargetPlatform ) override;
 	ENGINE_API virtual void ClearCachedCookedPlatformData(  const ITargetPlatform* TargetPlatform ) override;
-#endif
+
+	/*
+	* Copy all UPROPERTY settings except the collision geometry.
+	* This function is use when we restore the original data after a re-import of a static mesh.
+	* All UProperty should be copy here except the collision geometry (i.e. AggGeom)
+	*/
+	ENGINE_API virtual void CopyBodySetupProperty(const UBodySetup* Other);
+#endif // WITH_EDITOR
 
 #if WITH_PHYSX
 	/** 

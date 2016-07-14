@@ -320,13 +320,14 @@ private:
 	bool HasFoundGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InHorizontalOffset, const FShapedGlyphEntry& InCurrentGlyph, const int32 InCurrentGlyphIndex, int32& InOutCurrentOffset, const FShapedGlyphEntry*& OutMatchedGlyph) const;
 
 	/**
-	 * Enumerate all of the glyphs within the given source index range
+	 * Enumerate all of the glyphs within the given source index range (enumerates either visually or logically)
 	 * @note The indices used here are relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
 	 * @return EnumerationComplete if we found the start and end point and enumerated the glyphs, EnumerationAborted if the callback returned false, or EnumerationFailed (eg, because you started or ended on a merged ligature, or because the range is out-of-bounds)
 	 */
 	enum class EEnumerateGlyphsResult : uint8 { EnumerationFailed, EnumerationAborted, EnumerationComplete };
 	typedef TFunctionRef<bool(const FShapedGlyphEntry&, int32)> FForEachShapedGlyphEntryCallback;
-	EEnumerateGlyphsResult EnumerateGlyphsInSourceRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
+	EEnumerateGlyphsResult EnumerateLogicalGlyphsInSourceRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
+	EEnumerateGlyphsResult EnumerateVisualGlyphsInSourceRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
 
 	/** Contains the information needed when performing a reverse look-up from a source index to the corresponding shaped glyph */
 	struct FSourceIndexToGlyphData
@@ -805,7 +806,7 @@ public:
 	/**
 	 * Get the revision index of the currently active localized fallback font.
 	 */
-	int32 GetLocalizedFallbackFontRevision() const;
+	uint16 GetLocalizedFallbackFontRevision() const;
 
 	/**
 	 * Issues a request to clear all cached data from the cache

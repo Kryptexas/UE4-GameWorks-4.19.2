@@ -1046,13 +1046,7 @@ public:
 	}
 	
 	/** @return Get the window that we will be painting */
-	FORCEINLINE const TSharedPtr<SWindow> GetWindow() const
-	{
-		return TopLevelWindow.Pin();
-	}
-	
-	/** @return Get the window that we will be painting */
-	FORCEINLINE TSharedPtr<SWindow> GetWindow()
+	FORCEINLINE TSharedPtr<SWindow> GetWindow() const
 	{
 		return TopLevelWindow.Pin();
 	}

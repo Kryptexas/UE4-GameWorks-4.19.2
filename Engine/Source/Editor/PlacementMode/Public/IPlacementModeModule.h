@@ -208,6 +208,12 @@ public:
 	virtual FOnRecentlyPlacedChanged& OnRecentlyPlacedChanged() = 0;
 
 	/**
+	 * @return the event that is broadcast whenever the list of all placeable assets changes
+	 */
+	DECLARE_EVENT( IPlacementMode, FOnAllPlaceableAssetsChanged );
+	virtual FOnAllPlaceableAssetsChanged& OnAllPlaceableAssetsChanged() = 0;
+
+	/**
 	 * @return the event that is broadcast whenever a placement mode enters a placing session
 	 */
 	DECLARE_EVENT_OneParam( IPlacementMode, FOnStartedPlacingEvent, const TArray< UObject* >& /*Assets*/ );

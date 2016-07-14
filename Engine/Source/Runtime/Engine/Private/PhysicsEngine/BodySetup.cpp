@@ -1121,6 +1121,25 @@ void UBodySetup::PostEditUndo()
 		CreatePhysicsMeshes();
 	}
 }
+
+void UBodySetup::CopyBodySetupProperty(const UBodySetup* Other)
+{
+	BoneName = Other->BoneName;
+	PhysicsType = Other->PhysicsType;
+	bConsiderForBounds = Other->bConsiderForBounds;
+	bMeshCollideAll = Other->bMeshCollideAll;
+	bDoubleSidedGeometry = Other->bDoubleSidedGeometry;
+	bGenerateNonMirroredCollision = Other->bGenerateNonMirroredCollision;
+	bSharedCookedData = Other->bSharedCookedData;
+	bGenerateMirroredCollision = Other->bGenerateMirroredCollision;
+	PhysMaterial = Other->PhysMaterial;
+	CollisionReponse = Other->CollisionReponse;
+	CollisionTraceFlag = Other->CollisionTraceFlag;
+	DefaultInstance = Other->DefaultInstance;
+	WalkableSlopeOverride = Other->WalkableSlopeOverride;
+	BuildScale3D = Other->BuildScale3D;
+}
+
 #endif // WITH_EDITOR
 
 SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )

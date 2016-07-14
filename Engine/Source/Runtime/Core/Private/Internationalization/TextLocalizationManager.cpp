@@ -329,6 +329,7 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 		{
 			LiveEntry->SourceStringHash = SourceStringHash;
 			LiveEntry->DisplayString.Get() = SourceString ? **SourceString : TEXT("");
+			DirtyLocalRevisionForDisplayString(LiveEntry->DisplayString);
 
 #if ENABLE_LOC_TESTING
 			if( (bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString) && SourceString )
@@ -440,6 +441,14 @@ bool FTextLocalizationManager::FindNamespaceAndKeyFromDisplayString(const FTextD
 	return NamespaceKeyEntry != nullptr;
 }
 
+uint16 FTextLocalizationManager::GetLocalRevisionForDisplayString(const FTextDisplayStringRef& InDisplayString)
+{
+	FScopeLock ScopeLock( &SynchronizationObject );
+
+	uint16* FoundLocalRevision = LocalTextRevisions.Find(InDisplayString);
+	return (FoundLocalRevision) ? *FoundLocalRevision : 0;
+}
+
 bool FTextLocalizationManager::AddDisplayString(const FTextDisplayStringRef& DisplayString, const FString& Namespace, const FString& Key)
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
@@ -507,6 +516,7 @@ bool FTextLocalizationManager::UpdateDisplayString(const FTextDisplayStringRef& 
 
 	// Update display string value.
 	*DisplayString = Value;
+	DirtyLocalRevisionForDisplayString(DisplayString);
 
 	// Update entry from reverse live table.
 	ReverseLiveTableEntry.Namespace = Namespace;
@@ -935,4 +945,24 @@ void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizatio
 	}
 
 	DirtyTextRevision();
+}
+
+void FTextLocalizationManager::DirtyLocalRevisionForDisplayString(const FTextDisplayStringRef& InDisplayString)
+{
+	uint16* FoundLocalRevision = LocalTextRevisions.Find(InDisplayString);
+	if (FoundLocalRevision)
+	{
+		while (++(*FoundLocalRevision) == 0) {} // Zero is special, don't allow an overflow to stay at zero
+	}
+	else
+	{
+		LocalTextRevisions.Add(InDisplayString, 1);
+	}
+}
+
+void FTextLocalizationManager::DirtyTextRevision()
+{
+	while (++TextRevisionCounter == 0) {} // Zero is special, don't allow an overflow to stay at zero
+	LocalTextRevisions.Empty();
+	OnTextRevisionChangedEvent.Broadcast();
 }

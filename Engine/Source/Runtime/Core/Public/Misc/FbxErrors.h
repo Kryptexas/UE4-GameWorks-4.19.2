@@ -16,6 +16,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_LoadingSceneFailed;
 
+	static FName Generic_InvalidCharacterInName;
+
 	static FName Generic_SameNameAssetExists;
 
 	static FName Generic_SameNameAssetOverriding;
@@ -60,6 +62,8 @@ struct CORE_API FFbxErrors
 	static FName StaticMesh_NoTriangles;
 
 	static FName StaticMesh_BuildError;
+
+	static FName StaticMesh_AllTrianglesDegenerate;
 
 	/** SkeletalMesh **/
 	static FName SkeletalMesh_DifferentRoots;

@@ -370,6 +370,11 @@ void SDetailsView::RemoveInvalidObjects()
 	}
 }
 
+void SDetailsView::SetObjectPackageOverrides(const TMap<TWeakObjectPtr<UObject>, TWeakObjectPtr<UPackage>>& InMapping)
+{
+	RootPropertyNode->SetObjectPackageOverrides(InMapping);
+}
+
 bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects ) const
 {
 	bool bShouldSetObjects = false;
@@ -423,6 +428,8 @@ void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject 
 	PreSetObject();
 
 	check( RootPropertyNode.IsValid() );
+
+	RootPropertyNode->ClearObjectPackageOverrides();
 
 	// Selected actors for building SelectedActorInfo
 	TArray<AActor*> SelectedRawActors;

@@ -413,7 +413,7 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		
 		if ( SceneViewport.IsValid() )
 		{
-			SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
+			SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode);
 		}
 
 		// Registration of the game viewport to that messages are correctly received.

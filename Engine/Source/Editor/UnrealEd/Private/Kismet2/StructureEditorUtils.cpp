@@ -199,8 +199,7 @@ struct FMemberVariableNameHelper
 		FString Result;
 		if (!NameBase.IsEmpty())
 		{
-			const FName NewNameBase(*NameBase);
-			if (ensure(NewNameBase.IsValidXName(INVALID_OBJECTNAME_CHARACTERS)))
+			if (ensure(FName::IsValidXName(NameBase, INVALID_OBJECTNAME_CHARACTERS)))
 			{
 				Result = NameBase;
 			}
@@ -311,7 +310,7 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 		auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
 		if (VarDesc 
 			&& !NewDisplayNameStr.IsEmpty()
-			&& FName(*NewDisplayNameStr).IsValidXName(INVALID_OBJECTNAME_CHARACTERS) 
+			&& FName::IsValidXName(NewDisplayNameStr, INVALID_OBJECTNAME_CHARACTERS) 
 			&& IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
 		{
 			const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));

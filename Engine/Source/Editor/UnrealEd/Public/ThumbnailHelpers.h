@@ -258,7 +258,7 @@ protected:
 
 private:
 	/** The blueprint that is currently being rendered. NULL when not rendering. */
-	UBlueprint* CurrentBlueprint;
+	TWeakObjectPtr<UBlueprint> CurrentBlueprint;
 };
 
 class UNREALED_API FClassThumbnailScene : public FClassActorThumbnailScene

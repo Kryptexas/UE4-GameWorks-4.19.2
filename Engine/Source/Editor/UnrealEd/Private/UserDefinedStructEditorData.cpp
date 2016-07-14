@@ -23,8 +23,13 @@ FEdGraphPinType FStructVariableDescription::ToPinType() const
 }
 
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
+	UUserDefinedStruct* ScriptStruct = GetOwnerStruct();
+	if (ScriptStruct)
+	{
+		DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
+	}
 }
 
 uint32 UUserDefinedStructEditorData::GenerateUniqueNameIdForMemberVariable()
@@ -109,6 +114,8 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 	ensure(DefaultStructInstance.IsValid() && DefaultStructInstance.GetStruct() == ScriptStruct);
 	if (DefaultStructInstance.IsValid() && StructData && ScriptStruct)
 	{
+		DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
+
 		for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)
 		{
 			UProperty* Property = *It;

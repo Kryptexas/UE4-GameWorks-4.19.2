@@ -419,6 +419,62 @@ const UClass* UEditorEngine::GetFirstSelectedClass( const UClass* const Required
 	return nullptr;
 }
 
+void UEditorEngine::GetSelectionStateOfLevel(FSelectionStateOfLevel& OutSelectionStateOfLevel) const
+{
+	OutSelectionStateOfLevel.SelectedActors.Reset();
+	for (FSelectionIterator ActorIt(GetSelectedActorIterator()); ActorIt; ++ActorIt)
+	{
+		OutSelectionStateOfLevel.SelectedActors.Add(ActorIt->GetPathName());
+	}
+
+	OutSelectionStateOfLevel.SelectedComponents.Reset();
+	for (FSelectionIterator CompIt(GetSelectedComponentIterator()); CompIt; ++CompIt)
+	{
+		OutSelectionStateOfLevel.SelectedComponents.Add(CompIt->GetPathName());
+	}
+}
+
+void UEditorEngine::SetSelectionStateOfLevel(const FSelectionStateOfLevel& InSelectionStateOfLevel)
+{
+	SelectNone(/*bNotifySelectionChanged*/true, /*bDeselectBSP*/true, /*bWarnAboutTooManyActors*/false);
+
+	if (InSelectionStateOfLevel.SelectedActors.Num() > 0)
+	{
+		GetSelectedActors()->Modify();
+		GetSelectedActors()->BeginBatchSelectOperation();
+
+		for (const FString& ActorName : InSelectionStateOfLevel.SelectedActors)
+		{
+			AActor* Actor = FindObject<AActor>(nullptr, *ActorName);
+			if (Actor)
+			{
+				SelectActor(Actor, true, /*bNotifySelectionChanged*/true);
+			}
+		}
+
+		GetSelectedActors()->EndBatchSelectOperation();
+	}
+
+	if (InSelectionStateOfLevel.SelectedComponents.Num() > 0)
+	{
+		GetSelectedComponents()->Modify();
+		GetSelectedComponents()->BeginBatchSelectOperation();
+
+		for (const FString& ComponentName : InSelectionStateOfLevel.SelectedComponents)
+		{
+			UActorComponent* ActorComp = FindObject<UActorComponent>(nullptr, *ComponentName);
+			if (ActorComp)
+			{
+				SelectComponent(ActorComp, true, /*bNotifySelectionChanged*/true);
+			}
+		}
+
+		GetSelectedComponents()->EndBatchSelectOperation();
+	}
+
+	NoteSelectionChange();
+}
+
 static bool GetSmallToolBarIcons()
 {
 	return GetDefault<UEditorStyleSettings>()->bUseSmallToolBarIcons;
@@ -3933,6 +3989,9 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 			{
 				GPhysCommandHandler->Flush();
 			}
+			
+			// Update components again in case it was a world without a physics scene but did have rendered components.
+			World->UpdateWorldComponents(true, true);
 		}
 	}
 

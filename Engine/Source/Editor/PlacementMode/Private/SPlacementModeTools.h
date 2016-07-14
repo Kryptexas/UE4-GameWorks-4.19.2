@@ -80,6 +80,9 @@ private:
 	/** Called when the recently placed assets changes. */
 	void UpdateRecentlyPlacedAssets( const TArray< FActorPlacementInfo >& RecentlyPlaced );
 
+	/** Called when the list of placeable assets changes. */
+	void UpdatePlaceableAssets();
+
 private:
 
 	/** Gets the border image for the tab, this is the 'active' orange bar. */

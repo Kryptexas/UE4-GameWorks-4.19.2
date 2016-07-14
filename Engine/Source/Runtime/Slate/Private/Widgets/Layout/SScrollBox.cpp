@@ -765,7 +765,7 @@ bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount,
 		}
 		else
 		{
-			DesiredScrollOffset = FMath::Clamp(DesiredScrollOffset + ScrollAmount, ScrollMin, ScrollMax);
+			DesiredScrollOffset = FMath::Clamp(ScrollPanel->PhysicalOffset + ScrollAmount, ScrollMin, ScrollMax);
 		}
 	}
 

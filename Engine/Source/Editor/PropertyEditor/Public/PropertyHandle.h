@@ -336,6 +336,13 @@ public:
 	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const = 0;
 
 	/**
+	 * Get the packages that contain this property
+	 *
+	 * @param OuterPackages	An array that will be populated with the outer packages
+	 */
+	virtual void GetOuterPackages(TArray<UPackage*>& OuterPackages) const = 0;
+
+	/**
 	 * Enumerate the raw data of this property.  (Each pointer can be cast to the property data type)
 	 *
 	 * @param InRawDataCallback		The function to call for each data

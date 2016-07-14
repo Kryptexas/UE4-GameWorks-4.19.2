@@ -185,6 +185,8 @@ void SConsoleInputBox::Construct( const FArguments& InArgs )
 			)
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 void SConsoleInputBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (!GIntraFrameDebuggingGameThread && !IsEnabled())
@@ -974,7 +976,7 @@ void SOutputLog::OnClearLog()
 
 void SOutputLog::OnUserScrolled(float ScrollOffset)
 {
-	bIsUserScrolled = !FMath::IsNearlyEqual(ScrollOffset, 1.0f);
+	bIsUserScrolled = ScrollOffset < 1.0 && !FMath::IsNearlyEqual(ScrollOffset, 1.0f);
 }
 
 bool SOutputLog::CanClearLog() const

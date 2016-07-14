@@ -136,7 +136,7 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 void FWidgetDesignerApplicationMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
 {
 	TSharedPtr<FWidgetBlueprintEditor> BP = GetBlueprintEditor();
-	
+
 	BP->RegisterToolbarTab(InTabManager.ToSharedRef());
 	BP->PushTabFactories(TabFactories);
 }
@@ -149,6 +149,9 @@ void FWidgetDesignerApplicationMode::PreDeactivateMode()
 void FWidgetDesignerApplicationMode::PostActivateMode()
 {
 	//FWidgetBlueprintApplicationMode::PostActivateMode();
+	TSharedPtr<FWidgetBlueprintEditor> BP = GetBlueprintEditor();
+
+	BP->OnEnteringDesigner();
 }
 
 #undef LOCTEXT_NAMESPACE

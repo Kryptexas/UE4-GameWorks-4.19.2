@@ -12,6 +12,8 @@ class FTickableEditorObject : public FTickableObjectBase
 public:
 	static void TickObjects( float DeltaSeconds )
 	{
+		const TArray<FTickableEditorObject*>& TickableObjects = GetTickableObjects();
+
 		for( int32 ObjectIndex=0; ObjectIndex < TickableObjects.Num(); ++ObjectIndex)
 		{
 			FTickableEditorObject* TickableObject = TickableObjects[ObjectIndex];
@@ -27,7 +29,7 @@ public:
 	 */
 	FTickableEditorObject()
 	{
-		TickableObjects.Add( this );
+		GetTickableObjects().Add( this );
 	}
 
 	/**
@@ -35,12 +37,16 @@ public:
 	 */
 	virtual ~FTickableEditorObject()
 	{
-		const int32 Pos = TickableObjects.Find(this);
+		const int32 Pos = GetTickableObjects().Find(this);
 		check(Pos!=INDEX_NONE);
-		TickableObjects.RemoveAt(Pos);
+		GetTickableObjects().RemoveAt(Pos);
 	}
 
 private:
-	/** Static array of tickable objects */
-	UNREALED_API static TArray<FTickableEditorObject*> TickableObjects;
+	/** Returns the array of tickable editor objects */
+	UNREALED_API static TArray<FTickableEditorObject*>& GetTickableObjects()
+	{
+		static TArray<FTickableEditorObject*> TickableObjects;
+		return TickableObjects;
+	}
 };

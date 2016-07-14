@@ -52,8 +52,12 @@ class ENGINE_API UInputSettings
 	TEnumAsByte<EMouseCaptureMode> DefaultViewportMouseCaptureMode;
 
 	/** The default mouse lock state when the viewport acquires capture */
+	UPROPERTY(config)
+	bool bDefaultViewportMouseLock_DEPRECATED;
+
+	/** The default mouse lock state behavior when the viewport acquires capture */
 	UPROPERTY(config, EditAnywhere, Category = "ViewportProperties")
-	bool bDefaultViewportMouseLock;
+	EMouseLockMode DefaultViewportMouseLockMode;
 
 	/** List of Action Mappings */
 	UPROPERTY(config, EditAnywhere, Category="Bindings")

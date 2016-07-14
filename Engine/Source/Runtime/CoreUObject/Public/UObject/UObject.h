@@ -464,16 +464,6 @@ public:
 	}
 
 	/**
-	 * Returns whether this wave file is a localized resource.
-	 *
-	 * @return true if it is a localized resource, false otherwise.
-	 */
-	virtual bool IsLocalizedResource()
-	{
-		return false;
-	}
-
-	/**
 	 * Callback used to allow object register its direct object references that are not already covered by
 	 * the token stream.
 	 *
@@ -589,6 +579,9 @@ public:
 
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
+
+	/** Returns true if this object is considered a localized resource. */
+	virtual bool IsLocalizedResource() const;
 
 	/** Returns true if this object is safe to add to the root set. */
 	virtual bool IsSafeForRootSet() const;

@@ -12,8 +12,10 @@
 #include "InternationalizationMetadata.h"
 
 const FString FDialogueConstants::DialogueNamespace						= TEXT("Dialogue");
+const FString FDialogueConstants::DialogueNotesNamespace				= TEXT("DialogueNotes");
 const FString FDialogueConstants::SubtitleKeySuffix						= TEXT("_Subtitle");
 #if WITH_EDITORONLY_DATA
+const FString FDialogueConstants::ActingDirectionKeySuffix				= TEXT("_ActingDirection");
 const FString FDialogueConstants::PropertyName_AudioFile				= TEXT("AudioFile");
 const FString FDialogueConstants::PropertyName_VoiceActorDirection		= TEXT("VoiceActorDirection");
 const FString FDialogueConstants::PropertyName_Speaker					= TEXT("Speaker");
@@ -309,7 +311,7 @@ namespace
 		FDialogueHelper DialogueHelper;
 		if (DialogueHelper.ProcessDialogueWave(DialogueWave))
 		{
-			auto FindOrAddDialogueTextData = [&PropertyLocalizationDataGatherer](const FString& InText) -> FGatherableTextData&
+			auto FindOrAddDialogueTextData = [&PropertyLocalizationDataGatherer](const FString& InText, const FString& InNamespace) -> FGatherableTextData&
 			{
 				check(!InText.IsEmpty());
 
@@ -319,14 +321,14 @@ namespace
 				auto& GatherableTextDataArray = PropertyLocalizationDataGatherer.GetGatherableTextDataArray();
 				FGatherableTextData* GatherableTextData = GatherableTextDataArray.FindByPredicate([&](const FGatherableTextData& Candidate)
 				{
-					return Candidate.NamespaceName.Equals(FDialogueConstants::DialogueNamespace, ESearchCase::CaseSensitive)
+					return Candidate.NamespaceName.Equals(InNamespace, ESearchCase::CaseSensitive)
 						&& Candidate.SourceData.SourceString.Equals(SourceData.SourceString, ESearchCase::CaseSensitive)
 						&& Candidate.SourceData.SourceStringMetaData == SourceData.SourceStringMetaData;
 				});
 				if (!GatherableTextData)
 				{
 					GatherableTextData = &GatherableTextDataArray[GatherableTextDataArray.AddDefaulted()];
-					GatherableTextData->NamespaceName = FDialogueConstants::DialogueNamespace;
+					GatherableTextData->NamespaceName = InNamespace;
 					GatherableTextData->SourceData = SourceData;
 				}
 
@@ -336,7 +338,7 @@ namespace
 			// Gather the Spoken Text for each context
 			if (!DialogueWave->SpokenText.IsEmpty())
 			{
-				FGatherableTextData& GatherableTextData = FindOrAddDialogueTextData(DialogueWave->SpokenText);
+				FGatherableTextData& GatherableTextData = FindOrAddDialogueTextData(DialogueWave->SpokenText, FDialogueConstants::DialogueNamespace);
 
 				const TArray<FTextSourceSiteContext>& Variations = DialogueHelper.GetContextSpecificVariations();
 				for (const FTextSourceSiteContext& Variation : Variations)
@@ -348,7 +350,7 @@ namespace
 			// Gather the Subtitle Override for each context
 			if (!DialogueWave->SubtitleOverride.IsEmpty())
 			{
-				FGatherableTextData& GatherableTextData = FindOrAddDialogueTextData(DialogueWave->SubtitleOverride);
+				FGatherableTextData& GatherableTextData = FindOrAddDialogueTextData(DialogueWave->SubtitleOverride, FDialogueConstants::DialogueNamespace);
 
 				const TArray<FTextSourceSiteContext>& Variations = DialogueHelper.GetContextSpecificVariations();
 				for (const FTextSourceSiteContext& Variation : Variations)
@@ -358,6 +360,18 @@ namespace
 					SubtitleVariation.InfoMetaData.RemoveField(FDialogueConstants::PropertyName_AudioFile);
 					GatherableTextData.SourceSiteContexts.Add(SubtitleVariation);
 				}
+			}
+
+			// Gather the Voice Acting Direction
+			if (!DialogueWave->VoiceActorDirection.IsEmpty())
+			{
+				FGatherableTextData& GatherableTextData = FindOrAddDialogueTextData(DialogueWave->VoiceActorDirection, FDialogueConstants::DialogueNotesNamespace);
+
+				FTextSourceSiteContext& SourceSiteContext = GatherableTextData.SourceSiteContexts[GatherableTextData.SourceSiteContexts.AddDefaulted()];
+				SourceSiteContext.KeyName = DialogueWave->LocalizationGUID.ToString() + FDialogueConstants::ActingDirectionKeySuffix;
+				SourceSiteContext.SiteDescription = DialogueWave->GetPathName();
+				SourceSiteContext.IsEditorOnly = true;
+				SourceSiteContext.IsOptional = false;
 			}
 		}
 	}
@@ -470,13 +484,7 @@ UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)
 	, LocalizationGUID(FGuid::NewGuid())
 {
 #if WITH_EDITORONLY_DATA
-	static struct FAutomaticRegistrationOfLocalizationGatherer
-	{
-		FAutomaticRegistrationOfLocalizationGatherer()
-		{
-			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDialogueWave::StaticClass(), &GatherDialogueWaveForLocalization);
-		}
-	} AutomaticRegistrationOfLocalizationGatherer;
+	{ static const FAutoRegisterLocalizationDataGatheringCallback AutomaticRegistrationOfLocalizationGatherer(UDialogueWave::StaticClass(), &GatherDialogueWaveForLocalization); }
 #endif
 
 	bOverride_SubtitleOverride = false;
@@ -559,9 +567,8 @@ void UDialogueWave::PostEditChangeChainProperty(FPropertyChangedChainEvent& Prop
 // Begin UDialogueWave interface.
 bool UDialogueWave::SupportsContext(const FDialogueContext& Context) const
 {
-	for (int32 i = 0; i < ContextMappings.Num(); ++i)
+	for (const FDialogueContextMapping& ContextMapping : ContextMappings)
 	{
-		const FDialogueContextMapping& ContextMapping = ContextMappings[i];
 		if (ContextMapping.Context == Context)
 		{
 			return true;
@@ -580,9 +587,8 @@ USoundBase* UDialogueWave::GetWaveFromContext(const FDialogueContext& Context) c
 	}
 
 	UDialogueSoundWaveProxy* Proxy = nullptr;
-	for (int32 i = 0; i < ContextMappings.Num(); ++i)
+	for (const FDialogueContextMapping& ContextMapping : ContextMappings)
 	{
-		const FDialogueContextMapping& ContextMapping = ContextMappings[i];
 		if (ContextMapping.Context == Context)
 		{
 			Proxy = ContextMapping.Proxy;

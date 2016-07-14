@@ -32,13 +32,28 @@ public struct ProjectImportExportInfo
 	public bool bUseCultureDirectory;
 };
 
+public struct ProjectStepInfo
+{
+	public ProjectStepInfo(string InName, string InLocalizationConfigFile)
+	{
+		Name = InName;
+		LocalizationConfigFile = InLocalizationConfigFile;
+	}
+	
+	/** The name of this localization step */
+	public string Name;
+
+	/** Path to this steps localization config file (relative to the root working directory for the commandlet) */
+	public string LocalizationConfigFile;
+};
+
 public struct ProjectInfo
 {
 	/** The name of this project */
 	public string ProjectName;
 
-	/** Path to this projects localization config files (relative to the root working directory for the commandlet) - ordered so that iterating them runs in the correct order */
-	public List<string> LocalizationConfigFiles;
+	/** Path to this projects localization step data - ordered so that iterating them runs in the correct order */
+	public List<ProjectStepInfo> LocalizationSteps;
 
 	/** Config data used by the PO file import process */
 	public ProjectImportExportInfo ImportInfo;

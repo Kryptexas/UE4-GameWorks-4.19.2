@@ -111,7 +111,13 @@ class FViewportFrame
 public:
 
 	virtual class FViewport* GetViewport() = 0;
-	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX = -1, int32 InPosY = -1) = 0;
+	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) = 0;
+
+	DEPRECATED(4.13, "The version of FViewportFrame::ResizeFrame that takes a position is deprecated (the position was never used). Please use the version that doesn't take a position instead.")
+	void ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32, int32)
+	{
+		ResizeFrame(NewSizeX, NewSizeY, NewWindowMode);
+	}
 };
 
 /**
@@ -925,6 +931,11 @@ public:
 	 * Gets whether or not the cursor is locked to the viewport when the viewport captures the mouse
 	 */
 	virtual bool LockDuringCapture() { return true; }
+
+	/**
+	 * Gets whether or not the cursor should always be locked to the viewport.
+	 */
+	virtual bool ShouldAlwaysLockMouse() { return false; }
 
 	/**
 	 * Gets whether or not the cursor is hidden when the viewport captures the mouse

@@ -2708,7 +2708,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			]
 			.ValueContent()
 			[
-				SNew(SEditableTextBox)
+				SNew(SMultiLineEditableTextBox)
 					.Text( this, &FBlueprintGraphActionDetails::OnGetTooltipText )
 					.OnTextCommitted( this, &FBlueprintGraphActionDetails::OnTooltipTextCommitted )
 					.Font( IDetailLayoutBuilder::GetDetailFont() )

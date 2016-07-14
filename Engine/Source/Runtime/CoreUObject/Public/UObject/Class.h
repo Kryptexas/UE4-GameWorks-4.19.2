@@ -1167,8 +1167,13 @@ class FStructOnScope
 protected:
 	TWeakObjectPtr<const UStruct> ScriptStruct;
 	uint8* SampleStructMemory;
+	TWeakObjectPtr<UPackage> Package;
 
-	FStructOnScope() : SampleStructMemory(NULL) {}
+	FStructOnScope()
+		: SampleStructMemory(nullptr)
+		, OwnsMemory(false)
+	{
+	}
 
 	void Initialize()
 	{
@@ -1184,7 +1189,8 @@ public:
 
 	FStructOnScope(const UStruct* InScriptStruct)
 		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(NULL)
+		, SampleStructMemory(nullptr)
+		, OwnsMemory(false)
 	{
 		Initialize();
 	}
@@ -1193,7 +1199,8 @@ public:
 		: ScriptStruct(InScriptStruct)
 		, SampleStructMemory(InData)
 		, OwnsMemory(false)
-	{ }
+	{
+	}
 
 	virtual uint8* GetStructMemory()
 	{
@@ -1208,6 +1215,16 @@ public:
 	virtual const UStruct* GetStruct() const
 	{
 		return ScriptStruct.Get();
+	}
+
+	virtual UPackage* GetPackage() const
+	{
+		return Package.Get();
+	}
+
+	virtual void SetPackage(UPackage* InPackage)
+	{
+		Package = InPackage;
 	}
 
 	virtual bool IsValid() const

@@ -1398,6 +1398,12 @@ bool UObject::IsAsset () const
 	return false;
 }
 
+bool UObject::IsLocalizedResource() const
+{
+	const UPackage* ObjPackage = GetOutermost();
+	return ObjPackage && FPackageName::IsLocalizedPackage(ObjPackage->GetPathName());
+}
+
 bool UObject::IsSafeForRootSet() const
 {
 	if (IsInBlueprint())
