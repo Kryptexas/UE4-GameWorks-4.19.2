@@ -1,19 +1,18 @@
-﻿INTSourceChangelist:0
-Availability:Public
-Title: Working with Sequencer
+﻿Availability:Public
+Title:シーケンサーで作業する
 Crumbs: %ROOT%, Engine
-Description:Tips, Tricks and other Considerations when working with Sequencer.
+Description:シーケンサーで作業する場合のヒント、コツ、考慮事項について説明します。
 Navigation:topic
-parent:Engine\Sequencer
-order:1
-Version: 4.12
+parent:Engine/Sequencer
+order:5
+Version:4.12
 
-There are several built-in shortcuts and keyboard bindings you can use to speed up the rate at which you create your content in Sequencer. There are also several different workflows you can take depending upon the composition of your team. 
+シーケンサーでのコンテンツ作成の時間を短縮するためにいくつかのショートカットやキーバインディングをご利用いただけます。チームの構成に応じてご利用いただけるワークフローが複数種類あります。 
 
-With an understanding of how to use Sequencer, the following pages may improve your productivity or workflows : 
+シーケンサーの使用方法を理解していれば、以下のページをご覧いただくことで生産性を高め、ワークフローを改善することが可能です。 
 
 [REGION:note]
-If you are new to Sequencer it is recommended that you first check out the [**Overview**](Engine\Sequencer\Overview) page. 
+シーケンサーを初めて使う場合は、まず [概要](Engine\Sequencer\Overview) のページをご覧いただくことをお勧めします。 
 [/REGION]
 
 [OBJECT:TopicButtonList]
