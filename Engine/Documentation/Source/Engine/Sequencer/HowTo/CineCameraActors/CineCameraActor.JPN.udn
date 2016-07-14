@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3009005
+﻿INTSourceChangelist:3041709
 Availability:Public
 Title:Cine Camera アクタを使用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:Cine Camera アクタを使ってシネマティックスのようなショットを作成する方法を説明します。 
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
@@ -39,47 +39,36 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](CineCamera3.png)
 
-1.	**CineCamera アクタ** を選択した状態で、**S** キーを押して、現在の **Transform (トランスフォーム)** に対してキーフレームを追加します。 
+1.	**CineCamera アクタ** を選択した状態で、**S** キーを押して、現在の **Transform (トランスフォーム)** に対してキーフレームを追加します。これでシーケンサーにカメラの開始位置と移動の開始位置を認識させます。
 
-	![](CineCamera4.png)
-
-	これでシーケンサーにカメラの開始位置と移動の開始位置を認識させます。 
+	![](CineCamera4.png) 
 
 1.	シーケンサーで、タイムラインをレベル シーケンスの終わり (フレーム **150**) まで移動します。 
 
-1.	レベルで、以下の図のようにカメラを上方向と前方向に動かして、 **S** キーを押して必要な位置にキーフレームを追加します。 
+1.	レベルで、以下の図のようにカメラを上方向と前方向に動かして、 **S** キーを押して必要な位置にキーフレームを追加します。これでシーン中のカメラの動きの一部が設定されます。
 
-	![](CineCamera5.png)
+	![](CineCamera5.png) 
 
-	これでシーン中のカメラの動きの一部が設定されます。 
-
-1.	**[Details]** パネルの **[CineCameraActor]** で、以下の **[Look at Tracking Settings]** を設定します。 
-
-	![](CineCamera6.png)
-
-	上の画面では、以下の設定を使用しました。 
+1.	**[Details]** パネルの **[CineCameraActor]** で、以下の **[Look at Tracking Settings]** を設定します。以下の設定を使用しました。 
 
 	* **[Enable Look at Tracking]** - チェックを入れるとカメラがアクタを追跡します。 
 	* **[Draw Debug Look at Tracking Position]** - チェックを入れるとカメラが見る方向がわかります。 
 	* **[Actor to Track]** - これを **ThirdPersonCharacter** に設定します。ショットのためにこのキャラクターを追跡します。 
-	* **[Relative Offset]** - **Z** を **60** に設定して、デフォルトのトラッキング位置から少し上にします。 
+	* **[Relative Offset]** - **Z** を **60** に設定して、デフォルトのトラッキング位置から少し上にします。
+
+	![](CineCamera6.png) 
 
 	キャラクターの頭部付近にトラッキング位置を示す黄色のボックスが見えます。 
 
 	![](CineCamera6b.png)
 
-1.	**[Details]** パネルの **[CineCameraActor]** で、以下の **[Filmback Settings (フィルムバック設定)]** を設定して **[Super 16mm]** を使用するようにします。 
+1.	**[Details]** パネルの **[CineCameraActor]** で、以下の **[Filmback Settings (フィルムバック設定)]** を設定して **[Super 16mm]** を使用するようにします。**[Filmback Settings]** には、様々なアスペクト比にするための数種類のフォーマットがあります。
 
-	![](CineCamera7.png)
+	![](CineCamera7.png) 
 
-	**[Filmback Settings]** には、様々なアスペクト比にするための数種類のフォーマットがあります。 
-
-1.	**[Lens Settings]** セクションを展開し、**[Min Focal Length]** を **50.0mm** に、**[Max Focal Length]** を **1000.0mm** に設定します。 
+1.	**[Lens Settings]** セクションを展開し、**[Min Focal Length]** を **50.0mm** に、**[Max Focal Length]** を **1000.0mm** に設定します。これから設定する [Min/Max Focal Length] の設定は、mm 単位での Focal Length を適用できる範囲に影響を与えます。ドロップダウン メニューから様々なレンズ設定を選択することができます。一部は現実世界のカメラで使われる標準的な設定です。独自のカスタム設定をご利用いただくこともできます。 
 
 	![](CineCamera8.png)
-
-	これから設定する [Min/Max Focal Length] の設定は、mm 単位での Focal Length を適用できる範囲に影響を与えます。 
-	ドロップダウン メニューから様々なレンズ設定を選択することができます。一部は現実世界のカメラで使われる標準的な設定です。独自のカスタム設定をご利用いただくこともできます。 
 
 1.	**[Focus Settings]** セクションを展開し、**[Focus Method]** を **[Tracking]** に変更します。 
 
@@ -87,46 +76,36 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](CineCamera9.png)
 
-1.	**スポイト** アイコンをレベル内のキャラクターに移動し、**左クリック** してそれを選択します。 
+1.	**スポイト** アイコンをレベル内のキャラクターに移動し、**左クリック** してそれを選択します。これでフォーカスが常に選択したアクタを追跡するようになります。
 
-	![](CineCamera10.png)
+	![](CineCamera10.png) 
 
-	これでフォーカスが常に選択したアクタを追跡するようになります。 
+1.	タイムラインをフレーム 0 に移動して戻し、**[Current Focal Length (現在の焦点距離)]** に別のキーフレームを追加します。シーンの始まりに **50.0mm** の Focal Length を使用し、この値を時間の経過とともに変更します。
 
-1.	タイムラインをフレーム 0 に移動して戻し、**[Current Focal Length (現在の焦点距離)]** に別のキーフレームを追加します。 
+	![](CineCamera11.png) 
 
-	![](CineCamera11.png)
-
-	シーンの始まりに **50.0mm** の Focal Length を使用し、この値を時間の経過とともに変更します。 
-
-1.	タイムラインをシーケンスの終わり (フレーム **150**) まで移動し、 **[Current Focal Length]** を **75.0** に設定し、キーフレームを作成します。 
+1.	タイムラインをシーケンスの終わり (フレーム **150**) まで移動し、 **[Current Focal Length]** を **75.0** に設定し、キーフレームを作成します。これでショットの途中でカメラが若干ズームインします。
 
 	![](CineCamera12.png)
 
-	これでショットの途中でカメラが若干ズームインします。
+1.	レベルで **ThirdPersonCharacter** を選択し、**Alt** キーを押したままコピーをドラッグして最初のものの少し後ろに配置します。カメラが周囲をパンして追跡したキャラクターの背後に立っているキャラクターが表れます。
 
-1.	レベルで **ThirdPersonCharacter** を選択し、**Alt** キーを押したままコピーをドラッグして最初のものの少し後ろに配置します。 
-
-	![](CineCamera13.png)
-
-	カメラが周囲をパンして追跡したキャラクターの背後に立っているキャラクターが表れます。 
+	![](CineCamera13.png) 
 
 1.	シーケンサーでは **[Add]** ボタンをクリックし、**Camera Cut Track** を追加します。 
 
 	![](CineCamera14.png)
 
-1.	タイムラインを **0** に戻し、**+ Camera** ボタンをクリックし、**CineCameraActor** を選択します。 
+1.	タイムラインを **0** に戻し、**+ Camera** ボタンをクリックし、**CineCameraActor** を選択します。これでこのシーケンスでは追加したカメラからシーンを撮影するようになります。 
 
 	![](CineCamera15.png)
 
-	これでこのシーケンスでは追加したカメラからシーンを撮影するようになります。 
-
 1.	**[Preview Play]** ボタンをクリックします。 
 
+	## 最終結果
 
-## 最終結果
 
-以下の動画に類似した結果になります。カメラがキャラクターを撮影するためにパンアップし、周囲を回ります。 
+以下の動画に類似した結果になります。カメラがキャラクターを撮影するためにパンアップし、周囲を回ります。以下では、デバッグ トラッキングをオフにして、**Game View** (ビューポートの **G** キー) を有効にして、カメラを **Camera Cuts Track** にロックしました。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -139,8 +118,6 @@ Related: Engine\Sequencer\ReferenceEditor\
 VlhV5pH_62k
 [/PARAMLITERAL]
 [/OBJECT]
-
-上の画面では、デバッグ トラッキングをオフにして、**Game View** (ビューポートの **G** キー) を有効にして、カメラを **Camera Cuts Track** にロックしました。 
 
 **Cine Camera Actor** の **Current Camera Settings** で各設定を試してショットを様々な外観にしてみてください。 
 
