@@ -835,6 +835,8 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 		}
 		else
 		{
+			check(LODIndex > 0);
+
 			// No valid source model and we're not auto-generating. Auto-generate in this case
 			// because we have nothing else to go on.
 			const float Tolerance = 0.01f;

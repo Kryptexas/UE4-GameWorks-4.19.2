@@ -533,6 +533,12 @@ void FSequencer::PostTickRenderStateFixup()
 }
 
 
+TSharedRef<SWidget> FSequencer::GetSequencerWidget() const
+{
+	return SequencerWidget.ToSharedRef();
+}
+
+
 UMovieSceneSequence* FSequencer::GetRootMovieSceneSequence() const
 {
 	if (SequenceInstanceStack.Num())
@@ -5430,7 +5436,7 @@ void FixSceneRangeTiming( UMovieScene* MovieScene, float FrameInterval )
 	float UpperBoundValue = SceneRange.GetUpperBoundValue();
 	float SnappedUpperBoundValue = SnapTime( UpperBoundValue, FrameInterval );
 
-	if ( SnappedLowerBoundValue != LowerBoundValue || SnappedLowerBoundValue != LowerBoundValue)
+	if ( SnappedLowerBoundValue != LowerBoundValue || SnappedUpperBoundValue != UpperBoundValue)
 	{
 		MovieScene->SetPlaybackRange( SnappedLowerBoundValue, SnappedUpperBoundValue );
 	}

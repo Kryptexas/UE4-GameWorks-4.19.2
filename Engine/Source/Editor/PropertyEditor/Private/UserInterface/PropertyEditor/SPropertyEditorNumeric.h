@@ -31,58 +31,66 @@ public:
 
 		if(!Property->IsA(UFloatProperty::StaticClass()) && Property->HasMetaData(PropertyEditorConstants::MD_Bitmask))
 		{
-			const int32 BitmaskBitCount = sizeof(NumericType) << 3;
-
-			BitmaskFlags.Empty(BitmaskBitCount);
-
-			const UEnum* BitmaskEnum = nullptr;
-			const FString& BitmaskEnumName = Property->GetMetaData(PropertyEditorConstants::MD_BitmaskEnum);
-			if (!BitmaskEnumName.IsEmpty())
+			auto CreateBitmaskFlagsArray = [](const UProperty* Prop)
 			{
-				// @TODO: Potentially replace this with a parameter passed in from a member variable on the UProperty (e.g. UByteProperty::Enum)
-				BitmaskEnum = FindObject<UEnum>(ANY_PACKAGE, *BitmaskEnumName);
-			}
+				const int32 BitmaskBitCount = sizeof(NumericType) << 3;
 
-			if (BitmaskEnum)
-			{
-				for (int32 BitmaskEnumIndex = 0; BitmaskEnumIndex < BitmaskEnum->NumEnums() - 1; ++BitmaskEnumIndex)
+				TArray<FBitmaskFlagInfo> Result;
+				Result.Empty(BitmaskBitCount);
+
+				const UEnum* BitmaskEnum = nullptr;
+				const FString& BitmaskEnumName = Prop->GetMetaData(PropertyEditorConstants::MD_BitmaskEnum);
+				if (!BitmaskEnumName.IsEmpty())
 				{
-					int8 BitmaskFlagIndex = BitmaskEnum->GetValueByIndex(BitmaskEnumIndex);
-					if (BitmaskFlagIndex >= 0 && BitmaskFlagIndex < BitmaskBitCount)
+					// @TODO: Potentially replace this with a parameter passed in from a member variable on the UProperty (e.g. UByteProperty::Enum)
+					BitmaskEnum = FindObject<UEnum>(ANY_PACKAGE, *BitmaskEnumName);
+				}
+
+				if (BitmaskEnum)
+				{
+					for (int32 BitmaskEnumIndex = 0; BitmaskEnumIndex < BitmaskEnum->NumEnums() - 1; ++BitmaskEnumIndex)
 					{
-						FBitmaskFlagInfo* BitmaskFlag = new(BitmaskFlags) FBitmaskFlagInfo();
-
-						BitmaskFlag->Value = TBitmaskValueHelpers<NumericType>::LeftShift(static_cast<NumericType>(1), static_cast<int32>(BitmaskFlagIndex));
-
-						BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameText(BitmaskEnumIndex);
-						if (BitmaskFlag->DisplayName.IsEmpty())
+						int8 BitmaskFlagIndex = BitmaskEnum->GetValueByIndex(BitmaskEnumIndex);
+						if (BitmaskFlagIndex >= 0 && BitmaskFlagIndex < BitmaskBitCount)
 						{
-							BitmaskFlag->DisplayName = FText::FromString(BitmaskEnum->GetEnumName(BitmaskEnumIndex));
-						}
+							Result.Emplace();
+							FBitmaskFlagInfo* BitmaskFlag = &Result.Last();
 
-						BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipText(BitmaskEnumIndex);
-						if (BitmaskFlag->ToolTipText.IsEmpty())
-						{
-							BitmaskFlag->ToolTipText = FText::Format(LOCTEXT("BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);
+							BitmaskFlag->Value = TBitmaskValueHelpers<NumericType>::LeftShift(static_cast<NumericType>(1), static_cast<int32>(BitmaskFlagIndex));
+
+							BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameText(BitmaskEnumIndex);
+							if (BitmaskFlag->DisplayName.IsEmpty())
+							{
+								BitmaskFlag->DisplayName = FText::FromString(BitmaskEnum->GetEnumName(BitmaskEnumIndex));
+							}
+
+							BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipText(BitmaskEnumIndex);
+							if (BitmaskFlag->ToolTipText.IsEmpty())
+							{
+								BitmaskFlag->ToolTipText = FText::Format(LOCTEXT("BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);
+							}
 						}
 					}
 				}
-			}
-			else
-			{
-				for (int32 BitmaskFlagIndex = 0; BitmaskFlagIndex < BitmaskBitCount; ++BitmaskFlagIndex)
+				else
 				{
-					FBitmaskFlagInfo* BitmaskFlag = new(BitmaskFlags) FBitmaskFlagInfo();
+					for (int32 BitmaskFlagIndex = 0; BitmaskFlagIndex < BitmaskBitCount; ++BitmaskFlagIndex)
+					{
+						Result.Emplace();
+						FBitmaskFlagInfo* BitmaskFlag = &Result.Last();
 
-					BitmaskFlag->Value = TBitmaskValueHelpers<NumericType>::LeftShift(static_cast<NumericType>(1), BitmaskFlagIndex);
-					BitmaskFlag->DisplayName = FText::Format(LOCTEXT("BitmaskDefaultFlagDisplayName", "Flag {0}"), FText::AsNumber(BitmaskFlagIndex + 1));
-					BitmaskFlag->ToolTipText = FText::Format(LOCTEXT("BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);
+						BitmaskFlag->Value = TBitmaskValueHelpers<NumericType>::LeftShift(static_cast<NumericType>(1), BitmaskFlagIndex);
+						BitmaskFlag->DisplayName = FText::Format(LOCTEXT("BitmaskDefaultFlagDisplayName", "Flag {0}"), FText::AsNumber(BitmaskFlagIndex + 1));
+						BitmaskFlag->ToolTipText = FText::Format(LOCTEXT("BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);
+					}
 				}
-			}
+
+				return Result;
+			};
 
 			const FComboBoxStyle& ComboBoxStyle = FCoreStyle::Get().GetWidgetStyle< FComboBoxStyle >("ComboBox");
 
-			const auto& GetComboButtonText = [this]() -> FText
+			const auto& GetComboButtonText = [this, CreateBitmaskFlagsArray, Property]() -> FText
 			{
 				TOptional<NumericType> Value = OnGetValue();
 				if (Value.IsSet())
@@ -96,6 +104,7 @@ public:
 						}
 						else
 						{
+							TArray<FBitmaskFlagInfo> BitmaskFlags = CreateBitmaskFlagsArray(Property);
 							for (int i = 0; i < BitmaskFlags.Num(); ++i)
 							{
 								if (TBitmaskValueHelpers<NumericType>::BitwiseAND(BitmaskValue, BitmaskFlags[i].Value))
@@ -124,10 +133,11 @@ public:
 				.Font(InArgs._Font)
 				.Text_Lambda(GetComboButtonText)
 			]
-			.OnGetMenuContent_Lambda([this]()
+			.OnGetMenuContent_Lambda([this, CreateBitmaskFlagsArray, Property]()
 			{
 				FMenuBuilder MenuBuilder(false, nullptr);
 
+				TArray<FBitmaskFlagInfo> BitmaskFlags = CreateBitmaskFlagsArray(Property);
 				for (int i = 0; i < BitmaskFlags.Num(); ++i)
 				{
 					MenuBuilder.AddMenuEntry(
@@ -136,7 +146,7 @@ public:
 						FSlateIcon(),
 						FUIAction
 						(
-							FExecuteAction::CreateLambda([this, i]()
+							FExecuteAction::CreateLambda([this, i, BitmaskFlags]()
 							{
 								TOptional<NumericType> Value = OnGetValue();
 								if (Value.IsSet())
@@ -145,7 +155,7 @@ public:
 								}
 							}),
 							FCanExecuteAction(),
-							FIsActionChecked::CreateLambda([this, i]() -> bool
+							FIsActionChecked::CreateLambda([this, i, BitmaskFlags]() -> bool
 							{
 								TOptional<NumericType> Value = OnGetValue();
 								if (Value.IsSet())
@@ -544,9 +554,6 @@ private:
 
 	/** True if the slider is being used to change the value of the property */
 	bool bIsUsingSlider;
-
-	/** Internal array of per-flag info, used for bitmask editing. */
-	TArray<FBitmaskFlagInfo> BitmaskFlags;
 };
 
 #undef LOCTEXT_NAMESPACE

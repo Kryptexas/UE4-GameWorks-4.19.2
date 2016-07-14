@@ -168,7 +168,7 @@ public:
 	 *
 	 * @return true if the TUniquePtr currently owns an object, false otherwise.
 	 */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		return IsValid();
 	}

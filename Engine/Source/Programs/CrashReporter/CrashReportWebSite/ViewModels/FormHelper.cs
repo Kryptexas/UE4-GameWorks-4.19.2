@@ -7,7 +7,7 @@ using System.Web;
 using System.Web.Mvc;
 using System.Web.Helpers;
 
-namespace Tools.CrashReporter.CrashReportWebSite.Models
+namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
 	/// A helper class to extract parameters passed from web pages
@@ -78,6 +78,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public string GameName = "";
 
 		private string PreviousTerm = "";
+
+	    public string EngineMode = "";
 
 		/// <summary>
 		/// Intelligently extract parameters from a web request that could be in a form or a query string (GET vs. POST).
@@ -193,6 +195,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			GetFormParameter( Request, Form, "VersionName", VersionName, out VersionName );
 			GetFormParameter( Request, Form, "PlatformName", PlatformName, out PlatformName );
 			GetFormParameter( Request, Form, "GameName", GameName, out GameName );
+            GetFormParameter(Request, Form, "EngineMode", EngineMode, out EngineMode);
 
 
 			string PageString = Page.ToString();

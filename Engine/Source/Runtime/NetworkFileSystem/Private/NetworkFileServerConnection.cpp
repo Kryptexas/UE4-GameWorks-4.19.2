@@ -858,7 +858,25 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 			FString ConnectedContentFolder = ContentFolder;
 			ConnectedContentFolder.ReplaceInline(*LocalEngineDir, *ConnectedEngineDir);
-			int32 ReplaceCount = ConnectedContentFolder.ReplaceInline(*LocalGameDir, *ConnectedGameDir);
+
+			int32 ReplaceCount = 0;
+
+			// If one path is relative and the other isn't, convert both to absolute paths before trying to replace
+			if (FPaths::IsRelative(LocalGameDir) != FPaths::IsRelative(ConnectedContentFolder))
+			{
+				FString AbsoluteLocalGameDir = FPaths::ConvertRelativePathToFull(LocalGameDir);
+				FString AbsoluteConnectedContentFolder = FPaths::ConvertRelativePathToFull(ConnectedContentFolder);
+				ReplaceCount = AbsoluteConnectedContentFolder.ReplaceInline(*AbsoluteLocalGameDir, *ConnectedGameDir);
+				if (ReplaceCount > 0)
+				{
+					ConnectedContentFolder = AbsoluteConnectedContentFolder;
+				}
+			}
+			else
+			{
+				ReplaceCount = ConnectedContentFolder.ReplaceInline(*LocalGameDir, *ConnectedGameDir);
+			}
+			
 			if (ReplaceCount == 0)
 			{
 				int32 GameDirOffset = ConnectedContentFolder.Find(ConnectedGameDir, ESearchCase::IgnoreCase, ESearchDir::FromEnd);

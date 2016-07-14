@@ -408,11 +408,6 @@ bool UMetaData::NeedsLoadForClient() const
 	return false; 
 }
 
-bool UMetaData::NeedsLoadForServer() const
-{ 
-	return false; 
-}
-
 bool UMetaData::NeedsLoadForEditorGame() const
 {
 	return true;

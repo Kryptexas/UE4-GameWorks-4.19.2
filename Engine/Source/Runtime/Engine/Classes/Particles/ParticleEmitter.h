@@ -240,12 +240,6 @@ class UParticleEmitter : public UObject
 	// @todo document
 	ENGINE_API FName& GetEmitterName();
 
-	// Ignore this object in dedicated server builds
-	virtual bool NeedsLoadForServer() const override
-	{
-		return false;
-	}
-
 	// @todo document
 	virtual	void						SetLODCount(int32 LODCount);
 

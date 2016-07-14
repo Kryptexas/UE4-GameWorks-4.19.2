@@ -140,7 +140,7 @@ public:
 
 	/** @return true when the value is meaningful; false if calling GetValue() is undefined. */
 	bool IsSet() const { return bIsSet; }
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const { return bIsSet; }
+	FORCEINLINE explicit operator bool() const { return bIsSet; }
 
 	/** @return The optional value; undefined when IsSet() returns false. */
 	const OptionalType& GetValue() const { checkf(IsSet(), TEXT("It is an error to call GetValue() on an unset TOptional. Please either check IsSet() or use Get(DefaultValue) instead.")); return *(OptionalType*)&Value; }

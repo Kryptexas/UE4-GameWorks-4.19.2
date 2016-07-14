@@ -42,11 +42,6 @@ bool UObjectRedirector::NeedsLoadForClient() const
 	return false;
 }
 
-bool UObjectRedirector::NeedsLoadForServer() const
-{
-	return false;
-}
-
 bool UObjectRedirector::NeedsLoadForEditorGame() const
 {
 	return true;

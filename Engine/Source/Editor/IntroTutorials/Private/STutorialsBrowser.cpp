@@ -204,10 +204,7 @@ public:
 		SubCategories.Add(InSubCategory);
 	}
 
-	void AddTutorial(TSharedPtr<FTutorialListEntry_Tutorial> InTutorial)
-	{
-		Tutorials.Add(InTutorial);
-	}
+	void AddTutorial(TSharedPtr<FTutorialListEntry_Tutorial> InTutorial);
 
 	FReply OnClicked() const
 	{
@@ -624,6 +621,11 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 	ReloadTutorials();
 
 	RebuildCrumbs();
+}
+
+inline void FTutorialListEntry_Category::AddTutorial(TSharedPtr<FTutorialListEntry_Tutorial> InTutorial)
+{
+	Tutorials.Add(InTutorial);
 }
 
 EActiveTimerReturnType STutorialsBrowser::TriggerReloadTutorials( double InCurrentTime, float InDeltaTime )

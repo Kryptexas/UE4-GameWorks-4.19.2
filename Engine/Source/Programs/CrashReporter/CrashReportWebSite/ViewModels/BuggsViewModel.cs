@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
+using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
 
-namespace Tools.CrashReporter.CrashReportWebSite.Models
+namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
 	/// The view model for the Bugg index page.
@@ -100,11 +102,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Default constructor
 		/// </summary>
-		public BuggsViewModel()
+		public BuggsViewModel(ICrashRepository crashRepo)
 		{
-            BranchNames = CrashRepository.GetBranchesAsListItems();
-            VersionNames = CrashRepository.GetVersionsAsListItems();
-            PlatformNames = CrashRepository.GetPlatformsAsListItems();
+            BranchNames = crashRepo.GetBranchesAsListItems();
+            VersionNames = crashRepo.GetVersionsAsListItems();
+            PlatformNames = crashRepo.GetPlatformsAsListItems();
 		}
 	}
 }

@@ -488,6 +488,68 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 
 #endif // WITH_EDITOR
 
+class FCachedClassExclusionData
+{
+public:
+
+	FCachedClassExclusionData(const TCHAR* InSectionName)
+	{
+		check(GConfig != nullptr && GConfig->IsReadyForUse());
+
+		TArray<FString> ConfigData;
+		GConfig->GetArray(TEXT("Core.System"), InSectionName, ConfigData, GEngineIni);
+
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* Class = *ClassIt;
+			if (ConfigData.Contains(Class->GetName()))
+			{
+				ExcludedClasses.Add(Class);
+			}
+		}
+
+		// Now gather all the classes which are derived from the specified ones
+		TSet<UClass*> DerivedClasses;
+
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* Class = *ClassIt;
+
+			for (const UClass* SpecifiedClass : ExcludedClasses)
+			{
+				if (Class->IsChildOf(SpecifiedClass))
+				{
+					if (!ExcludedClasses.Contains(Class))
+					{
+						DerivedClasses.Add(Class);
+					}
+					
+					break;
+				}
+			}
+		}
+
+		// Add them together
+		ExcludedClasses.Append(DerivedClasses);
+	}
+
+	bool IsExcluded(UClass* InClass) const 
+	{
+		return ExcludedClasses.Contains(InClass);
+	}
+
+private:
+
+	TSet<UClass*> ExcludedClasses;
+
+};
+
+bool UObject::NeedsLoadForServer() const
+{
+	static const FCachedClassExclusionData CachedClassExclusionData(TEXT("ClassesExcludedForServer"));
+	return !CachedClassExclusionData.IsExcluded(GetClass());
+}
+
 bool UObject::CanCreateInCurrentContext(UObject* Template)
 {
 	check(Template);

@@ -176,8 +176,7 @@ public:
 			return Tmp;
 		}
 
-		SAFE_BOOL_OPERATORS(FBlackboardDataToComponentsIterator);
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const { return CurrentIteratorIndex < Iterators.Num() && (bool)GetCurrentIteratorRef(); }
+		FORCEINLINE explicit operator bool() const { return CurrentIteratorIndex < Iterators.Num() && (bool)GetCurrentIteratorRef(); }
 		FORCEINLINE bool operator !() const { return !(bool)*this; }
 
 		FORCEINLINE UBlackboardData* Key() const { return GetCurrentIteratorRef().Key().Get(); }

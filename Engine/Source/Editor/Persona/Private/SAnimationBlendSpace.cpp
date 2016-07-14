@@ -854,8 +854,6 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 
 	FDrawLines LineBatcher;
 
-	TArray<FVector2D> LinePoints;
-
 	int32 DefaultLayer = LayerId;
 	int32 GridLayer = LayerId+1;
 	int32 HighlightLayer = LayerId+2;
@@ -869,11 +867,13 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 
 	// draw the borderline for grid
 	{
-		LinePoints.Add( FVector2D(WindowRect.Left, WindowRect.Top) );
-		LinePoints.Add( FVector2D(WindowRect.Left, WindowRect.Bottom) );
-		LinePoints.Add( FVector2D(WindowRect.Right, WindowRect.Bottom) );
-		LinePoints.Add( FVector2D(WindowRect.Right, WindowRect.Top));
-		LinePoints.Add( FVector2D(WindowRect.Left, WindowRect.Top) );
+		TArray<FVector2D> LinePoints = {
+			FVector2D(WindowRect.Left, WindowRect.Top),
+			FVector2D(WindowRect.Left, WindowRect.Bottom),
+			FVector2D(WindowRect.Right, WindowRect.Bottom),
+			FVector2D(WindowRect.Right, WindowRect.Top),
+			FVector2D(WindowRect.Left, WindowRect.Top)
+		};
 
 		FSlateDrawElement::MakeLines( 
 			OutDrawElements,

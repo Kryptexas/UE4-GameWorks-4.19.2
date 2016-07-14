@@ -184,7 +184,7 @@ struct FHashBucketIterator
 		return *this;
 	}
 	/** conversion to "bool" returning true if the iterator is valid. */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		if (Bucket.Items)
 		{

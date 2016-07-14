@@ -1061,14 +1061,16 @@ FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 	FName OutputName;
 
 	//Cant name the mesh if the object is null and there InName arguments is None.
-	check(FbxObject != NULL || InName != FString("None"))
+	check(FbxObject != nullptr || InName != TEXT("None"))
 
-	if ((ImportOptions->bUsedAsFullName || FbxObject == NULL) && InName != FString("None"))
+	if ((ImportOptions->bUsedAsFullName || FbxObject == nullptr) && InName != TEXT("None"))
 	{
 		OutputName = *InName;
 	}
 	else
 	{
+		check(FbxObject);
+
 		char Name[MAX_SPRINTF];
 		int SpecialChars[] = {'.', ',', '/', '`', '%'};
 
@@ -1077,14 +1079,14 @@ FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 		for ( int32 i = 0; i < 5; i++ )
 		{
 			char* CharPtr = Name;
-			while ( (CharPtr = FCStringAnsi::Strchr(CharPtr,SpecialChars[i])) != NULL )
+			while ( (CharPtr = FCStringAnsi::Strchr(CharPtr,SpecialChars[i])) != nullptr )
 			{
 				CharPtr[0] = '_';
 			}
 		}
 
 		// for mesh, replace ':' with '_' because Unreal doesn't support ':' in mesh name
-		char* NewName = NULL;
+		char* NewName = nullptr;
 		NewName = FCStringAnsi::Strchr (Name, ':');
 
 		if (NewName)
@@ -1732,8 +1734,8 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 
 void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*>* >& outSkelMeshArray, TArray<FbxNode*>& SkeletonArray, bool ExpandLOD)
 {
-	bool RigidNodeFound = false;
-	FbxNode* RigidMeshNode = NULL;
+	bool bRigidNodeFound = false;
+	FbxNode* RigidMeshNode = nullptr;
 
 	DEBUG_FBX_NODE("", Node);
 
@@ -1743,7 +1745,7 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 		if (Node->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0 )
 		{
 			RigidMeshNode = Node;
-			RigidNodeFound = true;
+			bRigidNodeFound = true;
 		}
 	}
 	else if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
@@ -1755,11 +1757,11 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 		{
 			if (FirstLOD->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0 )
 			{
-				RigidNodeFound = true;
+				bRigidNodeFound = true;
 			}
 		}
 
-		if (RigidNodeFound)
+		if (bRigidNodeFound)
 		{
 			if (ExpandLOD)
 			{
@@ -1773,7 +1775,7 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 		}
 	}
 
-	if (RigidMeshNode)
+	if (bRigidNodeFound)
 	{
 		// find root skeleton
 		FbxNode* Link = GetRootSkeleton(RigidMeshNode);
@@ -2050,30 +2052,29 @@ void FFbxImporter::CheckSmoothingInfo(FbxMesh* FbxMesh)
 //-------------------------------------------------------------------------
 FbxNode* FFbxImporter::RetrieveObjectFromName(const TCHAR* ObjectName, FbxNode* Root)
 {
-	FbxNode* Result = NULL;
-	
-	if ( Scene != NULL )
+	if (Scene)
 	{
-		if (Root == NULL)
+		if (!Root)
 		{
 			Root = Scene->GetRootNode();
 		}
 
-		for (int32 ChildIndex=0;ChildIndex<Root->GetChildCount() && !Result;++ChildIndex)
+		for (int32 ChildIndex=0;ChildIndex<Root->GetChildCount();++ChildIndex)
 		{
 			FbxNode* Node = Root->GetChild(ChildIndex);
 			FbxMesh* FbxMesh = Node->GetMesh();
 			if (FbxMesh && 0 == FCString::Strcmp(ObjectName,UTF8_TO_TCHAR(Node->GetName())))
 			{
-				Result = Node;
+				return Node;
 			}
-			else
+
+			if (FbxNode* NextNode = RetrieveObjectFromName(ObjectName,Node))
 			{
-				Result = RetrieveObjectFromName(ObjectName,Node);
+				return NextNode;
 			}
 		}
 	}
-	return Result;
+	return nullptr;
 }
 
 } // namespace UnFbx

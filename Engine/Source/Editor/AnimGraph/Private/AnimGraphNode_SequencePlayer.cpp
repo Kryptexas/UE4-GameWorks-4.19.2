@@ -70,7 +70,12 @@ FLinearColor UAnimGraphNode_SequencePlayer::GetNodeTitleColor() const
 
 FText UAnimGraphNode_SequencePlayer::GetTooltipText() const
 {
-	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
+	if (!Node.Sequence)
+	{
+		return GetTitleGivenAssetInfo(FText::FromString(TEXT("None")), false);
+	}
+
+	const bool bAdditive = Node.Sequence->IsValidAdditive();
 	return GetTitleGivenAssetInfo(FText::FromString(Node.Sequence->GetPathName()), bAdditive);
 }
 

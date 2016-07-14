@@ -348,10 +348,7 @@ public:
 	 *
 	 * @return	true if this object should not be loaded on servers
 	 */
-	virtual bool NeedsLoadForServer() const 
-	{ 
-		return true; 
-	}
+	virtual bool NeedsLoadForServer() const;
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <initializer_list>
+
 #include "Containers/ContainerAllocationPolicies.h"
 #include "HAL/Platform.h"
 #include "Serialization/ArchiveBase.h"
@@ -102,7 +104,7 @@ public:
 	//@}
 
 	/** conversion to "bool" returning true if the iterator has not reached the last element. */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		return Container.IsValidIndex(Index);
 	}
@@ -528,6 +530,17 @@ public:
 	{}
 
 	/**
+	 * Initializer list constructor
+	 */
+	TArray(std::initializer_list<InElementType> InitList)
+	{
+		// This is not strictly legal, as std::initializer_list's iterators are not guaranteed to be pointers, but
+		// this appears to be the case on all of our implementations.  Also, if it's not true on a new implementation,
+		// it will fail to compile rather than behave badly.
+		CopyToEmpty(InitList.begin(), (int32)InitList.size(), 0, 0);
+	}
+
+	/**
 	 * Copy constructor with changed allocator. Use the common routine to perform the copy.
 	 *
 	 * @param Other The source array to copy.
@@ -535,7 +548,7 @@ public:
 	template <typename OtherElementType, typename OtherAllocator>
 	FORCEINLINE explicit TArray(const TArray<OtherElementType, OtherAllocator>& Other)
 	{
-		CopyToEmpty(Other, 0, 0);
+		CopyToEmpty(Other.GetData(), Other.Num(), 0, 0);
 	}
 
 	/**
@@ -545,7 +558,7 @@ public:
 	 */
 	FORCEINLINE TArray(const TArray& Other)
 	{
-		CopyToEmpty(Other, 0, 0);
+		CopyToEmpty(Other.GetData(), Other.Num(), 0, 0);
 	}
 
 	/**
@@ -557,7 +570,23 @@ public:
 	 */
 	FORCEINLINE TArray(const TArray& Other, int32 ExtraSlack)
 	{
-		CopyToEmpty(Other, 0, ExtraSlack);
+		CopyToEmpty(Other.GetData(), Other.Num(), 0, ExtraSlack);
+	}
+
+	/**
+	 * Initializer list assignment operator. First deletes all currently contained elements
+	 * and then copies from initializer list.
+	 *
+	 * @param InitList The initializer_list to copy from.
+	 */
+	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(std::initializer_list<InElementType> InitList)
+	{
+		DestructItems(GetData(), ArrayNum);
+		// This is not strictly legal, as std::initializer_list's iterators are not guaranteed to be pointers, but
+		// this appears to be the case on all of our implementations.  Also, if it's not true on a new implementation,
+		// it will fail to compile rather than behave badly.
+		CopyToEmpty(InitList.begin(), (int32)InitList.size(), ArrayMax, 0);
+		return *this;
 	}
 
 	/**
@@ -572,7 +601,7 @@ public:
 	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(const TArray<ElementType, OtherAllocator>& Other)
 	{
 		DestructItems(GetData(), ArrayNum);
-		CopyToEmpty(Other, ArrayMax, 0);
+		CopyToEmpty(Other.GetData(), Other.Num(), ArrayMax, 0);
 		return *this;
 	}
 
@@ -587,7 +616,7 @@ public:
 		if (this != &Other)
 		{
 			DestructItems(GetData(), ArrayNum);
-			CopyToEmpty(Other, ArrayMax, 0);
+			CopyToEmpty(Other.GetData(), Other.Num(), ArrayMax, 0);
 		}
 		return *this;
 	}
@@ -626,7 +655,7 @@ private:
 	template <typename FromArrayType, typename ToArrayType>
 	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax)
 	{
-		ToArray.CopyToEmpty(FromArray, PrevMax, 0);
+		ToArray.CopyToEmpty(FromArray.GetData(), FromArray.Num(), PrevMax, 0);
 	}
 
 	/**
@@ -660,7 +689,7 @@ private:
 	template <typename FromArrayType, typename ToArrayType>
 	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopyWithSlack(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax, int32 ExtraSlack)
 	{
-		ToArray.CopyToEmpty(FromArray, PrevMax, ExtraSlack);
+		ToArray.CopyToEmpty(FromArray.GetData(), FromArray.Num(), PrevMax, ExtraSlack);
 	}
 
 public:
@@ -1434,7 +1463,28 @@ public:
 	void InsertZeroed(int32 Index, int32 Count = 1)
 	{
 		InsertUninitialized(Index, Count);
-		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index*sizeof(ElementType), Count*sizeof(ElementType));
+		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count * sizeof(ElementType));
+	}
+
+	/**
+	 * Inserts given elements into the array at given location.
+	 *
+	 * @param Items Array of elements to insert.
+	 * @param InIndex Tells where to insert the new elements.
+	 * @returns Location at which the item was inserted.
+	 */
+	int32 Insert(std::initializer_list<ElementType> InitList, const int32 InIndex)
+	{
+		InsertUninitialized(InIndex, (int32)InitList.size());
+
+		ElementType* Data = (ElementType*)AllocatorInstance.GetAllocation();
+
+		int32 Index = InIndex;
+		for (const ElementType& Element : InitList)
+		{
+			new (Data + Index++) ElementType(Element);
+		}
+		return InIndex;
 	}
 
 	/**
@@ -1447,12 +1497,15 @@ public:
 	int32 Insert(const TArray<ElementType>& Items, const int32 InIndex)
 	{
 		check(this != &Items);
+
 		InsertUninitialized(InIndex, Items.Num());
+
+		ElementType* Data = (ElementType*)AllocatorInstance.GetAllocation();
+
 		int32 Index = InIndex;
 		for (auto It = Items.CreateConstIterator(); It; ++It)
 		{
-			RangeCheck(Index);
-			new(GetData() + Index++) ElementType(MoveTemp(*It));
+			new (Data + Index++) ElementType(MoveTemp(*It));
 		}
 		return InIndex;
 	}
@@ -1780,6 +1833,20 @@ public:
 	}
 
 	/**
+	 * Adds an initializer list of elements to the end of the TArray.
+	 *
+	 * @param InitList The initializer list of elements to add.
+	 * @see Add, Insert
+	 */
+	FORCEINLINE void Append(std::initializer_list<ElementType> InitList)
+	{
+		int32 Count = (int32)InitList.size();
+
+		int32 Pos = AddUninitialized(Count);
+		ConstructItems<ElementType>(GetData() + Pos, InitList.begin(), Count);
+	}
+
+	/**
 	 * Appends the specified array to this array.
 	 * Cannot append to self.
 	 *
@@ -1802,6 +1869,17 @@ public:
 	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator+=(const TArray& Other)
 	{
 		Append(Other);
+		return *this;
+	}
+
+	/**
+	 * Appends the specified initializer list to this array.
+	 *
+	 * @param InitList The initializer list to append.
+	 */
+	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator+=(std::initializer_list<ElementType> InitList)
+	{
+		Append(InitList);
 		return *this;
 	}
 
@@ -2353,15 +2431,15 @@ private:
 	 *                   the end of the buffer. Counted in elements. Zero by
 	 *                   default.
 	 */
-	template <typename OtherElementType, typename OtherAllocator>
-	AGRESSIVE_ARRAY_FORCEINLINE void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 PrevMax, int32 ExtraSlack)
+	template <typename OtherElementType>
+	AGRESSIVE_ARRAY_FORCEINLINE void CopyToEmpty(const OtherElementType* OtherData, int32 OtherNum, int32 PrevMax, int32 ExtraSlack)
 	{
 		checkSlow(ExtraSlack >= 0);
-		ArrayNum = Source.Num();
-		if (ArrayNum || ExtraSlack || PrevMax)
+		ArrayNum = OtherNum;
+		if (OtherNum || ExtraSlack || PrevMax)
 		{
-			ResizeForCopy(ArrayNum + ExtraSlack, PrevMax);
-			ConstructItems<ElementType>(GetData(), Source.GetData(), ArrayNum);
+			ResizeForCopy(OtherNum + ExtraSlack, PrevMax);
+			ConstructItems<ElementType>(GetData(), OtherData, OtherNum);
 		}
 		else
 		{

@@ -2,7 +2,7 @@
 
 using System;
 
-namespace Tools.CrashReporter.CrashReportWebSite.Models
+namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
 	/// A class to handle pagination of large lists.

@@ -216,6 +216,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string AWSCredentialsFilepath { get; set; }
 
 		/// <summary>
+		/// Buffer size used to decompress zlib archives taken from S3
+		/// </summary>
+		[XmlElement]
+		public int MaxUncompressedS3RecordSize { get; set; }
+
+		/// <summary>
 		/// Index file used to store all processed crash names and times. Stops duplicates.
 		/// </summary>
 		[XmlElement]

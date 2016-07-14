@@ -3302,7 +3302,7 @@ void ALandscape::PostEditImport()
 	{
 		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
 		{
-			if (Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
 			{
 				// Copy/Paste case, need to generate new GUID
 				LandscapeGuid = FGuid::NewGuid();
@@ -4817,17 +4817,20 @@ struct FMobileLayerAllocation
 	{
 	}
 
-	friend bool operator<(const FMobileLayerAllocation& lhs, const FMobileLayerAllocation& rhs)
+	friend bool operator<(const FMobileLayerAllocation& Lhs, const FMobileLayerAllocation& Rhs)
 	{
-		if (!lhs.Allocation.LayerInfo && !rhs.Allocation.LayerInfo) return false; // equally broken :P
-		if (!lhs.Allocation.LayerInfo && rhs.Allocation.LayerInfo) return false; // broken layers sort to the end
-		if (!rhs.Allocation.LayerInfo && lhs.Allocation.LayerInfo) return true;
+		ULandscapeLayerInfoObject* LhsLayerInfo = Lhs.Allocation.LayerInfo;
+		ULandscapeLayerInfoObject* RhsLayerInfo = Rhs.Allocation.LayerInfo;
 
-		if (lhs.Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer && rhs.Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer) return true; // visibility layer to the front
-		if (rhs.Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer && lhs.Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer) return false;
+		if (!LhsLayerInfo && !RhsLayerInfo) return false; // equally broken :P
+		if (!LhsLayerInfo && RhsLayerInfo) return false; // broken layers sort to the end
+		if (!RhsLayerInfo && LhsLayerInfo) return true;
 
-		if (lhs.Allocation.LayerInfo->bNoWeightBlend && !rhs.Allocation.LayerInfo->bNoWeightBlend) return false; // non-blended layers sort to the end
-		if (rhs.Allocation.LayerInfo->bNoWeightBlend && !lhs.Allocation.LayerInfo->bNoWeightBlend) return true;
+		if (LhsLayerInfo == ALandscapeProxy::VisibilityLayer && RhsLayerInfo != ALandscapeProxy::VisibilityLayer) return true; // visibility layer to the front
+		if (RhsLayerInfo == ALandscapeProxy::VisibilityLayer && LhsLayerInfo != ALandscapeProxy::VisibilityLayer) return false;
+
+		if (LhsLayerInfo->bNoWeightBlend && !RhsLayerInfo->bNoWeightBlend) return false; // non-blended layers sort to the end
+		if (RhsLayerInfo->bNoWeightBlend && !LhsLayerInfo->bNoWeightBlend) return true;
 
 		// TODO: If we want to support cleanly decaying a pc landscape for mobile
 		// we should probably add other sort criteria, e.g. coverage

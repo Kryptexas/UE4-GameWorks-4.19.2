@@ -452,11 +452,6 @@ void UMaterialExpression::Serialize( FArchive& Ar )
 #endif
 }
 
-bool UMaterialExpression::NeedsLoadForServer() const
-{
-	return false; 
-}
-
 bool UMaterialExpression::NeedsLoadForClient() const
 {
 	// Expressions that reference texture objects need to be cooked

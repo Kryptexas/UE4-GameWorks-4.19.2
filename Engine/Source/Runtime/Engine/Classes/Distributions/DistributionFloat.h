@@ -6,8 +6,8 @@
 #include "Distributions/Distribution.h"
 #include "DistributionFloat.generated.h"
 
-/** Type-safe floating point distribution. */
 #if !CPP      //noexport struct
+/** Type-safe floating point distribution. */
 USTRUCT(noexport)
 struct FFloatDistribution
 {

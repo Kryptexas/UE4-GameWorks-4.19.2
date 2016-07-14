@@ -16,13 +16,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 {
 	class DataRouterReportQueue : ReportQueueBase
 	{
-		private const int UncompressedSizeMax = 16*1024*1024;
-
 		protected override string QueueProcessingStartedEventName
 		{
 			get
 			{
-				return StatusReportingConstants.ProcessingStartedDataRouterEvent;
+				return StatusReportingEventNames.ProcessingStartedDataRouterEvent;
 			}
 		}
 
@@ -99,11 +97,13 @@ namespace Tools.CrashReporter.CrashReportProcess
 					if (RecordPair.Length != 2)
 					{
 						CrashReporterProcessServicer.WriteFailure("TryGetNewS3Crashes: bad SQS message was " + SQSRecord);
+						CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3FileFailedEvent);
 						continue;
 					}
 
 					string S3BucketName = RecordPair[0];
 					string S3Key = RecordPair[1];
+					string ReadableRequestString = "Bucket=" + S3BucketName + " Key=" + S3Key;
 
 					var ObjectRequest = new GetObjectRequest
 					{
@@ -119,34 +119,21 @@ namespace Tools.CrashReporter.CrashReportProcess
 							{
 								if (!TryDecompResponseStream(ResponseStream, ProtocolBufferStream))
 								{
-									CrashReporterProcessServicer.WriteFailure("! GZip fail in DecompResponseStream(): Bucket=" + S3BucketName + " Key=" + S3Key);
+									CrashReporterProcessServicer.WriteFailure("! GZip fail in DecompResponseStream(): " + ReadableRequestString);
+									CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3FileFailedEvent);
 									continue;
 								}
 							}
 						}
 
-						string UnpackErrorMessage;
-						if (!UnpackPayloadFromProtocolBuffer(ProtocolBufferStream, LandingZone, out UnpackErrorMessage))
-						{
-							// Report failure when UnpackErrorMessage is set - treat as silent failure when not set
-							if (!string.IsNullOrEmpty(UnpackErrorMessage))
-							{
-								string FailString = "! Protocol buffer fail in UnpackPayloadFromProtocolBuffer(): Bucket=" + S3BucketName +
-													" Key=" + S3Key;
-
-								FailString += '\n' + UnpackErrorMessage;
-								CrashReporterProcessServicer.WriteFailure(FailString);
-							}
-
-							continue;
-						}
+						NewCrashCount += UnpackRecordsFromDelimitedProtocolBuffers(ProtocolBufferStream, LandingZone, ReadableRequestString);
 					}
-
-					NewCrashCount++;
 				}
 				catch (Exception ex)
 				{
-					CrashReporterProcessServicer.WriteException("TryGetNewS3Crashes: failure during processing SQS record " + SQSRecord + "\n" + ex);
+					CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3FileFailedEvent);
+					CrashReporterProcessServicer.WriteException("TryGetNewS3Crashes: failure during processing SQS record " + SQSRecord +
+					                                            "\n" + ex);
 				}
 			}
 		}
@@ -168,38 +155,51 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 		}
 
-		private static bool UnpackPayloadFromProtocolBuffer(Stream ProtocolBufferStream, string InLandingZone, out string ErrorMessage)
+		private static int UnpackRecordsFromDelimitedProtocolBuffers(Stream ProtocolBufferStream, string InLandingZone, string ReadableRequestString)
 		{
+			var UnpackedRecordCount = 0;
 			DataRouterConsumer Consumer = new DataRouterConsumer();
-			DataRouterConsumer.ProtocolBufferRecord Message;
 
-			if (!Consumer.TryParse(ProtocolBufferStream, out Message))
+			// Expect one or more pairs of varint size + protocol buffer in the stream
+			while (ProtocolBufferStream.Position < ProtocolBufferStream.Length)
 			{
-				ErrorMessage = Consumer.LastError;
-				return false;
+				DataRouterConsumer.ProtocolBufferRecord Message;
+
+				if (!Consumer.TryParse(ProtocolBufferStream, out Message))
+				{
+					string FailString = "! Protocol buffer parse fail in UnpackRecordsFromDelimitedProtocolBuffers(): " + ReadableRequestString;
+					FailString += '\n' + Consumer.LastError;
+
+					CrashReporterProcessServicer.WriteFailure(FailString);
+					CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3FileFailedEvent);
+					break;
+				}
+
+				if (DecompressDataRouterContent(Message.Payload, InLandingZone))
+				{
+					UnpackedRecordCount++;
+				}
 			}
 
-			if (!DecompressDataRouterContent(Message.Payload, InLandingZone, out ErrorMessage))
-			{
-				return false;
-			}
-
-			ErrorMessage = string.Empty;
-			return true;
+			return UnpackedRecordCount;
 		}
 
-		private static unsafe bool DecompressDataRouterContent(byte[] CompressedBufferArray, string InLandingZone, out string ErrorMessage)
+		private static unsafe bool DecompressDataRouterContent(byte[] CompressedBufferArray, string InLandingZone)
 		{
 			// Decompress to landing zone
-			byte[] UncompressedBufferArray = new byte[UncompressedSizeMax];
+			byte[] UncompressedBufferArray = new byte[Config.Default.MaxUncompressedS3RecordSize];
 			int UncompressedSize = 0;
 			fixed (byte* UncompressedBufferPtr = UncompressedBufferArray, CompressedBufferPtr = CompressedBufferArray)
 			{
-				Int32 UncompressResult = NativeMethods.UE4UncompressMemoryZLIB((IntPtr)UncompressedBufferPtr, UncompressedSizeMax, (IntPtr)CompressedBufferPtr, CompressedBufferArray.Length);
+				Int32 UncompressResult = NativeMethods.UE4UncompressMemoryZLIB((IntPtr) UncompressedBufferPtr,
+					UncompressedBufferArray.Length,
+					(IntPtr) CompressedBufferPtr, CompressedBufferArray.Length);
 				if (UncompressResult < 0)
 				{
-					ErrorMessage = "! DecompressDataRouterContent() failed in UE4UncompressMemoryZLIB() with " +
-					               NativeMethods.GetUncompressError(UncompressResult);
+					string FailString = "! DecompressDataRouterContent() failed in UE4UncompressMemoryZLIB() with " +
+					                    NativeMethods.GetUncompressError(UncompressResult);
+					CrashReporterProcessServicer.WriteFailure(FailString);
+					CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3RecordFailedEvent);
 					return false;
 				}
 				UncompressedSize = UncompressResult;
@@ -210,11 +210,26 @@ namespace Tools.CrashReporter.CrashReportProcess
 				char[] MarkerChars = BinaryData.ReadChars(3);
 				if (MarkerChars[0] == 'C' && MarkerChars[1] == 'R' && MarkerChars[2] == '1')
 				{
-					var CrashHeader = DataRouterReportQueue.CrashHeader.ParseCrashHeader(BinaryData);
+					CrashHeader CrashHeader = DataRouterReportQueue.CrashHeader.ParseCrashHeader(BinaryData);
 
 					// Create safe directory name and then create the directory on disk
-					string CrashFolderName = GetSafeDirectoryName(CrashHeader.DirectoryName);
+					string CrashFolderName = GetSafeFilename(CrashHeader.DirectoryName);
 					string CrashFolderPath = Path.Combine(InLandingZone, CrashFolderName);
+
+					// Early check for duplicate processed report
+					lock (ReportIndexLock)
+					{
+						if (ReportIndex.ContainsReport(CrashFolderName))
+						{
+							// Crash report not accepted by index
+							CrashReporterProcessServicer.WriteEvent(string.Format(
+								"DataRouterReportQueue: Duplicate report skipped early {0} in a DataRouterReportQueue", CrashFolderPath));
+							CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
+							return false; // this isn't an error so don't set error message
+						}
+					}
+
+					// Create target folder
 					int TryIndex = 1;
 					while (Directory.Exists(CrashFolderPath))
 					{
@@ -232,9 +247,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 					if (!ParseCrashFiles(BinaryData, CrashHeader.FileCount, CrashFolderPath))
 					{
-						ErrorMessage = "! DecompressDataRouterContent() failed to write files Path=" + CrashFolderPath;
+						string FailString = "! DecompressDataRouterContent() failed to write files Path=" + CrashFolderPath;
+						CrashReporterProcessServicer.WriteFailure(FailString);
+						CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3RecordFailedEvent);
 						return false;
-					}	
+					}
 				}
 				else
 				{
@@ -248,8 +265,23 @@ namespace Tools.CrashReporter.CrashReportProcess
 					var CrashHeader = DataRouterReportQueue.CrashHeader.ParseCrashHeader(BinaryData);
 
 					// Create safe directory name and then create the directory on disk
-					string CrashFolderName = GetSafeDirectoryName(CrashHeader.DirectoryName);
+					string CrashFolderName = GetSafeFilename(CrashHeader.DirectoryName);
 					string CrashFolderPath = Path.Combine(InLandingZone, CrashFolderName);
+
+					// Early check for duplicate processed report
+					lock (ReportIndexLock)
+					{
+						if (ReportIndex.ContainsReport(CrashFolderName))
+						{
+							// Crash report not accepted by index
+							CrashReporterProcessServicer.WriteEvent(string.Format(
+								"DataRouterReportQueue: Duplicate report skipped early {0} in a DataRouterReportQueue", CrashFolderPath));
+							CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
+							return false; // this isn't an error so don't set error message
+						}
+					}
+
+					// Create target folder
 					int TryIndex = 1;
 					while (Directory.Exists(CrashFolderPath))
 					{
@@ -257,7 +289,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					}
 					Directory.CreateDirectory(CrashFolderPath);
 
-					if (UncompressedSize != CrashHeader.UncompressedSize + DataRouterReportQueue.CrashHeader.FixedSize)
+					if (UncompressedSize != CrashHeader.UncompressedSize + CrashHeader.FixedSize)
 					{
 						CrashReporterProcessServicer.WriteEvent(
 							string.Format(
@@ -266,46 +298,22 @@ namespace Tools.CrashReporter.CrashReportProcess
 					}
 
 					// Seek to start of files (header size in from start)
-					BinaryData.BaseStream.Position = DataRouterReportQueue.CrashHeader.FixedSize;
+					BinaryData.BaseStream.Position = CrashHeader.FixedSize;
 					if (!ParseCrashFiles(BinaryData, CrashHeader.FileCount, CrashFolderPath))
 					{
-						ErrorMessage = "! DecompressDataRouterContent() failed to write files Path=" + CrashFolderPath;
+						string FailString = "! DecompressDataRouterContent() failed to write files Path=" + CrashFolderPath;
+						CrashReporterProcessServicer.WriteFailure(FailString);
+						CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3RecordFailedEvent);
 						return false;
-					}	
+					}
 #else
-					ErrorMessage = string.Empty;
+					ErrorMessage = "! DecompressDataRouterContent() failed to read invalid data format. Corrupt or old format data received Path=" + CrashFolderPath;
 					return false;
 #endif
 				}
 			}
 
-			ErrorMessage = string.Empty;
 			return true;
-		}
-
-		private static string GetSafeDirectoryName(string UnsafeName)
-		{
-			char SafeReplacementChar = 'X';
-			char[] InvalidChars = Path.GetInvalidFileNameChars();
-			StringBuilder SafeString = new StringBuilder(UnsafeName.Length);
-
-			foreach (var UnsafeChar in UnsafeName)
-			{
-				char SafeChar = UnsafeChar;
-
-				foreach (var InvalidChar in InvalidChars)
-				{
-					if (UnsafeChar == InvalidChar)
-					{
-						SafeChar = SafeReplacementChar;
-						break;
-					}
-				}
-
-				SafeString.Append(SafeChar);
-			}
-
-			return SafeString.ToString();
 		}
 
 		private static bool ParseCrashFiles(BinaryReader Reader, int FileCount, string CrashFolderPath)

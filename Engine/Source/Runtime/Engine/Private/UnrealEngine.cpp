@@ -6054,6 +6054,86 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			);
 		return true;
 	}
+	if (FParse::Command(&Cmd, TEXT("TWOTHREADSCRASH")))
+	{
+		class FThreadPoolCrash : public IQueuedWork
+		{
+		private:
+			double CrashDelay;
+		public:
+			FThreadPoolCrash(double InCrashDelay)
+				: CrashDelay(InCrashDelay)
+			{
+			}
+			void Abandon()
+			{
+			}
+			void DoThreadedWork()
+			{
+				double CrashTime = FPlatformTime::Seconds() + CrashDelay;
+				do 
+				{
+					if (FPlatformTime::Seconds() >= CrashTime)
+					{
+						UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+						SetCrashType(ECrashType::Debug);
+						UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request"));
+						break;
+					}
+					else
+					{
+						FPlatformProcess::Sleep(0);
+					}
+				} while (true);
+			}
+		};
+
+		UE_LOG(LogEngine, Warning, TEXT("Queuing two tasks to crash."));
+		GThreadPool->AddQueuedWork(new FThreadPoolCrash(0.100));
+		GThreadPool->AddQueuedWork(new FThreadPoolCrash(0.110));
+
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("TWOTHREADSGPF")))
+	{
+		class FThreadPoolCrash : public IQueuedWork
+		{
+		private:
+			double CrashDelay;
+		public:
+			FThreadPoolCrash(double InCrashDelay)
+				: CrashDelay(InCrashDelay)
+			{
+			}
+			void Abandon()
+			{
+			}
+			void DoThreadedWork()
+			{
+				double CrashTime = FPlatformTime::Seconds() + CrashDelay;
+				do
+				{
+					if (FPlatformTime::Seconds() >= CrashTime)
+					{
+						UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+						SetCrashType(ECrashType::Debug);
+						*(int32 *)3 = 123;
+						break;
+					}
+					else
+					{
+						FPlatformProcess::Sleep(0);
+					}
+				} while (true);
+			}
+		};
+
+		UE_LOG(LogEngine, Warning, TEXT("Queuing two tasks to crash."));
+		GThreadPool->AddQueuedWork(new FThreadPoolCrash(0.100));
+		GThreadPool->AddQueuedWork(new FThreadPoolCrash(0.110));
+
+		return true;
+	}
 	else if (FParse::Command(&Cmd, TEXT("THREADENSURE")))
 	{
 		struct FThread

@@ -2,12 +2,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Remoting.Contexts;
-using System.Web;
 using System.Web.Mvc;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
 
-namespace Tools.CrashReporter.CrashReportWebSite.Models
+namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
 	/// The view model for the crashes index page.
@@ -71,6 +69,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The platform to filter by.</summary>
 		public string PlatformName { get; set; }
 
+        /// <summary>The Engine Mode by which to filter.</summary>
+        public string EngineMode { get; set; }
+
 		/// <summary>The name of the game to filter by.</summary>
 		public string GameName { get; set; }
 
@@ -89,6 +90,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>A collection of Platform names used in the drop down on the main search form</summary>
 		public List<SelectListItem> PlatformNames { get; set; }
 
+        /// <summary>A collection of Engine Modes used in the drop down on the main search form</summary>
+        public List<SelectListItem> EngineModes { get; set; }
+
 		/// <summary>The set of statuses a crash could have its status set to.</summary>
 		public IEnumerable<string> SetStatus { get { return new List<string>( new string[] { "Unset", "Reviewed", "New", "Coder", "EngineQA", "GameQA" } ); } }
 
@@ -105,10 +109,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			DateTime FromDate = DateTime.Today.AddDays( -7 ).ToUniversalTime();
 			DateTime ToDate = DateTime.Today.ToUniversalTime();
-			BranchNames = CrashRepository.GetBranchesAsListItems();
-			VersionNames = CrashRepository.GetVersionsAsListItems();
-			PlatformNames = CrashRepository.GetPlatformsAsListItems();
-			DateFrom = (long)( FromDate - Epoch ).TotalMilliseconds;
+            DateFrom = (long)( FromDate - Epoch ).TotalMilliseconds;
 			DateTo = (long)( ToDate - Epoch ).TotalMilliseconds;
 			CrashType = "CrashesAsserts";
 		}

@@ -70,7 +70,7 @@ void FSimplygonSwarmTask::SetState(SimplygonRESTState InState)
 
 		//do not update the sate if either of these set is already set
 		if (InState != State
-			&& (State != SRS_ASSETDOWNLOADED || State != SRS_FAILED))
+			&& (State != SRS_ASSETDOWNLOADED && State != SRS_FAILED))
 		{
 			State = InState;
 		}

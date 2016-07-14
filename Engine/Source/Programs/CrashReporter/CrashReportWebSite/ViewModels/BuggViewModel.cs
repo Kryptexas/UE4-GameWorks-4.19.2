@@ -2,8 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
 
-namespace Tools.CrashReporter.CrashReportWebSite.Models
+namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
 	/// The view model for the bugg show page.
@@ -16,7 +17,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>A container for all the crashes associated with this Bugg.</summary>
 		public List<Crash> Crashes { get; set; }
 
-		/// <summary>The callstack common to all crashes in this Bugg.</summary>
+		/// <summary>The call stack common to all crashes in this Bugg.</summary>
 		public CallStackContainer CallStack { get; set; }
 
 		/// <summary></summary>
@@ -24,5 +25,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
+
+        public string LatestCrashSummary { get; set; }
 	}
 }

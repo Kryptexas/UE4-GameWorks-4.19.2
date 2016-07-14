@@ -336,71 +336,19 @@ class FAsyncTask
 	}
 
 public:
-	/** Default constructor. */
-	FAsyncTask( )
+	FAsyncTask()
+		: Task()
 	{
+		// This constructor shouldn't be necessary as the forwarding constructor should handle it, but
+		// we are getting VC internal compiler errors on CIS when creating arrays of FAsyncTask.
+
 		Init();
 	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T>
-	FAsyncTask( T Arg )
-		: Task(Arg)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2>
-	FAsyncTask( T1 Arg1, T2 Arg2 )
-		: Task(Arg1,Arg2)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3 )
-		: Task(Arg1,Arg2,Arg3)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3, typename T4>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4 )
-		: Task(Arg1,Arg2,Arg3,Arg4)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4, T5 Arg5 )
-		: Task(Arg1,Arg2,Arg3,Arg4,Arg5)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4, T5 Arg5, T6 Arg6 )
-		: Task(Arg1,Arg2,Arg3,Arg4,Arg5,Arg6)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4, T5 Arg5, T6 Arg6, T7 Arg7 )
-		: Task(Arg1,Arg2,Arg3,Arg4,Arg5,Arg6,Arg7)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4, T5 Arg5, T6 Arg6, T7 Arg7, T8 Arg8 )
-		: Task(Arg1,Arg2,Arg3,Arg4,Arg5,Arg6,Arg7,Arg8)
-	{
-		Init();
-	}
-	/** Passthrough constructor. Generally speaking references will not pass through; use pointers */
-	template<typename T1,typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-	FAsyncTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4, T5 Arg5, T6 Arg6, T7 Arg7, T8 Arg8, T9 Arg9 )
-		: Task(Arg1,Arg2,Arg3,Arg4,Arg5,Arg6,Arg7,Arg8,Arg9)
+
+	/** Forwarding constructor. */
+	template <typename Arg0Type, typename... ArgTypes>
+	FAsyncTask(Arg0Type&& Arg0, ArgTypes&&... Args)
+		: Task(Forward<Arg0Type>(Arg0), Forward<ArgTypes>(Args)...)
 	{
 		Init();
 	}

@@ -61,12 +61,16 @@ public:
 		void ResizeAllocation(int32 PreviousNumElements, int32 NumElements, SIZE_T NumBytesPerElement)
 		{
 			// Avoid calling FMemory::Realloc( nullptr, 0 ) as ANSI C mandates returning a valid pointer which is not what we want.
-			if (Data || NumElements)
+			if (NumElements)
 			{
 				//checkSlow(((uint64)NumElements*(uint64)ElementTypeInfo.GetSize() < (uint64)INT_MAX));
-				FScriptContainerElement* NewData = (FScriptContainerElement*)::realloc(Data, NumElements*NumBytesPerElement);
-				check(NewData);
-				Data = NewData;
+				void* NewRealloc = ::realloc(Data, NumElements*NumBytesPerElement);
+				Data = (FScriptContainerElement*)NewRealloc;
+			}
+			else
+			{
+				::free(Data);
+				Data = nullptr;
 			}
 		}
 		int32 CalculateSlackReserve(int32 NumElements, int32 NumBytesPerElement) const

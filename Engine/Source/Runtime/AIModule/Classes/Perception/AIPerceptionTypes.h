@@ -107,7 +107,7 @@ struct FPerceptionChannelWhitelist
 			}
 		}
 
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{
 			return (RemainingChannelsToTest & Whitelist.GetAcceptedChannelsMask()) != 0;
 		}

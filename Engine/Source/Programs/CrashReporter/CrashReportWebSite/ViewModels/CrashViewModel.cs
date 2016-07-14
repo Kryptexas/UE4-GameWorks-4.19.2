@@ -1,6 +1,8 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-namespace Tools.CrashReporter.CrashReportWebSite.Models
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
+
+namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
 	/// The view model for the crash show page.

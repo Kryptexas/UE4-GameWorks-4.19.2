@@ -407,9 +407,17 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 				// this value's not really meaningful from json serialization (since we don't know timezone) but handle it anyway since we're handling the other keywords
 				DateTimeOut = FDateTime::UtcNow();
 			}
-			else if (!FDateTime::ParseIso8601(*DateString, DateTimeOut))
+			else if (FDateTime::ParseIso8601(*DateString, DateTimeOut))
 			{
-				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to import FDateTime from Iso8601 String for property %s"), *Property->GetNameCPP());
+				// ok
+			}
+			else if (FDateTime::Parse(DateString, DateTimeOut))
+			{
+				// ok
+			}
+			else
+			{
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to import FDateTime for property %s"), *Property->GetNameCPP());
 				return false;
 			}
 		}

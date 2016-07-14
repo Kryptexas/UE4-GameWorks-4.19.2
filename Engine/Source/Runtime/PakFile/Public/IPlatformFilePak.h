@@ -552,9 +552,8 @@ public:
 			return *this; 
 		}
 
-		SAFE_BOOL_OPERATORS(FFileIterator)
 		/** conversion to "bool" returning true if the iterator is valid. */
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{ 
 			return !!IndexIt; 
 		}

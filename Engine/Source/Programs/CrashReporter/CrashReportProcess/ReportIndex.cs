@@ -92,7 +92,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		public static bool TryAddNewReport(string ReportKey)
 		{
-			if (Index.ContainsKey(ReportKey))
+			if (ContainsReport(ReportKey))
 			{
 				return false;
 			}
@@ -105,6 +105,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 
 			return true;
+		}
+
+		public static bool ContainsReport(string ReportKey)
+		{
+			return Index.ContainsKey(ReportKey);
 		}
 
 		public static bool TryRemoveReport(string ReportKey)
