@@ -1,126 +1,126 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Applying Custom Burn Ins
+﻿INTSourceChangelist:3041695
+Availability:Docs
+Title:カスタムの Burn In（バーンイン、焼き付け）を適用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Shows you to create and apply custom burn ins to rendered movies. 
-Version: 4.13
-SkillLevel: Advanced
+Description:カスタムのバーンインを作成し、出力したムービーに適用する方法を説明します。 
+Version:4.13
+SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-When rendering out your cinematics, you may want to provide additional information or functionality that extends past the [Default Burn In](Engine\Sequencer\HowTo\BurnIns) settings that include time, shot and frame information. 
-With a little bit of [Unreal Motion Graphics](Engine/UMG) and [](Engine/Blueprints) you can create your own custom burn ins and overlay functionality. 
+シネマティックスを出力する場合、時刻、ショット、フレーム情報などを含む [デフォルトのバーンイン](Engine\Sequencer\HowTo\BurnIns) の設定の範囲を超えて追加の情報や機能を与えることができます。 
+[UMG](Engine/UMG) と [](Engine/Blueprints) を使うと、カスタム バーンインとオーバーレイの機能を作成することができます。 
 
-In this example we show what type of assets you will need and the settings to use to get started with custom burn ins. 
+この例では、カスタム バーンインの作業を開始するために必要なアセットの種類と設定を示します。 
 
 [REGION:note]
-For this how-to we are using the **Blueprint Third Person Template** project and have created a small sample cinematic.
+ここでは **Blueprint Third Person Template** プロジェクトを使い、小さなサンプル シネマティックスを作成しました。
 [/REGION]
 
-## Steps
+## ステップ
 
-1.	In the **Content Browser**, click the **View Options** and **Show Engine Content**. 
+1.	**コンテンツ ブラウザ** で、 **[View Options (表示オプション)]** をクリックし **[Show Engine Content (エンジンのコンテンツを表示)]** をクリックします。 
 
 	![](Custom01.png)
 
-	This will grant us the ability to see and use Font options that are provided with the Engine Content. 
+	これでエンジンのコンテンツと共にフォント オプションを表示して使用することができます。 
 
-1.	**Right-click** in the **Content Browser** and create a **Blueprint Class** of the **LevelSequenceBurnInInitSettings** type. 
+1.	**コンテンツ ブラウザ** 内で右クリックして、**LevelSequenceBurnInInitSettings** 型の **Blueprint クラス** を作成します。 
 
 	![](Custom02.png)
 
-	Name the new Blueprint **CustomSettings** as this will hold all the settings you wish to configure inside the Burn In Options.  
+	Burn In Options 内で設定するすべてのものが保持されるため、この新しいブループリントに、**CustomSettings** という名前を付けます。  
 
-1.	**Right-click** in the **Content Browser** and create a **Blueprint Class** of the **LevelSequenceBurnIn** type. 
+1.	**コンテンツ ブラウザ** 内で **右クリック** して、**LevelSequenceBurnIn** 型の **Blueprint クラス** を作成します。 
 
 	![](Custom03.png)
 
-	Name the new Blueprint **CustomBurnIn** as this will be the [UMG](Engine/UMG/) widget that we will create our custom burn in content in. 
+	カスタム バーンイン コンテンツを作成する [UMG](Engine/UMG/) ウィジェットになるため、この新しいブループリントに **CustomBurnIn** と名前を付けます。 
 
-1.	Open the **CustomSettings** Blueprint. 
+1.	**CustomSettings** ブループリントを開きます。 
 
 	![](Custom04.png)
 
-1.	Click the **+** sign next to **Variables** and add the options you want to expose to the Burn In Options. 
+1.	**Variables** の隣にある **+** 記号をクリックして、Burn In Options にエクスポーズするオプションを追加します。 
 
 	![](Custom05.png)
 
-	Above we have created two variables, one called **CustomText** of the **Text** variable type and another called **CustomFont** of the **Slate Font Info** type (this will allow us to define the text and font style of burn in we create). 
-	We've set both variables to **Editable**, **Compiled** then set their **Default Values** (use any default values you wish). 
+	上の図では、2 つの変数を作成しました。ひとつは、**Text** 変数型の **CustomText** で、もうひとつは **Slate Font Info** 型の **CustomFont** です (これで作成するバーンインのテキストとフォント スタイルを定義することができます)。 
+	この 2 つの変数を両方とも、**Editable**、 **Compiled** に設定します。次にその **Default Values** (任意のデフォルト値を使用) を設定します。 
 
-1.	Open the **CustomSettings** Blueprint, then arrange your burn in content on the **Designer** tab. 
+1.	**CustomSettings** ブループリントを開きます。次に、**Designer** タブでバーンイン コンテンツをアレンジします。 
 
 	[REGION:lightbox]
 	[![](Custom06.png)](Custom06.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click image for full view. 
+	画像をクリックしてフルサイズで表示 
 	[/REGION]
 
-	Above we added a Text widget to the graph and anchored it to the bottom center of the screen. 
-	We also changed the name of the widget to **DisplayedText** and made it a **Variable** so that we can access it through script. 
-	You can arrange your content here just as you would any UMG Widget Blueprint (apply images, animation, etc.), for this example we are only going to display some custom text. 
+	上の画面では、テキスト ウィジェットをグラフに追加し、それを画面下部中央に固定しました。 
+	ウィジェット名も **DisplayedText** に変更し、それを **Variable** にして、スクリプトを介してアクセスできるようにします。 
+	ここで UMG Widget ブループリントで行うのと同様に、コンテンツをアレンジすることができます (画像、アニメーションなどの適用)。この例では、カスタム テキストを表示します。 
 
-1.	On the **Graph** tab, in the **My Blueprint** window click the **Function Override** button and select **Get Settings Class**. 
+1.	**[グラフ]** タブの **[My Blueprint]** ウィンドウで、**[Function Override]** ボタンをクリックして **[Get Settings Class]** を選択します。 
 
 	![](Custom07.png)
 
-	We are going to point this Blueprint toward our **CustomSettings** Blueprint Class we created that way it knows which settings to use. 
+	このブループリントを作成した **CustomSettings** Blueprint クラスに向けてポイントします。そうすることで、どの設定を使用するかを認識させます。 
 
-1.	In the graph that opens, click the **Return Value** dropdown and select **CustomSettings**. 
+1.	開いたグラフで、**[Return Value]** ドロップダウンをクリックし、**[CustomSettings]** を選択します。 
 
 	![](Custom08.png)
 
-1.	Return to the **Event Graph** and **Right-click** in the graph window and add the **Event Set Settings** node. 
+1.	**Event Graph** に戻り、グラフ ウィンドウ内で **右クリック** して **Event Set Settings** ノードを追加します。 
 
-1.	Drag off the **In Settings** and **Cast To CustomSettings**. 
+1.	**In Settings** から **Cast To CustomSettings** にドラッグします。 
 
 	![](Custom09.png)
 
-	This will allow us to access the options we've defined within it. 
+	これで、その中で定義したオプションにアクセスできます。 
 
-1.	**Right-click** on the **As Custom Settings** pin and **Promote to Variable** called **Options**. 
+1.	**As Custom Settings** ピンを **右クリック** して、**Options** という名前で **Promote to Variable (変数化)** します。 
 
 	![](Custom10.png)
 
-1.	Hold **Ctrl** and drag in the **Displayed Text** and **Options** variables from the **My Blueprint** panel. 
+1.	**Ctrl** を押しながら、**Displayed Text** をドラッグして、**[My Blueprint]** パネルから、 **Options** 変数をドラッグします。 
 
-1.	Drag off **Displayed Text** and **Set Font**, then drag off **Options** and get **Custom Font** and connect as shown below. 
+1.	**Displayed Text** から **Set Font** にドラッグします。次に **Options** からドラッグして、**Custom Font** を get し、以下のように接続します。 
 
 	![](Custom11.png)
 
-1.	Return to the **Designer** tab, then in the **Details** panel for the **Text** widget, click **Create Binding** next to the Text Content. 
+1.	**[Designer]** タブに戻り、**Text** ウィジェットの **[Details]** パネルで、Text Content の隣にある **Create Binding** をクリックします。 
 
 	![](Custom12.png)
 
-	This will allow us to bind a function to update the content (text displayed) for the Text Widget. 
+	これで Text Widget に対してコンテンツ (表示されるテキスト) を更新する機能がバインドされます。 
 
-1.	In the Graph that opens, **Ctrl** drag in the **Options** then drag off it to get **Custom Text** and connect as shown. 
+1.	開いたグラフで、 **Ctrl** キーを押しながら、**Options** をドラッグして、そこから **Custom Text** を get し、以下のように接続します。 
 
 	![](Custom13.png)
 
-	This will display whatever we enter as the **CustomText** in our burn in. 
+	これでバーンインで **CustomText** として入力するものが表示されます。 
 
-1.	Inside your **Level Sequence** that you want to render with a burn in, click the **Render Movie** button. 
+1.	**レベル シーケンス** 内で、バーンインと共に出力する場合は、 **[Render Movie]** ボタンをクリックします。 
 
-1.	In the **Render Movie Settings** under **Burn in Options**, change the **Burn in Class** to **CustomBurnIn**. 
+1.	**[Render Movie Settings]** の **[Burn in Options]** で、 **[Burn in Class]** を **[CustomBurnIn]** に変更します。 
 
 	![](Custom14.png)
 
-	When doing so, the settings section updates to list our customizable options. 
+	これを行う場合、この設定セクションは、カスタマイズ可能なオプションを一覧表示するように更新されます。 
 
 	![](Custom15.png)
 
-1.	Click the **Capture Movie** button to render out the movie. 
+1.	**[Capture Movie]** ボタンをクリックして、ムービーを出力します。 
 
 
-## End Result
+## 最終結果
 
-When the capturing of your movie is complete, upon playing back your movie you will notice the overlays applied to the cinematic. 
+ムービーのキャプチャが完了したら、ムービー再生時にシネマティックスにオーバーレイ表示が適用されているのがわかります。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -134,4 +134,4 @@ mZzVTyb0r34
 [/PARAMLITERAL]
 [/OBJECT]
 
-While our example allows us to enter custom text and adjust the font style, you can expose various properties inside the **Level Sequence Burn In Init Settings** class to generate your desired effects. Inside your UMG Widget you can then script the functionality you want your burn ins to take, perhaps even animating them upon **Event Construct**.
+例では、カスタム テキストを入力し、フォント スタイルを調整することができますが、**Level Sequence Burn In Init Settings** クラス内で様々なプロパティをエクスポーズして、必要なエフェクトを生成することができます。UMG ウィジェットでは、バーンインが取る機能をスクリプトすることができます。**Event Construct** 時にアニメートすることもできます。
