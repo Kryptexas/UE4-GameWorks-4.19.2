@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.5 - 캐릭터 점프 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -55,8 +55,8 @@ Character 베이스 클래스에 대한 인터페이스 (*.h) 파일 안을 보�
 캐릭터 점프는 `bPressedJump` 변수에 묶여 있어서, 점프 동작을 누르면 불리언을 `true` 로, 떼면 `false` 로 설정해 주기만 하면 됩니다. 
 그렇게 하기 위해 다음의 두 함수를 추가해야 합니다:
 
-*	`OnStartJump`
-*	`OnStopJump`
+*	`StartJump`
+*	`StopJump`
 
 Visual Studio 로 돌아가 FPSCharacter 클래스에 코드를 추가합니다.
 
@@ -64,11 +64,11 @@ Visual Studio 로 돌아가 FPSCharacter 클래스에 코드를 추가합니다.
 
 		// 키를 누르면 점프 플래그를 설정합니다.
 		UFUNCTION()
-		void OnStartJump();
-		
+		void StartJump();
+
 		// 키를 떼면 점프 플래그를 지웁니다.
 		UFUNCTION()
-		void OnStopJump();
+		void StopJump();
 
 1.	`FPSCharacter.h` should now look like the following:
 
@@ -107,32 +107,30 @@ Visual Studio 로 돌아가 FPSCharacter 클래스에 코드를 추가합니다.
 		
 			// 키를 누르면 점프 플래그를 설정합니다.
 			UFUNCTION()
-			void OnStartJump();
-			
+			void StartJump();
+
 			// 키를 누르면 점프 플래그를 지웁니다.
 			UFUNCTION()
-			void OnStopJump();
+			void StopJump();
 		};
 
 1.	`FPSCharacter.cpp` 에서 다음 함수 선언부를 추가합니다:
 
-		//점프 플래그 설정 함수입니다.
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		//점프 플래그 지우기 함수입니다.
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 		{
 			bPressedJump = false;
 		}
 
-1.	`SetupPlayerInputComponent` 에 다음 함수를 추가하여 새로 작성된 함수에 점프 액션을 바인딩합니다:
+1.	이제 `SetupPlayerInputComponent` 에 다음 함수를 추가하여 새로 작성된 함수에 점프 액션을 바인딩합니다:
 
-		// 점프 액션 바인딩을 구성합니다.
-		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+		// "action" 바인딩을 구성합니다.
+		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 
 1.	`FPSCharacter.cpp` 가 이제 다음과 같아 보일 것입니다:
 
@@ -154,15 +152,10 @@ Visual Studio 로 돌아가 FPSCharacter 클래스에 코드를 추가합니다.
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// 디버그 메시지를 5 초간 표시합니다. (첫 인수인) -1 "Key" 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -178,34 +171,30 @@ Visual Studio 로 돌아가 FPSCharacter 클래스에 코드를 추가합니다.
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// 게임플레이 키 바인딩을 구성합니다.
+			// "movement" 바인딩을 구성합니다.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
-			// 게임플레이 마우스 바인딩을 구성합니다.
+			// "look" 바인딩을 구성합니다.
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
-			// 점프 액션 바인딩을 구성합니다.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+			// "action" 바인딩을 구성합니다.
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// 어느 쪽이 전방인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// 어느 쪽이 전방인지 알아내어, 플레이어가 그 방향으로 이동하려 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// 어느 쪽이 오른쪽인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// 어느 쪽이 오른쪽인지 알아내어, 플레이어가 그 방향으로 이동하려 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 		

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726407
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:마티네
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -142,6 +142,15 @@ _이미지를 클릭하면 크게 볼 수 있습니다._
 	[/PARAM]
 	[PARAM:after]
 	![Game View Om](GameViewOn.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![게임 뷰 끔](GameViewOff.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![게임 뷰 켬](GameViewOn.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 

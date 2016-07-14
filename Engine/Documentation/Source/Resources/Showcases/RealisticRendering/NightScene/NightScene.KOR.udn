@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726430
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:밤 씬 라이팅
 Crumbs:%ROOT%, Resources,  Resources/Showcases, Resources/Showcases/RealisticRendering
@@ -27,6 +27,15 @@ Version: 4.9
 ## 셋업 고려사항
 
 밤 씬은 (_RoomNight.umap_) 낮 씬과 유사합니다. Stationary Directional Light 가 달빛인 듯 가로등불인 듯, 추가적인 라이팅을 담당합니다. 이 라이트를 켜고 혹은 끄고 발코니를 본 모습은 이렇습니다:
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![달 디렉셔널 라이트 켬](DirectionalLightMoon2.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![달 디렉셔널 라이트 끔](DirectionalLightMoonOff2.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]

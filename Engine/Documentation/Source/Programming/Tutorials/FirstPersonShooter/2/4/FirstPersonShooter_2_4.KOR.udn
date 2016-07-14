@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2931280
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.4 - 마우스 카메라 콘트롤 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -64,15 +64,15 @@ Version: 4.11
 
 회전과 쳐다보기에 대한 마우스 입력 처리를 하는 코드를 추가할 차례입니다. `Character` 베이스 클래스는 다음과 같은 필수 함수 둘을 정의합니다:
 
-*	`AddYawInput`
-*	`AddPitchInput`
+*	`AddControllerYawInput`
+*	`AddControllerPitchInput`
 
 [REGION:note]
-마우스 감도나 축 반전과 같은 추가 처리를 해 주려거든, 입력 값을 함수에 전달하기 전 별도의 조정을 가하는 함수를 추가해 주면 되지만, 여기서는 입력을 바로 `AddYawInput` 과 `AddPitchInput` 함수에 바인딩하도록 하겠습니다.
+마우스 감도나 축 반전과 같은 추가 처리를 해 주려거든, 입력 값을 함수에 전달하기 전 별도의 조정을 가하는 함수를 추가해 주면 되지만, 여기서는 입력을 바로 `AddControllerYawInput` 과 `AddControllerPitchInput` 함수에 바인딩하도록 하겠습니다.
 [/REGION]
 
 1.	`FPSCharacter.cpp` 의 `SetupPlayerInputComponent` 에 다음 줄을 추가합니다.
-		// 게임플레이 마우스 바인딩 구성
+		// "look" 바인딩 구성
 		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 
@@ -83,11 +83,11 @@ Version: 4.11
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// 게임플레이 키 바인딩을 구성합니다.
+			// "movement" 바인딩을 구성합니다.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
-			// 게임플레이 마우스 바인딩을 구성합니다.
+			// "loom" 바인딩을 구성합니다.
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}

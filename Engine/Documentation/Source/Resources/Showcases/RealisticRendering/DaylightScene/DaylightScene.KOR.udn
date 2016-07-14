@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726423
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:낮 씬 라이팅
 Crumbs:%ROOT%, Resources, Resources/Showcases/RealisticRendering
@@ -34,10 +34,10 @@ Version: 4.9
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![With ambient spot lights](WithBounceSpots.png)(w:600)
+	![앰비언트 스포트 라이트 있음](WithBounceSpots.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
-	![Without ambient spot lights](WithoutBounceLights.png)(w:600)
+	![앰비언트 스포트 라이트 없음](WithoutBounceLights.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 

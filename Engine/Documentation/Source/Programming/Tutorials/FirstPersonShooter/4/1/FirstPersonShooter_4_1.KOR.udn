@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2953540
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 4.1 - 캐릭터 애니메이션
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
@@ -42,11 +42,11 @@ Version: 4.11
 
 1.	다음 애니메이션 파일 다섯 개를 찾아 선택합니다:
 
-	*	FPP_Idle.FBX
-	*	FPP_JumpEnd.FBX
-	*	FPP_JumpLoop.FBX
-	*	FPP_JumpStart.FBX
-	*	FPP_Run.FBX
+	*	`FPP_Idle.FBX`
+	*	`FPP_JumpEnd.FBX`
+	*	`FPP_JumpLoop.FBX`
+	*	`FPP_JumpStart.FBX`
+	*	`FPP_Run.FBX`
 
 1.	Animations 폴더에 우클릭하고 **/Game/Animations/ 에 임포트...** 를 선택하여 애니메이션 임포트를 시작합니다.
 
@@ -92,6 +92,9 @@ Version: 4.11
 
 1.	이제 애니메이션 스테이트 머신을 구동시킬 애니메이션 트랜지션 변수가 둘 생겼습니다.
 
-	![](NewBooleans.png)
+	[REGION:lightbox]
+		[![](NewBooleans.png)(w:750)](NewBooleans.png)
+	[/REGION]
+	_이미지를 클릭하면 확대됩니다._
 
 %Steps%

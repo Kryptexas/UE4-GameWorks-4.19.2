@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.1 - 새 캐릭터 만들기
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -45,56 +45,6 @@ Visual Studio 솔루션에 \*.h 와 \*.cpp 파일을 수동 추가할 수는 있
 	FPSCharacter 클래스를 생성했으니, **Visual Studio** 로 전환하여 새로 생성된 클래스에 코드를 추가하면 됩니다. `FPSCharacter.h` 와 `FPSCharacter.cpp` 가 열리며, **언리얼 엔진** 에서는 새로운 클래스를 자동으로 컴파일하여 코드를 리로드해 줍니다.
 	[/REGION]
 
-## 게임 모드 클래스 편집
-
-먼저 게임플레이가 시작되면 FPSCharacter 가 기본 폰으로 사용되도록 **GameMode** 를 편집해 줘야합니다.
-
-1.	**Solution Explorer** 에서 **FPSProject > Source > FPSProject** 를 펼칩니다.
-
-	![](ExpandedSolutionExplorer.png)
-
-1.	`FPSProjectGameMode.cpp` 를 **더블클릭** 하여 **FPSProjectGameMode** 클래스에 대한 구현 파일을 엽니다.
-
-1.	먼저, `FPSProjectGameMode.cpp` 상단에 `FPSCharacter` 헤더를 포함(include)시킵니다:
-
-		#include "FPSCharacter.h"
-
-1.	이제, `AFPSProjectGameMode` 생성자에 다음 줄을 추가합니다:
-
-		DefaultPawnClass = AFPSCharacter::StaticClass();
-
-1.	`FPSGameMode.cpp` 가 다음과 같아 보일 것입니다:
-
-		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-		
-		#include "FPSProject.h"
-		#include "FPSProjectGameMode.h"
-		#include "FPSCharacter.h"
-		
-		AFPSProjectGameMode::AFPSProjectGameMode()
-		{
-			DefaultPawnClass = AFPSCharacter::StaticClass();
-		}
-		
-		void AFPSProjectGameMode::StartPlay()
-		{
-			Super::StartPlay();
-		
-			StartMatch();
-		
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
-			FColor DisplayColor = FColor::Yellow;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-			}
-		}
-
-1.	Visual Studio 에서 `FPSProjectGameMode.cpp` 구현 파일을 저장합니다.
-
 ## 캐릭터 클래스 확인
 
 1.	**Solution Explorer** 에서 **FPSProject > Source > FPSProject** 를 펼칩니다.
@@ -105,15 +55,10 @@ Visual Studio 솔루션에 \*.h 와 \*.cpp 파일을 수동 추가할 수는 있
 
 1.	`BeginPlay()` 함수에 다음 코드줄을 추가하여 `FPSCharacter` 클래스가 사용중인지 확인합니다:
 
-		const int32 Key = -1;
-		static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-		FColor DisplayColor = FColor::Red;
-		float TimeToDisplay = 5.0f; //seconds
-
-		if (GEngine != nullptr)
+		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-
+			// 5 초간 디버그 메시지를 표시합니다. (첫 인수인) -1 "Key" 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 		}
 
 1.	`FPSCharacter.cpp` 는 다음과 같은 모습일 것입니다:
@@ -136,15 +81,10 @@ Visual Studio 솔루션에 \*.h 와 \*.cpp 파일을 수동 추가할 수는 있
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// 5 초간 디버그 메시지를 표시합니다. (첫 인수인) -1 "Key" 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -174,11 +114,48 @@ Visual Studio 솔루션에 \*.h 와 \*.cpp 파일을 수동 추가할 수는 있
 
 	![](FPSCharacterContentBrowser.png)
 
-1.	레벨 에디터 툴바의 **플레이** 버튼을 **클릭** 합니다. 뷰포트 좌상단 구석에 Hello World, this is FPSGameMode! 라는 문구가 빨강색으로 5 초간 보일 것입니다.
+## CPP FPS 캐릭터 클래스를 블루프린트로 확장
+
+CPP FPS Character 클래스를 블루프린트로 확장하기 좋은 시점이 되었습니다. C++ 클래스를 블루프린트로 확장하는 방법 관련 자세한 정보는 [](Gameplay/ClassCreation/CodeAndBlueprints) 문서를 
+참고하세요.
+
+1.	`FPSCharacter` 클래스에 우클릭하여 **C++ Class Actions** 메뉴를 엽니다.
+
+	![](CPPClassActionsMenu.png)
+
+1.	**FPSCharacter 기반 블루프린트 클래스 생성** 을 클릭하여 **블루프린트 클래스 추가** 대화창을 엽니다.
+
+	![](CreateDerivedBPClass.png)
+
+1.	블루프린트 클래스 이름은 BP_FPSCharacter 라 하고 Blueprints 폴더를 선택한 뒤 **블루프린트 클래스 생성** 버튼을 클릭합니다.
+
+	![](AddBPClass.png)
+
+1.	이제, Blueprints 폴더 안에 `BP_FPSCharacter` 블루프린트 클래스가 새로 생성되어 있을 것입니다.
+
+	![](AddedBPClass.png)
+
+1.	꼭 `BP_FPSCharacter` 블루프린트를 저장하고 블루프린트 에디터를 닫으세요.
+
+## 기본 폰 클래스 설정
+
+새로 변경된 게임 모드를 블루프린트로 확장시키는 데 성공했으니, 이 단계에서는 프로젝트가 `BP_FPSCharacter` 를 기본 폰으로 사용하도록 설정해 주겠습니다.
+
+1.	**편집** 메뉴에서 **프로젝트 세팅** 을 클릭합니다.
+
+1.	**프로젝트 세팅** 탭 왼편의 **프로젝트** 제목줄 아래, **맵 & 모드** 를 클릭합니다.
+
+1.	**Default Pawn** (기본 폰) 드롭다운 메뉴에서 **BP_FPSCharacter** 를 선택합니다.
+
+	![](SettingFPSCharacter.png)
+
+1.	**프로젝트 세팅** 메뉴를 닫습니다.
+
+1.	레벨 에디터 툴바의 **플레이** 버튼을 클릭합니다. 부포트 좌상단 구석 "Hello World, this is FPSGameMode!" 아래 "We are using FPSCharacter." 라는 문구가 빨간 색으로 5 초간 표시됩니다.
 
 	![](VerifyingFPSCharacterResult.png)
 
-	새 캐릭터에 아직 조작 콘트롤이 없으므로 레벨에서 움직일 수는 없을 것입니다. 움직일 수 없다면, FPSCharacter 가 폰으로 제대로 사용되고 있는 것입니다!
+	움직일 수 없다면, FPSCharacter 가 폰으로 제대로 사용되고 있는 것입니다! 새 캐릭터에 아직 무브먼트 콘트롤이 없는 상태이므로, 레벨에서 이동이 불가능할 것입니다.
 
 1.	다음 단계로 넘어가기 전, Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 눌러 에디터에서 플레이(PIE) 모드를 빠져나갑니다.
 

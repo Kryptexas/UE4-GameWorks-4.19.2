@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2946107
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 3.4 - 월드와 상호작용하는 프로젝타일
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -63,23 +63,22 @@ Version: 4.11
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-			
+		
 			// 프로젝타일 무브먼트 컴포넌트입니다.
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
 		
 			// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
-			void InitVelocity(const FVector& ShootDirection);
+			void FireInDirection(const FVector& ShootDirection);
 		
 			// 프로젝타일에 무언가 맞으면 호출되는 함수입니다.
-			UFUNCTION()
 			void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 		};
 
 1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 CPP 파일을 찾고 `FPSProjectile.cpp` 를 열고 다음 코드를 추가합니다:
 
 		// 프로젝타일에 무언가 맞으면 호출되는 함수입니다.
-		void AFPSProjectile::OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -123,7 +122,7 @@ Version: 4.11
 			ProjectileMovementComponent->bShouldBounce = true;
 			ProjectileMovementComponent->Bounciness = 0.3f;
 		
-			// die after 3 seconds
+			// 3 초 후 죽습니다.
 			InitialLifeSpan = 3.0f;
 		}
 		
@@ -142,13 +141,13 @@ Version: 4.11
 		}
 		
 		// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
-		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
+		void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 		{
 			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
 		
 		// 프로젝타일이 무언가에 맞으면 호출되는 함수입니다.
-		void AFPSProjectile::OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -172,7 +171,7 @@ Version: 4.11
 
 1.	바닥 메시를 **복사 & 붙여넣기** 합니다.
 
-1.	비율 고정이 풀렸는지 확인하고, (이름이 Floor2 인) 바닥 메시 사본의 스케일을 {0.2, 0.2, 0.3} 로 설정합니다.
+1.	비율 고정이 풀렸는지 확인하고, (이름이 Floor2 인) 바닥 메시 사본의 스케일을 {0.2, 0.2, 3.0} 으로 설정합니다.
 
 1.	바닥 메시 사본 위치는 {320, 0, 170} 으로 조정합니다.
 

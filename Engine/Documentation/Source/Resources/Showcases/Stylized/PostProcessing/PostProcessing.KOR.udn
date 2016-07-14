@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726451
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:Stylized Rendering 포스트 프로세싱
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -71,10 +71,10 @@ Version: 4.9
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Before AO Masking](PostProcessLines_2.png)(%Dither%)
+	![AO 마스킹 전](PostProcessLines_2.png)(%Dither%)
 	[/PARAM]
 	[PARAM:after]
-	![After AO Masking](PostProcessLines_1.png)(%Dither%)
+	![AO 마스킹 후](PostProcessLines_1.png)(%Dither%)
 	[/PARAM]
 [/OBJECT]
 

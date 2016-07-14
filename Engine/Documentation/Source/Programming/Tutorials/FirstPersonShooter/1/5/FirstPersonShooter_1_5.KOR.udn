@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2924867
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 1.5 - 디폴트 게임 모드 설정
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -24,13 +24,13 @@ Version: 4.11
 
 %Steps%
 
-새로 변경된 게임 모드 컴파일에 성공했으니, 이번 단계에서는 프로젝트가 `FPSProjectGameMode` 를 기본 게임 모드로 사용하도록 설정해 줘야 합니다.
+새로 변경된 게임 모드를 블루프린트로 확장시키는 데 성공했으니, 이번 단계에서는 프로젝트가 `FPSProjectGameMode` 를 기본 게임 모드로 사용하도록 설정해 줘야 합니다.
 
 1.	**편집** 메뉴에서 **프로젝트 세팅** 을 클릭합니다.
 
 1.	**프로젝트 세팅** 탭 왼편의 **프로젝트** 제목 아래 **맵 & 모드** 를 클릭합니다.
 
-1.	**Default GameMode** 드롭다운에서 **FPSGameMode** 를 선택합니다.
+1.	**Default GameMode** 드롭다운에서 **BP_FPSGameMode** 를 선택합니다.
 
 	![](SettingFPSGameMode.png)
 
@@ -40,7 +40,55 @@ Version: 4.11
 
 	![](SectionResult.png)
 
-1.	Esc 키를 누르거나 레벨 에디터에서 **중지** 버튼을 클릭하여 에디터에서 플레이(PIE) 모드를 종료합니다.
+1.	Esc 키를 치거나 레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    code
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    완성된 섹션 코드
+    [/PARAM]
+    [PARAM:content]
+		**FPSProjectGameMode.h**
+			// Fill out your copyright notice in the Description page of Project Settings.
+			
+			#pragma once
+			
+			#include "GameFramework/GameMode.h"
+			#include "FPSGameMode.generated.h"
+			
+			/**
+			 * 
+			 */
+			UCLASS()
+			class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+			{
+				GENERATED_BODY()
+
+				virtual void StartPlay() override;
+			};
+
+		**FPSProjectGameMode.cpp**
+			// Fill out your copyright notice in the Description page of Project Settings.
+			
+			#include "FPSProject.h"
+			#include "FPSProjectGameMode.h"
+			
+			void AFPSProjectGameMode::StartPlay()
+			{
+				Super::StartPlay();
+			
+				if (GEngine)
+				{
+					// Display a debug message for five seconds. 
+					// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
+				}
+			}
+
+    [/PARAM]
+[/OBJECT]
 
 축하합니다! 지금까지 배운 내용은 다음과 같습니다:
 
