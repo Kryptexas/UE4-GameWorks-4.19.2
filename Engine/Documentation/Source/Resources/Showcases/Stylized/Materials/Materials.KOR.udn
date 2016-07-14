@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726448
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:Stylized Rendering 머티리얼
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -41,6 +41,15 @@ DitherTemporalAA 노드를 사용하지 않은 나무의 모습은 이렇습니�
 	[/PARAM]
 	[PARAM:after]
 	![Without DitherTemporalAA](NonDitheredStrokes.png)(%Dither%)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![DitherTemporalAA 켜고](DitheredStrokes.png)(%Dither%)
+	[/PARAM]
+	[PARAM:after]
+	![DitherTemporalAA 끄고](NonDitheredStrokes.png)(%Dither%)
 	[/PARAM]
 [/OBJECT]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.6 - 캐릭터에 메시 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -25,7 +25,7 @@ Version: 4.11
 %Steps%
 
 [REGION:note]
-시작에 앞서, 다음 링크에서 샘플 메시를 다운로드한 뒤 풀어주세요:
+다음 링크에서 샘플 메시를 다운로드한 뒤 압축을풀어주세요:
 *	[샘플 메시](GenericMale.zip "샘플 메시")
 [/REGION]
 
@@ -49,27 +49,9 @@ Version: 4.11
 
 1.	**저장** 버튼을 **클릭** 하여 임포트된 메시를 저장합니다.
 
-## FPS 캐릭터에 대한 블루프린트 생성
-
-1.	**콘텐츠 브라우저** 에 **우클릭** 한 다음 **새 폴더** 를 선택합니다.
-
-1.	새 폴더 이름을 Blueprints 라 짓고 폴더에 더블클릭하여 엽니다.
-
-1.	**신규 추가** 버튼을 **클릭** 하고 **블루프린트 클래스** 를 선택합니다.
-
-	![](AddNewBPClass.png)
-
-1.	**모든 클래스** 드롭다운 메뉴를 선택하고 검색창에 FPSCharacter 라 입력합니다. 검색 결과에 **FPSCharacter** 가 나타나면, 계속해서 **FPSCharacter** 를 선택하고 **선택** 버튼을 누릅니다.
-
-	![](AddFPSCharacterClass.png)
-
-1.	새로운 블루프린트 이름을 BP_FPSCharacter 라 합니다.
-
-	![](NameBP_FPSCharacter.png)
-
 ## 삼인칭 메시 구성
 
-1.	 **BP_FPSCharacter** 아이콘을 **더블클릭** 하여 **블루프린트 에디터** 에서 엽니다.
+1.	**BP_FPSCharacter** 아이콘을 더블클릭하여 **블루프린트 에디터** 에서 엽니다.
 
 1.	**컴포넌트** 탭에서 **Mesh** 컴포넌트에 **클릭** 합니다.
 
@@ -89,87 +71,26 @@ Version: 4.11
 
 	![](SkeletalMeshLocation.png)
 
-	[REGION:note]
+	[REGION:tip]
 	일반적으로 `CapsuleComponent` 안에 `SkeletalMeshComponent` 가 포함되도록, `ArrowComponent` 가 가리키는 것과 같은 방향을 바라보도록 해야 캐릭터가 월드를 제대로 돌아다닙니다.
 	[/REGION]
 
 1.	 **블루프린트 에디터** 를 닫기 전 **BP_FPSCharacter** 블루프린트를 **컴파일** 및 **저장** 합니다.
 
-## 디폴트 폰 클래스 설정
-
-1.	Visual Studio 로 돌아가 `FPSProjectGameMode.cpp` 를 엽니다.
-
-1.	`FPSProjectGameMode.cpp` 에서 `AFPSProjectGameMode` 생성자를 찾아 기존 `DefaultPawnClass` 할당 위치를 찾습니다. 다음 줄과 같을 것입니다:
-
-		DefaultPawnClass = AFPSCharacter::StaticClass();
-
-1.	`DefaultPawnClass` 할당을 다음 코드로 대체합니다:
-
-		//블루프린트 캐릭터에 기본 폰 클래스를 설정합니다.
-		static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-		if (PlayerPawnObject.Class != nullptr)
-		{
-			DefaultPawnClass = PlayerPawnObject.Class;
-		}
-
-	이 코드는 블루프린트로 생성된 클래스를 찾아 기본 폰 클래스로 할당합니다. 참고로 애셋 경로의 "_C" 접미사는 게임에 사용되는 실제 클래스와 블루프린트 애셋을 구분해 줍니다. 블루프린트를 애셋 트리 내 다른 폴더에 넣으면, 콘텐츠 브라우저에서 애셋에 우클릭한 다음 '레퍼런스 복사' 를 선택하는 것으로 전체 경로를 구할 수 있습니다.
-	![](CopyAssetReference.png)
-
-1.	이 시점에서, `FPSProjectGameMode.cpp` 상단의 `#include "FPSCharacter.h"` 를 제거해도 됩니다. `FPSProjectGameMode.cpp` 는 이제 다음과 같아 보일 것입니다:
-
-		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-		
-		#include "FPSProject.h"
-		#include "FPSProjectGameMode.h"
-		
-		AFPSProjectGameMode::AFPSProjectGameMode()
-		{
-			// 기본 폰 클래스를 블루프린트화된 캐릭터로 설정합니다.
-			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != nullptr)
-			{
-				DefaultPawnClass = PlayerPawnObject.Class;
-			}
-		}
-		
-		void AFPSProjectGameMode::StartPlay()
-		{
-			Super::StartPlay();
-		
-			StartMatch();
-		
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
-			FColor DisplayColor = FColor::Yellow;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-			}
-		}
-
 ## PIE 모드에서 새 메시 확인
 
-에디터 내에서 새로 추가한 메시를 컴파일하고 테스트할 차례입니다.
+새로 추가한 메시를 에디터에서 확인해 볼 차례입니다.
 
-1.	Visual Studio 에서 `FPSProjectGameMode.cpp` 를 저장합니다.
-
-1.	**Solution Explorer** 에서 **FPSProject** 를 찾습니다.
-
-1.	**FPSProject** 에 **우클릭** 하고 **Build** 를 선택하여 프로젝트를 컴파일합니다.
-
-	![](BuildProject.png)
-
-1.	빌드 완료 후 언리얼 에디터에서 **FPSProject** 를 엽니다.
-
-1.	레벨 에디터 툴바의 **플레이** 버튼을 **클릭** 합니다. 이동하면서 캐릭터의 그림자를 확인할 수 있을 것입니다.
+1.	레벨 에디터 툴바의 **플레이** 버튼을 클릭합니다. 캐릭터를 이동하면 따라오는 그림자가 보일 것입니다.
 
 	![](PawnwithShadow.png)
 
-	에디터 뷰포트 안에서 캐릭터의 메시를 확인하려면, F8 키를 눌러 폰에서 빠져나갑니다. F8 키를 누른 후에는 레벨을 통해 카메라를 자유롭게 이동할 수 있을 것입니다. 카메라 이동을 위해서는, 왼쪽 마우스 버튼을 누른 상태에서 마우스를 움직이면 됩니다.
+	[REGION:note]
+	에디터 뷰포트 안에서 캐릭터의 메시를 확인하려면, F8 키를 눌러 폰에서 탈출합니다. F8 키를 누르면, 카메라로 레벨을 자유로이 이동할 수 있을 것입니다. 카메라를 이동시키려면, 왼쪽 마우스 버튼을 누른 상태에서 마우스를 움직이면 됩니다.
+	[/REGION]
+
 	![](FreelyMovingCamera.png)
 
-1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 **클릭** 하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
+1.	Esc 키를 치거나 레벨 에디터의 **중지** 버튼을 눌러 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
 %Steps%

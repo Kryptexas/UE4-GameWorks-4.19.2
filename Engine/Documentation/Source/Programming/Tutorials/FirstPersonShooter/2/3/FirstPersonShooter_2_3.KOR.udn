@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938862
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.3 - 캐릭터 동작 함수 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -93,7 +93,7 @@ Version: 4.11
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 			
-			// 게임플레이 키 바인딩 구성
+			// "movement" 바인딩 구성
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
@@ -106,10 +106,8 @@ Version: 4.11
 
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// 어느 쪽이 전방인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// 어느 쪽이 전방인지 알아내어, 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 
@@ -117,10 +115,8 @@ Version: 4.11
 
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// 어느 쪽이 오른쪽인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// 어느 쪽이 전방인지 알아내어, 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 
@@ -130,7 +126,7 @@ Version: 4.11
 
 #include "FPSProject.h"
 		#include "FPSCharacter.h"
-		
+				
 		// Sets default values
 		AFPSCharacter::AFPSCharacter()
 		{
@@ -144,15 +140,10 @@ Version: 4.11
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// 5 초간 디버그 메시지를 표시합니다. (첫 인수인) -1 "Key" 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -168,26 +159,22 @@ Version: 4.11
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// 게임플레이 키 바인딩을 구성합니다.
+			// "movement" 바인딩을 구성합니다.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// 어느 쪽이 전방인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// 어느 쪽이 전방인지 알아내어, 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// 어느 쪽이 오른쪽인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// 어느 쪽이 오른쪽인지 알아내어, 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 

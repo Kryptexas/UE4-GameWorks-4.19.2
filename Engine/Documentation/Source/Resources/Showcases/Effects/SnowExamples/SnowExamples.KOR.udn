@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726365
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:눈 예제
 Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
@@ -23,7 +23,7 @@ Version: 4.9
 
 다음 파티클 시스템은 이 예제용으로 생성된 눈 이펙트입니다. 캐스케이드에서 열어 이펙트를 어떻게 만들었는지 확인해 보시기 바랍니다.
 
-캐스케이드와 파티클 시스템 관련 상세 정보는 [파티클 시스템 관련 문서](Engine/Rendering/ParticleSystems) 를 참고해 주시기 바랍니다.
+캐스케이드와 파티클 시스템 관련 상세 정보는 [](Engine/Rendering/ParticleSystems) 문서를 참고해 주시기 바랍니다.
 
 ## 눈보라
 
@@ -39,10 +39,10 @@ Version: 4.9
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![With Enable Responsive AA](WithEnable.png)(w:600)
+	![Enable Responsive AA 있음](WithEnable.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
-	![Without Enable Responsive AA](WithoutEnable.png)(w:600)
+	![Enable Responsive AA 없음](WithoutEnable.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2939925
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 3.1 - 게임에 발사체 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -65,7 +65,7 @@ Version: 4.11
 
 		// 구체 콜리전 컴포넌트
 		UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-		USphereComponent* CollisionComp;
+		USphereComponent* CollisionComponent;
 
 1.	`FPSProjectile.h` 는 이제 다음과 같을 것입니다:
 
@@ -94,10 +94,9 @@ Version: 4.11
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-			
 		};
 
-1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 CPP 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
 
 1.	`FPSProjectile.cpp` 의 `AFPSProjectile` 생성자에 다음 코드를 추가합니다:
 
@@ -108,9 +107,9 @@ Version: 4.11
 		// 루트 컴포넌트를 콜리전 컴포넌트로 설정합니다.
 		RootComponent = CollisionComponent;
 
-		[REGION:note]
-		시뮬레이션으로 구동시켜줄 것이므로 `CollisionComponent` 를 `RootComponent` 로 만듭니다.
-		[/REGION]
+	[REGION:note]
+	시뮬레이션으로 구동시켜줄 것이므로 `CollisionComponent` 를 `RootComponent` 로 만듭니다.
+	[/REGION]
 
 1. `FPSProjectile.cpp` 는 이제 다음과 같을 것입니다:
 
@@ -160,7 +159,7 @@ Version: 4.11
 1.	`FPSProjectile.h` 는 이제 다음과 같을 것입니다:
 
 		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-
+		
 		#pragma once
 		
 		#include "GameFramework/Actor.h"
@@ -184,7 +183,7 @@ Version: 4.11
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-			
+		
 			// 프로젝타일 무브먼트 컴포넌트
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
@@ -195,17 +194,13 @@ Version: 4.11
 1.	`FPSProjectile.cpp` 의 `FPSProjectile` 생성자에 다음 코드 줄을 추가합니다:
 
 		// ProjectileMovementComponent 를 사용하여 이 발사체의 운동을 관장합니다.
-		ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
-
-		if (ProjectileMovement != NULL)
-		{
-			ProjectileMovement->UpdatedComponent = CollisionComp;
-			ProjectileMovement->InitialSpeed = 3000.f;
-			ProjectileMovement->MaxSpeed = 3000.f;
-			ProjectileMovement->bRotationFollowsVelocity = true;
-			ProjectileMovement->bShouldBounce = true;
-			ProjectileMovement->Bounciness = 0.3f;
-		}
+		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+		ProjectileMovementComponent->InitialSpeed = 3000.0f;
+		ProjectileMovementComponent->MaxSpeed = 3000.0f;
+		ProjectileMovementComponent->bRotationFollowsVelocity = true;
+		ProjectileMovementComponent->bShouldBounce = true;
+		ProjectileMovementComponent->Bounciness = 0.3f;
 
 1.	`FPSProjectile.cpp` 는 이제 다음과 같을 것입니다:
 
@@ -258,7 +253,7 @@ Version: 4.11
 1.	`FPSProjectile.h` 에 다음 함수 선언을 추가합니다:
 
 		// 발사체의 속도를 발사 방향으로 초기화시킵니다.
-		void InitVelocity(const FVector& ShootDirection);
+		void FireInDirection(const FVector& ShootDirection);
 
 	이 함수가 발사체의 발사를 담당합니다.
 
@@ -289,13 +284,13 @@ Version: 4.11
 			// 구체 콜리전 컴포넌트입니다.
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-			
+		
 			// 프로젝타일 무브먼트 컴포넌트입니다.
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
 		
 			// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
-			void InitVelocity(const FVector& ShootDirection);
+			void FireInDirection(const FVector& ShootDirection);
 		};
 
 1.	**Solution Explorer** 에서 `FPSProjectile` CPP 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
@@ -303,7 +298,7 @@ Version: 4.11
 1.	`FPSProjectile.cpp` 에 다음 함수 정의부를 추가합니다:
 
 		// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
-		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
+		void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 		{
 			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
@@ -357,7 +352,7 @@ Version: 4.11
 		}
 		
 		// 프로젝타일의 속도를 발사 방향으로 초기화시키는 함수입니다.
-		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
+		void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 		{
 			ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 		}
@@ -370,7 +365,7 @@ Version: 4.11
 
 		// 발사 처리
 		UFUNCTION()
-		void OnFire();
+		void Fire();
 
 1.	`FPSCharacter.h` 는 이 제 다음과 비슷할 것입니다:
 
@@ -409,15 +404,15 @@ Version: 4.11
 		
 			// 키를 누르면 점프 플래그를 설정합니다.
 			UFUNCTION()
-			void OnStartJump();
+			void StartJump();
 		
 			// 키를 떼면 점프 플래그를 지웁니다.
 			UFUNCTION()
-			void OnStopJump();
+			void StopJump();
 		
 			// 프로젝타일 발사를 처리하는 함수입니다.
 			UFUNCTION()
-			void OnFire();
+			void Fire();
 		
 			// FPS 카메라입니다.
 			UPROPERTY(VisibleAnywhere)
@@ -432,14 +427,13 @@ Version: 4.11
 
 1.	`FPSCharacter.cpp` 에서, `OnFire` 함수 바인딩을 위해 `SetupPlayerInputComponent` 에 다음 코드를 추가합니다:
 
-		// 프로젝타일 발사 동작을 구성합니다.
-		InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
+		InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 
 1.	이제, `FPSCharacter.cpp` 에 다음 함수 정의부를 추가합니다:
 
-		void AFPSCharacter::OnFire()
+		void AFPSCharacter::Fire()
 		{
-		}	
+		}
 
 1.	`FPSCharacter.cpp` 는 이제 다음과 같아 보일 것입니다:
 
@@ -472,7 +466,7 @@ Version: 4.11
 			// 일부 환경 그림자를 꺼서 하나의 메시로 보이는 것을 방지합니다.
 			FPSMesh->bCastDynamicShadow = false;
 			FPSMesh->CastShadow = false;
-			
+		
 			// 자신을 제외한 모든 이는 일반 바디 메시를 볼 수 있습니다.
 			GetMesh()->SetOwnerNoSee(true);
 		}
@@ -482,15 +476,10 @@ Version: 4.11
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// 5 초간 디버그 메시지를 표시합니다. (첫 인수인) -1 "Key" 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -515,42 +504,36 @@ Version: 4.11
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
 			// 점프 동작 바인딩을 구성합니다.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-		
-			// 프로젝타일 발사 액션 바인딩을 구성합니다.
-			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// 어디가 전방인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 동작을 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// 어디가 전방인지 인지 알아내어, 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// 어디가 오른쪽인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 동작을 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// 어디가 오른쪽인지 인지 알아내어, 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 		
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 		{
 			bPressedJump = false;
 		}
 		
-		void AFPSCharacter::OnFire()
+		void AFPSCharacter::Fire()
 		{
 		}
 
@@ -627,15 +610,15 @@ Version: 4.11
 		
 			// 키를 누르면 점프 플래그를 설정합니다.
 			UFUNCTION()
-			void OnStartJump();
+			void StartJump();
 		
 			// 키를 떼면 점프 플래그를 지웁니다.
 			UFUNCTION()
-			void OnStopJump();
+			void StopJump();
 		
 			// 프로젝타일 발사를 처리하는 함수입니다.
 			UFUNCTION()
-			void OnFire();
+			void Fire();
 		
 			// FPS 카메라입니다.
 			UPROPERTY(VisibleAnywhere)
@@ -659,7 +642,7 @@ Version: 4.11
 
 이제 새로 구현된 발사체 코드를 컴파일하고 검사할 차례입니다.
 
-1.	Visual Studio 에서 모든 인터페이스 및 구현 파일을 저장합니다.
+1.	Visual Studio 에서 모든 헤더 및 구현 파일을 저장합니다.
 
 1.	**Solution Explorer** 에서 **FPSProject** 를 찾습니다.
 

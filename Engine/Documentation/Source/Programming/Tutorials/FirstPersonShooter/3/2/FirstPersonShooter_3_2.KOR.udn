@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2953540
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 3.2 - 발사 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -47,23 +47,23 @@ Version: 4.11
 				GetActorEyesViewPoint(CameraLocation, CameraRotation);
 		
 				// MuzzleOffset 을 카메라 스페이스에서 월드 스페이스로 변환합니다.
-				FVector const MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
+				FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
 				FRotator MuzzleRotation = CameraRotation;
 				// 조준을 약간 윗쪽으로 올려줍니다.
-				MuzzleRotation.Pitch += 10.0f; 
-				UWorld* const World = GetWorld();
+				MuzzleRotation.Pitch += 10.0f;
+				UWorld* World = GetWorld();
 				if (World)
 				{
 					FActorSpawnParameters SpawnParams;
 					SpawnParams.Owner = this;
 					SpawnParams.Instigator = Instigator;
 					// 총구 위치에 발사체를 스폰시킵니다.
-					AFPSProjectile* const Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
+					AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
 					if (Projectile)
 					{
 						// 발사 방향을 알아냅니다.
-						FVector const LaunchDirection = MuzzleRotation.Vector();
-						Projectile->InitVelocity(LaunchDirection);
+						FVector LaunchDirection = MuzzleRotation.Vector();
+						Projectile->FireInDirection(LaunchDirection);
 					}
 				}
 			}
@@ -83,26 +83,26 @@ Version: 4.11
 		 	// 이 캐릭터가 TIck() 을 매 프레임 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 		
-			// create a first person camera component
+			// 일인칭 카메라 컴포넌트를 생성합니다.
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-			// attach the camera component to our capsule component
+			// 카메라 컴포넌트를 캡슐 컴포넌트에 붙입니다.
 			FPSCameraComponent->AttachTo(GetCapsuleComponent());
-			// position the camera slightly above the eyes
+			// 카메라 위치를 눈 살짝 위로 잡습니다.
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-			// allow the pawn to control rotation
+			// 폰의 로테이션 제어를 허가합니다.
 			FPSCameraComponent->bUsePawnControlRotation = true;
 		
-			// create a first person mesh component
+			// 일인칭 메시 컴포넌트를 생성합니다.
 			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-			// only the owning player sees this mesh
+			// 이 메시는 소유 플레이어게만 보입니다.
 			FPSMesh->SetOnlyOwnerSee(true);
-			// attach the FPS mesh to the FPS camera
+			// FPS 카메라에 FPS 메시를 붙입니다.
 			FPSMesh->AttachTo(FPSCameraComponent);
-			// disable some environmental shadowing to preserve the illusion of having a single mesh
+			// 일부 환경 섀도잉을 꺼서 메시가 하나처럼 보이는 느낌을 보존합니다.
 			FPSMesh->bCastDynamicShadow = false;
 			FPSMesh->CastShadow = false;
-			
-			// everyone but you can see the regular body mesh
+		
+			// 소유 플레이어는 일반 (삼인칭) 바디 메시를 보지 못합니다.
 			GetMesh()->SetOwnerNoSee(true);
 		}
 		
@@ -111,15 +111,10 @@ Version: 4.11
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// 5 초간 디버그 메시지를 표시합니다. (첫 인수인) -1 Key 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -135,51 +130,45 @@ Version: 4.11
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
 		
-			// 게임플레이 키 바인딩을 구성합니다.
+			// "movement" 바인딩을 구성합니다.
 			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
-			// 게임플레이 마우스 바인딩을 구성합니다.
+			// "look" 바인딩을 구성합니다.
 			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
-			// 점프 동작 바인딩을 구성합니다.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-		
-			// 프로젝타일 발사 액션 바인딩을 구성합니다.
-			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnFire);
+			// "action" 바인딩을 구성합니다.
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// 어느 쪽이 전방인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// 어느 쪽이 전방인지 알아내어 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// 어느 쪽이 오른쪽인지 알아냅니다.
-			FRotator Rotation = Controller->GetControlRotation();
-			// 그 방향으로 무브먼트를 더합니다.
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			// 어느 쪽이 오른쪽인지 알아내어 플레이어가 그 방향으로 이동하고자 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 		
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 		{
 			bPressedJump = false;
 		}
 		
-		void AFPSCharacter::OnFire()
+		void AFPSCharacter::Fire()
 		{
 			// 프로젝타일 발사를 시도합니다.
 			if (ProjectileClass)
@@ -190,23 +179,23 @@ Version: 4.11
 				GetActorEyesViewPoint(CameraLocation, CameraRotation);
 		
 				// MuzzleOffset 을 카메라 스페이스에서 월드 스페이스로 변환합니다.
-				FVector const MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
+				FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
 				FRotator MuzzleRotation = CameraRotation;
 				// 조준선을 약간 윗쪽으로 조준합니다.
-				MuzzleRotation.Pitch += 10.0f; 
-				UWorld* const World = GetWorld();
+				MuzzleRotation.Pitch += 10.0f;
+				UWorld* World = GetWorld();
 				if (World)
 				{
 					FActorSpawnParameters SpawnParams;
 					SpawnParams.Owner = this;
 					SpawnParams.Instigator = Instigator;
 					// 총구 위치에 발사체를 스폰시킵니다.
-					AFPSProjectile* const Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
+					AFPSProjectile* Projectile = World->SpawnActor<AFPSProjectile>(ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
 					if (Projectile)
 					{
 						// 발사 방향을 알아냅니다.
-						FVector const LaunchDirection = MuzzleRotation.Vector();
-						Projectile->InitVelocity(LaunchDirection);
+						FVector LaunchDirection = MuzzleRotation.Vector();
+						Projectile->FireInDirection(LaunchDirection);
 					}
 				}
 			}
@@ -269,7 +258,7 @@ Version: 4.11
 
 	![](AddStaticMeshComponent.png)
 
-1.	새 컴포넌트 이름을 ProjectileMesh 라 합니다.
+1.	새 컴포넌트 이름을 ProjectileMeshComponent 라 합니다.
 
 	![](NameProjectileMeshComponent.png)
 

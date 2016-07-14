@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2959633
+﻿INTSourceChangelist:3034653
 Title: 2. UE4 에서 SteamVR 작업을 위한 구성
 Crumbs:%ROOT%, Platforms
 Description: UE4 에서 SteamVR 작업이 가능하도록 구성하는 방법입니다.
@@ -74,27 +74,38 @@ Platform:SteamVR
 
 	![](Set_Base_Eye_Height.png)
 
-1. **컴포넌트** 탭에서, **SteamVRChaperone** 와 **Camera** 컴포넌트를 추가하고 카메라의 **트랜스폼 위치** 가 **0,0,0** 으로 되어있는지 확인합니다.
+1. **컴포넌트** 탭에서,  **VR_Pawn** 블루프린트에 다음의 컴포넌트를 추가합니다.
+	|컴포넌트 이름|양|
+	|-------|-----|
+	|Capsule| 1|
+	|Scene|1|
+	|Camera|1|
+	|SteamVRChaperone|1|
 
 	![](Adding_A_Camera.png)
 
-1. 레벨 안에서 바닥에 사용된 스태틱 메시를 선택하고 X, Y, Z 위치를 **0,0,0** 으로 설정합니다.
+1. **Capsule** 컴포넌트를 선택하고 **디테일** 패널에서 **Shape** 섹션 아래, **Capsule Half Height** 를 **96** 으로, Capsule Radius 은 **16** 으로 변경합니다.
+
+	![](Capsule_Setup.png)
+
+1. **Camera** 를 클릭한 후 **Scene** 컴포넌트 위에 끌어놓으면, 그 카메라가 Scene Component 의 자손이 됩니다.
+
+	![](Parenting_The_Camera.png)
+
+1. 새로운 **Scene** 컴포넌트를 선택하고 **디테일** > **트랜스폼** > **위치** 로 이동하여 Z** 값을 **110** 으로 설정하고 블루프린트를 **컴파일** 및 **저장** 합니다.
+
+	![](Change_Scene_Height.png)
+
+1. 레벨 안에서 바닥에 사용된 스태틱 메시를 선택하고, X, Y, Z 위치를 **0,0,0** 으로 설정합니다.
 
 	![](Move_Floor_Down.png)
 
-1. **Player Start** 를 선택하고 그 중앙이 바닥에 사용된 스태틱 메시 바로 위로 오도록 위치를 조정합니다.
-이 예제에서는 **Player Start** 의 **Z** 높이를 **1.0 CM** 으로 설정했습니다.
+1. **VR 프리뷰** 버튼을 사용하여 레벨을 실행하고, HMD 장비를 쓴 뒤 일어나 돌아봅니다.
+발을 내려다 보면, 서 있는 가상의 바닥이 현실의 바닥과 일치하는 느낌이 들 것입니다.
 
-	![](Move_Player_Start.png)
-
-	[region:note]
-	보통은 **Player Start** 가 레벨의 다른 지오메트리 유형과 겹치지 않도록 하는 것이 좋습니다.
-	하지만 SteamVR 이 HMD 의 원점을 0,0,0 즉 바닥에 앉은 상태로 읽기에, Player Start 를 보통 높이로 움직이면 VR 카메라에 오프셋이 적용되어 플레이어가 바닥에 떠있는 것처럼 보이게 만들 것입니다.
-	[/region]
-
-1. **VR 프리뷰** 버튼으로 레벨을 실행시키고, HMD 를 장착한 다음 일어섭니다.
-이제 가상의 바닥이 서 있는 현실의 바닥과 일치하는 것처럼 느껴질 것입니다.
+[region:note]
+가상 바닥에 너무 가깝거나 멀게 느껴지는 경우. VR_Pawn 블루프린트를 열고, 카메라의 부모로 설정된 씬 컴포넌트를 선택한 다음, 자신의 높이에 맞는 바닥 위치가 될 때까지 Z 값을 위 아래로 조정하면 됩니다.
+[/region]
 
 
 %Steps%
-

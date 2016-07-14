@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2938865
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.7 - 카메라 뷰 변경
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -71,11 +71,11 @@ Version: 4.11
 		
 			// 키를 누르면 점프 플래그를 설정합니다.
 			UFUNCTION()
-			void OnStartJump();
+			void StartJump();
 		
 			// 키를 떼면 점프 플래그를 지웁니다.
 			UFUNCTION()
-			void OnStopJump();
+			void StopJump();
 		
 			// FPS 카메라
 			UPROPERTY(VisibleAnywhere)
@@ -95,10 +95,10 @@ Version: 4.11
 
 		// 카메라 위치를 눈 살짝 위쪽으로 잡습니다.
 		FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-		// allow the pawn to control rotation
-		FirstPersonCameraComponent->bUsePawnControlRotation = true;
+		// 폰의 카메라 로테이션 제어를 허용합니다.
+		FPSCameraComponent->bUsePawnControlRotation = true;
 
-	This code adjusts the camera's position to be slightly above the character's eye position while allowing the pawn to control the camera's rotation.
+	이 코드는 카메라의 위치를 캐릭터의 눈 위치 살짝 위쪽으로 잡으면서 폰이 카메라 로테이션을 제어할 수 있도록 해줍니다.
 
 1.	`FPSCharacter.cpp` 는 이제 다음과 같은 모습일 것입니다:
 
@@ -107,19 +107,19 @@ Version: 4.11
 		#include "FPSProject.h"
 		#include "FPSCharacter.h"
 		
-		// Sets default values
+		// 기본값 설정입니다.
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	// 이 캐릭터가 TIck() 을 매 프레임 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 		
-			// create a first person camera component
+			// 일인칭 카메라 컴포넌트를 생성합니다.
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-			// attach the camera component to our capsule component
+			// 카메라 컴포넌트를 캡슐 컴포넌트에 붙입니다.
 			FPSCameraComponent->AttachTo(GetCapsuleComponent());
-			// position the camera slightly above the eyes
+			// 카메라 위치를 눈 살짝 위쪽으로 잡습니다.
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
-			// allow the pawn to control rotation
+			// 폰의 로테이션 제어를 허가합니다.
 			FPSCameraComponent->bUsePawnControlRotation = true;
 		}
 		
@@ -128,15 +128,10 @@ Version: 4.11
 		{
 			Super::BeginPlay();
 			
-			const int32 Key = -1;
-			static const FString DebugMessage = TEXT("We are using FPSCharacter.");
-			FColor DisplayColor = FColor::Red;
-			float TimeToDisplay = 5.0f; //seconds
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-		
+				// 5 초간 디버그 메시지를 표시합니다. (첫 인수인) -1 "Key" 값은 이 메시지를 업데이트 또는 새로고칠 필요가 없음을 나타냅니다.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
 		
@@ -161,34 +156,30 @@ Version: 4.11
 			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
 			// 점프 동작 바인딩을 구성합니다.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
+			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
 		{
-			// find out which way is forward
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
-			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+			// 어느 쪽이 전방인지 알아내어 플레이어가 그 방향으로 이동하려 한다고 기록합니다.
+			FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 			AddMovementInput(Direction, Value);
 		}
 		
 		void AFPSCharacter::MoveRight(float Value)
 		{
-			// find out which way is right
-			FRotator Rotation = Controller->GetControlRotation();
-			// add movement in that direction
+			// 어느 쪽이 오른쪽인지 알아내어 플레이어가 그 방향으로 이동하려 한다고 기록합니다.
 			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
 			AddMovementInput(Direction, Value);
 		}
 		
-		void AFPSCharacter::OnStartJump()
+		void AFPSCharacter::StartJump()
 		{
 			bPressedJump = true;
 		}
 		
-		void AFPSCharacter::OnStopJump()
+		void AFPSCharacter::StopJump()
 		{
 			bPressedJump = false;
 		}
@@ -211,7 +202,7 @@ Version: 4.11
 
 	![](NewCameraComponent.png)
 
-	dlwp 카메라가 캐릭터 머리 살짝 위에 있을 것입니다.
+	이제 카메라가 캐릭터 머리 살짝 위에 있을 것입니다.
 
 1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 **클릭** 하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
