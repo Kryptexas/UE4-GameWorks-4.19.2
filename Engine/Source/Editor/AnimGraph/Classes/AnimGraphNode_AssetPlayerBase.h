@@ -8,6 +8,8 @@
 class UAnimSequenceBase;
 
 ANIMGRAPH_API UClass* GetNodeClassForAsset(const UClass* AssetClass);
+ANIMGRAPH_API bool SupportNodeClassForAsset(const UClass* AssetClass, const UClass* NodeClass);
+
 
 /** Helper / intermediate for asset player graphical nodes */
 UCLASS(Abstract, MinimalAPI)

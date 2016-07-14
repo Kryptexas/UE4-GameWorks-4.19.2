@@ -177,6 +177,10 @@ FArchive& operator<<(FArchive& Ar, FTimespan& Timespan)
 	return Ar << Timespan.Ticks;
 }
 
+uint32 GetTypeHash(const FTimespan& Timespan)
+{
+	return GetTypeHash(Timespan.Ticks);
+}
 
 /* FTimespan implementation
  *****************************************************************************/

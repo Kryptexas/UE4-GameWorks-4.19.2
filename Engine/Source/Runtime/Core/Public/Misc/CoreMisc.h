@@ -436,6 +436,7 @@ struct CORE_API FBlueprintExceptionTracker : TThreadSingleton<FBlueprintExceptio
 
 	void ResetRunaway();
 
+	static FBlueprintExceptionTracker& Get();
 public:
 	// map of currently displayed warnings in exception handler
 	TMap<FName, int32> DisplayedWarningsMap;

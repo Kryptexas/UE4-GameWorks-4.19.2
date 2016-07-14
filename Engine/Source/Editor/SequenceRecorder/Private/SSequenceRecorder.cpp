@@ -66,9 +66,9 @@ private:
 	FText GetRecordingActorName() const
 	{
 		FText ActorName(LOCTEXT("InvalidActorName", "None"));
-		if (RecordingPtr.IsValid() && RecordingPtr.Get()->ActorToRecord.IsValid())
+		if (RecordingPtr.IsValid() && RecordingPtr.Get()->GetActorToRecord() != nullptr)
 		{
-			ActorName = FText::FromString(RecordingPtr.Get()->ActorToRecord.Get()->GetActorLabel());
+			ActorName = FText::FromString(RecordingPtr.Get()->GetActorToRecord()->GetActorLabel());
 		}
 
 		return ActorName;

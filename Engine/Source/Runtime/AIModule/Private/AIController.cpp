@@ -15,6 +15,8 @@
 #include "AIController.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "GameplayTasksComponent.h"
+#include "GameplayTaskResource.h"
+#include "Tasks/GameplayTask_ClaimResource.h"
 
 // mz@todo these need to be removed, legacy code
 #define CLOSEPROXIMITY					500.f
@@ -95,7 +97,7 @@ void AAIController::Reset()
 
 	if (PathFollowingComponent)
 	{
-		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished);
+		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished | FPathFollowingResultFlags::ForcedScript);
 	}
 }
 
@@ -528,7 +530,7 @@ void AAIController::UnPossess()
 		}
 	}
 
-	if (CachedGameplayTasksComponent)
+	if (CachedGameplayTasksComponent && (CachedGameplayTasksComponent->GetOwner() == CurrentPawn))
 	{
 		CachedGameplayTasksComponent->OnClaimedResourcesChange.RemoveDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 		CachedGameplayTasksComponent = nullptr;
@@ -599,7 +601,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	return MoveTo(MoveReq);
 }
 
-EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& MoveRequest)
+FPathFollowingRequestResult AAIController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
 {
 	// both MoveToActor and MoveToLocation can be called from blueprints/script and should keep only single movement request at the same time.
 	// this function is entry point of all movement mechanics - do NOT abort in here, since movement may be handled by AITasks, which support stacking 
@@ -607,21 +609,23 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 	SCOPE_CYCLE_COUNTER(STAT_MoveTo);
 	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveTo: %s"), *MoveRequest.ToString());
 
+	FPathFollowingRequestResult ResultData;
+	ResultData.Code = EPathFollowingRequestResult::Failed;
+
 	if (MoveRequest.IsValid() == false)
 	{
 		UE_VLOG(this, LogAINavigation, Error, TEXT("MoveTo request failed due MoveRequest not being valid. Most probably desireg Goal Actor not longer exists"), *MoveRequest.ToString());
-		return EPathFollowingRequestResult::Failed;
+		return ResultData;
 	}
 
 	if (PathFollowingComponent == nullptr)
 	{
 		UE_VLOG(this, LogAINavigation, Error, TEXT("MoveTo request failed due missing PathFollowingComponent"));
-		return EPathFollowingRequestResult::Failed;
+		return ResultData;
 	}
 
 	ensure(MoveRequest.GetNavigationFilter() || !DefaultNavigationFilterClass);
 
-	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
 	bool bCanRequestMove = true;
 	bool bAlreadyAtGoal = false;
 
@@ -659,28 +663,40 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 	if (bAlreadyAtGoal)
 	{
 		UE_VLOG(this, LogAINavigation, Log, TEXT("MoveTo: already at goal!"));
-		PathFollowingComponent->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
-		Result = EPathFollowingRequestResult::AlreadyAtGoal;
+		ResultData.MoveId = PathFollowingComponent->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
+		ResultData.Code = EPathFollowingRequestResult::AlreadyAtGoal;
 	}
 	else if (bCanRequestMove)
 	{
-		FPathFindingQuery Query;
-		const bool bValidQuery = PreparePathfinding(MoveRequest, Query);
-		const FAIRequestID RequestID = bValidQuery ? RequestPathAndMove(MoveRequest, Query) : FAIRequestID::InvalidRequest;
+		FPathFindingQuery PFQuery;
 
-		if (RequestID.IsValid())
+		const bool bValidQuery = BuildPathfindingQuery(MoveRequest, PFQuery);
+		if (bValidQuery)
 		{
-			bAllowStrafe = MoveRequest.CanStrafe();
-			Result = EPathFollowingRequestResult::RequestSuccessful;
+			FNavPathSharedPtr Path;
+			FindPathForMoveRequest(MoveRequest, PFQuery, Path);
+
+			const FAIRequestID RequestID = Path.IsValid() ? RequestMove(MoveRequest, Path) : FAIRequestID::InvalidRequest;
+			if (RequestID.IsValid())
+			{
+				bAllowStrafe = MoveRequest.CanStrafe();
+				ResultData.MoveId = RequestID;
+				ResultData.Code = EPathFollowingRequestResult::RequestSuccessful;
+
+				if (OutPath)
+				{
+					*OutPath = Path;
+				}
+			}
 		}
 	}
 
-	if (Result == EPathFollowingRequestResult::Failed)
+	if (ResultData.Code == EPathFollowingRequestResult::Failed)
 	{
-		PathFollowingComponent->RequestMoveWithImmediateFinish(EPathFollowingResult::Invalid);
+		ResultData.MoveId = PathFollowingComponent->RequestMoveWithImmediateFinish(EPathFollowingResult::Invalid);
 	}
 
-	return Result;
+	return ResultData;
 }
 
 FAIRequestID AAIController::RequestMove(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr Path)
@@ -716,60 +732,64 @@ bool AAIController::ResumeMove(FAIRequestID RequestToResume)
 
 void AAIController::StopMovement()
 {
-	PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::MovementStop);
+	// @note FPathFollowingResultFlags::ForcedScript added to make AITask_MoveTo instances 
+	// not ignore OnRequestFinished notify that's going to be sent out due to this call
+	PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::MovementStop | FPathFollowingResultFlags::ForcedScript);
 }
 
-bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query)
+bool AAIController::ShouldPostponePathUpdates() const
 {
+	return GetPathFollowingComponent()->HasStartedNavLinkMove() || Super::ShouldPostponePathUpdates();
+}
+
+bool AAIController::BuildPathfindingQuery(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query) const
+{
+	bool bResult = false;
+
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	if (NavSys)
+	const ANavigationData* NavData = (NavSys == nullptr) ? nullptr :
+		MoveRequest.IsUsingPathfinding() ? NavSys->GetNavDataForProps(GetNavAgentPropertiesRef()) :
+		NavSys->GetAbstractNavData();
+
+	if (NavData)
 	{
-		ANavigationData* NavData = MoveRequest.IsUsingPathfinding() ?
-			NavSys->GetNavDataForProps(GetNavAgentPropertiesRef()) :
-			NavSys->GetAbstractNavData();
-
-		if (NavData)
+		FVector GoalLocation = MoveRequest.GetGoalLocation();
+		if (MoveRequest.IsMoveToActorRequest())
 		{
-			FVector GoalLocation = MoveRequest.GetGoalLocation();
-			if (MoveRequest.IsMoveToActorRequest())
+			const INavAgentInterface* NavGoal = Cast<const INavAgentInterface>(MoveRequest.GetGoalActor());
+			if (NavGoal)
 			{
-				const INavAgentInterface* NavGoal = Cast<const INavAgentInterface>(MoveRequest.GetGoalActor());
-				if (NavGoal)
-				{
-					const FVector Offset = NavGoal->GetMoveGoalOffset(this);
-					GoalLocation = FQuatRotationTranslationMatrix(MoveRequest.GetGoalActor()->GetActorQuat(), NavGoal->GetNavAgentLocation()).TransformPosition(Offset);
-				}
-				else
-				{
-					GoalLocation = MoveRequest.GetGoalActor()->GetActorLocation();
-				}
+				const FVector Offset = NavGoal->GetMoveGoalOffset(this);
+				GoalLocation = FQuatRotationTranslationMatrix(MoveRequest.GetGoalActor()->GetActorQuat(), NavGoal->GetNavAgentLocation()).TransformPosition(Offset);
 			}
-
-			FSharedConstNavQueryFilter NavFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, this, MoveRequest.GetNavigationFilter());
-			Query = FPathFindingQuery(*this, *NavData, GetNavAgentLocation(), GoalLocation, NavFilter);
-			Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
-
-			if (PathFollowingComponent)
+			else
 			{
-				PathFollowingComponent->OnPathfindingQuery(Query);
+				GoalLocation = MoveRequest.GetGoalActor()->GetActorLocation();
 			}
-
-			return true;
 		}
-		else
+
+		FSharedConstNavQueryFilter NavFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, this, MoveRequest.GetNavigationFilter());
+		Query = FPathFindingQuery(*this, *NavData, GetNavAgentLocation(), GoalLocation, NavFilter);
+		Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
+
+		if (PathFollowingComponent)
 		{
-			UE_VLOG(this, LogAINavigation, Warning, TEXT("Unable to find NavigationData instance while calling AAIController::PreparePathfinding"));
+			PathFollowingComponent->OnPathfindingQuery(Query);
 		}
+
+		bResult = true;
+	}
+	else
+	{
+		UE_VLOG(this, LogAINavigation, Warning, TEXT("Unable to find NavigationData instance while calling AAIController::BuildPathfindingQuery"));
 	}
 
-	return false;
+	return bResult;
 }
 
-FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query)
+void AAIController::FindPathForMoveRequest(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query, FNavPathSharedPtr& OutPath) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
-
-	FAIRequestID RequestID;
 
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys)
@@ -785,8 +805,7 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 				}
 
 				PathResult.Path->EnableRecalculationOnInvalidation(true);
-
-				RequestID = RequestMove(MoveRequest, PathResult.Path);
+				OutPath = PathResult.Path;
 			}
 		}
 		else
@@ -797,8 +816,28 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 				, MoveRequest.GetGoalLocation(), FColor::Red, TEXT("Failed move to %s"), *GetNameSafe(MoveRequest.GetGoalActor()));
 		}
 	}
+}
 
-	return RequestID;
+// DEPRECATED FUNCTION SUPPORT
+bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query)
+{
+	return BuildPathfindingQuery(MoveRequest, Query);
+}
+
+// DEPRECATED FUNCTION SUPPORT
+FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query)
+{
+	FAIRequestID MoveId = FAIRequestID::InvalidRequest;
+
+	FNavPathSharedPtr FoundPath;
+	FindPathForMoveRequest(MoveRequest, Query, FoundPath);
+
+	if (FoundPath.IsValid())
+	{
+		MoveId = RequestMove(MoveRequest, FoundPath);
+	}
+
+	return MoveId;
 }
 
 EPathFollowingStatus::Type AAIController::GetMoveStatus() const
@@ -857,8 +896,8 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	bool bShouldInitializeBlackboard = false;
 
 	// see if need a blackboard component at all
-	UBlackboardComponent* BlackboardComp = NULL;
-	if (BTAsset->BlackboardAsset)
+	UBlackboardComponent* BlackboardComp = Blackboard;
+	if (BTAsset->BlackboardAsset && (Blackboard == nullptr || Blackboard->IsCompatibleWith(BTAsset->BlackboardAsset) == false))
 	{
 		bSuccess = UseBlackboard(BTAsset->BlackboardAsset, BlackboardComp);
 	}
@@ -882,6 +921,49 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	}
 
 	return bSuccess;
+}
+
+void AAIController::ClaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass)
+{
+	if (CachedGameplayTasksComponent)
+	{
+		const uint8 ResourceID = UGameplayTaskResource::GetResourceID(ResourceClass);
+		if (ScriptClaimedResources.HasID(ResourceID) == false)
+		{
+			ScriptClaimedResources.AddID(ResourceID);
+
+			UE_VLOG(this, LogGameplayTasks, Log, TEXT("ClaimTaskResource %s"), *GetNameSafe(*ResourceClass));
+			
+			IGameplayTaskOwnerInterface& AsTaskOwner = *this;
+			UGameplayTask_ClaimResource* ResourceTask = UGameplayTask_ClaimResource::ClaimResource(AsTaskOwner, ResourceClass, uint8(EAITaskPriority::High), ResourceClass->GetFName());
+			if (ResourceTask)
+			{
+				CachedGameplayTasksComponent->AddTaskReadyForActivation(*ResourceTask);
+			}
+			UE_CVLOG(ResourceTask == nullptr, this, LogGameplayTasks, Warning, TEXT("ClaimTaskResource failed to create UGameplayTask_ClaimResource instance"));
+		}
+	}
+}
+
+void AAIController::UnclaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass)
+{
+	if (CachedGameplayTasksComponent)
+	{
+		const uint8 ResourceID = UGameplayTaskResource::GetResourceID(ResourceClass);
+		if (ScriptClaimedResources.HasID(ResourceID) == true)
+		{
+			ScriptClaimedResources.RemoveID(ResourceID);
+			
+			UE_VLOG(this, LogGameplayTasks, Log, TEXT("UnclaimTaskResource %s"), *GetNameSafe(*ResourceClass));
+
+			UGameplayTask* ResourceTask = CachedGameplayTasksComponent->FindResourceConsumingTaskByName(ResourceClass->GetFName());
+			if (ResourceTask)
+			{
+				ResourceTask->EndTask();
+			}
+			UE_CVLOG(ResourceTask == nullptr, this, LogGameplayTasks, Warning, TEXT("UnclaimTaskResource failed to find UGameplayTask_ClaimResource instance"));
+		}
+	}
 }
 
 bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, UBlackboardData& BlackboardAsset)

@@ -1154,6 +1154,13 @@ bool FRenderOutputValidation::RunTest(const FString& Parameters)
 		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
 	}
 
+	{
+		UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
+		FConsoleOutputDevice StrOut(ViewportConsole);
+
+		StrOut.Logf(TEXT("FRenderOutputValidation:Runtest()"));
+	}
+
 	// Gets the current resolution.
 	FString RestoreResolutionString = FString::Printf(TEXT("setres %dx%d"), GSystemResolution.ResX, GSystemResolution.ResY);
 

@@ -443,7 +443,7 @@ ECheckBoxState SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Nod
 				FGameplayTag GameplayTag = TagsManager.RequestGameplayTag(Node->GetCompleteTag(), false);
 				if (GameplayTag.IsValid())
 				{
-					if (Container->HasTag(GameplayTag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+					if (Container->HasTag(GameplayTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 					{
 						++NumAssetsTagIsAppliedTo;
 					}
@@ -454,15 +454,6 @@ ECheckBoxState SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Nod
 
 	if (NumAssetsTagIsAppliedTo == 0)
 	{
-		// Check if any children are tagged
-		for (auto It = Node->GetChildTagNodes().CreateConstIterator(); It; ++It)
-		{
-			if (IsTagChecked(*It) == ECheckBoxState::Checked)
-			{
-				return ECheckBoxState::Checked;
-			}
-		}
-
 		return ECheckBoxState::Unchecked;
 	}
 	else if (NumAssetsTagIsAppliedTo == NumValidAssets)

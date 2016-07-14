@@ -820,6 +820,14 @@ RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform)
 	return CVar->GetValueOnAnyThread() != 0 && PlatformSupportsSimpleForwardShading(Platform);
 }
 
+RENDERCORE_API bool IsForwardShadingEnabled(ERHIFeatureLevel::Type FeatureLevel)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+	return CVar->GetValueOnAnyThread() != 0 
+		// Culling uses compute shader
+		&& FeatureLevel >= ERHIFeatureLevel::SM5;
+}
+
 class FUnitCubeVertexBuffer : public FVertexBuffer
 {
 public:

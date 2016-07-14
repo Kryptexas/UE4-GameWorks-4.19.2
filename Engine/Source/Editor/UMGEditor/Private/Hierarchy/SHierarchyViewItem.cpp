@@ -635,17 +635,12 @@ void FNamedSlotModel::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Childre
 
 void FNamedSlotModel::OnSelection()
 {
-	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
-	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
-	{
-		TSet<FWidgetReference> SelectedWidgets;
-		if ( UWidget* TemplateSlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
-		{
-			SelectedWidgets.Add(BPEd->GetReferenceFromTemplate(TemplateSlotContent));
-		}
+	TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 
-		BPEd->SelectWidgets(SelectedWidgets, true);
-	}
+	FNamedSlotSelection Selection;
+	Selection.NamedSlotHostWidget = Item;
+	Selection.SlotName = SlotName;
+	Editor->SetSelectedNamedSlot(Selection);
 }
 
 void FNamedSlotModel::UpdateSelection()

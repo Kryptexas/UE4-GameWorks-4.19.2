@@ -37,6 +37,7 @@ void FSequenceRecorder::Initialize()
 	// register built-in recorders
 	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &AnimationSectionRecorderFactory);
 	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &TransformSectionRecorderFactory);
+	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &MultiPropertySectionRecorder);
 }
 
 void FSequenceRecorder::Shutdown()
@@ -44,6 +45,7 @@ void FSequenceRecorder::Shutdown()
 	// unregister built-in recorders
 	IModularFeatures::Get().UnregisterModularFeature("MovieSceneSectionRecorderFactory", &AnimationSectionRecorderFactory);
 	IModularFeatures::Get().UnregisterModularFeature("MovieSceneSectionRecorderFactory", &TransformSectionRecorderFactory);
+	IModularFeatures::Get().UnregisterModularFeature("MovieSceneSectionRecorderFactory", &MultiPropertySectionRecorder);
 
 	if(CountdownTexture.IsValid())
 	{
@@ -68,7 +70,7 @@ bool FSequenceRecorder::IsRecordingQueued(AActor* Actor) const
 {
 	for (UActorRecording* QueuedRecording : QueuedRecordings)
 	{
-		if (QueuedRecording->ActorToRecord == Actor)
+		if (QueuedRecording->GetActorToRecord() == Actor)
 		{
 			return true;
 		}
@@ -81,7 +83,7 @@ UActorRecording* FSequenceRecorder::FindRecording(AActor* Actor) const
 {
 	for (UActorRecording* QueuedRecording : QueuedRecordings)
 	{
-		if (QueuedRecording->ActorToRecord == Actor)
+		if (QueuedRecording->GetActorToRecord() == Actor)
 		{
 			return QueuedRecording;
 		}
@@ -112,7 +114,7 @@ UActorRecording* FSequenceRecorder::AddNewQueuedRecording(AActor* Actor, UAnimSe
 
 	UActorRecording* ActorRecording = NewObject<UActorRecording>();
 	ActorRecording->AddToRoot();
-	ActorRecording->ActorToRecord = Actor;
+	ActorRecording->SetActorToRecord(Actor);
 	ActorRecording->TargetAnimation = AnimSequence;
 	ActorRecording->AnimationSettings.Length = Length;
 
@@ -140,7 +142,7 @@ void FSequenceRecorder::RemoveQueuedRecording(AActor* Actor)
 {
 	for (UActorRecording* QueuedRecording : QueuedRecordings)
 	{
-		if (QueuedRecording->ActorToRecord == Actor)
+		if (QueuedRecording->GetActorToRecord() == Actor)
 		{
 			QueuedRecording->RemoveFromRoot();
 			QueuedRecordings.Remove(QueuedRecording);
@@ -275,7 +277,7 @@ void FSequenceRecorder::Tick(float DeltaSeconds)
 		auto RemoveDeadActorPredicate = 
 			[&](UActorRecording* Recording)
 			{
-				if(!Recording->ActorToRecord.IsValid())
+				if(!Recording->GetActorToRecord())
 				{
 					DeadRecordings.Add(Recording);
 					return true;
@@ -425,9 +427,9 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 	UWorld* ActorWorld = nullptr;
 	if(Settings->bRecordWorldSettingsActor)
 	{
-		if(World != nullptr || (QueuedRecordings.Num() > 0 && QueuedRecordings[0]->ActorToRecord.IsValid()))
+		if(World != nullptr || (QueuedRecordings.Num() > 0 && QueuedRecordings[0]->GetActorToRecord() != nullptr))
 		{
-			ActorWorld = World != nullptr ? World : QueuedRecordings[0]->ActorToRecord->GetWorld();
+			ActorWorld = World != nullptr ? World : QueuedRecordings[0]->GetActorToRecord()->GetWorld();
 			if(ActorWorld)
 			{
 				AWorldSettings* WorldSettings = ActorWorld->GetWorldSettings();
@@ -474,9 +476,9 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 		// register for spawning delegate in the world(s) of recorded actors
 		for(UActorRecording* Recording : QueuedRecordings)
 		{
-			if(Recording->ActorToRecord.IsValid())
+			if(Recording->GetActorToRecord() != nullptr)
 			{
-				UWorld* ActorToRecordWorld = Recording->ActorToRecord->GetWorld();
+				UWorld* ActorToRecordWorld = Recording->GetActorToRecord()->GetWorld();
 				if(ActorToRecordWorld != nullptr)
 				{
 					FDelegateHandle* FoundHandle = ActorSpawningDelegateHandles.Find(ActorToRecordWorld);
@@ -699,7 +701,7 @@ bool FSequenceRecorder::IsActorValidForRecording(AActor* Actor)
 
 		for(UActorRecording* Recording : QueuedRecordings)
 		{
-			if(AActor* OtherActor = Recording->ActorToRecord.Get())
+			if(AActor* OtherActor = Recording->GetActorToRecord())
 			{
 				if(OtherActor != Actor)
 				{
@@ -745,7 +747,7 @@ void FSequenceRecorder::HandleActorDespawned(AActor* Actor)
 		for(int32 Index = 0; Index < QueuedRecordings.Num(); ++Index)
 		{
 			UActorRecording* Recording = QueuedRecordings[Index];
-			if(Recording->ActorToRecord.Get() == Actor)
+			if(Recording->GetActorToRecord() == Actor)
 			{
 				Recording->InvalidateObjectToRecord();
 				DeadRecordings.Add(Recording);

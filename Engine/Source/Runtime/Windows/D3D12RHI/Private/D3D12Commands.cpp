@@ -1221,8 +1221,6 @@ void FD3D12CommandContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	{
 		Query->bResultIsCached = false;
 		Query->HeapIndex = GetParentDevice()->GetQueryHeap()->BeginQuery(*this, D3D12_QUERY_TYPE_OCCLUSION);
-		Query->OwningCommandList = CommandListHandle;
-		Query->OwningContext = this;
 	}
 	else
 	{
@@ -1239,31 +1237,35 @@ void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
 	FD3D12OcclusionQuery* Query = FD3D12DynamicRHI::ResourceCast(QueryRHI);
 
-	if (Query != nullptr)
+	switch (Query->Type)
 	{
-		switch (Query->Type)
-		{
-		case RQT_Occlusion:
-			// End the query
-			GetParentDevice()->GetQueryHeap()->EndQuery(*this, D3D12_QUERY_TYPE_OCCLUSION, Query->HeapIndex);
-			check(Query->OwningCommandList == CommandListHandle);
-			check(Query->OwningContext == this);
-			break;
+	case RQT_Occlusion:
+	{
+		// End the query
+		check(IsDefaultContext());
+		FD3D12QueryHeap* pQueryHeap = GetParentDevice()->GetQueryHeap();
+		pQueryHeap->EndQuery(*this, D3D12_QUERY_TYPE_OCCLUSION, Query->HeapIndex);
 
-		case RQT_AbsoluteTime:
-			Query->bResultIsCached = false;
-			Query->OwningCommandList = CommandListHandle;
-			Query->OwningContext = this;
-			this->otherWorkCounter += 2;	// +2 For the EndQuery and the ResolveQueryData
-			CommandListHandle->EndQuery(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex);
-			CommandListHandle->ResolveQueryData(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex, 1, Query->ResultBuffer, sizeof(uint64) * Query->HeapIndex);
-			break;
+		// Note: This occlusion query result really isn't ready until it's resolved. 
+		// This code assumes it will be resolved on the same command list.
+		Query->CLSyncPoint = CommandListHandle;
 
-		default:
-			check(false);
-		}
+		CommandListHandle.UpdateResidency(pQueryHeap->GetResultBuffer());
+		break;
+	}
 
-		CommandListHandle.UpdateResidency(GetParentDevice()->GetQueryHeap()->GetResultBuffer());
+	case RQT_AbsoluteTime:
+	{
+		Query->bResultIsCached = false;
+		Query->CLSyncPoint = CommandListHandle;
+		this->otherWorkCounter += 2;	// +2 For the EndQuery and the ResolveQueryData
+		CommandListHandle->EndQuery(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex);
+		CommandListHandle->ResolveQueryData(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex, 1, Query->ResultBuffer, sizeof(uint64) * Query->HeapIndex);
+		break;
+	}
+
+	default:
+		check(false);
 	}
 
 #if EXECUTE_DEBUG_COMMAND_LISTS
@@ -2057,15 +2059,22 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	uint32 ClearFlags = 0;
 	if (ClearDSV)
 	{
-		if (bClearDepth)
+		if (bClearDepth && DepthStencilView->HasDepth())
 		{
 			ClearFlags |= D3D12_CLEAR_FLAG_DEPTH;
-			check(DepthStencilView->HasDepth());
 		}
-		if (bClearStencil)
+		else if (bClearDepth)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Asking to clear a DSV that does not store depth."));
+		}
+
+		if (bClearStencil && DepthStencilView->HasStencil())
 		{
 			ClearFlags |= D3D12_CLEAR_FLAG_STENCIL;
-			check(DepthStencilView->HasStencil());
+		}
+		else if (bClearStencil)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Asking to clear a DSV that does not store stencil."));
 		}
 
 		if (bClearDepth && (!DepthStencilView->HasStencil() || bClearStencil))

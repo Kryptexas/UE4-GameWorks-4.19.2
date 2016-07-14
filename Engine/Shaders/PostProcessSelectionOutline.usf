@@ -59,7 +59,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 
 #if MSAA_SAMPLE_COUNT > 1
 	float DeviceZ = PostprocessInput1MS.Load(PixelPos, SampleID).r;
-	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0), SampleID) STENCIL_COMPONENT_SWIZZLE;
+	int Stencil = EditorPrimitivesStencil.Load(PixelPos, SampleID) STENCIL_COMPONENT_SWIZZLE;
 
 #if !COMPILER_GLSL && !PS4_PROFILE && !COMPILER_METAL && !COMPILER_HLSLCC
 	// not yet supported on OpenGL, slightly better quality
@@ -68,7 +68,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 
 #else
 	float DeviceZ = PostprocessInput1MS.Load(int3(PixelPos, 0)).r;
-	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0), SampleID) STENCIL_COMPONENT_SWIZZLE;
+	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0)) STENCIL_COMPONENT_SWIZZLE;
 #endif
 
 	float SceneDeviceZ = ReconstructDeviceZ(DeviceZPlane, ReconstructionOffset);

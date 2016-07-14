@@ -1253,7 +1253,6 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		for (uint32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
-		{
 			if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
 			{
 				DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);

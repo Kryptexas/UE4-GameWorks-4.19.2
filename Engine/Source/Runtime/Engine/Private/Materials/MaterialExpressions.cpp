@@ -8813,14 +8813,39 @@ UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& Obj
 	OutputMin = -1.0f;
 	OutputMax = 1.0f;
 	LevelScale = 2.0f;
-	NoiseFunction = NOISEFUNCTION_Simplex;
+	NoiseFunction = NOISEFUNCTION_SimplexTex;
 	bTurbulence = true;
+	bTiling = false;
+	RepeatSize = 512;
 
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
 
 }
 
 #if WITH_EDITOR
+bool UMaterialExpressionNoise::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty != NULL)
+	{
+		FName PropertyFName = InProperty->GetFName();
+
+		bool bTilableNoiseType = NoiseFunction == NOISEFUNCTION_GradientALU || NoiseFunction == NOISEFUNCTION_ValueALU 
+			|| NoiseFunction == NOISEFUNCTION_GradientTex;
+
+		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, bTiling))
+		{
+			bIsEditable = bTilableNoiseType;
+		}
+		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, RepeatSize))
+		{
+			bIsEditable = bTilableNoiseType && bTiling;
+		}
+	}
+
+	return bIsEditable;
+}
+
 int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	int32 PositionInput;
@@ -8845,7 +8870,7 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 		FilterWidthInput = Compiler->Constant(0);
 	}
 
-	return Compiler->Noise(PositionInput, Scale, Quality, NoiseFunction, bTurbulence, Levels, OutputMin, OutputMax, LevelScale, FilterWidthInput);
+	return Compiler->Noise(PositionInput, Scale, Quality, NoiseFunction, bTurbulence, Levels, OutputMin, OutputMax, LevelScale, FilterWidthInput, bTiling, RepeatSize);
 }
 
 void UMaterialExpressionNoise::GetCaption(TArray<FString>& OutCaptions) const

@@ -31,7 +31,8 @@ public class NiagaraEditor : ModuleRules
             new string[] {
 				"Engine",
                 "Niagara",
-				"PropertyEditor",
+                "UnrealEd",
+                "PropertyEditor",
             }
         );
 

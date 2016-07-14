@@ -344,6 +344,10 @@ UCameraAnimInst* APlayerCameraManager::PlayCameraAnim(UCameraAnim* Anim, float R
 		UCameraAnimInst* const Inst = AllocCameraAnimInst();
 		if (Inst)
 		{
+			if (!Anim->bRelativeToInitialFOV)
+			{
+				Inst->InitialFOV = ViewTarget.POV.FOV;
+			}
 			Inst->LastCameraLoc = FVector::ZeroVector;		// clear LastCameraLoc
 			Inst->Play(Anim, AnimCameraActor, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime, Duration);
 			Inst->SetPlaySpace(PlaySpace, UserPlaySpaceRot);
@@ -544,7 +548,7 @@ void APlayerCameraManager::ApplyAudioFade()
 		{
 			if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 			{
-				AudioDevice->TransientMasterVolume = 1.0f - FadeAmount;
+				AudioDevice->SetTransientMasterVolume(1.0f - FadeAmount);
 			}
 		}
 	}
@@ -559,7 +563,7 @@ void APlayerCameraManager::StopAudioFade()
 		{
 			if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 			{
-				AudioDevice->TransientMasterVolume = 1.0f;
+				AudioDevice->SetTransientMasterVolume(1.0f);
 			}
 		}
 	}

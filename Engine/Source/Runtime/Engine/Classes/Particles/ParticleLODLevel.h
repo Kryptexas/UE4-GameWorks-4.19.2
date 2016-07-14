@@ -83,6 +83,12 @@ class UParticleLODLevel : public UObject
 	// @todo document
 	virtual bool	GenerateFromLODLevel(UParticleLODLevel* SourceLODLevel, float Percentage, bool bGenerateModuleData = true);
 
+	// Ignore this object in dedicated server builds
+	virtual bool NeedsLoadForServer() const override
+	{
+		return false;
+	}
+
 	/**
 	 *	CalculateMaxActiveParticleCount
 	 *	Determine the maximum active particles that could occur with this emitter.

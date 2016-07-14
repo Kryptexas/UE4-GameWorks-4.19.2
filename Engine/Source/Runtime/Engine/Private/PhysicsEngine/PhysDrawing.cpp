@@ -425,10 +425,22 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 #endif // WITH_PHYSX
 }
 
-void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const float Scale, const FColor VertexColor, const bool bIsMirrored) const
+void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor) const
 {
 #if WITH_PHYSX
-	const PxConvexMesh* ConvexMeshToUse = bIsMirrored ? ConvexMeshNegX : ConvexMesh;
+	// We always want to generate 'non-mirrored geometry', so if all we have is flipped, we have to un-flip it in this function
+	bool bIsMirrored = false;
+	const PxConvexMesh* ConvexMeshToUse = nullptr; 
+	if (ConvexMesh != nullptr)
+	{
+		ConvexMeshToUse = ConvexMesh;
+	}
+	else if (ConvexMeshNegX != nullptr)
+	{
+		ConvexMeshToUse = ConvexMeshNegX;
+		bIsMirrored = true;
+	}
+
 	if(ConvexMeshToUse)
 	{
 		int32 StartVertOffset = VertexBuffer.Num();
@@ -437,6 +449,8 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 		const PxVec3* PVertices = ConvexMeshToUse->getVertices();
 		const PxU8* PIndexBuffer = ConvexMeshToUse->getIndexBuffer();
 		PxU32 NbPolygons = ConvexMeshToUse->getNbPolygons();
+
+		FVector Scale3D = bIsMirrored ? FVector(-1, 1, 1) : FVector(1, 1, 1);
 
 		for(PxU32 i=0;i<NbPolygons;i++)
 		{
@@ -457,7 +471,7 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 				int32 VertIndex = indices[j];
 
 				FDynamicMeshVertex Vert1;
-				Vert1.Position = Transform.TransformPosition( P2UVector(PVertices[VertIndex]) * Scale); // Apply element transform to get geom in component space
+				Vert1.Position = Transform.TransformPosition( P2UVector(PVertices[VertIndex]) * Scale3D ); // Apply element transform to get geom in component space
 				Vert1.Color = VertexColor;
 				Vert1.SetTangents(
 					TangentX,
@@ -472,8 +486,17 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 			for(PxU32 j=0;j<nbTris;j++)
 			{
 				IndexBuffer.Add(StartVertOffset+0);
-				IndexBuffer.Add(StartVertOffset+j+2);
-				IndexBuffer.Add(StartVertOffset+j+1);
+
+				if (bIsMirrored)
+				{
+					IndexBuffer.Add(StartVertOffset + j + 1);
+					IndexBuffer.Add(StartVertOffset + j + 2);
+				}
+				else
+				{
+					IndexBuffer.Add(StartVertOffset + j + 2);
+					IndexBuffer.Add(StartVertOffset + j + 1);
+				}
 			}
 
 			StartVertOffset += Data.mNbVerts;
@@ -593,8 +616,6 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 	{
 		if(bDrawSolid)
 		{
-			const bool bIsMirrored = (Scale3D.X * Scale3D.Y * Scale3D.Z < 0.0f);
-
 			// Cache collision vertex/index buffer
 			if(!RenderInfo)
 			{
@@ -607,7 +628,7 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 				for(int32 i=0; i<ConvexElems.Num(); i++)
 				{
 					// Get vertices/triangles from this hull.
-					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, 1.0f, FColor::White, bIsMirrored);
+					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, FColor::White);
 				}
 
 				// Only continue if we actually got some valid geometry
@@ -626,7 +647,7 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 			if(RenderInfo->HasValidGeometry())
 			{
 				// Calculate transform
-				FTransform LocalToWorld = FTransform( FQuat::Identity, FVector::ZeroVector, bIsMirrored ? (Scale3D * FVector(-1, 1, 1)) : Scale3D ) * ParentTM;
+				FTransform LocalToWorld = FTransform(FQuat::Identity, FVector::ZeroVector, Scale3D) * ParentTM;
 
 				// Draw the mesh.
 				FMeshBatch& Mesh = Collector.AllocateMesh();
@@ -720,16 +741,16 @@ FTransform GetSkelBoneTransform(int32 BoneIndex, const TArray<FTransform>& Space
 
 void UPhysicsAsset::GetCollisionMesh(int32 ViewIndex, FMeshElementCollector& Collector, const USkeletalMesh* SkelMesh, const TArray<FTransform>& SpaceBases, const FTransform& LocalToWorld, const FVector& Scale3D)
 {
-	for( int32 i=0; i<BodySetup.Num(); i++)
+	for( int32 i=0; i<SkeletalBodySetups.Num(); i++)
 	{
-		int32 BoneIndex = SkelMesh->RefSkeleton.FindBoneIndex( BodySetup[i]->BoneName );
+		int32 BoneIndex = SkelMesh->RefSkeleton.FindBoneIndex( SkeletalBodySetups[i]->BoneName );
 		
-		FColor* BoneColor = (FColor*)( &BodySetup[i] );
+		FColor* BoneColor = (FColor*)( &SkeletalBodySetups[i] );
 
 		FTransform BoneTransform = GetSkelBoneTransform(BoneIndex, SpaceBases, LocalToWorld);
 		BoneTransform.SetScale3D(Scale3D);
-		BodySetup[i]->CreatePhysicsMeshes();
-		BodySetup[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
+		SkeletalBodySetups[i]->CreatePhysicsMeshes();
+		SkeletalBodySetups[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
 	}
 }
 

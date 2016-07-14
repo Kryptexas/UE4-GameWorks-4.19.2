@@ -23,7 +23,7 @@ FMetalRenderPipelineDesc::FMetalRenderPipelineDesc()
 	}
 }
 
-id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS) const
+id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS, MTLVertexDescriptor* VertexDesc) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalPipelineStateTime);
 	
@@ -48,7 +48,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
     }
 	
 	// set the bound shader state settings
-	PipelineDescriptor.vertexDescriptor = BSS->VertexDeclaration->Layout;
+	PipelineDescriptor.vertexDescriptor = VertexDesc;
 	PipelineDescriptor.vertexFunction = BSS->VertexShader->Function;
 	PipelineDescriptor.fragmentFunction = BSS->PixelShader ? BSS->PixelShader->Function : nil;
 	PipelineDescriptor.sampleCount = SampleCount;

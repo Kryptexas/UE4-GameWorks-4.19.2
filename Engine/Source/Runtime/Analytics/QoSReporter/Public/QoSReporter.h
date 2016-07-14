@@ -163,12 +163,15 @@ public:
 	 */
 	static FString QOSREPORTER_API GetQoSReporterInstanceId();
 
+	/** @return the backend deployment name that was previously set */
+	static FString QOSREPORTER_API GetBackendDeploymentName();
+
 	/**
 	 * Backend services are split into deployments; this can be used to distinguish between them.
 	 *
 	 * @param InDeploymentName deployment name (has a meaning for the game and QoS alerting). Won't be sent if empty.
 	 */
-	static void QOSREPORTER_API SetBackendDeploymentName(const FString & InDeploymentName);
+	static void QOSREPORTER_API SetBackendDeploymentName(const FString& InDeploymentName);
 
 	/**
 	 * Whether or not hitches should be counted

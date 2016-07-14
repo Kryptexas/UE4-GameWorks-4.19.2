@@ -1503,6 +1503,7 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 		}
 
 		PreallocatedDependsNodeDataBuffer = new FDependsNode[LocalNumDependsNodes];
+		CachedDependsNodes.Reserve(LocalNumDependsNodes);
 
 		for (int32 DependsNodeIndex = 0; DependsNodeIndex < LocalNumDependsNodes; DependsNodeIndex++)
 		{
@@ -1529,6 +1530,8 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 				Ar << LocalNumSoftDependencies;
 			}
 			Ar << LocalNumReferencers;
+
+			NewDependsNodeData->Reserve(LocalNumHardDependencies, LocalNumSoftDependencies, LocalNumReferencers);
 
 			for (int32 DependencyIndex = 0; DependencyIndex < LocalNumHardDependencies; ++DependencyIndex)
 			{

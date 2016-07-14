@@ -134,21 +134,21 @@ namespace
 	{
 		TArray<UObject*> Objects;
 		GetObjectsWithOuter(Package, Objects, false);
-		for (auto Entry : Objects)
+		for (UObject* Entry : Objects)
 		{
 			if (Entry->HasAnyFlags(ExcludedFlags))
 			{
 				continue;
 			}
 
+			if (FBlueprintSupport::IsDeferredDependencyPlaceholder(Entry))
+			{
+				continue;
+			}
+
+			// Not a skeleton class
 			if (UClass* AsClass = Cast<UClass>(Entry))
 			{
-				// Not a placeholder
-				if (AsClass->GetName().Contains(TEXT("PLACEHOLDER")))
-				{
-					continue;
-				}
-				// Not a skeleton class
 				if (UBlueprint* GeneratingBP = Cast<UBlueprint>(AsClass->ClassGeneratedBy))
 				{
 					if (AsClass != GeneratingBP->GeneratedClass)
@@ -157,6 +157,7 @@ namespace
 					}
 				}
 			}
+
 			OutStruct = Cast<UStruct>(Entry);
 			if (OutStruct)
 			{
@@ -387,10 +388,13 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 		ConversionRecord.GeneratedHeaderPath.Empty();
 	}
 
-	check(bSuccess);
-	if (bSuccess)
+	if (ensure(bSuccess))
 	{
 		GetManifest(PlatformName).GatherModuleDependencies(ForConversion->GetOutermost());
+	}
+	else
+	{
+		UE_LOG(LogBlueprintCodeGen, Error, TEXT("FBlueprintNativeCodeGenModule::GenerateSingleAsset error: %s"), *GetPathNameSafe(ForConversion));
 	}
 
 	BackendPCHQuery.Unbind();

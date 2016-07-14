@@ -190,11 +190,7 @@ bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance& BodyInstanc
 		BodyInstance.CollisionResponses.SetCollisionResponseContainer(Template.ResponseToChannels);
 		BodyInstance.ResponseToChannels_DEPRECATED = Template.ResponseToChannels;
 
-		// if valid instance, make sure to update physics filter data
-		if (BodyInstance.IsValidBodyInstance())
-		{
-			BodyInstance.UpdatePhysicsFilterData();
-		}
+		BodyInstance.UpdatePhysicsFilterData();
 		return true;
 	}
 

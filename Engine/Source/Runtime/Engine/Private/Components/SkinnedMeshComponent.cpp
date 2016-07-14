@@ -368,7 +368,6 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 					ActiveMorphTargets.Empty();
 				}
 
-				MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
 				MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
 			}
 		}
@@ -704,8 +703,8 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	const bool bDetailModeAllowsRendering = (DetailMode <= GetCachedScalabilityCVars().DetailMode);
 	const bool bIsVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
 
-	const bool bHasPhysBodies = PhysicsAsset && PhysicsAsset->BodySetup.Num();
-	const bool bMasterHasPhysBodies = MasterPhysicsAsset && MasterPhysicsAsset->BodySetup.Num();
+	const bool bHasPhysBodies = PhysicsAsset && PhysicsAsset->SkeletalBodySetups.Num();
+	const bool bMasterHasPhysBodies = MasterPhysicsAsset && MasterPhysicsAsset->SkeletalBodySetups.Num();
 
 	// if not visible, or we were told to use fixed bounds, use skelmesh bounds
 	if ( (!bIsVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
@@ -991,6 +990,7 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRei
 			InvalidateCachedBounds();
 			// clear morphtarget cache
 			ActiveMorphTargets.Empty();			
+			MorphTargetWeights.Empty();
 		}
 	}
 	

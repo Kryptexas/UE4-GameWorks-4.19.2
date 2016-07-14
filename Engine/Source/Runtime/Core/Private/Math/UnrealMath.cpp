@@ -2745,6 +2745,29 @@ double FMath::RoundHalfToZero(double F)
 	return (F < 0.0) ? FloorToDouble(F + 0.5) : CeilToDouble(F - 0.5);
 }
 
+FString FMath::FormatIntToHumanReadable(int32 Val)
+{
+	FString Src = *FString::Printf(TEXT("%i"), Val);
+	FString Dst;
+
+	if (Val > 999)
+	{
+		Dst = FString::Printf(TEXT(",%s"), *Src.Mid(Src.Len() - 3, 3));
+		Src = Src.Left(Src.Len() - 3);
+
+	}
+
+	if (Val > 999999)
+	{
+		Dst = FString::Printf(TEXT(",%s%s"), *Src.Mid(Src.Len() - 3, 3), *Dst);
+		Src = Src.Left(Src.Len() - 3);
+	}
+
+	Dst = Src + Dst;
+
+	return Dst;
+}
+
 bool FMath::MemoryTest( void* BaseAddress, uint32 NumBytes )
 {
 	volatile uint32* Ptr;

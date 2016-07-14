@@ -118,6 +118,7 @@ DEFINE_STAT(STAT_RenderPerObjectShadowProjectionsTime);
 DEFINE_STAT(STAT_RenderPerObjectShadowDepthsTime);
 
 DEFINE_STAT(STAT_WholeSceneShadows);
+DEFINE_STAT(STAT_CachedWholeSceneShadows);
 DEFINE_STAT(STAT_PerObjectShadows);
 DEFINE_STAT(STAT_PreShadows);
 DEFINE_STAT(STAT_CachedPreShadows);
@@ -163,6 +164,9 @@ DEFINE_STAT(STAT_ReflectiveShadowMaps);
 DEFINE_STAT(STAT_ReflectiveShadowMapDrawTime);
 DEFINE_STAT(STAT_NumReflectiveShadowMapLights);
 DEFINE_STAT(STAT_RenderWholeSceneReflectiveShadowMapsTime);
+
+DEFINE_STAT(STAT_ShadowmapAtlasMemory);
+DEFINE_STAT(STAT_CachedShadowmapMemory);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

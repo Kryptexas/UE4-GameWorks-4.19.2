@@ -2,6 +2,13 @@
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "EventExecution.h"
+#include "BlueprintProfilerModule.h"
+#include "SHyperlink.h"
+
+// This forces checking against correct tracepaths when querying data
+#define STRICT_PERFDATA_CREATION 0
+
+#define LOCTEXT_NAMESPACE "BlueprintEventUI"
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptNodeExecLinkage
@@ -20,14 +27,6 @@ TSharedPtr<FScriptExecutionNode> FScriptNodeExecLinkage::GetLinkedNodeByScriptOf
 		Result = *SearchResult;
 	}
 	return Result;
-}
-
-void FScriptNodeExecLinkage::GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath)
-{
-	for (auto Child : ChildNodes)
-	{
-		ChildArrayInOut.Add(FLinearExecPath(Child, TracePath));
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -55,7 +54,7 @@ bool FScriptNodePerfData::HasPerfDataForInstanceAndTracePath(FName InstanceName,
 	return false;
 }
 
-TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath)
+TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetOrAddPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath)
 { 
 	TMap<const uint32, TSharedPtr<FScriptPerfData>>& InstanceMap = InstanceInputPinToPerfDataMap.FindOrAdd(InstanceName);
 	TSharedPtr<FScriptPerfData>& Result = InstanceMap.FindOrAdd(TracePath);
@@ -64,6 +63,23 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetPerfDataByInstanceAndTracePa
 		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
 	}
 	return Result;
+}
+
+TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath)
+{ 
+	TMap<const uint32, TSharedPtr<FScriptPerfData>>& InstanceMap = InstanceInputPinToPerfDataMap.FindOrAdd(InstanceName);
+	#if STRICT_PERFDATA_CREATION
+	TSharedPtr<FScriptPerfData>* Result = InstanceMap.Find(TracePath);
+	check (Result != nullptr);
+	return *Result;
+	#else
+	TSharedPtr<FScriptPerfData>& Result = InstanceMap.FindOrAdd(TracePath);
+	if (!Result.IsValid())
+	{
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
+	}
+	return Result;
+	#endif
 }
 
 void FScriptNodePerfData::GetInstancePerfDataByTracePath(const FTracePath& TracePath, TArray<TSharedPtr<FScriptPerfData>>& ResultsOut)
@@ -81,7 +97,7 @@ void FScriptNodePerfData::GetInstancePerfDataByTracePath(const FTracePath& Trace
 	}
 }
 
-TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetBlueprintPerfDataByTracePath(const FTracePath& TracePath)
+TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetOrAddBlueprintPerfDataByTracePath(const FTracePath& TracePath)
 {
 	TMap<const uint32, TSharedPtr<FScriptPerfData>>& BlueprintMap = InstanceInputPinToPerfDataMap.FindOrAdd(NAME_None);
 	TSharedPtr<FScriptPerfData>& Result = BlueprintMap.FindOrAdd(TracePath);
@@ -90,6 +106,24 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetBlueprintPerfDataByTracePath
 		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
 	}
 	return Result;
+}
+
+TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetBlueprintPerfDataByTracePath(const FTracePath& TracePath)
+{
+	#if STRICT_PERFDATA_CREATION
+	TMap<const uint32, TSharedPtr<FScriptPerfData>>& BlueprintMap = InstanceInputPinToPerfDataMap.FindOrAdd(NAME_None);
+	TSharedPtr<FScriptPerfData>* Result = BlueprintMap.Find(TracePath);
+	check (Result != nullptr);
+	return *Result;
+	#else
+	TMap<const uint32, TSharedPtr<FScriptPerfData>>& BlueprintMap = InstanceInputPinToPerfDataMap.FindOrAdd(NAME_None);
+	TSharedPtr<FScriptPerfData>& Result = BlueprintMap.FindOrAdd(TracePath);
+	if (!Result.IsValid())
+	{
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
+	}
+	return Result;
+	#endif
 }
 
 void FScriptNodePerfData::GetBlueprintPerfDataForAllTracePaths(FScriptPerfData& OutPerfData)
@@ -121,6 +155,7 @@ FScriptExecutionNode::FScriptExecutionNode(const FScriptExecNodeParams& InitPara
 	, OwningGraphName(InitParams.OwningGraphName)
 	, NodeFlags(InitParams.NodeFlags)
 	, ObservedObject(InitParams.ObservedObject)
+	, ObservedPin(InitParams.ObservedPin)
 	, DisplayName(InitParams.DisplayName)
 	, Tooltip(InitParams.Tooltip)
 	, IconColor(InitParams.IconColor)
@@ -132,6 +167,26 @@ FScriptExecutionNode::FScriptExecutionNode(const FScriptExecNodeParams& InitPara
 bool FScriptExecutionNode::operator == (const FScriptExecutionNode& NodeIn) const
 {
 	return NodeName == NodeIn.NodeName;
+}
+
+TSharedRef<SWidget> FScriptExecutionNode::GetIconWidget(const uint32 /*TracePath*/)
+{
+	return SNew(SImage)
+			.Image(Icon)
+			.ColorAndOpacity(IconColor);
+}
+
+TSharedRef<SWidget> FScriptExecutionNode::GetHyperlinkWidget(const uint32 /*TracePath*/)
+{
+	return SNew(SHyperlink)
+		#if TRACEPATH_DEBUG
+		.Text(FText::FromName(NodeName))
+		#else
+		.Text(DisplayName)
+		#endif
+		.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
+		.ToolTipText(Tooltip)
+		.OnNavigate(this, &FScriptExecutionNode::NavigateToObject);
 }
 
 void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren)
@@ -156,6 +211,10 @@ void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& Linea
 			else
 			{
 				FTracePath NewTracePath(TracePath);
+				if (NodeIter.Value->HasFlags(EScriptExecutionNodeFlags::EventPin))
+				{
+					NewTracePath.ResetPath();
+				}
 				if (NodeIter.Key != INDEX_NONE && !HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
 				{
 					NewTracePath.AddExitPin(NodeIter.Key);
@@ -168,7 +227,7 @@ void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& Linea
 
 void FScriptExecutionNode::MapTunnelLinearExecution(FTracePath& Trace) const
 {
-	if (HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+	if (HasFlags(EScriptExecutionNodeFlags::TunnelInstance))
 	{
 		for (auto ChildIter : ChildNodes)
 		{
@@ -215,13 +274,13 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 	// Update stats based on type
 	switch(GetStatisticContainerType())
 	{
+		case EScriptStatContainerType::Standard:
 		case EScriptStatContainerType::Container:
 		{
 			GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
 			bRefreshChildStats = true;
 			break;
 		}
-		case EScriptStatContainerType::Standard:
 		case EScriptStatContainerType::SequentialBranch:
 		{
 			GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
@@ -231,10 +290,12 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 		{
 			// Refresh child stats and copy as branch stats - this is a dummy entry
 			TSet<FName> AllInstances;
+			TArray<FLinearExecPath> ChildExecPaths;
 			for (auto ChildIter : ChildNodes)
 			{
 				ChildIter->GetValidInstanceNames(AllInstances);
 				ChildIter->RefreshStats(TracePath);
+				ChildIter->GetLinearExecutionPath(ChildExecPaths, TracePath, false);
 			}
 			for (auto InstanceIter : AllInstances)
 			{
@@ -244,15 +305,15 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 					InstancePerfData->Reset();
 					BlueprintPooledStats.Add(InstancePerfData);
 
-					for (auto ChildIter : ChildNodes)
+					for (auto ChildIter : ChildExecPaths)
 					{
-						TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter->GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
+						TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter.LinkedNode->GetPerfDataByInstanceAndTracePath(InstanceIter, ChildIter.TracePath);
 						InstancePerfData->AddBranchData(*ChildPerfData.Get());
 					}
 				}
 			}
 			// Update Blueprint stats as branches
-			TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
+			TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
 			BlueprintData->Reset();
 
 			for (auto BlueprintChildDataIter : BlueprintPooledStats)
@@ -278,6 +339,10 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 		for (auto LinkIter : LinkedNodes)
 		{
 			FTracePath LinkTracePath(TracePath);
+			if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::EventPin))
+			{
+				LinkTracePath.ResetPath();
+			}
 			if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
 			{
 				LinkTracePath.AddExitPin(LinkIter.Key);
@@ -288,14 +353,45 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 	// Update the owning blueprint stats
 	if (BlueprintPooledStats.Num() > 0)
 	{
-		TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
-		BlueprintData->Reset();
-
-		for (auto BlueprintChildDataIter : BlueprintPooledStats)
-		{
-			BlueprintData->AddData(*BlueprintChildDataIter.Get());
-		}
+		TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
+		BlueprintData->InitialiseFromDataSet(BlueprintPooledStats);
 	}
+}
+
+float FScriptExecutionNode::CalculateHottestPathStats(FScriptExecutionHottestPathParams HotPathParams)
+{
+	// Grab local perf data
+	TSharedPtr<FScriptPerfData> LocalPerfData = GetOrAddPerfDataByInstanceAndTracePath(HotPathParams.InstanceName, HotPathParams.TracePath);
+	float AccumulatedTime = 0.f;
+
+	if (!IsEvent())
+	{
+		// Subtract local inclusive cost from parent inclusive cost
+		const double NodeTime = IsBranch() ? LocalPerfData->GetExclusiveTiming() : LocalPerfData->GetInclusiveTiming();
+		HotPathParams.TimeSoFar += NodeTime;
+		AccumulatedTime += NodeTime;
+		const float HottestEndpointValue = static_cast<float>(HotPathParams.TimeSoFar / HotPathParams.EventTiming);
+		LocalPerfData->SetHottestEndpointHeatLevel(HottestEndpointValue);
+	}
+	// Update children
+	for (auto ChildIter : ChildNodes)
+	{
+		AccumulatedTime += ChildIter->CalculateHottestPathStats(HotPathParams);
+	}
+	// Update Links
+	for (auto LinkIter : LinkedNodes)
+	{
+		FScriptExecutionHottestPathParams LinkedHotPathParams(HotPathParams);
+		if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+		{
+			LinkedHotPathParams.TracePath.AddExitPin(LinkIter.Key);
+		}
+		AccumulatedTime += LinkIter.Value->CalculateHottestPathStats(LinkedHotPathParams);
+	}
+	const float HottestPathValue = static_cast<float>(AccumulatedTime / HotPathParams.EventTiming);
+	LocalPerfData->SetHottestPathHeatLevel(HottestPathValue);
+
+	return AccumulatedTime;
 }
 
 void FScriptExecutionNode::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut)
@@ -350,10 +446,22 @@ TSharedPtr<FScriptExecutionNode> FScriptExecutionNode::GetPureChainNode()
 
 void FScriptExecutionNode::NavigateToObject() const
 {
-	if (ObservedObject.IsValid())
+	if (IsObservedObjectValid())
 	{
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ObservedObject.Get());
+		if (UEdGraphPin* Pin = ObservedPin.Get())
+		{
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnPin(Pin);
+		}
+		else
+		{
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ObservedObject.Get());
+		}
 	}
+}
+
+bool FScriptExecutionNode::IsObservedObjectValid() const
+{
+	return ObservedObject.IsValid() && !ObservedObject.Get()->IsPendingKill();
 }
 
 const EScriptPerfDataType FScriptExecutionNode::GetPerfDataType() const
@@ -368,10 +476,42 @@ void FScriptExecutionTunnelInstance::GetBlueprintPerfDataForAllTracePaths(FScrip
 {
 	OutPerfData.Reset();
 
-	for (auto CustomEntryPoint : CustomEntryPoints)
+	for (auto EntrySite : EntrySites)
 	{
-		CustomEntryPoint->GetBlueprintPerfDataForAllTracePaths(OutPerfData);
+		EntrySite.Value->GetBlueprintPerfDataForAllTracePaths(OutPerfData);
 	}
+}
+
+void FScriptExecutionTunnelInstance::AddEntrySite(const int32 ScriptOffset, TSharedPtr<FScriptExecutionTunnelEntry> EntrySite)
+{
+	EntrySites.FindOrAdd(ScriptOffset) = EntrySite;
+	EntrySite->SetTunnelInstance(SharedThis<FScriptExecutionTunnelInstance>(this));
+}
+
+void FScriptExecutionTunnelInstance::CopyBoundarySites(TSharedPtr<FScriptExecutionTunnelInstance> OtherInstance)
+{
+	for (auto EntrySite : EntrySites)
+	{
+		OtherInstance->EntrySites.Add(EntrySite.Key) = EntrySite.Value;
+	}
+	for (auto ExitSite : ExitSites)
+	{
+		OtherInstance->ExitSites.Add(ExitSite.Key) = ExitSite.Value;
+	}
+}
+
+TSharedPtr<FScriptExecutionNode> FScriptExecutionTunnelInstance::FindBoundarySite(const int32 ScriptOffset)
+{
+	TSharedPtr<FScriptExecutionNode> Result;
+	if (TSharedPtr<FScriptExecutionTunnelEntry>* EntryResult = EntrySites.Find(ScriptOffset))
+	{
+		Result = *EntryResult;
+	}
+	else if (TSharedPtr<FScriptExecutionTunnelExit>* ExitResult = ExitSites.Find(ScriptOffset))
+	{
+		Result = *ExitResult;
+	}
+	return Result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -380,126 +520,60 @@ void FScriptExecutionTunnelInstance::GetBlueprintPerfDataForAllTracePaths(FScrip
 void FScriptExecutionTunnelEntry::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren)
 {
 	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
-	if (TunnelType != MultiIOTunnel)
+	if (!IsComplexTunnel())
 	{
-		FTracePath TunnelTracePath(TracePath, SharedThis<const FScriptExecutionTunnelEntry>(this));
 		for (auto TunnelExit : LinkedNodes)
 		{
-			if (IsPathValidForTunnel(TunnelExit.Key))
+			for (auto LinkedToExit : TunnelExit.Value->GetLinkedNodes())
 			{
-				TunnelTracePath.AddExitPin(TunnelExit.Key);
-				TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, TunnelTracePath);
+				FTracePath ExitLinkTracePath(TracePath);
+				if (LinkedToExit.Key != INDEX_NONE && !LinkedToExit.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+				{
+					ExitLinkTracePath.AddExitPin(TunnelExit.Key);
+				}
+				LinkedToExit.Value->GetLinearExecutionPath(LinearExecutionNodes, ExitLinkTracePath);
 			}
 		}
 	}
 }
 
-void FScriptExecutionTunnelEntry::GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath)
-{
-	ChildArrayInOut.Reset();
-	switch(TunnelType)
-	{
-		case SimpleTunnel:
-		{
-			FTracePath ChildTrace(TracePath);
-			for (auto Child : ChildNodes)
-			{
-				if (Child->HasFlags(EScriptExecutionNodeFlags::TunnelEntryPin))
-				{
-					for (auto NodeToAdd : Child->GetChildNodes())
-					{
-						FTracePath NewTrace(ChildTrace);
-						ChildArrayInOut.Add(FLinearExecPath(NodeToAdd, NewTrace));
-					}
-				}
-				else if (!Child->HasFlags(EScriptExecutionNodeFlags::TunnelPin))
-				{
-					ChildArrayInOut.Add(FLinearExecPath(Child, ChildTrace));
-				}
-			}
-			break;
-		}
-		case SinglePathTunnel:
-		{
-			FTracePath ChildTrace(TracePath);
-			for (auto Child : ChildNodes)
-			{
-				ChildArrayInOut.Add(FLinearExecPath(Child, ChildTrace));
-			}
-			break;
-		}
-		case MultiIOTunnel:
-		{
-			TArray<FLinearExecPath> Results;
-			FTracePath ChildTrace(TracePath);
-			for (auto Child : ChildNodes)
-			{
-				const bool bIgnoreChildren = Child->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin);
-				ChildArrayInOut.Add(FLinearExecPath(Child, ChildTrace, bIgnoreChildren));
-				Child->GetLinearExecutionPath(Results, ChildTrace, true);
-			}
-			for (auto Node : Results)
-			{
-				if (Node.LinkedNode->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin))
-				{
-					ChildArrayInOut.Add(FLinearExecPath(Node.LinkedNode, TracePath, true));
-				}
-			}
-			break;
-		}
-	}
-}
-
-void FScriptExecutionTunnelEntry::AddTunnelTiming(const FName InstanceName, const FTracePath& TracePath, const double Time)
+void FScriptExecutionTunnelEntry::AddTunnelTiming(const FName InstanceName, const FTracePath& TracePath, const FTracePath& InternalTracePath, const int32 ExitScriptOffset, const double Time)
 {
 	TSharedPtr<FScriptPerfData> PerfData = GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
 	PerfData->AddEventTiming(Time);
+	// Tick Entry points
 	for (auto EntrySite : ChildNodes)
 	{
 		PerfData = EntrySite->GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
 		PerfData->TickSamples();
 	}
-}
-
-void FScriptExecutionTunnelEntry::UpdateTunnelExit(const FName InstanceName, const FTracePath& TracePath, const int32 ExitScriptOffset)
-{
-	// Tick exit site
+	// Tick exit sites
 	TSharedPtr<FScriptExecutionNode> TunnelExitNode = GetExitSite(ExitScriptOffset);
 	if (TunnelExitNode.IsValid())
 	{
-		TSharedPtr<FScriptPerfData> PerfData = TunnelExitNode->GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
+		PerfData = TunnelExitNode->GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
+		PerfData->TickSamples();
+		PerfData = TunnelExitNode->GetPerfDataByInstanceAndTracePath(InstanceName, InternalTracePath);
 		PerfData->TickSamples();
 	}
 }
 
-bool FScriptExecutionTunnelEntry::IsPathValidForTunnel(const int32 ScriptOffset) const
+void FScriptExecutionTunnelEntry::AddExitSite(const int32 ExitScriptOffset, TSharedPtr<FScriptExecutionTunnelExit> ExitSite)
 {
-	return ValidExitPoints.Contains(ScriptOffset);
+	LinkedNodes.Add(ExitScriptOffset) = ExitSite;
 }
 
-void FScriptExecutionTunnelEntry::AddExitSite(TSharedPtr<FScriptExecutionNode> ExitSite, const int32 ExitScriptOffset)
+TSharedPtr<FScriptExecutionTunnelExit> FScriptExecutionTunnelEntry::GetExitSite(const int32 ScriptOffset) const
 {
-	ValidExitPoints.FindOrAdd(ExitScriptOffset) = ExitSite;
-}
-
-TSharedPtr<FScriptExecutionNode> FScriptExecutionTunnelEntry::GetExitSite(const int32 ScriptOffset) const
-{
-	TSharedPtr<FScriptExecutionNode> ExitSite;
-	if (const TSharedPtr<FScriptExecutionNode>* SearchResult = ValidExitPoints.Find(ScriptOffset))
+	TSharedPtr<FScriptExecutionTunnelExit> ExitSite;
+	if (const TSharedPtr<FScriptExecutionNode>* SearchResult = LinkedNodes.Find(ScriptOffset))
 	{
-		ExitSite = *SearchResult;
+		if ((*SearchResult)->IsTunnelExit())
+		{
+			ExitSite = StaticCastSharedPtr<FScriptExecutionTunnelExit>(*SearchResult);
+		}
 	}
 	return ExitSite;
-}
-
-bool FScriptExecutionTunnelEntry::IsFinalExitSite(const int32 ScriptOffset) const
-{
-	bool bResult = false;
-	if (const TSharedPtr<FScriptExecutionNode>* SearchResult = ValidExitPoints.Find(ScriptOffset))
-	{
-		bResult = (*SearchResult)->HasFlags(EScriptExecutionNodeFlags::TunnelFinalExitPin);
-	}
-	return bResult;
 }
 
 void FScriptExecutionTunnelEntry::RefreshStats(const FTracePath& TracePath)
@@ -508,80 +582,121 @@ void FScriptExecutionTunnelEntry::RefreshStats(const FTracePath& TracePath)
 	TArray<TSharedPtr<FScriptPerfData>> BlueprintPooledStats;
 	// Update stats based on type
 	GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
+	// Create new trace
+	FTracePath TunnelTracePath(TracePath, SharedThis<FScriptExecutionTunnelEntry>(this));
 	// Refresh Child Links
 	for (auto ChildIter : ChildNodes)
 	{
-		ChildIter->RefreshStats(TracePath);
-	}
-	// Refresh All links
-	for (auto LinkIter : LinkedNodes)
-	{
-		FTracePath LinkTracePath(TracePath);
-		LinkTracePath.AddExitPin(LinkIter.Key);
-		LinkIter.Value->RefreshStats(LinkTracePath);
+		ChildIter->RefreshStats(TunnelTracePath);
 	}
 	// Update the owning blueprint stats
 	if (BlueprintPooledStats.Num() > 0)
 	{
 		TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
-		BlueprintData->Reset();
-		for (auto BlueprintChildDataIter : BlueprintPooledStats)
-		{
-			BlueprintData->AddData(*BlueprintChildDataIter.Get());
-		}
+		BlueprintData->InitialiseFromDataSet(BlueprintPooledStats);
 	}
 }
 
-void FScriptExecutionTunnelEntry::BuildExitBranches()
+bool FScriptExecutionTunnelEntry::IsInternalBoundary(TSharedPtr<FScriptExecutionNode> PotentialBoundaryNode) const
 {
-	if (TunnelType == ETunnelType::MultiIOTunnel)
+	bool bIsInternalBoundary = false;
+	if (PotentialBoundaryNode->IsTunnelBoundary())
 	{
-		BranchedExitSites.Reset();
-		TArray<FLinearExecPath> Results;
-		FTracePath TracePath(SharedThis<FScriptExecutionTunnelEntry>(this));
-		for (auto Child : ChildNodes)
+		bIsInternalBoundary = PotentialBoundaryNode->HasFlags(EScriptExecutionNodeFlags::TunnelEntryPin);
+		if (!PotentialBoundaryNode->IsTunnelEntry())
 		{
-			Child->GetLinearExecutionPath(Results, TracePath, true);
-		}
-		for (auto Node : Results)
-		{
-			if (Node.LinkedNode->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin))
+			if (const int32* SearchResult = LinkedNodes.FindKey(PotentialBoundaryNode))
 			{
-				BranchedExitSites.Add(Node);
+				bIsInternalBoundary = true;
 			}
 		}
 	}
+	return bIsInternalBoundary;
 }
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptExecutionTunnelExit
 
-void FScriptExecutionTunnelExit::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeExitLinks)
+void FScriptExecutionTunnelExit::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren)
 {
-	TSharedPtr<const FScriptExecutionTunnelEntry> ActiveTunnel = TracePath.GetTunnel();
-	if (ActiveTunnel.IsValid())
+	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
+}
+
+void FScriptExecutionTunnelExit::RefreshStats(const FTracePath& TracePath)
+{
+	// Process stat update
+	TArray<TSharedPtr<FScriptPerfData>> BlueprintPooledStats;
+	// Update stats based on type
+	GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
+	// Refresh all valid tunnel links
+	for (auto LinkIter : LinkedNodes)
 	{
-		if (ActiveTunnel->GetTunnelType() != FScriptExecutionTunnelEntry::SimpleTunnel)
+		FTracePath LinkTracePath(TracePath);
+		LinkTracePath.ExitTunnel();
+		if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::EventPin))
 		{
-			LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
-			FTracePath NewTracePath(TracePath);
-			for (auto TunnelExit : LinkedNodes)
-			{
-				if (bIncludeExitLinks && ActiveTunnel->IsPathValidForTunnel(TunnelExit.Key))
-				{
-					NewTracePath.AddExitPin(TunnelExit.Key);
-					TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath);
-				}
-			}
+			LinkTracePath.ResetPath();
 		}
+		if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+		{
+			LinkTracePath.AddExitPin(LinkIter.Key);
+		}
+		LinkIter.Value->RefreshStats(LinkTracePath);
+	}
+	// Update the owning blueprint stats
+	if (BlueprintPooledStats.Num() > 0)
+	{
+		TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
+		BlueprintData->InitialiseFromDataSet(BlueprintPooledStats);
 	}
 }
 
-void FScriptExecutionTunnelExit::NavigateToObject() const
+void FScriptExecutionTunnelExit::AddInstanceExitSite(const uint32 TracePath, UEdGraphPin* InstanceExitPin)
 {
-	if (ObservedObject.IsValid())
+	const FSlateBrush* InstanceIcon = InstanceExitPin->LinkedTo.Num() ?	FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected")) : 
+																		FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinDisconnected"));
+	InstanceExitSiteInfo.FindOrAdd(TracePath) = FTunnelExitInstanceData(InstanceIcon, InstanceExitPin);
+}
+
+TSharedRef<SWidget> FScriptExecutionTunnelExit::GetIconWidget(const uint32 TracePath)
+{
+	if (FTunnelExitInstanceData* SearchResult = InstanceExitSiteInfo.Find(TracePath))
 	{
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ObservedObject.Get());
+		return SNew(SImage)
+				.Image(SearchResult->InstanceIcon)
+				.ColorAndOpacity(IconColor);
+	}
+	else
+	{
+		return SNew(SImage)
+				.Image(Icon)
+				.ColorAndOpacity(IconColor);
+	}
+}
+
+TSharedRef<SWidget> FScriptExecutionTunnelExit::GetHyperlinkWidget(const uint32 TracePath)
+{
+	return SNew(SHyperlink)
+		#if TRACEPATH_DEBUG
+		.Text(FText::FromName(NodeName))
+		#else
+		.Text(DisplayName)
+		#endif
+		.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
+		.ToolTipText(Tooltip)
+		.OnNavigate(this, &FScriptExecutionTunnelExit::NavigateToExitSite, TracePath);
+}
+
+void FScriptExecutionTunnelExit::NavigateToExitSite(const uint32 TracePath) const
+{
+	UEdGraphPin* Pin = ObservedPin.Get();
+	if (const FTunnelExitInstanceData* SearchResult = InstanceExitSiteInfo.Find(TracePath))
+	{
+		Pin = SearchResult->InstancePin.Get();
+	}
+	if (Pin)
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(Pin->GetOwningNode());
 	}
 }
 
@@ -649,12 +764,7 @@ void FScriptExecutionPureNode::RefreshStats(const FTracePath& TracePath)
 	if (BlueprintPooledStats.Num() > 0)
 	{
 		TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
-		BlueprintData->Reset();
-
-		for (auto BlueprintChildDataIter : BlueprintPooledStats)
-		{
-			BlueprintData->AddData(*BlueprintChildDataIter.Get());
-		}
+		BlueprintData->InitialiseFromDataSet(BlueprintPooledStats);
 	}
 }
 
@@ -685,16 +795,25 @@ void FScriptExecutionBlueprint::RefreshStats(const FTracePath& TracePath)
 		// as an overall blueprint performance representation.
 		BlueprintEventIter->RefreshStats(TracePath);
 	}
+	// Determine if we require the hottest path's updating
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	const bool bUpdateHottestPaths = ProfilerModule.GetWireHeatMapDisplayMode() != EBlueprintProfilerHeatMapDisplayMode::None;
 	// Update instance stats
 	for (auto InstanceIter : Instances)
 	{
-		TSharedPtr<FScriptPerfData> InstancePerfData = InstanceIter->GetPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
+		TSharedPtr<FScriptPerfData> InstancePerfData = InstanceIter->GetOrAddPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
 		InstancePerfData->Reset();
 		// Update all top level instance stats now the events are up to date.
 		for (auto InstanceEventIter : InstanceIter->GetChildNodes())
 		{
-			TSharedPtr<FScriptPerfData> InstanceEventPerfData = InstanceEventIter->GetPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
+			TSharedPtr<FScriptPerfData> InstanceEventPerfData = InstanceEventIter->GetOrAddPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
 			InstancePerfData->AddData(*InstanceEventPerfData.Get());
+			// Update the hottest path stats
+			if (bUpdateHottestPaths)
+			{
+				FScriptExecutionHottestPathParams HotPathParams(InstanceIter->GetName(), InstanceEventPerfData->GetExclusiveTiming());
+				InstanceEventIter->CalculateHottestPathStats(HotPathParams);
+			}
 		}
 		// Add for consolidation at the bottom.
 		InstanceData.Add(InstancePerfData);
@@ -702,7 +821,7 @@ void FScriptExecutionBlueprint::RefreshStats(const FTracePath& TracePath)
 	// Finally... update the root stats for the owning blueprint.
 	if (InstanceData.Num() > 0)
 	{
-		TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
+		TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
 		BlueprintData->Reset();
 
 		for (auto InstanceIter : InstanceData)
@@ -729,7 +848,7 @@ void FScriptExecutionBlueprint::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptEx
 
 void FScriptExecutionBlueprint::NavigateToObject() const
 {
-	if (ObservedObject.IsValid())
+	if (IsObservedObjectValid())
 	{
 		if (const UBlueprint* Blueprint = Cast<UBlueprint>(ObservedObject.Get()))
 		{
@@ -745,30 +864,100 @@ void FScriptExecutionBlueprint::NavigateToObject() const
 
 void FScriptExecutionInstance::NavigateToObject() const
 {
-	if (ObservedObject.IsValid())
+	if (const FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext())
 	{
-		if (const AActor* Actor = Cast<AActor>(ObservedObject.Get()))
+		if (const AActor* PIEActor = Cast<AActor>(PIEInstance.Get()))
 		{
-			if (const FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext())
-			{
-				if (const UWorld* PIEWorld = PIEWorldContext->World())
-				{
-					for (auto LevelIter : PIEWorld->GetLevels())
-					{
-						if (AActor* PIEActor = Cast<AActor>(FindObject<UObject>(LevelIter, *Actor->GetName())))
-						{
-							GEditor->SelectNone(false, false);
-							GEditor->SelectActor(const_cast<AActor*>(PIEActor), true, true, true);
-							break;
-						}
-					}
-				}
-			}
-			else
-			{
-				GEditor->SelectNone(false, false);
-				GEditor->SelectActor(const_cast<AActor*>(Actor), true, true, true);
-			}
+			GEditor->SelectNone(false, false);
+			GEditor->SelectActor(const_cast<AActor*>(PIEActor), true, true, true);
+		}
+	}
+	else
+	{
+		if (const AActor* EditorActor = Cast<AActor>(ObservedObject.Get()))
+		{
+			GEditor->SelectNone(false, false);
+			GEditor->SelectActor(const_cast<AActor*>(EditorActor), true, true, true);
 		}
 	}
 }
+
+bool FScriptExecutionInstance::IsObservedObjectValid() const
+{
+	if (const FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext())
+	{
+		if (PIEInstance.IsValid() && PIEInstance.Get()->IsPendingKill())
+		{
+			bPIEInstanceDestroyed = true;
+		}
+		return PIEInstance.IsValid();
+	}
+	else
+	{
+		return ObservedObject.IsValid() && !ObservedObject.Get()->IsPendingKill();
+	}
+}
+
+UObject* FScriptExecutionInstance::GetActiveObject() const
+{
+	UObject* Result = nullptr;
+	if (const FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext())
+	{
+		if (!PIEInstance.IsValid() && !bPIEInstanceDestroyed)
+		{
+			RefreshPIEInstance();
+		}
+		Result = const_cast<UObject*>(PIEInstance.Get());
+	}
+	else
+	{
+		Result = const_cast<UObject*>(ObservedObject.Get());
+	}
+	return Result;
+}
+
+void FScriptExecutionInstance::RefreshPIEInstance() const
+{
+	if (!bPIEInstanceDestroyed)
+	{
+		const FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
+		UWorld* PIEWorld = PIEWorldContext ? PIEWorldContext->World() : nullptr;
+		ULevel* CurrentLevel = PIEWorld ? PIEWorld->GetCurrentLevel() : nullptr;
+		if (CurrentLevel && ObservedObject.IsValid())
+		{
+			PIEInstance = FindObject<UObject>(CurrentLevel, *ObservedObject.Get()->GetName());
+		}
+	}
+}
+
+TSharedRef<SWidget> FScriptExecutionInstance::GetIconWidget(const uint32 /*TracePath*/)
+{
+	return SNew(SImage)
+			.Image(Icon)
+			.ColorAndOpacity(this, &FScriptExecutionInstance::GetInstanceIconColor);
+}
+
+TSharedRef<SWidget> FScriptExecutionInstance::GetHyperlinkWidget(const uint32 /*TracePath*/)
+{
+	return SNew(SHyperlink)
+		#if TRACEPATH_DEBUG
+		.Text(FText::FromName(NodeName))
+		#else
+		.Text(DisplayName)
+		#endif
+		.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
+		.ToolTipText(this, &FScriptExecutionInstance::GetInstanceTooltip)
+		.OnNavigate(this, &FScriptExecutionInstance::NavigateToObject);
+}
+
+FSlateColor FScriptExecutionInstance::GetInstanceIconColor() const
+{
+	return FSlateColor(IsObservedObjectValid() ? IconColor : FLinearColor(1.f, 1.f, 1.f, 0.3f));
+}
+
+FText FScriptExecutionInstance::GetInstanceTooltip() const
+{
+	return IsObservedObjectValid() ? Tooltip : LOCTEXT("ActorInstanceInvalid_Tooltip", "Actor instance no longer exists");
+}
+
+#undef LOCTEXT_NAMESPACE

@@ -73,11 +73,6 @@ void FNiagaraEmitterPropertiesDetails::BuildScriptProperties(TSharedRef<IPropert
 	TSharedRef<FDetailArrayBuilder> MatrixConstantsBuilder = MakeShareable(new FDetailArrayBuilder(MatrixConstants.ToSharedRef(), bGenerateHeader, bDisplayResetToDefault));
 	MatrixConstantsBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FNiagaraEmitterPropertiesDetails::OnGenerateMatrixConstantEntry));
 	ScriptCategory.AddCustomBuilder(MatrixConstantsBuilder);
-	//DataObject Constants.
-	TSharedPtr<IPropertyHandle> DataObjectConstants = Constants->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants, DataObjectConstants));
-	TSharedRef<FDetailArrayBuilder> DataObjectConstantsBuilder = MakeShareable(new FDetailArrayBuilder(DataObjectConstants.ToSharedRef(), bGenerateHeader, bDisplayResetToDefault));
-	DataObjectConstantsBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FNiagaraEmitterPropertiesDetails::OnGenerateDataObjectConstantEntry));
-	ScriptCategory.AddCustomBuilder(DataObjectConstantsBuilder);
 
 	//Events
 	bGenerateHeader = true;
@@ -131,20 +126,6 @@ void FNiagaraEmitterPropertiesDetails::OnGenerateMatrixConstantEntry(TSharedRef<
 	NameProperty->GetValue(DisplayName);
 	//Don't display system constants
 	if (UNiagaraComponent::GetSystemConstants().Find(FNiagaraVariableInfo(DisplayName, ENiagaraDataType::Matrix)) == INDEX_NONE)
-	{
-		ChildrenBuilder.AddChildProperty(ValueProperty.ToSharedRef()).DisplayName(FText::FromName(DisplayName));
-	}
-}
-
-void FNiagaraEmitterPropertiesDetails::OnGenerateDataObjectConstantEntry(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
-{
-	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_DataObject, Value));
-	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_DataObject, Name));
-
-	FName DisplayName;
-	NameProperty->GetValue(DisplayName);
-	//Don't display system constants
-	if (UNiagaraComponent::GetSystemConstants().Find(FNiagaraVariableInfo(DisplayName, ENiagaraDataType::Curve)) == INDEX_NONE)
 	{
 		ChildrenBuilder.AddChildProperty(ValueProperty.ToSharedRef()).DisplayName(FText::FromName(DisplayName));
 	}

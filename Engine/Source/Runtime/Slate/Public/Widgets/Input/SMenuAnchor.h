@@ -99,6 +99,8 @@ public:
 	virtual void OnMenuDismissed() override;
 	// End of IMenuHost interface
 
+	static void DismissAllApplicationMenus();
+
 protected:
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
@@ -116,6 +118,8 @@ protected:
 
 	/** Handler/callback called by menus created by this anchor, when they are dismissed */
 	void OnMenuClosed(TSharedRef<IMenu> InMenu);
+
+	static TArray<TWeakPtr<IMenu>> OpenApplicationMenus;
 
 protected:
 	/**
@@ -184,5 +188,6 @@ protected:
 	 */
 	FVector2D ScreenPopupPosition;
 
+	/** The currently arranged children in the menu anchor.  Changes as the opened/closed state of the widget changes. */
 	TPanelChildren<FSimpleSlot> Children;
 };

@@ -7,6 +7,9 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "UObject/DevObjectVersion.h"
 
+#include "MessageLog.h"
+#include "UObjectToken.h"
+
 #define LOCTEXT_NAMESPACE "ConstraintInstance"
 
 TAutoConsoleVariable<float> CVarConstraintDampingScale(
@@ -141,7 +144,6 @@ void FConstraintInstance::UpdateDriveTarget()
 /** Constructor **/
 FConstraintInstance::FConstraintInstance()
 	: ConstraintIndex(0)
-	, OwnerComponent(NULL)
 #if WITH_PHYSX
 	, ConstraintData(NULL)
 #endif	//WITH_PHYSX
@@ -267,7 +269,7 @@ float ComputeAverageMass_AssumesLocked(const PxRigidActor* PActor1, const PxRigi
 }
 
 /** Finds the common scene and appropriate actors for the passed in body instances. Makes sure to do this without requiring a scene lock*/
-PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2)
+PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2, UObject* DebugOwner)
 {
 	const int32 SceneIndex1 = Body1 ? Body1->GetSceneIndex() : -1;
 	const int32 SceneIndex2 = Body2 ? Body2->GetSceneIndex() : -1;
@@ -276,11 +278,21 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 	//now we check if the two actors are valid
 	if(SceneIndex1 == -1 && SceneIndex2 == -1)
 	{
-		UE_LOG(LogPhysics, Log, TEXT("Attempting to create a joint between two null actors.  No joint created."));
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		FMessageLog("PIE").Warning()
+			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenNullStart", "Constraint")))
+			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenNullEnd", "attempting to create a joint between two null actors.")));
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
 	else if(SceneIndex1 >= 0 && SceneIndex2 >= 0 && SceneIndex1 != SceneIndex2)
 	{
-		UE_LOG(LogPhysics, Log, TEXT("Attempting to create a joint between two actors in different scenes.  No joint created."));
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		FMessageLog("PIE").Warning()
+			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesStart", "Constraint")))
+			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", "attempting to create a joint between two actors in different scenes.  No joint created.")));
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
 	else
 	{
@@ -290,12 +302,19 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 	return PScene;
 }
 
-bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor)
+bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor, UObject* DebugOwner)
 {
 	if (PActor && (PActor->getActorFlags() & PxActorFlag::eDISABLE_SIMULATION))
 	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		const UPrimitiveComponent* PrimComp = BI->OwnerComponent.Get();
-		UE_LOG(LogPhysics, Warning, TEXT("Attempting to create a joint on actor (%s) which is not eligible for simulation. Is it marked QueryOnly?"), *PrimComp->GetReadableName());
+		FMessageLog("PIE").Warning()
+			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyStart", "Attempting to create a joint")))
+			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyMid", "to body")))
+			->AddToken(FUObjectToken::Create(PrimComp))
+			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyEnd", "which is not eligible for simulation. Is it marked QueryOnly?")));
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 		return false;
 	}
@@ -304,7 +323,7 @@ bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor)
 }
 
 /*various logical checks to find the correct physx actor. Returns true if found valid actors that can be constrained*/
-bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* Body2, PxRigidActor** PActor1Out, PxRigidActor** PActor2Out)
+bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* Body2, PxRigidActor** PActor1Out, PxRigidActor** PActor2Out, UObject* DebugOwner)
 {
 	PxRigidActor* PActor1 = Body1 ? Body1->GetPxRigidActor_AssumesLocked() : NULL;
 	PxRigidActor* PActor2 = Body2 ? Body2->GetPxRigidActor_AssumesLocked() : NULL;
@@ -313,18 +332,29 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 	// Do not create joint unless one of the actors is dynamic
 	if ((!PActor1 || !PActor1->isRigidBody()) && (!PActor2 || !PActor2->isRigidBody()))
 	{
-		UE_LOG(LogPhysics, Warning, TEXT("Attempting to create a joint between actors that are static.  No joint created."));
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		FMessageLog("PIE").Warning()
+			->AddToken(FTextToken::Create(LOCTEXT("TwoStaticBodiesWarningStart", "Constraint in")))
+			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(LOCTEXT("TwoStaticBodiesWarningEnd", "attempting to create a joint between objects that are both static.  No joint created.")));
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		return false;
 	}
 
 	if(PActor1 == PActor2)
 	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		const UPrimitiveComponent* PrimComp = Body1->OwnerComponent.Get();
-		UE_LOG(LogPhysics, Warning, TEXT("Attempting to create a joint between the same actor (%s)"), *PrimComp->GetReadableName());
+		FMessageLog("PIE").Warning()
+			->AddToken(FTextToken::Create(LOCTEXT("SameBodyWarningStart", "Constraint in")))
+			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(LOCTEXT("SameBodyWarningMid", "attempting to create a joint to the same body")))
+			->AddToken(FUObjectToken::Create(PrimComp));
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		return false;
 	}
 
-	if(!CanActorSimulate(Body1, PActor1) || !CanActorSimulate(Body2, PActor2))
+	if(!CanActorSimulate(Body1, PActor1, DebugOwner) || !CanActorSimulate(Body2, PActor2, DebugOwner))
 	{
 		return false;
 	}
@@ -468,12 +498,33 @@ void EnsureSleepingActorsStaySleeping_AssumesLocked(PxRigidActor* PActor1, PxRig
 /** 
  *	Create physics engine constraint.
  */
-void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* Body1, FBodyInstance* Body2, float InScale)
+void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float InScale, UObject* DebugOwner, FOnConstraintBroken InConstraintBrokenDelegate)
 {
-	OwnerComponent = Owner;
-	LastKnownScale = InScale;
+#if WITH_PHYSX
+	PxRigidActor* PActor1 = nullptr;
+	PxRigidActor* PActor2 = nullptr;
+	PxScene* PScene = GetPScene_LockFree(Body1, Body2, DebugOwner);
+	SCOPED_SCENE_WRITE_LOCK(PScene);
+	{
+		const bool bValidConstraintSetup = PScene && GetPActors_AssumesLocked(Body1, Body2, &PActor1, &PActor2, DebugOwner);
+		if (!bValidConstraintSetup)
+		{
+			return;
+		}
+
+		InitConstraintPhysX_AssumesLocked(PActor1, PActor2, PScene, InScale, InConstraintBrokenDelegate);
+	}
+	
+#endif // WITH_PHYSX
+
+}
 
 #if WITH_PHYSX
+void FConstraintInstance::InitConstraintPhysX_AssumesLocked(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene, float InScale, FOnConstraintBroken InConstraintBrokenDelegate)
+{
+	OnConstraintBrokenDelegate = InConstraintBrokenDelegate;
+	LastKnownScale = InScale;
+
 	PhysxUserData = FPhysxUserData(this);
 
 	// if there's already a constraint, get rid of it first
@@ -482,28 +533,19 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		TermConstraint();
 	}
 
-	PxRigidActor* PActor1 = nullptr;
-	PxRigidActor* PActor2 = nullptr;
-	PxScene* PScene = GetPScene_LockFree(Body1, Body2);
-	SCOPED_SCENE_WRITE_LOCK(PScene);
+	if (!CreatePxJoint_AssumesLocked(PActor1, PActor2, PScene))
 	{
-		const bool bValidConstraintSetup = PScene && GetPActors_AssumesLocked(Body1, Body2, &PActor1, &PActor2) && CreatePxJoint_AssumesLocked(PActor1, PActor2, PScene);
-		if (!bValidConstraintSetup)
-		{
-			return;
-		}
-
-		// update mass
-		UpdateAverageMass_AssumesLocked(PActor1, PActor2);
-
-		ProfileInstance.UpdatePhysX_AssumesLocked(ConstraintData, AverageMass, bScaleLinearLimits ? LastKnownScale : 1.f);
-
-		EnsureSleepingActorsStaySleeping_AssumesLocked(PActor1, PActor2);
+		return;
 	}
 	
-#endif // WITH_PHYSX
+	// update mass
+	UpdateAverageMass_AssumesLocked(PActor1, PActor2);
 
+	ProfileInstance.UpdatePhysX_AssumesLocked(ConstraintData, AverageMass, bScaleLinearLimits ? LastKnownScale : 1.f);
+
+	EnsureSleepingActorsStaySleeping_AssumesLocked(PActor1, PActor2);
 }
+#endif
 
 #if WITH_PHYSX
 void FConstraintProfileProperties::UpdatePhysX_AssumesLocked(PxD6Joint* Joint, float AverageMass, float UseScale) const
@@ -1162,18 +1204,7 @@ void FConstraintInstance::PostSerialize(const FArchive& Ar)
 
 void FConstraintInstance::OnConstraintBroken()
 {
-	UPhysicsConstraintComponent* ConstraintComp = Cast<UPhysicsConstraintComponent>(OwnerComponent);
-	USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent);
-
-	if (ConstraintComp)
-	{
-		ConstraintComp->OnConstraintBroken.Broadcast(ConstraintIndex);
-	}
-	else if (SkelMeshComp)
-	{
-		SkelMeshComp->OnConstraintBroken.Broadcast(ConstraintIndex);
-	}
-
+	OnConstraintBrokenDelegate.ExecuteIfBound(ConstraintIndex);
 }
 
 //Hacks to easily get zeroed memory for special case when we don't use GC

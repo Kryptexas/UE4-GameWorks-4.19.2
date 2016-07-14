@@ -23,9 +23,8 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 	CreateCmdBufInfo.commandBufferCount = 1;
 	CreateCmdBufInfo.commandPool = CommandBufferManager->GetHandle();
 
-	VERIFYVULKANRESULT(vkAllocateCommandBuffers(Device->GetInstanceHandle(), &CreateCmdBufInfo, &CommandBufferHandle));
+	VERIFYVULKANRESULT(VulkanRHI::vkAllocateCommandBuffers(Device->GetInstanceHandle(), &CreateCmdBufInfo, &CommandBufferHandle));
 	Fence = Device->GetFenceManager().AllocateFence();
-	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** Create CmdBuffer %p Fence %p\n"), (void*)CommandBufferHandle, (void*)Fence->GetHandle());
 }
 
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
@@ -43,7 +42,7 @@ FVulkanCmdBuffer::~FVulkanCmdBuffer()
 		FenceManager.ReleaseFence(Fence);
 	}
 
-	vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferManager->GetHandle(), 1, &CommandBufferHandle);
+	VulkanRHI::vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferManager->GetHandle(), 1, &CommandBufferHandle);
 	CommandBufferHandle = VK_NULL_HANDLE;
 }
 
@@ -62,7 +61,7 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 	Info.clearValueCount = Layout.GetNumAttachments();
 	Info.pClearValues = AttachmentClearValues;
 
-	vkCmdBeginRenderPass(CommandBufferHandle, &Info, VK_SUBPASS_CONTENTS_INLINE);
+	VulkanRHI::vkCmdBeginRenderPass(CommandBufferHandle, &Info, VK_SUBPASS_CONTENTS_INLINE);
 
 	State = EState::IsInsideRenderPass;
 }
@@ -76,7 +75,7 @@ void FVulkanCmdBuffer::Begin()
 	CmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	CmdBufBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	VERIFYVULKANRESULT(vkBeginCommandBuffer(CommandBufferHandle, &CmdBufBeginInfo));
+	VERIFYVULKANRESULT(VulkanRHI::vkBeginCommandBuffer(CommandBufferHandle, &CmdBufBeginInfo));
 
 	State = EState::IsInsideBegin;
 }
@@ -89,8 +88,7 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 		if (FenceMgr->IsFenceSignaled(Fence))
 		{
 			State = EState::ReadyForBegin;
-			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkResetCommandBuffer %p\n"), (void*)CommandBufferHandle);
-			vkResetCommandBuffer(CommandBufferHandle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+			VulkanRHI::vkResetCommandBuffer(CommandBufferHandle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 #if VULKAN_REUSE_FENCES
 			Fence->GetOwner()->ResetFence(Fence);
 #else
@@ -122,7 +120,7 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 	CmdPoolInfo.queueFamilyIndex = Device->GetQueue()->GetFamilyIndex();
 	//#todo-rco: Should we use VK_COMMAND_POOL_CREATE_TRANSIENT_BIT?
 	CmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VERIFYVULKANRESULT(vkCreateCommandPool(Device->GetInstanceHandle(), &CmdPoolInfo, nullptr, &Handle));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateCommandPool(Device->GetInstanceHandle(), &CmdPoolInfo, nullptr, &Handle));
 
 	ActiveCmdBuffer = Create();
 	ActiveCmdBuffer->Begin();
@@ -136,7 +134,7 @@ FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
 		delete CmdBuffer;
 	}
 
-	vkDestroyCommandPool(Device->GetInstanceHandle(), Handle, nullptr);
+	VulkanRHI::vkDestroyCommandPool(Device->GetInstanceHandle(), Handle, nullptr);
 }
 
 FVulkanCmdBuffer* FVulkanCommandBufferManager::GetActiveCmdBuffer()

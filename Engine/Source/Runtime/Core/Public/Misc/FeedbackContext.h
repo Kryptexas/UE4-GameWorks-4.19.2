@@ -332,7 +332,8 @@ public:
 		CompletedWork += CurrentFrameScope;
 
 		const float WorkRemaining = TotalAmountOfWork - CompletedWork;
-		ensureMsgf(ExpectedWorkThisFrame <= WorkRemaining, TEXT("Work overflow in slow task. Please revise call-site to account for entire progress range."));
+		// Add a small threshold here because when there are a lot of tasks, numerical imprecision can add up and trigger this.
+		ensureMsgf(ExpectedWorkThisFrame <= 1.01f * TotalAmountOfWork - CompletedWork, TEXT("Work overflow in slow task. Please revise call-site to account for entire progress range."));
 		CurrentFrameScope = FMath::Min(WorkRemaining, ExpectedWorkThisFrame);
 
 		if (!bCreatedDialog && OpenDialogThreshold.IsSet() && static_cast<float>(FPlatformTime::Seconds() - StartTime) > OpenDialogThreshold.GetValue())

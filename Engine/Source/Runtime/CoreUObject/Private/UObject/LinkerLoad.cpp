@@ -3283,7 +3283,7 @@ void FLinkerLoad::Preload( UObject* Object )
 			// its owner has had a chance to initialize itself (because, as part
 			// of CDO initialization, inherited sub-objects get filled in with 
 			// values inherited from the super)
-			else if (Object->HasAnyFlags(RF_DefaultSubObject) && FDeferredObjInitializerTracker::DeferSubObjectPreload(Object))
+			else if (Object->HasAnyFlags(RF_DefaultSubObject|RF_InheritableComponentTemplate) && FDeferredObjInitializerTracker::DeferSubObjectPreload(Object))
 			{
 				// don't worry, FDeferredObjInitializerTracker::DeferSubObjectPreload() 
 				// should have cached this object, and it will run Preload() on 

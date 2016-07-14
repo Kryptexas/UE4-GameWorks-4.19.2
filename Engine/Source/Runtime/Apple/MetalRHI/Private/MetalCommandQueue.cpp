@@ -7,6 +7,7 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalCommandQueue.h"
+#include "MetalCommandBuffer.h"
 #include "MetalCommandList.h"
 #include "MetalProfiler.h"
 #if METAL_STATISTICS
@@ -20,6 +21,9 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 : CommandQueue(nil)
 #if METAL_STATISTICS
 , Statistics(nullptr)
+#endif
+#if !UE_BUILD_SHIPPING
+, RuntimeDebuggingLevel(EMetalDebugLevelOff)
 #endif
 {
 	if(MaxNumCommandBuffers == 0)
@@ -64,6 +68,12 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 	@autoreleasepool
 	{
 		id<MTLCommandBuffer> CmdBuffer = [[CommandQueue commandBuffer] retain];
+#if !UE_BUILD_SHIPPING
+		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		{
+			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
+		}
+#endif
 		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
 		return CmdBuffer;
 	}
@@ -76,6 +86,12 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 	@autoreleasepool
 	{
 		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
+#if !UE_BUILD_SHIPPING
+		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		{
+			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
+		}
+#endif
 	}
 	TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
 	return CmdBuffer;
@@ -87,6 +103,15 @@ void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandB
 	UNTRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
 	
 	[CommandBuffer commit];
+	
+	// Wait for completion when debugging command-buffers.
+#if !UE_BUILD_SHIPPING
+	if (RuntimeDebuggingLevel >= EMetalDebugLevelWaitForComplete)
+	{
+		[CommandBuffer waitUntilCompleted];
+	}
+#endif
+	
 	[CommandBuffer release];
 }
 
@@ -132,6 +157,18 @@ void FMetalCommandQueue::InsertDebugCaptureBoundary(void)
 {
 	[CommandQueue insertDebugCaptureBoundary];
 }
+
+#if !UE_BUILD_SHIPPING
+void FMetalCommandQueue::SetRuntimeDebuggingLevel(int32 const Level)
+{
+	RuntimeDebuggingLevel = Level;
+}
+
+int32 FMetalCommandQueue::GetRuntimeDebuggingLevel(void) const
+{
+	return RuntimeDebuggingLevel;
+}
+#endif
 
 #if METAL_STATISTICS
 #pragma mark - Public Statistics Extensions -

@@ -56,7 +56,7 @@ struct FShotData
 	float EditOutTime;
 };
 
-bool SMPTEToTime(FString SMPTE, float FrameRate, float& OutTime)
+void SMPTEToTime(FString SMPTE, float FrameRate, float& OutTime)
 {
 	TArray<FString> OutArray;
 	SMPTE.ParseIntoArray(OutArray, TEXT(":"));
@@ -69,16 +69,13 @@ bool SMPTEToTime(FString SMPTE, float FrameRate, float& OutTime)
 		float Frames = FCString::Atof(*OutArray[3]);
 
 		OutTime = Hours * 3600.f + Minutes * 60.f  + Seconds + (Frames / FrameRate);
-		return true;
 	}
 	// The edl is in frames
 	else
 	{
 		float Frames = FCString::Atof(*SMPTE);
-		OutTime = Frames * FrameRate;
+		OutTime = Frames / FrameRate;
 	}
-
-	return false;
 }
 
 FString TimeToSMPTE(float InTime, float FrameRate)
@@ -163,12 +160,13 @@ void ParseFromEDL(const FString& InputString, float FrameRate, TArray<FShotData>
 
 				// If everything checks out
 				if (TrackType != FShotData::ETrackType::TT_None &&
-					EditType != FShotData::EEditType::ET_None &&
-					SMPTEToTime(InputChars[4], FrameRate, SourceInTime) &&
-					SMPTEToTime(InputChars[5], FrameRate, SourceOutTime) &&
-					SMPTEToTime(InputChars[6], FrameRate, EditInTime) &&
-					SMPTEToTime(InputChars[7], FrameRate, EditOutTime))
+					EditType != FShotData::EEditType::ET_None)
 				{
+					SMPTEToTime(InputChars[4], FrameRate, SourceInTime);
+					SMPTEToTime(InputChars[5], FrameRate, SourceOutTime);
+					SMPTEToTime(InputChars[6], FrameRate, EditInTime);
+					SMPTEToTime(InputChars[7], FrameRate, EditOutTime);
+
 					bFoundEventLine = true;
 					continue; // Go to the next line
 				}
@@ -343,16 +341,23 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 			for (UMovieSceneSection* Section : CinematicShotTrack->GetAllSections())
 			{
 				UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(Section);
-				if (CinematicShotSection && CinematicShotSection->GetSequence()->GetName() == ShotName)
+				if (CinematicShotSection != nullptr)
 				{
-					ShotSection = CinematicShotSection;
-					break;
+					UMovieSceneSequence* ShotSequence = CinematicShotSection->GetSequence();
+				
+					if (ShotSequence != nullptr && ShotSequence->GetName() == ShotName)
+					{
+						ShotSection = CinematicShotSection;
+						break;
+					}
 				}
 			}
 
 			// If the shot doesn't already exist, create it
 			if (!ShotSection)
 			{
+				UMovieSceneSequence* SequenceToAdd = nullptr;
+
 				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
 				// Collect a full list of assets with the specified class
@@ -363,11 +368,13 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 				{
 					if (AssetData.AssetName == *ShotName)
 					{	
-						CinematicShotTrack->Modify();
-						ShotSection = Cast<UMovieSceneCinematicShotSection>(CinematicShotTrack->AddSequence(Cast<ULevelSequence>(AssetData.GetAsset()), ShotData.EditInTime, ShotData.EditOutTime - ShotData.EditInTime));
+						SequenceToAdd = Cast<ULevelSequence>(AssetData.GetAsset());
 						break;
 					}
 				}
+
+				CinematicShotTrack->Modify();
+				ShotSection = Cast<UMovieSceneCinematicShotSection>(CinematicShotTrack->AddSequence(SequenceToAdd, ShotData.EditInTime, ShotData.EditOutTime - ShotData.EditInTime));
 			}
 
 			// Conform this shot section
@@ -384,18 +391,16 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 	return true;
 }
 
-bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory)
+bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveFilename)
 {
 	FString SequenceName = InMovieScene->GetOuter()->GetName();
-	FString SequencePath = InMovieScene->GetOuter()->GetPathName();
-	SequencePath = FPaths::GetPath(SequencePath);
+	FString SaveBasename = FPaths::GetPath(InSaveFilename) / FPaths::GetBaseFilename(InSaveFilename);
 
-	// Pop open a dialog to request the location of the edl (.edl, or .rv formats accepted)
 	TArray<FString> SaveFilenames;
-	if (!InSaveDirectory.IsEmpty())
+	if (!SaveBasename.IsEmpty())
 	{
-		SaveFilenames.Add(InSaveDirectory / SequenceName + TEXT(".rv"));
-		SaveFilenames.Add(InSaveDirectory / SequenceName + TEXT(".edl"));
+		SaveFilenames.Add(SaveBasename + TEXT(".rv"));
+		SaveFilenames.Add(SaveBasename + TEXT(".edl"));
 	}
 
 	TArray<FShotData> ShotDataArray;
@@ -410,7 +415,14 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 			for (auto ShotSection : CinematicShotTrack->GetAllSections())
 			{
 				UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(ShotSection);
-				
+
+				if ( CinematicShotSection->GetSequence() == nullptr )
+				{
+					// If the shot doesn't have a valid sequence skip it.  This is currently the case for filler sections.
+					// TODO: Handle this properly in the edl output.
+					continue;
+				}
+
 				FString ShotName = CinematicShotSection->GetShotDisplayName().ToString();
 				FString ShotPath = CinematicShotSection->GetSequence()->GetMovieScene()->GetOuter()->GetPathName();
 

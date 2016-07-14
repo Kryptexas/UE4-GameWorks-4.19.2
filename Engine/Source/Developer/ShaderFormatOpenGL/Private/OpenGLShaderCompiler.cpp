@@ -819,7 +819,8 @@ static void BuildShaderOutput(
 		BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.UnorderedAccessViewMap);
 	}
 
-	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
+	// Assume that GL4.3 targets support 32 samplers as we don't currently support separate sampler objects
+	const int32 MaxSamplers = (Version == GLSL_430) ? 32 : GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
 
 	if (Header.Bindings.NumSamplers > MaxSamplers)
 	{

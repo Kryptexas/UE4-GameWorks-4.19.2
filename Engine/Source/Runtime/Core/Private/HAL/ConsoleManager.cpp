@@ -1136,7 +1136,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 					Param2 = Param2.Mid(1, Param2.Len() - 2);
 				}
 				// this is assumed to be unintended e.g. copy and paste accident from ini file
-				if(Param2[0] == (TCHAR)'=')
+				if(Param2.Len() > 0 && Param2[0] == (TCHAR)'=')
 				{
 					Ar.Logf(TEXT("Warning: Processing the console input parameters the leading '=' is ignored (only needed for ini files)."));
 					Param2 = Param2.Mid(1, Param2.Len() - 1);
@@ -1954,13 +1954,12 @@ static TAutoConsoleVariable<int32> CVarUseDXT5NormalMaps(
 	// Changing this causes a full shader recompile
 	ECVF_ReadOnly);
 
-// Changing this is currently unsupported after content has been chunked with the previous setting
-// Changing this causes a full shader recompile
-static TAutoConsoleVariable<int32> CVarMaxGPUSkinBones(
-	TEXT("Compat.MAX_GPUSKIN_BONES"),
-	256,
-	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
-	ECVF_ReadOnly);
+static TAutoConsoleVariable<int32> CVarContactShadows(
+	TEXT("r.ContactShadows"),
+	1,
+	TEXT(" 0: disabled.\n")
+	TEXT(" 1: enabled.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarAllowStaticLighting(

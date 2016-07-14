@@ -25,12 +25,15 @@ enum class EWidgetBlendMode : uint8
 
 
 
+//@HSL_BEGIN - Colin.Pyle - 6-9-2016 - Giving WiddgetComponents the ability to be on multiple layers.
+
 /**
  * Beware! This feature is experimental and may be substantially changed or removed in future releases.
  * A 3D instance of a Widget Blueprint that can be interacted with in the world.
  */
-UCLASS(ClassGroup=Experimental, hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent,  DevelopmentStatus=Experimental) )
+UCLASS(Blueprintable, ClassGroup=Experimental, hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent,  DevelopmentStatus=Experimental) )
 class UMG_API UWidgetComponent : public UPrimitiveComponent
+//@HSL_END
 {
 	GENERATED_UCLASS_BODY()
 
@@ -335,6 +338,17 @@ protected:
 	bool bEditTimeUsable;
 
 protected:
+
+	//@HSL_BEGIN - Colin.Pyle - 6-9-2016 - Giving WiddgetComponents the ability to be on multiple layers.
+
+	/** Layer Name the widget will live on */
+	UPROPERTY(EditDefaultsOnly, Category = Layers)
+	FName SharedLayerName;
+
+	/** ZOrder the layer will be created on, note this only matters on the first time a new layer is created, subsequent additions to the same layer will use the initially defined ZOrder */
+	UPROPERTY(EditDefaultsOnly, Category = Layers)
+	int32 LayerZOrder;
+	//@HSL_END
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;

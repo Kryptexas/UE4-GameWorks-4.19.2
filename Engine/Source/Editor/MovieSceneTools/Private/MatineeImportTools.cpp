@@ -6,6 +6,7 @@
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpTrackColorProp.h"
 #include "Matinee/InterpTrackBoolProp.h"
 #include "Matinee/InterpTrackFloatBase.h"
@@ -217,6 +218,55 @@ bool FMatineeImportTools::CopyInterpColorTrack( UInterpTrackColorProp* ColorProp
 			FMatineeImportTools::SetOrAddKey( RedCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
 			FMatineeImportTools::SetOrAddKey( GreenCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
 			FMatineeImportTools::SetOrAddKey( BlueCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
+			SectionMin = FMath::Min( SectionMin, Point.InVal );
+			SectionMax = FMath::Max( SectionMax, Point.InVal );
+		}
+
+		Section->SetStartTime( SectionMin );
+		Section->SetEndTime( SectionMax );
+	}
+
+	return bSectionCreated;
+}
+
+
+bool FMatineeImportTools::CopyInterpLinearColorTrack( UInterpTrackLinearColorProp* LinearColorPropTrack, UMovieSceneColorTrack* ColorTrack )
+{
+	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeColorTrack", "Paste Matinee Linear Color Track" ) );
+	bool bSectionCreated = false;
+
+	ColorTrack->Modify();
+
+	float KeyTime = LinearColorPropTrack->GetKeyframeTime( 0 );
+	UMovieSceneColorSection* Section = Cast<UMovieSceneColorSection>( MovieSceneHelpers::FindSectionAtTime( ColorTrack->GetAllSections(), KeyTime ) );
+	if ( Section == nullptr )
+	{
+		Section = Cast<UMovieSceneColorSection>( ColorTrack->CreateNewSection() );
+		ColorTrack->AddSection( *Section );
+		Section->GetRedCurve().SetDefaultValue(0.f);
+		Section->GetGreenCurve().SetDefaultValue(0.f);
+		Section->GetBlueCurve().SetDefaultValue(0.f);
+		Section->GetAlphaCurve().SetDefaultValue(1.f);
+		Section->SetIsInfinite(true);
+		bSectionCreated = true;
+	}
+
+	if (Section->TryModify())
+	{
+		float SectionMin = Section->GetStartTime();
+		float SectionMax = Section->GetEndTime();
+
+		FRichCurve& RedCurve = Section->GetRedCurve();
+		FRichCurve& GreenCurve = Section->GetGreenCurve();
+		FRichCurve& BlueCurve = Section->GetBlueCurve();
+		FRichCurve& AlphaCurve = Section->GetAlphaCurve();
+
+		for ( const auto& Point : LinearColorPropTrack->LinearColorTrack.Points)
+		{
+			FMatineeImportTools::SetOrAddKey( RedCurve, Point.InVal, Point.OutVal.R, Point.ArriveTangent.R, Point.LeaveTangent.R, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( GreenCurve, Point.InVal, Point.OutVal.G, Point.ArriveTangent.G, Point.LeaveTangent.G, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( BlueCurve, Point.InVal, Point.OutVal.B, Point.ArriveTangent.B, Point.LeaveTangent.B, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( AlphaCurve, Point.InVal, Point.OutVal.A, Point.ArriveTangent.A, Point.LeaveTangent.A, Point.InterpMode );
 			SectionMin = FMath::Min( SectionMin, Point.InVal );
 			SectionMax = FMath::Max( SectionMax, Point.InVal );
 		}

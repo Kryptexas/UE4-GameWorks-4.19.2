@@ -13,7 +13,6 @@ namespace UnrealBuildTool.Rules
                     "Engine",
                     "ImageCore",
                     "Sockets",
-                    "OnlineSubSystemUtils",
                     "libWebSockets",
                     "zlib"
                 }

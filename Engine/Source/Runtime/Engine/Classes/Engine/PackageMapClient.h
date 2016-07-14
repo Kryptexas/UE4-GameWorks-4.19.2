@@ -25,14 +25,14 @@
 class FRepLayout;
 class FOutBunch;
 
-class ENGINE_API FCompatibleRepLayoutCmd
+class ENGINE_API FNetFieldExport
 {
 public:
-	FCompatibleRepLayoutCmd() : bExported( false ), Handle( 0 ), CompatibleChecksum( 0 ), bIncompatible( false )
+	FNetFieldExport() : bExported( false ), Handle( 0 ), CompatibleChecksum( 0 ), bIncompatible( false )
 	{
 	}
 
-	FCompatibleRepLayoutCmd( const uint32 InHandle, const uint32 InCompatibleChecksum, const FString InName, FString InType ) :
+	FNetFieldExport( const uint32 InHandle, const uint32 InCompatibleChecksum, const FString InName, FString InType ) :
 		bExported( false ),
 		Handle( InHandle ),
 		CompatibleChecksum( InCompatibleChecksum ),
@@ -42,7 +42,7 @@ public:
 	{
 	}
 
-	friend FArchive& operator<<( FArchive& Ar, FCompatibleRepLayoutCmd& C )
+	friend FArchive& operator<<( FArchive& Ar, FNetFieldExport& C )
 	{
 		uint8 Flags = C.bExported ? 1 : 0;
 
@@ -62,46 +62,58 @@ public:
 		return Ar;
 	}
 
-
-	bool		bExported;
-	uint32		Handle;
-	uint32		CompatibleChecksum;
-	FString		Name;
-	FString		Type;
+	bool			bExported;
+	uint32			Handle;
+	uint32			CompatibleChecksum;
+	FString			Name;
+	FString			Type;
 
 	// Transient properties
-	bool		bIncompatible;		// If true, we've already determined that this property isn't compatible. We use this to curb warning spam.
+	mutable bool	bIncompatible;		// If true, we've already determined that this property isn't compatible. We use this to curb warning spam.
 };
 
-class ENGINE_API FCompatibleRepLayout
+class ENGINE_API FNetFieldExportGroup
 {
 public:
-	FCompatibleRepLayout() : PathNameIndex( 0 ) { }
+	FNetFieldExportGroup() : PathNameIndex( 0 ) { }
 
-	FString								PathName;
-	uint32								PathNameIndex;
-	TArray< FCompatibleRepLayoutCmd >	Cmds;
+	FString						PathName;
+	uint32						PathNameIndex;
+	TArray< FNetFieldExport >	NetFieldExports;
 
-	friend FArchive& operator<<( FArchive& Ar, FCompatibleRepLayout& C )
+	friend FArchive& operator<<( FArchive& Ar, FNetFieldExportGroup& C )
 	{
 		Ar << C.PathName;
 
 		Ar.SerializeIntPacked( C.PathNameIndex );
 
-		uint32 NumCmds = C.Cmds.Num();
-		Ar.SerializeIntPacked( NumCmds );
+		uint32 NumNetFieldExports = C.NetFieldExports.Num();
+		Ar.SerializeIntPacked( NumNetFieldExports );
 
 		if ( Ar.IsLoading() )
 		{
-			C.Cmds.AddDefaulted( ( int32 )NumCmds );
+			C.NetFieldExports.AddDefaulted( ( int32 )NumNetFieldExports );
 		}
 
-		for ( int32 i = 0; i < C.Cmds.Num(); i++ )
+		for ( int32 i = 0; i < C.NetFieldExports.Num(); i++ )
 		{
-			Ar << C.Cmds[i];
+			Ar << C.NetFieldExports[i];
 		}
 
 		return Ar;
+	}
+
+	int32 FindNetFieldExportHandleByChecksum( const uint32 Checksum )
+	{
+		for ( int32 i = 0; i < NetFieldExports.Num(); i++ )
+		{
+			if ( NetFieldExports[i].CompatibleChecksum == Checksum )
+			{
+				return i;
+			}
+		}
+
+		return -1;
 	}
 };
 
@@ -177,22 +189,30 @@ public:
 
 	ENetworkChecksumMode							NetworkChecksumMode;
 
-	/** Maps FRepLayout class owner to the respective FCompatibleRepLayout */
-	TMap < FString, TSharedPtr< FCompatibleRepLayout > >	CompatibleRepLayoutMap;
+	/** Maps net field export group name to the respective FNetFieldExportGroup */
+	TMap < FString, TSharedPtr< FNetFieldExportGroup > >	NetFieldExportGroupMap;
 
-	/** Maps rep layout path to assigned index */
-	TMap < FString, uint32 >								CompatibleRepLayoutPathToIndex;
+	/** Maps field export group path to assigned index */
+	TMap < FString, uint32 >								NetFieldExportGroupPathToIndex;
 
-	/** Maps rep layout index to assigned path */
-	TMap < uint32, FString >								CompatibleRepLayoutIndexToPath;
+	/** Maps assigned net field export group index to assigned path */
+	TMap < uint32, FString >								NetFieldExportGroupIndexToPath;
 
-	/** Current index used when filling in CompatibleRepLayoutPathToIndex/CompatibleRepLayoutIndexToPath */
-	int32													UniqueCompatibleRepLayoutPathIndex;
+	/** Current index used when filling in NetFieldExportGroupPathToIndex/NetFieldExportGroupIndexToPath */
+	int32													UniqueNetFieldExportGroupPathIndex;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// History for debugging entries in the guid cache
 	TMap<FNetworkGUID, FString>						History;
 #endif
+};
+
+class ENGINE_API FPackageMapAckState
+{
+public:
+	TMap< FNetworkGUID, int32 >	NetGUIDAckStatus;				// Map that represents the ack state of each net guid for this connection
+	TMap< uint32, bool >		NetFieldExportGroupPathAcked;	// Map that represents whether or not a net field export group has been ack'd by the client
+	TMap< uint64, bool >		NetFieldExportAcked;			// Map that represents whether or not a net field export has been ack'd by the client
 };
 
 UCLASS(transient)
@@ -259,17 +279,21 @@ public:
 
 	void SyncPackageMapExportAckStatus( const UPackageMapClient* Source );
 
-	/** Functions to help with exporting/importing replayout property info */
-	TSharedPtr< FCompatibleRepLayout >	TrackCompatibleRepLayout( const FRepLayout* RepLayout );
-	void								TrackCompatibleRepLayoutCmd( const FRepLayout* RepLayout, FCompatibleRepLayout* CompatibleRepLayout, const int32 CmdIndex );
-	TSharedPtr< FCompatibleRepLayout >	GetCompatibleRepLayoutChecked( UObject* Owner ) const;
-	void								SerializeCompatibleReplayoutMap( FArchive& Ar );
+	void SavePackageMapExportAckStatus( FPackageMapAckState& OutState );
+	void RestorePackageMapExportAckStatus( const FPackageMapAckState& InState );
+
+	/** Functions to help with exporting/importing net field info */
+	TSharedPtr< FNetFieldExportGroup >	GetNetFieldExportGroup( const FString& PathName );
+	void								AddNetFieldExportGroup( const FString& PathName, TSharedPtr< FNetFieldExportGroup > NewNetFieldExportGroup );
+	void								TrackNetFieldExport( FNetFieldExportGroup* NetFieldExportGroup, const int32 NetFieldExportHandle );
+	TSharedPtr< FNetFieldExportGroup >	GetNetFieldExportGroupChecked( const FString& PathName ) const;
+	void								SerializeNetFieldExportGroupMap( FArchive& Ar );
 
 protected:
 
-	/** Functions to help with exporting/importing replayout property info */
-	void								AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& OutgoingBunches );
-	void								ReceiveCompatibleRepLayoutExports( FInBunch &InBunch );
+	/** Functions to help with exporting/importing net field export info */
+	void								AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunches );
+	void								ReceiveNetFieldExports( FInBunch &InBunch );
 
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject* Object, FString PathName, UObject* ObjOuter );
 	void	ExportNetGUIDHeader();
@@ -289,8 +313,9 @@ protected:
 
 	TSet< FNetworkGUID >				CurrentExportNetGUIDs;				// Current list of NetGUIDs being written to the Export Bunch.
 
-	TMap< FNetworkGUID, int32 >			NetGUIDAckStatus;
 	TArray< FNetworkGUID >				PendingAckGUIDs;					// Quick access to all GUID's that haven't been acked
+
+	FPackageMapAckState					AckState;
 
 	// Bunches of NetGUID/path tables to send with the current content bunch
 	TArray<FOutBunch* >					ExportBunches;
@@ -302,9 +327,6 @@ protected:
 
 	TArray< FNetworkGUID >				MustBeMappedGuidsInLastBunch;
 
-	/** List of rep layout cmd exports that need to go out on next bunch */
-	TSet< uint64 >						CompatibleRepLayoutCmdExports;
-
-	TMap < uint32, bool >									CompatibleRepLayoutPathExported;
-	TMap < uint64, bool >									CompatibleRepLayoutCmdExported;
+	/** List of net field exports that need to go out on next bunch */
+	TSet< uint64 >						NetFieldExports;
 };

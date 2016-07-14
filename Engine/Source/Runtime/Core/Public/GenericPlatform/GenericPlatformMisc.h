@@ -610,6 +610,17 @@ public:
 	}
 
 	/**
+	* Checks if platform wants to allow an audio thread on current device (note: does not imply it will, only if okay given other criteria met)
+	*
+	* @return true if allowed, false if shouldn't use a separate audio thread
+	*/
+	static bool AllowAudioThread()
+	{
+		// allow if not overridden
+		return true;
+	}
+
+	/**
 	 * Checks if platform wants to allow the thread heartbeat hang detection
 	 *
 	 * @return true if allows, false if shouldn't allow thread heartbeat hang detection

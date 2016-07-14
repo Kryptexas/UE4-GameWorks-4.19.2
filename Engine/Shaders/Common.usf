@@ -11,7 +11,7 @@
 	// always #include PS4Common.usf so it can #define override anything in any other included file.
 	#include "PS4/PS4Common.usf"
 #endif
-
+ 
 #if XBOXONE_PROFILE
 	#define STENCIL_COMPONENT_SWIZZLE .x
 #endif
@@ -965,6 +965,9 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 	return float2(OffsetNDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz);
 }
 
+Texture2D		SceneColorCopyTexture;
+SamplerState	SceneColorCopyTextureSampler;
+
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 {
@@ -972,11 +975,16 @@ float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 	// Hit proxies rendering pass doesn't have access to valid render buffers
 	return float3(0.0f, 0.0f, 0.0f);
 #else
-	float4 EncodedSceneColor = Texture2DSample(LightAttenuationTexture, LightAttenuationTextureSampler, ScreenUV);
+	float4 EncodedSceneColor = Texture2DSample(SceneColorCopyTexture, SceneColorCopyTextureSampler, ScreenUV);
 
 	// Undo the function in EncodeSceneColorForMaterialNode
 	return pow(EncodedSceneColor.rgb, 4) * 10;
 #endif
+}
+
+float4 GetPerPixelLightAttenuation(float2 UV)
+{
+	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
 }
 
 // also see ConvertToDeviceZ()
@@ -1270,7 +1278,7 @@ float AntialiasedTextureMask( Texture2D Tex, SamplerState Sampler, float2 UV, fl
 	return Result;
 }
 
-float Noise3D_Multiplexer(int Function, float3 Position)
+float Noise3D_Multiplexer(int Function, float3 Position, bool bTiling, uint RepeatSize)
 {
 	// verified, HLSL compiled out the switch if Function is a constant
 	switch(Function)
@@ -1278,22 +1286,20 @@ float Noise3D_Multiplexer(int Function, float3 Position)
 		case 0:
 			return SimplexNoise3D_TEX(Position);
 		case 1:
-			return GradientNoise3D_TEX(Position);
+			return GradientNoise3D_TEX(Position, bTiling, RepeatSize);
 		case 2:
-			return PerlinNoise3D_ALU(Position);
-		case 3:
 			return FastGradientPerlinNoise3D_TEX(Position);
-
-		// currently not accessible through UI
+		case 3:
+			return GradientNoise3D_ALU(Position, bTiling, RepeatSize);
 		default:
-			return ComputeRandomFrom3DPosition((int3)Position).x;
+			return ValueNoise3D_ALU(Position, bTiling, RepeatSize);
 	}
 	return 0;
 }
 
 // @param LevelScale usually 2 but higher values allow efficient use of few levels
 // @return in user defined range (OutputMin..OutputMax)
-float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth)
+float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth, bool bTiling, float RepeatSize)
 {
 	Position *= Scale;
 	FilterWidth *= Scale;
@@ -1309,14 +1315,15 @@ float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Fun
 
 		if(bTurbulence)
 		{
-			Out += abs(Noise3D_Multiplexer(Function, Position)) * OutScale;
+			Out += abs(Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize)) * OutScale;
 		}
 		else
 		{
-			Out += Noise3D_Multiplexer(Function, Position) * OutScale;
+			Out += Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize) * OutScale;
 		}
 
 		Position *= LevelScale;
+		RepeatSize *= LevelScale;
 		OutScale *= InvLevelScale;
 		FilterWidth *= LevelScale;
 	}
@@ -1436,6 +1443,23 @@ float3 TransformWorldVectorToView(float3 InTangentVector)
 MaterialFloat GetBoxPushout(MaterialFloat3 Normal,MaterialFloat3 Extent)
 {
 	return dot(abs(Normal * Extent), MaterialFloat3(1.0f, 1.0f, 1.0f));
+}
+
+/** Generates arbitrary but valid perpendicular unit vectors to ZAxis.  ZAxis should be unit length. */
+void GenerateCoordinateSystem(float3 ZAxis, out float3 XAxis, out float3 YAxis)
+{
+	if (abs(ZAxis.x) > abs(ZAxis.y))
+	{
+		float InverseLength = 1.0f / sqrt(dot(ZAxis.xz, ZAxis.xz));
+		XAxis = float3(-ZAxis.z * InverseLength, 0.0f, ZAxis.x * InverseLength);
+	}
+	else
+	{
+		float InverseLength = 1.0f / sqrt(dot(ZAxis.yz, ZAxis.yz));
+		XAxis = float3(0.0f, ZAxis.z * InverseLength, -ZAxis.y * InverseLength);
+	}
+
+	YAxis = cross(ZAxis, XAxis);
 }
 
 // Define passthrough implementations of EvaluateAttributeAtSample for non-D3D11 platforms.

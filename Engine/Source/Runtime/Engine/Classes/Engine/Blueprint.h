@@ -45,7 +45,7 @@ enum EBlueprintType
 	BPTYPE_Interface			UMETA(DisplayName="Blueprint Interface"),
 	/** Blueprint that handles level scripting. */
 	BPTYPE_LevelScript			UMETA(DisplayName="Level Blueprint"),
-	/** Blueprint that servers as a container for functions to be used in other blueprints. */
+	/** Blueprint that serves as a container for functions to be used in other blueprints. */
 	BPTYPE_FunctionLibrary		UMETA(DisplayName="Blueprint Function Library"),
 
 	BPTYPE_MAX,
@@ -326,6 +326,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=ClassOptions, AdvancedDisplay)
 	uint32 bGenerateConstClass : 1;
 
+	/** Whether or not this blueprint's class is a abstract class or not.  Should set CLASS_Abstract in the KismetCompiler. */
+	UPROPERTY(EditAnywhere, Category = ClassOptions, AdvancedDisplay)
+	uint32 bGenerateAbstractClass : 1;
+
 	/**shows up in the content browser when the blueprint is hovered */
 	UPROPERTY(EditAnywhere, Category=BlueprintOptions, meta=(MultiLine=true))
 	FString BlueprintDescription;
@@ -451,7 +455,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	TArray<class UBreakpoint*> Breakpoints;
 
 	UPROPERTY()
-	TArray<class UEdGraphPin*> PinWatches;
+	TArray<FEdGraphPinReference> WatchedPins;
+
+	UPROPERTY()
+	TArray<class UEdGraphPin_Deprecated*> DeprecatedPinWatches;
 #endif // WITH_EDITORONLY_DATA
 
 public:

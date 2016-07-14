@@ -2250,7 +2250,7 @@ bool FAssetContextMenu::CanExecuteDuplicate() const
 			continue;
 		}
 
-		if (AssetData.AssetClass == NAME_Class || AssetData.AssetClass == UWorld::StaticClass()->GetFName())
+		if (AssetData.AssetClass == NAME_Class)
 		{
 			return false;
 		}

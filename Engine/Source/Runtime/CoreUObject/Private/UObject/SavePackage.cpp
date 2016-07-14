@@ -42,6 +42,7 @@ namespace SavePackageStats
 	static double SerializeExportsTimeSec = 0.0;
 	static double SerializeBulkDataTimeSec = 0.0;
 	static double AsyncWriteTimeSec = 0.0;
+	static double MBWritten = 0.0;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> PackageClassSerializeTimes;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> TagExportSerializeTimes;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> ClassPreSaveTimes;
@@ -63,6 +64,7 @@ namespace SavePackageStats
 		ADD_COOK_STAT(SerializeExportsTimeSec);
 		ADD_COOK_STAT(SerializeBulkDataTimeSec);
 		ADD_COOK_STAT(AsyncWriteTimeSec);
+		ADD_COOK_STAT(MBWritten);
 		#undef ADD_COOK_STAT
 
 		AddStat(TEXT("Package.Save"), StatsList);
@@ -319,13 +321,15 @@ struct FLargeMemoryDelete
 
 typedef TUniquePtr<uint8, FLargeMemoryDelete> FLargeMemoryPtr;
 
-void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Filename, const FDateTime& TimeStamp)
+void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Filename, const FDateTime& TimeStamp, bool bUseTempFilename = true)
 {
 	class FAsyncWriteWorker : public FNonAbandonableTask
 	{
 	public:
 		/** Filename To write to**/
 		FString Filename;
+		/** Should we write to a temp file then move it */
+		bool bUseTempFilename;
 		/** Data for the file. Will be freed after write **/
 		FLargeMemoryPtr Data;
 		/** Size of data */
@@ -335,8 +339,9 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 
 		/** Constructor
 		*/
-		FAsyncWriteWorker(const TCHAR* InFilename, FLargeMemoryPtr InData, const int64 InDataSize, const FDateTime& InTimeStamp)
+		FAsyncWriteWorker(const TCHAR* InFilename, FLargeMemoryPtr InData, const int64 InDataSize, const FDateTime& InTimeStamp, bool inbUseTempFilename)
 			: Filename(InFilename)
+			, bUseTempFilename(inbUseTempFilename)
 			, Data(MoveTemp(InData))
 			, DataSize(InDataSize)
 			, FinalTimeStamp(InTimeStamp)
@@ -348,9 +353,17 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 		{
 			check(DataSize);
 			FString TempFilename; 
-			TempFilename = FPaths::GetBaseFilename(Filename, false);
-			TempFilename += TEXT(".t");
-
+			
+			if ( bUseTempFilename )
+			{
+				TempFilename = FPaths::GetBaseFilename(Filename, false);
+				TempFilename += TEXT(".t");
+			}
+			else
+			{
+				TempFilename = Filename;
+			}
+			
 			// Open a file writer for saving
 			FArchive* Ar = IFileManager::Get().CreateFileWriter(*TempFilename);
 			if (Ar)
@@ -363,16 +376,23 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 
 				if (IFileManager::Get().FileSize(*TempFilename) == DataSize)
 				{
-					if (!IFileManager::Get().Move(*Filename, *TempFilename, true, true, false, false))
+					if ( bUseTempFilename )
 					{
-						UE_LOG(LogSavePackage, Fatal, TEXT("Could not move to %s."),*Filename);
-					}
-					else
-					{
-						if (FinalTimeStamp != FDateTime::MinValue())
+						if( !IFileManager::Get().Move(*Filename, *TempFilename, true, true, false, false))
 						{
-							IFileManager::Get().SetTimeStamp(*Filename, FinalTimeStamp);
+							UE_LOG(LogSavePackage, Fatal, TEXT("Could not move to %s."),*Filename);
 						}
+
+						// if everything worked, this is not necessary, but we will make every effort to avoid leaving junk in the cache
+						if (FPaths::FileExists(TempFilename))
+						{
+							IFileManager::Get().Delete(*TempFilename);
+						}
+					}
+
+					if (FinalTimeStamp != FDateTime::MinValue())
+					{
+						IFileManager::Get().SetTimeStamp(*Filename, FinalTimeStamp);
 					}
 				}
 				else
@@ -384,11 +404,7 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 			{
 				UE_LOG(LogSavePackage, Fatal, TEXT("Could not write to %s!"),*TempFilename);
 			}
-			// if everything worked, this is not necessary, but we will make every effort to avoid leaving junk in the cache
-			if (FPaths::FileExists(TempFilename))
-			{
-				IFileManager::Get().Delete(*TempFilename);
-			}
+			
 			OutstandingAsyncWrites.Decrement();
 		}
 
@@ -400,7 +416,7 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 	};
 
 	OutstandingAsyncWrites.Increment();
-	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Filename, MoveTemp(Data), DataSize, TimeStamp))->StartBackgroundTask();
+	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Filename, MoveTemp(Data), DataSize, TimeStamp, bUseTempFilename))->StartBackgroundTask();
 }
 
 /** 
@@ -4643,6 +4659,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 				SlowTask.EnterProgressFrame(1, NSLOCTEXT("Core", "SerializingBulkData", "Serializing bulk data"));
 
+				COOK_STAT(uint64 TotalPackageSizeUncompressed = 0);
+
 				// now we write all the bulkdata that is supposed to be at the end of the package
 				// and fix up the offset
 				int64 StartOfBulkDataArea = Linker->Tell();
@@ -4672,11 +4690,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 					const bool bShouldUseSeparateBulkFile = ShouldUseSeperateBulkDataFiles.bEnable && Linker->IsCooking();
 
+					const FString BulkFilename = FPaths::ChangeExtension(Filename, TEXT(".ubulk"));
+
 					if (bShouldUseSeparateBulkFile)
 					{
-						FString BulkFilename = FPaths::ChangeExtension(Filename, TEXT(".ubulk"));
-						TargetArchive = BulkArchive = IFileManager::Get().CreateFileWriter(*BulkFilename);
-						ExtraBulkDataFlags = BULKDATA_PayloadInSeperateFile;
+						if ( bSaveAsync )
+						{
+							ExtraBulkDataFlags = BULKDATA_PayloadInSeperateFile;
+							TargetArchive = BulkArchive = new FBufferArchive(true);
+						}
+						else
+						{
+							TargetArchive = BulkArchive = IFileManager::Get().CreateFileWriter(*BulkFilename);
+							ExtraBulkDataFlags = BULKDATA_PayloadInSeperateFile;
+						}
 					}
 
 					for (int32 i=0; i < Linker->BulkDataToAppend.Num(); ++i)
@@ -4721,6 +4748,25 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					if (BulkArchive)
 					{
 						BulkArchive->Close();
+						COOK_STAT(TotalPackageSizeUncompressed += BulkArchive->TotalSize());
+						if ( bSaveAsync )
+						{
+							FBufferArchive* BulkBuffer = (FBufferArchive*)(BulkArchive);
+
+							int64 DataSize = BulkBuffer->TotalSize();
+
+							// TODO - update the BulkBuffer code to write into a FLargeMemoryWriter so we can 
+							// take ownership of the data
+							uint8* Data = new uint8[DataSize];
+							FMemory::Memcpy(Data, BulkBuffer->GetData(), DataSize);							
+
+							FLargeMemoryPtr DataPtr = FLargeMemoryPtr(Data);
+		
+							if ( BulkBuffer->Num() > 0 )
+							{
+								AsyncWriteFile(MoveTemp(DataPtr), DataSize, *BulkFilename, FDateTime::MinValue(), false);
+							}
+						}
 						delete BulkArchive;
 					}
 				}
@@ -4867,6 +4913,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								ExportSizes.Add(Linker->ExportMap[I].SerialSize);
 							}
+							
+							COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+							
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
 							FLargeMemoryPtr DataPtr = FLargeMemoryPtr(Writer->GetData());
@@ -4879,6 +4928,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing from memory to '%s'"), *NewPath );
 						FFileCompressionHelper CompressionHelper;
+						COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
 						Success = CompressionHelper.CompressFile( *NewPath, Linker );
 						// Detach archive used for memory saving.
 						if( Linker )
@@ -4891,6 +4941,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
+						COOK_STAT(TotalPackageSizeUncompressed += IFileManager::Get().FileSize(*TempFilename));
 						Success = CompressionHelper.CompressFile( *TempFilename, *NewPath, Linker );
 					}
 					// Fully compress package in one "block".
@@ -4908,6 +4959,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						if( Linker )
 						{
 							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
+							COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+														
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
 							FLargeMemoryPtr DataPtr(Writer->GetData());
@@ -5004,7 +5057,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					// Delete the temporary file.
 					IFileManager::Get().Delete( *TempFilename );
 				}
-
+				COOK_STAT(SavePackageStats::MBWritten += TotalPackageSizeUncompressed);
 
 				SlowTask.EnterProgressFrame();
 			}

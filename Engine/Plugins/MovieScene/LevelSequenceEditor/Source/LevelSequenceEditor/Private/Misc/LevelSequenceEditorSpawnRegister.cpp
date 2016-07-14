@@ -115,12 +115,11 @@ void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(const FGuid& B
 	}
 
 	// Find the spawnable definition
-	UMovieScene* OwnerMovieScene = SequenceInstance.GetSequence()->GetMovieScene();
-	FMovieSceneSpawnable* Spawnable = OwnerMovieScene->FindSpawnable(BindingId);
+	FMovieSceneSpawnable* Spawnable = SequenceInstance.GetSequence()->GetMovieScene()->FindSpawnable(BindingId);
 	if (Spawnable)
 	{
 		SequenceInstance.RestoreSpecificState(BindingId, *Sequencer);
-		Spawnable->CopyObjectTemplate(*Object, *OwnerMovieScene);
+		Spawnable->CopyObjectTemplate(*Object, *SequenceInstance.GetSequence());
 	}
 }
 

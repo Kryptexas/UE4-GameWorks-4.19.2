@@ -83,9 +83,9 @@ void FixSubObjectReferencesPostUndoRedo(UObject* InObject)
 	GetObjectsWithOuter(InObject, SubObjects, false);
 
 	// Post undo/redo, these may have the in-correct Outer but are incorrectly referenced by the CDO's UProperties
-	TSet<UObject*> PropertySubObjectReferences;
+	TSet<FInstancedSubObjRef> PropertySubObjectReferences;
 	UClass* ObjectClass = InObject->GetClass();
-	FFindInstancedReferenceSubobjectHelper::Get(ObjectClass, reinterpret_cast<uint8*>(InObject), PropertySubObjectReferences);
+	FFindInstancedReferenceSubobjectHelper::GetInstancedSubObjects(InObject, PropertySubObjectReferences);
 
 	TMap<UObject*, UObject*> OldToNewInstanceMap;
 	for (UObject* PropertySubObject : PropertySubObjectReferences)
@@ -224,7 +224,6 @@ void FBlueprintEditorModule::StartupModule()
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 	}
-
 }
 
 void FBlueprintEditorModule::ShutdownModule()
@@ -261,6 +260,8 @@ void FBlueprintEditorModule::ShutdownModule()
 
 	// Unregister internal SCS editor customizations
 	UnregisterSCSEditorCustomization("InstancedStaticMeshComponent");
+
+	UEdGraphPin::ShutdownVerification();
 }
 
 

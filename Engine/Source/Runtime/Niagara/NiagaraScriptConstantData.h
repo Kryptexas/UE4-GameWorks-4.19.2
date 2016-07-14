@@ -34,16 +34,14 @@ struct FNiagaraScriptConstantData
 	FNiagaraConstants& GetExternalConstants(){ return ExternalConstantsNew; }
 
 	/** Fill a constants table ready for use in an update or spawn. */
-	void FillConstantTable(const FNiagaraConstantMap& ExternalConstantsMap, TArray<FVector4>& OutConstantTable, TArray<UNiagaraDataObject *> &DataObjTable) const
+	void FillConstantTable(const FNiagaraConstantMap& ExternalConstantsMap, TArray<FVector4>& OutConstantTable) const
 	{
 		//First up in the table comes the External constants in scalar->vector->matrix order.
 		//Only fills the constants actually used by the script.
 		OutConstantTable.Empty();
 		ExternalConstantsNew.AppendToConstantsTable(OutConstantTable, ExternalConstantsMap);
-		ExternalConstantsNew.AppendExternalBufferConstants(DataObjTable, ExternalConstantsMap);
 		//Next up add all the internal constants from the script.
 		InternalConstantsNew.AppendToConstantsTable(OutConstantTable);
-		InternalConstantsNew.AppendBufferConstants(DataObjTable);
 	}
 
 	template<typename T>
@@ -79,13 +77,6 @@ struct FNiagaraScriptConstantData
 			{
 				ConstIdx = Consts.GetTableIndex_Matrix(Constant);
 				Type = ENiagaraDataType::Matrix;
-
-				if (ConstIdx == INDEX_NONE)	// curves/buffers are in a separate table, so set base to 0
-				{
-					ConstIdx = Consts.GetTableIndex_DataObj(Constant);
-					Type = ENiagaraDataType::Curve;
-					Base = 0;
-				}
 			}
 		}
 

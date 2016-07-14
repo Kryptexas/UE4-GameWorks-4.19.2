@@ -8057,19 +8057,6 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 			SoundInst->PlayAudioComp->Stop();
 			bPlaying = false;
 		}
-		else
-		{
-			FAudioDevice* AudioDevice = SoundInst->PlayAudioComp->GetAudioDevice();
-			if (AudioDevice)
-			{
-				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(SoundInst->PlayAudioComp);
-				if (ActiveSound && FMath::Abs(NewPosition - (ActiveSound->RequestedStartTime + ActiveSound->PlaybackTime)) > 0.f)
-				{
-					SoundInst->PlayAudioComp->Stop();
-					bPlaying = false;
-				}
-			}
-		}
 	}
 
 

@@ -6,8 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "OnlineSubsystemUtils.h"
-#include "OnlineSubsystemTypes.h"
+#include "Net/OnlineEngineInterface.h"
 #include "Net/NetworkProfiler.h"
 #include "Engine/VoiceChannel.h"
 
@@ -29,26 +28,22 @@ void UVoiceChannel::ReceivedBunch(FInBunch& Bunch)
 {
 	if (Connection->Driver && Connection->Driver->World)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(Connection->Driver->World);
-		if (VoiceInt.IsValid())
+		while (!Bunch.AtEnd())
 		{
-			while (!Bunch.AtEnd())
+			// Give the data to the local voice processing
+			TSharedPtr<FVoicePacket> VoicePacket = UOnlineEngineInterface::Get()->SerializeRemotePacket(Connection->Driver->World, Bunch);
+			if (VoicePacket.IsValid())
 			{
-				// Give the data to the local voice processing
-				TSharedPtr<FVoicePacket> VoicePacket = VoiceInt->SerializeRemotePacket(Bunch);
-				if (VoicePacket.IsValid())
+				if (Connection->Driver->ServerConnection == NULL)
 				{
-					if (Connection->Driver->ServerConnection == NULL)
-					{
-						// Possibly replicate the data to other clients
-						Connection->Driver->ReplicateVoicePacket(VoicePacket, Connection);
-					}
-#if STATS
-					// Increment the number of voice packets we've received
-					Connection->Driver->VoicePacketsRecv++;
-					Connection->Driver->VoiceBytesRecv += VoicePacket->GetBufferSize();
-#endif
+					// Possibly replicate the data to other clients
+					Connection->Driver->ReplicateVoicePacket(VoicePacket, Connection);
 				}
+#if STATS
+				// Increment the number of voice packets we've received
+				Connection->Driver->VoicePacketsRecv++;
+				Connection->Driver->VoiceBytesRecv += VoicePacket->GetBufferSize();
+#endif
 			}
 		}
 	}
@@ -144,7 +139,7 @@ void UVoiceChannel::AddVoicePacket(TSharedPtr<FVoicePacket> VoicePacket)
 		VoicePackets.Add(VoicePacket);
 
 		UE_LOG(LogNet, VeryVerbose, TEXT("AddVoicePacket: %s [%s] to=%s from=%s"),
-			Connection->PlayerId.IsValid() ? *Connection->PlayerId->ToDebugString() : TEXT("NULL"),	// Currently, the server's PlayerId is NULL, so we need to check for this
+			*Connection->PlayerId.ToDebugString(),
 			*Connection->Driver->GetDescription(),
 			*Connection->LowLevelDescribe(),
 			*VoicePacket->GetSender()->ToDebugString());

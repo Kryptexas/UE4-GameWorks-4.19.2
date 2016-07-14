@@ -754,12 +754,6 @@ namespace UnrealBuildTool
 
 			LinkAction.StatusDescription = string.Format("{0}", OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
-/*			// For iPhone, generate the dSYM file if the config file is set to do so
-			if (BuildConfiguration.bGeneratedSYMFile == true && Path.GetExtension(OutputFile.AbsolutePath) != ".a")
-			{
-				Log.TraceInformation("Generating the dSYM file - this will add some time to your build...");
-				RemoteOutputFile = GenerateDebugInfo(RemoteOutputFile);
-			}*/
 
 			LinkAction.CommandPath = "sh";
 			if(LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping && Path.GetExtension(RemoteOutputFile.AbsolutePath) != ".a")
@@ -844,7 +838,6 @@ namespace UnrealBuildTool
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
 			string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM");
-			string FullDestPath = FullDestPathRoot;
 
             FileItem OutputFile;
             OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
@@ -859,9 +852,19 @@ namespace UnrealBuildTool
 
 			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
-			GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
+			if(BuildConfiguration.bGeneratedSYMBundle)
+			{
+				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{1}\"; /usr/bin/dsymutil \"{0}\" -o \"{1}\"; cd \"{1}/..\"; zip -r -y -1 {2}.zip {2}'",
 					Executable.AbsolutePath,
-					DestFile.AbsolutePath);
+                    DestFile.AbsolutePath,
+					Path.GetFileName(FullDestPathRoot));
+			}
+			else
+			{
+				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{1}\"; /usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
+						Executable.AbsolutePath,
+						DestFile.AbsolutePath);
+			}
 			GenDebugAction.PrerequisiteItems.Add(Executable);
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
@@ -1120,7 +1123,7 @@ namespace UnrealBuildTool
             }
 
             // For IOS/tvOS, generate the dSYM file if the config file is set to do so
-            if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
+			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bGeneratedSYMBundle == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
             {
                 OutputFiles.Add(GenerateDebugInfo(Executable));
             }
@@ -1196,7 +1199,7 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
 						// ensure the plist, entitlements, and provision files are properly copied
-						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project)) : new UEDeployTVOS(new FileReference(Project)));
 						DeployHandler.PrepTargetForDeployment(Target);
 
 						var ConfigName = Target.Configuration.ToString();
@@ -1311,9 +1314,17 @@ namespace UnrealBuildTool
 					{
 						RPCUtilHelper.CopyFile(RemoteExecutablePath, FilePath.FullName, false);
 
-						if (BuildConfiguration.bGeneratedSYMFile == true && Path.GetExtension(FilePath.FullName) != ".a")
+						if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bGeneratedSYMBundle == true) && Path.GetExtension(FilePath.FullName) != ".a")
 						{
-							string DSYMExt = ".dSYM";
+							string DSYMExt;
+							if(BuildConfiguration.bGeneratedSYMBundle)
+							{
+								DSYMExt = ".dSYM.zip";
+							}
+							else
+							{
+								DSYMExt = ".dSYM";
+							}
 							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath.FullName + DSYMExt, false);
 						}
 					}
@@ -1323,7 +1334,7 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
-					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile) : new UEDeployTVOS(Target.ProjectFile));
 					DeployHandler.PrepTargetForDeployment(Target);
 
 					if (!bUseDangerouslyFastMode)

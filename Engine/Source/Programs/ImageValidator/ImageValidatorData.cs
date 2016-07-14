@@ -37,7 +37,7 @@ namespace ImageValidator
             // blue, green, red, alpha
             public byte b, g, r, a;
 
-            public void SetErrorColor()
+            public void SetErrorColor(float squaredError)
             {
                 // opaque
                 a = 0xff;
@@ -45,8 +45,12 @@ namespace ImageValidator
                 r = 0xff;
                 g = 0;
                 b = 0;
+
+                g = (byte)(Math.Min(0xff, squaredError / 8));
+                b = (byte)(Math.Min(0xff, squaredError / 64));
             }
 
+            /*
             public void SetErrorColor(float squaredError)
             {
                 a = 0xff;
@@ -62,6 +66,7 @@ namespace ImageValidator
                 g = (byte)(Math.Min(0xff, squaredError / 8));
                 b = (byte)(Math.Min(0xff, squaredError / 64));
             }
+            */
 
             public static float ComputeSquaredError(PixelElement Test, PixelElement Ref)
             {
@@ -116,8 +121,8 @@ namespace ImageValidator
 
         public void Process(ImageValidatorSettings settings, ImageValidatorData.ImageEntry imageEntry)
         {
-            if (imageTest != null) imageTest.Dispose();
-            if (imageRef != null) imageRef.Dispose();
+            if (imageTest != null) { imageTest.Dispose(); imageTest = null; }
+            if (imageRef != null) { imageRef.Dispose(); imageRef = null; }
 
             imageTest = LoadBitmap(settings.TestDir + imageEntry.Name);
             imageRef = LoadBitmap(settings.RefDir + imageEntry.Name);
@@ -177,7 +182,11 @@ namespace ImageValidator
         // compute imageDiff from imageTest and imageRef
         public TestResult ComputeDiff(uint Threshold)
         {
-            if (imageDiff != null) imageDiff.Dispose();
+            if (imageDiff != null)
+            {
+                imageDiff.Dispose();
+                imageDiff = null;
+            }
 
             TestResult Ret = new TestResult();
             if (imageTest == null)
@@ -235,7 +244,7 @@ namespace ImageValidator
                         {
                             ++CountedErrorPixels;
                             //                            valueDiff->SetErrorColor(PixelElement.ComputeSquaredError(*valueTest, *valueRef));
-                            valueDiff->SetErrorColor();
+                            valueDiff->SetErrorColor(localError);
                             //                            *valueDiff = *valueRef;
                         }
                     }
@@ -385,13 +394,20 @@ namespace ImageValidator
                 ImageValidatorData.ImageEntryColumnData columnThis = new ImageValidatorData.ImageEntryColumnData(Name);
                 ImageValidatorData.ImageEntryColumnData columnRhs = new ImageValidatorData.ImageEntryColumnData(rhs.Name);
 
-                float timeThis = float.Parse(columnThis.Time);
-                float timeRhs = float.Parse(columnRhs.Time);
+                try
+                {
+                    float timeThis = float.Parse(columnThis.Time);
+                    float timeRhs = float.Parse(columnRhs.Time);
 
-                int x = timeThis.CompareTo(timeRhs);
+                    int x = timeThis.CompareTo(timeRhs);
 
-                if(x != 0)
-                    return x;
+                    if(x != 0)
+                        return x;
+                }
+                catch (Exception)
+                {
+                    // if time is not part of the name we cannot sort by it
+                }
 
                 return Name.CompareTo(rhs.Name);
             }

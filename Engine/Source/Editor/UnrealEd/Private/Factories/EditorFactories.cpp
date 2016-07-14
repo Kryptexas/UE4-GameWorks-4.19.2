@@ -111,6 +111,8 @@
 #include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Sound/SoundNodeDialoguePlayer.h"
+#include "Factories/CanvasRenderTarget2DFactoryNew.h"
+#include "ImageUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -1652,12 +1654,12 @@ UObject* USoundFactory::FactoryCreateBinary
 		// if the sound already exists, remember the user settings
 		USoundWave* ExistingSound = FindObject<USoundWave>( InParent, *Name.ToString() );
 
-		// TODO - Audio Threading. This needs to be sent to the audio device and wait on stopping the sounds
 		TArray<UAudioComponent*> ComponentsToRestart;
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 		if (AudioDeviceManager && ExistingSound)
 		{
-			AudioDeviceManager->StopSoundsUsingResource(ExistingSound, ComponentsToRestart);
+			// Will block internally on audio thread completing outstanding commands
+			AudioDeviceManager->StopSoundsUsingResource(ExistingSound, &ComponentsToRestart);
 		}
 
 		bool bUseExistingSettings = bSoundFactorySuppressImportOverwriteDialog;
@@ -2571,6 +2573,34 @@ UObject* UTextureRenderTargetFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 {
 	// create the new object
 	UTextureRenderTarget2D* Result = NewObject<UTextureRenderTarget2D>(InParent, Class, Name, Flags);
+	// initialize the resource
+	Result->InitAutoFormat( Width, Height );
+	return( Result );
+}
+
+/*-----------------------------------------------------------------------------
+	UCanvasRenderTargetFactoryNew
+-----------------------------------------------------------------------------*/
+
+UCanvasRenderTarget2DFactoryNew::UCanvasRenderTarget2DFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UCanvasRenderTarget2D::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+	bEditorImport = false;
+
+	Width = 256;
+	Height = 256;
+	Format = 0;
+}
+
+
+UObject* UCanvasRenderTarget2DFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+{
+	// create the new object
+	UCanvasRenderTarget2D* Result = NewObject<UCanvasRenderTarget2D>(InParent, Class, Name, Flags);
+	check(Result);
 	// initialize the resource
 	Result->InitAutoFormat( Width, Height );
 	return( Result );
@@ -4215,8 +4245,8 @@ UObject* UTextureFactory::FactoryCreateBinary
 	TextureFilter						ExistingFilter		= TF_Default;
 	TextureGroup						ExistingLODGroup	= TEXTUREGROUP_World;
 	TextureCompressionSettings			ExistingCompressionSettings = TC_Default;
-	int32									ExistingLODBias		= 0;
-	int32									ExistingNumCinematicMipLevels = 0;
+	int32								ExistingLODBias		= 0;
+	int32								ExistingNumCinematicMipLevels = 0;
 	bool								ExistingNeverStream = false;
 	bool								ExistingSRGB		= false;
 	bool								ExistingPreserveBorder = false;
@@ -4233,6 +4263,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 	float								ExistingAdjustHue = 0.0f;
 	float								ExistingAdjustMinAlpha = 0.0f;
 	float								ExistingAdjustMaxAlpha = 1.0f;
+	FVector4							ExistingAlphaCoverageThresholds = FVector4(0, 0, 0, 0);
 	TextureMipGenSettings				ExistingMipGenSettings = TextureMipGenSettings(0);
 
 	bUsingExistingSettings = bSuppressImportOverwriteDialog;
@@ -4293,6 +4324,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		ExistingDeferCompression = ExistingTexture->DeferCompression;
 		ExistingFlipGreenChannel = ExistingTexture->bFlipGreenChannel;
 		ExistingDitherMipMapAlpha = ExistingTexture->bDitherMipMapAlpha;
+		ExistingAlphaCoverageThresholds = ExistingTexture->AlphaCoverageThresholds;
 		ExistingAdjustBrightness = ExistingTexture->AdjustBrightness;
 		ExistingAdjustBrightnessCurve = ExistingTexture->AdjustBrightnessCurve;
 		ExistingAdjustVibrance = ExistingTexture->AdjustVibrance;
@@ -4380,6 +4412,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 	Texture->CompressionNoAlpha		= NoAlpha;
 	Texture->DeferCompression		= bDeferCompression;
 	Texture->bDitherMipMapAlpha		= bDitherMipMapAlpha;
+	Texture->AlphaCoverageThresholds = AlphaCoverageThresholds;
 	
 	if(Texture->MipGenSettings == TMGS_FromTextureGroup)
 	{
@@ -4414,6 +4447,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		Texture->CompressionNoAlpha = ExistingNoAlpha;
 		Texture->DeferCompression = ExistingDeferCompression;
 		Texture->bDitherMipMapAlpha = ExistingDitherMipMapAlpha;
+		Texture->AlphaCoverageThresholds = ExistingAlphaCoverageThresholds;
 		Texture->bFlipGreenChannel = ExistingFlipGreenChannel;
 		Texture->AdjustBrightness = ExistingAdjustBrightness;
 		Texture->AdjustBrightnessCurve = ExistingAdjustBrightnessCurve;
@@ -4789,278 +4823,6 @@ bool UTextureExporterBMP::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 }
 
 /*------------------------------------------------------------------------------
-	HDR file format helper.
-------------------------------------------------------------------------------*/
-class FHDRExportHelper
-{
-	void WriteScanLine(FArchive& Ar, const TArray<uint8>& ScanLine)
-	{
-		const uint8* LineEnd    = ScanLine.GetData() + ScanLine.Num();
-		const uint8* LineSource = ScanLine.GetData();
-		TArray<uint8> Output;
-		Output.Reserve(ScanLine.Num() * 2);
-		while (LineSource < LineEnd)
-		{
-			int32 CurrentPos = 0;
-			int32 NextPos = 0;
-			int32 CurrentRunLength = 0;
-			while (CurrentRunLength <= 4 && NextPos < 128 && LineSource + NextPos < LineEnd)
-			{
-				CurrentPos = NextPos;
-				CurrentRunLength = 0;
-				while (CurrentRunLength < 127 && CurrentPos + CurrentRunLength < 128 && LineSource + NextPos < LineEnd && LineSource[CurrentPos] == LineSource[NextPos])
-				{
-					NextPos++;
-					CurrentRunLength++;
-				}
-			}
-
-			if (CurrentRunLength > 4)
-			{
-				// write a non run: LineSource[0] to LineSource[CurrentPos]
-				if (CurrentPos > 0)
-				{
-					Output.Add(CurrentPos);
-					for (int32 i = 0 ; i < CurrentPos ; i++)
-					{
-						Output.Add(LineSource[i]);
-					}
-				}
-				Output.Add((uint8)(128 + CurrentRunLength));
-				Output.Add(LineSource[CurrentPos]);
-			}
-			else
-			{
-				// write a non run: LineSource[0] to LineSource[NextPos]
-				Output.Add((uint8)(NextPos));
-				for (int32 i = 0 ; i < NextPos ; i++)
-				{
-					Output.Add((uint8)(LineSource[i]));
-				}
-			}
-			LineSource += NextPos;
-		}
-		Ar.Serialize(Output.GetData(), Output.Num());
-	}
-
-	static FColor ToRGBEDithered(const FLinearColor& ColorIN, const FRandomStream& Rand)
-	{
-		const float R = ColorIN.R;
-		const float G = ColorIN.G;
-		const float B = ColorIN.B;
-		const float Primary = FMath::Max3(R, G, B);
-		FColor	ReturnColor;
-
-		if (Primary < 1E-32)
-		{
-			ReturnColor = FColor(0, 0, 0, 0);
-		}
-		else
-		{
-			int32 Exponent;
-			const float Scale	 = frexp(Primary, &Exponent) / Primary * 255.f;
-
-			ReturnColor.R = FMath::Clamp(FMath::TruncToInt((R* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.G = FMath::Clamp(FMath::TruncToInt((G* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.B = FMath::Clamp(FMath::TruncToInt((B* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.A = FMath::Clamp(FMath::TruncToInt(Exponent), -128, 127) + 128;
-		}
-
-		return ReturnColor;
-	}
-
-	template<typename TSourceColorType> void WriteHDRBits(FArchive& Ar, TSourceColorType* SourceTexels)
-	{
-		const FRandomStream RandomStream(0xA1A1);
-		const int32 NumChannels = 4;
-		const int32 SizeX = Size.X;
-		const int32 SizeY = Size.Y;
-		TArray<uint8> ScanLine[NumChannels];
-		for (int32 Channel = 0; Channel < NumChannels; Channel++)
-		{
-			ScanLine[Channel].Reserve(SizeX);
-		}
-
-		for (int32 y = 0 ; y < SizeY ; y++)
-		{
-			// write RLE header
-			uint8 RLEheader[4];
-			RLEheader[0] = 2;
-			RLEheader[1] = 2;
-			RLEheader[2] = SizeX >> 8;
-			RLEheader[3] = SizeX & 0xFF;
-			Ar.Serialize(&RLEheader[0], sizeof(RLEheader));
-
-			for (int32 Channel = 0; Channel < NumChannels; Channel++)
-			{
-				ScanLine[Channel].Reset();
-			}
-
-			for (int32 x = 0 ; x < SizeX ; x++)
-			{
-				FLinearColor LinearColor(*SourceTexels);
-				FColor RGBEColor = ToRGBEDithered(LinearColor, RandomStream);
-
-				FLinearColor lintest = RGBEColor.FromRGBE();
-				ScanLine[0].Add(RGBEColor.R);
-				ScanLine[1].Add(RGBEColor.G);
-				ScanLine[2].Add(RGBEColor.B);
-				ScanLine[3].Add(RGBEColor.A);
-				SourceTexels++;
-			}
-
-			for (int32 Channel = 0; Channel < NumChannels; Channel++)
-			{
-				WriteScanLine(Ar, ScanLine[Channel]);
-			}
-		}
-	}
-
-	void WriteHDRHeader(FArchive& Ar)
-	{
-		const int32 MaxHeaderSize = 256;
-		char Header[MAX_SPRINTF];
-		FCStringAnsi::Sprintf(Header, "#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y %d +X %d\n", Size.Y, Size.X);
-		Header[MaxHeaderSize - 1] = 0;
-		int32 Len = FMath::Min(FCStringAnsi::Strlen(Header), MaxHeaderSize);
-		Ar.Serialize(Header, Len);
-	}
-
-	/**
-	* Returns data containing the pixmap of the passed in rendertarget.
-	* @param TexRT - The 2D rendertarget from which to read pixmap data.
-	* @param RawData - an array to be filled with pixel data.
-	* @return true if RawData has been successfully filled.
-	*/
-	bool GetRawData(UTextureRenderTarget2D* TexRT, TArray<uint8>& RawData)
-	{
-		FRenderTarget* RenderTarget = TexRT->GameThread_GetRenderTargetResource();
-		int32 ImageBytes = CalculateImageBytes(TexRT->SizeX, TexRT->SizeY, 0, Format);
-		RawData.AddUninitialized(ImageBytes);
-		bool bReadSuccess = false;
-		switch (Format)
-		{
-			case PF_FloatRGBA:
-			{
-				TArray<FFloat16Color> FloatColors;
-				bReadSuccess = RenderTarget->ReadFloat16Pixels(FloatColors);
-				FMemory::Memcpy(RawData.GetData(), FloatColors.GetData(), ImageBytes);
-			}
-			break;
-			case PF_B8G8R8A8:
-				bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)RawData.GetData());
-			break;
-		}
-		if (bReadSuccess == false)
-		{
-			RawData.Empty();
-		}
-		return bReadSuccess;
-	}
-
-	void WriteHDRImage(const TArray<uint8>& RawData, FArchive& Ar)
-	{
-		WriteHDRHeader(Ar);
-		if (Format == PF_FloatRGBA)
-		{
-			WriteHDRBits(Ar, (FFloat16Color*)RawData.GetData());
-		}
-		else
-		{
-			WriteHDRBits(Ar, (FColor*)RawData.GetData());
-		}
-	}
-
-	FIntPoint Size;
-	EPixelFormat Format;
-public:
-	/**
-	* Writes HDR format image to an FArchive
-	* @param TexRT - A 2D source render target to read from.
-	* @param Ar - Archive object to write HDR data to.
-	* @return true on successful export.
-	*/
-	bool ExportHDR(UTextureRenderTarget2D* TexRT, FArchive& Ar)
-	{
-		check(TexRT != nullptr);
-		FRenderTarget* RenderTarget = TexRT->GameThread_GetRenderTargetResource();
-		Size = RenderTarget->GetSizeXY();
-		Format = TexRT->GetFormat();
-
-		TArray<uint8> RawData;
-		bool bReadSuccess = GetRawData(TexRT, RawData);
-		if (bReadSuccess)
-		{
-			WriteHDRImage(RawData, Ar);
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	* Writes HDR format image to an FArchive
-	* @param TexRT - A 2D source render target to read from.
-	* @param Ar - Archive object to write HDR data to.
-	* @return true on successful export.
-	*/
-	bool ExportHDR(UTexture2D* Texture, FArchive& Ar)
-	{
-		check(Texture != nullptr);
-
-		Size = FIntPoint(Texture->Source.GetSizeX(), Texture->Source.GetSizeY());
-
-		TArray<uint8> RawData;
-		bool bReadSuccess = Texture->Source.GetMipData(RawData, 0);
-
-		if (Texture->Source.GetFormat() == TSF_BGRA8)
-		{
-			Format = PF_B8G8R8A8;
-		}
-		else if (Texture->Source.GetFormat() == TSF_RGBA16F)
-		{
-			Format = PF_FloatRGBA;
-		}
-		else
-		{
-			bReadSuccess = false;
-		}
-
-		if (bReadSuccess)
-		{
-			WriteHDRImage(RawData, Ar);
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	* Writes HDR format image to an FArchive
-	* This function unwraps the cube image on to a 2D surface.
-	* @param TexCube - A cube source (render target or cube texture) to read from.
-	* @param Ar - Archive object to write HDR data to.
-	* @return true on successful export.
-	*/
-	template <typename TCubeTextureType>
-	bool ExportHDR(TCubeTextureType* TexCube, FArchive& Ar)
-	{
-		check(TexCube != nullptr);
-
-		// Generate 2D image.
-		TArray<uint8> RawData;
-		bool bUnwrapSuccess = CubemapHelpers::GenerateLongLatUnwrap(TexCube, RawData, Size, Format);
-		bool bAcceptableFormat = (Format == PF_B8G8R8A8 || Format == PF_FloatRGBA);
-		if (bUnwrapSuccess == false || bAcceptableFormat == false)
-		{
-			return false;
-		}
-
-		WriteHDRImage(RawData, Ar);
-
-		return true;
-	}
-};
-
-/*------------------------------------------------------------------------------
 	URenderTargetExporterHDR implementation.
 	Exports render targets.
 ------------------------------------------------------------------------------*/
@@ -5078,14 +4840,13 @@ bool URenderTargetExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, 
 	UTextureRenderTarget2D* TexRT2D = Cast<UTextureRenderTarget2D>(Object);
 	UTextureRenderTargetCube* TexRTCube = Cast<UTextureRenderTargetCube>(Object);
 
-	FHDRExportHelper Exporter;
 	if (TexRT2D != nullptr)
 	{
-		return Exporter.ExportHDR(TexRT2D, Ar);
+		return FImageUtils::ExportRenderTarget2DAsHDR(TexRT2D, Ar);
 	}
 	else if (TexRTCube != nullptr)
 	{
-		return Exporter.ExportHDR(TexRTCube, Ar);
+		return FImageUtils::ExportRenderTargetCubeAsHDR(TexRTCube, Ar);
 	}
 	return false;
 }
@@ -5107,10 +4868,9 @@ bool UTextureCubeExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, F
 {
 	UTextureCube* TexCube = Cast<UTextureCube>(Object);
 
-	FHDRExportHelper Exporter;
 	if (TexCube != nullptr)
 	{
-		return Exporter.ExportHDR(TexCube, Ar);
+		return FImageUtils::ExportTextureCubeAsHDR(TexCube, Ar);
 	}
 	return false;
 }
@@ -5147,10 +4907,9 @@ bool UTextureExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArch
 {
 	UTexture2D* Texture = Cast<UTexture2D>(Object);
 
-	FHDRExportHelper Exporter;
 	if (Texture != nullptr)
 	{
-		return Exporter.ExportHDR(Texture, Ar);
+		return FImageUtils::ExportTexture2DAsHDR(Texture, Ar);
 	}
 	return false;
 }
@@ -5411,7 +5170,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
-		if( GetBEGIN(&Str,TEXT("OBJECT")) )
+		if( GetBEGIN(&Str, TEXT("OBJECT")) || (NestedDepth == 0 && GetBEGIN(&Str, TEXT("ACTOR"))) )
 		{
 			++NestedDepth;
 			if (OmittedOuterObj > 0)
@@ -5471,7 +5230,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 					{
 						ObjDepth++;
 					}
-					else if( GetEND(&PropStr, TEXT("OBJECT")) )
+					else if( GetEND(&PropStr, TEXT("OBJECT")) || (ObjDepth == 1 && GetEND(&PropStr, TEXT("ACTOR"))) )
 					{
 						bEndLine = true;
 
@@ -5496,7 +5255,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 				NewObjects.Add(CreatedObject);
 			}
 		}
-		else if (GetEND(&Str, TEXT("OBJECT")))
+		else if (GetEND(&Str, TEXT("OBJECT")) || (NestedDepth == 1 && GetEND(&Str, TEXT("ACTOR"))))
 		{
 			--NestedDepth;
 		}
@@ -5536,7 +5295,7 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
-		if( GetBEGIN(&Str,TEXT("OBJECT")) )
+		if( GetBEGIN(&Str,TEXT("OBJECT")) || (NestedDepth == 0 && GetBEGIN(&Str, TEXT("ACTOR"))) )
 		{
 			++NestedDepth;
 			if (OmittedOuterObj > 0)
@@ -5565,7 +5324,7 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 				}
 			}
 		}
-		else if ( GetEND(&Str, TEXT("OBJECT")) )
+		else if ( GetEND(&Str, TEXT("OBJECT")) || (NestedDepth == 1 && GetEND(&Str, TEXT("ACTOR"))) )
 		{
 			--NestedDepth;
 		}

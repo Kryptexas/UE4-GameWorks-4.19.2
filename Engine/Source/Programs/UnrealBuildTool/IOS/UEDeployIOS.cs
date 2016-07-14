@@ -1,17 +1,34 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml;
 using System.IO;
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
 	public class UEDeployIOS : UEBuildDeploy
 	{
+		FileReference ProjectFile;
+
+		public UEDeployIOS(FileReference InProjectFile)
+		{
+			ProjectFile = InProjectFile;
+		}
+
+		protected UnrealPluginLanguage UPL = null;
+
+		public void SetIOSPluginData(List<string> Architectures, List<string> inPluginExtraData)
+		{
+			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, Architectures, "", "", UnrealTargetPlatform.IOS);
+			//UPL.SetTrace ();
+		}
+
 		protected class VersionUtilities
 		{
 			public static string BuildDirectory
@@ -167,7 +184,7 @@ namespace UnrealBuildTool
 			return result;
 		}
 
-		public static bool GenerateIOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public static bool GenerateIOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, UEDeployIOS InThis = null)
 		{
 			// generate the Info.plist for future use
 			string BuildDirectory = ProjectDirectory + "/Build/IOS";
@@ -479,12 +496,35 @@ namespace UnrealBuildTool
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
 
-			// write the file out
+			// Create the intermediate directory if needed
 			if (!Directory.Exists(IntermediateDirectory))
 			{
 				Directory.CreateDirectory(IntermediateDirectory);
 			}
-			File.WriteAllText(PListFile, Text.ToString());
+
+			if(InThis != null && InThis.UPL != null)
+			{
+				// Allow UPL to modify the plist here
+				XDocument XDoc;
+				try
+				{
+					XDoc = XDocument.Parse(Text.ToString());
+				}
+				catch (Exception e)
+				{
+					throw new BuildException("plist is invalid {0}\n{1}", e, Text.ToString());
+				}
+
+				XDoc.DocumentType.InternalSubset = "";
+				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
+				string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString();
+				File.WriteAllText(PListFile, result);
+			}
+			else
+			{
+				File.WriteAllText(PListFile, Text.ToString());
+			}
+
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				if (!Directory.Exists(AppDirectory))
@@ -499,7 +539,7 @@ namespace UnrealBuildTool
 
 		public virtual bool GeneratePList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
-			return GenerateIOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory);
+			return GenerateIOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}
 
 		protected virtual void CopyGraphicsResources(bool bSkipDefaultPNGs, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir)
@@ -738,6 +778,25 @@ namespace UnrealBuildTool
 				DecoratedGameName = String.Format("{0}-{1}-{2}", GameName, InTarget.Platform.ToString(), InTarget.Configuration.ToString());
 			}
 
+			// Run through iOS APL file
+			IOSPlatformContext PlatformContext = new IOSPlatformContext(InTarget.ProjectFile);
+			PlatformContext.SetUpProjectEnvironment();
+
+			string BaseSoName = InTarget.OutputPaths[0].FullName;
+
+			// get the receipt
+			UnrealTargetPlatform Platform = InTarget.Platform;
+			UnrealTargetConfiguration Configuration = InTarget.Configuration;
+			string ProjectBaseName = Path.GetFileName(BaseSoName).Replace("-" + Platform, "").Replace("-" + Configuration, "").Replace(".so", "");
+			string ReceiptFilename = TargetReceipt.GetDefaultPath(InTarget.ProjectDirectory.FullName, ProjectBaseName, Platform, Configuration, "");
+			Log.TraceInformation("Receipt Filename: {0}", ReceiptFilename);
+			SetIOSPluginData(PlatformContext.ProjectArches, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
+
+			string BundlePath = Path.Combine (ProjectDirectory, "Binaries", "IOS", "Payload", ProjectBaseName + ".app");
+
+			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
+			UPL.Init (PlatformContext.ProjectArches, true, BuildConfiguration.RelativeEnginePath, BundlePath);
+
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
 				return PrepForUATPackageOrDeploy(InTarget.ProjectFile, GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false);
@@ -748,6 +807,31 @@ namespace UnrealBuildTool
 				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "");
 			}
 			return true;
+		}
+
+		private List<string> CollectPluginDataPaths(TargetReceipt Receipt)
+		{
+			List<string> PluginExtras = new List<string>();
+			if (Receipt == null)
+			{
+				Console.WriteLine("Receipt is NULL");
+				//Log.TraceInformation("Receipt is NULL");
+				return PluginExtras;
+			}
+
+			// collect plugin extra data paths from target receipt
+			var Results = Receipt.AdditionalProperties.Where(x => x.Name == "IOSPlugin");
+			foreach (var Property in Results)
+			{
+				// Keep only unique paths
+				string PluginPath = Property.Value;
+				if (PluginExtras.FirstOrDefault(x => x == PluginPath) == null)
+				{
+					PluginExtras.Add(PluginPath);
+					Log.TraceInformation("IOSPlugin: {0}", PluginPath);
+				}
+			}
+			return PluginExtras;
 		}
 
 		private void WriteEntitlementsFile(string OutputFilename, FileReference ProjectFile)

@@ -900,8 +900,80 @@ public:
 		DiagnosticCheckNaN_Translate();
 		DiagnosticCheckNaN_Scale3D();
 	}
+	
+	/** @note : Added template type function for Accumulate
+	  * The template type isn't much useful yet, but it is with the plan to move forward
+	  * to unify blending features with just type of additive or full pose
+	  * Eventually it would be nice to just call blend and it all works depending on full pose
+	  * or additive, but right now that is a lot more refactoring
+	  * For now this types only defines the different functionality of accumulate
+	  */
 
+	/**
+	* Accumulates another transform with this one
+	*
+	* Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation)
+	* Translation is accumulated additively (Translation += SourceAtom.Translation)
+	* Scale3D is accumulated multiplicatively (Scale3D *= SourceAtom.Scale3D)
+	*
+	* @param SourceAtom The other transform to accumulate into this one
+	*/
+	FORCEINLINE void Accumulate(const FTransform& SourceAtom)
+	{
+		const VectorRegister BlendedRotation = SourceAtom.Rotation;
+		const VectorRegister RotationW = VectorReplicate(BlendedRotation, 3);
 
+		// if( Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA )
+		if (VectorAnyGreaterThan(GlobalVectorConstants::RotationSignificantThreshold, VectorMultiply(RotationW, RotationW)))
+		{
+			// Rotation = SourceAtom.Rotation * Rotation;
+			Rotation = VectorQuaternionMultiply2(BlendedRotation, Rotation);
+		}
+
+		// Translation += SourceAtom.Translation;
+		// Scale *= SourceAtom.Scale;
+		Translation = VectorAdd(Translation, SourceAtom.Translation);
+		Scale3D = VectorMultiply(Scale3D, SourceAtom.Scale3D);
+
+		DiagnosticCheckNaN_All();
+
+		checkSlow(IsRotationNormalized());
+	}
+
+	/**
+	* Accumulates another transform with this one, with a blending weight
+	*
+	* Let SourceAtom = Atom * BlendWeight
+	* Rotation is accumulated multiplicatively (Rotation = Atom.Rotation * Rotation).
+	* Translation is accumulated additively (Translation += Atom.Translation)
+	* Scale3D is accumulated multiplicatively (Scale3D *= Atom.Scale3D)
+	*
+	* Note: Rotation will not be normalized! Will have to be done manually.
+	*
+	* @param Atom The other transform to accumulate into this one
+	* @param BlendWeight The weight to multiply Atom by before it is accumulated.
+	*/
+	FORCEINLINE void Accumulate(const FTransform& Atom, const ScalarRegister& BlendWeight)
+	{
+		// SourceAtom = Atom * BlendWeight;
+		const VectorRegister BlendedRotation = VectorMultiply(Atom.Rotation, BlendWeight.Value);
+		const VectorRegister RotationW = VectorReplicate(BlendedRotation, 3);
+
+		// Add ref pose relative animation to base animation, only if rotation is significant.
+		// if( Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA )
+		if (VectorAnyGreaterThan(GlobalVectorConstants::RotationSignificantThreshold, VectorMultiply(RotationW, RotationW)))
+		{
+			// Rotation = SourceAtom.Rotation * Rotation;
+			Rotation = VectorQuaternionMultiply2(BlendedRotation, Rotation);
+		}
+
+		// Translation += SourceAtom.Translation;
+		// Scale *= SourceAtom.Scale;
+		Translation = VectorAdd(Translation, Atom.Translation);
+		Scale3D = VectorMultiply(Scale3D, Atom.Scale3D);
+
+		DiagnosticCheckNaN_All();
+	}
 	/**
 	 * Accumulates another transform with this one, with an optional blending weight
 	 *
@@ -924,52 +996,27 @@ public:
 		DiagnosticCheckNaN_All();
 	}
 
-	/**
-	 * Accumulates another transform with this one
-	 *
-	 * Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation)
-	 * Translation is accumulated additively (Translation += SourceAtom.Translation)
-	 * Scale3D is accumulated multiplicatively (Scale3D *= SourceAtom.Scale3D)
-	 *
-	 * @param SourceAtom The other transform to accumulate into this one
-	 */
-	FORCEINLINE void Accumulate(const FTransform& SourceAtom)
+	/** Accumulates another transform with this one, with a blending weight
+	*
+	* Let SourceAtom = Atom * BlendWeight
+	* Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation).
+	* Translation is accumulated additively (Translation += SourceAtom.Translation)
+	* Scale3D is accumulated assuming incoming scale is additive scale (Scale3D *= (1 + SourceAtom.Scale3D))
+	*
+	* When we create additive, we create additive scale based on [TargetScale/SourceScale -1]
+	* because that way when you apply weight of 0.3, you don't shrink. We only saves the % of grow/shrink
+	* when we apply that back to it, we add back the 1, so that it goes back to it.
+	* This solves issue where you blend two additives with 0.3, you don't come back to 0.6 scale, but 1 scale at the end
+	* because [1 + [1-1]*0.3 + [1-1]*0.3] becomes 1, so you don't shrink by applying additive scale
+	*
+	* Note: Rotation will not be normalized! Will have to be done manually.
+	*
+	* @param Atom The other transform to accumulate into this one
+	* @param BlendWeight The weight to multiply Atom by before it is accumulated.
+	*/
+	FORCEINLINE void AccumulateWithAdditiveScale(const FTransform& Atom, const ScalarRegister& BlendWeight)
 	{
-		const VectorRegister BlendedRotation = SourceAtom.Rotation;
-		const VectorRegister RotationW = VectorReplicate(BlendedRotation, 3);
-
-		// if( Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA )
-		if (VectorAnyGreaterThan(GlobalVectorConstants::RotationSignificantThreshold, VectorMultiply(RotationW, RotationW)))
-		{
-			// Rotation = SourceAtom.Rotation * Rotation;
-			Rotation = VectorQuaternionMultiply2(BlendedRotation, Rotation);
-		}
-
-		// Translation += SourceAtom.Translation;
-		// Scale *= SourceAtom.Scale;
-		Translation = VectorAdd( Translation, SourceAtom.Translation );
-		Scale3D = VectorMultiply( Scale3D, SourceAtom.Scale3D );
-
-		DiagnosticCheckNaN_All();
-
-		checkSlow( IsRotationNormalized() );
-	}
-
-	/**
-	 * Accumulates another transform with this one, with a blending weight
-	 *
-	 * Let SourceAtom = Atom * BlendWeight
-	 * Rotation is accumulated multiplicatively (Rotation = Atom.Rotation * Rotation).
-	 * Translation is accumulated additively (Translation += Atom.Translation)
-	 * Scale3D is accumulated multiplicatively (Scale3D *= Atom.Scale3D)
-	 *
-	 * Note: Rotation will not be normalized! Will have to be done manually.
-	 *
-	 * @param Atom The other transform to accumulate into this one
-	 * @param BlendWeight The weight to multiply Atom by before it is accumulated.
-	 */
-	FORCEINLINE void Accumulate(const FTransform& Atom, const ScalarRegister& BlendWeight)
-	{
+		const VectorRegister DefaultScale = MakeVectorRegister(1.f, 1.f, 1.f, 0.f);
 		// SourceAtom = Atom * BlendWeight;
 		const VectorRegister BlendedRotation = VectorMultiply(Atom.Rotation, BlendWeight.Value);
 		const VectorRegister RotationW = VectorReplicate(BlendedRotation, 3);
@@ -984,13 +1031,11 @@ public:
 
 		// Translation += SourceAtom.Translation;
 		// Scale *= SourceAtom.Scale;
-		Translation = VectorAdd( Translation, Atom.Translation );
-		Scale3D = VectorMultiply( Scale3D, Atom.Scale3D );
+		Translation = VectorAdd(Translation, Atom.Translation);
+		Scale3D = VectorMultiply(Scale3D, VectorAdd(DefaultScale, Atom.Scale3D));
 
 		DiagnosticCheckNaN_All();
 	}
-
-
 
 	/**
 	 * Set the translation and Scale3D components of this transform to a linearly interpolated combination of two other transforms
@@ -1009,33 +1054,6 @@ public:
 
 		DiagnosticCheckNaN_Translate();
 		DiagnosticCheckNaN_Scale3D();
-	}
-
-/**
-	 * Accumulates another transform with this one
-	 *
-	 * Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation)
-	 * Translation is accumulated additively (Translation += SourceAtom.Translation)
-	 * Scale is accumulated additively (Scale3D += SourceAtom.Scale3D)
-	 *
-	 * @param SourceAtom The other transform to accumulate into this one
-	 */
-	FORCEINLINE void AccumulateWithAdditiveScale3D(const FTransform& SourceAtom)
-	{
-		// Add ref pose relative animation to base animation, only if rotation is significant.
-		const VectorRegister RotationW = VectorReplicate(SourceAtom.Rotation, 3);
-
-		// if( Square(SourceAtom.Rotation.W) < 1.f - DELTA * DELTA )
-		if (VectorAnyGreaterThan(GlobalVectorConstants::RotationSignificantThreshold, VectorMultiply(RotationW, RotationW)))
-		{
-			// Rotation = SourceAtom.Rotation * Rotation;
-			Rotation = VectorQuaternionMultiply2(SourceAtom.Rotation, Rotation);
-		}
-
-		Translation = VectorAdd( Translation, SourceAtom.Translation );
-		Scale3D = VectorAdd( Scale3D, SourceAtom.Scale3D );
-
-		DiagnosticCheckNaN_All();
 	}
 
 	/**
@@ -1075,6 +1093,7 @@ public:
 		const VectorRegister Const0001 = GlobalVectorConstants::Float0001;
 		const VectorRegister ConstNegative0001 = VectorSubtract(VectorZero(), Const0001);
 		const VectorRegister VOneMinusAlpha = VectorSubtract(VectorOne(), BlendWeight.Value);
+		const VectorRegister DefaultScale = MakeVectorRegister(1.f, 1.f, 1.f, 0.f);
 
 		// Blend rotation
 		//     To ensure the 'shortest route', we make sure the dot product between the both rotations is positive.
@@ -1097,16 +1116,15 @@ public:
 
 		// Blend translation and scale
 		//    BlendedAtom.Translation = Lerp(Zero, SourceAtom.Translation, Alpha);
-		//    BlendedAtom.Scale = Lerp(1, SourceAtom.Scale, Alpha);
+		//    BlendedAtom.Scale = Lerp(0, SourceAtom.Scale, Alpha);
 		const VectorRegister BlendedTranslation	= FMath::Lerp(VectorZero(), SourceAtom.Translation, BlendWeight.Value);
-		const VectorRegister BlendedScale3D	= FMath::Lerp(VectorOne(), SourceAtom.Scale3D, BlendWeight.Value);
+		const VectorRegister BlendedScale3D	= FMath::Lerp(VectorZero(), SourceAtom.Scale3D, BlendWeight.Value);
 
 		// Apply translation and scale to final atom
 		//     FinalAtom.Translation += BlendedAtom.Translation
 		//     FinalAtom.Scale *= BlendedAtom.Scale
 		FinalAtom.Translation = VectorAdd( FinalAtom.Translation, BlendedTranslation );
-		FinalAtom.Scale3D = VectorMultiply( FinalAtom.Scale3D, BlendedScale3D );
-		
+		FinalAtom.Scale3D = VectorMultiply( FinalAtom.Scale3D, VectorAdd(DefaultScale, BlendedScale3D));
 		checkSlow( FinalAtom.IsRotationNormalized() );
 	}
 

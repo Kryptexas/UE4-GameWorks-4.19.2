@@ -4,10 +4,10 @@
 #include "SocketSubsystem.h"
 #include "IpAddress.h"
 
-FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout);
+FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout);
 
 #if !PLATFORM_SUPPORTS_ICMP
-FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
+FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout)
 {
 	FIcmpEchoResult Result;
 	Result.Status = EIcmpResponseStatus::NotImplemented;
@@ -41,9 +41,9 @@ int CalculateChecksum(uint8* Address, int Length)
 	return ~Sum;
 }
 
-bool ResolveIp(const FString& HostName, FString& OutIp)
+bool ResolveIp(ISocketSubsystem* SocketSub, const FString& HostName, FString& OutIp)
 {
-	ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	//ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	if (SocketSub)
 	{
 		TSharedRef<FInternetAddr> HostAddr = SocketSub->CreateInternetAddr();
@@ -63,24 +63,32 @@ class FIcmpAsyncResult
 {
 public:
 
-	FIcmpAsyncResult(const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback InCallback)
+	FIcmpAsyncResult(ISocketSubsystem* InSocketSub, const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback InCallback)
 		: FTickerObjectBase(0)
+		, SocketSub(InSocketSub)
 		, Callback(InCallback)
-		, bThreadCompleted(false)
+		, bThreadCompleted(true)
 	{
-		TFunction<FIcmpEchoResult()> Task = [this, TargetAddress, Timeout]()
+		if (SocketSub)
 		{
-			auto Result = IcmpEchoImpl(TargetAddress, Timeout);
-			bThreadCompleted = true;
-			return Result;
-		};
-		FutureResult = Async(EAsyncExecution::ThreadPool, Task);
+			bThreadCompleted = false;
+			TFunction<FIcmpEchoResult()> Task = [this, TargetAddress, Timeout]()
+			{
+				auto Result = IcmpEchoImpl(SocketSub, TargetAddress, Timeout);
+				bThreadCompleted = true;
+				return Result;
+			};
+			FutureResult = Async(EAsyncExecution::ThreadPool, Task);
+		}
 	}
 
 	virtual ~FIcmpAsyncResult()
 	{
 		check(IsInGameThread());
-		FutureResult.Wait();
+		if (FutureResult.IsValid())
+		{
+			FutureResult.Wait();
+		}
 	}
 
 private:
@@ -88,13 +96,22 @@ private:
 	{
 		if (bThreadCompleted)
 		{
-			Callback(FutureResult.Get());
+			FIcmpEchoResult Result;
+			if (FutureResult.IsValid())
+			{
+				Result = FutureResult.Get();
+			}
+
+			Callback(Result);
+
 			delete this;
 			return false;
 		}
 		return true;
 	}
 
+	/** Reference to the socket subsystem */
+	ISocketSubsystem* SocketSub;
 	/** Callback when the icmp result returns */
 	FIcmpEchoResultCallback Callback;
 	/** Thread task complete */
@@ -105,5 +122,6 @@ private:
 
 void FIcmp::IcmpEcho(const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback HandleResult)
 {
-	new FIcmpAsyncResult(TargetAddress, Timeout, HandleResult);
+	ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	new FIcmpAsyncResult(SocketSub, TargetAddress, Timeout, HandleResult);
 }

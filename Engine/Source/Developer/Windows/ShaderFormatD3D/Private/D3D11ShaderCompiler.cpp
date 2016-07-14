@@ -51,6 +51,16 @@ static FAutoConsoleVariableRef CVarD3DDumpAMDCodeXLFile(
 	ECVF_Default
 	);
 
+static int32 GD3DDumpD3DAsmFile = 0;
+static FAutoConsoleVariableRef CVarD3DDumpD3DAsmFile(
+	TEXT("r.D3DDumpD3DAsm"),
+	GD3DDumpD3DAsmFile,
+	TEXT("When r.DumpShaderDebugInfo is enabled, this will generate a text file with the fxc assembly.\n")
+	TEXT(" 0: Do not generate extra file (default)\n")
+	TEXT(" 1: Enable generating extra disassembly file"),
+	ECVF_Default
+	);
+
 /**
  * TranslateCompilerFlag - translates the platform-independent compiler flags into D3DX defines
  * @param CompilerFlag - the platform-independent compiler flag to translate
@@ -434,7 +444,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 	// Fail the compilation if double operations are being used, since those are not supported on all D3D11 cards
 	if (SUCCEEDED(Result))
 	{
-		if (GD3DCheckForDoubles)
+		if (GD3DCheckForDoubles || GD3DDumpD3DAsmFile)
 		{
 			TRefCountPtr<ID3DBlob> Dissasembly;
 			if (SUCCEEDED(D3DDisassemble(Shader->GetBufferPointer(), Shader->GetBufferSize(), 0, "", Dissasembly.GetInitReference())))
@@ -445,11 +455,18 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				FString DissasemblyStringW(DissasemblyString);
 				delete[] DissasemblyString;
 
-				// dcl_globalFlags will contain enableDoublePrecisionFloatOps when the shader uses doubles, even though the docs on dcl_globalFlags don't say anything about this
-				if (DissasemblyStringW.Contains(TEXT("enableDoublePrecisionFloatOps")))
+				if (GD3DDumpD3DAsmFile)
 				{
-					FilteredErrors.Add(TEXT("Shader uses double precision floats, which are not supported on all D3D11 hardware!"));
-					return false;
+					FFileHelper::SaveStringToFile(DissasemblyStringW, *(Input.DumpDebugInfoPath / TEXT("Output.d3dasm")));
+				}
+				else if (GD3DCheckForDoubles)
+				{
+					// dcl_globalFlags will contain enableDoublePrecisionFloatOps when the shader uses doubles, even though the docs on dcl_globalFlags don't say anything about this
+					if (DissasemblyStringW.Contains(TEXT("enableDoublePrecisionFloatOps")))
+					{
+						FilteredErrors.Add(TEXT("Shader uses double precision floats, which are not supported on all D3D11 hardware!"));
+						return false;
+					}
 				}
 			}
 		}

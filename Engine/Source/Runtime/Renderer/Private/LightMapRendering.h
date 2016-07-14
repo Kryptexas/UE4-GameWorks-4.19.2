@@ -4,8 +4,7 @@
 	LightMapRendering.h: Light map rendering definitions.
 =============================================================================*/
 
-#ifndef __LIGHTMAPRENDERING_H__
-#define __LIGHTMAPRENDERING_H__
+#pragma once
 
 #include "Engine/ShadowMapTexture2D.h"
 
@@ -118,15 +117,21 @@ struct TLightMapPolicy
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+		static const auto CVarProjectCanHaveLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
+		static const auto CVarSupportAllShadersPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
+		const bool bForceAllPermutations = CVarSupportAllShadersPermutations && CVarSupportAllShadersPermutations->GetValueOnAnyThread() != 0;
+
+		// if GEngine doesn't exist yet to have the project flag then we should be conservative and cache the LQ lightmap policy
+		const bool bProjectCanHaveLowQualityLightmaps = bForceAllPermutations || (!CVarProjectCanHaveLowQualityLightmaps) || (CVarProjectCanHaveLowQualityLightmaps->GetValueOnAnyThread() != 0);
+
+		const bool bShouldCacheQuality = (LightmapQuality != ELightmapQuality::LQ_LIGHTMAP) || bProjectCanHaveLowQualityLightmaps;
 
 		// GetValueOnAnyThread() as it's possible that ShouldCache is called from rendering thread. That is to output some error message.
 		return Material->GetShadingModel() != MSM_Unlit 
+			&& bShouldCacheQuality
 			&& VertexFactoryType->SupportsStaticLighting() 
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0)
-			&& (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial());
-
-		// if LQ
-		//return (IsPCPlatform(Platform) || IsES2Platform(Platform));
+			&& (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial());		
 	}
 };
 
@@ -275,7 +280,7 @@ public:
 			const FPixelShaderRHIParamRef ShaderRHI = PixelShader->GetPixelShader();
 
 			// Set these even if ElementData.TranslucentSelfShadow is NULL to avoid a d3d debug error from the shader expecting texture SRV's when a different type are bound
-			PixelShaderParameters->TranslucencyShadowParameters.Set(RHICmdList, PixelShader);
+			PixelShaderParameters->TranslucencyShadowParameters.Set(RHICmdList, PixelShader, ElementData.TranslucentSelfShadow);
 
 			if (ElementData.TranslucentSelfShadow)
 			{
@@ -862,4 +867,3 @@ public:
 		) const;
 };
 
-#endif // __LIGHTMAPRENDERING_H__

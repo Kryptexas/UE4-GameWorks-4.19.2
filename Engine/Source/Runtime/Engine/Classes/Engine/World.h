@@ -32,6 +32,7 @@ class AWorldSettings;
 class ACameraActor;
 class FUniqueNetId;
 class FWorldInGamePerformanceTrackers;
+struct FUniqueNetIdRepl;
 
 template<typename,typename> class TOctree;
 
@@ -667,6 +668,9 @@ private:
 	UPROPERTY(Transient)
 	UCanvas* CanvasForRenderingToTarget;
 
+	UPROPERTY(Transient)
+	UCanvas* CanvasForDrawMaterialToRenderTarget;
+
 public:
 	/** Set the pointer to the Navgation system. */
 	void SetNavigationSystem( UNavigationSystem* InNavigationSystem);
@@ -695,7 +699,7 @@ public:
 	/** A static map that is populated before loading a world from a package. This is so UWorld can look up its WorldType in ::PostLoad */
 	static TMap<FName, EWorldType::Type> WorldTypePreLoadMap;
 
-	/** Map of blueprints that are bieng debugged and the object instance they are debugging. */
+	/** Map of blueprints that are being debugged and the object instance they are debugging. */
 	typedef TMap<TWeakObjectPtr<class UBlueprint>, TWeakObjectPtr<UObject> > FBlueprintToDebuggedObjectMap;
 
 	/** Return the array of objects currently bieng debugged. */
@@ -710,6 +714,17 @@ public:
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog = true);
 
 #endif // WITH_EDITOR
+
+	/**
+	 * Sets whether or not this world is ticked by the engine, but use it at your own risk! This could
+	 * have unintended consequences if used carelessly. That said, for worlds that are not interactive
+	 * and not rendering, it can save the cost of ticking them. This should probably never be used
+	 * for a primary game world.
+	 */
+	void SetShouldTick(const bool bInShouldTick) { bShouldTick = bInShouldTick; }
+
+	/** Returns whether or not this world is currently ticking. See SetShouldTick. */
+	bool ShouldTick() const { return bShouldTick; }
 
 private:
 
@@ -745,6 +760,9 @@ private:
 
 	/** Whether the render scene for this World should be created with HitProxies or not */
 	bool bRequiresHitProxies;
+
+	/** Whether to do any ticking at all for this world. */
+	bool bShouldTick;
 
 	/** a delegate that broadcasts a notification whenever an actor is spawned */
 	FOnActorSpawned OnActorSpawned;
@@ -924,8 +942,9 @@ public:
 	/** An array of post processing volumes, sorted in ascending order of priority.					*/
 	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
 
-	/** Pointer to the higest priority audio volumes, each volume has a reference to the next lower priority volume creating a linked list of prioritized audio volumes in descending order */
-	TAutoWeakObjectPtr<class AAudioVolume> HighestPriorityAudioVolume;
+	/** Set of AudioVolumes sorted by  */
+	// TODO: Make this be property UPROPERTY(Transient)
+	TSet<class AAudioVolume*> AudioVolumes;
 
 	/** Handle to the active audio device for this world. */
 	uint32 AudioDeviceHandle;
@@ -2006,6 +2025,7 @@ public:
 
 	/** Gets the canvas object for rendering to a render target.  Will allocate one if needed. */
 	UCanvas* GetCanvasForRenderingToTarget();
+	UCanvas* GetCanvasForDrawMaterialToRenderTarget();
 
 	/** Struct containing a collection of optional parameters for initialization of a World. */
 	struct InitializationValues
@@ -2522,7 +2542,8 @@ public:
 	 * @return the PlayerController that was spawned (may fail and return NULL)
 	 */
 	APlayerController* SpawnPlayActor(class UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex = 0);
-
+	APlayerController* SpawnPlayActor(class UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const FUniqueNetIdRepl& UniqueId, FString& Error, uint8 InNetPlayerIndex = 0);
+	
 	/** Try to find an acceptable position to place TestActor as close to possible to PlaceLocation.  Expects PlaceLocation to be a valid location inside the level. */
 	bool FindTeleportSpot( AActor* TestActor, FVector& PlaceLocation, FRotator PlaceRotation );
 
@@ -2669,6 +2690,9 @@ public:
 	 * @return							If the settings came from an audio volume, the audio volume object is returned.
 	 */
 	class AAudioVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
+
+	/** Returns the audio device handle for this world.*/
+	uint32 GetAudioDeviceHandle() const { return AudioDeviceHandle; }
 
 	/** Sets the audio device handle to the active audio device for this world.*/
 	void SetAudioDeviceHandle(const uint32 InAudioDeviceHandle);

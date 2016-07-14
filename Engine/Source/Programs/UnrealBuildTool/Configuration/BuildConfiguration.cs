@@ -273,6 +273,12 @@ namespace UnrealBuildTool
 		public static string BaseIntermediateFolder;
 
 		/// <summary>
+		/// The directory to put precompiled header files in. Experimental setting to allow using a path on a faster drive. Defaults to the standard output directory if not set.
+		/// </summary>
+		[XmlConfig]
+		public static string PCHOutputDirectory;
+
+		/// <summary>
 		/// Relative root engine path.
 		/// </summary>
 		private static string _RelativeEnginePath = "../../Engine/";
@@ -332,6 +338,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bGeneratedSYMFile;
+
+		/// <summary>
+		/// Whether to generate a dSYM bundle or not.
+		/// </summary>
+		[XmlConfig]
+		public static bool bGeneratedSYMBundle;
 
 		/// <summary>
 		/// Whether to strip iOS symbols or not (implied by bGeneratedSYMFile).
@@ -560,6 +572,7 @@ namespace UnrealBuildTool
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
 			bGeneratedSYMFile = false;
+			bGeneratedSYMBundle = false;
 			bStripSymbolsOnIOS = bGeneratedSYMFile;
 
 			// By default we don't bother relinking targets if only a dependent .lib has changed, as chances are that
@@ -660,6 +673,9 @@ namespace UnrealBuildTool
 
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
+
+			// Use the standard PCH output directory
+			PCHOutputDirectory = null;
 
 			// By default check for EULA violation and warn
 			bCheckLicenseViolations = true;

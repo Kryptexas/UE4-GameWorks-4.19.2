@@ -335,7 +335,7 @@ public:
             // For a failed inclusion, the file_data
             // field points to a string containing error details.
             const char* file_data;
-            size_t file_length;
+            const size_t file_length;
             // Include resolver's context.
             void* user_data;
         };

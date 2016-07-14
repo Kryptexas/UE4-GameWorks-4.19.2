@@ -151,6 +151,10 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 		}
 	}
 
+	// WPO is typically used for ambient animations, so don't include in cached shadowmaps
+	// Note mesh animation can also come from PDO or Tessellation but they are typically static uses so we ignore them for cached shadowmaps
+	bGoodCandidateForCachedShadowmap = CacheShadowDepthsFromPrimitivesUsingWPO() || !MaterialRelevance.bUsesWorldPositionOffset;
+
 	// Disable shadow casting if no section has it enabled.
 	bCastShadow = bCastShadow && bAnySectionCastsShadows;
 	bCastDynamicShadow = bCastDynamicShadow && bCastShadow;
@@ -182,14 +186,20 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	}
 
 	// Setup Hierarchical LOD index
-	if (Owner && Owner->IsA<ALODActor>())
+	if (ALODActor* LODActorOwner = Cast<ALODActor>(Owner))
 	{
-		ALODActor* LODActor = Cast<ALODActor>(Owner);
-		HierarchicalLODIndex = LODActor->LODLevel + 1;
+		// An HLOD cluster (they count from 1, but the colors for HLOD levels start at index 2)
+		HierarchicalLODIndex = LODActorOwner->LODLevel + 1;
 	}
 	else if (InComponent->GetLODParentPrimitive())
-	{		
+	{
+		// Part of a HLOD cluster but still a plain mesh
 		HierarchicalLODIndex = 1;
+	}
+	else
+	{
+		// Not part of a HLOD cluster (draw as white when visualizing)
+		HierarchicalLODIndex = 0;
 	}
 #endif
 
@@ -690,7 +700,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 
 						// Depth pass is only used for deferred renderer. The other conditions are meant to match the logic in FStaticMesh::AddToDrawLists.
 						// Could not link to "GEarlyZPassMovable" so moveable are ignored.
-						bUseUnifiedMeshForDepth = ShouldUseAsOccluder() && GetScene().ShouldUseDeferredRenderer() && !IsMovable();
+						bUseUnifiedMeshForDepth = ShouldUseAsOccluder() && GetScene().GetShadingPath() == EShadingPath::Deferred && !IsMovable();
 
 						if (bUseUnifiedMeshForShadow || bUseUnifiedMeshForDepth)
 						{

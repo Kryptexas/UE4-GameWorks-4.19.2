@@ -8,6 +8,7 @@
 #include "PostProcessCommon.usf"
 #include "DeferredShadingCommon.usf"		// FGBufferData
 #include "FastMath.usf"
+#include "Random.usf"
 
 // from the paper: We use SOFT Z EXTENT = 1mm to 10cm for our results
 #define SOFT_Z_EXTENT 1
@@ -144,21 +145,6 @@ float SampleWeight( float CenterDepth, float SampleDepth, float OffsetLength, fl
 	return dot( DepthWeights, SpreadWeights );
 }
 
-// [0, 1]
-float RandFast( uint2 PixelPos, float Magic = 3571.0 )
-{
-	float2 Random = ( 1.0 / 4320.0 ) * PixelPos + float2( 0.25, 0.0 );
-	Random = frac( dot( Random * Random, Magic ) );
-	Random = frac( dot( Random * Random, Magic ) );
-	return Random.x;
-}
-
-// [0, 1]
-float InterleavedGradientNoise( uint2 PixelPos )
-{
-	return frac( 52.9829189 * frac( dot( PixelPos, float2( 0.06711056, 0.00583715 ) ) ) );
-}
-
 float2 DecodeVelocity( float2 Velocity )
 {
 #if 1
@@ -213,9 +199,8 @@ void MainPS(
 	float Random = RandFast( PixelPos );
 	float Random2 = RandFast( PixelPos, 5521 );
 #else
-	float Random = InterleavedGradientNoise( PixelPos );
-	float2 PosMod = float2( PixelPos & 1 );
-	float Random2 = ( PosMod.x * 0.5 - 0.25 ) * ( PosMod.y * 2 - 1 );
+	float Random = InterleavedGradientNoise( PixelPos, 0 );
+	float Random2 = InterleavedGradientNoise( PixelPos, 1 );
 #endif
 
 	float2 TileJitter = ( float2( Random, Random2 ) - 0.5 ) * 0.5;
@@ -235,7 +220,7 @@ void MainPS(
 	bool bFastPath = MinVelocityLengthSqrPixels > 0.4 * MaxVelocityLengthSqrPixels;
 
 	float3 CenterColor = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0 ).rgb;
-	
+
 	BRANCH
 	if( bSkipPath )
 	{
@@ -318,7 +303,7 @@ void MainPS(
 				// in pixels
 				SampleVelocityLength[j] = GetVelocityLengthPixels( SampleVelocityDepth.xy );
 
-				Weight[j] = SampleWeight( CenterDepth, SampleDepth[j], OffsetLength, CenterVelocityLength, SampleVelocityLength[j], PixelToSampleScale, SOFT_Z_EXTENT );
+				Weight[j] = SampleWeight( CenterDepth, SampleDepth[j], OffsetLength.x, CenterVelocityLength, SampleVelocityLength[j], PixelToSampleScale, SOFT_Z_EXTENT );
 			}
 		
 			bool2 Mirror = bool2( SampleDepth[0] > SampleDepth[1], SampleVelocityLength[1] > SampleVelocityLength[0] );

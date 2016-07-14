@@ -802,6 +802,8 @@ void SReferenceViewer::ReCenterGraphOnNodes(const TSet<UObject*>& Nodes)
 
 UObject* SReferenceViewer::GetObjectFromSingleSelectedNode() const
 {
+	UObject* ReturnObject = nullptr;
+
 	TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
 	if ( ensure(SelectedNodes.Num()) == 1 )
 	{
@@ -809,14 +811,20 @@ UObject* SReferenceViewer::GetObjectFromSingleSelectedNode() const
 		if ( ReferenceNode )
 		{
 			const FAssetData& AssetData = ReferenceNode->GetAssetData();
-			if ( AssetData.IsAssetLoaded() || !FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()) )
+			if (AssetData.IsAssetLoaded())
 			{
-				return AssetData.GetAsset();
+				ReturnObject = AssetData.GetAsset();
+			}
+			else
+			{
+				FScopedSlowTask SlowTask(0, LOCTEXT("LoadingSelectedObject", "Loading selection..."));
+				SlowTask.MakeDialog();
+				ReturnObject = AssetData.GetAsset();
 			}
 		}
 	}
 
-	return NULL;
+	return ReturnObject;
 }
 
 void SReferenceViewer::GetPackageNamesFromSelectedNodes(TSet<FName>& OutNames) const

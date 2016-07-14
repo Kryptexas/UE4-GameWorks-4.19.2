@@ -22,6 +22,7 @@ namespace Lightmass
 /** Calculates incident radiance for a given world space position. */
 void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	const TArray<FVector4>& UniformHemisphereSamples,
+	const TArray<FVector2D>& UniformHemisphereSampleUniforms,
 	float MaxUnoccludedLength,
 	FVolumeLightingSample& LightingSample,
 	FLMRandomStream& RandomStream,
@@ -52,25 +53,53 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 
 	CalculateApproximateDirectLighting(RepresentativeVertex, 0, .1f, false, false, bDebugThisSample, MappingContext, UpperStaticDirectLighting, UpperToggleableDirectLighting, UpperToggleableDirectionalLightShadowing);
 
+	// Reduce quality from the defaults to keep sample build times reasonable
+	int32 NumSampleAdaptiveRefinementLevels = FMath::Max(ImportanceTracingSettings.NumAdaptiveRefinementLevels - 2, 0);
+	float SampleAdaptiveRefinementBrightnessScale = 10.0f;
 	FLightingCacheGatherInfo GatherInfo;
 	TArray<FVector4> ImportancePhotonDirections;
 
-	// Calculate incident radiance with a uniform final gather (also known as hemisphere gathering).  
-	// We can't do importance sampled final gathering using photons because they are only stored on surfaces, and Position is an arbitrary point in world space.
-	const FFinalGatherSample3 UpperHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
-		NULL,
-		RepresentativeVertex,
-		0.0f,
-		0,
-		1,
-		UniformHemisphereSamples,
-		MaxUnoccludedLength,
-		ImportancePhotonDirections,
-		MappingContext,
-		RandomStream,
-		GatherInfo,
-		bDebugThisSample
-		);
+	FFinalGatherSample3 UpperHemisphereSample;
+	
+	if (ImportanceTracingSettings.bUseAdaptiveSolver)
+	{
+		UpperHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
+			NULL, 
+			RepresentativeVertex, 
+			0.0f, 
+			false,
+			0, 
+			1, 
+			NumSampleAdaptiveRefinementLevels,
+			SampleAdaptiveRefinementBrightnessScale,
+			UniformHemisphereSamples,
+			UniformHemisphereSampleUniforms,
+			MaxUnoccludedLength,
+			ImportancePhotonDirections, 
+			MappingContext, 
+			RandomStream, 
+			GatherInfo, 
+			false,
+			false,
+			bDebugThisSample);
+	}
+	else
+	{
+		UpperHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
+			NULL,
+			RepresentativeVertex,
+			0.0f,
+			0,
+			1,
+			UniformHemisphereSamples,
+			MaxUnoccludedLength,
+			ImportancePhotonDirections,
+			MappingContext,
+			RandomStream,
+			GatherInfo,
+			bDebugThisSample
+			);
+	}
 
 	// Construct a vertex to capture incident radiance for the negative Z hemisphere
 	RepresentativeVertex.WorldTangentZ = RepresentativeVertex.TriangleNormal = FVector4(0,0,-1);
@@ -84,20 +113,47 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 
 	CalculateApproximateDirectLighting(RepresentativeVertex, 0, .1f, false, false, bDebugThisSample, MappingContext, LowerStaticDirectLighting, LowerToggleableDirectLighting, LowerToggleableDirectionalLightShadowing);
 
-	const FFinalGatherSample3 LowerHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
-		NULL,
-		RepresentativeVertex,
-		0.0f,
-		0,
-		1,
-		UniformHemisphereSamples,
-		MaxUnoccludedLength,
-		ImportancePhotonDirections,
-		MappingContext,
-		RandomStream,
-		GatherInfo,
-		bDebugThisSample
-		);
+	FFinalGatherSample3 LowerHemisphereSample;
+	
+	if (ImportanceTracingSettings.bUseAdaptiveSolver)
+	{
+		LowerHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
+			NULL, 
+			RepresentativeVertex, 
+			0.0f, 
+			false,
+			0, 
+			1, 
+			NumSampleAdaptiveRefinementLevels,
+			SampleAdaptiveRefinementBrightnessScale,
+			UniformHemisphereSamples,
+			UniformHemisphereSampleUniforms,
+			MaxUnoccludedLength,
+			ImportancePhotonDirections, 
+			MappingContext, 
+			RandomStream, 
+			GatherInfo, 
+			false,
+			false,
+			bDebugThisSample);
+	}
+	else
+	{
+		LowerHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
+			NULL,
+			RepresentativeVertex,
+			0.0f,
+			0,
+			1,
+			UniformHemisphereSamples,
+			MaxUnoccludedLength,
+			ImportancePhotonDirections,
+			MappingContext,
+			RandomStream,
+			GatherInfo,
+			bDebugThisSample
+			);
+	}
 
 	const FGatheredLightSample3 CombinedIndirectLighting = UpperHemisphereSample + LowerHemisphereSample;
 	const FGatheredLightSample3 CombinedHighQualitySample = UpperStaticDirectLighting + LowerStaticDirectLighting + CombinedIndirectLighting;
@@ -764,6 +820,7 @@ public:
 		bool bSkyLightingOnly,
 		bool bGatheringForCachedDirectLighting,
 		int32 NumAdaptiveRefinementLevels,
+		float BrightnessThresholdScale,
 		const TArray<FVector4, TInlineAllocator<30> >& TangentImportancePhotonDirections,
 		const TArray<FSphere>& PortalBoundingSpheres,
 		FStaticLightingMappingContext& MappingContext,
@@ -798,8 +855,8 @@ public:
 		const float RootCombinedAngleThreshold = FMath::Cos(ImportanceConeAngle + RootCellAngle);
 		const float ConeIntersectionWeight = 1.0f / TangentImportancePhotonDirections.Num();
 
-		float BrightnessThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveBrightnessThreshold;
-		float SkyOcclusionThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveBrightnessThreshold;
+		float BrightnessThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveBrightnessThreshold * BrightnessThresholdScale;
+		float SkyOcclusionThreshold = LightingSystem.ImportanceTracingSettings.AdaptiveBrightnessThreshold * BrightnessThresholdScale;
 		bool bRefineForSkyOcclusion = LightingSystem.SkyLights.Num() > 0;
 
 		// This is basically disabled, causes too much noise in worst case scenarios (all GI coming from small bright spot)
@@ -1181,6 +1238,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	int32 ElementIndex,
 	int32 BounceNumber,
 	int32 NumAdaptiveRefinementLevels,
+	float BrightnessThresholdScale,
 	const TArray<FVector4>& UniformHemisphereSamples,
 	const TArray<FVector2D>& UniformHemisphereSampleUniforms,
 	float MaxUnoccludedLength,
@@ -1269,6 +1327,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			bSkyLightingOnly,
 			bGatheringForCachedDirectLighting,
 			NumAdaptiveRefinementLevels,
+			BrightnessThresholdScale,
 			TangentSpaceImportancePhotonDirections,
 			Scene.Portals,
 			MappingContext,
@@ -1840,6 +1899,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					ElementIndex, 
 					BounceNumber, 
 					ImportanceTracingSettings.NumAdaptiveRefinementLevels,
+					1.0f,
 					CachedHemisphereSamples,
 					CachedHemisphereSampleUniforms,
 					CachedSamplesMaxUnoccludedLength,

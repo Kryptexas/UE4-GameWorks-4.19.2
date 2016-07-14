@@ -279,6 +279,9 @@ extern CORE_API uint32 GRenderThreadId;
 /** Thread ID of the slate thread, if any */
 extern CORE_API uint32 GSlateLoadingThreadId;
 
+/** Thread ID of the audio thread, if any */
+extern CORE_API uint32 GAudioThreadId;
+
 /** Has GGameThreadId been set yet? */
 extern CORE_API bool GIsGameThreadIdInitialized;
 

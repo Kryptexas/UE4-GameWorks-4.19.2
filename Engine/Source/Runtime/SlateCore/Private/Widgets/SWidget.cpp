@@ -145,23 +145,48 @@ FReply SWidget::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalog
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Unhandled();
-}
-
 FReply SWidget::OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply SWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	if (MouseButtonDownHandler.IsBound())
+	{
+		// If a handler is assigned, call it.
+		return MouseButtonDownHandler.Execute(MyGeometry, MouseEvent);
+	}
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply SWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	if (MouseButtonUpHandler.IsBound())
+	{
+		// If a handler is assigned, call it.
+		return MouseButtonUpHandler.Execute(MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
+}
+
+FReply SWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseMoveHandler.IsBound())
+	{
+		// A valid handler is assigned for mouse move; let it handle the event.
+		return MouseMoveHandler.Execute(MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
+}
+
+FReply SWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseDoubleClickHandler.IsBound())
+	{
+		// A valid handler is assigned; let it handle the event.
+		return MouseDoubleClickHandler.Execute(MyGeometry, MouseEvent);
+	}
 	return FReply::Unhandled();
 }
 
@@ -191,11 +216,6 @@ FCursorReply SWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPointer
 TOptional<TSharedRef<SWidget>> SWidget::OnMapCursor(const FCursorReply& CursorReply) const
 {
 	return TOptional<TSharedRef<SWidget>>();
-}
-
-FReply SWidget::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
-{
-	return FReply::Unhandled();
 }
 
 bool SWidget::OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent )
@@ -732,4 +752,24 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 			ActiveTimers.RemoveAt(i);
 		}
 	}
+}
+
+void SWidget::SetOnMouseButtonDown(FPointerEventHandler EventHandler)
+{
+	MouseButtonDownHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseButtonUp(FPointerEventHandler EventHandler)
+{
+	MouseButtonUpHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseMove(FPointerEventHandler EventHandler)
+{
+	MouseMoveHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseDoubleClick(FPointerEventHandler EventHandler)
+{
+	MouseDoubleClickHandler = EventHandler;
 }

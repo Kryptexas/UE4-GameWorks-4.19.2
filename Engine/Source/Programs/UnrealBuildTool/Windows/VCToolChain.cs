@@ -1181,7 +1181,7 @@ namespace UnrealBuildTool
 					// Add the precompiled header file to the produced items list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
 						FileReference.Combine(
-							CompileEnvironment.Config.OutputDirectory,
+							CompileEnvironment.Config.PCHOutputDirectory ?? CompileEnvironment.Config.OutputDirectory,
 							Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
 							)
 						);

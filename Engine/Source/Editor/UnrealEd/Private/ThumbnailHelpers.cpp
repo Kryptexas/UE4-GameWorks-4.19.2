@@ -624,7 +624,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 
 	PreviewAnimation = InAnimation;
 
-	if (InAnimation && InAnimation->IsValidToPlay())
+	if (InAnimation)
 	{
 		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
 		{
@@ -636,25 +636,26 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 			{
 				bSetSucessfully = true;
 
-				// Handle posing the mesh at the middle of the animation
-				const float AnimPosition = InAnimation->SequenceLength / 2.f;
-
-				UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
-
-				MeshComponent->EnablePreview(true, InAnimation);
-				MeshComponent->Play(false);
-				MeshComponent->Stop();
-				MeshComponent->SetPosition(AnimPosition, false);
-
-				UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->GetSkeletalMeshComponent()->GetSingleNodeInstance();
-				if (SingleNodeInstance)
+				if (InAnimation->IsValidToPlay())
 				{
-					SingleNodeInstance->UpdateMontageWeightForTimeSkip(AnimPosition);
+					// Handle posing the mesh at the middle of the animation
+					const float AnimPosition = InAnimation->SequenceLength / 2.f;
+
+					UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
+
+					MeshComponent->EnablePreview(true, InAnimation);
+					MeshComponent->Play(false);
+					MeshComponent->Stop();
+					MeshComponent->SetPosition(AnimPosition, false);
+
+					UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->GetSkeletalMeshComponent()->GetSingleNodeInstance();
+					if (SingleNodeInstance)
+					{
+						SingleNodeInstance->UpdateMontageWeightForTimeSkip(AnimPosition);
+					}
+
+					PreviewActor->GetSkeletalMeshComponent()->RefreshBoneTransforms(nullptr);
 				}
-
-				PreviewActor->GetSkeletalMeshComponent()->RefreshBoneTransforms(nullptr);
-
-				FTransform MeshTransform = FTransform::Identity;
 
 				PreviewActor->SetActorLocation(FVector(0, 0, 0), false);
 				PreviewActor->GetSkeletalMeshComponent()->UpdateBounds();

@@ -503,6 +503,7 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTr
 				//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_OnUpdateTransform);
 				OnUpdateTransform(UpdateTransformFlags, Teleport);
 			}
+			TransformUpdated.Broadcast(this, UpdateTransformFlags, Teleport);
 
 			// Flag render transform as dirty
 			MarkRenderTransformDirty();
@@ -1909,7 +1910,7 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 	for (int32 i = AttachedChildren.Num()-1; i >= 0; --i)
 	{
 		USceneComponent* SceneComponent = AttachedChildren[i];
-		if (SceneComponent && SceneComponent->GetOwner() == SourceOwner && !SceneComponent->IsCreatedByConstructionScript())
+		if (SceneComponent && SceneComponent->GetOwner() == SourceOwner && !SceneComponent->IsCreatedByConstructionScript() && !SceneComponent->HasAnyFlags(RF_DefaultSubObject))
 		{
 			AttachedInstanceComponents.Add(TPairInitializer<USceneComponent*,const FTransform&>(SceneComponent, FTransform(SceneComponent->RelativeRotation, SceneComponent->RelativeLocation, SceneComponent->RelativeScale3D)));
 		}
@@ -1968,7 +1969,7 @@ FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 
 	for (USceneComponent* Child : GetAttachChildren())
 	{
-		if (Child && !Child->IsCreatedByConstructionScript())
+		if (Child && !Child->IsCreatedByConstructionScript() && !Child->HasAnyFlags(RF_DefaultSubObject))
 		{
 			InstanceData = new FSceneComponentInstanceData(this);
 			break;

@@ -161,7 +161,14 @@ public:
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
-	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
+	void SetIsCameraCut( bool bInIsCameraCut )
+	{
+		bEditorCameraCut = bInIsCameraCut;
+		if (bEditorCameraCut)
+		{
+			bWasEditorCameraCut = false;
+		}
+	}
 
 	/** 
 	 * Initialize visibility flags
@@ -708,9 +715,6 @@ public:
 
 	bool					bEnableColorScaling;
 
-	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
-	bool					bEditorCameraCut;
-
 	/** Indicates whether, of not, the base attachment volume should be drawn for this viewport. */
 	bool bDrawBaseInfo;
 
@@ -775,4 +779,10 @@ private:
 
 	/** Those sound stat flags which are enabled on this viewport */
 	ESoundShowFlags::Type	SoundShowFlags;
+
+	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
+	bool					bEditorCameraCut;
+
+	/** Stores the previous frame's value of bEditorCameraCut in order to reset it back to false on the next frame */
+	bool					bWasEditorCameraCut;
 };

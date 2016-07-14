@@ -611,7 +611,8 @@ bool SupportsCapsuleShadows(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform
 bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 	const FLightSceneInfo& LightSceneInfo,
 	FRHICommandListImmediate& RHICmdList, 
-	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows) const
+	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows, 
+	bool bProjectingForForwardShading) const
 {
 	bool bAllViewsHaveViewState = true;
 
@@ -767,7 +768,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				}
 
 				{
-					SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("UpsampleDirectCapsuleShadowRendering %dx%d"),
+					SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("Upsample %dx%d"),
 						ScissorRect.Width(), ScissorRect.Height());
 						
 					FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
@@ -776,9 +777,13 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 				
-					// use B and A in Light Attenuation for per-object shadows
-					// CO_Min is needed to combine multiple shadow passes
-					RHICmdList.SetBlendState(TStaticBlendState<CW_BA, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI());
+					FProjectedShadowInfo::SetBlendStateForProjection(
+						RHICmdList,
+						LightSceneInfo.Proxy->GetPreviewShadowMapChannel(),
+						false,
+						false,
+						bProjectingForForwardShading,
+						false);
 
 					TShaderMapRef<FCapsuleShadowingUpsampleVS> VertexShader(View.ShaderMap);
 
@@ -988,7 +993,10 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 	NumCapsuleShapes = CapsuleShapeData.Num();
 }
 
-void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList) const
+void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
+	FRHICommandListImmediate& RHICmdList, 
+	FTextureRHIParamRef IndirectLightingTexture, 
+	FTextureRHIParamRef ExistingIndirectOcclusionTexture) const
 {
 	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
 		&& FSceneRenderTargets::Get(RHICmdList).IsStaticLightingAllowed())
@@ -1009,8 +1017,6 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandList
 
 		if (bAnyViewsUseCapsuleShadows)
 		{
-			FSceneRenderTargets::Get(RHICmdList).FinishRenderingSceneColor(RHICmdList);
-
 			TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
 
 			{
@@ -1019,6 +1025,32 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandList
 				// Reuse temporary target from RTDF shadows
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
 			}
+
+			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+			TArray<FTextureRHIParamRef, TInlineAllocator<2>> RenderTargets;
+
+			if (IndirectLightingTexture)
+			{
+				RenderTargets.Add(IndirectLightingTexture);
+			}
+
+			if (ExistingIndirectOcclusionTexture)
+			{
+				RenderTargets.Add(ExistingIndirectOcclusionTexture);
+			}
+
+			if (RenderTargets.Num() == 0)
+			{
+				SceneContext.bScreenSpaceAOIsValid = true;
+				RenderTargets.Add(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture);
+
+				SCOPED_DRAW_EVENT(RHICmdList, ClearIndirectOcclusion);
+				// We are the first users of the indirect occlusion texture so we must clear to unoccluded
+				SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
+				RHICmdList.Clear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
+			}
+							
+			check(RenderTargets.Num() > 0);
 
 			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 			{
@@ -1076,19 +1108,9 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandList
 						}
 			
 						{
-							SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("UpsampleIndirectCapsuleShadowRendering %dx%d"),
-								ScissorRect.Width(), ScissorRect.Height());
+							SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("Upsample %dx%d"), ScissorRect.Width(), ScissorRect.Height());
 
-							FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-
-							FTextureRHIParamRef RenderTargets[2] =
-							{
-								SceneContext.GetSceneColorSurface(),
-								SceneContext.bScreenSpaceAOIsValid ? SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture : NULL
-							};
-
-							const int32 NumTargets = ARRAY_COUNT(RenderTargets) - (SceneContext.bScreenSpaceAOIsValid ? 0 : 1);
-							SetRenderTargets(RHICmdList, NumTargets, RenderTargets, FTextureRHIParamRef(), 0, NULL, true);
+							SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
 
 							RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 							RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -1096,7 +1118,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandList
 				
 							// Modulative blending against scene color for application to indirect diffuse
 							// Modulative blending against SSAO occlusion value for application to indirect specular, since Reflection Environment pass masks by AO
-							if (SceneContext.bScreenSpaceAOIsValid)
+							if (RenderTargets.Num() > 1)
 							{
 								RHICmdList.SetBlendState(TStaticBlendState<
 									CW_RGB, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_One,
@@ -1109,7 +1131,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandList
 
 							TShaderMapRef<FCapsuleShadowingUpsampleVS> VertexShader(View.ShaderMap);
 
-							if (SceneContext.bScreenSpaceAOIsValid)
+							if (RenderTargets.Num() > 1)
 							{
 								if (GCapsuleShadowsFullResolution)
 								{

@@ -133,7 +133,7 @@ bool FParticleParameterTrackEditor::CanAddParticleParameterTrack( FGuid ObjectBi
 void FParticleParameterTrackEditor::AddParticleParameterTrack( FGuid ObjectBinding )
 {
 	FindOrCreateTrackForObject( ObjectBinding, UMovieSceneParticleParameterTrack::StaticClass(), TrackName, true);
-	NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 
@@ -157,7 +157,7 @@ void FParticleParameterTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMo
 			ParticleParameterTrack->AddScalarParameterKey( ParameterName, KeyTime, Value );
 		}
 	}
-	NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 
@@ -181,7 +181,7 @@ void FParticleParameterTrackEditor::AddVectorParameter( FGuid ObjectBinding, UMo
 			ParticleParameterTrack->AddVectorParameterKey( ParameterName, KeyTime, Value );
 		}
 	}
-	NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 
@@ -205,7 +205,7 @@ void FParticleParameterTrackEditor::AddColorParameter( FGuid ObjectBinding, UMov
 			ParticleParameterTrack->AddColorParameterKey( ParameterName, KeyTime, Value );
 		}
 	}
-	NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 

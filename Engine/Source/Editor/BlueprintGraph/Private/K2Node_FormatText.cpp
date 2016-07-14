@@ -99,7 +99,7 @@ void UK2Node_FormatText::PinConnectionListChanged(UEdGraphPin* Pin)
 			if(CheckPin != FormatPin && CheckPin->Direction == EGPD_Input)
 			{
 				CheckPin->Modify();
-				CheckPin->BreakAllPinLinks();
+				CheckPin->MarkPendingKill();
 				Pins.Remove(CheckPin);
 				--It;
 			}
@@ -138,7 +138,7 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 				int Index = 0;
 				if(!ArgumentParams.Find(CheckPin->PinName, Index))
 				{
-					CheckPin->BreakAllPinLinks();
+					CheckPin->MarkPendingKill();
 					Pins.Remove(CheckPin);
 					--It;
 				}
@@ -330,7 +330,11 @@ void UK2Node_FormatText::RemoveArgument(int32 InIndex)
 	const FScopedTransaction Transaction( NSLOCTEXT("Kismet", "RemoveArgumentPin", "Remove Argument Pin") );
 	Modify();
 
-	Pins.Remove(FindArgumentPin(PinNames[InIndex]));
+	if (UEdGraphPin* ArgumentPin = FindArgumentPin(PinNames[InIndex]))
+	{
+		Pins.Remove(ArgumentPin);
+		ArgumentPin->MarkPendingKill();
+	}
 	PinNames.RemoveAt(InIndex);
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());

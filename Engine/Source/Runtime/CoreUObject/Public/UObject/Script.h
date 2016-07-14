@@ -357,6 +357,7 @@ public:
 		, ContextObject(InContextObject)
 		, EventName(NAME_None)
 		, StackFramePtr(&InStackFrame)
+		, LatentLinkId(INDEX_NONE)
 	{
 	}
 
@@ -365,6 +366,16 @@ public:
 		, ContextObject(InContextObject)
 		, EventName(InEventName)
 		, StackFramePtr(nullptr)
+		, LatentLinkId(INDEX_NONE)
+	{
+	}
+
+	EScriptInstrumentationEvent(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, FName InEventName, const int32 LinkId)
+		: EventType(InEventType)
+		, ContextObject(InContextObject)
+		, EventName(InEventName)
+		, StackFramePtr(nullptr)
+		, LatentLinkId(LinkId)
 	{
 	}
 
@@ -374,6 +385,7 @@ public:
 	bool IsStackFrameValid() const { return StackFramePtr != nullptr; }
 	FName GetEventName() const { return EventName; }
 	const FFrame& GetStackFrame() const { return *StackFramePtr; }
+	int32 GetLatentLinkId() const { return LatentLinkId; }
 
 protected:
 
@@ -381,6 +393,7 @@ protected:
 	const UObject* ContextObject;
 	const FName EventName;
 	const struct FFrame* StackFramePtr;
+	const int32 LatentLinkId;
 };
 
 // Blueprint core runtime delegates

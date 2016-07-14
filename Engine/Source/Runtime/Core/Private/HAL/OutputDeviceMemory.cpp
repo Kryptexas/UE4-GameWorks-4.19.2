@@ -10,7 +10,7 @@
 
 #define DUMP_LOG_ON_EXIT (!NO_LOGGING && PLATFORM_DESKTOP && (!UE_BUILD_SHIPPING || USE_LOGGING_IN_SHIPPING))
 
-FOutputDeviceMemory::FOutputDeviceMemory(int32 InPreserveSize /*= 256 * 1024*/, int32 InBufferSize /*= 1024 * 1024*/)
+FOutputDeviceMemory::FOutputDeviceMemory(int32 InPreserveSize /*= 256 * 1024*/, int32 InBufferSize /*= 2048 * 1024*/)
 : ArchiveProxy(*this)
 , BufferStartPos(0)
 , BufferLength(0)

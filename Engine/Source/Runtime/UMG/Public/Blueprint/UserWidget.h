@@ -737,6 +737,15 @@ public:
 	float PauseAnimation(const UWidgetAnimation* InAnimation);
 
 	/**
+	 * Gets the current time of the animation in this widget
+	 * 
+	 * @param The name of the animation to get the current time for
+	 * @return the current time of the animation.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	float GetAnimationCurrentTime(const UWidgetAnimation* InAnimation) const;
+
+	/**
 	 * Gets whether an animation is currently playing on this widget.
 	 * 
 	 * @param InAnimation The animation to check the playback status of
@@ -744,6 +753,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
 	bool IsAnimationPlaying(const UWidgetAnimation* InAnimation) const;
+
+	/**
+	 * @return True if any animation is currently playing
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
+	bool IsAnyAnimationPlaying() const;
 
 	/**
 	* Changes the number of loops to play given a playing animation
@@ -957,15 +972,44 @@ protected:
 	UUMGSequencePlayer* GetOrAddPlayer(const UWidgetAnimation* InAnimation);
 	void Invalidate();
 	
+	/**
+	 * Listens for a particular Player Input Action by name.  This requires that those actions are being executed, and
+	 * that we're not currently in UI-Only Input Mode.
+	 */
 	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
 	void ListenForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType, bool bConsume, FOnInputAction Callback );
 
+	/**
+	 * Removes the binding for a particular action's callback.
+	 */
 	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
 	void StopListeningForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType );
 
+	/**
+	 * Stops listening to all input actions, and unregisters the input component with the player controller.
+	 */
 	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
 	void StopListeningForAllInputActions();
 
+	/**
+	 * ListenForInputAction will automatically Register an Input Component with the player input system.
+	 * If you however, want to Pause and Resume, listening for a set of actions, the best way is to use
+	 * UnregisterInputComponent to pause, and RegisterInputComponent to resume listening.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ))
+	void RegisterInputComponent();
+
+	/**
+	 * StopListeningForAllInputActions will automatically Register an Input Component with the player input system.
+	 * If you however, want to Pause and Resume, listening for a set of actions, the best way is to use
+	 * UnregisterInputComponent to pause, and RegisterInputComponent to resume listening.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ))
+	void UnregisterInputComponent();
+
+	/**
+	 * Checks if the action has a registered callback with the input component.
+	 */
 	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
 	bool IsListeningForInputAction( FName ActionName ) const;
 
@@ -979,7 +1023,7 @@ protected:
 
 	virtual void InitializeInputComponent();
 
-	UPROPERTY( transient )
+	UPROPERTY( Transient, DuplicateTransient )
 	class UInputComponent* InputComponent;
 
 private:

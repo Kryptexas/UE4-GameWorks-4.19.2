@@ -113,7 +113,7 @@ namespace AutomationTool.Tasks
 		List<string> ParseRules(DirectoryReference BaseDir, string DelimitedPatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Split up the list of patterns
-			string[] Patterns = SplitDelimitedList(DelimitedPatterns);
+			List<string> Patterns = SplitDelimitedList(DelimitedPatterns);
 
 			// Parse them into a list of rules
 			List<string> Rules = new List<string>();

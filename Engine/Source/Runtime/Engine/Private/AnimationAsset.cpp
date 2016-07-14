@@ -297,6 +297,7 @@ void UAnimationAsset::ValidateSkeleton()
 	{
 		// reset Skeleton
 		ResetSkeleton(Skeleton);
+		UE_LOG(LogAnimation, Verbose, TEXT("Needed to reset skeleton. Resave this asset to speed up load time: %s"), *GetPathNameSafe(this));
 	}
 }
 

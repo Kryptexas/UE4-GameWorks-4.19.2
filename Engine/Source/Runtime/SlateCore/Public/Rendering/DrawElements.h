@@ -1126,14 +1126,19 @@ public:
 	 * Some widgets may want to paint their children after after another, loosely-related widget finished painting.
 	 * Or they may want to paint "after everyone".
 	 */
-	struct FDeferredPaint
+	struct SLATECORE_API FDeferredPaint
 	{
 	public:
-		SLATECORE_API FDeferredPaint( const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled );
+		FDeferredPaint( const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled );
 
 		int32 ExecutePaint( int32 LayerId, FSlateWindowElementList& OutDrawElements ) const;
 
+		FDeferredPaint Copy(const FPaintArgs& InArgs);
+
 	private:
+		// Used for making copies.
+		FDeferredPaint(const FDeferredPaint& Copy, const FPaintArgs& InArgs);
+
 		const TWeakPtr<const SWidget> WidgetToPaintPtr;
 		const FPaintArgs Args;
 		const FGeometry AllottedGeometry;
@@ -1150,6 +1155,8 @@ public:
 
 	void BeginDeferredGroup();
 	void EndDeferredGroup();
+
+	TArray< TSharedPtr<FDeferredPaint> > GetDeferredPaintList() const { return DeferredPaintList; }
 
 	struct FVolatilePaint
 	{

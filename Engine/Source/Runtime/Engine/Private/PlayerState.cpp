@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "GameFramework/EngineMessage.h"
 #include "Net/UnrealNetwork.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
 
@@ -271,12 +271,11 @@ void APlayerState::RegisterPlayerWithSession(bool bWasFromInvite)
 {
 	if (GetNetMode() != NM_Standalone)
 	{
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
-		if (SessionInt.IsValid() && UniqueId.IsValid())
+		if (UniqueId.IsValid()) // May not be valid if this is was created via DebugCreatePlayer
 		{
 			// Register the player as part of the session
 			const APlayerState* PlayerState = GetDefault<APlayerState>();
-			SessionInt->RegisterPlayer(PlayerState->SessionName, *UniqueId, bWasFromInvite);
+			UOnlineEngineInterface::Get()->RegisterPlayer(GetWorld(), PlayerState->SessionName, *UniqueId, bWasFromInvite);
 		}
 	}
 }
@@ -288,12 +287,7 @@ void APlayerState::UnregisterPlayerWithSession()
 		const APlayerState* PlayerState = GetDefault<APlayerState>();
 		if (PlayerState->SessionName != NAME_None)
 		{
-			IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
-			if (SessionInt.IsValid())
-			{
-				// Remove the player from the session
-				SessionInt->UnregisterPlayer(PlayerState->SessionName, *UniqueId);
-			}
+			UOnlineEngineInterface::Get()->UnregisterPlayer(GetWorld(), PlayerState->SessionName, *UniqueId);
 		}
 	}
 }

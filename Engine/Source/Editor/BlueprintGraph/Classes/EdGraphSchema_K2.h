@@ -218,6 +218,20 @@ enum class EObjectReferenceType : uint8
 	AllTypes		= 0x0f,
 };
 
+/**
+* Filter flags for GetVariableTypeTree
+*/
+enum class ETypeTreeFilter : uint8
+{
+	None			= 0x00, // No Exec or Wildcards
+	AllowExec		= 0x01, // Include Executable pins
+	AllowWildcard	= 0x02, // Include Wildcard pins
+	IndexTypesOnly	= 0x04, // Exclude all pins that aren't index types
+	RootTypesOnly	= 0x08	// Exclude all pins that aren't root types
+};
+
+ENUM_CLASS_FLAGS(ETypeTreeFilter);
+
 struct FTypesDatabase;
 
 UCLASS(config=Editor)
@@ -834,19 +848,9 @@ public:
 	 * Get the type tree for all of the property types valid for this schema
 	 *
 	 * @param	TypeTree		The array that will contain the type tree hierarchy for this schema upon returning
-	 * @param	bAllowExec		Whether or not to add the exec type to the type tree
-	 * @param	bAllowWildcard	Whether or not to add the wildcard type to the type tree
+	 * @param	TypeTreeFilter	ETypeTreeFilter flags that determine how the TypeTree is populated.
 	 */
-	void GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard) const;
-
-	/**
-	 * Get the type tree for the index property types valid for this schema
-	 *
-	 * @param	TypeTree	The array that will contain the type tree hierarchy for this schema upon returning
-	 * @param	bAllowExec	Whether or not to add the exec type to the type tree
-	 * @param	bAllowExec	Whether or not to add the exec type to the type tree
-	 */
-	void GetVariableIndexTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard ) const;
+	void GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, ETypeTreeFilter TypeTreeFilter = ETypeTreeFilter::None) const;
 
 	/**
 	 * Returns whether or not the specified type has valid subtypes available
@@ -1013,9 +1017,6 @@ public:
 	static void GetReplaceVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, bool bReplaceExistingVariable = false);
 
 private:
-
-	void GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildCard, bool bIndexTypesOnly) const;
-
 	/**
 	 * Returns true if the specified function has any out parameters
 	 * @param [in] Function	The function to check for out parameters

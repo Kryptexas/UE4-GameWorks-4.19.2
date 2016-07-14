@@ -91,9 +91,9 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	}
 }
 
-void UAnimSingleNodeInstance::SetPreviewPoseOverride(const FName& PoseName, float Value)
+void UAnimSingleNodeInstance::SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero)
 {
-	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetPreviewPoseOverride(PoseName, Value);
+	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetPreviewCurveOverride(PoseName, Value, bRemoveIfZero);
 }
 
 void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLooping, FName StartingSection)

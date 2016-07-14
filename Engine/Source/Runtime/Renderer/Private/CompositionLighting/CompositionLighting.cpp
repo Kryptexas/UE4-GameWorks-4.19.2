@@ -58,7 +58,7 @@ bool IsAmbientCubemapPassRequired(const FSceneView& View)
 {
 	FScene* Scene = (FScene*)View.Family->Scene;
 
-	return View.FinalPostProcessSettings.ContributingCubemaps.Num() != 0 && !IsSimpleForwardShadingEnabled(View.GetShaderPlatform());
+	return View.FinalPostProcessSettings.ContributingCubemaps.Num() != 0 && !IsAnyForwardShadingEnabled(View.GetShaderPlatform());
 }
 
 bool IsLpvIndirectPassRequired(const FViewInfo& View)
@@ -98,7 +98,7 @@ static bool IsReflectionEnvironmentActive(const FSceneView& View)
 	bool HasReflectionCaptures = (Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() > 0);
 	bool HasSSR = View.Family->EngineShowFlags.ScreenSpaceReflections;
 
-	return (Scene->GetFeatureLevel() == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsSimpleForwardShadingEnabled(View.GetShaderPlatform()));
+	return (Scene->GetFeatureLevel() == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsAnyForwardShadingEnabled(View.GetShaderPlatform()));
 }
 
 static bool IsSkylightActive(const FViewInfo& View)
@@ -123,7 +123,7 @@ uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
 			&& View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f
 			&& !View.Family->UseDebugViewPS()
 			&& (FSSAOHelper::IsBasePassAmbientOcclusionRequired(View) || IsAmbientCubemapPassRequired(View) || IsReflectionEnvironmentActive(View) || IsSkylightActive(View) || View.Family->EngineShowFlags.VisualizeBuffer)
-			&& !IsSimpleForwardShadingEnabled(View.GetShaderPlatform());
+			&& !IsAnyForwardShadingEnabled(View.GetShaderPlatform());
 	}
 
 	if (bEnabled)
@@ -405,28 +405,6 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 	check(IsInRenderingThread());
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapDiffuse);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapNormal);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapDepth);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	{
-		extern int32 GShaderModelDebug;
-		if(GShaderModelDebug)
-		{
-			UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug: ProcessAfterLighting %x"), View.ShadingModelMaskInView);
-			UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug:"));
-			
-			if(GShaderModelDebug < 0)
-			{
-				// disable after one frame
-				GShaderModelDebug = 0;
-			}
-		}
-	}
-#endif
-
 	{
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
@@ -436,7 +414,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		// Screen Space Subsurface Scattering
 		{
 			float Radius = CVarSSSScale.GetValueOnRenderThread();
-			bool bSimpleDynamicLighting = IsSimpleForwardShadingEnabled(View.GetShaderPlatform());
+			bool bSimpleDynamicLighting = IsAnyForwardShadingEnabled(View.GetShaderPlatform());
 			bool bScreenSpaceSubsurfacePassNeeded = (View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0;
 			bool bSubsurfaceAllowed = CVarSubsurfaceScattering.GetValueOnRenderThread() == 1;
 

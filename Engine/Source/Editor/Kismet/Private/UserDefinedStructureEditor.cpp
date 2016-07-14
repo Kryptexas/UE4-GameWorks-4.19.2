@@ -119,16 +119,25 @@ public:
 
 	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
-		StructData->Destroy();
-		DetailsView->SetObject(nullptr);
-		DetailsView->OnFinishedChangingProperties().Clear();
+		// No need to destroy the struct data if only the default values are changing
+		if (Info != FStructureEditorUtils::DefaultValueChanged)
+		{
+			StructData->Destroy();
+			DetailsView->SetObject(nullptr);
+			DetailsView->OnFinishedChangingProperties().Clear();
+		}
 	}
 
 	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
-		StructData->Initialize(UserDefinedStruct.Get());
+		// If change is due to default value, then struct data was not destroyed (see PreChange) and therefore does not need to be re-initialized
+		if (Info != FStructureEditorUtils::DefaultValueChanged)
+		{
+			StructData->Initialize(UserDefinedStruct.Get());
+			DetailsView->SetObject(UserDefinedStruct.Get());
+		}
+
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
-		DetailsView->SetObject(UserDefinedStruct.Get());
 	}
 
 	// FNotifyHook interface
@@ -171,29 +180,31 @@ void FDefaultValueDetails::OnFinishedChangingProperties(const FPropertyChangedEv
 
 		check(PropertyChangedEvent.MemberProperty && OwnerStruct);
 
-		ensure(OwnerStruct == UserDefinedStruct.Get());
-		const UProperty* DirectProperty = PropertyChangedEvent.MemberProperty;
-		while (DirectProperty && !Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
+		if ( ensure(OwnerStruct == UserDefinedStruct.Get()) )
 		{
-			DirectProperty = Cast<const UProperty>(DirectProperty->GetOuter());
-		}
-		ensure(nullptr != DirectProperty);
-
-		if (DirectProperty)
-		{
-			FString DefaultValueString;
-			bool bDefaultValueSet = false;
+			const UProperty* DirectProperty = PropertyChangedEvent.MemberProperty;
+			while (DirectProperty && !Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
 			{
-				if (StructData.IsValid() && StructData->IsValid())
-				{
-					bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
-				}
+				DirectProperty = Cast<const UProperty>(DirectProperty->GetOuter());
 			}
+			ensure(nullptr != DirectProperty);
 
-			const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
-			if (bDefaultValueSet && VarGuid.IsValid())
+			if (DirectProperty)
 			{
-				FStructureEditorUtils::ChangeVariableDefaultValue(UserDefinedStruct.Get(), VarGuid, DefaultValueString);
+				FString DefaultValueString;
+				bool bDefaultValueSet = false;
+				{
+					if (StructData.IsValid() && StructData->IsValid())
+					{
+						bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
+					}
+				}
+
+				const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
+				if (bDefaultValueSet && VarGuid.IsValid())
+				{
+					FStructureEditorUtils::ChangeVariableDefaultValue(UserDefinedStruct.Get(), VarGuid, DefaultValueString);
+				}
 			}
 		}
 	}
@@ -771,13 +782,13 @@ public:
 		}
 	}
 
-	void GetFilteredVariableTypeTree( TArray< TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard ) const
+	void GetFilteredVariableTypeTree( TArray< TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> >& TypeTree, ETypeTreeFilter TypeTreeFilter) const
 	{
 		auto K2Schema = GetDefault<UEdGraphSchema_K2>();
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if(StructureDetailsSP.IsValid() && K2Schema)
 		{
-			K2Schema->GetVariableTypeTree(TypeTree, bAllowExec, bAllowWildcard);
+			K2Schema->GetVariableTypeTree(TypeTree, TypeTreeFilter);
 			const auto Parent = StructureDetailsSP->GetUserDefinedStruct();
 			// THE TREE HAS ONLY 2 LEVELS
 			for (auto PinTypePtr : TypeTree)
@@ -853,8 +864,7 @@ public:
 				.OnPinTypePreChanged(this, &FUserDefinedStructureFieldLayout::OnPrePinInfoChange)
 				.OnPinTypeChanged(this, &FUserDefinedStructureFieldLayout::PinInfoChanged)
 				.Schema(K2Schema)
-				.bAllowExec(false)
-				.bAllowWildcard(false)
+				.TypeTreeFilter(ETypeTreeFilter::None)
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 			+ SHorizontalBox::Slot()

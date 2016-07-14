@@ -46,7 +46,7 @@ public:
 	static UMovieSceneSubSection* GetRecordingSection();
 
 	/** Get the actor we are targeting for recording */
-	static const FString& GetActorToRecord();
+	static AActor* GetActorToRecord();
 
 	/** Check if we are primed for recording */
 	static bool IsSetAsRecording();
@@ -82,10 +82,10 @@ public:
 		TargetPathToRecordTo.Path = Path;
 	}
 
-	/** Set the target actor name to record */
-	void SetNameOfActorToRecord(const FString& ActorName)
+	/** Set the target actor to record */
+	void SetActorToRecord(AActor* InActorToRecord)
 	{
-		NameOfActorToRecord = ActorName;
+		ActorToRecord = InActorToRecord;
 	}
 
 	virtual UMovieSceneSection* SplitSection( float SplitTime ) override;
@@ -117,9 +117,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Sequence")
 	UMovieSceneSequence* SubSequence;
 
-	/** Target actor name to record */
+	/** Target actor to record */
 	UPROPERTY(EditAnywhere, Category="Sequence Recording")
-	FString NameOfActorToRecord;
+	TLazyObjectPtr<AActor> ActorToRecord;
 
 	/** Target name of sequence to try to record to (will record automatically to another if this already exists) */
 	UPROPERTY(EditAnywhere, Category="Sequence Recording")

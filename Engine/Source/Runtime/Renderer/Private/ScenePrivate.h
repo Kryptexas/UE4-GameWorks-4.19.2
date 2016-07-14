@@ -470,13 +470,14 @@ public:
 
 		FORCEINLINE bool operator == (const FProjectedShadowKey &Other) const
 		{
-			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && ShadowSplitIndex == Other.ShadowSplitIndex && bTranslucentShadow == Other.bTranslucentShadow);
+			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && ShadowSplitIndex == Other.ShadowSplitIndex && CacheMode == Other.CacheMode && bTranslucentShadow == Other.bTranslucentShadow);
 		}
 
 		FProjectedShadowKey(const FProjectedShadowInfo& ProjectedShadowInfo)
 			: PrimitiveId(ProjectedShadowInfo.GetParentSceneInfo() ? ProjectedShadowInfo.GetParentSceneInfo()->PrimitiveComponentId : FPrimitiveComponentId())
 			, Light(ProjectedShadowInfo.GetLightSceneInfo().Proxy->GetLightComponent())
 			, ShadowSplitIndex(ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex)
+			, CacheMode(ProjectedShadowInfo.CacheMode)
 			, bTranslucentShadow(ProjectedShadowInfo.bTranslucentShadow)
 		{
 		}
@@ -485,6 +486,7 @@ public:
 			: PrimitiveId(InPrimitiveId)
 			, Light(InLight)
 			, ShadowSplitIndex(InSplitIndex)
+			, CacheMode(SDCM_Uncached)
 			, bTranslucentShadow(bInTranslucentShadow)
 		{
 		}
@@ -498,6 +500,7 @@ public:
 		FPrimitiveComponentId PrimitiveId;
 		const ULightComponent* Light;
 		int32 ShadowSplitIndex;
+		EShadowDepthCacheMode CacheMode;
 		bool bTranslucentShadow;
 	};
 
@@ -670,6 +673,8 @@ public:
 	// cache for stencil reads to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
+
+	FForwardLightingViewResources ForwardLightingResources;
 
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
@@ -924,9 +929,9 @@ public:
 		IndirectShadowLightDirectionVertexBuffer.SafeRelease();
 		IndirectShadowLightDirectionSRV.SafeRelease();
 		CapsuleTileIntersectionCountsBuffer.Release();
-
 		TranslucencyTimer.Release();
 		SeparateTranslucencyTimer.Release();
+		ForwardLightingResources.Release();
 	}
 
 	// FSceneViewStateInterface
@@ -1696,6 +1701,21 @@ private:
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 
+class FCachedShadowMapData
+{
+public:
+	FWholeSceneProjectedShadowInitializer Initializer;
+	FShadowMapRenderTargetsRefCounted ShadowMap;
+	float LastUsedTime;
+	bool bCachedShadowMapHasPrimitives;
+
+	FCachedShadowMapData(const FWholeSceneProjectedShadowInitializer& InInitializer, float InLastUsedTime) :
+		Initializer(InInitializer),
+		LastUsedTime(InLastUsedTime),
+		bCachedShadowMapHasPrimitives(true)
+	{}
+};
+
 #if WITH_EDITOR
 	class FPixelInspectorData
 	{
@@ -1726,6 +1746,15 @@ typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 class FScene : public FSceneInterface
 {
 public:
+
+	struct FReadOnlyCVARCache
+	{
+		FReadOnlyCVARCache();
+		bool bEnablePointLightShadows;
+		bool bEnableStationarySkylight;
+		bool bEnableAtmosphericFog;
+		bool bEnableLowQualityLightmaps;
+	};
 
 	/** An optional world associated with the scene. */
 	UWorld* World;
@@ -1800,6 +1829,9 @@ public:
 	 * Lights in this array cannot be in the Lights array.  They also are not fully set up, as AddLightSceneInfo_RenderThread is not called for them.
 	 */
 	TSparseArray<FLightSceneInfoCompact> InvisibleLights;
+
+	/** Map from light id to the cached shadowmap data for that light. */
+	TMap<int32, FCachedShadowMapData> CachedShadowMaps;
 
 	/** The mobile quality level for which static draw lists have been built. */
 	bool bStaticDrawListsMobileHDR;
@@ -1908,6 +1940,8 @@ public:
 
 	float GlobalDistanceFieldViewDistance;
 
+	FReadOnlyCVARCache ReadOnlyCVARCache;
+
 #if WITH_EDITOR
 	/** Editor Pixel inspector */
 	FPixelInspectorData PixelInspectorData;
@@ -2011,6 +2045,8 @@ public:
 	 */
 	void GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const;
 
+	int64 GetCachedWholeSceneShadowMapsSize() const;
+
 	/**
 	 * Marks static mesh elements as needing an update if necessary.
 	 */
@@ -2076,9 +2112,26 @@ public:
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
-	bool ShouldRenderSkylight() const
+	bool ShouldRenderSkylight(EBlendMode BlendMode) const
 	{
-		return SkyLight && !SkyLight->bHasStaticLighting && GSupportsRenderTargetFormat_PF_FloatRGBA;
+		return ShouldRenderSkylight_Internal(BlendMode) && ReadOnlyCVARCache.bEnableStationarySkylight;
+	}
+
+	bool ShouldRenderSkylight_Internal(EBlendMode BlendMode) const
+	{
+		if (IsTranslucentBlendMode(BlendMode))
+		{
+			return SkyLight && !SkyLight->bHasStaticLighting;
+		}
+		else
+	{
+		const bool bRenderSkylight = SkyLight
+			&& !SkyLight->bHasStaticLighting
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
+
+		return bRenderSkylight;
+	}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

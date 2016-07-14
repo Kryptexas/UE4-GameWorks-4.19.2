@@ -441,9 +441,10 @@ bool FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(UWidget* WidgetTemp
 
 bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
 {
-	INamedSlotInterface* NamedSlotHost = FindNamedSlotHostForContent(WidgetTemplate, WidgetTree);
-	if (NamedSlotHost != nullptr)
+	UWidget* NamedSlotHostWidget = FindNamedSlotHostWidgetForContent(WidgetTemplate, WidgetTree);
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(NamedSlotHostWidget) )
 	{
+		NamedSlotHostWidget->Modify();
 		return RemoveNamedSlotHostContent(WidgetTemplate, NamedSlotHost);
 	}
 
@@ -771,28 +772,9 @@ void FWidgetBlueprintEditorUtils::ExportWidgetsToText(TArray<UWidget*> WidgetsTo
 	ExportedText = Archive;
 }
 
-void FWidgetBlueprintEditorUtils::PasteWidgets(TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, UWidgetBlueprint* BP, FWidgetReference ParentWidgetRef, FVector2D PasteLocation)
+void FWidgetBlueprintEditorUtils::PasteWidgets(TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, UWidgetBlueprint* BP, FWidgetReference ParentWidgetRef, FName SlotName, FVector2D PasteLocation)
 {
-	const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
-
-	UPanelWidget* ParentWidget = nullptr;
-	
-	if ( ParentWidgetRef.IsValid() )
-	{
-		ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
-	}
-	
-	// TODO UMG Find paste parent, may not be the selected widget...  Maybe it should be the parent of the copied widget until,
-	// we do a paste here, from a right click menu.
-
-	if ( !ParentWidget )
-	{
-		// If we already have a root widget, then we can't replace the root.
-		if ( BP->WidgetTree->RootWidget )
-		{
-			return;
-		}
-	}
+	FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;
@@ -806,6 +788,7 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(TSharedRef<FWidgetBlueprintEditor
 	// Ignore an empty set of widget paste data.
 	if ( PastedWidgets.Num() == 0 )
 	{
+		Transaction.Cancel();
 		return;
 	}
 
@@ -821,77 +804,124 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(TSharedRef<FWidgetBlueprintEditor
 		}
 	}
 
-	// If there isn't a root widget and we're copying multiple root widgets, then we need to add a container root
-	// to hold the pasted data since multiple root widgets isn't permitted.
-	if ( !ParentWidget && RootPasteWidgets.Num() > 1 )
+	if ( SlotName == NAME_None )
 	{
-		ParentWidget = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		BP->WidgetTree->Modify();
-		BP->WidgetTree->RootWidget = ParentWidget;
-	}
+		UPanelWidget* ParentWidget = nullptr;
 
-	if ( ParentWidget )
-	{
-		if ( !ParentWidget->CanHaveMultipleChildren() )
+		if ( ParentWidgetRef.IsValid() )
 		{
-			if ( ParentWidget->GetChildrenCount() > 0 || RootPasteWidgets.Num() > 1 )
-			{
-				FNotificationInfo Info(LOCTEXT("NotEnoughSlots", "Can't paste contents, not enough available slots in target widget."));
-				FSlateNotificationManager::Get().AddNotification(Info);
+			ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
+		}
 
+		// TODO UMG Find paste parent, may not be the selected widget...  Maybe it should be the parent of the copied widget until,
+		// we do a paste here, from a right click menu.
+
+		if ( !ParentWidget )
+		{
+			// If we already have a root widget, then we can't replace the root.
+			if ( BP->WidgetTree->RootWidget )
+			{
+				Transaction.Cancel();
 				return;
 			}
 		}
 
-		ParentWidget->Modify();
-
-		for ( UWidget* NewWidget : RootPasteWidgets )
+		// If there isn't a root widget and we're copying multiple root widgets, then we need to add a container root
+		// to hold the pasted data since multiple root widgets isn't permitted.
+		if ( !ParentWidget && RootPasteWidgets.Num() > 1 )
 		{
-			UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
-			if ( Slot )
-			{
-				if ( UWidgetSlotPair* OldSlotData = PastedExtraSlotData.FindRef(NewWidget->GetFName()) )
-				{
-					TMap<FName, FString> OldSlotProperties;
-					OldSlotData->GetSlotProperties(OldSlotProperties);
-					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, OldSlotProperties);
-				}
-
-				BlueprintEditor->AddPostDesignerLayoutAction(
-				[=] {
-					FWidgetReference WidgetRef = BlueprintEditor->GetReferenceFromTemplate(NewWidget);
-					UPanelSlot* PreviewSlot = WidgetRef.GetPreview()->Slot;
-					UPanelSlot* TemplateSlot = WidgetRef.GetTemplate()->Slot;
-					
-					if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(PreviewSlot) )
-					{
-						CanvasSlot->SaveBaseLayout();
-						CanvasSlot->SetDesiredPosition(PasteLocation);
-						CanvasSlot->RebaseLayout();
-					}
-
-					TMap<FName, FString> SlotProperties;
-					FWidgetBlueprintEditorUtils::ExportPropertiesToText(PreviewSlot, SlotProperties);
-					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(TemplateSlot, SlotProperties);
-				});
-			}
+			ParentWidget = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+			BP->WidgetTree->Modify();
+			BP->WidgetTree->RootWidget = ParentWidget;
 		}
 
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+		if ( ParentWidget )
+		{
+			if ( !ParentWidget->CanHaveMultipleChildren() )
+			{
+				if ( ParentWidget->GetChildrenCount() > 0 || RootPasteWidgets.Num() > 1 )
+				{
+					FNotificationInfo Info(LOCTEXT("NotEnoughSlots", "Can't paste contents, not enough available slots in target widget."));
+					FSlateNotificationManager::Get().AddNotification(Info);
+
+					Transaction.Cancel();
+					return;
+				}
+			}
+
+			ParentWidget->Modify();
+
+			for ( UWidget* NewWidget : RootPasteWidgets )
+			{
+				UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
+				if ( Slot )
+				{
+					if ( UWidgetSlotPair* OldSlotData = PastedExtraSlotData.FindRef(NewWidget->GetFName()) )
+					{
+						TMap<FName, FString> OldSlotProperties;
+						OldSlotData->GetSlotProperties(OldSlotProperties);
+						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, OldSlotProperties);
+					}
+
+					BlueprintEditor->AddPostDesignerLayoutAction(
+						[=] {
+						FWidgetReference WidgetRef = BlueprintEditor->GetReferenceFromTemplate(NewWidget);
+						UPanelSlot* PreviewSlot = WidgetRef.GetPreview()->Slot;
+						UPanelSlot* TemplateSlot = WidgetRef.GetTemplate()->Slot;
+
+						if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(PreviewSlot) )
+						{
+							CanvasSlot->SaveBaseLayout();
+							CanvasSlot->SetDesiredPosition(PasteLocation);
+							CanvasSlot->RebaseLayout();
+						}
+
+						TMap<FName, FString> SlotProperties;
+						FWidgetBlueprintEditorUtils::ExportPropertiesToText(PreviewSlot, SlotProperties);
+						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(TemplateSlot, SlotProperties);
+					});
+				}
+			}
+
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+		}
+		else
+		{
+			check(RootPasteWidgets.Num() == 1)
+				// If we've arrived here, we must be creating the root widget from paste data, and there can only be
+				// one item in the paste data by now.
+				BP->WidgetTree->Modify();
+
+			for ( UWidget* NewWidget : RootPasteWidgets )
+			{
+				BP->WidgetTree->RootWidget = NewWidget;
+				break;
+			}
+
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+		}
 	}
 	else
 	{
-		check(RootPasteWidgets.Num() == 1)
-		// If we've arrived here, we must be creating the root widget from paste data, and there can only be
-		// one item in the paste data by now.
+		if ( RootPasteWidgets.Num() > 1 )
+		{
+			FNotificationInfo Info(LOCTEXT("NamedSlotsOnlyHoldOneWidget", "Can't paste content, a slot can only hold one widget at the root."));
+			FSlateNotificationManager::Get().AddNotification(Info);
+
+			Transaction.Cancel();
+			return;
+		}
+
+		UWidget* NamedSlotHostWidget = ParentWidgetRef.GetTemplate();
+
 		BP->WidgetTree->Modify();
 
-		for ( UWidget* NewWidget : RootPasteWidgets )
-		{
-			BP->WidgetTree->RootWidget = NewWidget;
-			break;
-		}
-		
+		NamedSlotHostWidget->SetFlags(RF_Transactional);
+		NamedSlotHostWidget->Modify();
+
+		INamedSlotInterface* NamedSlotInterface = Cast<INamedSlotInterface>(NamedSlotHostWidget);
+		NamedSlotInterface->SetContentForSlot(SlotName, RootPasteWidgets[0]);
+
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 	}
 }
@@ -928,6 +958,7 @@ void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, co
 			}
 
 			Widget->Rename(nullptr, BP->WidgetTree);
+			Widget->SetDisplayLabel(Widget->GetName());
 
 			if ( SlotData )
 			{

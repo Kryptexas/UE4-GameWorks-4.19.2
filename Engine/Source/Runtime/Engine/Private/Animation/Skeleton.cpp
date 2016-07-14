@@ -783,26 +783,32 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 		{
 			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
 		}
-		
-		// if not existing, and if bFindIfNotExisting is true, then try find one
-		if (!PreviewMesh && bFindIfNotSet)
+	}
+
+	if(PreviewMesh && PreviewMesh->Skeleton != this) // fix mismatched skeleton
+	{
+		PreviewSkeletalMesh.Reset();
+		PreviewMesh = nullptr;
+	}
+
+	// if not existing, and if bFindIfNotExisting is true, then try find one
+	if(!PreviewMesh && bFindIfNotSet)
+	{
+		FARFilter Filter;
+		Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+
+		FString SkeletonString = FAssetData(this).GetExportTextName();
+		Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
+
+		TArray<FAssetData> AssetList;
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().GetAssets(Filter, AssetList);
+
+		if(AssetList.Num() > 0)
 		{
-			FARFilter Filter;
-			Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
-
-			FString SkeletonString = FAssetData(this).GetExportTextName();
-			Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
-
-			TArray<FAssetData> AssetList;
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-			AssetRegistryModule.Get().GetAssets(Filter, AssetList);
-
-			if(AssetList.Num() > 0)
-			{
-				SetPreviewMesh( Cast<USkeletalMesh>(AssetList[0].GetAsset()), false );
-				// update PreviewMesh
-				PreviewMesh = PreviewSkeletalMesh.Get();
-			}			
+			SetPreviewMesh( Cast<USkeletalMesh>(AssetList[0].GetAsset()), false );
+			// update PreviewMesh
+			PreviewMesh = PreviewSkeletalMesh.Get();
 		}
 	}
 
@@ -1135,7 +1141,7 @@ if (bModified)
 	}
 }
 
-bool USkeleton::GetSmartNameByUID(FName ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
+bool USkeleton::GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
@@ -1146,7 +1152,7 @@ bool USkeleton::GetSmartNameByUID(FName ContainerName, FSmartNameMapping::UID UI
 	return false;
 }
 
-bool USkeleton::GetSmartNameByName(FName ContainerName, FName InName, FSmartName& OutSmartName)
+bool USkeleton::GetSmartNameByName(const FName& ContainerName, const FName& InName, FSmartName& OutSmartName)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
@@ -1157,7 +1163,7 @@ bool USkeleton::GetSmartNameByName(FName ContainerName, FName InName, FSmartName
 	return false;
 }
 
-FSmartNameMapping::UID USkeleton::GetUIDByName(FName ContainerName, FName Name)
+FSmartNameMapping::UID USkeleton::GetUIDByName(const FName& ContainerName, const FName& Name)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)

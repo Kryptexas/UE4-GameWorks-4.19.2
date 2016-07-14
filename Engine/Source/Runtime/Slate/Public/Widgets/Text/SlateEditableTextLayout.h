@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SlateEditableTextTypes.h"
+#include "SlateTextLayoutFactory.h"
 #include "IVirtualKeyboardEntry.h"
 #include "ITextInputMethodSystem.h"
 #include "ISlateEditableTextWidget.h"
@@ -18,7 +19,7 @@ class ISlateRunRenderer;
 class SLATE_API FSlateEditableTextLayout
 {
 public:
-	FSlateEditableTextLayout(ISlateEditableTextWidget& InOwnerWidget, const TAttribute<FText>& InInitialText, FTextBlockStyle InTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InTextMarshaller, TSharedRef<ITextLayoutMarshaller> InHintTextMarshaller);
+	FSlateEditableTextLayout(ISlateEditableTextWidget& InOwnerWidget, const TAttribute<FText>& InInitialText, FTextBlockStyle InTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, const FCreateSlateTextLayout& InCreateSlateTextLayout, TSharedRef<ITextLayoutMarshaller> InTextMarshaller, TSharedRef<ITextLayoutMarshaller> InHintTextMarshaller);
 	~FSlateEditableTextLayout();
 
 	void SetText(const TAttribute<FText>& InText);
@@ -437,6 +438,9 @@ private:
 
 	/** The marshaller used to get/set the HintText text to/from the text layout. */
 	TSharedPtr<ITextLayoutMarshaller> HintMarshaller;
+
+	/** Delegate used to create internal text layouts. */
+	FCreateSlateTextLayout CreateSlateTextLayout;
 
 	/** In control of the layout and wrapping of the BoundText */
 	TSharedPtr<FSlateTextLayout> TextLayout;

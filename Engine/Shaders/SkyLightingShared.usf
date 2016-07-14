@@ -21,12 +21,13 @@ SamplerState BentNormalAOSampler;
 
 float ApplyBentNormalAO;
 float InvSkySpecularOcclusionStrength;
-float MinSkySpecularOcclusion;
+float4 OcclusionTintAndMinOcclusion;
 
-void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness, bool bTwoSidedFoliage, out float IndirectSpecularOcclusion, out float IndirectDiffuseOcclusion)
+void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness, bool bTwoSidedFoliage, out float IndirectSpecularOcclusion, out float IndirectDiffuseOcclusion, out float3 ExtraIndirectSpecular)
 {
 	IndirectSpecularOcclusion = 1;
 	IndirectDiffuseOcclusion = 1;
+	ExtraIndirectSpecular = 0;
 
 	BRANCH
 	if (ApplyBentNormalAO > 0)
@@ -38,7 +39,7 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 		BRANCH
 		if (View.DistanceFieldAOSpecularOcclusionMode == 0)
 		{
-			IndirectSpecularOcclusion = IndirectDiffuseOcclusion;
+			IndirectSpecularOcclusion = BentNormalLength;
 		}
 		else if (View.DistanceFieldAOSpecularOcclusionMode == 1)
 		{
@@ -49,7 +50,7 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 			}
 			else
 			{
-				float ReflectionConeAngle = Roughness * PI;
+				float ReflectionConeAngle = max(Roughness, .1f) * PI;
 				float UnoccludedAngle = BentNormalLength * PI * InvSkySpecularOcclusionStrength;
 				float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
 				IndirectSpecularOcclusion = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
@@ -64,8 +65,9 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 			IndirectSpecularOcclusion = TextureValue.w;
 		}
 
-		IndirectSpecularOcclusion = lerp(IndirectSpecularOcclusion, 1, MinSkySpecularOcclusion);
-		IndirectDiffuseOcclusion = lerp(BentNormalLength, 1, MinSkySpecularOcclusion);
+		IndirectSpecularOcclusion = lerp(IndirectSpecularOcclusion, 1, OcclusionTintAndMinOcclusion.w);
+		ExtraIndirectSpecular = (1 - IndirectSpecularOcclusion) * OcclusionTintAndMinOcclusion.xyz;
+		IndirectDiffuseOcclusion = lerp(BentNormalLength, 1, OcclusionTintAndMinOcclusion.w);
 	}
 }
 

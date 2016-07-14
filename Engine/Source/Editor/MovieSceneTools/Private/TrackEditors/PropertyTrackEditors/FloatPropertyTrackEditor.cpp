@@ -29,7 +29,7 @@ void CopyInterpFloatTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackFloatBas
 {
 	if (FMatineeImportTools::CopyInterpFloatTrack(MatineeFloatTrack, FloatTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 

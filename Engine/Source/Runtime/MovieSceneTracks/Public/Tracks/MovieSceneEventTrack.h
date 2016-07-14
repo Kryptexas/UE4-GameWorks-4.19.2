@@ -45,8 +45,9 @@ public:
 	 *
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
+	 * @param Player The movie scene player that has the event contexts where the events should be invoked from.
 	 */
-	void TriggerEvents(float Position, float LastPosition, TArray<UObject*> EventContextObjects);
+	void TriggerEvents(float Position, float LastPosition, IMovieScenePlayer& Player);
 
 public:
 

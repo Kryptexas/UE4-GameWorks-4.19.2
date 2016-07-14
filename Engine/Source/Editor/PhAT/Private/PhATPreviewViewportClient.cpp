@@ -15,6 +15,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/Font.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "DrawDebugHelpers.h"
@@ -122,9 +123,9 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 	// Write body/constraint count at top.
 	FString StatusString = FText::Format(
 		NSLOCTEXT("UnrealEd", "BodiesConstraints_F", "{0} Bodies  {1} Considered for bounds  {2} Ratio  {3} Constraints"),
-		FText::AsNumber(SharedData->PhysicsAsset->BodySetup.Num()),
+		FText::AsNumber(SharedData->PhysicsAsset->SkeletalBodySetups.Num()),
 		FText::AsNumber(SharedData->PhysicsAsset->BoundsBodies.Num()),
-		FText::AsNumber(static_cast<float>(SharedData->PhysicsAsset->BoundsBodies.Num())/static_cast<float>(SharedData->PhysicsAsset->BodySetup.Num())),
+		FText::AsNumber(static_cast<float>(SharedData->PhysicsAsset->BoundsBodies.Num())/static_cast<float>(SharedData->PhysicsAsset->SkeletalBodySetups.Num())),
 		FText::AsNumber(SharedData->PhysicsAsset->ConstraintSetup.Num()) ).ToString();
 
 	TextItem.Text = FText::FromString( StatusString );
@@ -188,7 +189,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 				for(int32 j=0; j< SharedData->SelectedBodies.Num(); ++j)
 				{
 					int32 SelectedBodyIndex = SharedData->SelectedBodies[j].Index;
-					FName SelectedBoneName = SharedData->PhysicsAsset->BodySetup[SelectedBodyIndex]->BoneName;
+					FName SelectedBoneName = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedBodyIndex]->BoneName;
 					if(SelectedBoneName == BoneName)
 					{
 						BoneNameColor = FColor::Green;
@@ -473,7 +474,7 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* InViewport, EAxi
 			float BoneScale = 1.f;
 			if (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit) /// BODY EDITING ///
 			{
-				int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[SelectedObject.Index]->BoneName);
+				int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[SelectedObject.Index]->BoneName);
 
 				FTransform BoneTM = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex);
 				BoneScale = BoneTM.GetScale3D().GetAbsMax();
@@ -597,7 +598,7 @@ FVector FPhATEdPreviewViewportClient::GetWidgetLocation() const
 			return FVector::ZeroVector;
 		}
 
-		int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[SharedData->GetSelectedBody()->Index]->BoneName);
+		int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->GetSelectedBody()->Index]->BoneName);
 
 		FTransform BoneTM = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex);
 		const float Scale = BoneTM.GetScale3D().GetAbsMax();
@@ -628,7 +629,7 @@ FMatrix FPhATEdPreviewViewportClient::GetWidgetCoordSystem() const
 				return FMatrix::Identity;
 			}
 
-			int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->BodySetup[SharedData->GetSelectedBody()->Index]->BoneName);
+			int32 BoneIndex = SharedData->EditorSkelComp->GetBoneIndex(SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->GetSelectedBody()->Index]->BoneName);
 
 			FTransform BoneTM = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex);
 			BoneTM.RemoveScaling();
@@ -681,6 +682,11 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetSpaceBases();
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
 		SharedData->EditorSkelComp->bUpdateJointsFromAnimation = SharedData->EditorSimOptions->bUpdateJointsFromAnimation;
+
+		static FPhysicalAnimationData EmptyProfile;
+
+		SharedData->PhysicalAnimationComponent->ApplyPhysicalAnimationProfileBelow(NAME_None, SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName, /*Include Self=*/true, /*Clear Not Found=*/true);
+		
 	}
 
 	World->Tick(LEVELTICK_All, DeltaSeconds * SharedData->EditorSimOptions->TimeDilation);
@@ -742,7 +748,7 @@ void FPhATEdPreviewViewportClient::StartManipulating(EAxisList::Type Axis, const
 		GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "MoveElement", "Move Element") );
 		for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 		{
-			SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index]->Modify();
+			SharedData->PhysicsAsset->SkeletalBodySetups[SharedData->SelectedBodies[i].Index]->Modify();
 			SharedData->SelectedBodies[i].ManipulateTM = FTransform::Identity;
 		}
 
@@ -783,7 +789,7 @@ void FPhATEdPreviewViewportClient::EndManipulating()
 				for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 				{
 					FPhATSharedData::FSelection & SelectedObject = SharedData->SelectedBodies[i];
-					UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[SelectedObject.Index];
+					UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedObject.Index];
 
 					FKAggregateGeom* AggGeom = &BodySetup->AggGeom;
 
@@ -833,7 +839,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* InViewport, bool bCo
 	if (bHit)
 	{
 		check(Result.Item != INDEX_NONE);
-		FName BoneName = SharedData->PhysicsAsset->BodySetup[Result.Item]->BoneName;
+		FName BoneName = SharedData->PhysicsAsset->SkeletalBodySetups[Result.Item]->BoneName;
 
 		//UE_LOG(LogPhysics, Warning, TEXT("Hit Bone Name (%s)"), *BoneName.ToString());
 
@@ -951,7 +957,7 @@ void FPhATEdPreviewViewportClient::ModifyPrimitiveSize(int32 BodyIndex, EKCollis
 {
 	check(SharedData->GetSelectedBody());
 
-	FKAggregateGeom* AggGeom = &SharedData->PhysicsAsset->BodySetup[BodyIndex]->AggGeom;
+	FKAggregateGeom* AggGeom = &SharedData->PhysicsAsset->SkeletalBodySetups[BodyIndex]->AggGeom;
 
 	if (PrimType == KPT_Sphere)
 	{

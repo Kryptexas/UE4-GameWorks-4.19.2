@@ -373,7 +373,12 @@ void FLevelEditorActionCallbacks::Save()
 
 void FLevelEditorActionCallbacks::SaveAs()
 {
-	FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel );
+	FString SavedFilename;
+	bool bSaved = FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel, &SavedFilename );
+	if (bSaved)
+	{
+		FEditorFileUtils::LoadMap(SavedFilename);
+	}
 }
 
 void FLevelEditorActionCallbacks::SaveAllLevels()

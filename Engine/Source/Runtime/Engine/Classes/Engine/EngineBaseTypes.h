@@ -199,8 +199,11 @@ public:
 	uint8 bRunOnAnyThread:1;
 
 private:
-	/** If true, means that this tick function is in the master array of tick functions **/
+	/** If true, means that this tick function is in the master array of tick functions */
 	uint8 bRegistered:1;
+
+	/** Cache whether this function was rescheduled as an interval function during StartParallel */
+	uint8 bWasInterval:1;
 
 	enum class ETickState : uint8
 	{
@@ -337,9 +340,8 @@ private:
 	 * Queues a tick function for execution from the game thread
 	 * @param TickContext - context to tick in
 	 * @param StackForCycleDetection - Stack For Cycle Detection
-	 * @param bWasInterval - true if this was an interval tick
 	 */
-	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection, bool bWasInterval);
+	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection);
 
 	/** 
 	 * Logs the prerequisites
@@ -515,7 +517,11 @@ namespace ENetworkFailure
 		/** The server needs to upgrade their game */
 		OutdatedServer,
 		/** There was an error during connection to the game */
-		PendingConnectionFailure
+		PendingConnectionFailure,
+		/** NetGuid mismatch */
+		NetGuidMismatch,
+		/** Network checksum mismatch */
+		NetChecksumMismatch
 	};
 }
 
@@ -544,6 +550,10 @@ namespace ENetworkFailure
 			return TEXT("OutdatedServer");
 		case PendingConnectionFailure:
 			return TEXT("PendingConnectionFailure");
+		case NetGuidMismatch:
+			return TEXT("NetGuidMismatch");
+		case NetChecksumMismatch:
+			return TEXT("NetChecksumMismatch");
 		}
 		return TEXT("Unknown ENetworkFailure error occurred.");
 	}
@@ -885,7 +895,7 @@ enum EViewModeIndex
 
 	VMI_CollisionPawn = 15, 
 	VMI_CollisionVisibility = 16, 
-	VMI_VertexDensities = 17,
+	//VMI_UNUSED = 17,
 	/** Colored according to the current LOD index. */
 	VMI_LODColoration = 18,
 	/** Colored according to the quad coverage. */

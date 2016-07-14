@@ -34,7 +34,6 @@ public:
 	virtual FOnBPStatGraphLayoutChanged& GetGraphLayoutChangedDelegate() { return GraphLayoutChangedDelegate; }
 	virtual TSharedPtr<FBlueprintExecutionContext> GetBlueprintContext(const FString& BlueprintClassPath) override;
 	virtual TSharedPtr<FScriptExecutionNode> GetProfilerDataForNode(const UEdGraphNode* GraphNode) override;
-	virtual FName MapBlueprintInstance(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FString& InstancePath) override;
 	virtual bool HasDataForInstance(const UObject* Instance) const override;
 	virtual void ProcessEventProfilingData() override;
 	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetGraphNodeHeatMapDisplayMode() const { return GraphNodeHeatMapDisplayMode; }
@@ -89,8 +88,8 @@ protected:
 	EBlueprintProfilerHeatMapDisplayMode::Type GraphNodeHeatMapDisplayMode;
 	/** Current wire heat map display mode */
 	EBlueprintProfilerHeatMapDisplayMode::Type WireHeatMapDisplayMode;
-	/** Suspended script events */
-	TMap<FName, TSharedPtr<FScriptEventPlayback>> SuspendedEvents;
+	/** Suspended script events, the key is the latent LinkId */
+	TMap<FName, TMap<int32, TSharedPtr<FScriptEventPlayback>>> SuspendedEvents;
 	/** Cached object path and code offset lookup to UObjects */
 	TMap<FString, TSharedPtr<FBlueprintExecutionContext>> PathToBlueprintContext;
 	/** The profiler connection factory */

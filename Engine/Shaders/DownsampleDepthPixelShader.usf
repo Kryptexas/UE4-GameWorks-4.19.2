@@ -17,6 +17,8 @@ void Main(
 	out float4 OutColor : SV_Target0
 	)
 {
+	OutColor = 0;
+
 	// Lookup the four view space Z's of the full resolution pixels corresponding to this low resolution pixel
 	float ViewSpaceZ0 = CalcSceneDepth(InUV + SourceTexelOffsets01.xy);
 	float ViewSpaceZ1 = CalcSceneDepth(InUV + SourceTexelOffsets01.zw);

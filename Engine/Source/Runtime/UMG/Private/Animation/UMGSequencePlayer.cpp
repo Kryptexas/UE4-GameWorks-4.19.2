@@ -146,7 +146,7 @@ void UUMGSequencePlayer::PlayInternal(double StartAtTime, double EndAtTime, doub
 
 	if (PlayMode == EUMGSequencePlayMode::Reverse)
 	{
-		// When playing in reverse count substract the start time from the end.
+		// When playing in reverse count subtract the start time from the end.
 		TimeCursorPosition = CurrentPlayRange.GetUpperBoundValue() - StartAtTime;
 	}
 	else
@@ -178,7 +178,7 @@ void UUMGSequencePlayer::PlayInternal(double StartAtTime, double EndAtTime, doub
 void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode)
 {
 	double SubAnimStartTime = 0.0;
-	double SubAnimEndTime = TimeRange.GetUpperBoundValue();
+	double SubAnimEndTime = TimeRange.Size<float>();
 
 	PlayInternal(StartAtTime, 0.0, SubAnimStartTime, SubAnimEndTime, InNumLoopsToPlay, InPlayMode);
 }
@@ -186,7 +186,7 @@ void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSeq
 void UUMGSequencePlayer::PlayTo(float StartAtTime, float EndAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode)
 {
 	double SubAnimStartTime = 0.0;
-	double SubAnimEndTime = TimeRange.GetUpperBoundValue();
+	double SubAnimEndTime = TimeRange.Size<float>();
 
 	PlayInternal(StartAtTime, EndAtTime, SubAnimStartTime, SubAnimEndTime, InNumLoopsToPlay, InPlayMode);
 }

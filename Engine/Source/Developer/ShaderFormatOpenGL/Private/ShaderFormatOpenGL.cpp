@@ -27,7 +27,7 @@ class FShaderFormatGLSL : public IShaderFormat
 		/** Version for shader format, this becomes part of the DDC key. */
 		UE_SHADER_GLSL_150_VER = 60,
 		UE_SHADER_GLSL_150_MAC_VER = 60,
-		UE_SHADER_GLSL_430_VER = 60,
+		UE_SHADER_GLSL_430_VER = 61,
 		UE_SHADER_GLSL_ES2_VER = 60,
 		UE_SHADER_GLSL_150ES2_VER = 60,
 		UE_SHADER_GLSL_150ES2NOUB_VER = 60,

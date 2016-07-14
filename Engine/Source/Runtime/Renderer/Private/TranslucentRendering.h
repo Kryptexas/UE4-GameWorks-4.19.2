@@ -176,6 +176,12 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
+	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	{
+		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		OutEnvironment.CompilerFlags.Add( CFLAG_VertexToGeometryShader );
+	}
+
 	FWriteToSliceVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
     {

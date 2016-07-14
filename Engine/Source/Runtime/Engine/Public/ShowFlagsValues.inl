@@ -189,7 +189,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, MeshEdges, SFG_Advanced, LOCTEXT("MeshEdgesSF", "M
 /** Complex cover rendering */
 SHOWFLAG_FIXED_IN_SHIPPING(0, Cover, SFG_Hidden, LOCTEXT("CoverSF", "Cover"))
 /** Spline rendering */
-SHOWFLAG_FIXED_IN_SHIPPING(1, Splines, SFG_Advanced, LOCTEXT("SplinesSF", "Splines"))
+SHOWFLAG_FIXED_IN_SHIPPING(0, Splines, SFG_Advanced, LOCTEXT("SplinesSF", "Splines"))
 /** Selection rendering, could be useful in game as well */
 SHOWFLAG_FIXED_IN_SHIPPING(0, Selection, SFG_Advanced, LOCTEXT("SelectionSF", "Selection"))
 /** Draws mode specific widgets and controls in the viewports (should only be set on viewport clients that are editing the level itself) */
@@ -290,8 +290,6 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeShadingModels, SFG_Visualize, LOCTEXT("Vi
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSenses, SFG_Advanced, LOCTEXT("VisualizeSenses", "Senses"))
 /** Visualize the bloom, for developer (by default off): */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeBloom, SFG_Visualize, LOCTEXT("VisualizeBloom", "Bloom"))
-/** Visualize Vertex Density */
-SHOWFLAG_FIXED_IN_SHIPPING(0, VertexDensities, SFG_Hidden, LOCTEXT("VisualizeVertexDensities", "Visualize Vertex Densities"))
 /** Visualize LOD Coloration */
 SHOWFLAG_FIXED_IN_SHIPPING(0, LODColoration, SFG_Hidden, LOCTEXT("VisualizeLODColoration", "Visualize LOD Coloration"))
 /** Visualize HLOD Coloration */

@@ -376,7 +376,7 @@ void UProceduralFoliageTile::InitSimulation(const UProceduralFoliageSpawner* InF
 	RandomStream.Initialize(RandomSeed);
 	FoliageSpawner = InFoliageSpawner;
 	SimulationStep = 0;
-	Broadphase = FProceduralFoliageBroadphase(FoliageSpawner->TileSize);
+	Broadphase = FProceduralFoliageBroadphase(FoliageSpawner->TileSize, FoliageSpawner->MinimumQuadTreeSize);
 }
 
 bool UProceduralFoliageTile::UserCancelled() const

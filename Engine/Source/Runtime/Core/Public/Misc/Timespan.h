@@ -10,8 +10,6 @@ class FOutputDevice;
 class FString;
 class UObject;
 
-inline uint32 GetTypeHash(const int64 A);
-
 
 namespace ETimespan
 {
@@ -611,10 +609,7 @@ public:
 	 * @param Timespan The timespan to get the hash for.
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash(const FTimespan& Timespan)
-	{
-		return GetTypeHash(Timespan.Ticks);
-	}
+	friend uint32 GetTypeHash(const FTimespan& Timespan);
 
 protected:
 

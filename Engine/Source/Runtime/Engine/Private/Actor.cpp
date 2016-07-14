@@ -267,6 +267,12 @@ void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 {
 	AActor* This = CastChecked<AActor>(InThis);
 	Collector.AddReferencedObjects(This->OwnedComponents);
+#if WITH_EDITOR
+	if (This->CurrentTransactionAnnotation.IsValid())
+	{
+		This->CurrentTransactionAnnotation->AddReferencedObjects(Collector);
+	}
+#endif
 	Super::AddReferencedObjects(InThis, Collector);
 }
 
@@ -1548,6 +1554,9 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RootComponent->DetachFromParent(bMaintainWorldPosition);
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+		// Clear AttachmentReplication struct
+		AttachmentReplication = FRepAttachment();
 	}
 }
 
@@ -2585,29 +2594,31 @@ void AActor::PostEditImport()
 /** Util that sets up the actor's component hierarchy (when users forget to do so, in their native ctor) */
 static USceneComponent* FixupNativeActorComponents(AActor* Actor)
 {
-	TArray<USceneComponent*> SceneComponents;
-	Actor->GetComponents(SceneComponents);
-
 	USceneComponent* SceneRootComponent = Actor->GetRootComponent();
-	if ((SceneRootComponent == nullptr) && (SceneComponents.Num() > 0))
+	if (SceneRootComponent == nullptr)
 	{
-		UE_LOG(LogActor, Warning, TEXT("%s has natively added scene component(s), but none of them were set as the actor's RootComponent - picking one arbitrarily"), *Actor->GetFullName());
-	
-		// if the user forgot to set one of their native components as the root, 
-		// we arbitrarily pick one for them (otherwise the SCS could attempt to 
-		// create its own root, and nest native components under it)
-		for (USceneComponent* Component : SceneComponents)
+		TInlineComponentArray<USceneComponent*> SceneComponents;
+		Actor->GetComponents(SceneComponents);
+		if (SceneComponents.Num() > 0)
 		{
-			if ((Component == nullptr) ||
-				(Component->GetAttachParent() != nullptr) ||
-				(Component->CreationMethod != EComponentCreationMethod::Native))
+			UE_LOG(LogActor, Warning, TEXT("%s has natively added scene component(s), but none of them were set as the actor's RootComponent - picking one arbitrarily"), *Actor->GetFullName());
+	
+			// if the user forgot to set one of their native components as the root, 
+			// we arbitrarily pick one for them (otherwise the SCS could attempt to 
+			// create its own root, and nest native components under it)
+			for (USceneComponent* Component : SceneComponents)
 			{
-				continue;
-			}
+				if ((Component == nullptr) ||
+					(Component->GetAttachParent() != nullptr) ||
+					(Component->CreationMethod != EComponentCreationMethod::Native))
+				{
+					continue;
+				}
 
-			SceneRootComponent = Component;
-			Actor->SetRootComponent(Component);
-			break;
+				SceneRootComponent = Component;
+				Actor->SetRootComponent(Component);
+				break;
+			}
 		}
 	}
 
@@ -2623,7 +2634,7 @@ static void ValidateDeferredTransformCache()
 	// could happen if an actor is destroyed before FinishSpawning is called
 	for (auto It = GSpawnActorDeferredTransformCache.CreateIterator(); It; ++It)
 	{
-		TWeakObjectPtr<AActor> ActorRef = It.Key();
+		const TWeakObjectPtr<AActor>& ActorRef = It.Key();
 		if (ActorRef.IsValid() == false)
 		{
 			It.RemoveCurrent();
@@ -3777,8 +3788,8 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 	Result.PhysMaterial = ContactInfo.PhysMaterial[1];
 	Result.Actor = OtherInfo.Actor;
 	Result.Component = OtherInfo.Component;
-	Result.Item = MyInfo.BodyIndex;
-	Result.BoneName = MyInfo.BoneName;
+	Result.Item = OtherInfo.BodyIndex;
+	Result.BoneName = OtherInfo.BoneName;
 	Result.bBlockingHit = true;
 
 	NotifyHit(MyInfo.Component.Get(), OtherInfo.Actor.Get(), OtherInfo.Component.Get(), true, Result.Location, Result.Normal, RigidCollisionData.TotalNormalImpulse, Result);
@@ -3913,20 +3924,20 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 		RegisterAllActorTickFunctions(true, false); // components will be handled when they are registered
 	}
 	
-	// Register RootComponent first so all other components can reliable use it (ie call GetLocation) when they register
-	if( RootComponent != NULL && !RootComponent->IsRegistered() )
+	// Register RootComponent first so all other children components can reliably use it (i.e., call GetLocation) when they register
+	if (RootComponent != NULL && !RootComponent->IsRegistered())
 	{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		FScopeCycleCounterUObject ContextScope(RootComponent);
 #endif
-		// An unregistered root component is bad news
-		check(RootComponent->bAutoRegister);
+		if (RootComponent->bAutoRegister)
+		{
+			// Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
+			// This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
+			RootComponent->Modify(false);
 
-		//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
-		//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
-		RootComponent->Modify(false);
-
-		RootComponent->RegisterComponentWithWorld(World);
+			RootComponent->RegisterComponentWithWorld(World);
+		}
 	}
 
 	int32 NumTotalRegisteredComponents = 0;
@@ -3938,7 +3949,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 	for (int32 CompIdx = 0; CompIdx < Components.Num() && NumRegisteredComponentsThisRun < NumComponentsToRegister; CompIdx++)
 	{
 		UActorComponent* Component = Components[CompIdx];
-		if(!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
+		if (!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
 		{
 			// Ensure that all parent are registered first
 			USceneComponent* UnregisteredParentComponent = GetUnregisteredParent(Component);
@@ -3961,8 +3972,8 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 			FScopeCycleCounterUObject ContextScope(Component);
 #endif
 				
-			//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
-			//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
+			// Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
+			// This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
 			Component->Modify(false);
 
 			Component->RegisterComponentWithWorld(World);

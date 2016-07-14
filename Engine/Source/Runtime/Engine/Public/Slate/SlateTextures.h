@@ -75,6 +75,7 @@ public:
 	virtual void UpdateTexture(const TArray<uint8>& Bytes) override;
 	virtual void UpdateTextureThreadSafe(const TArray<uint8>& Bytes) override;
 	virtual void UpdateTextureThreadSafeRaw(uint32 Width, uint32 Height, const void* Buffer, const FIntRect& Dirty) override;
+	virtual void UpdateTextureThreadSafeWithTextureData(FSlateTextureData* BulkData) override;
 protected:
 	/** Width of this texture */
 	uint32 Width;

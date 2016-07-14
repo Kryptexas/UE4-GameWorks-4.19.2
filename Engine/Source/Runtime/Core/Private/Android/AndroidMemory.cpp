@@ -5,6 +5,7 @@
 #include "MallocAnsi.h"
 #include "unistd.h"
 #include <jni.h>
+#include <sys/mman.h>
 
 #define JNI_CURRENT_VERSION JNI_VERSION_1_6
 extern JavaVM* GJavaVM;
@@ -95,14 +96,17 @@ FMalloc* FAndroidPlatformMemory::BaseAllocator()
 	return new FMallocBinned(MemoryConstants.PageSize, MemoryLimit);
 }
 
-void* FAndroidPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
+void* FAndroidPlatformMemory::BinnedAllocFromOS(SIZE_T Size)
 {
-	// valloc was deprecated, this is a functional equivalent, for SDK 21
-	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-	return memalign(MemoryConstants.PageSize, Size);
+	return mmap(nullptr, Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 }
 
-void FAndroidPlatformMemory::BinnedFreeToOS( void* Ptr )
+void FAndroidPlatformMemory::BinnedFreeToOS(void* Ptr, SIZE_T Size)
 {
-	free(Ptr);
+	if (munmap(Ptr, Size) != 0)
+	{
+		const int ErrNo = errno;
+		UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Ptr, Size,
+			ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
+	}
 }

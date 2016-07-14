@@ -59,6 +59,7 @@ namespace StaticMeshCookStats
 
 FStaticMeshVertexBuffer::FStaticMeshVertexBuffer():
 	VertexData(NULL),
+	NumTexCoords(0),
 	Data(NULL),
 	Stride(0),
 	NumVertices(0),

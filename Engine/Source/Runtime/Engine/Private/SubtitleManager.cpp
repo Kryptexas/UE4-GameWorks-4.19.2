@@ -5,6 +5,7 @@
 #include "SubtitleManager.h"
 #include "SoundDefinitions.h"
 #include "Engine/Font.h"
+#include "AudioThread.h"
 
 DEFINE_LOG_CATEGORY(LogSubtitle);
 
@@ -28,6 +29,29 @@ void FSubtitleManager::KillSubtitles( PTRINT SubtitleID )
 	ActiveSubtitles.Remove( SubtitleID );
 }
 
+void FSubtitleManager::QueueSubtitles(const FQueueSubtitleParams& QueueSubtitleParams)
+{
+	check(IsInAudioThread());
+
+	DECLARE_CYCLE_STAT(TEXT("FGameThreadAudioTask.QueueSubtitles"), STAT_AudioQueueSubtitles, STATGROUP_TaskGraphTasks);
+
+	FAudioThread::RunCommandOnGameThread([QueueSubtitleParams]()
+	{
+		UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(QueueSubtitleParams.AudioComponentID);
+		if (AudioComponent && AudioComponent->OnQueueSubtitles.IsBound())
+		{
+			// intercept the subtitles if the delegate is set
+			AudioComponent->OnQueueSubtitles.ExecuteIfBound(QueueSubtitleParams.Subtitles, QueueSubtitleParams.Duration);
+		}
+		else if (UWorld* World = QueueSubtitleParams.WorldPtr.Get())
+		{
+			// otherwise, pass them on to the subtitle manager for display
+			// Subtitles are hashed based on the associated sound (wave instance).
+			FSubtitleManager::GetSubtitleManager()->QueueSubtitles( QueueSubtitleParams.WaveInstance, QueueSubtitleParams.SubtitlePriority, QueueSubtitleParams.bManualWordWrap, QueueSubtitleParams.bSingleLine, QueueSubtitleParams.Duration, QueueSubtitleParams.Subtitles, World->GetAudioTimeSeconds() );
+		}
+	}, GET_STATID(STAT_AudioQueueSubtitles));
+}
+
 /**
  * Add an array of subtitles to the active list
  * This is called from AudioComponent::Play
@@ -39,9 +63,10 @@ void FSubtitleManager::KillSubtitles( PTRINT SubtitleID )
  * @param  SoundDuration - time in seconds after which the subtitles do not display
  * @param  Subtitles - TArray of lines of subtitle and time offset to play them
  */
-void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool bManualWordWrap, bool bSingleLine, float SoundDuration, TArray<FSubtitleCue>& Subtitles, float InStartTime )
+void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool bManualWordWrap, bool bSingleLine, float SoundDuration, const TArray<FSubtitleCue>& Subtitles, float InStartTime )
 {
 	check( GEngine );
+	check(IsInGameThread());
 
 	// No subtitles to display
 	if( !Subtitles.Num() )

@@ -109,7 +109,7 @@ public:
 		FVector LightVector = SubjectBounds.Origin - LightPosition;
 		float LightDistance = LightVector.Size();
 		float SilhouetteRadius = 1.0f;
-		const float SubjectRadius = SubjectBounds.SphereRadius;
+		const float SubjectRadius = SubjectBounds.BoxExtent.Size();
 		const float ShadowRadiusMultiplier = 1.1f;
 
 		if (LightDistance > SubjectRadius)

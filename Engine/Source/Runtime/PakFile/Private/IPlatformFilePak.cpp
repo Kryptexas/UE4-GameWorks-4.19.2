@@ -2543,6 +2543,11 @@ void FPakFile::Initialize(FArchive* Reader)
 		LoadIndex(Reader);
 		// LoadIndex should crash in case of an error, so just assume everything is ok if we got here.
 		bIsValid = true;
+
+		if (FParse::Param(FCommandLine::Get(), TEXT("checkpak")))
+		{
+			ensure(Check());
+		}
 	}	
 }
 
@@ -2626,6 +2631,53 @@ void FPakFile::LoadIndex(FArchive* Reader)
 			}
 		}
 	}
+}
+
+bool FPakFile::Check()
+{
+	UE_LOG(LogPakFile, Display, TEXT("Checking pak file \"%s\". This may take a while..."), *PakFilename);
+	FArchive& PakReader = *GetSharedReader(NULL);
+	int32 ErrorCount = 0;
+	int32 FileCount = 0;
+
+	for (FPakFile::FFileIterator It(*this); It; ++It, ++FileCount)
+	{
+		const FPakEntry& Entry = It.Info();
+		void* FileContents = FMemory::Malloc(Entry.Size);
+		PakReader.Seek(Entry.Offset);
+		uint32 SerializedCrcTest = 0;
+		FPakEntry EntryInfo;
+		EntryInfo.Serialize(PakReader, GetInfo().Version);
+		if (EntryInfo != Entry)
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Serialized hash mismatch for \"%s\"."), *It.Filename());
+			ErrorCount++;
+		}
+		PakReader.Serialize(FileContents, Entry.Size);
+
+		uint8 TestHash[20];
+		FSHA1::HashBuffer(FileContents, Entry.Size, TestHash);
+		if (FMemory::Memcmp(TestHash, Entry.Hash, sizeof(TestHash)) != 0)
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Hash mismatch for \"%s\"."), *It.Filename());
+			ErrorCount++;
+		}
+		else
+		{
+			UE_LOG(LogPakFile, Display, TEXT("\"%s\" OK."), *It.Filename());
+		}
+		FMemory::Free(FileContents);
+	}
+	if (ErrorCount == 0)
+	{
+		UE_LOG(LogPakFile, Display, TEXT("Pak file \"%s\" healthy, %d files checked."), *PakFilename, FileCount);
+	}
+	else
+	{
+		UE_LOG(LogPakFile, Display, TEXT("Pak file \"%s\" corrupted (%d errors ouf of %d files checked.)."), *PakFilename, ErrorCount, FileCount);
+	}
+
+	return ErrorCount == 0;
 }
 
 FArchive* FPakFile::GetSharedReader(IPlatformFile* LowerLevel)

@@ -491,6 +491,28 @@ FORCEINLINE static void VerifyProperPIEScene(UPrimitiveComponent* Component, UWo
 #endif
 }
 
+FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
+{
+	static const auto CVarSupportAtmosphericFog = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAtmosphericFog"));
+	static const auto CVarSupportStationarySkylight = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportStationarySkylight"));
+	static const auto CVarSupportLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
+	static const auto CVarSupportPointLightWholeSceneShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportPointLightWholeSceneShadows"));
+	static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));	
+	const bool bForceAllPermutations = CVarSupportAllShaderPermutations && CVarSupportAllShaderPermutations->GetValueOnAnyThread() != 0;
+
+	bEnableAtmosphericFog = !CVarSupportAtmosphericFog || CVarSupportAtmosphericFog->GetValueOnAnyThread() != 0 || bForceAllPermutations;
+	bEnableStationarySkylight = !CVarSupportStationarySkylight || CVarSupportStationarySkylight->GetValueOnAnyThread() != 0 || bForceAllPermutations;
+	bEnablePointLightShadows = !CVarSupportPointLightWholeSceneShadows || CVarSupportPointLightWholeSceneShadows->GetValueOnAnyThread() != 0 || bForceAllPermutations;
+	bEnableLowQualityLightmaps = !CVarSupportLowQualityLightmaps || CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0 || bForceAllPermutations;
+
+
+	const bool bShowMissmatchedLowQualityLightmapsWarning = (bEnableLowQualityLightmaps) != (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
+	if ( bShowMissmatchedLowQualityLightmapsWarning )
+	{
+		UE_LOG(LogRenderer, Warning, TEXT("Missmatch between bShouldGenerateLowQualityLightmaps(%d) and r.SupportLowQualityLightmaps(%d), UEngine::bShouldGenerateLowQualityLightmaps has been depricated please use r.SupportLowQualityLightmaps instead"), GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED, bEnableLowQualityLightmaps);
+	}
+}
+
 FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
 :	World(InWorld)
 ,	FXSystem(NULL)
@@ -976,7 +998,7 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		SimpleDirectionalLight = LightSceneInfo;
 
 		// if we are mobile rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
-		bool bMobileRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
+		bool bMobileRendererRequiresLightPolicyChange = GetShadingPath() == EShadingPath::Mobile &&
 			(
 			// this light is a dynamic shadowcast 
 			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
@@ -1421,6 +1443,23 @@ void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy
 	}
 }
 
+int64 FScene::GetCachedWholeSceneShadowMapsSize() const
+{
+	int64 CachedShadowmapMemory = 0;
+
+	for (TMap<int32, FCachedShadowMapData>::TConstIterator CachedShadowMapIt(CachedShadowMaps); CachedShadowMapIt; ++CachedShadowMapIt)
+	{
+		const FCachedShadowMapData& ShadowMapData = CachedShadowMapIt.Value();
+
+		if (ShadowMapData.ShadowMap.IsValid())
+		{
+			CachedShadowmapMemory += ShadowMapData.ShadowMap.ComputeMemorySize();
+		}
+	}
+
+	return CachedShadowmapMemory;
+}
+
 void FScene::AddPrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -1537,7 +1576,7 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 					// thus, lights that change state in this way must update the draw lists.
 					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
 						Scene->bScenesPrimitivesNeedStaticMeshElementUpdate ||
-						( !Scene->ShouldUseDeferredRenderer() 
+						( Scene->GetShadingPath() == EShadingPath::Mobile 
 						&& Parameters.NewColor.IsAlmostBlack() != LightSceneInfo->Proxy->GetColor().IsAlmostBlack() );
 
 					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
@@ -1562,7 +1601,7 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
 			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());
+			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (GetShadingPath() == EShadingPath::Mobile && (!SimpleDirectionalLight->Proxy->HasStaticShadowing() || SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()));
 			SimpleDirectionalLight = NULL;
 		}
 
@@ -2066,7 +2105,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 	TArray<FPrimitiveSceneInfo*> PrimitivesToUpdate;
 	auto SceneFeatureLevel = GetFeatureLevel();
 
-	if (ShouldUseDeferredRenderer())
+	if (GetShadingPath() == EShadingPath::Deferred)
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
@@ -2076,7 +2115,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 			BasePassUniformLightMapPolicyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
-	else
+	else if (GetShadingPath() == EShadingPath::Mobile)
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
@@ -2201,7 +2240,18 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 
 		bool bLightHasUnbuiltInteractions = false;
 
-		for(FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicPrimitiveList;
+		for(FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionOftenMovingPrimitiveList;
+			Interaction;
+			Interaction = Interaction->GetNextPrimitive())
+		{
+			if (Interaction->IsUncachedStaticLighting())
+			{
+				bLightHasUnbuiltInteractions = true;
+				PrimitivesWithUnbuiltInteractions.AddUnique(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
+			}
+		}
+
+		for(FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicInteractionStaticPrimitiveList;
 			Interaction;
 			Interaction = Interaction->GetNextPrimitive())
 		{

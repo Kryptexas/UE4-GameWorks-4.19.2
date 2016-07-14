@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder>None</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/GoogleVRSDK_License.txt</LicenseFolder>
 </TpsData>

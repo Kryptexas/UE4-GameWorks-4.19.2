@@ -7,12 +7,12 @@ UFbxAnimSequenceImportData::UFbxAnimSequenceImportData(const FObjectInitializer&
 	: Super(ObjectInitializer)
 	, bImportCustomAttribute(true)
 	, bRemoveRedundantKeys(true)
+	, bDoNotImportCurveWithZero(true)
 {
 	FrameImportRange.Min = 0;
 	FrameImportRange.Max = 0;
 
 	MaterialCurveSuffixes.Add(TEXT("_mat"));
-	PoseCurveSuffixes.Add(TEXT("_pose"));
 }
 
 UFbxAnimSequenceImportData* UFbxAnimSequenceImportData::GetImportDataForAnimSequence(UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* TemplateForCreation)

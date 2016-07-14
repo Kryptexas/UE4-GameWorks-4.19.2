@@ -288,6 +288,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static bool IsNavigationBeingBuilt(UObject* WorldContext);
 
+	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext"))
+	static bool IsNavigationBeingBuiltOrLocked(UObject* WorldContext);
+
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	static void SimpleMoveToActor(AController* Controller, const AActor* Goal);
 
@@ -581,8 +584,11 @@ protected:
 	/** used to apply updates of nav volumes in navigation system's tick */
 	void PerformNavigationBoundsUpdate(const TArray<FNavigationBoundsUpdateRequest>& UpdateRequests);
 	
+	/** adds data to RegisteredNavBounds */
+	void AddNavigationBounds(const FNavigationBounds& NewBounds);
+
 	/** Searches for all valid navigation bounds in the world and stores them */
-	void GatherNavigationBounds();
+	virtual void GatherNavigationBounds();
 
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
 	ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;

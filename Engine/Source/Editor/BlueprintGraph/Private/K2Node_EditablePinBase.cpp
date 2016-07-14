@@ -15,7 +15,11 @@ void UK2Node_EditablePinBase::AllocateDefaultPins()
 	// Add in pins based on the user defined pins in this node
 	for(int32 i = 0; i < UserDefinedPins.Num(); i++)
 	{
-		CreatePinFromUserDefinition( UserDefinedPins[i] );
+		//FText DummyErrorMsg;
+		//if (!IsEditable() || CanCreateUserDefinedPin(UserDefinedPins[i]->PinType, UserDefinedPins[i]->DesiredPinDirection, DummyErrorMsg))
+		{
+			CreatePinFromUserDefinition(UserDefinedPins[i]);
+		}
 	}
 }
 
@@ -46,7 +50,6 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPin(TSharedPtr<FUserPinInfo> PinT
 		UEdGraphPin* Pin = Pins[i];
 		if( Pin->PinName == PinName )
 		{
-			Pin->BreakAllPinLinks();
 			Pins.Remove(Pin);
 			Pin->MarkPendingKill();
 
@@ -70,7 +73,6 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPinByName(const FString& PinName)
 		{
 			Pin->Modify();
 
-			Pin->BreakAllPinLinks();
 			Pins.Remove(Pin);
 			Pin->MarkPendingKill();
 
@@ -92,6 +94,8 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPinByName(const FString& PinName)
 
 void UK2Node_EditablePinBase::ExportCustomProperties(FOutputDevice& Out, uint32 Indent)
 {
+	Super::ExportCustomProperties(Out, Indent);
+
 	for (int32 PinIndex = 0; PinIndex < UserDefinedPins.Num(); ++PinIndex)
 	{
 		const FUserPinInfo& PinInfo = *UserDefinedPins[PinIndex].Get();
@@ -131,6 +135,9 @@ void UK2Node_EditablePinBase::ImportCustomProperties(const TCHAR* SourceText, FF
 	{
 		TSharedPtr<FUserPinInfo> PinInfo = MakeShareable( new FUserPinInfo() );
 
+		// UserDefinedPins don't currently support direction so set them to an unknown value by default for now
+		PinInfo->DesiredPinDirection = EGPD_MAX;
+
 		if (!FParse::Value(SourceText, TEXT("Name="), PinInfo->PinName))
 		{
 			Warn->Logf( *NSLOCTEXT( "Core", "SyntaxError", "Syntax Error" ).ToString() );
@@ -165,6 +172,10 @@ void UK2Node_EditablePinBase::ImportCustomProperties(const TCHAR* SourceText, FF
 		FParse::Value(SourceText, TEXT("DefaultValue="), PinInfo->PinDefaultValue);
 
 		UserDefinedPins.Add(PinInfo);
+	}
+	else
+	{
+		Super::ImportCustomProperties(SourceText, Warn);
 	}
 }
 

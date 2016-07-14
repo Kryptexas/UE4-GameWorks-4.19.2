@@ -2945,6 +2945,9 @@ public:
 							bool bInGenerateLayoutLocations,
 							bool bInDefaultPrecisionIsHalf)
 		: early_depth_stencil(false)
+		, wg_size_x(0)
+		, wg_size_y(0)
+		, wg_size_z(0)
 		, Target(InTarget)
 		, ShaderTarget(InShaderTarget)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)

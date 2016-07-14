@@ -84,8 +84,10 @@ public:
 		OutFormats.Add(NAME_PhysXPS4);
 	}
 
-	virtual bool CookConvex(FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer, bool bDeformableMesh = false) const override
+	virtual EPhysXCookingResult CookConvex(FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer, bool bDeformableMesh = false) const override
 	{
+		EPhysXCookingResult CookResult = EPhysXCookingResult::Failed;
+
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
 		bool bIsPhysXFormatValid = GetPhysXFormat(Format, PhysXFormat);
@@ -132,16 +134,22 @@ public:
 		// Cook the convex mesh to a temp buffer
 		TArray<uint8> CookedMeshBuffer;
 		FPhysXOutputStream Buffer(&CookedMeshBuffer);
-		bool Result = PhysXCooking->cookConvexMesh(PConvexMeshDesc, Buffer);
-		
-		if(!Result && !(PConvexMeshDesc.flags & PxConvexFlag::eINFLATE_CONVEX))
+		if (PhysXCooking->cookConvexMesh(PConvexMeshDesc, Buffer))
 		{
-			//We failed to cook without inflating convex. Let's try again with inflation
-			//This is not ideal since it makes the collision less accurate. It's needed if given verts are extremely close.
-			UE_LOG(LogPhysics, Warning, TEXT("Cooking failed, possibly due to verts too close together. Trying again with inflation."));
-			PConvexMeshDesc.flags |= PxConvexFlag::eINFLATE_CONVEX;
-			Result = PhysXCooking->cookConvexMesh(PConvexMeshDesc, Buffer);
-			
+			CookResult = EPhysXCookingResult::Succeeded;
+		}
+		else
+		{
+			if (!(PConvexMeshDesc.flags & PxConvexFlag::eINFLATE_CONVEX))
+			{
+				// We failed to cook without inflating convex. Let's try again with inflation
+				//This is not ideal since it makes the collision less accurate. It's needed if given verts are extremely close.
+				PConvexMeshDesc.flags |= PxConvexFlag::eINFLATE_CONVEX;
+				if (PhysXCooking->cookConvexMesh(PConvexMeshDesc, Buffer))
+				{
+					CookResult = EPhysXCookingResult::SucceededWithInflation;
+				}
+			}
 		}
 
 		// Return default cooking params to normal
@@ -150,14 +158,19 @@ public:
 			PhysXCooking->setParams(Params);
 		}
 
-		if( Result && CookedMeshBuffer.Num() > 0 )
+		if (CookedMeshBuffer.Num() == 0)
+		{
+			CookResult = EPhysXCookingResult::Failed;
+		}
+
+		if (CookResult != EPhysXCookingResult::Failed)
 		{
 			// Append the cooked data into cooked buffer
 			OutBuffer.Append( CookedMeshBuffer );
-			return true;
 		}
 #endif		// WITH_PHYSX
-		return false;
+	
+		return CookResult;
 	}
 
 	virtual bool CookTriMesh(FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bDeformableMesh = false) const override

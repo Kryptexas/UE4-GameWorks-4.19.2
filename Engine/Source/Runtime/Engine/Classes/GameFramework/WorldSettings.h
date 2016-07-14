@@ -438,11 +438,11 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	/** AUDIO SETTINGS **/
 	/** Default reverb settings used by audio volumes.													*/
 	UPROPERTY(EditAnywhere, config, Category=Audio)
-	struct FReverbSettings DefaultReverbSettings;
+	FReverbSettings DefaultReverbSettings;
 
 	/** Default interior settings used by audio volumes.												*/
 	UPROPERTY(EditAnywhere, config, Category=Audio)
-	struct FInteriorSettings DefaultAmbientZoneSettings;
+	FInteriorSettings DefaultAmbientZoneSettings;
 
 	/** Default Base SoundMix.																			*/
 	UPROPERTY(EditAnywhere, Category=Audio)
@@ -543,6 +543,7 @@ public:
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface.
 
@@ -553,6 +554,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void PreInitializeComponents() override;
 	virtual void PostInitializeComponents() override;
+	virtual void PostRegisterAllComponents() override;
 	//~ End AActor Interface.
 
 	/**

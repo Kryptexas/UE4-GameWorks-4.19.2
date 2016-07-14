@@ -4,6 +4,9 @@
 PixelShaderOutputCommon.usf: To allow PS input/output passed int functions through a single struct, allowing for a more readable code (less #ifdefs, reducing the boolean hell)
 =============================================================================*/
 
+#ifndef PIXELSHADEROUTPUT_INTERPOLANTS
+	#define PIXELSHADEROUTPUT_INTERPOLANTS 0
+#endif
 #ifndef PIXELSHADEROUTPUT_BASEPASS
 	#define PIXELSHADEROUTPUT_BASEPASS 0
 #endif
@@ -37,8 +40,10 @@ PixelShaderOutputCommon.usf: To allow PS input/output passed int functions throu
 
 void MainPS
 	(
-#if PIXELSHADEROUTPUT_BASEPASS
+#if PIXELSHADEROUTPUT_INTERPOLANTS || PIXELSHADEROUTPUT_BASEPASS
 		FVertexFactoryInterpolantsVSToPS Interpolants,
+#endif
+#if PIXELSHADEROUTPUT_BASEPASS
 		FBasePassInterpolantsVSToPS BasePassInterpolants,
 #endif
 
@@ -103,6 +108,8 @@ void MainPS
 
 #if PIXELSHADEROUTPUT_BASEPASS
 	FPixelShaderInOut_MainPS(Interpolants, BasePassInterpolants, PixelShaderIn, PixelShaderOut);
+#elif PIXELSHADEROUTPUT_INTERPOLANTS
+	FPixelShaderInOut_MainPS(Interpolants, PixelShaderIn, PixelShaderOut);
 #else
 	FPixelShaderInOut_MainPS(PixelShaderIn, PixelShaderOut);
 #endif

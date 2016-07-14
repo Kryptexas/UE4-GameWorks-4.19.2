@@ -237,6 +237,7 @@ private:
 	{
 		UWidget* Widget;
 		UPanelWidget* Parent;
+		TWeakPtr<FDragDropOperation> DragOperation;
 	};
 
 	TArray<FDropPreview> DropPreviews;

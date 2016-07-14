@@ -74,6 +74,8 @@ namespace ImageValidator
 
         public void PopulateList()
         {
+            intermediate = new ImageValidatorIntermediate();
+
             data.PopulateList(textBoxTestDir.Text, textBoxRefDir.Text);
             
             // sort by column 1 
@@ -123,7 +125,6 @@ namespace ImageValidator
             timer1.Interval = 50;
 
             timer1.Start();
-
 
             // load example, if not there, clear like "New"
             LoadSettings("Default.IVxml");
@@ -258,7 +259,6 @@ namespace ImageValidator
             settings.TestDir = textBoxTestDir.Text;
             settings.RefDir = textBoxRefDir.Text;
 
-            settings.Threshold = 1;
             {
                 int Value;
                 Int32.TryParse(this.textBoxThreshold.Text, out Value);
@@ -269,7 +269,6 @@ namespace ImageValidator
                 }
             }
 
-            settings.PixelCountToFail = 1;
             {
                 int Value;
                 Int32.TryParse(this.textBoxCountToFail.Text, out Value);
@@ -321,12 +320,11 @@ namespace ImageValidator
 
         private float ComputeScale()
         {
-            GraphicsUnit Unit = GraphicsUnit.Pixel;
+            System.Drawing.Size imageSize = intermediate.GetImagesSize();
 
-            if (intermediate.imageTest != null)
+            if (imageSize.Width > 0 && imageSize.Height > 0)
             {
-                RectangleF bounds = intermediate.imageTest.GetBounds(ref Unit);
-                return (float)Math.Pow(2, ImageZoom / 120) * pictureBoxTest.Width / (float)bounds.Width;
+                return (float)Math.Pow(2, ImageZoom / 120) * pictureBoxTest.Width / (float)imageSize.Width;
             }
             else
             {
@@ -355,11 +353,11 @@ namespace ImageValidator
 
         private void PaintImage(Bitmap image, object sender, PaintEventArgs e, string drawString)
         {
+            Graphics g = e.Graphics;
+            PictureBox pictureBox = sender as PictureBox;
+
             if (image != null)
             {
-                PictureBox pictureBox = sender as PictureBox;
-
-                Graphics g = e.Graphics;
                 GraphicsUnit Unit = GraphicsUnit.Pixel;
                 RectangleF bounds = image.GetBounds(ref Unit);
                 
@@ -373,13 +371,12 @@ namespace ImageValidator
                 destRect.Location = new PointF(-ImageOffsetX * Scale, -ImageOffsetY * Scale);
 
                 g.DrawImage(image, destRect, bounds, Unit);
-                
-                Font drawFont = new Font("Arial", 12);
-
-                SizeF textSize = g.MeasureString(drawString, drawFont);
-                DrawOutlinedString(g, (int)(pictureBox.Width / 2 - textSize.Width / 2), (int)(pictureBox.Height - textSize.Height), drawString, drawFont);
-
             }
+
+            Font drawFont = new Font("Arial", 12);
+
+            SizeF textSize = g.MeasureString(drawString, drawFont);
+            DrawOutlinedString(g, (int)(pictureBox.Width / 2 - textSize.Width / 2), (int)(pictureBox.Height - textSize.Height), drawString, drawFont);
         }
 
         private void pictureBoxTest_Paint(object sender, PaintEventArgs e)
@@ -544,26 +541,29 @@ namespace ImageValidator
 
         private void SetupFileSystemWatcher()
         {
-            ImageValidatorSettings settings = GetSettings();
-
-            try
+            // At the moment the feature is not stable so it's deactivated
+            if(false)
             {
-                fileSystemWatcher1.Path = settings.TestDir;
-                //            fileSystemWatcher1.NotifyFilter = NotifyFilters.LastWrite;
-                fileSystemWatcher1.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+                ImageValidatorSettings settings = GetSettings();
 
-                fileSystemWatcher2.Path = settings.RefDir;
-                //            fileSystemWatcher2.NotifyFilter = NotifyFilters.LastWrite;
-                fileSystemWatcher2.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
-            }
-            catch (System.ArgumentException)
-            {
-            }
-            catch (System.IO.FileNotFoundException)
-            {
-                // no need to handle this
-            }
+                try
+                {
+                    fileSystemWatcher1.Path = settings.TestDir;
+                    //            fileSystemWatcher1.NotifyFilter = NotifyFilters.LastWrite;
+                    fileSystemWatcher1.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
 
+                    fileSystemWatcher2.Path = settings.RefDir;
+                    //            fileSystemWatcher2.NotifyFilter = NotifyFilters.LastWrite;
+                    fileSystemWatcher2.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+                }
+                catch (System.ArgumentException)
+                {
+                }
+                catch (System.IO.FileNotFoundException)
+                {
+                    // no need to handle this
+                }
+            }
         }
 
         // from http://stackoverflow.com/questions/1406808/wait-for-file-to-be-freed-by-process/1406853#1406853
@@ -594,6 +594,8 @@ namespace ImageValidator
 
         private void fileSystemWatcher1_Changed(object sender, FileSystemEventArgs e)
         {
+            // Note: can hang, not sure why
+
             // wait for file to be finished (see bottom: http://stackoverflow.com/questions/15017506/using-filesystemwatcher-to-monitor-a-directory)
             while (!IsFileReady(e.FullPath))
             {
@@ -659,11 +661,10 @@ namespace ImageValidator
                 ImageOffsetX = Math.Max(0, ImageOffsetX);
                 ImageOffsetY = Math.Max(0, ImageOffsetY);
 
-                GraphicsUnit Unit = GraphicsUnit.Pixel;
-                RectangleF bounds = intermediate.imageTest.GetBounds(ref Unit);
+                System.Drawing.Size imageSize = intermediate.GetImagesSize();
 
-                ImageOffsetX = Math.Min(bounds.Width - pictureBoxTest.Width / Scale, ImageOffsetX);
-                ImageOffsetY = Math.Min(bounds.Height - pictureBoxTest.Height / Scale, ImageOffsetY);
+                ImageOffsetX = Math.Min(imageSize.Width - pictureBoxTest.Width / Scale, ImageOffsetX);
+                ImageOffsetY = Math.Min(imageSize.Height - pictureBoxTest.Height / Scale, ImageOffsetY);
 
                 bUpdate = true;
             }
@@ -760,8 +761,14 @@ namespace ImageValidator
             }
             catch (Exception)
             {
+                // update UI
+                SetSettings(settings);
                 return false;
             }
+
+            // update UI
+            SetSettings(settings);
+
             return true;
         }
 
@@ -897,6 +904,11 @@ namespace ImageValidator
         private void MenuItemGenerateHTMLReportWithT_Click(object sender, EventArgs e)
         {
             GenerateHTMLReport(true);
+        }
+
+        private void Refresh_Click(object sender, EventArgs e)
+        {
+            PopulateList();
         }
     }
 }

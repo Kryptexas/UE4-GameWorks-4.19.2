@@ -325,14 +325,6 @@ protected:
 	 */
 	static bool IsEOL(TCHAR c);
 
-	/**
-	 * Tests if a character is a whitespace character.
-	 * 
-	 * @param  c	The character to test.
-	 * @return True if c is an whitespace character, false otherwise.
-	 */
-	static bool IsWhitespace(TCHAR c);
-
 	//--------------------------------------
 	// Error state 
 	//--------------------------------------

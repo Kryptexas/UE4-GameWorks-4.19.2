@@ -287,13 +287,22 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 		if (AudioDeviceManager)
 		{
-			FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle, bCreateNewAudioDevice);
-			if (NewAudioDevice)
+			FAudioDeviceManager::FCreateAudioDeviceResults NewDeviceResults;
+			if (AudioDeviceManager->CreateAudioDevice(bCreateNewAudioDevice, NewDeviceResults))
 			{
+				AudioDeviceHandle = NewDeviceResults.Handle;
+
+#if !UE_BUILD_SHIPPING
+				if (NewDeviceResults.bNewDevice)
+				{
+					NewDeviceResults.AudioDevice->UpdateSoundShowFlags(0, GetSoundShowFlags());
+				}
+#endif // UE_BUILD_SHIPPING
+
 				// Set the base mix of the new device based on the world settings of the world
 				if (World)
 				{
-					NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
+					NewDeviceResults.AudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
 
 					// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
 					World->SetAudioDeviceHandle(AudioDeviceHandle);
@@ -744,9 +753,9 @@ bool UGameViewportClient::ShouldForceFullscreenViewport() const
 	{
 		bResult = true;
 	}
-	else if ( GetWorld() )
+	else if ( UWorld* MyWorld = GetWorld() )
 	{
-		if ( GetWorld()->bIsDefaultLevel )
+		if ( MyWorld->bIsDefaultLevel )
 		{
 			bResult = true;
 		}
@@ -849,11 +858,13 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	bool bUIDisableWorldRendering = false;
 	FGameViewDrawer GameViewDrawer;
-	
+
+	UWorld* MyWorld = GetWorld();
+
 	// create the view family for rendering the world scene to the viewport's render target
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues( 	
 		InViewport,
-		GetWorld()->Scene,
+		MyWorld->Scene,
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
@@ -912,13 +923,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	TMap<ULocalPlayer*,FSceneView*> PlayerViewMap;
 
-	FAudioDevice* AudioDevice = GetWorld()->GetAudioDevice();
+	FAudioDevice* AudioDevice = MyWorld->GetAudioDevice();
 
-	bool bReverbSettingsFound = false;
-	FReverbSettings ReverbSettings;
-	class AAudioVolume* AudioVolume = nullptr;
-
-	for (FLocalPlayerIterator Iterator(GEngine, GetWorld()); Iterator; ++Iterator)
+	for (FLocalPlayerIterator Iterator(GEngine, MyWorld); Iterator; ++Iterator)
 	{
 		ULocalPlayer* LocalPlayer = *Iterator;
 		if (LocalPlayer)
@@ -1022,27 +1029,15 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 								ListenerTransform.SetTranslation(Location);
 								ListenerTransform.NormalizeRotation();
 
-								bReverbSettingsFound = true;
-
-								FReverbSettings PlayerReverbSettings;
-								FInteriorSettings PlayerInteriorSettings;
-								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings(Location, &PlayerReverbSettings, &PlayerInteriorSettings);
-
-								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
-								{
-									AudioVolume = PlayerAudioVolume;
-									ReverbSettings = PlayerReverbSettings;
-								}
-
 								uint32 ViewportIndex = PlayerViewMap.Num() - 1;
-								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
+								AudioDevice->SetListener(MyWorld, ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : MyWorld->GetDeltaSeconds()));
 							}
 						}
 					}
 
 					// Add view information for resource streaming.
 					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0]);
-					GetWorld()->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
+					MyWorld->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
 				}
 			}
 		}
@@ -1050,13 +1045,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	FinalizeViews(&ViewFamily, PlayerViewMap);
 
-	if (bReverbSettingsFound)
-	{
-		AudioDevice->SetReverbSettings( AudioVolume, ReverbSettings );
-	}
-
 	// Update level streaming.
-	GetWorld()->UpdateLevelStreaming();
+	MyWorld->UpdateLevelStreaming();
 
 	// Find largest rectangle bounded by all rendered views.
 	uint32 MinX=InViewport->GetSizeXY().X, MinY=InViewport->GetSizeXY().Y, MaxX=0, MaxY=0;
@@ -1130,20 +1120,20 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 	
 	// Remove temporary debug lines.
-	if (GetWorld()->LineBatcher != NULL)
+	if (MyWorld->LineBatcher != nullptr)
 	{
-		GetWorld()->LineBatcher->Flush();
+		MyWorld->LineBatcher->Flush();
 	}
 
-	if (GetWorld()->ForegroundLineBatcher != NULL)
+	if (MyWorld->ForegroundLineBatcher != nullptr)
 	{
-		GetWorld()->ForegroundLineBatcher->Flush();
+		MyWorld->ForegroundLineBatcher->Flush();
 	}
 
 	// Draw FX debug information.
-	if (GetWorld()->FXSystem)
+	if (MyWorld->FXSystem)
 	{
-		GetWorld()->FXSystem->DrawDebug(SceneCanvas);
+		MyWorld->FXSystem->DrawDebug(SceneCanvas);
 	}
 
 	// Render the UI.
@@ -1152,7 +1142,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 		// render HUD
 		bool bDisplayedSubtitles = false;
-		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+		for( FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			APlayerController* PlayerController = *Iterator;
 			if (PlayerController)
@@ -1214,7 +1204,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 							const uint32 SizeX = SceneCanvas->GetRenderTarget()->GetSizeXY().X;
 							const uint32 SizeY = SceneCanvas->GetRenderTarget()->GetSizeXY().Y;
 							FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
-							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, GetWorld()->GetAudioTimeSeconds() );
+							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, MyWorld->GetAudioTimeSeconds() );
 							bDisplayedSubtitles = true;
 						}
 					}
@@ -1246,13 +1236,13 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FVector PlayerCameraLocation = FVector::ZeroVector;
 	FRotator PlayerCameraRotation = FRotator::ZeroRotator;
 	{
-		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+		for( FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			(*Iterator)->GetPlayerViewPoint( PlayerCameraLocation, PlayerCameraRotation );
 		}
 	}
 
-	DrawStatsHUD( GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
+	DrawStatsHUD( MyWorld, InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
 
 	if (GEngine->IsStereoscopic3D(InViewport))
 	{
@@ -2771,8 +2761,6 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 		const bool bAddFilenameSuffix = true;
 		FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 
-		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-		GAreScreenMessagesEnabled = false;
 		GScreenshotResolutionX = Viewport->GetSizeXY().X;
 		GScreenshotResolutionY = Viewport->GetSizeXY().Y;
 	}

@@ -113,6 +113,7 @@ namespace AutomationTool
         /// </summary>
         public static CommandLineArg NoCompileLegacyDontUse = new CommandLineArg("-NoCompile");
         public static CommandLineArg NoCompileEditor = new CommandLineArg("-NoCompileEditor");
+        public static CommandLineArg IncrementalBuildUBT = new CommandLineArg("-IncrementalBuildUBT");
 		public static CommandLineArg Help = new CommandLineArg("-Help");
 		public static CommandLineArg List = new CommandLineArg("-List");
 		public static CommandLineArg VS2015 = new CommandLineArg("-2015");

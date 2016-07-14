@@ -307,6 +307,15 @@ void SCommentBubble::UpdateBubble()
 	}
 }
 
+bool SCommentBubble::TextBlockHasKeyboardFocus() const
+{
+	if (TextBlock.IsValid())
+	{
+		return TextBlock->HasKeyboardFocus();
+	}
+	return false;
+}
+
 FVector2D SCommentBubble::GetOffset() const
 {
 	return FVector2D( 0.f, -GetDesiredSize().Y );
@@ -388,7 +397,7 @@ FSlateColor SCommentBubble::GetTextForegroundColor() const
 
 void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
-	if (CommitInfo == ETextCommit::OnCleared)
+	if (CommitInfo != ETextCommit::OnEnter)
 	{
 		// Don't respond to OnEnter, as it will be immediately followed by OnCleared anyway (due to loss of keyboard focus) and generate a second transaction
 		CachedComment = NewText.ToString();
@@ -425,14 +434,23 @@ ECheckBoxState SCommentBubble::GetToggleButtonCheck() const
 
 void SCommentBubble::OnCommentBubbleToggle( ECheckBoxState State )
 {
-	if( !IsReadOnly() )
+	const bool bNewVisibilityState = (State == ECheckBoxState::Checked);
+	if( !IsReadOnly() && bNewVisibilityState != GraphNode->bCommentBubbleVisible)
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT( "CommentBubble", "BubbleVisibility", "Comment Bubble Visibility" ) );
 		GraphNode->Modify();
-		GraphNode->bCommentBubbleVisible = State == ECheckBoxState::Checked;
+		SetCommentBubbleVisibility(bNewVisibilityState);
+		OnToggledDelegate.ExecuteIfBound(GraphNode->bCommentBubbleVisible);
+	}
+}
+
+void SCommentBubble::SetCommentBubbleVisibility(bool bVisible)
+{
+	if (!IsReadOnly() && bVisible != GraphNode->bCommentBubbleVisible)
+	{
+		GraphNode->bCommentBubbleVisible = bVisible;
 		OpacityValue = 0.f;
 		UpdateBubble();
-		OnToggledDelegate.ExecuteIfBound(GraphNode->bCommentBubbleVisible);
 	}
 }
 

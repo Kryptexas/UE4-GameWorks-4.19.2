@@ -75,6 +75,8 @@ void UGridPanel::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
+	MyGridPanel->ClearFill();
+
 	for ( int ColumnIndex = 0; ColumnIndex < ColumnFill.Num(); ColumnIndex++ )
 	{
 		MyGridPanel->SetColumnFill(ColumnIndex, ColumnFill[ColumnIndex]);

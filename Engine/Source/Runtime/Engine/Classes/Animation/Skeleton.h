@@ -227,7 +227,7 @@ class USkeleton : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+protected:
 	/** Skeleton bone tree - each contains name and parent index**/
 	UPROPERTY(VisibleAnywhere, Category=Skeleton)
 	TArray<struct FBoneNode> BoneTree;
@@ -353,9 +353,9 @@ public:
 	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids);
 
 	// quick wrapper function for Find UID by name, if not found, it will return FSmartNameMapping::MaxUID
-	ENGINE_API FSmartNameMapping::UID GetUIDByName(FName ContainerName, FName Name);
-	ENGINE_API bool GetSmartNameByUID(FName ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName);
-	ENGINE_API bool GetSmartNameByName(FName ContainerName, FName InName, FSmartName& OutSmartName);
+	ENGINE_API FSmartNameMapping::UID GetUIDByName(const FName& ContainerName, const FName& Name);
+	ENGINE_API bool GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName);
+	ENGINE_API bool GetSmartNameByName(const FName& ContainerName, const FName& InName, FSmartName& OutSmartName);
 
 	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
 	// return bool - Whether a name was added (false if already present)
@@ -382,7 +382,7 @@ private:
 	FRigConfiguration RigConfig;
 
 	/** rig property will be saved separately */
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 public:
 
@@ -492,7 +492,7 @@ public:
 	ENGINE_API bool IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const;
 
 	/** Clears all cache data **/
-	void ClearCacheData();
+	ENGINE_API void ClearCacheData();
 
 	/** 
 	 * Find a mesh linkup table (mapping of skeleton bone tree indices to refpose indices) for a particular SkeletalMesh
@@ -602,10 +602,10 @@ public:
 
 	ENGINE_API void SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
 
-	virtual void PostLoad() override;
-	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	virtual void PostInitProperties() override;
-	virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	ENGINE_API virtual void PostInitProperties() override;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 

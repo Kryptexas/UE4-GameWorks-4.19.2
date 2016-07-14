@@ -1532,6 +1532,22 @@ bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FT
 	return true;
 }
 
+void UInstancedStaticMeshComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	// We are handling the physics move below, so don't handle it at higher levels
+	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
+
+	// Always send new transform to physics
+	if (bPhysicsStateCreated && !(EUpdateTransformFlags::SkipPhysicsUpdate & UpdateTransformFlags))
+	{
+		for (int i = 0; i < PerInstanceSMData.Num(); i++)
+		{
+			const FTransform InstanceTransform(PerInstanceSMData[i].Transform);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, true);
+		}
+	}
+}
+
 bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
@@ -1544,6 +1560,9 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 
 	FInstancedStaticMeshInstanceData& InstanceData = PerInstanceSMData[InstanceIndex];
 
+    // TODO: Computing LocalTransform is useless when we're updating the world location for the entire mesh.
+	// Should find some way around this for performance.
+    
 	// Render data uses local transform of the instance
 	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
 	InstanceData.Transform = LocalTransform.ToMatrixWithScale();

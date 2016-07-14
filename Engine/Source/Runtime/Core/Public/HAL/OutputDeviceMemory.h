@@ -27,7 +27,7 @@ public:
 	 * @param InPreserveSize	Bytes of the rung buffer not to overwrite (startup info etc)
 	 * @param InBufferSize		Maximum size of the memory ring buffer
 	 */
-	FOutputDeviceMemory(int32 InPreserveSize = 256 * 1024, int32 InBufferSize = 1024 * 1024);
+	FOutputDeviceMemory(int32 InPreserveSize = 256 * 1024, int32 InBufferSize = 2048 * 1024);
 
 	/** Dumps the contents of the buffer to an archive */
 	virtual void Dump(FArchive& Ar) override;

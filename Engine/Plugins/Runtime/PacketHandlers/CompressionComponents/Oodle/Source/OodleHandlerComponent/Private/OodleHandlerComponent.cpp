@@ -364,7 +364,7 @@ void OodleHandlerComponent::InitializeDictionaries()
 	FString ClientDictionaryPath;
 	bool bGotDictionaryPath = false;
 
-#if (!UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING) && !PLATFORM_PS4
+#if (!UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING) && !(PLATFORM_PS4 || PLATFORM_XBOXONE)
 	if (bUseDictionaryIfPresent)
 	{
 		bGotDictionaryPath = FindFallbackDictionaries(ServerDictionaryPath, ClientDictionaryPath);

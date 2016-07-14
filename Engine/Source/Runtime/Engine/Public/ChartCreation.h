@@ -86,6 +86,18 @@ struct FHitchChartEntry
 
 	/** How many hitches were bound by the GPU? */
 	int32 GPUBoundHitchCount;
+
+	/** Time spent hitching */
+	double FrameTimeSpentInBucket;
+
+	FHitchChartEntry()
+		: HitchCount(0)
+		, GameThreadBoundHitchCount(0)
+		, RenderThreadBoundHitchCount(0)
+		, GPUBoundHitchCount(0)
+		, FrameTimeSpentInBucket(0.0)
+	{
+	}
 };
 
 

@@ -447,22 +447,16 @@ void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRI
 	// Add in the subtitle if they exist
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 	{
-		// TODO - Audio Threading. This would need to be a call back to the main thread.
-		UAudioComponent* AudioComponent = ActiveSound.GetAudioComponent();
-		if (AudioComponent && AudioComponent->OnQueueSubtitles.IsBound())
-		{
-			// intercept the subtitles if the delegate is set
-			AudioComponent->OnQueueSubtitles.ExecuteIfBound(Subtitles, GetDuration());
-		}
-		else
-		{
-			// otherwise, pass them on to the subtitle manager for display
-			// Subtitles are hashed based on the associated sound (wave instance).
-			if (ActiveSound.World.IsValid())
-			{
-				FSubtitleManager::GetSubtitleManager()->QueueSubtitles((PTRINT)WaveInstance, ActiveSound.SubtitlePriority, false, false, GetDuration(), Subtitles, 0.0f);
-			}
-		}
+		FQueueSubtitleParams QueueSubtitleParams(Subtitles);
+		QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
+		QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
+		QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
+		QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
+		QueueSubtitleParams.Duration = GetDuration();
+		QueueSubtitleParams.bManualWordWrap = false;
+		QueueSubtitleParams.bSingleLine = false;
+
+		FSubtitleManager::QueueSubtitles(QueueSubtitleParams);
 	}
 }
 

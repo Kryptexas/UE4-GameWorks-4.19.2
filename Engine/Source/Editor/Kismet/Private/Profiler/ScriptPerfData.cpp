@@ -7,37 +7,36 @@
 // FScriptPerfData
 
 FNumberFormattingOptions FScriptPerfData::StatNumberFormat;
+bool FScriptPerfData::bAverageBlueprintStats = true;
+bool FScriptPerfData::bUseRecentSampleBias = false;
 float FScriptPerfData::RecentSampleBias = 0.2f;
 float FScriptPerfData::HistoricalSampleBias = 0.8f;
 float FScriptPerfData::EventPerformanceThreshold = 1.f;
-float FScriptPerfData::NodePerformanceThreshold = 0.2f;
+float FScriptPerfData::ExclusivePerformanceThreshold = 0.2f;
 float FScriptPerfData::InclusivePerformanceThreshold = 0.25f;
 float FScriptPerfData::MaxPerformanceThreshold = 0.5f;
+float FScriptPerfData::NodeTotalTimeWaterMark = 0.f;
 
-void FScriptPerfData::AddEventTiming(const double NodeTimingIn)
+void FScriptPerfData::AddEventTiming(const double ExclusiveTimingIn)
 {
-	const double TimingInMs = NodeTimingIn * 1000;
-	NodeTiming = (TimingInMs * RecentSampleBias) + (NodeTiming * HistoricalSampleBias);
-	MaxTiming = FMath::Max<double>(MaxTiming, NodeTiming);
-	MinTiming = FMath::Min<double>(MinTiming, NodeTiming);
-	TotalTiming += NodeTimingIn;
+	const double TimingInMs = ExclusiveTimingIn * 1000;
+	ExclusiveTiming = (TimingInMs * RecentSampleBias) + (ExclusiveTiming * HistoricalSampleBias);
+	MaxTiming = FMath::Max<double>(MaxTiming, ExclusiveTiming);
+	MinTiming = FMath::Min<double>(MinTiming, ExclusiveTiming);
+	TotalTiming += ExclusiveTimingIn;
 	NumSamples++;
 }
 
-void FScriptPerfData::AddPureChainTiming(const double PureNodeTimingIn)
+void FScriptPerfData::AddInclusiveTiming(const double InclusiveNodeTimingIn, const bool bIncrementSamples, const bool bDiscreteTiming)
 {
-	const double PureTimingInMs = PureNodeTimingIn * 1000;
-	const double NewInclusiveTimingInMs = NodeTiming + PureTimingInMs;
-	InclusiveTiming = (NewInclusiveTimingInMs * RecentSampleBias) + (InclusiveTiming * HistoricalSampleBias);
-	TotalTiming += PureNodeTimingIn;
-}
-
-void FScriptPerfData::AddInclusiveTiming(const double InclusiveNodeTimingIn)
-{
-	const double TimingInMs = InclusiveNodeTimingIn * 1000;
+	// Discrete timings should negate the discrete nodetimings so they sum correctly later.
+	const double TimingInMs = bDiscreteTiming ? ((InclusiveNodeTimingIn * 1000) - ExclusiveTiming) : (InclusiveNodeTimingIn * 1000);
 	InclusiveTiming = (TimingInMs * RecentSampleBias) + (InclusiveTiming * HistoricalSampleBias);
 	TotalTiming += InclusiveNodeTimingIn;
-	NumSamples++;
+	if (bIncrementSamples)
+	{
+		NumSamples++;
+	}
 }
 
 void FScriptPerfData::AddData(const FScriptPerfData& DataIn)
@@ -45,7 +44,7 @@ void FScriptPerfData::AddData(const FScriptPerfData& DataIn)
 	if (DataIn.IsDataValid())
 	{
 		// Accumulate data, find min, max values
-		NodeTiming += DataIn.NodeTiming;
+		ExclusiveTiming += DataIn.ExclusiveTiming;
 		if (DataIn.InclusiveTiming > 0.0)
 		{
 			InclusiveTiming += DataIn.InclusiveTiming;
@@ -61,18 +60,70 @@ void FScriptPerfData::AddBranchData(const FScriptPerfData& DataIn)
 {
 	if (DataIn.IsDataValid())
 	{
-		NumSamples += DataIn.NumSamples;
+		// Accumulate all data with the exception of samples for which we take the first valid value.
+		const bool bFirstSample = MaxTiming == -MAX_dbl;
+		ExclusiveTiming += DataIn.ExclusiveTiming;
+		if (DataIn.InclusiveTiming > 0.0)
+		{
+			InclusiveTiming += DataIn.InclusiveTiming;
+		}
+		TotalTiming += DataIn.TotalTiming;
+		if (bFirstSample)
+		{
+			NumSamples = DataIn.NumSamples;
+			MaxTiming = DataIn.MaxTiming;
+			MinTiming = DataIn.MinTiming;
+		}
+		else
+		{
+			MaxTiming += DataIn.MaxTiming;
+			MinTiming += DataIn.MinTiming;
+		}
+	}
+}
+
+void FScriptPerfData::InitialiseFromDataSet(const TArray<TSharedPtr<FScriptPerfData>>& DataSet)
+{
+	Reset();
+	for (auto DataPoint : DataSet)
+	{
+		if (DataPoint.IsValid())
+		{
+			ExclusiveTiming += DataPoint->ExclusiveTiming;
+			InclusiveTiming += DataPoint->InclusiveTiming;
+			TotalTiming += DataPoint->TotalTiming;
+			// Either sum the samples to get the average or use the highest sample rate encountered in the dataset.
+			NumSamples = bAverageBlueprintStats ? (NumSamples + DataPoint->NumSamples) : FMath::Max(NumSamples, DataPoint->NumSamples);
+			MaxTiming = FMath::Max<double>(MaxTiming, DataPoint->MaxTiming);
+			MinTiming = FMath::Min<double>(MinTiming, DataPoint->MinTiming);
+		}
 	}
 }
 
 void FScriptPerfData::Reset()
 {
-	NodeTiming = 0.0;
+	ExclusiveTiming = 0.0;
 	InclusiveTiming = 0.0;
 	TotalTiming = 0.0;
+	HottestPathHeatValue = 0.f;
 	NumSamples = 0;
 	MaxTiming = -MAX_dbl;
 	MinTiming = MAX_dbl;
+}
+
+double FScriptPerfData::GetExclusiveTiming() const
+{
+	return bUseRecentSampleBias ? ExclusiveTiming : ((TotalTiming*1000.0)/NumSamples);
+}
+
+void FScriptPerfData::EnableBlueprintStatAverage(const bool bEnable)
+{
+	bAverageBlueprintStats = bEnable;
+}
+
+void FScriptPerfData::EnableRecentSampleBias(const bool bEnable)
+{
+	bUseRecentSampleBias = bEnable;
 }
 
 void FScriptPerfData::SetRecentSampleBias(const float RecentSampleBiasIn)
@@ -86,15 +137,15 @@ void FScriptPerfData::SetEventPerformanceThreshold(const float EventPerformanceT
 	EventPerformanceThreshold = 1.f / EventPerformanceThresholdIn;
 }
 
-void FScriptPerfData::SetNodePerformanceThreshold(const float NodePerformanceThresholdIn)
+void FScriptPerfData::SetExclusivePerformanceThreshold(const float ExclusivePerformanceThresholdIn)
 {
-	NodePerformanceThreshold = 1.f / NodePerformanceThresholdIn;
+	ExclusivePerformanceThreshold = 1.f / ExclusivePerformanceThresholdIn;
 }
 
 float FScriptPerfData::GetNodeHeatLevel() const
 {
-	const float PerfMetric = StatType == EScriptPerfDataType::Event ? EventPerformanceThreshold : NodePerformanceThreshold;
-	return FMath::Min<float>(NodeTiming * PerfMetric, 1.f);
+	const float PerfMetric = StatType == EScriptPerfDataType::Event ? EventPerformanceThreshold : ExclusivePerformanceThreshold;
+	return FMath::Min<float>(GetExclusiveTiming() * PerfMetric, 1.f);
 }
 
 void FScriptPerfData::SetInclusivePerformanceThreshold(const float InclusivePerformanceThresholdIn)
@@ -104,7 +155,8 @@ void FScriptPerfData::SetInclusivePerformanceThreshold(const float InclusivePerf
 
 float FScriptPerfData::GetInclusiveHeatLevel() const
 {
-	return FMath::Min<float>(InclusiveTiming * InclusivePerformanceThreshold, 1.f);
+	const float PerfMetric = StatType == EScriptPerfDataType::Event ? EventPerformanceThreshold : InclusivePerformanceThreshold;
+	return FMath::Min<float>(GetInclusiveTiming() * InclusivePerformanceThreshold, 1.f);
 }
 
 void FScriptPerfData::SetMaxPerformanceThreshold(const float MaxPerformanceThresholdIn)
@@ -117,20 +169,28 @@ float FScriptPerfData::GetMaxTimeHeatLevel() const
 	return FMath::Min<float>(MaxTiming * MaxPerformanceThreshold, 1.f);
 }
 
-FText FScriptPerfData::GetNodeTimingText() const
+float FScriptPerfData::GetTotalHeatLevel() const
 {
-	if (NodeTiming > 0.0)
+	NodeTotalTimeWaterMark = FMath::Max<float>(TotalTiming, NodeTotalTimeWaterMark);
+	return FMath::Min<float>(TotalTiming / NodeTotalTimeWaterMark, 1.f);
+}
+
+FText FScriptPerfData::GetExclusiveTimingText() const
+{
+	const double Value = GetExclusiveTiming();
+	if (Value > 0.0)
 	{
-		return FText::AsNumber(NodeTiming, &StatNumberFormat);
+		return FText::AsNumber(Value, &StatNumberFormat);
 	}
 	return FText::GetEmpty();
 }
 
 FText FScriptPerfData::GetInclusiveTimingText() const
 {
-	if (InclusiveTiming > 0.0)
+	if (NumSamples > 0)
 	{
-		return FText::AsNumber(InclusiveTiming, &StatNumberFormat);
+		const double InclusiveTemp = GetInclusiveTiming();
+		return FText::AsNumber(InclusiveTemp, &StatNumberFormat);
 	}
 	return FText::GetEmpty();
 }

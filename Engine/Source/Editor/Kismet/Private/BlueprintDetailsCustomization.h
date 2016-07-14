@@ -144,9 +144,9 @@ private:
 	void OnPrivateChanged(ECheckBoxState InNewState);
 	EVisibility ExposePrivateVisibility() const;
 	
-	ECheckBoxState OnGetExposedToMatineeCheckboxState() const;
-	void OnExposedToMatineeChanged(ECheckBoxState InNewState);
-	EVisibility ExposeToMatineeVisibility() const;
+	ECheckBoxState OnGetExposedToCinematicsCheckboxState() const;
+	void OnExposedToCinematicsChanged(ECheckBoxState InNewState);
+	EVisibility ExposeToCinematicsVisibility() const;
 
 	ECheckBoxState OnGetConfigVariableCheckboxState() const;
 	void OnSetConfigVariableState(ECheckBoxState InNewState);

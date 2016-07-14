@@ -427,7 +427,7 @@ public:
 	virtual uint32 Run(void) override
 	{
 		FMemory::SetupTLSCachesOnCurrentThread();
-		FPlatformProcess::SetupGameOrRenderThread(true);
+		FPlatformProcess::SetupRenderThread();
 
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
@@ -895,6 +895,11 @@ void AdvanceFrameRenderPrerequisite()
  */
 void FlushRenderingCommands()
 {
+	if (!GIsRHIInitialized)
+	{
+		return;
+	}
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND(
 		FlushPendingDeleteRHIResources,
 	{
@@ -1006,7 +1011,7 @@ static void HandleRHIThreadEnableChanged(const TArray<FString>& Args)
 	}
 	else
 	{
-		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1"));
+		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1; Currently %d"), (int32)GUseRHIThread);
 	}
 }
 

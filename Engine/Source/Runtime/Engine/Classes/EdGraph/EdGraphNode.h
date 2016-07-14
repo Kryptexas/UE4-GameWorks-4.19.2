@@ -102,9 +102,13 @@ class ENGINE_API UEdGraphNode : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual ~UEdGraphNode();
+
+	TArray<UEdGraphPin*> Pins;
+
 	/** List of connector pins */
 	UPROPERTY()
-	TArray<class UEdGraphPin*> Pins;
+	TArray<class UEdGraphPin_Deprecated*> DeprecatedPins;
 
 	/** X position of node in the editor */
 	UPROPERTY()
@@ -219,6 +223,9 @@ public:
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
+	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
+	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
 	// End of UObject interface
 
 	/** widget representing this node if it exists; Note: This is not safe to use in general and will be removed in the future, as there is no guarantee that only one graph editor/panel is viewing a given graph */
@@ -230,18 +237,21 @@ public:
 	/** Create a new pin on this node using the supplied pin type, and return the new pin */
 	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index = INDEX_NONE);
 
-	// Allocates a pin from the pool
-	static UEdGraphPin* AllocatePinFromPool(UEdGraphNode* OuterNode);
+	/** Destroys the specified pin, does not modify its owning pin's Pins list */
+	static void DestroyPin(UEdGraphPin* Pin);
 
-	// Returns the specified pin to the pool
-	static void ReturnPinToPool(UEdGraphPin* OldPin);
+	/** Find a pin on this node with the supplied name and optional direction */
+	UEdGraphPin* FindPin(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
 
-	/** Find a pin on this node with the supplied name */
-	UEdGraphPin* FindPin(const FString& PinName) const;
-
-	/** Find a pin on this node with the supplied name and assert if it is not present */
-	UEdGraphPin* FindPinChecked(const FString& PinName) const;
+	/** Find a pin on this node with the supplied name and optional direction and assert if it is not present */
+	UEdGraphPin* FindPinChecked(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
 	
+	/** Find the pin on this node with the supplied guid */
+	UEdGraphPin* FindPinById(const FGuid PinId) const;
+
+	/** Find the pin on this node with the supplied guid and assert if it is not present */
+	UEdGraphPin* FindPinByIdChecked(const FGuid PinId) const;
+
 	/** Find a pin on this node with the supplied name and remove it, returns TRUE if successful */
 	bool RemovePin(UEdGraphPin* Pin);
 

@@ -2,6 +2,7 @@
 #pragma  once
 
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "BlueprintCompilerCppBackend.h"
 
 struct FCodeText
 {
@@ -43,6 +44,8 @@ struct FEmitterLocalContext
 
 	EGeneratedCodeType CurrentCodeType;
 
+	TArray<const UObject*> UsedObjectInCurrentClass;
+	TArray<const UUserDefinedEnum*> EnumsInCurrentClass;
 private:
 	int32 LocalNameIndexMax;
 
@@ -87,17 +90,17 @@ public:
 	{
 		if (ListType == EClassSubobjectList::ComponentTemplates)
 		{
-			return TEXT("ComponentTemplates");
+			return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ComponentTemplates);
 		}
 		if (ListType == EClassSubobjectList::Timelines)
 		{
-			return TEXT("Timelines");
+			return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, Timelines);
 		}
 		if (ListType == EClassSubobjectList::DynamicBindingObjects)
 		{
-			return TEXT("DynamicBindingObjects");
+			return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, DynamicBindingObjects);
 		}
-		return TEXT("MiscConvertedSubobjects");
+		return GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, MiscConvertedSubobjects);
 	}
 
 	void RegisterClassSubobject(UObject* Object, EClassSubobjectList ListType)
@@ -258,7 +261,8 @@ struct FEmitHelper
 	static FString GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property);
 
 	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
-		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx, bool bGetter);
+		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx
+		, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding);
 
 	// This code works properly as long, as all fields in structures are UProperties!
 	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property
@@ -274,7 +278,9 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
-	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context);
+	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
+
+	static void GenerateCustomDynamicClassInitializationUsedAssets(FEmitterLocalContext& Context);
 
 	enum class EPropertyAccessOperator
 	{
@@ -295,7 +301,7 @@ struct FEmitDefaultValueHelper
 	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitilize);
 
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
-	static bool SpecialStructureConstructor(const UScriptStruct* Struct, const uint8* ValuePtr, FString* OutResult);
+	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
 private:
 	// Returns native term, 
@@ -325,4 +331,14 @@ struct FBackendHelperAnim
 	static void AddHeaders(FEmitterLocalContext& EmitterContext);
 
 	static void CreateAnimClassData(FEmitterLocalContext& Context);
+};
+
+/** this struct helps generate a static function that initializes Static Searchable Values. */
+struct FBackendHelperStaticSearchableValues
+{
+	static bool HasSearchableValues(UClass* Class);
+	static FString GetFunctionName();
+	static FString GenerateClassMetaData(UClass* Class);
+	static void EmitFunctionDeclaration(FEmitterLocalContext& Context);
+	static void EmitFunctionDefinition(FEmitterLocalContext& Context);
 };

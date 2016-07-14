@@ -53,6 +53,11 @@ namespace UnrealBuildTool
 		public string SigningCertificate = "";
 
 		/// <summary>
+		/// The list of architectures
+		/// </summary>
+		public List<string> ProjectArches;
+
+		/// <summary>
 		/// true if bit code should be embedded
 		/// </summary>
 		private bool bShipForBitcode = false;
@@ -190,7 +195,7 @@ namespace UnrealBuildTool
 					RunTimeIOSDevices = "1";
 				}
 
-				List<string> ProjectArches = new List<string>();
+				ProjectArches = new List<string>();
 				bool bBuild = true;
 				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
 				{
@@ -244,6 +249,9 @@ namespace UnrealBuildTool
 
 				// determine if we need to generate the dsym
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMBundle", out BuildConfiguration.bGeneratedSYMBundle);
+
+				// determie if bitcode should be generated for the shipping code
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForBitcode", out bShipForBitcode);
 
 				// @todo tvos: We probably want to handle TVOS versions here
@@ -362,7 +370,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
 		public override UEBuildDeploy CreateDeploymentHandler()
 		{
-			return new UEDeployIOS();
+			return new UEDeployIOS(ProjectFile);
 		}
 	}
 
@@ -411,7 +419,17 @@ namespace UnrealBuildTool
 
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
-			return BuildConfiguration.bGeneratedSYMFile ? ".dSYM" : "";
+			if(BuildConfiguration.bGeneratedSYMFile)
+			{
+				return ".dSYM";
+			}
+
+			if(BuildConfiguration.bGeneratedSYMBundle)
+			{
+				return ".dSYM.zip";
+			}
+
+			return "";
 		}
 
 		public override bool CanUseXGE()
@@ -433,7 +451,8 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
-				"bShipForArm64", "bShipForArmV7S", "bGeneratedSYMFile",
+				"bShipForArm64", "bShipForArmV7S", "bShipForBitcode", "bGeneratedSYMFile",
+				"bGeneratedSYMBundle"
 			};
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 

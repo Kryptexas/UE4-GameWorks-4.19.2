@@ -384,13 +384,16 @@ struct FPlane : public FVector
 USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeRotator", HasNativeBreak="Engine.KismetMathLibrary.BreakRotator"))
 struct FRotator
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame)
+	/** Pitch (degrees) around Y axis */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame, meta=(DisplayName="Y"))
 	float Pitch;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame)
+	/** Yaw (degrees) around Z axis */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame, meta=(DisplayName="Z"))
 	float Yaw;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame)
+	/** Roll (degrees) around X axis */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame, meta=(DisplayName="X"))
 	float Roll;
 
 };

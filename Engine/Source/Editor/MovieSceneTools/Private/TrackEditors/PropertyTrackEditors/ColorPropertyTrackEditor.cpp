@@ -5,6 +5,7 @@
 #include "ColorPropertyTrackEditor.h"
 #include "ColorPropertySection.h"
 #include "MatineeImportTools.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpTrackColorProp.h"
 
 
@@ -71,17 +72,27 @@ void CopyInterpColorTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackColorPro
 {
 	if (FMatineeImportTools::CopyInterpColorTrack(ColorPropTrack, ColorTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
+	}
+}
+
+void CopyInterpLinearColorTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackLinearColorProp* LinearColorPropTrack, UMovieSceneColorTrack* ColorTrack)
+{
+	if (FMatineeImportTools::CopyInterpLinearColorTrack(LinearColorPropTrack, ColorTrack))
+	{
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 
 void FColorPropertyTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
 {
 	UInterpTrackColorProp* ColorPropTrack = nullptr;
+	UInterpTrackLinearColorProp* LinearColorPropTrack = nullptr;
 	for ( UObject* CopyPasteObject : GUnrealEd->MatineeCopyPasteBuffer )
 	{
 		ColorPropTrack = Cast<UInterpTrackColorProp>( CopyPasteObject );
-		if ( ColorPropTrack != nullptr )
+		LinearColorPropTrack = Cast<UInterpTrackLinearColorProp>( CopyPasteObject );
+		if ( ColorPropTrack != nullptr || LinearColorPropTrack != nullptr )
 		{
 			break;
 		}
@@ -92,7 +103,9 @@ void FColorPropertyTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder
 		NSLOCTEXT( "Sequencer", "PasteMatineeColorTrackTooltip", "Pastes keys from a Matinee color track into this track." ),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateStatic( &CopyInterpColorTrack, GetSequencer().ToSharedRef(), ColorPropTrack, ColorTrack ),
-			FCanExecuteAction::CreateLambda( [=]()->bool { return ColorPropTrack != nullptr && ColorPropTrack->GetNumKeys() > 0 && ColorTrack != nullptr; } ) ) );
+			ColorPropTrack != nullptr ? 
+			FExecuteAction::CreateStatic( &CopyInterpColorTrack, GetSequencer().ToSharedRef(), ColorPropTrack, ColorTrack ) : 
+			FExecuteAction::CreateStatic( &CopyInterpLinearColorTrack, GetSequencer().ToSharedRef(), LinearColorPropTrack, ColorTrack ),			
+			FCanExecuteAction::CreateLambda( [=]()->bool { return ((ColorPropTrack != nullptr && ColorPropTrack->GetNumKeys() > 0) || (LinearColorPropTrack != nullptr && LinearColorPropTrack->GetNumKeys() > 0)) && ColorTrack != nullptr; } ) ) );
 }
 

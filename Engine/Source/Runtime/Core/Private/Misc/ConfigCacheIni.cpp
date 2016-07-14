@@ -607,9 +607,9 @@ namespace CommandlineOverrideSpecifiers
 	// -ini:IniName:[Section1]:Key1=Value1,[Section2]:Key2=Value2
 	FString	IniSwitchIdentifier		= TEXT("-ini:");
 	FString	IniNameEndIdentifier	= TEXT(":[");
-	TCHAR	SectionStartIdentifier	= TCHAR('[');
+	FString	SectionStartIdentifier	= TEXT("[");
 	FString PropertyStartIdentifier	= TEXT("]:");
-	TCHAR	PropertySeperator		= TCHAR(',');
+	FString	PropertySeperator		= TEXT(",");
 }
 
 /**
@@ -630,7 +630,7 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
 	{
 		// break apart on the commas
 		TArray<FString> SettingPairs;
-		Settings.ParseIntoArray(SettingPairs, &CommandlineOverrideSpecifiers::PropertySeperator, true);
+		Settings.ParseIntoArray(SettingPairs, *CommandlineOverrideSpecifiers::PropertySeperator, true);
 		for (int32 Index = 0; Index < SettingPairs.Num(); Index++)
 		{
 			// set each one, by splitting on the =
@@ -653,7 +653,7 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
 				// Remove commandline syntax from the section name.
 				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::IniNameEndIdentifier, TEXT(""));
 				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::PropertyStartIdentifier, TEXT(""));
-				CommandlineOption.Section = CommandlineOption.Section.Replace(&CommandlineOverrideSpecifiers::SectionStartIdentifier, TEXT(""));
+				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::SectionStartIdentifier, TEXT(""));
 
 				CommandlineOption.PropertyKey = SectionAndKey.Mid(SectionNameEndIndex + CommandlineOverrideSpecifiers::PropertyStartIdentifier.Len());
 				CommandlineOption.PropertyValue = Value;
@@ -1782,25 +1782,25 @@ void FConfigCacheIni::SetText( const TCHAR* Section, const TCHAR* Key, const FTe
 	}
 }
 
-void FConfigCacheIni::RemoveKey( const TCHAR* Section, const TCHAR* Key, const FString& Filename )
+bool FConfigCacheIni::RemoveKey( const TCHAR* Section, const TCHAR* Key, const FString& Filename )
 {
 	FConfigFile* File = Find( Filename, 1 );
-	if ( !File )
+	if( File )
 	{
-		return;
+		FConfigSection* Sec = File->Find( Section );
+		if( Sec )
+		{
+			if( Sec->Remove(Key) > 0 )
+			{
+				File->Dirty = 1;
+				return true;
+			}
+		}
 	}
-
-	FConfigSection* Sec = File->Find( Section );
-	if( !Sec )
-	{
-		return;
-	}
-
-	if ( Sec->Remove(Key) > 0 )
-		File->Dirty = 1;
+	return false;
 }
 
-void FConfigCacheIni::EmptySection( const TCHAR* Section, const FString& Filename )
+bool FConfigCacheIni::EmptySection( const TCHAR* Section, const FString& Filename )
 {
 	FConfigFile* File = Find( Filename, 0 );
 	if( File )
@@ -1810,8 +1810,9 @@ void FConfigCacheIni::EmptySection( const TCHAR* Section, const FString& Filenam
 		if( Sec )
 		{
 			if ( FConfigSection::TIterator(*Sec) )
+			{
 				Sec->Empty();
-
+			}
 			File->Remove(Section);
 			if (bAreFileOperationsDisabled == false)
 			{
@@ -1825,12 +1826,15 @@ void FConfigCacheIni::EmptySection( const TCHAR* Section, const FString& Filenam
 					IFileManager::Get().Delete(*Filename);	
 				}
 			}
+			return true;
 		}
 	}
+	return false;
 }
 
-void FConfigCacheIni::EmptySectionsMatchingString( const TCHAR* SectionString, const FString& Filename )
+bool FConfigCacheIni::EmptySectionsMatchingString( const TCHAR* SectionString, const FString& Filename )
 {
+	bool bEmptied = false;
 	FConfigFile* File = Find( Filename, 0 );
 	if (File)
 	{
@@ -1840,11 +1844,12 @@ void FConfigCacheIni::EmptySectionsMatchingString( const TCHAR* SectionString, c
 		{
 			if (It.Key().Contains(SectionString) )
 			{
-				EmptySection(*(It.Key()), Filename);
+				bEmptied |= EmptySection(*(It.Key()), Filename);
 			}
 		}
 		bAreFileOperationsDisabled = bSaveOpsDisabled;
 	}
+	return bEmptied;
 }
 
 /**

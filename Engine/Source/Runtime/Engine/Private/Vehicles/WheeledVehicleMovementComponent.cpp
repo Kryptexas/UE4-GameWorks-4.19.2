@@ -10,6 +10,7 @@
 #include "Vehicles/TireType.h"
 #include "DisplayDebugHelpers.h"
 #include "PhysicsEngine/ConstraintInstance.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -1416,7 +1417,7 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 						FBodyInstance* BodyInstance = Mesh->Bodies[BodySetupIdx];
 						BodyInstance->SetResponseToAllChannels(ECR_Ignore);	//turn off collision for wheel automatically
 
-						if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodySetupIdx])
+						if (UBodySetup * BodySetup = PhysicsAsset->SkeletalBodySetups[BodySetupIdx])
 						{
 
 							if (BodySetup->PhysicsType == PhysType_Default) 	//if they set it to unfixed we don't fixup because they are explicitely saying Unfixed

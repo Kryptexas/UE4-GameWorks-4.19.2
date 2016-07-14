@@ -2636,6 +2636,164 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 	return true;
 }
 
+bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh, const FBoxSphereBounds& InBounds) const
+{
+	TInlineComponentArray<ULandscapeComponent*> RegisteredLandscapeComponents;
+	GetComponents<ULandscapeComponent>(RegisteredLandscapeComponents);
+
+	const FIntRect LandscapeSectionRect = GetBoundingRect();
+	const FVector2D LandscapeUVScale = FVector2D(1.0f, 1.0f) / FVector2D(LandscapeSectionRect.Size());
+
+	// User specified LOD to export
+	int32 LandscapeLODToExport = ExportLOD;
+	if (InExportLOD != INDEX_NONE)
+	{
+		LandscapeLODToExport = FMath::Clamp<int32>(InExportLOD, 0, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
+	}
+
+	// Export data for each component
+	for (auto It = RegisteredLandscapeComponents.CreateConstIterator(); It; ++It)
+	{
+		ULandscapeComponent* Component = (*It);
+
+		// Early out if the Landscape bounds and given bounds do not overlap at all
+		if (!FBoxSphereBounds::SpheresIntersect(Component->Bounds, InBounds))
+		{
+			continue;
+		}
+
+		FLandscapeComponentDataInterface CDI(Component, LandscapeLODToExport);
+		const int32 ComponentSizeQuadsLOD = ((Component->ComponentSizeQuads + 1) >> LandscapeLODToExport) - 1;
+		const int32 SubsectionSizeQuadsLOD = ((Component->SubsectionSizeQuads + 1) >> LandscapeLODToExport) - 1;
+		const FIntPoint ComponentOffsetQuads = Component->GetSectionBase() - LandscapeSectionOffset - LandscapeSectionRect.Min;
+		const FVector2D ComponentUVOffsetLOD = FVector2D(ComponentOffsetQuads)*((float)ComponentSizeQuadsLOD / ComponentSizeQuads);
+		const FVector2D ComponentUVScaleLOD = LandscapeUVScale*((float)ComponentSizeQuads / ComponentSizeQuadsLOD);
+
+		const int32 NumFaces = FMath::Square(ComponentSizeQuadsLOD) * 2;
+		const int32 TotalCurrentFaces = OutRawMesh.FaceSmoothingMasks.Num() + NumFaces;
+		const int32 NumVertices = NumFaces * 3;
+		const int32 TotalCurrentVertices = TotalCurrentFaces * 3;
+		const int32 VerticesOffset = OutRawMesh.VertexPositions.Num();
+		const int32 IndicesOffset = OutRawMesh.WedgeIndices.Num();
+
+		OutRawMesh.FaceMaterialIndices.Reserve(TotalCurrentFaces);
+		OutRawMesh.FaceSmoothingMasks.Reserve(TotalCurrentFaces);
+
+		OutRawMesh.VertexPositions.Reserve(TotalCurrentVertices);
+		OutRawMesh.WedgeIndices.Reserve(TotalCurrentVertices);
+		OutRawMesh.WedgeTangentX.Reserve(TotalCurrentVertices);
+		OutRawMesh.WedgeTangentY.Reserve(TotalCurrentVertices);
+		OutRawMesh.WedgeTangentZ.Reserve(TotalCurrentVertices);
+		OutRawMesh.WedgeTexCoords[0].Reserve(TotalCurrentVertices);
+
+		// Check if there are any holes
+		const int32 VisThreshold = 170;
+		TArray<uint8> VisDataMap;
+
+		for (int32 AllocIdx = 0; AllocIdx < Component->WeightmapLayerAllocations.Num(); AllocIdx++)
+		{
+			FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[AllocIdx];
+			if (AllocInfo.LayerInfo == ALandscapeProxy::VisibilityLayer)
+			{
+				CDI.GetWeightmapTextureData(AllocInfo.LayerInfo, VisDataMap);
+			}
+		}
+
+		const FIntPoint QuadPattern[6] =
+		{
+			//face 1
+			FIntPoint(0, 0),
+			FIntPoint(0, 1),
+			FIntPoint(1, 1),
+			//face 2
+			FIntPoint(0, 0),
+			FIntPoint(1, 1),
+			FIntPoint(1, 0),
+		};
+				
+		const int32 WeightMapSize = (SubsectionSizeQuadsLOD + 1) * Component->NumSubsections;
+
+		const float SquaredSphereRadius = FMath::Square(InBounds.SphereRadius);
+
+		// Export verts
+		int32 VertexIdx = VerticesOffset;
+		for (int32 y = 0; y < ComponentSizeQuadsLOD; y++)
+		{
+			for (int32 x = 0; x < ComponentSizeQuadsLOD; x++)
+			{
+				FVector Positions[ARRAY_COUNT(QuadPattern)];
+				bool bProcess = false;
+
+				// Fill positions
+				for (int32 i = 0; i < ARRAY_COUNT(QuadPattern); i++)
+				{
+					int32 VertexX = x + QuadPattern[i].X;
+					int32 VertexY = y + QuadPattern[i].Y;
+					Positions[i] = CDI.GetWorldVertex(VertexX, VertexY);
+
+					// If at least one vertex is within the given bounds we should process the quad  
+					if (!bProcess && InBounds.ComputeSquaredDistanceFromBoxToPoint(Positions[i]) < SquaredSphereRadius)
+					{
+						bProcess = true;
+					}
+				}
+
+				if (bProcess)
+				{
+					// Fill indices
+					{
+						// Whether this vertex is in hole
+						bool bInvisible = false;
+						if (VisDataMap.Num())
+						{
+							int32 TexelX, TexelY;
+							CDI.VertexXYToTexelXY(x, y, TexelX, TexelY);
+							bInvisible = (VisDataMap[CDI.TexelXYToIndex(TexelX, TexelY)] >= VisThreshold);
+						}
+
+						// triangulation matches FLandscapeIndexBuffer constructor
+						OutRawMesh.WedgeIndices.Add(VertexIdx);
+						OutRawMesh.WedgeIndices.Add(bInvisible ? VertexIdx : VertexIdx + 1);
+						OutRawMesh.WedgeIndices.Add(bInvisible ? VertexIdx : VertexIdx + 2);
+						
+						OutRawMesh.WedgeIndices.Add(VertexIdx + 3);
+						OutRawMesh.WedgeIndices.Add(bInvisible ? VertexIdx : VertexIdx + 4);
+						OutRawMesh.WedgeIndices.Add(bInvisible ? VertexIdx : VertexIdx + 5);
+
+						OutRawMesh.FaceMaterialIndices.AddZeroed(2);
+						OutRawMesh.FaceSmoothingMasks.AddZeroed(2);
+					}
+
+					// Fill other vertex data
+					for (int32 i = 0; i < ARRAY_COUNT(QuadPattern); i++)
+					{
+						int32 VertexX = x + QuadPattern[i].X;
+						int32 VertexY = y + QuadPattern[i].Y;
+
+						FVector LocalTangentX, LocalTangentY, LocalTangentZ;
+						CDI.GetLocalTangentVectors(VertexX, VertexY, LocalTangentX, LocalTangentY, LocalTangentZ);
+
+						OutRawMesh.VertexPositions.Add(Positions[i]);
+						OutRawMesh.WedgeTangentX.Add(LocalTangentX);
+						OutRawMesh.WedgeTangentY.Add(LocalTangentY);
+						OutRawMesh.WedgeTangentZ.Add(LocalTangentZ);
+
+						OutRawMesh.WedgeTexCoords[0].Add((ComponentUVOffsetLOD + FVector2D(VertexX, VertexY))*ComponentUVScaleLOD);
+
+						VertexIdx++;
+					}
+				}
+			}
+		}
+	}
+
+	// Add lightmap UVs
+	OutRawMesh.WedgeTexCoords[1].Append(OutRawMesh.WedgeTexCoords[0]);
+
+	return OutRawMesh.VertexPositions.Num() != 0;
+}
+
+
 FIntRect ALandscapeProxy::GetBoundingRect() const
 {
 	FIntRect Rect(MAX_int32, MAX_int32, MIN_int32, MIN_int32);

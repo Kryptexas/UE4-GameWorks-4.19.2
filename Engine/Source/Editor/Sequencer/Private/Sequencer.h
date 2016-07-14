@@ -98,11 +98,11 @@ public:
 	 */
 	void SetSelectionRangeStart();
 
+	/** Clear and reset the selection range. */
+	void ResetSelectionRange();
+
 	/** Select all keys that fall into the current selection range. */
 	void SelectKeysInSelectionRange();
-
-	/** Delete the time range and all the keys that fall into the selection range. */
-	void DeleteSelectionRange();
 
 public:
 
@@ -254,8 +254,9 @@ public:
 	 * Called to delete all moviescene data from a node
 	 *
 	 * @param NodeToBeDeleted	Node with data that should be deleted
+	 * @return true if anything was deleted, otherwise false.
 	 */
-	virtual void OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted );
+	virtual bool OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted );
 
 	/** Zooms to the edges of all currently selected sections. */
 	void ZoomToSelectedSections();
@@ -316,11 +317,22 @@ public:
 	/** Extend the level editor viewport menu */
 	TSharedRef<FExtender> OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList);
 
+	/** Extend the level viewport context menu */
+	void AddLevelViewportMenuExtender();
+	
+	/** Remove a previously registered extender for the level viewport context menu */
+	void RemoveLevelViewportMenuExtender();
+
+	/** Get the extender for the level viewport menu */
+	TSharedRef<FExtender> GetLevelViewportExtender(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> InActors);
+
+	void RecordSelectedActors();
+	
 	/** Create a menu entry we can use to toggle the transport controls */
 	void CreateTransportToggleMenuEntry(FMenuBuilder& MenuBuilder);
 
 	/** Functions to push on to the transport controls we use */
-	FReply OnPlay(bool bTogglePlay=true);
+	FReply OnPlay(bool bTogglePlay=true, float InPlayRate=1.f);
 	FReply OnRecord();
 	FReply OnStepForward();
 	FReply OnStepBackward();
@@ -430,6 +442,9 @@ public:
 	/** Moves all time data for the current scene onto a valid frame. */
 	void FixFrameTiming();
 
+	/** Exports the current scene and sequence to an fbx file. */
+	void ExportSceneAndSequence();
+
 public:
 	
 	/** Access the currently active track area edit tool */
@@ -498,8 +513,8 @@ public:
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() const override;
-	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) override;
-	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) override;
+	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bRestarted = false) override;
+	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bRestarted = false) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
 	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
 	virtual void RenderMovie(UMovieSceneSection* InSection) const override;
@@ -508,7 +523,10 @@ public:
 	virtual bool IsInSilentMode() const override { return SilentModeCount != 0; }
 	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) override;
 	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
-	virtual void NotifyMovieSceneDataChanged() override;
+protected:
+	virtual void NotifyMovieSceneDataChangedInternal() override;
+public:
+	virtual void NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType ) override;
 	virtual void UpdateRuntimeInstances() override;
 	virtual void UpdatePlaybackRange() override;
 	virtual void AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) override;
@@ -519,8 +537,10 @@ public:
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
 	virtual void NotifyMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
+	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
 	virtual UObject* GetPlaybackContext() const override;
+	virtual TArray<UObject*> GetEventContexts() const override;
 	virtual void GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties) override;
 	virtual FOnActorAddedToSequencer& OnActorAddedToSequencer() override;
 	virtual FOnPreSave& OnPreSave() override;
@@ -539,7 +559,7 @@ public:
 	// IMovieScenePlayer interface
 
 	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<TWeakObjectPtr<UObject>>& OutObjects) const override;
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) const override;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
@@ -674,6 +694,9 @@ protected:
 	void TogglePlay();
 	void PlayForward();
 	void Rewind();
+	void ShuttleForward();
+	void ShuttleBackward();
+	void Pause();
 	void StepForward();
 	void StepBackward();
 	void StepToNextKey();
@@ -785,6 +808,9 @@ protected:
 	/** Create record transport control */
 	TSharedRef<SWidget> OnCreateTransportRecord();
 
+	/** Possess PIE viewports with the specified camera settings (a mirror of level viewport possession, but for game viewport clients) */
+	void PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut);
+
 private:
 	/** Performs any post-tick rendering work needed when moving through scenes */
 	void PostTickRenderStateFixup();
@@ -859,6 +885,12 @@ private:
 	// @todo sequencer: Should use FTimespan or "double" for Time Cursor Position! (cascades)
 	float ScrubPosition;
 
+	/** The playback rate */
+	float PlayRate;
+
+	/** The shuttle multiplier */
+	float ShuttleMultiplier;
+
 	bool bPerspectiveViewportPossessionEnabled;
 	bool bPerspectiveViewportCameraCutEnabled;
 
@@ -892,6 +924,9 @@ private:
 	/** A delegate which is called any time the global time changes. */
 	FOnGlobalTimeChanged OnGlobalTimeChangedDelegate;
 
+	/** A delegate which is called any time the movie scene data is changed. */
+	FOnMovieSceneDataChanged OnMovieSceneDataChangedDelegate;
+
 	/** A map of all the transport controls to viewports that this sequencer has made */
 	TMap< TSharedPtr<class ILevelViewport>, TSharedPtr<class SWidget> > TransportControls;
 
@@ -914,4 +949,23 @@ private:
 
 	/** The maximum tick rate prior to playing (used for overriding delta time during playback). */
 	double OldMaxTickRate;
+
+	struct FCachedViewTarget
+	{
+		/** The player controller we're possessing */
+		TWeakObjectPtr<APlayerController> PlayerController;
+		/** The view target it was pointing at before we took over */
+		TWeakObjectPtr<AActor> ViewTarget;
+	};
+	
+	/** Cached array of view targets that were set before we possessed the player controller with a camera from sequencer */
+	TArray<FCachedViewTarget> PrePossessionViewTargets;
+
+	FDelegateHandle LevelViewportExtenderHandle;
+
+	/** Attribute used to retrieve event contexts */
+	TAttribute<TArray<UObject*>> EventContextsAttribute;
+
+	/** Event contexts retrieved from the above attribute once per frame */
+	TArray<UObject*> CachedEventContexts;
 };

@@ -25,6 +25,8 @@ FStructureEditorUtils::FStructEditorManager& FStructureEditorUtils::FStructEdito
 	return *EditorManager;
 }
 
+FStructureEditorUtils::EStructureEditorChangeInfo FStructureEditorUtils::FStructEditorManager::ActiveChange = FStructureEditorUtils::EStructureEditorChangeInfo::Unknown;
+
 //////////////////////////////////////////////////////////////////////////
 // FStructureEditorUtils
 UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags)
@@ -270,7 +272,7 @@ bool FStructureEditorUtils::AddVariable(UUserDefinedStruct* Struct, const FEdGra
 		NewVar.bInvalidMember = false;
 		GetVarDesc(Struct).Add(NewVar);
 
-		OnStructureChanged(Struct);
+		OnStructureChanged(Struct, EStructureEditorChangeInfo::AddedVariable);
 		return true;
 	}
 	return false;
@@ -290,7 +292,7 @@ bool FStructureEditorUtils::RemoveVariable(UUserDefinedStruct* Struct, FGuid Var
 			GetVarDesc(Struct).RemoveAll(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
 			if (OldNum != GetVarDesc(Struct).Num())
 			{
-				OnStructureChanged(Struct);
+				OnStructureChanged(Struct, EStructureEditorChangeInfo::RemovedVariable);
 				return true;
 			}
 		}
@@ -324,7 +326,7 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 				check(NULL == GetVarDesc(Struct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(NewName)))
 				VarDesc->VarName = NewName;
 			}
-			OnStructureChanged(Struct);
+			OnStructureChanged(Struct, EStructureEditorChangeInfo::RenamedVariable);
 			return true;
 		}
 	}
@@ -356,7 +358,7 @@ bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid
 				VarDesc->DefaultValue = FString();
 				VarDesc->SetPinType(NewType);
 
-				OnStructureChanged(Struct);
+				OnStructureChanged(Struct, EStructureEditorChangeInfo::VariableTypeChanged);
 				return true;
 			}
 		}
@@ -410,10 +412,13 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 		if (bAdvancedValidation)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
-			ModifyStructData(Struct);
+			
+			TGuardValue<FStructureEditorUtils::EStructureEditorChangeInfo> ActiveChangeGuard(FStructureEditorUtils::FStructEditorManager::ActiveChange, EStructureEditorChangeInfo::DefaultValueChanged);
 
+			ModifyStructData(Struct);
+			
 			VarDesc->DefaultValue = NewDefaultValue;
-			OnStructureChanged(Struct);
+			OnStructureChanged(Struct, EStructureEditorChangeInfo::DefaultValueChanged);
 			return true;
 		}
 	}
@@ -516,10 +521,12 @@ void FStructureEditorUtils::CompileStructure(UUserDefinedStruct* Struct)
 	}
 }
 
-void FStructureEditorUtils::OnStructureChanged(UUserDefinedStruct* Struct)
+void FStructureEditorUtils::OnStructureChanged(UUserDefinedStruct* Struct, EStructureEditorChangeInfo ChangeReason)
 {
 	if (Struct)
 	{
+		TGuardValue<FStructureEditorUtils::EStructureEditorChangeInfo> ActiveChangeGuard(FStructureEditorUtils::FStructEditorManager::ActiveChange, ChangeReason);
+
 		Struct->Status = EUserDefinedStructureStatus::UDSS_Dirty;
 		CompileStructure(Struct);
 		Struct->MarkPackageDirty();
@@ -683,7 +690,7 @@ bool FStructureEditorUtils::MoveVariable(UUserDefinedStruct* Struct, FGuid VarGu
 				ModifyStructData(Struct);
 
 				DescArray.Swap(Index, Index + (bMoveUp ? -1 : 1));
-				OnStructureChanged(Struct);
+				OnStructureChanged(Struct, EStructureEditorChangeInfo::MovedVariable);
 				return true;
 			}
 		}
@@ -845,7 +852,7 @@ struct FReinstanceDataTableHelper
 
 void FStructureEditorUtils::BroadcastPreChange(UUserDefinedStruct* Struct)
 {
-	FStructureEditorUtils::FStructEditorManager::Get().PreChange(Struct, EStructureEditorChangeInfo::Changed);
+	FStructureEditorUtils::FStructEditorManager::Get().PreChange(Struct, FStructureEditorUtils::FStructEditorManager::ActiveChange);
 	auto DataTables = FReinstanceDataTableHelper::GetTablesDependentOnStruct(Struct);
 	for (auto DataTable : DataTables)
 	{
@@ -860,7 +867,7 @@ void FStructureEditorUtils::BroadcastPostChange(UUserDefinedStruct* Struct)
 	{
 		DataTable->RestoreAfterStructChange();
 	}
-	FStructureEditorUtils::FStructEditorManager::Get().PostChange(Struct, EStructureEditorChangeInfo::Changed);
+	FStructureEditorUtils::FStructEditorManager::Get().PostChange(Struct, FStructureEditorUtils::FStructEditorManager::ActiveChange);
 }
 
 #undef LOCTEXT_NAMESPACE

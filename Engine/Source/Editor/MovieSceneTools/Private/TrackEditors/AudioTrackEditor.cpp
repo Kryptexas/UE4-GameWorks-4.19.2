@@ -711,7 +711,8 @@ void FAudioSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Pa
 		if (!FMath::IsNearlyEqual(DrawRange.GetLowerBoundValue(), StoredDrawRange.GetLowerBoundValue()) ||
 			!FMath::IsNearlyEqual(DrawRange.GetUpperBoundValue(), StoredDrawRange.GetUpperBoundValue()) ||
 			XOffset != StoredXOffset || XSize != StoredXSize || Track->GetColorTint() != StoredColor ||
-			StoredSoundWave != SoundWave)
+			StoredSoundWave != SoundWave ||
+			StoredShowIntensity != AudioSection->ShouldShowIntensity())
 		{
 			float DisplayScale = XSize / DrawRange.Size<float>();
 
@@ -741,6 +742,7 @@ void FAudioSection::RegenerateWaveforms(TRange<float> DrawRange, int32 XOffset, 
 	StoredXOffset = XOffset;
 	StoredXSize = XSize;
 	StoredColor = ColorTint;
+	StoredShowIntensity =  Cast<UMovieSceneAudioSection>(&Section)->ShouldShowIntensity();
 
 	if (DrawRange.IsDegenerate() || DrawRange.IsEmpty() || Cast<UMovieSceneAudioSection>(&Section)->GetSound() == NULL)
 	{
@@ -792,7 +794,7 @@ void CopyInterpSoundTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackSound* M
 {
 	if (FMatineeImportTools::CopyInterpSoundTrack(MatineeSoundTrack, AudioTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 
@@ -939,7 +941,7 @@ void FAudioTrackEditor::HandleAddAudioTrackMenuEntryExecute()
 
 	NewTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
 
-	GetSequencer()->NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 TSharedRef<SWidget> FAudioTrackEditor::BuildAudioSubMenu(UMovieSceneTrack* Track)
@@ -997,7 +999,7 @@ void FAudioTrackEditor::OnAudioAssetSelected(const FAssetData& AssetData, UMovie
 			float KeyTime = GetSequencer()->GetGlobalTime();
 			AudioTrack->AddNewSound( NewSound, KeyTime );
 
-			GetSequencer()->NotifyMovieSceneDataChanged();
+			GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 		}
 	}
 }

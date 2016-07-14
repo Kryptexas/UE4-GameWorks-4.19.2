@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Engine/LatentActionManager.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Sound/DialogueTypes.h"
 #include "GameplayStatics.generated.h"
@@ -738,9 +739,9 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static bool DoesSaveGameExist(const FString& SlotName, const int32 UserIndex);
 
 	/** 
-	 *	Save the contents of the SaveGameObject to a slot.
-	 *	@param SlotName			Name of save game slot to save to.
-	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
+	 *	Load the contents from a given slot.
+	 *	@param SlotName			Name of the save game slot to load from.
+	 *  @param UserIndex		For some platforms, master user index to identify the user doing the loading.
 	 *	@return SaveGameObject	Object containing loaded game state (NULL if load fails)
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game")
@@ -748,8 +749,8 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 
 	/**
 	 * Delete a save game in a particular slot.
-	 *	@param SlotName			Name of save game slot to save to.
-	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
+	 *	@param SlotName			Name of save game slot to delete.
+	 *  @param UserIndex		For some platforms, master user index to identify the user doing the deletion.
 	 *  @return True if a file was actually able to be deleted. use DoesSaveGameExist to distinguish between delete failures and failure due to file not existing.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Game")
@@ -803,6 +804,42 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 
 	/** Native version, has more options than the Blueprint version. */
 	static bool SuggestProjectileVelocity(UObject* WorldContextObject, FVector& TossVelocity, FVector StartLocation, FVector EndLocation, float TossSpeed, bool bHighArc = false, float CollisionRadius = 0.f, float OverrideGravityZ = 0, ESuggestProjVelocityTraceOption::Type TraceOption = ESuggestProjVelocityTraceOption::TraceFullPath, const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, const TArray<AActor*>& ActorsToIgnore = TArray<AActor*>(), bool bDrawDebug = false);
+
+	/**
+	* Predict the arc of a virtual projectile affected by gravity with collision checks along the arc. Returns a list of positions of the simulated arc and the destination reached by the simulation.
+	* Returns true if it hit something.
+	*
+	* @param OutPathPositions			Predicted projectile path. Ordered series of positions from StartPos to the end. Includes location at point of impact if it hit something.
+	* @param OutHit						Predicted hit result, if the projectile will hit something
+	* @param OutLastTraceDestination	Goal position of the final trace it did. Will not be in the path if there is a hit.
+	* @param StartPos					First start trace location
+	* @param LaunchVelocity				Velocity the "virtual projectile" is launched at
+	* @param bTracePath					Trace along the entire path to look for blocking hits
+	* @param ProjectileRadius			Radius of the virtual projectile to sweep against the environment
+	* @param ObjectTypes				ObjecTypes to trace against
+	* @param bTraceComplex				Use TraceComplex (trace against triangles not primitives)
+	* @param ActorsToIgnore				Actors to exclude from the traces
+	* @param DrawDebugType				Debug type (one-frame, duration, persistent)
+	* @param DrawDebugTime				Duration of debug lines (only relevant for DrawDebugType::Duration)
+	* @param SimFrequency				Determines size of each sub-step in the simulation (chopping up MaxSimTime)
+	* @param MaxSimTime					Maximum simulation time for the virtual projectile.
+	* @param OverrideGravityZ			Optional override of Gravity (default uses WorldGravityZ
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", AdvancedDisplay = "DrawDebugTime, DrawDebugType, SimFrequency, MaxSimTime, OverrideGravityZ", TraceChannel = ECC_WorldDynamic, bTracePath = true))
+	static bool PredictProjectilePath(UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency = 30.f, float MaxSimTime = 2.f, float OverrideGravityZ = 0);
+
+	/**
+	* Returns the launch velocity needed for a projectile at rest at StartPos to land on EndPos.
+	* Assumes a medium arc (e.g. 45 deg on level ground). Projectile velocity is variable and unconstrained.
+	* Does no tracing.
+	*
+	* @param OutLaunchVelocity			Returns the launch velocity required to reach the EndPos
+	* @param StartPos					Start position of the simulation
+	* @param EndPos						Desired end location for the simulation
+	* @param OverrideGravityZ			Optional override of WorldGravityZ
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game", DisplayName = "SuggestProjectileVelocity MediumArc", meta = (WorldContext = "WorldContextObject", AdvancedDisplay = "OverrideGravityZ"))
+	static bool SuggestProjectileVelocity_MediumArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ = 0);
 
 	/** Returns world origin current location. */
 	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject") )

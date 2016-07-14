@@ -1876,6 +1876,16 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int
 		RemoveInstanceInternal(Index);
 	}
 
+	if (IsAsyncBuilding())
+	{
+		// invalidate the results of the current async build as it's too slow to fix up deletes
+		bConcurrentRemoval = true;
+	}
+	else
+	{
+		BuildTreeAsync();
+	}
+
 	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
@@ -2188,18 +2198,21 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		FlushAccumulatedNavigationUpdates();
 
 		PostBuildStats();
-
-		if (bIsAsyncBuilding)
-		{
-			// We did a sync build while async building. The sync build is newer so we will use that.
-			bDiscardAsyncBuildResults = true;
-		}
 	}
 	else
 	{
+		ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
+		NumBuiltInstances = 0;
+		NumBuiltRenderInstances = 0;
 		InstanceReorderTable.Empty();
 		SortedInstances.Empty();
 		RemovedInstances.Empty();
+	}
+
+	if (bIsAsyncBuilding)
+	{
+		// We did a sync build while async building. The sync build is newer so we will use that.
+		bDiscardAsyncBuildResults = true;
 	}
 
 	ReleasePerInstanceRenderData();
@@ -2395,6 +2408,9 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 	}
 	else
 	{
+		ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
+		NumBuiltInstances = 0;
+		NumBuiltRenderInstances = 0;
 		InstanceReorderTable.Empty();
 		SortedInstances.Empty();
 		RemovedInstances.Empty();

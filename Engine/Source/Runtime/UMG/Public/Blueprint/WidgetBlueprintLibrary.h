@@ -291,4 +291,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Widget", meta = ( CompactNodeTitle = "->", BlueprintAutocast ))
 	static FInputEvent GetInputEventFromNavigationEvent(const FNavigationEvent& Event);
+
+	/**
+	 * Gets the amount of padding that needs to be added when accounting for the safe zone on TVs.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget|Safe Zone", meta=( WorldContext="WorldContextObject" ))
+	static void GetSafeZonePadding(UObject* WorldContextObject, FVector2D& SafePadding, FVector2D& SafePaddingScale, FVector2D& SpillOverPadding);
 };

@@ -25,6 +25,7 @@
 #include "SceneOutlinerModule.h"
 #include "SceneOutlinerPublicTypes.h"
 #include "SDockTab.h"
+#include "LevelSequencePlayer.h"
 #include "SequencerSettings.h"
 #include "SequencerSpawnRegister.h"
 
@@ -46,6 +47,37 @@ namespace SequencerDefs
 	static const FName SequencerAppIdentifier(TEXT("SequencerApp"));
 }
 
+// Defer to ULevelSequencePlayer's implementation for getting event contexts from the current world
+TArray<UObject*> GetLevelSequenceEditorEventContexts()
+{
+	TArray<UObject*> Contexts;
+
+	// Return PIE worlds if there are any
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			ULevelSequencePlayer::GetEventContexts(*Context.World(), Contexts);
+		}
+	}
+
+	if (Contexts.Num())
+	{
+		return Contexts;
+	}
+
+	// Else just return the editor world
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::Editor)
+		{
+			ULevelSequencePlayer::GetEventContexts(*Context.World(), Contexts);
+			break;
+		}
+	}
+
+	return Contexts;
+}
 
 static TArray<FLevelSequenceEditorToolkit*> OpenToolkits;
 
@@ -141,6 +173,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 		SequencerInitParams.SpawnRegister = SpawnRegister;
+		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
 
 		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
 
@@ -490,6 +523,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			}
 
 			Sequencer->KeyProperty(KeyPropertyParams);
+
 			Sequencer->UpdateRuntimeInstances();
 		}
 	}
@@ -600,7 +634,7 @@ void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimi
 		MaterialTrack->Modify();
 		MaterialTrack->SetMaterialIndex( MaterialIndex );
 
-		Sequencer->NotifyMovieSceneDataChanged();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 
@@ -645,7 +679,7 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 			UObject* SpawnedCamera = GetSequencer()->FindSpawnedObjectOrTemplate(CameraGuid);
 			if (SpawnedCamera)
 			{
-				GWorld->EditorDestroyActor(NewCamera, true);
+				GCurrentLevelEditingViewportClient->GetWorld()->EditorDestroyActor(NewCamera, true);
 				NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
 			}
 		}

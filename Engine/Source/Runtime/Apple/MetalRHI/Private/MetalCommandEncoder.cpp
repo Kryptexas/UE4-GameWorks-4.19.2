@@ -7,6 +7,7 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalCommandEncoder.h"
+#include "MetalCommandBuffer.h"
 #include "MetalProfiler.h"
 
 #pragma mark - Public C++ Boilerplate -
@@ -240,12 +241,26 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[RenderCommandEncoder setLabel:Label];
+#if !UE_BUILD_SHIPPING
+		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
+		{
+			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+			[Buf beginRenderCommandEncoder:Label withDescriptor:RenderPassDesc];
+		}
+#endif
 		
 		if([DebugGroups count])
 		{
 			for (NSString* Group in DebugGroups)
 			{
 				[RenderCommandEncoder pushDebugGroup:Group];
+#if !UE_BUILD_SHIPPING
+				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+				{
+					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+					[Buf pushDebugGroup:Group];
+				}
+#endif
 			}
 		}
     }
@@ -258,7 +273,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncoding(void)
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	if ((UE_BUILD_DEBUG || GetMetalDeviceContext().IsValidationLayerEnabled()) && RenderPassDescApplied == 1)
+	if ((GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation) && RenderPassDescApplied == 1)
 	{
 		bool bAllLoadActionsOK = true;
 		if(RenderPassDesc.colorAttachments)
@@ -402,12 +417,26 @@ void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[ComputeCommandEncoder setLabel:Label];
+#if !UE_BUILD_SHIPPING
+		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
+		{
+			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+			[Buf beginComputeCommandEncoder:Label];
+		}
+#endif
 		
 		if([DebugGroups count])
 		{
 			for (NSString* Group in DebugGroups)
 			{
 				[ComputeCommandEncoder pushDebugGroup:Group];
+#if !UE_BUILD_SHIPPING
+				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+				{
+					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+					[Buf pushDebugGroup:Group];
+				}
+#endif
 			}
 		}
 	}
@@ -469,12 +498,26 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[BlitCommandEncoder setLabel:Label];
+#if !UE_BUILD_SHIPPING
+		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
+		{
+			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+			[Buf beginBlitCommandEncoder:Label];
+		}
+#endif
 		
 		if([DebugGroups count])
 		{
 			for (NSString* Group in DebugGroups)
 			{
 				[BlitCommandEncoder pushDebugGroup:Group];
+#if !UE_BUILD_SHIPPING
+				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+				{
+					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+					[Buf pushDebugGroup:Group];
+				}
+#endif
 			}
 		}
 	}
@@ -482,6 +525,13 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 
 void FMetalCommandEncoder::EndEncoding(void)
 {
+#if !UE_BUILD_SHIPPING
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
+	{
+		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+		[Buf endCommandEncoder];
+	}
+#endif
 	if(IsRenderCommandEncoderActive())
 	{
 		[RenderCommandEncoder endEncoding];
@@ -506,6 +556,14 @@ void FMetalCommandEncoder::EndEncoding(void)
 
 void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 {
+#if !UE_BUILD_SHIPPING
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+	{
+		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+		[Buf insertDebugSignpost:String];
+	}
+#endif
+	
 	if (RenderCommandEncoder)
 	{
 		[RenderCommandEncoder insertDebugSignpost:String];
@@ -522,6 +580,14 @@ void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 
 void FMetalCommandEncoder::PushDebugGroup(NSString* const String)
 {
+#if !UE_BUILD_SHIPPING
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+	{
+		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+		[Buf pushDebugGroup:String];
+	}
+#endif
+	
 	[DebugGroups addObject:String];
 	if (RenderCommandEncoder)
 	{
@@ -539,6 +605,14 @@ void FMetalCommandEncoder::PushDebugGroup(NSString* const String)
 
 void FMetalCommandEncoder::PopDebugGroup(void)
 {
+#if !UE_BUILD_SHIPPING
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+	{
+		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
+		[Buf popDebugGroup];
+	}
+#endif
+	
 	[DebugGroups removeLastObject];
 	if (RenderCommandEncoder)
 	{

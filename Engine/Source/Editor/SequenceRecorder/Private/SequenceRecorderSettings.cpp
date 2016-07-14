@@ -20,6 +20,7 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	ComponentClassesToRecord.Add(UStaticMeshComponent::StaticClass());
 	ComponentClassesToRecord.Add(UParticleSystemComponent::StaticClass());
 	ComponentClassesToRecord.Add(ULightComponent::StaticClass());
+	ComponentClassesToRecord.Add(UCameraComponent::StaticClass());
 }
 
 void USequenceRecorderSettings::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)

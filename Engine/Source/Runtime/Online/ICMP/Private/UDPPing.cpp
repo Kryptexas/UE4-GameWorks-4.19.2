@@ -6,8 +6,6 @@
 
 #include "Sockets.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 extern uint16 NtoHS(uint16 val);
 extern uint16 HtoNS(uint16 val);
 extern uint32 NtoHL(uint32 val);
@@ -22,7 +20,7 @@ namespace UDPPing
 	const SIZE_T PayloadSize = 4 * sizeof(uint32);
 }
 
-FIcmpEchoResult UDPEchoImpl(const FString& TargetAddress, float Timeout)
+FIcmpEchoResult UDPEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout)
 {
 	struct FUDPPingHeader
 	{
@@ -55,7 +53,7 @@ FIcmpEchoResult UDPEchoImpl(const FString& TargetAddress, float Timeout)
 
 	TArray<FString> IpParts;
 	int32 NumTokens = TargetAddress.ParseIntoArray(IpParts, TEXT(":"));
-	
+
 	FString Address = TargetAddress;
 	if (NumTokens == 2)
 	{
@@ -64,7 +62,7 @@ FIcmpEchoResult UDPEchoImpl(const FString& TargetAddress, float Timeout)
 	}
 
 	FString ResolvedAddress;
-	if (!ResolveIp(Address, ResolvedAddress))
+	if (!ResolveIp(SocketSub, Address, ResolvedAddress))
 	{
 		Result.Status = EIcmpResponseStatus::Unresolvable;
 		return Result;
@@ -73,7 +71,7 @@ FIcmpEchoResult UDPEchoImpl(const FString& TargetAddress, float Timeout)
 	int32 Port = 0;
 	LexicalConversion::FromString(Port, *PortStr);
 
-	ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	//ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	if (SocketSub)
 	{
 		FSocket* Socket = SocketSub->CreateSocket(NAME_DGram, TEXT("UDPPing"), false);
@@ -112,7 +110,7 @@ FIcmpEchoResult UDPEchoImpl(const FString& TargetAddress, float Timeout)
 
 				// Calculate the packet checksum
 				PacketHeader->Checksum = CalculateChecksum(SendBuffer, PacketSize);
-				
+
 				uint8 ResultBuffer[ResultPacketSize];
 
 				double TimeLeft = Timeout;
@@ -157,7 +155,7 @@ FIcmpEchoResult UDPEchoImpl(const FString& TargetAddress, float Timeout)
 										FDateTime PrevTime(*TimeCodePtr);
 										double DeltaTime = (NowTime - PrevTime).GetTotalSeconds();
 
-										if (Result.ReplyFrom == ResolvedAddress &&
+										if (Result.ReplyFrom == Result.ResolvedAddress &&
 											RecvHeader->Id == SentId && RecvHeader->Sequence == SentSeq &&
 											DeltaTime >= 0.0 && DeltaTime < (60.0 * 1000.0))
 										{
@@ -195,24 +193,33 @@ class FUDPPingAsyncResult
 {
 public:
 
-	FUDPPingAsyncResult(const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback InCallback)
+	FUDPPingAsyncResult(ISocketSubsystem* InSocketSub, const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback InCallback)
 		: FTickerObjectBase(0)
+		, SocketSub(InSocketSub)
 		, Callback(InCallback)
-		, bThreadCompleted(false)
+		, bThreadCompleted(true)
 	{
-		TFunction<FIcmpEchoResult()> Task = [this, TargetAddress, Timeout]()
+		if (SocketSub)
 		{
-			auto Result = UDPEchoImpl(TargetAddress, Timeout);
-			bThreadCompleted = true;
-			return Result;
-		};
-		FutureResult = Async(EAsyncExecution::ThreadPool, Task);
+			bThreadCompleted = false;
+			TFunction<FIcmpEchoResult()> Task = [this, TargetAddress, Timeout]()
+			{
+				auto Result = UDPEchoImpl(SocketSub, TargetAddress, Timeout);
+				bThreadCompleted = true;
+				return Result;
+			};
+			FutureResult = Async(EAsyncExecution::ThreadPool, Task);
+		}
 	}
 
 	virtual ~FUDPPingAsyncResult()
 	{
 		check(IsInGameThread());
-		FutureResult.Wait();
+
+		if (FutureResult.IsValid())
+		{
+			FutureResult.Wait();
+		}
 	}
 
 private:
@@ -220,14 +227,23 @@ private:
 	{
 		if (bThreadCompleted)
 		{
-			Callback(FutureResult.Get());
+			FIcmpEchoResult Result;
+			if (FutureResult.IsValid())
+			{
+				Result = FutureResult.Get();
+			}
+
+			Callback(Result);
+
 			delete this;
 			return false;
 		}
 		return true;
 	}
 
-	/** Callback when the icmp result returns */
+	/** Reference to the socket subsystem */
+	ISocketSubsystem* SocketSub;
+	/** Callback when the ping result returns */
 	FIcmpEchoResultCallback Callback;
 	/** Thread task complete */
 	FThreadSafeBool bThreadCompleted;
@@ -237,7 +253,6 @@ private:
 
 void FUDPPing::UDPEcho(const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback HandleResult)
 {
-	new FUDPPingAsyncResult(TargetAddress, Timeout, HandleResult);
+	ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	new FUDPPingAsyncResult(SocketSub, TargetAddress, Timeout, HandleResult);
 }
-
-PRAGMA_ENABLE_OPTIMIZATION

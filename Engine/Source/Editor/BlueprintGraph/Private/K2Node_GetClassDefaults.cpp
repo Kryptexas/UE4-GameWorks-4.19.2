@@ -366,12 +366,17 @@ UClass* UK2Node_GetClassDefaults::GetInputClass(const UEdGraphPin* FromPin) cons
 		}
 	}
 
-	// Switch Blueprint Class types to use the generated skeleton class.
+	// Switch Blueprint Class types to use the generated skeleton class (if valid).
 	if (InputClass)
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(InputClass->ClassGeneratedBy))
 		{
-			InputClass = Blueprint->SkeletonGeneratedClass;
+			// Stick with the original (serialized) class if the skeleton class is not valid for some reason (e.g. the Blueprint hasn't been compiled on load yet).
+			// Note: There's not a need to force it to be preloaded here in that case, because once it is loaded, we'll end up reconstructing this node again anyway.
+			if (Blueprint->SkeletonGeneratedClass)
+			{
+				InputClass = Blueprint->SkeletonGeneratedClass;
+			}
 		}
 	}
 
@@ -446,9 +451,34 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
 		{
+			UK2Node_GetClassDefaults* ThisNode = this;
+			auto OnBlueprintClassModified = [ThisNode](UBlueprint* TargetBlueprint)
+			{
+				UBlueprint* OwnerBlueprint = ThisNode->GetBlueprint();
+				// The Blueprint that contains this node may have finished 
+				// regenerating (see bHasBeenRegenerated), but we still may be
+				// in the midst of unwinding a cyclic load (dependent Blueprints);
+				// this lambda could be triggered during the targeted 
+				// Blueprint's regeneration - meaning we really haven't completed 
+				// the load process. In this situation, we cannot "reset loaders" 
+				// because it is not likely that all of the package's objects
+				// have been post-loaded (meaning an assert will most likely  
+				// fire from ReconstructNode). To guard against this, we flip this
+				// Blueprint's bIsRegeneratingOnLoad (like in 
+				// UBlueprintGeneratedClass::ConditionalRecompileClass), which
+				// we use throughout Blueprints to keep us from reseting loaders 
+				// on object Rename()
+				const bool bOldIsRegeneratingVal = OwnerBlueprint->bIsRegeneratingOnLoad;
+				OwnerBlueprint->bIsRegeneratingOnLoad = bOldIsRegeneratingVal || TargetBlueprint->bIsRegeneratingOnLoad;
+
+				ThisNode->ReconstructNode();
+
+				OwnerBlueprint->bIsRegeneratingOnLoad = bOldIsRegeneratingVal;
+			};
+
 			BlueprintSubscribedTo = Blueprint;
-			OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
-			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+			OnBlueprintChangedDelegate  = Blueprint->OnChanged().AddLambda(OnBlueprintClassModified);
+			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda(OnBlueprintClassModified);
 		}
 	}
 }

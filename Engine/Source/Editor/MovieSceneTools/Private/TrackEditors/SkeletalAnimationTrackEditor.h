@@ -2,6 +2,7 @@
 
 #pragma once
 
+class UMovieSceneSkeletalAnimationSection;
 
 /**
  * Tools for animation tracks
@@ -79,9 +80,17 @@ public:
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 	virtual int32 OnPaintSection( FSequencerSectionPainter& Painter ) const override;
+	virtual void BeginResizeSection() override;
+	virtual void ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime) override;
 
 private:
 
 	/** The section we are visualizing */
-	UMovieSceneSection& Section;
+	UMovieSceneSkeletalAnimationSection& Section;
+
+	/** Cached start offset value valid only during resize */
+	float InitialStartOffsetDuringResize;
+	
+	/** Cached start time valid only during resize */
+	float InitialStartTimeDuringResize;
 };

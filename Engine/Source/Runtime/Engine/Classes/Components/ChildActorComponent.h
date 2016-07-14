@@ -14,6 +14,7 @@ public:
 	virtual ~FChildActorComponentInstanceData();
 
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	// The name of the spawned child actor so it (attempts to) remain constant across construction script reruns
 	FName ChildActorName;
@@ -70,6 +71,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostRepNotifies() override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End Object Interface.
 
 	//~ Begin ActorComponent Interface.

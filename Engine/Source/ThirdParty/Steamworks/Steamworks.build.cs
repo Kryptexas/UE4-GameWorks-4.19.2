@@ -76,6 +76,9 @@ public class Steamworks : ModuleRules
 				LibraryPath += "linux64/libsteam_api.so";
 				PublicDelayLoadDLLs.Add(LibraryPath);
 			}
+
+			string SteamBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/Steamworks/Steam{0}/Linux/", SteamVersion);
+			RuntimeDependencies.Add(new RuntimeDependency(SteamBinariesDir + "libsteam_api.so"));
 		}
 	}
 }

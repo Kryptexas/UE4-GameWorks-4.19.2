@@ -320,13 +320,29 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 			UWidget* const* Widget = WidgetToMemberVariableMap.FindKey( WidgetProperty );
 			if ( !Widget )
 			{
-				MessageLog.Error( *LOCTEXT( "RequiredWidget_NotBound", "Non-optional widget binding @@ not found." ).ToString(),
-				                    WidgetProperty );
+				if (Blueprint->bIsNewlyCreated)
+				{
+					MessageLog.Warning(*LOCTEXT("RequiredWidget_NotBound", "Non-optional widget binding @@ not found.").ToString(),
+						WidgetProperty);
+				}
+				else
+				{
+					MessageLog.Error(*LOCTEXT("RequiredWidget_NotBound", "Non-optional widget binding @@ not found.").ToString(),
+						WidgetProperty);
+				}
 			}
 			else if ( !( *Widget )->IsA( WidgetProperty->PropertyClass ) )
 			{
-				MessageLog.Error( *LOCTEXT( "IncorrectWidgetTypes", "@@ is of type @@ property is of type @@." ).ToString(), *Widget,
-				                    ( *Widget )->GetClass(), WidgetProperty->PropertyClass );
+				if (Blueprint->bIsNewlyCreated)
+				{
+					MessageLog.Warning(*LOCTEXT("IncorrectWidgetTypes", "@@ is of type @@ property is of type @@.").ToString(), *Widget,
+						(*Widget)->GetClass(), WidgetProperty->PropertyClass);
+				}
+				else
+				{
+					MessageLog.Error(*LOCTEXT("IncorrectWidgetTypes", "@@ is of type @@ property is of type @@.").ToString(), *Widget,
+						(*Widget)->GetClass(), WidgetProperty->PropertyClass);
+				}
 			}
 		}
 	}

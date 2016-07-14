@@ -165,6 +165,24 @@ public:
 	*
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
+	static void BlendTwoPosesTogetherPerBone(
+		const FCompactPose& SourcePose1,
+		const FCompactPose& SourcePose2,
+		const FBlendedCurve& SourceCurve1,
+		const FBlendedCurve& SourceCurve2,
+		const TArray<float> WeightsOfSource2,
+		/*out*/ FCompactPose& ResultPose,
+		/*out*/ FBlendedCurve& ResultCurve);
+
+
+	/**
+	* Blends together a set of poses, each with a given weight.
+	* This function is for BlendSpace per bone blending. BlendSampleDataCache contains the weight information
+	*
+	* This blends in local space
+	*
+	* @param	ResultPose		Output pose of relative bone transforms.
+	*/
 	static void BlendPosesTogetherPerBone(
 		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
 		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,

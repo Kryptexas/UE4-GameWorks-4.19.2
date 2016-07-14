@@ -47,5 +47,5 @@ private:
 
 	TMap<UMovieSceneCameraShakeSection*, FMovieSceneCameraShakeSectionInstanceData> SectionInstanceDataMap;
 
-	ACameraActor* GetTempCameraActor();
+	ACameraActor* GetTempCameraActor(IMovieScenePlayer& InMovieScenePlayer);
 };

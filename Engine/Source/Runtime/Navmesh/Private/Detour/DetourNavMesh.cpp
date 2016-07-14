@@ -1079,7 +1079,8 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 			findCheapestNearPolyInTile(tile, p, ext, nearestPt) :
 			findNearestPolyInTile(tile, p, ext, nearestPt, true);
 
-		if (!ref)
+		// Avoid linking back into the same ground poly
+		if (!ref || (targetLandPoly == ref))
 			continue;
 		// findNearestPoly may return too optimistic results, further check to make sure. 
 		if (dtSqr(nearestPt[0]-p[0])+dtSqr(nearestPt[2]-p[2]) > dtSqr(targetCon->rad))
@@ -1725,8 +1726,8 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 			connectExtLinks(tile, neis[j], -1, bHasClusters);
 			connectExtLinks(neis[j], tile, -1, bHasClusters);
 			appendSegmentIntersection(segList, tile, neis[j]);
+			connectExtOffMeshLinks(tile, neis[j], -1, bHasClusters);
 		}
-		connectExtOffMeshLinks(tile, neis[j], -1, bHasClusters);
 		connectExtOffMeshLinks(neis[j], tile, -1, bHasClusters);
 	}
 	

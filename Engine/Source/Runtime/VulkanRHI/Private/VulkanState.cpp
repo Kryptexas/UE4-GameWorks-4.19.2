@@ -266,12 +266,12 @@ FVulkanSamplerState::FVulkanSamplerState(const FSamplerStateInitializerRHI& Init
 	SamplerInfo.maxLod = Initializer.MaxMipLevel;
 	SamplerInfo.borderColor = Initializer.BorderColor == 0 ? VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK : VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-	VERIFYVULKANRESULT(vkCreateSampler(Device.GetInstanceHandle(), &SamplerInfo, nullptr, &Sampler));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateSampler(Device.GetInstanceHandle(), &SamplerInfo, nullptr, &Sampler));
 }
 
 FVulkanSamplerState::~FVulkanSamplerState()
 {
-	vkDestroySampler(Device.GetInstanceHandle(), Sampler, nullptr);
+	Device.GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Sampler, Sampler);
 	Sampler = VK_NULL_HANDLE;
 }
 

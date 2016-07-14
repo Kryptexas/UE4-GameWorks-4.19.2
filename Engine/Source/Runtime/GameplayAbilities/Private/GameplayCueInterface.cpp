@@ -246,7 +246,7 @@ bool FActiveGameplayCueContainer::NetDeltaSerialize(FNetDeltaSerializeInfo & Del
 {
 	if (bMinimalReplication && (Owner && Owner->ReplicationMode == EReplicationMode::Full))
 	{
-		return true;
+		return false;
 	}
 
 	return FastArrayDeltaSerialize<FActiveGameplayCue>(GameplayCues, DeltaParms, *this);

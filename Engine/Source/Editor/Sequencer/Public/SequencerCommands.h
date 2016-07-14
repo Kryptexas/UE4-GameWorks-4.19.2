@@ -24,6 +24,15 @@ public:
 	/** Rewind */
 	TSharedPtr< FUICommandInfo > Rewind;
 
+	/** Shuttle forward */
+	TSharedPtr< FUICommandInfo > ShuttleForward;
+
+	/** Shuttle backward */
+	TSharedPtr< FUICommandInfo > ShuttleBackward;
+
+	/** Pause */
+	TSharedPtr< FUICommandInfo > Pause;
+
 	/** Step forward */
 	TSharedPtr< FUICommandInfo > StepForward;
 
@@ -84,11 +93,11 @@ public:
 	/** Sets the lower bound of the selection range */
 	TSharedPtr< FUICommandInfo > SetSelectionRangeStart;
 
+	/** Clear and reset the selection range */
+	TSharedPtr< FUICommandInfo > ResetSelectionRange;
+
 	/** Select all keys that fall into the selection range*/
 	TSharedPtr< FUICommandInfo > SelectKeysInSelectionRange;
-
-	/** Delete the time in the selection range */
-	TSharedPtr< FUICommandInfo > DeleteSelectionRange;
 
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
@@ -212,6 +221,12 @@ public:
 
 	/** Attempts to move all time data for this sequence on to a valid frame */
 	TSharedPtr< FUICommandInfo > FixFrameTiming;
+
+	/** Record the selected actors into a sub sequence of the currently active sequence */
+	TSharedPtr< FUICommandInfo > RecordSelectedActors;
+
+	/** Exports the current scene and sequence to fbx. */
+	TSharedPtr< FUICommandInfo > ExportSceneAndSequence;
 
 	/**
 	 * Initialize commands

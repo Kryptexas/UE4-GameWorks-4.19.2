@@ -19,7 +19,9 @@
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
-static const FName SharedLayerName(TEXT("WidgetComponentScreenLayer"));
+//@HSL_BEGIN - Colin.Pyle - 6-9-2016 - Giving WiddgetComponents the ability to be on multiple layers.
+//static const FName SharedLayerName(TEXT("WidgetComponentScreenLayer"));
+//@HSL_END
 
 class FWorldWidgetScreenLayer : public IGameLayer
 {
@@ -450,6 +452,10 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, bIsTwoSided( false )
 	, ParabolaDistortion( 0 )
 	, TickWhenOffscreen( false )
+	//@HSL_BEGIN - Colin.Pyle - 6-9-2016 - Giving WiddgetComponents the ability to be on multiple layers.
+	, SharedLayerName(TEXT("WidgetComponentScreenLayer"))
+	, LayerZOrder(-100)
+	//@HSL_END
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
@@ -698,7 +704,9 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
 	{
-		static const int32 LayerZOrder = -100;
+		//@HSL_BEGIN - Colin.Pyle - 6-9-2016 - Giving WiddgetComponents the ability to be on multiple layers.
+		//static const int32 LayerZOrder = -100;
+		//@HSL_END
 
 		UpdateWidget();
 

@@ -11,11 +11,11 @@ class FD3D12OcclusionQuery : public FRHIRenderQuery
 public:
 
 	/** The query heap resource. */
-	TRefCountPtr<ID3D12QueryHeap> QueryHeap;
+	const TRefCountPtr<ID3D12QueryHeap> QueryHeap;
 	uint32 HeapIndex;
 
 	/** CPU-visible buffer to store the query result **/
-	TRefCountPtr<ID3D12Resource> ResultBuffer;
+	const TRefCountPtr<ID3D12Resource> ResultBuffer;
 
 	/** The cached query result. */
 	uint64 Result;
@@ -24,10 +24,10 @@ public:
 	bool bResultIsCached : 1;
 
 	// todo: memory optimize
-	ERenderQueryType Type;
+	const ERenderQueryType Type;
 
-	class FD3D12CommandContext* OwningContext;
-	FD3D12CommandListHandle OwningCommandList;
+	// When the query result is ready on the GPU.
+	FD3D12CLSyncPoint CLSyncPoint;
 
 	/** Initialization constructor. */
 	FD3D12OcclusionQuery(ID3D12QueryHeap* InQueryHeap, ID3D12Resource* InQueryResultBuffer, ERenderQueryType InQueryType) :
@@ -43,8 +43,6 @@ public:
 	{
 		HeapIndex = -1;
 		bResultIsCached = false;
-		OwningContext = nullptr;
-		OwningCommandList = nullptr;
 	}
 };
 
@@ -128,9 +126,6 @@ public:
 	uint32 GetQueryHeapCount() const { return QueryHeapDesc.Count; }
 	uint32 GetResultSize() const { return ResultSize; }
 
-	FD3D12CommandContext& GetOwningContext() { check(OwningContext); return *OwningContext; }
-	FD3D12CLSyncPoint GetSyncPoint() { return SyncPoint; }
-
 	inline FD3D12Resource* GetResultBuffer() { return ResultBuffer.GetReference(); }
 
 private:
@@ -166,7 +161,5 @@ private:
 	D3D12_QUERY_TYPE QueryType;
 	TRefCountPtr<ID3D12QueryHeap> QueryHeap;    // The query heap where all elements reside
 	TRefCountPtr<FD3D12Resource> ResultBuffer;  // The buffer where all query results are stored
-	FD3D12CommandContext* OwningContext;		// The context containing the queries
-	FD3D12CLSyncPoint SyncPoint;				// The actual command list to which the queries were written
 	void* pResultData;
 };

@@ -8,7 +8,7 @@
 // DECAL_RENDERTARGET_COUNT is set by C++ e.g. 1: single RT, 2: two MRT, 3: three MRT
 // DECAL_RENDERSTAGE is set by C++ from EDecalRenderStage e.g. 0:before base pass, 1:after base pass, 2: before lighting
 
-#include "Common.usf"
+#include "DecalCommon.usf"
 
 // from SvPosition to decal space (for position), used like this: mul(float4(SvPosition.xyz, 1), SvPositionToDecal);
 float4x4 SvPositionToDecal;
@@ -28,30 +28,9 @@ float2 DecalParams;
 	#include "Material.usf"
 #endif
 
-#include "DeferredShadingCommon.usf"		// GBufferData
 
 // from component to clip space (for decal frustum)
 float4x4 FrustumComponentToClip;
-
-half3 FrameBufferDecalBlendOp(half4 Source)
-{
-#if (COMPILER_GLSL_ES2)
-	half4 Dest = FramebufferFetchES2();
-	Dest.rgb = Decode32BPPHDR(Dest);
-#else
-	half4 Dest = half4(0, 0, 0, 0);
-#endif
-    
-#if DECAL_BLEND_MODE == DECALBLENDMODEID_STAIN
-	return (Source.rgb*Dest.rgb) + (Dest.rgb*(1.0 - Source.a));
-#elif DECAL_BLEND_MODE == DECALBLENDMODEID_TRANSLUCENT
-	return (Source.rgb*Source.a) + (Dest.rgb*(1.0 - Source.a));
-#elif DECAL_BLEND_MODE == DECALBLENDMODEID_EMISSIVE
-	return (Source.rgb*Source.a) + Dest.rgb;
-#else
-	return Source.rgb;
-#endif
-}
 
 // decal vertex shader
 void MainVS(
@@ -346,87 +325,25 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderIn In, inout FPixelShaderOut Out
 	// Z fade
 	Opacity *= saturate( 4 - 4 * abs( SwizzlePos.z * 2 - 1 ) );
 
+	// decal fade
 	Opacity *= DecalParams.x;
 
-	// RETURN_COLOR not needed unless writing to SceneColor
-	Out.MRT[0] = float4(Color, Opacity);
+	FGBufferData GBufferData;
 
-#if (ES2_PROFILE || ES3_1_PROFILE)
-#if (COMPILER_GLSL_ES2) || (MOBILE_EMULATION)
-	// Do decal blending if encoding requires it.
-	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
-	{
-		Out.MRT[0].rgb = FrameBufferDecalBlendOp(Out.MRT[0]);
-	}
- 	// do 32bpp hdr encoding for mobile if required.
-	Out.MRT[0] = Encode32BPPHDR(Out.MRT[0], In.SvPosition.xy);
-#endif
-#endif
+	GBufferData.WorldNormal = MaterialParameters.WorldNormal;
+	GBufferData.BaseColor = BaseColor;
+	GBufferData.Metallic = Metallic;
+	GBufferData.Specular = Specular;
+	GBufferData.Roughness = GetMaterialRoughness(PixelMaterialInputs);
+	GBufferData.CustomData = 0;
+	GBufferData.IndirectIrradiance = 0;
+	GBufferData.PrecomputedShadowFactors = 0;
+	GBufferData.GBufferAO = 1;
+	GBufferData.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
+	GBufferData.SelectiveOutputMask = 0;
+	GBufferData.PerObjectGBufferData = 1;
 
-#if DECAL_RENDERTARGET_COUNT > 1
-	// some MRT rendering
-	
-	FGBufferData Data;
-
-	Data.WorldNormal = MaterialParameters.WorldNormal;
-	Data.BaseColor = BaseColor;
-	Data.Metallic = Metallic;
-	Data.Specular = Specular;
-	Data.Roughness = GetMaterialRoughness(PixelMaterialInputs);
-	Data.CustomData = 0;
-	Data.IndirectIrradiance = 0;
-	Data.PrecomputedShadowFactors = 0;
-	Data.GBufferAO = 1;
-	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
-	Data.SelectiveOutputMask = 0;
-	Data.PerObjectGBufferData = 1;
-
-	#if DECAL_RENDERSTAGE == 0
-	{
-		// before base pass (DBuffer)
-
-		// @param MultiOpacity .x: Color, .y:Normal, .z:Roughness
-		float3 MultiOpacity = Opacity;
-
-		EncodeDBufferData(Data, MultiOpacity, Out.MRT[0], Out.MRT[1], Out.MRT[2]);
-	}
-	#elif DECAL_RENDERSTAGE == 1
-	{
-		// after base pass (GBuffer)
-
-		// static lighting isn't updated by decals so we don't need to update that render target
-		float4 OutTarget4 = 0;
-		float4 OutTarget5 = 0;
-		float4 OutTarget6 = 0;
-
-		EncodeGBuffer(Data, Out.MRT[1], Out.MRT[2], Out.MRT[3], OutTarget4, OutTarget5, OutTarget6);
-	}
-	#elif DECAL_RENDERSTAGE == 2
-	{
-		// before lighting (GBuffer)
-
-		// static lighting isn't updated by decals so we don't need to update that render target
-		float4 OutTarget4 = 0;
-		float4 OutTarget5 = 0;
-		float4 OutTarget6 = 0;
-
-		EncodeGBuffer(Data, Out.MRT[1], Out.MRT[2], Out.MRT[3], OutTarget4, OutTarget5, OutTarget6);
-
-		#if DECAL_BLEND_MODE == DECALBLENDMODEID_STAIN
-		Out.MRT[3].rgb *= Opacity;
-		#endif
-
-		Out.MRT[0].a = Opacity;	// Emissive
-		Out.MRT[1].a = Opacity;	// Normal
-		Out.MRT[2].a = Opacity;	// Metallic, Specular, Roughness
-		Out.MRT[3].a = Opacity;	// BaseColor
-	}
-	#endif // DECAL_RENDERSTAGE
-#endif //DECAL_RENDERTARGET_COUNT > 1
-
-#if DECAL_RENDERTARGET_COUNT > 1 && !BIND_RENDERTARGET1 && COMPILER_METAL
-	Out.MRT[1] = 0;
-#endif
+	DecalCommonOutput(In, Out, Color, Opacity, GBufferData);
 }
 
 

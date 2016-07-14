@@ -97,7 +97,7 @@ public:
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping=true, float InPlayRate=1.f);
 	/** Set pose value */
  	UFUNCTION(BlueprintCallable, Category = "Animation")
- 	void SetPreviewPoseOverride(const FName& PoseName, float Value);
+ 	void SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero);
 public:
 	/** AnimSequence specific **/
 	void StepForward();

@@ -3,6 +3,9 @@
 #include "TP_TopDown.h"
 #include "TP_TopDownPlayerController.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "Runtime/Engine/Classes/Components/DecalComponent.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "TP_TopDownCharacter.h"
 
 ATP_TopDownPlayerController::ATP_TopDownPlayerController()
 {
@@ -32,18 +35,38 @@ void ATP_TopDownPlayerController::SetupInputComponent()
 	// support touch devices 
 	InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &ATP_TopDownPlayerController::MoveToTouchLocation);
 	InputComponent->BindTouch(EInputEvent::IE_Repeat, this, &ATP_TopDownPlayerController::MoveToTouchLocation);
+
+	InputComponent->BindAction("ResetVR", IE_Pressed, this, &ATP_TopDownPlayerController::OnResetVR);
+}
+
+void ATP_TopDownPlayerController::OnResetVR()
+{
+	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 }
 
 void ATP_TopDownPlayerController::MoveToMouseCursor()
 {
-	// Trace to see what is under the mouse cursor
-	FHitResult Hit;
-	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
-
-	if (Hit.bBlockingHit)
+	if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
 	{
-		// We hit something, move there
-		SetNewMoveDestination(Hit.ImpactPoint);
+		if (ATP_TopDownCharacter* MyPawn = Cast<ATP_TopDownCharacter>(GetPawn()))
+		{
+			if (MyPawn->GetCursorToWorld())
+			{
+				UNavigationSystem::SimpleMoveToLocation(this, MyPawn->GetCursorToWorld()->GetComponentLocation());
+			}
+		}
+	}
+	else
+	{
+		// Trace to see what is under the mouse cursor
+		FHitResult Hit;
+		GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+
+		if (Hit.bBlockingHit)
+		{
+			// We hit something, move there
+			SetNewMoveDestination(Hit.ImpactPoint);
+		}
 	}
 }
 

@@ -8,11 +8,6 @@
 #include "DeferredShadingCommon.usf"
 #include "DeferredLightingCommon.usf"
 
-float4 GetPerPixelLightAttenuation(float2 UV)
-{
-	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
-}
-
 FDeferredLightData SetupLightDataForStandardDeferred()
 {
 	// Build the light data struct using the DeferredLightUniforms and light defines
@@ -75,7 +70,7 @@ void DirectionalPixelMain(
 		Random.x ^= View.Random;
 		Random.y ^= View.Random;
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Random);
 	}
 }
 
@@ -111,7 +106,7 @@ void RadialPixelMain(
 		Random.x ^= View.Random;
 		Random.y ^= View.Random;
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
 		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
 	}
 }

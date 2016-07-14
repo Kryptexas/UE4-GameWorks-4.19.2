@@ -244,7 +244,10 @@ FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( bIsPressed && IsEnabled() && ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() ) )
+	const bool bMustBePressed = ClickMethod == EButtonClickMethod::DownAndUp;
+	const bool bMeetsPressedRequirements = (!bMustBePressed || (bIsPressed && bMustBePressed));
+
+	if (bMeetsPressedRequirements && IsEnabled() && ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() ) )
 	{
 		Release();
 
@@ -430,3 +433,10 @@ void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
 	HoveredSound = Style->HoveredSlateSound;
 	PressedSound = Style->PressedSlateSound;
 }
+
+// @HSL_BEGIN - ngreen@hardsuitlabs.com - 5/25/2016 - Need to release the button when we invalidate this button from being a cursor captor, otherwise we won't be able to press it again until we release it
+void SButton::OnMouseCaptureLost()
+{
+	bIsPressed = false;
+}
+// @HSL_END - ngreen@hardsuitlabs.com - 5/25/2016

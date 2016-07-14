@@ -7,8 +7,6 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanMemory.h"
 
-#define DO_LOG_BINDINGS		0
-
 namespace VulkanRHI
 {
 	static FCriticalSection GBufferAllocationLock;
@@ -37,7 +35,7 @@ namespace VulkanRHI
 		PeakNumAllocations = 0;
 
 		DeviceHandle = Device->GetInstanceHandle();
-		vkGetPhysicalDeviceMemoryProperties(InDevice->GetPhysicalHandle(), &MemoryProperties);
+		VulkanRHI::vkGetPhysicalDeviceMemoryProperties(InDevice->GetPhysicalHandle(), &MemoryProperties);
 
 		const uint32 MaxAllocations = InDevice->GetLimits().maxMemoryAllocationCount;
 
@@ -68,15 +66,15 @@ namespace VulkanRHI
 					}
 					if ((Flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 					{
-						String += TEXT(" HVisible");
+						String += TEXT(" HostVisible");
 					}
 					if ((Flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
 					{
-						String += TEXT(" HCoherent");
+						String += TEXT(" HostCoherent");
 					}
 					if ((Flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
 					{
-						String += TEXT(" HCached");
+						String += TEXT(" HostCached");
 					}
 					if ((Flags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) == VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
 					{
@@ -133,7 +131,7 @@ namespace VulkanRHI
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Hit Maximum # of allocations (%d) reported by device!"), NumAllocations);
 		}
 #endif
-		VERIFYVULKANRESULT(vkAllocateMemory(DeviceHandle, &Info, nullptr, &NewAllocation->Handle));
+		VERIFYVULKANRESULT(VulkanRHI::vkAllocateMemory(DeviceHandle, &Info, nullptr, &NewAllocation->Handle));
 
 		uint32 HeapIndex = MemoryProperties.memoryTypes[MemoryTypeIndex].heapIndex;
 		HeapInfos[HeapIndex].Allocations.Add(NewAllocation);
@@ -149,7 +147,7 @@ namespace VulkanRHI
 		check(Allocation);
 		check(Allocation->Handle != VK_NULL_HANDLE);
 		check(!Allocation->bFreedBySystem);
-		vkFreeMemory(DeviceHandle, Allocation->Handle, nullptr);
+		VulkanRHI::vkFreeMemory(DeviceHandle, Allocation->Handle, nullptr);
 
 		--NumAllocations;
 
@@ -192,15 +190,41 @@ namespace VulkanRHI
 		check(!MappedPointer);
 		check(InSize + Offset <= Size);
 
-		VERIFYVULKANRESULT(vkMapMemory(DeviceHandle, Handle, Offset, InSize, 0, &MappedPointer));
+		VERIFYVULKANRESULT(VulkanRHI::vkMapMemory(DeviceHandle, Handle, Offset, InSize, 0, &MappedPointer));
 		return MappedPointer;
 	}
 
 	void FDeviceMemoryAllocation::Unmap()
 	{
 		check(MappedPointer);
-		vkUnmapMemory(DeviceHandle, Handle);
+		VulkanRHI::vkUnmapMemory(DeviceHandle, Handle);
 		MappedPointer = nullptr;
+	}
+
+	void FDeviceMemoryAllocation::FlushMappedMemory()
+	{
+		check(!IsCoherent());
+		check(IsMapped());
+		VkMappedMemoryRange Range;
+		FMemory::Memzero(Range);
+		Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		Range.memory = Handle;
+		//Range.offset = 0;
+		Range.size = Size;
+		VERIFYVULKANRESULT(VulkanRHI::vkFlushMappedMemoryRanges(DeviceHandle, 1, &Range));
+	}
+
+	void FDeviceMemoryAllocation::InvalidateMappedMemory()
+	{
+		check(!IsCoherent());
+		check(IsMapped());
+		VkMappedMemoryRange Range;
+		FMemory::Memzero(Range);
+		Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		Range.memory = Handle;
+		//Range.offset = 0;
+		Range.size = Size;
+		VERIFYVULKANRESULT(VulkanRHI::vkInvalidateMappedMemoryRanges(DeviceHandle, 1, &Range));
 	}
 
 
@@ -227,10 +251,7 @@ namespace VulkanRHI
 
 	void FOldResourceAllocation::BindBuffer(FVulkanDevice* Device, VkBuffer Buffer)
 	{
-#if DO_LOG_BINDINGS
-		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, GetHandle(), GetOffset(), GetSize());
-#endif
-		VkResult Result = vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, GetHandle(), GetOffset());
+		VkResult Result = VulkanRHI::vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, GetHandle(), GetOffset());
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY || Result == VK_ERROR_OUT_OF_HOST_MEMORY)
 		{
@@ -243,10 +264,7 @@ namespace VulkanRHI
 
 	void FOldResourceAllocation::BindImage(FVulkanDevice* Device, VkImage Image)
 	{
-#if DO_LOG_BINDINGS
-		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, GetHandle(), GetOffset(), GetSize());
-#endif
-		VkResult Result = vkBindImageMemory(Device->GetInstanceHandle(), Image, GetHandle(), GetOffset());
+		VkResult Result = VulkanRHI::vkBindImageMemory(Device->GetInstanceHandle(), Image, GetHandle(), GetOffset());
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY || Result == VK_ERROR_OUT_OF_HOST_MEMORY)
 		{
@@ -692,13 +710,10 @@ namespace VulkanRHI
 
 	void FResourceHeapManager::ReleaseFreedPages()
 	{
-		if ((GFrameNumberRenderThread % 2) == 0)
+		FOldResourceHeap* Heap = ResourceHeaps[GFrameNumberRenderThread % ResourceHeaps.Num()];
+		if (Heap)
 		{
-			CPUStagingHeap->ReleaseFreedPages(false);
-		}
-		else
-		{
-			GPUOnlyHeap->ReleaseFreedPages(false);
+			Heap->ReleaseFreedPages(false);
 		}
 
 		ReleaseFreedResources(false);
@@ -752,20 +767,17 @@ namespace VulkanRHI
 		BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		BufferCreateInfo.size = BufferSize;
 		BufferCreateInfo.usage = BufferUsageFlags;
-		VERIFYVULKANRESULT(vkCreateBuffer(Device->GetInstanceHandle(), &BufferCreateInfo, nullptr, &Buffer));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateBuffer(Device->GetInstanceHandle(), &BufferCreateInfo, nullptr, &Buffer));
 
 		VkMemoryRequirements MemReqs;
-		vkGetBufferMemoryRequirements(Device->GetInstanceHandle(), Buffer, &MemReqs);
+		VulkanRHI::vkGetBufferMemoryRequirements(Device->GetInstanceHandle(), Buffer, &MemReqs);
 
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
 
 		FDeviceMemoryAllocation* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(BufferSize, MemoryTypeIndex, File, Line);
-#if DO_LOG_BINDINGS
-		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, DeviceMemoryAllocation->GetHandle(), 0, DeviceMemoryAllocation->GetSize());
-#endif
-		VERIFYVULKANRESULT(vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
-		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		VERIFYVULKANRESULT(VulkanRHI::vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
+		if (DeviceMemoryAllocation->CanBeMapped())
 		{
 			DeviceMemoryAllocation->Map(BufferSize, 0);
 		}
@@ -828,20 +840,17 @@ namespace VulkanRHI
 		ImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
 		ImageCreateInfo.size = ImageSize;
 		ImageCreateInfo.usage = ImageUsageFlags;
-		VERIFYVULKANRESULT(vkCreateImage(Device->GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateImage(Device->GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
 
 		VkMemoryRequirements MemReqs;
-		vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
+		VulkanRHI::vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
 
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
 
 		FDeviceMemoryAllocation* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(ImageSize, MemoryTypeIndex, File, Line);
-#if DO_LOG_BINDINGS
-		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, DeviceMemoryAllocation->GetHandle(), DeviceMemoryAllocation->GetOffset(), DeviceMemoryAllocation->GetSize());
-#endif
-		VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, DeviceMemoryAllocation->GetHandle(), 0));
-		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		VERIFYVULKANRESULT(VulkanRHI::vkBindImageMemory(Device->GetInstanceHandle(), Image, DeviceMemoryAllocation->GetHandle(), 0));
+		if (DeviceMemoryAllocation->CanBeMapped())
 		{
 			DeviceMemoryAllocation->Map(ImageSize, 0);
 		}
@@ -988,20 +997,22 @@ namespace VulkanRHI
 
 	void FBufferAllocation::Destroy(FVulkanDevice* Device)
 	{
-		vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
+		// Does not need to go in the deferred deletion queue
+		VulkanRHI::vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
 		Buffer = VK_NULL_HANDLE;
 	}
 
-	FStagingResource::~FStagingResource()
+	FStagingBuffer::~FStagingBuffer()
 	{
-		checkf(!ResourceAllocation, TEXT("Staging Resource not released!"));
+		checkf(!ResourceAllocation, TEXT("Staging Buffer not released!"));
 	}
 
-	void FStagingBuffer::Destroy(VkDevice DeviceHandle)
+	void FStagingBuffer::Destroy(FVulkanDevice* Device)
 	{
 		check(ResourceAllocation);
 
-		vkDestroyBuffer(DeviceHandle, Buffer, nullptr);
+		// Does not need to go in the deferred deletion queue
+		VulkanRHI::vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
 		Buffer = VK_NULL_HANDLE;
 		ResourceAllocation = nullptr;
 		//Memory.Free(Allocation);
@@ -1058,12 +1069,12 @@ namespace VulkanRHI
 
 		VkDevice VulkanDevice = Device->GetInstanceHandle();
 
-		VERIFYVULKANRESULT(vkCreateBuffer(VulkanDevice, &StagingBufferCreateInfo, nullptr, &StagingBuffer->Buffer));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateBuffer(VulkanDevice, &StagingBufferCreateInfo, nullptr, &StagingBuffer->Buffer));
 
 		VkMemoryRequirements MemReqs;
-		vkGetBufferMemoryRequirements(VulkanDevice, StagingBuffer->Buffer, &MemReqs);
+		VulkanRHI::vkGetBufferMemoryRequirements(VulkanDevice, StagingBuffer->Buffer, &MemReqs);
 
-		StagingBuffer->ResourceAllocation = Device->GetResourceHeapManager().AllocateBufferMemory(MemReqs, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
+		StagingBuffer->ResourceAllocation = Device->GetResourceHeapManager().AllocateBufferMemory(MemReqs, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, __FILE__, __LINE__);
 		StagingBuffer->ResourceAllocation->BindBuffer(Device, StagingBuffer->Buffer);
 
 		{
@@ -1134,7 +1145,7 @@ namespace VulkanRHI
 			FPendingItem& Entry = FreeStagingBuffers[Index];
 			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter  + NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS < Entry.CmdBuffer->GetFenceSignaledCounter())
 			{
-				Entry.Resource->Destroy(Device->GetInstanceHandle());
+				Entry.Resource->Destroy(Device);
 				delete Entry.Resource;
 				FreeStagingBuffers.RemoveAtSwap(Index, 1, false);
 			}
@@ -1148,7 +1159,7 @@ namespace VulkanRHI
 		VkFenceCreateInfo Info;
 		FMemory::Memzero(Info);
 		Info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		VERIFYVULKANRESULT(vkCreateFence(InDevice->GetInstanceHandle(), &Info, nullptr, &Handle));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateFence(InDevice->GetInstanceHandle(), &Info, nullptr, &Handle));
 	}
 
 	FFence::~FFence()
@@ -1163,7 +1174,8 @@ namespace VulkanRHI
 
 	inline void FFenceManager::DestroyFence(FFence* Fence)
 	{
-		vkDestroyFence(Device->GetInstanceHandle(), Fence->GetHandle(), nullptr);
+		// Does not need to go in the deferred deletion queue
+		VulkanRHI::vkDestroyFence(Device->GetInstanceHandle(), Fence->GetHandle(), nullptr);
 		Fence->Handle = VK_NULL_HANDLE;
 		delete Fence;
 	}
@@ -1232,8 +1244,7 @@ namespace VulkanRHI
 	{
 		check(UsedFences.Contains(Fence));
 		check(Fence->State == FFence::EState::NotReady);
-		VkResult Result = vkGetFenceStatus(Device->GetInstanceHandle(), Fence->Handle);
-		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkGetFenceStatus Fence %p Result %d\n"), Fence->Handle, Result);
+		VkResult Result = VulkanRHI::vkGetFenceStatus(Device->GetInstanceHandle(), Fence->Handle);
 		switch (Result)
 		{
 		case VK_SUCCESS:
@@ -1255,8 +1266,7 @@ namespace VulkanRHI
 	{
 		check(UsedFences.Contains(Fence));
 		check(Fence->State == FFence::EState::NotReady);
-		VkResult Result = vkWaitForFences(Device->GetInstanceHandle(), 1, &Fence->Handle, true, TimeInNanoseconds);
-		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkWaitForFences Fence %p\n"), Fence->Handle);
+		VkResult Result = VulkanRHI::vkWaitForFences(Device->GetInstanceHandle(), 1, &Fence->Handle, true, TimeInNanoseconds);
 		switch (Result)
 		{
 		case VK_SUCCESS:
@@ -1276,8 +1286,7 @@ namespace VulkanRHI
 	{
 		if (Fence->State != FFence::EState::NotReady)
 		{
-			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("vkResetFences Fence %p\n"), Fence->Handle);
-			VERIFYVULKANRESULT(vkResetFences(Device->GetInstanceHandle(), 1, &Fence->Handle));
+			VERIFYVULKANRESULT(VulkanRHI::vkResetFences(Device->GetInstanceHandle(), 1, &Fence->Handle));
 			Fence->State = FFence::EState::NotReady;
 		}
 	}
@@ -1290,34 +1299,57 @@ namespace VulkanRHI
 
 	FDeferredDeletionQueue::~FDeferredDeletionQueue()
 	{
-		Clear();
+		check(Entries.Num() == 0);
 	}
 
-	void FDeferredDeletionQueue::EnqueueResource(FVulkanCmdBuffer* CmdBuffer, FRefCount* Resource)
+	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, void* Handle)
 	{
-		Resource->AddRef();
+		FVulkanQueue* Queue = Device->GetQueue();
 
 		FEntry Entry;
-		Entry.CmdBuffer = CmdBuffer;
-		Entry.FenceCounter = CmdBuffer->GetFenceSignaledCounter();
-		Entry.Resource = Resource;
+		Queue->GetLastSubmittedInfo(Entry.CmdBuffer, Entry.FenceCounter);
+		Entry.Handle = Handle;
+		Entry.StructureType = Type;
+
 		{
 			FScopeLock ScopeLock(&CS);
 			Entries.Add(Entry);
 		}
 	}
 
-	void FDeferredDeletionQueue::ReleaseResources(/*bool bDeleteImmediately*/)
+	void FDeferredDeletionQueue::ReleaseResources(bool bDeleteImmediately)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanDeletionQueue);
 		FScopeLock ScopeLock(&CS);
+
+		VkDevice DeviceHandle = Device->GetInstanceHandle();
 
 		// Traverse list backwards so the swap switches to elements already tested
 		for (int32 Index = Entries.Num() - 1; Index >= 0; --Index)
 		{
 			FEntry* Entry = &Entries[Index];
-			if (Entry->FenceCounter < Entry->CmdBuffer->GetFenceSignaledCounter())
+			if (bDeleteImmediately || Entry->FenceCounter < Entry->CmdBuffer->GetFenceSignaledCounter())
 			{
-				Entry->Resource->Release();
+				switch (Entry->StructureType)
+				{
+#define VKSWITCH(Type)	case EType::Type: VulkanRHI::vkDestroy##Type(DeviceHandle, (Vk##Type)Entry->Handle, nullptr); break
+				VKSWITCH(RenderPass);
+				VKSWITCH(Buffer);
+				VKSWITCH(BufferView);
+				VKSWITCH(Image);
+				VKSWITCH(ImageView);
+				VKSWITCH(Pipeline);
+				VKSWITCH(PipelineLayout);
+				VKSWITCH(Framebuffer);
+				VKSWITCH(DescriptorSetLayout);
+				VKSWITCH(Sampler);
+				VKSWITCH(Semaphore);
+				VKSWITCH(ShaderModule);
+#undef VKSWTICH
+				default:
+					check(0);
+					break;
+				}
 				Entries.RemoveAtSwap(Index, 1, false);
 			}
 		}
@@ -1333,7 +1365,7 @@ namespace VulkanRHI
 		{
 			BufferSuballocations[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				__FILE__, __LINE__);
 			MappedData[Index] = (uint8*)BufferSuballocations[Index]->GetMappedPointer();
 			CurrentData[Index] = MappedData[Index];

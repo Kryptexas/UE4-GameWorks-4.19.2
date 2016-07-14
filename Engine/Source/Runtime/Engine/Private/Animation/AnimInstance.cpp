@@ -252,7 +252,7 @@ void UAnimInstance::UninitializeAnimation()
 		TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 		for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 		{
-			AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
+			AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DriveMaterial);
 		}
 	}
 
@@ -935,24 +935,14 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 			DisplayDebugManager.SetLinearDrawColor(TextYellow);
 
-			Heading = FString::Printf(TEXT("Event Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::EventCurve].Num());
+			Heading = FString::Printf(TEXT("Event Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Num());
 			DisplayDebugManager.DrawString(Heading, Indent);
 
 			DisplayDebugManager.SetLinearDrawColor(TextWhite);
 
 			{
 				FIndenter EventCurveIndent(Indent);
-				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::EventCurve], Canvas, DisplayDebugManager, Indent);
-			}
-
-			Heading = FString::Printf(TEXT("Pose Curves: %i"), AnimationCurves[(uint8)EAnimCurveType::PoseCurve].Num());
-			DisplayDebugManager.DrawString(Heading, Indent);
-
-			DisplayDebugManager.SetLinearDrawColor(TextWhite);
-
-			{
-				FIndenter EventCurveIndent(Indent);
-				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::PoseCurve], Canvas, DisplayDebugManager, Indent);
+				OutputCurveMap(AnimationCurves[(uint8)EAnimCurveType::AttributeCurve], Canvas, DisplayDebugManager, Indent);
 			}
 		}
 	}
@@ -1042,9 +1032,9 @@ void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 Cur
 
 	// save curve value, it will overwrite if same exists, 
 	//CurveValues.Add(CurveName, Value);
-	if (CurveTypeFlags & ACF_TriggerEvent)
+	if (CurveTypeFlags & ACF_DriveAttribute)
 	{
-		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::EventCurve].Find(CurveName);
+		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Find(CurveName);
 		if ( CurveValPtr )
 		{
 			// sum up, in the future we might normalize, but for now this just sums up
@@ -1053,11 +1043,11 @@ void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 Cur
 		}
 		else
 		{
-			AnimationCurves[(uint8)EAnimCurveType::EventCurve].Add(CurveName, Value);
+			AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Add(CurveName, Value);
 		}
 	}
 
-	if (CurveTypeFlags & ACF_DrivesMorphTarget)
+	if (CurveTypeFlags & ACF_DriveMorphTarget)
 	{
 		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Find(CurveName);
 		if ( CurveValPtr )
@@ -1072,7 +1062,7 @@ void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 Cur
 		}
 	}
 
-	if (CurveTypeFlags & ACF_DrivesMaterial)
+	if (CurveTypeFlags & ACF_DriveMaterial)
 	{
 		MaterialParamatersToClear.RemoveSwap(CurveName);
 		float* CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Find(CurveName);
@@ -1083,19 +1073,6 @@ void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 Cur
 		else
 		{
 			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(CurveName, Value);
-		}
-	}
-
-	if (CurveTypeFlags & ACF_DrivesPose)
-	{
-		float* CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::PoseCurve].Find(CurveName);
-		if (CurveValPtr)
-		{
-			*CurveValPtr = Value;
-		}
-		else
-		{
-			AnimationCurves[(uint8)EAnimCurveType::PoseCurve].Add(CurveName, Value);
 		}
 	}
 }
@@ -1140,24 +1117,19 @@ void UAnimInstance::GetAnimationCurveList(int32 CurveFlags, TMap<FName, float>& 
 {
 	OutCurveList.Reset();
 
-	if (CurveFlags & ACF_TriggerEvent)
+	if (CurveFlags & ACF_DriveAttribute)
 	{
-		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::EventCurve]);
+		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::AttributeCurve]);
 	}
 
-	if (CurveFlags & ACF_DrivesMorphTarget)
+	if (CurveFlags & ACF_DriveMorphTarget)
 	{
 		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve]);
 	}
 
-	if (CurveFlags & ACF_DrivesMaterial)
+	if (CurveFlags & ACF_DriveMaterial)
 	{
 		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::MaterialCurve]);
-	}
-
-	if (CurveFlags & ACF_DrivesPose)
-	{
-		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::PoseCurve]);
 	}
 }
 
@@ -1207,20 +1179,25 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
-		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
+		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DriveMaterial);
 	}
 
-#if WITH_EDITOR
-	// if we're supporting this in-game, this code has to change to work with UID
-	for (auto& AddAnimCurveDelegate : OnAddAnimationCurves)
-	{
-		if (AddAnimCurveDelegate.IsBound())
-		{
-			AddAnimCurveDelegate.Execute(this);
-		}
-	}
-
-#endif
+	// @todo: delete me later when james g's change goes in
+	// this won't work well because pose needs to be handled in evaluate
+	// the question is that if we'd like to support preview in anim graph
+	// that will need better handling of the curves - currently UI curves are inserted to 
+	// SignleNodeInstance->PreviewOverride
+// #if WITH_EDITOR
+// 	// if we're supporting this in-game, this code has to change to work with UID
+// 	for (auto& AddAnimCurveDelegate : OnAddAnimationCurves)
+// 	{
+// 		if (AddAnimCurveDelegate.IsBound())
+// 		{
+// 			AddAnimCurveDelegate.Execute(this);
+// 		}
+// 	}
+// 
+// #endif
 	// update curves to component
 	UpdateCurvesToComponents(GetOwningComponent());
 }
@@ -1380,7 +1357,7 @@ float UAnimInstance::GetSlotMontageGlobalWeight(FName SlotNodeName) const
 
 float UAnimInstance::GetCurveValue(FName CurveName)
 {
-	float* Value = AnimationCurves[(uint8)EAnimCurveType::EventCurve].Find(CurveName);
+	float* Value = AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Find(CurveName);
 	if (Value)
 	{
 		return *Value;
@@ -1791,13 +1768,13 @@ void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
 	}
 }
 
-bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName)
+bool UAnimInstance::IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName SlotNodeName) const
 {
 	UAnimMontage* Montage = nullptr;
 	return IsPlayingSlotAnimation(Asset, SlotNodeName, Montage);
 }
 
-bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage)
+bool UAnimInstance::IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage) const
 {
 	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
@@ -1873,11 +1850,11 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 	return 0.f;
 }
 
-void UAnimInstance::Montage_Stop(float InBlendOutTime, UAnimMontage* Montage)
+void UAnimInstance::Montage_Stop(float InBlendOutTime, const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->Stop(FAlphaBlend(Montage->BlendOut, InBlendOutTime));
@@ -1897,11 +1874,11 @@ void UAnimInstance::Montage_Stop(float InBlendOutTime, UAnimMontage* Montage)
 	}
 }
 
-void UAnimInstance::Montage_Pause(UAnimMontage* Montage)
+void UAnimInstance::Montage_Pause(const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->Pause();
@@ -1921,11 +1898,11 @@ void UAnimInstance::Montage_Pause(UAnimMontage* Montage)
 	}
 }
 
-void UAnimInstance::Montage_Resume(UAnimMontage* Montage)
+void UAnimInstance::Montage_Resume(const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance && !MontageInstance->IsPlaying())
 		{
 			MontageInstance->SetPlaying(true);
@@ -1945,11 +1922,11 @@ void UAnimInstance::Montage_Resume(UAnimMontage* Montage)
 	}
 }
 
-void UAnimInstance::Montage_JumpToSection(FName SectionName, UAnimMontage* Montage)
+void UAnimInstance::Montage_JumpToSection(FName SectionName, const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			bool const bEndOfSection = (MontageInstance->GetPlayRate() < 0.f);
@@ -1971,11 +1948,11 @@ void UAnimInstance::Montage_JumpToSection(FName SectionName, UAnimMontage* Monta
 	}
 }
 
-void UAnimInstance::Montage_JumpToSectionsEnd(FName SectionName, UAnimMontage* Montage)
+void UAnimInstance::Montage_JumpToSectionsEnd(FName SectionName, const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			bool const bEndOfSection = (MontageInstance->GetPlayRate() >= 0.f);
@@ -1997,11 +1974,11 @@ void UAnimInstance::Montage_JumpToSectionsEnd(FName SectionName, UAnimMontage* M
 	}
 }
 
-void UAnimInstance::Montage_SetNextSection(FName SectionNameToChange, FName NextSection, UAnimMontage* Montage)
+void UAnimInstance::Montage_SetNextSection(FName SectionNameToChange, FName NextSection, const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->SetNextSectionName(SectionNameToChange, NextSection);
@@ -2029,11 +2006,11 @@ void UAnimInstance::Montage_SetNextSection(FName SectionNameToChange, FName Next
 	}
 }
 
-void UAnimInstance::Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate)
+void UAnimInstance::Montage_SetPlayRate(const UAnimMontage* Montage, float NewPlayRate)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->SetPlayRate(NewPlayRate);
@@ -2053,11 +2030,11 @@ void UAnimInstance::Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate
 	}
 }
 
-bool UAnimInstance::Montage_IsActive(UAnimMontage* Montage)
+bool UAnimInstance::Montage_IsActive(const UAnimMontage* Montage) const
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return true;
@@ -2079,11 +2056,11 @@ bool UAnimInstance::Montage_IsActive(UAnimMontage* Montage)
 	return false;
 }
 
-bool UAnimInstance::Montage_IsPlaying(UAnimMontage* Montage)
+bool UAnimInstance::Montage_IsPlaying(const UAnimMontage* Montage) const
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->IsPlaying();
@@ -2105,11 +2082,11 @@ bool UAnimInstance::Montage_IsPlaying(UAnimMontage* Montage)
 	return false;
 }
 
-FName UAnimInstance::Montage_GetCurrentSection(UAnimMontage* Montage)
-{
+FName UAnimInstance::Montage_GetCurrentSection(const UAnimMontage* Montage) const
+{ 
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetCurrentSection();
@@ -2135,7 +2112,7 @@ void UAnimInstance::Montage_SetEndDelegate(FOnMontageEnded& InOnMontageEnded, UA
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->OnMontageEnded = InOnMontageEnded;
@@ -2159,7 +2136,7 @@ void UAnimInstance::Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted&
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->OnMontageBlendingOutStarted = InOnMontageBlendingOut;
@@ -2183,7 +2160,7 @@ FOnMontageBlendingOutStarted* UAnimInstance::Montage_GetBlendingOutDelegate(UAni
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return &MontageInstance->OnMontageBlendingOutStarted;
@@ -2205,11 +2182,11 @@ FOnMontageBlendingOutStarted* UAnimInstance::Montage_GetBlendingOutDelegate(UAni
 	return NULL;
 }
 
-void UAnimInstance::Montage_SetPosition(UAnimMontage* Montage, float NewPosition)
+void UAnimInstance::Montage_SetPosition(const UAnimMontage* Montage, float NewPosition)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			MontageInstance->SetPosition(NewPosition);
@@ -2229,11 +2206,11 @@ void UAnimInstance::Montage_SetPosition(UAnimMontage* Montage, float NewPosition
 	}
 }
 
-float UAnimInstance::Montage_GetPosition(UAnimMontage* Montage)
+float UAnimInstance::Montage_GetPosition(const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetPosition();
@@ -2255,21 +2232,21 @@ float UAnimInstance::Montage_GetPosition(UAnimMontage* Montage)
 	return 0.f;
 }
 
-bool UAnimInstance::Montage_GetIsStopped(UAnimMontage* Montage)
+bool UAnimInstance::Montage_GetIsStopped(const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		return (!MontageInstance); // Not active == Stopped.
 	}
 	return true;
 }
 
-float UAnimInstance::Montage_GetBlendTime(UAnimMontage* Montage)
+float UAnimInstance::Montage_GetBlendTime(const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetBlendTime();
@@ -2291,11 +2268,11 @@ float UAnimInstance::Montage_GetBlendTime(UAnimMontage* Montage)
 	return 0.f;
 }
 
-float UAnimInstance::Montage_GetPlayRate(UAnimMontage* Montage)
+float UAnimInstance::Montage_GetPlayRate(const UAnimMontage* Montage)
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetPlayRate();
@@ -2321,7 +2298,7 @@ int32 UAnimInstance::Montage_GetNextSectionID(UAnimMontage const* const Montage,
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetNextSectionID(CurrentSectionID);
@@ -2439,7 +2416,12 @@ void UAnimInstance::ClearMontageInstanceReferences(FAnimMontageInstance& InMonta
 
 FAnimMontageInstance* UAnimInstance::GetActiveInstanceForMontage(UAnimMontage const& Montage) const
 {
-	FAnimMontageInstance* const* FoundInstancePtr = ActiveMontagesMap.Find(&Montage);
+	return GetActiveInstanceForMontage(&Montage);
+}
+
+FAnimMontageInstance* UAnimInstance::GetActiveInstanceForMontage(const UAnimMontage* Montage) const
+{
+	FAnimMontageInstance* const* FoundInstancePtr = ActiveMontagesMap.Find(Montage);
 	return FoundInstancePtr ? *FoundInstancePtr : nullptr;
 }
 

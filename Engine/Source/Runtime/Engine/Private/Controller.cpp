@@ -619,7 +619,7 @@ FVector AController::GetNavAgentLocation() const
 	return Pawn ? Pawn->GetNavAgentLocation() : FVector::ZeroVector;
 }
 
-void AController::GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
+void AController::GetMoveGoalReachTest(const AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
 {
 	if (Pawn)
 	{

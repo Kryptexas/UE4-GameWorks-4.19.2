@@ -236,6 +236,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bHasMinimizeButton = InArgs._SupportsMinimize;
 	this->bHasMaximizeButton = InArgs._SupportsMaximize;
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
+	this->bShouldPreserveAspectRatio = InArgs._ShouldPreserveAspectRatio;
 	this->LayoutBorder = InArgs._LayoutBorder;
 	this->UserResizeBorder = InArgs._UserResizeBorder;
 	this->SizeLimits = FWindowSizeLimits()
@@ -1155,7 +1156,7 @@ void SWindow::NotifyWindowBeingDestroyed()
 	OnWindowClosed.ExecuteIfBound( SharedThis( this ) );
 
 	// Logging to track down window shutdown issues with movie loading threads. Too spammy in editor builds with all the windows
-#if !WITH_EDITOR
+#if !WITH_EDITOR && !IS_PROGRAM
 	UE_LOG(LogSlate, Log, TEXT("Window '%s' being destroyed"), *GetTitle().ToString() );
 #endif
 }
@@ -1725,6 +1726,7 @@ SWindow::SWindow()
 	, bHasMaximizeButton( false )
 	, bHasSizingFrame( false )
 	, bIsModalWindow( false )
+	, bShouldPreserveAspectRatio( false )
 	, InitialDesiredScreenPosition( FVector2D::ZeroVector )
 	, InitialDesiredSize( FVector2D::ZeroVector )
 	, ScreenPosition( FVector2D::ZeroVector )

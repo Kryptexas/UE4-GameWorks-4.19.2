@@ -64,7 +64,7 @@ struct FMetalRenderPipelineDesc
 	/**
 	 * @return an pipeline state object that matches the current state and the BSS
 	 */
-	id<MTLRenderPipelineState> CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS) const;
+	id<MTLRenderPipelineState> CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS, MTLVertexDescriptor* VertexDesc) const;
 
 	MTLRenderPipelineDescriptor* PipelineDescriptor;
 	uint32 SampleCount;

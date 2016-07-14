@@ -20,7 +20,7 @@ namespace SubUVAnimationCookStats
 #endif
 
 // Can change this guid to force SubUV derived data to be regenerated on next load
-#define SUBUV_DERIVEDDATA_VER TEXT("96DFC022836B48889143E9DF484C3296")
+#define SUBUV_DERIVEDDATA_VER TEXT("67E9AF86DF8B4D8E97B7A614A73CD4BF")
 
 FString FSubUVDerivedData::GetDDCKeyString(const FGuid& StateId, int32 SizeX, int32 SizeY, int32 Mode, float AlphaThreshold, int32 OpacitySourceMode)
 {
@@ -632,12 +632,6 @@ void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizont
 		const int32 SubImageSizeY = TextureSizeY / SubImages_Vertical;
 		const int32 NumSubImages = SubImages_Horizontal * SubImages_Vertical;
 		const uint8 AlphaThresholdByte = FMath::Clamp(FMath::TruncToInt(AlphaThreshold * 255.0f), 0, 255);
-
-		// Only handling textures whose dimensions are even multiples of the subimage sizes
-		if (SubImageSizeX * SubImages_Horizontal != TextureSizeX || SubImageSizeY * SubImages_Vertical != TextureSizeY)
-		{
-			bSuccess = false;
-		}
 
 		check(!bSuccess || MipData.Num() == TextureSizeX * TextureSizeY * 4);
 

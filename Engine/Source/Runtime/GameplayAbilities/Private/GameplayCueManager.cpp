@@ -247,10 +247,10 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 
 				if (SpawnedCue)
 				{
-					SpawnedCue->bInRecycleQueue = false;				
-					SpawnedCue->SetActorHiddenInGame(false);
+					SpawnedCue->bInRecycleQueue = false;
 					SpawnedCue->SetOwner(NewOwnerActor);
 					SpawnedCue->SetActorLocationAndRotation(TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+					SpawnedCue->ReuseAfterRecycle();					
 				}
 
 				UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("GetInstancedCueActor Popping Recycled %s (Target: %s). Using GC Actor: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue));
@@ -319,10 +319,6 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 
 			UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("NotifyGameplayCueActorFinished %s"), *GetNameSafe(Actor));
 
-			Actor->SetOwner(nullptr);
-			Actor->SetActorHiddenInGame(true);
-			Actor->DetachRootComponentFromParent();
-
 			FPreallocationInfo& Info = GetPreallocationInfo(Actor->GetWorld());
 			TArray<AGameplayCueNotify_Actor*>& PreAllocatedList = Info.PreallocatedInstances.FindOrAdd(Actor->GetClass());
 
@@ -352,10 +348,18 @@ void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPa
 	if (!GameplayCueNotifyActorObjectLibrary)
 	{
 		GameplayCueNotifyActorObjectLibrary = UObjectLibrary::CreateLibrary(AGameplayCueNotify_Actor::StaticClass(), true, GIsEditor && !IsRunningCommandlet());
+		if (GIsEditor)
+		{
+			GameplayCueNotifyActorObjectLibrary->bIncludeOnlyOnDiskAssets = false;
+		}
 	}
 	if (!GameplayCueNotifyStaticObjectLibrary)
 	{
 		GameplayCueNotifyStaticObjectLibrary = UObjectLibrary::CreateLibrary(UGameplayCueNotify_Static::StaticClass(), true, GIsEditor && !IsRunningCommandlet());
+		if (GIsEditor)
+		{
+			GameplayCueNotifyStaticObjectLibrary->bIncludeOnlyOnDiskAssets = false;
+		}
 	}
 
 	LoadedPaths = InPaths;
@@ -394,9 +398,58 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 	InitObjectLibraries(LoadedPaths, GameplayCueNotifyActorObjectLibrary, GameplayCueNotifyStaticObjectLibrary, OnLoadDelegate);
 }
 
+static void SearchDynamicClassCues(const FName PropertyName, const TArray<FString>& Paths, TArray<FGameplayCueReferencePair>& CuesToAdd, TArray<FStringAssetReference>& AssetsToLoad)
+{
+	// Iterate over all Dynamic Classes (nativized Blueprints). Search for ones with GameplayCueName tag.
+
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	TMap<FName, FDynamicClassStaticData>& DynamicClassMap = GetDynamicClassMap();
+	for (auto PairIter : DynamicClassMap)
+	{
+		const FName* FoundGameplayTag = PairIter.Value.SelectedSearchableValues.Find(PropertyName);
+		if (!FoundGameplayTag)
+		{
+			continue;
+		}
+
+		const FString ClassPath = PairIter.Key.ToString();
+		for (const FString& Path : Paths)
+		{
+			const bool PathContainsClass = ClassPath.StartsWith(Path); // TODO: is it enough?
+			if (!PathContainsClass)
+			{
+				continue;
+			}
+
+			ABILITY_LOG(Log, TEXT("GameplayCueManager Found a Dynamic Class: %s / %s"), *FoundGameplayTag->ToString(), *ClassPath);
+
+			FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(*FoundGameplayTag, false);
+			if (GameplayCueTag.IsValid())
+			{
+				FStringAssetReference StringRef(ClassPath); // TODO: is there any translation needed?
+				ensure(StringRef.IsValid());
+
+				CuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
+				AssetsToLoad.Add(StringRef);
+			}
+			else
+			{
+				ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in Dynamic Class %s but there is no corresponding tag in the GameplayTagManager."), *FoundGameplayTag->ToString(), *ClassPath);
+			}
+
+			break;
+		}
+	}
+}
+
 void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibrary* ActorObjectLibrary, UObjectLibrary* StaticObjectLibrary, FOnGameplayCueNotifySetLoaded OnLoadDelegate, FShouldLoadGCNotifyDelegate ShouldLoadDelegate)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Library"), STAT_ObjectLibrary, STATGROUP_LoadTime);
+
+	if (ActorObjectLibrary==nullptr || StaticObjectLibrary==nullptr)
+	{
+		return;
+	}
 
 #if WITH_EDITOR
 	bAccelerationMapOutdated = false;
@@ -443,6 +496,10 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 	// Build Cue lists for loading. Determines what from the obj library needs to be loaded
 	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), CuesToAdd, AssetsToLoad, ShouldLoadDelegate);
 	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), CuesToAdd, AssetsToLoad, ShouldLoadDelegate);
+
+	const FName PropertyName = GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName);
+	check(PropertyName == GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName));
+	SearchDynamicClassCues(PropertyName, Paths, CuesToAdd, AssetsToLoad);
 
 	// Add these cues to the global set
 	check(GlobalCueSet);

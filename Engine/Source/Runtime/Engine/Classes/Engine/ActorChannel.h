@@ -5,6 +5,7 @@
 #include "Engine/Channel.h"
 #include "ActorChannel.generated.h"
 
+class FNetFieldExportGroup;
 
 /**
  * A channel for exchanging actor and its subobject's properties and RPCs.
@@ -158,11 +159,17 @@ public:
 	UObject* ReadContentBlockPayload( FInBunch &Bunch, FNetBitReader& OutPayload, bool& bOutHasRepLayout );
 
 	/** Writes property/function header and data blob to network stream */
-	int32 WriteFieldHeaderAndPayload( FNetBitWriter& Bunch, const FClassNetCache* ClassCache, const FFieldNetCache * FieldCache, FNetBitWriter& Payload );
+	int32 WriteFieldHeaderAndPayload( FNetBitWriter& Bunch, const FClassNetCache* ClassCache, const FFieldNetCache* FieldCache, FNetFieldExportGroup* NetFieldExportGroup, FNetBitWriter& Payload );
 
 	/** Reads property/function header and data blob from network stream */
-	bool ReadFieldHeaderAndPayload( UObject* Object, const FClassNetCache* ClassCache, FNetBitReader& Bunch, const FFieldNetCache** OutField, FNetBitReader& OutPayload ) const;
+	bool ReadFieldHeaderAndPayload( UObject* Object, const FClassNetCache* ClassCache, FNetFieldExportGroup* NetFieldExportGroup, FNetBitReader& Bunch, const FFieldNetCache** OutField, FNetBitReader& OutPayload ) const;
+
+	/** Finds the net field export group for a class net cache, if not found, creates one */
+	FNetFieldExportGroup* GetNetFieldExportGroupForClassNetCache( const UClass* ObjectClass );
 		
+	/** Finds (or creates) the net field export group for a class net cache, if not found, creates one */
+	FNetFieldExportGroup* GetOrCreateNetFieldExportGroupForClassNetCache( const UClass* ObjectClass );
+
 	/** Returns the replicator for the actor associated with this channel. Guaranteed to exist. */
 	FObjectReplicator & GetActorReplicationData();
 

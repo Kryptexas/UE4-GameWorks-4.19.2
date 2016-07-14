@@ -97,8 +97,11 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     bool bCanUseWideMRTs = true;
     bool bCanUseASTC = false;
 	bool bSupportsD24S8 = false;
+    bool bSupportsD16 = false;
 
-	if(FParse::Param(FCommandLine::Get(),TEXT("metalsm5")))
+	// Default to Metal SM5 on 10.11.5 or later. Earlier versions should still be running SM4.
+	bool const bTenElevenFiveOrLater = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0);
+	if(!FParse::Param(FCommandLine::Get(),TEXT("metal")) && (bTenElevenFiveOrLater || FParse::Param(FCommandLine::Get(),TEXT("metalsm5"))))
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 		GMaxRHIShaderPlatform = SP_METAL_SM5;
@@ -116,20 +119,22 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	
 	GRHIAdapterName = FString(Device.name);
 	
+	// Mac GPUs support layer indexing.
+	GSupportsVolumeTextureRendering = true;
+	
+	// However they don't all support other features depending on the version of the OS.
 	bool bSupportsPointLights = false;
 	bool bSupportsTiledReflections = false;
+	bool bSupportsDistanceFields = false;
 	if(GRHIAdapterName.Contains("Nvidia"))
 	{
-		// Nvidia support layer indexing.
-		GSupportsVolumeTextureRendering = true;
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x10DE;
 		bSupportsTiledReflections = true;
+		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 	}
 	else if(GRHIAdapterName.Contains("ATi") || GRHIAdapterName.Contains("AMD"))
 	{
-		// AMD support layer indexing.
-		GSupportsVolumeTextureRendering = true;
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x1002;
 		if(GPUDesc.GPUVendorId == GRHIVendorId)
@@ -137,10 +142,10 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 			GRHIAdapterName = FString(GPUDesc.GPUName);
 		}
 		bSupportsTiledReflections = true;
+		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 	}
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
-		GSupportsVolumeTextureRendering = true;
 		bSupportsPointLights = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 		GRHIVendorId = 0x8086;
 	}
@@ -195,6 +200,22 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		}
 	}
 	
+	// Disable the distance field AO & shadowing effects on GPU drivers that don't currently execute the shaders correctly.
+	if (GMaxRHIShaderPlatform == SP_METAL_SM5 && !bSupportsDistanceFields && !FParse::Param(FCommandLine::Get(),TEXT("metaldistancefields")))
+	{
+		static auto CVarDistanceFieldAO = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DistanceFieldAO"));
+		if(CVarDistanceFieldAO && CVarDistanceFieldAO->GetInt() != 0)
+		{
+			CVarDistanceFieldAO->Set(0);
+		}
+		
+		static auto CVarDistanceFieldShadowing = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DistanceFieldShadowing"));
+		if(CVarDistanceFieldShadowing && CVarDistanceFieldShadowing->GetInt() != 0)
+		{
+			CVarDistanceFieldShadowing->Set(0);
+		}
+	}
+	
 	GRHISupportsRHIThread = false;
 	if (GMaxRHIShaderPlatform == SP_METAL_SM5)
 	{
@@ -242,16 +263,22 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 
 #if PLATFORM_MAC
 	check([Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v1]);
-	GRHISupportsBaseVertexIndex = FPlatformMisc::MacOSXVersionCompare(10,11,2) >= 0 || !IsRHIDeviceAMD(); // Supported on OS X but not iOS - broken on AMD prior to 10.11.2
-	GRHISupportsFirstInstance = true; // Supported on OS X but not iOS.
+	GRHISupportsBaseVertexIndex = FPlatformMisc::MacOSXVersionCompare(10,11,2) >= 0 || !IsRHIDeviceAMD(); // Supported on macOS & iOS but not tvOS - broken on AMD prior to 10.11.2
+	GRHISupportsFirstInstance = true; // Supported on macOS & iOS but not tvOS.
 	GMaxTextureDimensions = 16384;
 	GMaxCubeTextureDimensions = 16384;
 	GMaxTextureArrayLayers = 2048;
 	GMaxShadowDepthBufferSizeX = 16384;
 	GMaxShadowDepthBufferSizeY = 16384;
+    bSupportsD16 = FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2];
 #else
+#if PLATFORM_TVOS
 	GRHISupportsBaseVertexIndex = false;
-	GRHISupportsFirstInstance = false; // Supported on OS X but not iOS.
+	GRHISupportsFirstInstance = false; // Supported on macOS & iOS but not tvOS.
+#else
+	GRHISupportsBaseVertexIndex = [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1];
+	GRHISupportsFirstInstance = GRHISupportsBaseVertexIndex;
+#endif
 	GMaxTextureDimensions = 4096;
 	GMaxCubeTextureDimensions = 4096;
 	GMaxTextureArrayLayers = 2048;
@@ -318,8 +345,16 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		GPixelFormats[PF_DepthStencil	].PlatformFormat	= MTLPixelFormatDepth32Float_Stencil8;
 	}
     GPixelFormats[PF_DepthStencil		].BlockBytes		= 4;
-    GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth32Float;
-    GPixelFormats[PF_ShadowDepth		].BlockBytes		= 4;
+    if (bSupportsD16)
+    {
+        GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth16Unorm;
+        GPixelFormats[PF_ShadowDepth		].BlockBytes		= 2;
+    }
+    else
+    {
+        GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth32Float;
+        GPixelFormats[PF_ShadowDepth		].BlockBytes		= 4;
+    }
 #endif
     GPixelFormats[PF_X24_G8				].PlatformFormat	= MTLPixelFormatStencil8;
     GPixelFormats[PF_X24_G8				].BlockBytes		= 1;
@@ -410,15 +445,18 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GDynamicRHI = this;
 	
 #if PLATFORM_DESKTOP
-	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
-	
-	if (CVar->GetInt() == 0)
+	if (GMaxRHIFeatureLevel < ERHIFeatureLevel::SM5)
 	{
-		FShaderCache::InitShaderCache(SCO_NoShaderPreload, 128);
-	}
-	else
-	{
-		FShaderCache::InitShaderCache(SCO_Default, 128);
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
+		
+		if (CVar->GetInt() == 0)
+		{
+			FShaderCache::InitShaderCache(SCO_NoShaderPreload, 128);
+		}
+		else
+		{
+			FShaderCache::InitShaderCache(SCO_Default, 128);
+		}
 	}
 #endif
 

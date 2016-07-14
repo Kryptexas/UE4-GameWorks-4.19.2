@@ -277,6 +277,8 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 
 	UWorld* MyWorld = OwnerPC->GetWorld();
 	AActor* SelectedActor = FindLocalDebugActor();
+
+	DrawPawnIcons(MyWorld, SelectedActor, OwnerPC ? OwnerPC->GetPawn() : nullptr, CanvasContext);
 	if (bReducedMode)
 	{
 		if (DataPack.bHasController)
@@ -286,7 +288,6 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 	}
 	else
 	{
-		DrawPawnIcons(MyWorld, SelectedActor, OwnerPC ? OwnerPC->GetPawn() : nullptr, CanvasContext);
 		if (SelectedActor)
 		{
 			DrawOverheadInfo(*SelectedActor, CanvasContext);

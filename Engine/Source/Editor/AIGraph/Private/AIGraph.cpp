@@ -136,7 +136,6 @@ void UAIGraph::CollectAllNodeInstances(TSet<UObject*>& NodeInstances)
 bool UAIGraph::CanRemoveNestedObject(UObject* TestObject) const
 {
 	return !TestObject->IsA(UEdGraphNode::StaticClass()) &&
-		!TestObject->IsA(UEdGraphPin::StaticClass()) &&
 		!TestObject->IsA(UEdGraph::StaticClass()) &&
 		!TestObject->IsA(UEdGraphSchema::StaticClass());
 }

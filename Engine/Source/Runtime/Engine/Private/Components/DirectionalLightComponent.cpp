@@ -135,7 +135,7 @@ public:
 		{
 			const FSceneInterface* Scene = Component->GetScene();
 			// ensure bUseWholeSceneCSMForMovableObjects is only be used with the forward renderer.
-			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->ShouldUseDeferredRenderer();
+			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->GetShadingPath() == EShadingPath::Deferred;
 			bUseWholeSceneCSMForMovableObjects = Component->Mobility == EComponentMobility::Stationary && !Component->bUseInsetShadowsForMovableObjects && !bUsingDeferredRenderer;
 		}
 		bCastModulatedShadows = Component->bCastModulatedShadows;
@@ -253,7 +253,7 @@ public:
 		// Reduce casting distance on a directional light
 		// This is necessary to improve floating point precision in several places, especially when deriving frustum verts from InvReceiverMatrix
 		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 32.0f;
-		OutInitializer.CascadeSettings.bRayTracedDistanceField = bRayTracedCascade;
+		OutInitializer.bRayTracedDistanceField = bRayTracedCascade;
 		OutInitializer.CascadeSettings.bFarShadowCascade = !bRayTracedCascade && OutInitializer.CascadeSettings.ShadowSplitIndex >= (int32)NumNearCascades;
 		return true;
 	}

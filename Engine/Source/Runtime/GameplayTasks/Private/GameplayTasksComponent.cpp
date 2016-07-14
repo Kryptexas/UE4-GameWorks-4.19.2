@@ -288,14 +288,14 @@ void UGameplayTasksComponent::EndAllResourceConsumingTasksOwnedBy(const IGamepla
 	}
 }
 
-bool UGameplayTasksComponent::FindAllTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const
+bool UGameplayTasksComponent::FindAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const
 {
 	int32 NumFound = 0;
-	for (int32 Idx = 0; Idx < TaskPriorityQueue.Num(); Idx++)
+	for (int32 TaskIndex = 0; TaskIndex < TaskPriorityQueue.Num(); TaskIndex++)
 	{
-		if (TaskPriorityQueue[Idx] && TaskPriorityQueue[Idx]->GetTaskOwner() == &TaskOwner)
+		if (TaskPriorityQueue[TaskIndex] && TaskPriorityQueue[TaskIndex]->GetTaskOwner() == &TaskOwner)
 		{
-			FoundTasks.Add(TaskPriorityQueue[Idx]);
+			FoundTasks.Add(TaskPriorityQueue[TaskIndex]);
 			NumFound++;
 		}
 	}
@@ -303,13 +303,56 @@ bool UGameplayTasksComponent::FindAllTasksOwnedBy(const IGameplayTaskOwnerInterf
 	return (NumFound > 0);
 }
 
+UGameplayTask* UGameplayTasksComponent::FindResourceConsumingTaskByName(const FName TaskInstanceName) const
+{
+	for (int32 TaskIndex = 0; TaskIndex < TaskPriorityQueue.Num(); TaskIndex++)
+	{
+		if (TaskPriorityQueue[TaskIndex] && TaskPriorityQueue[TaskIndex]->GetInstanceName() == TaskInstanceName)
+		{
+			return TaskPriorityQueue[TaskIndex];
+		}
+	}
+
+	return nullptr;
+}
+
+bool UGameplayTasksComponent::HasActiveTasks(UClass* TaskClass) const
+{
+	for (int32 Idx = 0; Idx < TaskPriorityQueue.Num(); Idx++)
+	{
+		if (TaskPriorityQueue[Idx] && TaskPriorityQueue[Idx]->IsA(TaskClass))
+		{
+			return true;
+		}
+	}
+
+	for (int32 Idx = 0; Idx < TickingTasks.Num(); Idx++)
+	{
+		if (TickingTasks[Idx] && TickingTasks[Idx]->IsA(TaskClass))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void UGameplayTasksComponent::ProcessTaskEvents()
 {
+	static const int32 MaxIterations = 16;
 	bInEventProcessingInProgress = true;
 
 	int32 IterCounter = 0;
 	while (TaskEvents.Num() > 0)
 	{
+		IterCounter++;
+		if (IterCounter > MaxIterations)
+		{
+			UE_VLOG(this, LogGameplayTasks, Error, TEXT("UGameplayTasksComponent::ProcessTaskEvents has exceeded allowes number of iterations. Check your GameplayTasks for logic loops!"));
+			TaskEvents.Reset();
+			break;
+		}
+
 		for (int32 EventIndex = 0; EventIndex < TaskEvents.Num(); ++EventIndex)
 		{
 			UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("UGameplayTasksComponent::ProcessTaskEvents: %s event %s")

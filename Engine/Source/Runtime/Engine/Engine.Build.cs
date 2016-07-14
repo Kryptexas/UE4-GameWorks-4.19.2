@@ -14,8 +14,6 @@ public class Engine : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Developer/DerivedDataCache/Public",
-				"Runtime/Online/OnlineSubsystem/Public",
-				"Runtime/Online/OnlineSubsystemUtils/Public",
                 "Runtime/SynthBenchmark/Public",
                 "Runtime/Engine/Private",
 			}
@@ -23,7 +21,6 @@ public class Engine : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {				
-				"OnlineSubsystem",
 				"TargetPlatform",
 				"ImageWrapper",
 				"HeadMountedDisplay",
@@ -33,7 +30,7 @@ public class Engine : ModuleRules
 				"AutomationWorker",
 				"MovieSceneCapture",
 				"DesktopPlatform",
-			}
+            }
 		);
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -98,7 +95,6 @@ public class Engine : ModuleRules
 				"Landscape",
                 "UMG",
 				"Projects",
-				"Niagara",
                 "Internationalization",
                 "MaterialShaderQualitySettings",
                 "CinematicCamera",
@@ -155,7 +151,6 @@ public class Engine : ModuleRules
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");
-        CircularlyReferencedDependentModules.Add("Niagara");
         CircularlyReferencedDependentModules.Add("MaterialShaderQualitySettings");
         CircularlyReferencedDependentModules.Add("CinematicCamera");
 
@@ -256,6 +251,7 @@ public class Engine : ModuleRules
 						"LinuxTargetPlatform",
 						"LinuxNoEditorTargetPlatform",
 						"LinuxServerTargetPlatform",
+						"LinuxClientTargetPlatform",
 						"AllDesktopTargetPlatform",
 					}
 				);
@@ -267,8 +263,6 @@ public class Engine : ModuleRules
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
 				"HttpNetworkReplayStreaming",
-				"OnlineSubsystem", 
-				"OnlineSubsystemUtils",
 				"Advertising"
 			}
 		);
@@ -409,5 +403,7 @@ public class Engine : ModuleRules
 		{
 			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
 		}
-	}
+
+        DynamicallyLoadedModuleNames.Add("Niagara");
+    }
 }

@@ -36,6 +36,14 @@ struct FMotionEvent;
 struct FVirtualPointerPosition;
 struct FNavigationEvent;
 
+/** Delegate type for handling mouse events */
+DECLARE_DELEGATE_RetVal_TwoParams(
+	FReply, FPointerEventHandler,
+	/** The geometry of the widget*/
+	const FGeometry&,
+	/** The Mouse Event that we are processing */
+	const FPointerEvent&)
+
 enum class EPopupMethod : uint8;
 
 class SLATECORE_API FSlateControlledConstruction
@@ -712,8 +720,11 @@ public:
 	 */
 	void SetEnabled( const TAttribute<bool>& InEnabledState )
 	{
-		EnabledState = InEnabledState;
-		Invalidate(EInvalidateWidget::LayoutAndVolatility);
+		if ( !EnabledState.IdenticalTo(InEnabledState) )
+		{
+			EnabledState = InEnabledState;
+			Invalidate(EInvalidateWidget::LayoutAndVolatility);
+		}
 	}
 
 	/** @return Whether or not this widget is enabled */
@@ -940,6 +951,18 @@ public:
 	{
 		MetaData.Add(AddMe);
 	}
+
+	/** See OnMouseButtonDown event */
+	void SetOnMouseButtonDown(FPointerEventHandler EventHandler);
+
+	/** See OnMouseButtonUp event */
+	void SetOnMouseButtonUp(FPointerEventHandler EventHandler);
+
+	/** See OnMouseMove event */
+	void SetOnMouseMove(FPointerEventHandler EventHandler);
+
+	/** See OnMouseDoubleClick event */
+	void SetOnMouseDoubleClick(FPointerEventHandler EventHandler);
 
 public:
 
@@ -1202,6 +1225,11 @@ private:
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
 	mutable bool bInheritedVolatility : 1;
+
+	FPointerEventHandler MouseButtonDownHandler;
+	FPointerEventHandler MouseButtonUpHandler;
+	FPointerEventHandler MouseMoveHandler;
+	FPointerEventHandler MouseDoubleClickHandler;
 };
 
 //=================================================================

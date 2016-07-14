@@ -2,12 +2,7 @@
 
 #pragma once
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME 1
-#else
-	#define USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME 0
-#endif
-
+#include "DelegateSettings.h"
 #include "SharedPointer.h"
 #include "WeakObjectPtrTemplates.h"
 #include "IDelegateInstance.h"

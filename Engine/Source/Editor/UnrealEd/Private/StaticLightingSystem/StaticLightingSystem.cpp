@@ -2214,16 +2214,16 @@ void FStaticLightingSystem::UpdateLightingBuild()
 	{
 		if ( CanAutoApplyLighting() || IsRunningCommandlet() )
 		{
-			bool bAutpApplyFailed = false;
-			FStaticLightingManager::Get()->SendBuildDoneNotification( bAutpApplyFailed );
+			bool bAutoApplyFailed = false;
+			FStaticLightingManager::Get()->SendBuildDoneNotification(bAutoApplyFailed);
 
 			FStaticLightingManager::ProcessLightingData( false );
 			CurrentBuildStage = FStaticLightingSystem::NotRunning;
 		}
 		else
 		{
-			bool bAutpApplyFailed = true;
-			FStaticLightingManager::Get()->SendBuildDoneNotification( bAutpApplyFailed );
+			bool bAutoApplyFailed = true;
+			FStaticLightingManager::Get()->SendBuildDoneNotification(bAutoApplyFailed);
 
 			CurrentBuildStage = FStaticLightingSystem::WaitingForImport;
 		}

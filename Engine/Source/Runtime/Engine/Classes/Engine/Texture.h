@@ -419,6 +419,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AdvancedDisplay)
 	uint32 bDitherMipMapAlpha:1;
 
+	/** Alpha values per channel to compare to when preserving alpha coverage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Texture, meta=(ClampMin = "0", ClampMax = "1"), AdvancedDisplay)
+	FVector4 AlphaCoverageThresholds;
+
 	/** When true the texture's border will be preserved during mipmap generation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, AdvancedDisplay)
 	uint32 bPreserveBorder:1;

@@ -1336,7 +1336,7 @@ protected:
 					
 					if (Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end())
 					{
-						ralloc_asprintf_append(buffer, " * (");
+						ralloc_asprintf_append(buffer, " * int(");
 						tex->coordinate->accept(this);
 						ralloc_asprintf_append(buffer, " < (BufferSizes[%d] / sizeof(", Index);
 						print_type_pre(Texture->type->inner_type);
@@ -1627,7 +1627,7 @@ protected:
 						// Can't flush to zero for a structured buffer...
 						if (!Texture->type->inner_type->is_record() && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end())
 						{
-							ralloc_asprintf_append(buffer, " * (");
+							ralloc_asprintf_append(buffer, " * int(");
 							deref->image_index->accept(this);
 							ralloc_asprintf_append(buffer, " < (BufferSizes[%d] / sizeof(", Index);
 							print_type_pre(Texture->type->inner_type);

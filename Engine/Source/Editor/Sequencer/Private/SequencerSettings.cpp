@@ -25,6 +25,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bLabelBrowserVisible = false;
+	bRewindOnRecord = true;
 	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
@@ -38,6 +39,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bInfiniteKeyAreas = false;
 	bShowChannelColors = false;
 	bShowViewportTransportControls = true;
+	bAllowPossessionOfPIEViewports = false;
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -321,6 +323,20 @@ void USequencerSettings::SetLabelBrowserVisible(bool Visible)
 	}
 }
 
+bool USequencerSettings::ShouldRewindOnRecord() const
+{
+	return bRewindOnRecord;
+}
+
+void USequencerSettings::SetRewindOnRecord(bool bInRewindOnRecord)
+{
+	if (bInRewindOnRecord != bRewindOnRecord)
+	{
+		bRewindOnRecord = bInRewindOnRecord;
+		SaveConfig();
+	}
+}
+
 ESequencerZoomPosition USequencerSettings::GetZoomPosition() const
 {
 	return ZoomPosition;
@@ -514,6 +530,20 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 	return TimeSnapInterval > 0
 		? FMath::RoundToInt( InTimeValue / TimeSnapInterval ) * TimeSnapInterval
 		: InTimeValue;
+}
+
+bool USequencerSettings::ShouldAllowPossessionOfPIEViewports() const
+{
+	return bAllowPossessionOfPIEViewports;
+}
+
+void USequencerSettings::SetAllowPossessionOfPIEViewports(bool bInAllowPossessionOfPIEViewports)
+{
+	if (bInAllowPossessionOfPIEViewports != bAllowPossessionOfPIEViewports)
+	{
+		bAllowPossessionOfPIEViewports = bInAllowPossessionOfPIEViewports;
+		SaveConfig();
+	}
 }
 
 USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()

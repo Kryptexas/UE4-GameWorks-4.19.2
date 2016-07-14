@@ -4,6 +4,7 @@
 
 #include "CompilerResultsLog.h"
 #include "GraphEditorActions.h"
+#include "EditorCategoryUtils.h"
 #include "AnimGraphNode_PoseByName.h"
 
 /////////////////////////////////////////////////////
@@ -41,6 +42,11 @@ FText UAnimGraphNode_PoseByName::GetTooltipText() const
 {
 	// FText::Format() is slow, so we utilize the cached list title
 	return GetNodeTitle(ENodeTitleType::ListView);
+}
+
+FText UAnimGraphNode_PoseByName::GetMenuCategory() const
+{
+	return LOCTEXT("PoseAssetCategory_Label", "Poses");
 }
 
 FText UAnimGraphNode_PoseByName::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -95,21 +101,6 @@ void UAnimGraphNode_PoseByName::ValidateAnimNodeDuringCompilation(class USkeleto
 	}
 }
 
-// potentially in the future, give options for the pose name?
-// void UAnimGraphNode_PoseByName::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
-// {
-// 	if (!Context.bIsDebugging)
-// 	{
-// 		// add an option to convert to a regular sequence player
-// 		Context.MenuBuilder->BeginSection("AnimGraphNodePoseByName", NSLOCTEXT("A3Nodes", "PoseByNameHeading", "Sequence Evaluator"));
-// 		{
-// 			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().OpenRelatedAsset);
-// 			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ConvertToSeqPlayer);
-// 		}
-// 		Context.MenuBuilder->EndSection();
-// 	}
-// }
-
 bool UAnimGraphNode_PoseByName::DoesSupportTimeForTransitionGetter() const
 {
 	return false;
@@ -131,5 +122,10 @@ void UAnimGraphNode_PoseByName::GetContextMenuActions(const FGraphNodeContextMen
 		}
 		Context.MenuBuilder->EndSection();
 	}
+}
+
+void UAnimGraphNode_PoseByName::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	// Intentionally empty; you can drop down a regular pose blend node and convert into a poseasset by name in the right-click menu.
 }
 #undef LOCTEXT_NAMESPACE

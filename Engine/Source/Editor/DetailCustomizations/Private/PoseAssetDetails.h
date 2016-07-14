@@ -64,6 +64,9 @@ private:
 	bool CanApplySettings() const;
 	FReply OnApplyAdditiveSettings();
 
+	TSharedPtr<IPropertyHandle> SourceAnimationPropertyHandle;
+	FReply OnUpdatePoseSourceAnimation();
+
 	FText GetButtonText() const;
 };
 

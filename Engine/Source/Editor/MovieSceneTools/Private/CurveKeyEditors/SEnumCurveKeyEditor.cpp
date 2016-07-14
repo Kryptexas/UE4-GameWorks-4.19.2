@@ -60,7 +60,7 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(int32 InSelectedItem, ESelectI
 
 		OnValueChangedEvent.ExecuteIfBound(InSelectedItem);
 
-		Sequencer->UpdateRuntimeInstances();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 	}
 }
 

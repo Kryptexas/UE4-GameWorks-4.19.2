@@ -1151,7 +1151,14 @@ void UParticleEmitter::AutoPopulateInstanceProperties(UParticleSystemComponent* 
 		UParticleLODLevel* LODLevel	= LODLevels[LODIndex];
 		for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->Modules.Num(); ModuleIndex++)
 		{
-			UParticleModule* Module = LODLevel->Modules[ModuleIndex];
+			UParticleModule* Module = LODLevel->Modules[ModuleIndex];	
+			LODLevel->SpawnModule->AutoPopulateInstanceProperties(PSysComp);
+			LODLevel->RequiredModule->AutoPopulateInstanceProperties(PSysComp);
+			if (LODLevel->TypeDataModule)
+			{
+				LODLevel->TypeDataModule->AutoPopulateInstanceProperties(PSysComp);
+			}
+
 			Module->AutoPopulateInstanceProperties(PSysComp);
 		}
 	}

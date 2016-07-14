@@ -289,16 +289,19 @@ FTransform FMovieScene3DTransformSectionRecorder::GetTransformToRecord()
 	}
 	else if(AActor* Actor = Cast<AActor>(ObjectToRecord.Get()))
 	{
-		FName SocketName, ComponentName;
-		if(SequenceRecorderUtils::GetAttachment(Actor, SocketName, ComponentName) != nullptr && Actor->GetRootComponent() != nullptr)
+		bool bCaptureWorldSpaceTransform = false;
+
+		USceneComponent* RootComponent = Actor->GetRootComponent();
+		USceneComponent* AttachParent = RootComponent ? RootComponent->GetAttachParent() : nullptr;
+
+		bWasAttached = AttachParent != nullptr;
+		if (AttachParent)
 		{
-			bWasAttached = true;
-			return Actor->GetRootComponent()->GetRelativeTransform();
+			// We capture world space transforms for actors if they're attached, but we're not recording the attachment parent
+			bCaptureWorldSpaceTransform = !FSequenceRecorder::Get().FindRecording(AttachParent->GetOwner());
 		}
-		else
-		{
-			return Actor->GetTransform();
-		}
+
+		return (bCaptureWorldSpaceTransform || !RootComponent) ? Actor->ActorToWorld() : RootComponent->GetRelativeTransform();
 	}
 
 	return FTransform::Identity;

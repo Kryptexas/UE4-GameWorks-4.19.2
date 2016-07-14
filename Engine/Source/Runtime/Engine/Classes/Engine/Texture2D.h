@@ -65,7 +65,7 @@ public:
 private:
 	/** WorldSettings timestamp that tells the streamer to force all miplevels to be resident up until that time. */
 	UPROPERTY(transient)
-	float ForceMipLevelsToBeResidentTimestamp;
+	double ForceMipLevelsToBeResidentTimestamp;
 
 	/** True if streaming is temporarily disabled so we can update subregions of this texture's resource 
 	without streaming clobbering it. Automatically cleared before saving. */

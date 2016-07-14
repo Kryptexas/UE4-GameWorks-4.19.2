@@ -163,6 +163,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	/** Unique ID to identify Google Play Services error dialog */
 	private static final int PLAY_SERVICES_DIALOG_ID = 1;
+	
+	private static String appPackageName = "";
 
 	/** Check to see if we have all the files */
 	private boolean HasAllFiles = false;
@@ -416,6 +418,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		AssetManagerReference = this.getAssets();
 
 		// Read metadata from AndroidManifest.xml
+		appPackageName = getPackageName();
 		String ProjectName = getPackageName();
 		ProjectName = ProjectName.substring(ProjectName.lastIndexOf('.') + 1);
 		try {
@@ -1190,6 +1193,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 		
 		return targetDir + "/";
+	}
+	
+	public static String getAppPackageName()
+	{
+		return appPackageName;
 	}
 
 	public boolean AndroidThunkJava_IsMusicActive()

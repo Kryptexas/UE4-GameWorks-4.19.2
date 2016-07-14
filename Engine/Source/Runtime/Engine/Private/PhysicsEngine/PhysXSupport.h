@@ -444,7 +444,7 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 class FPhysScene;
 
 /** Event callback used to notify engine about various collision events */
-class FPhysXSimEventCallback : public PxSimulationEventCallback
+class ENGINE_API FPhysXSimEventCallback : public PxSimulationEventCallback
 {
 public:
 	FPhysXSimEventCallback(FPhysScene* InOwningScene, int32 InSceneType) : OwningScene(InOwningScene), SceneType(InSceneType){}

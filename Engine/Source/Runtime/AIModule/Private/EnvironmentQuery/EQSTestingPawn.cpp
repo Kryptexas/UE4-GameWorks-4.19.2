@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
@@ -79,6 +80,11 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->DefaultLandMovementMode = MOVE_None;
+	}
 
 #if WITH_EDITOR
 	if (HasAnyFlags(RF_ClassDefaultObject) && GetClass() == StaticClass())

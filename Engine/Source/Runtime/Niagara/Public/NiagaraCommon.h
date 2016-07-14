@@ -12,7 +12,6 @@ enum class ENiagaraDataType : uint8
 	Scalar,
 	Vector,
 	Matrix,
-	Curve,
 };
 
 

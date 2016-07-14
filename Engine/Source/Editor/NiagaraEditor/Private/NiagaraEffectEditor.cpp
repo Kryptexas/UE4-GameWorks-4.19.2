@@ -85,11 +85,9 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 	if (!Sequencer.IsValid())
 	{
-		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"));
-		MovieScene->AddToRoot();
-		auto NewAnimation = NewObject<UNiagaraSequence>(MovieScene);
-		MovieScene->SetPlaybackRange(InTime, OutTime);
-		NewAnimation->MovieScene = MovieScene;
+		NiagaraSequence = NewObject<UNiagaraSequence>(InEffect);
+		NiagaraSequence->MovieScene = NewObject<UMovieScene>(NiagaraSequence, FName("Niagara Effect MovieScene"));
+		NiagaraSequence->MovieScene->SetPlaybackRange(InTime, OutTime);
 
 		FSequencerViewParams ViewParams(TEXT("NiagaraSequencerSettings"));
 		{
@@ -99,7 +97,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 		FSequencerInitParams SequencerInitParams;
 		{
 			SequencerInitParams.ViewParams = ViewParams;
-			SequencerInitParams.RootSequence = NewAnimation;
+			SequencerInitParams.RootSequence = NiagaraSequence;
 			SequencerInitParams.bEditWithinLevelEditor = false;
 			SequencerInitParams.ToolkitHost = nullptr;
 		}
@@ -110,7 +108,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 		for (TSharedPtr<FNiagaraSimulation> Emitter : EffectInstance->GetEmitters())
 		{
-			UEmitterMovieSceneTrack *Track = MovieScene->AddMasterTrack<UEmitterMovieSceneTrack>();
+			UEmitterMovieSceneTrack *Track = NiagaraSequence->MovieScene->AddMasterTrack<UEmitterMovieSceneTrack>();
 			Track->SetEmitter(Emitter);
 		}
 	}
@@ -442,24 +440,16 @@ FReply FNiagaraEffectEditor::OnDeleteEmitterClicked(TSharedPtr<FNiagaraSimulatio
 
 FReply FNiagaraEffectEditor::OnEmitterSelected(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType)
 {
- 	if (SelectedItem.Get() != nullptr)
-	{
-		if (UNiagaraEmitterProperties* PinnedProps = SelectedItem->GetProperties().Get())
-		{
-			if (PinnedProps->UpdateScriptProps.ExternalConstants.GetNumDataObjectConstants() > 0)
-			{
-				FNiagaraVariableInfo VarInfo;
-				UNiagaraDataObject* DataObj;
-				PinnedProps->UpdateScriptProps.ExternalConstants.GetDataObjectConstant(0, DataObj, VarInfo);
-
-				if (UNiagaraCurveDataObject* CurvObj = Cast<UNiagaraCurveDataObject>(DataObj))
-				{
-					TimeLine.Get()->SetCurve(CurvObj->GetCurveObject());
-				}
-			}
-		}
-	}
 	return FReply::Handled();
+}
+
+
+void FNiagaraEffectEditor::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	if ( NiagaraSequence != nullptr )
+	{
+		Collector.AddReferencedObject( NiagaraSequence );
+	}
 }
 
 

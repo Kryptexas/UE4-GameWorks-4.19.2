@@ -8,6 +8,9 @@ class UGameplayCueSet;
 #include "GameplayEffect.h"
 #include "GameplayCueNotify_Actor.h"
 #include "GameplayCue_Types.h"
+#include "AssetData.h"
+#include "Engine/DataAsset.h"
+#include "Engine/StreamableManager.h"
 #include "GameplayCueManager.generated.h"
 
 /**
@@ -49,6 +52,8 @@ class UGameplayCueSet;
 
 DECLARE_DELEGATE_OneParam(FOnGameplayCueNotifySetLoaded, TArray<FStringAssetReference>);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FShouldLoadGCNotifyDelegate, const FAssetData&);
+
+class UObjectLibrary;
 
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset

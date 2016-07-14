@@ -108,8 +108,8 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif
 	
 #if USE_PARTICLE_NODES
-	/** Particle world position. */
-	float3 ParticlePosition	: PARTICLE_POSITION;
+	/** Particle position in camera-centered translated world space */
+	float3 ParticleTranslatedWorldPosition	: PARTICLE_POSITION;
 
 	/** The velocity of the particle, XYZ: direction, W: speed. */
 	float4 ParticleVelocity	: PARTICLE_VELOCITY;
@@ -150,8 +150,8 @@ struct FVertexFactoryIntermediates
 	/** The velocity of the particle, XYZ: direction, W: speed. */
 	float4 ParticleVelocity;
 
-	/** Particle (non-translated) world space position. */
-	float3 ParticleWorldPosition;
+	/** Particle position in camera-centered translated world space. */
+	float3 ParticleTranslatedWorldPosition;
 	
 	/** Relative time. */
 	float RelativeTime;
@@ -255,8 +255,8 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #endif //USE_DYNAMIC_PARAMETERS
 
 #if USE_PARTICLE_NODES
-	Result.Particle.PositionAndSize.xyz = Interpolants.ParticlePosition.xyz;
-	Result.Particle.PositionAndSize.w = 1;
+	Result.Particle.TranslatedWorldPositionAndSize.xyz = Interpolants.ParticleTranslatedWorldPosition.xyz;
+	Result.Particle.TranslatedWorldPositionAndSize.w = 1;
 	Result.Particle.Velocity = Interpolants.ParticleVelocity;
 	Result.Particle.RelativeTime = Interpolants.ParticleTime;
 #if NEEDS_PARTICLE_TRANSFORM
@@ -281,8 +281,8 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 	Result.WorldPosition = WorldPosition;
 	Result.VertexColor = Intermediates.VertexColor;
 
-	Result.Particle.PositionAndSize.xyz = Intermediates.ParticleWorldPosition.xyz;
-	Result.Particle.PositionAndSize.w = 1;
+	Result.Particle.TranslatedWorldPositionAndSize.xyz = Intermediates.ParticleTranslatedWorldPosition.xyz;
+	Result.Particle.TranslatedWorldPositionAndSize.w = 1;
 	Result.Particle.Velocity = Intermediates.ParticleVelocity;
 	Result.Particle.RelativeTime = Intermediates.RelativeTime;
 
@@ -367,7 +367,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float3 ParticleWorldPosition = float3( Transform1.w, Transform2.w, Transform3.w);
 #endif
 
-	Intermediates.ParticleWorldPosition = ParticleWorldPosition;
+	Intermediates.ParticleTranslatedWorldPosition = ParticleWorldPosition + ResolvedView.PreViewTranslation.xyz;
 
 #if PARTICLE_MESH_INSTANCED
 	Intermediates.ParticleColor = Input.ParticleColor;
@@ -402,7 +402,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	#endif
 #endif	//USE_DYNAMIC_PARAMETERS
 
-	Intermediates.ParticleWorldPosition = ParticleWorldPosition.xyz;
+	Intermediates.ParticleTranslatedWorldPosition = ParticleWorldPosition.xyz + ResolvedView.PreViewTranslation.xyz;
 
 #if PARTICLE_MESH_INSTANCED
 	Intermediates.ParticleVelocity = Input.ParticleVelocity;
@@ -527,7 +527,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #endif	//USE_DYNAMIC_PARAMETERS
 
 #if USE_PARTICLE_NODES
-	Interpolants.ParticlePosition = Intermediates.ParticleWorldPosition;
+	Interpolants.ParticleTranslatedWorldPosition = Intermediates.ParticleTranslatedWorldPosition;
 	Interpolants.ParticleVelocity = Intermediates.ParticleVelocity;
 	Interpolants.ParticleTime = Intermediates.RelativeTime;
 #if NEEDS_PARTICLE_TRANSFORM

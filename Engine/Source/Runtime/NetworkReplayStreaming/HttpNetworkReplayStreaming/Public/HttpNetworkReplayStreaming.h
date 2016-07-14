@@ -4,7 +4,6 @@
 #include "NetworkReplayStreaming.h"
 #include "Http.h"
 #include "Runtime/Engine/Public/Tickable.h"
-#include "OnlineJsonSerializer.h"
 
 /**
  * Archive used to buffer stream over http
@@ -228,7 +227,8 @@ public:
 	virtual void		KeepReplay( const FString& ReplayName, const bool bKeep ) override;
 	virtual ENetworkReplayError::Type GetLastError() const override;
 	virtual FString		GetReplayID() const override { return SessionName; }
-
+	virtual void		SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) override {}
+	
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
 	void FlushStream();

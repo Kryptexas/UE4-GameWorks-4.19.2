@@ -114,7 +114,7 @@ public:
 		return bCanProcessAdditiveAnimations;
 	}
 #endif
-	void SetPreviewPoseOverride(const FName& PoseName, float Value);
+	void SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero);
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
@@ -127,7 +127,7 @@ protected:
 #endif
 
 	/** Pose Weight value that can override curve data. In the future, we'd like to have UCurveSet that can play by default**/
-	TMap<FName, float> PreviewPoseOverride;
+	TMap<FName, float> PreviewCurveOverride;
 
 	/** Current Asset being played. Note that this will be nullptr outside of pre/post update **/
 	UAnimationAsset* CurrentAsset;

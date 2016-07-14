@@ -48,22 +48,13 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InOwnerActor, AActor *InAv
 	if (AvatarActor.Get())
 	{
 		// Grab Components that we care about
-		USkeletalMeshComponent* SkelMeshComponent = AvatarActor->FindComponentByClass<USkeletalMeshComponent>();
-		if (SkelMeshComponent)
-		{
-			this->AnimInstance = SkelMeshComponent->GetAnimInstance();
-			if (this->AnimInstance == nullptr)
-			{
-				ABILITY_LOG(Warning, TEXT("FGameplayAbilityActorInfo::InitFromActor. Failed to find AnimInstance from SkelMeshComponent %s. From AvatarActor %s"), *GetNameSafe(SkelMeshComponent), *GetNameSafe(InAvatarActor));
-			}
-		}
-
+		SkeletalMeshComponent = AvatarActor->FindComponentByClass<USkeletalMeshComponent>();
 		MovementComponent = AvatarActor->FindComponentByClass<UMovementComponent>();
 	}
 	else
 	{
-		MovementComponent = NULL;
-		AnimInstance = NULL;
+		SkeletalMeshComponent = nullptr;
+		MovementComponent = nullptr;
 	}
 }
 
@@ -74,11 +65,11 @@ void FGameplayAbilityActorInfo::SetAvatarActor(AActor *InAvatarActor)
 
 void FGameplayAbilityActorInfo::ClearActorInfo()
 {
-	OwnerActor = NULL;
-	AvatarActor = NULL;
-	PlayerController = NULL;
-	AnimInstance = NULL;
-	MovementComponent = NULL;
+	OwnerActor = nullptr;
+	AvatarActor = nullptr;
+	PlayerController = nullptr;
+	SkeletalMeshComponent = nullptr;
+	MovementComponent = nullptr;
 }
 
 bool FGameplayAbilityActorInfo::IsLocallyControlled() const

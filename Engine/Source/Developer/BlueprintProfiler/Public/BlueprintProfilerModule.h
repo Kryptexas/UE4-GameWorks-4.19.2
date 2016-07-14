@@ -14,7 +14,11 @@ namespace EBlueprintProfilerHeatMapDisplayMode
 		None = 0,
 		Inclusive,
 		Exclusive,
-		MaxTiming
+		MaxTiming,
+		Total,
+		HottestPath,
+		HottestEndpoint,
+		PinToPin
 	};
 }
 
@@ -52,9 +56,6 @@ public:
 
 	/** Returns the current profiling event data for node */
 	virtual TSharedPtr<class FScriptExecutionNode> GetProfilerDataForNode(const UEdGraphNode* GraphNode) = 0;
-
-	/** Maps a blueprint instance and links to blueprint profiling data, returns the correct instance name */
-	virtual FName MapBlueprintInstance(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FString& InstancePath) = 0;
 
 	/** Returns if the profiler currently retains any data for the specified instance */
 	virtual bool HasDataForInstance(const UObject* Instance) const { return false; }

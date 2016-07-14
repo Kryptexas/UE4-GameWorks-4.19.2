@@ -200,7 +200,7 @@ float UInterpToMovementComponent::CalculateNewTime( float TimeNow, float Delta, 
 			if (BehaviourType == EInterpToBehaviourType::OneShot_Reverse)
 			{
 				NewTime = 0.0f;
-				bStopped = true;
+				OutStopped = true;
 				if (InBroadcastEvent == true)
 				{
 					OnInterpToStop.Broadcast(HitResult, NewTime);

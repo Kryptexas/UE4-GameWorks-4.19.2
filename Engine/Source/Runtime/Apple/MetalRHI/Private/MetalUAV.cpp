@@ -3,6 +3,7 @@
 
 #include "MetalRHIPrivate.h"
 #include "ShaderCache.h"
+#include "MetalCommandBuffer.h"
 
 FMetalShaderResourceView::~FMetalShaderResourceView()
 {
@@ -323,6 +324,7 @@ void FMetalRHICommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unorde
 		
 		// Fill the buffer via a blit encoder - I hope that is sufficient.
 		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
+		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIClearUAV(UAV %p, %d)", UnorderedAccessViewRHI, Values[0]);
 		[Blitter fillBuffer:UnorderedAccessView->SourceVertexBuffer->Buffer range:NSMakeRange(0, UnorderedAccessView->SourceVertexBuffer->GetSize()) value:Values[0]];
 		
 		// If there are problems you may need to add calls to restore the render command encoder at this point

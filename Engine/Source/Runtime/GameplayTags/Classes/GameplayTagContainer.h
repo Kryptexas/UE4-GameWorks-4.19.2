@@ -141,6 +141,9 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/** Used to upgrade a Name property to a GameplayTag struct property */
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
+	/** Handles importing tag strings without (TagName=) in it */
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+
 private:
 
 	/** Intentionally private so only the tag manager can use */
@@ -162,6 +165,7 @@ struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
 		WithNetSerializer = true,
 		WithPostSerialize = true,
 		WithSerializeFromMismatchedTag = true,
+		WithImportTextItem = true,
 	};
 };
 
@@ -409,6 +413,20 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	{
 		return GameplayTags.CreateConstIterator();
 	}
+
+	bool IsValidIndex(int32 Index)
+	{
+		return GameplayTags.IsValidIndex(Index);
+	}
+
+	FGameplayTag GetByIndex(int32 Index)
+	{
+		if (IsValidIndex(Index))
+		{
+			return GameplayTags[Index];
+		}
+		return FGameplayTag();
+	}	
 
 	FGameplayTag First() const
 	{

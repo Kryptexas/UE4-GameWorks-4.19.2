@@ -120,21 +120,24 @@ void UAITask_MoveTo::PerformMove()
 	ResetTimers();
 
 	// start new move request
-	const EPathFollowingRequestResult::Type RequestResult = OwnerController->MoveTo(MoveRequest);
-	switch (RequestResult)
+	FNavPathSharedPtr FollowedPath;
+	const FPathFollowingRequestResult ResultData = OwnerController->MoveTo(MoveRequest, &FollowedPath);
+
+	switch (ResultData.Code)
 	{
 	case EPathFollowingRequestResult::Failed:
 		FinishMoveTask(EPathFollowingResult::Invalid);
 		break;
 
 	case EPathFollowingRequestResult::AlreadyAtGoal:
-		FinishMoveTask(EPathFollowingResult::Success);
+		MoveRequestID = ResultData.MoveId;
+		OnRequestFinished(ResultData.MoveId, FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::AlreadyAtGoal));
 		break;
 
 	case EPathFollowingRequestResult::RequestSuccessful:
-		MoveRequestID = PFComp->GetCurrentRequestId();
+		MoveRequestID = ResultData.MoveId;
 		PathFinishDelegateHandle = PFComp->OnRequestFinished.AddUObject(this, &UAITask_MoveTo::OnRequestFinished);
-		SetObservedPath(PFComp->GetPath());
+		SetObservedPath(FollowedPath);
 
 		if (TaskState == EGameplayTaskState::Finished)
 		{
@@ -265,7 +268,7 @@ void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, const FPathFollow
 {
 	if (RequestID == MoveRequestID)
 	{
-		if (Result.IsSkipped() && !Result.HasFlag(FPathFollowingResultFlags::ForcedScript))
+		if (Result.HasFlag(FPathFollowingResultFlags::UserAbort) && Result.HasFlag(FPathFollowingResultFlags::NewRequest) && !Result.HasFlag(FPathFollowingResultFlags::ForcedScript))
 		{
 			UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log, TEXT("%s> ignoring OnRequestFinished, move was aborted by new request"), *GetName());
 		}

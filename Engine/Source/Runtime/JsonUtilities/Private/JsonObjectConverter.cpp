@@ -17,6 +17,17 @@ namespace
 /** Convert property to JSON, assuming either the property is not an array or the value is an individual array element */
 TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags, const FJsonObjectConverter::CustomExportCallback* ExportCb)
 {
+	// See if there's a custom export callback first, so it can override default behavior
+	if (ExportCb && ExportCb->IsBound())
+	{
+		TSharedPtr<FJsonValue> CustomValue = ExportCb->Execute(Property, Value);
+		if (CustomValue.IsValid())
+		{
+			return CustomValue;
+		}
+		// fall through to default cases
+	}
+
 	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
 		// see if it's an enum
@@ -87,17 +98,6 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 	}
 	else
 	{
-		// see if there's a custom export callback
-		if (ExportCb && ExportCb->IsBound())
-		{
-			TSharedPtr<FJsonValue> CustomValue = ExportCb->Execute(Property, Value);
-			if (CustomValue.IsValid())
-			{
-				return CustomValue;
-			}
-			// fall through and try ToString
-		}
-
 		// Default to export as string for everything else
 		FString StringValue;
 		Property->ExportTextItem(StringValue, Value, NULL, NULL, PPF_None);

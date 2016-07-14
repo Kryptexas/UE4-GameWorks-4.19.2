@@ -84,6 +84,9 @@ public:
 
 	uint32 GetClassChecksum() const { return ClassChecksum; }
 
+	const FClassNetCache* GetSuper() const { return Super; }
+	const TArray< FFieldNetCache >& GetFields() const { return Fields; }
+
 private:
 	int32								FieldsBase;
 	const FClassNetCache*				Super;

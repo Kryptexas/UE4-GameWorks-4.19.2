@@ -5,6 +5,7 @@
 #if WITH_FANCY_TEXT
 
 #include "ISlateEditableTextWidget.h"
+#include "SlateTextLayoutFactory.h"
 #include "SScrollBar.h"
 #include "UniquePtr.h"
 
@@ -126,6 +127,9 @@ public:
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT(FMenuExtensionDelegate, ContextMenuExtender)
+
+		/** Delegate used to create text layouts for this widget. If none is provided then FSlateTextLayout will be used. */
+		SLATE_EVENT(FCreateSlateTextLayout, CreateSlateTextLayout)
 
 		/** The optional modifier key necessary to create a newline when typing into the editor. */
 		SLATE_ARGUMENT(EModifierKey::Type, ModiferKeyForNewLine)

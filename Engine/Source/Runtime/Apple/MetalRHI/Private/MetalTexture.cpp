@@ -6,6 +6,7 @@
 
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h" // for STAT_MetalTexturePageOffTime
+#include "MetalCommandBuffer.h"
 
 uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
 int32 FMetalSurface::ActiveUploads = 0;
@@ -250,7 +251,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 	
 #if PLATFORM_MAC // Recreate the texture to enable MTLTextureUsagePixelFormatView which must be off unless we definitely use this feature or we are throwing ~4% performance vs. Windows on the floor.
 	MTLTextureUsage Usage = Source.Texture.usage;
-	if(!(Usage & MTLTextureUsagePixelFormatView) && (Source.PixelFormat != PF_DepthStencil) && !bUseSourceTex)
+	if(!(Usage & MTLTextureUsagePixelFormatView) && (Source.PixelFormat == PF_DepthStencil && Format == PF_X24_G8 && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesStencilView)) && !bUseSourceTex)
 	{
 		Source.PrepareTextureView();
 	}
@@ -264,6 +265,26 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
     {
         Texture = [Source.Texture newTextureViewWithPixelFormat:MetalFormat textureType:Source.Texture.textureType levels:MipRange slices:Slices];
 		TRACK_OBJECT(STAT_MetalTextureCount, Texture);
+    }
+    else if (Source.PixelFormat == PF_DepthStencil && Format == PF_X24_G8 && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesStencilView))
+    {
+        switch (Source.Texture.pixelFormat)
+        {
+#if PLATFORM_MAC
+            case MTLPixelFormatDepth24Unorm_Stencil8:
+                MetalFormat = MTLPixelFormatX24_Stencil8;
+                break;
+#endif
+            case MTLPixelFormatDepth32Float_Stencil8:
+                MetalFormat = MTLPixelFormatX32_Stencil8;
+                break;
+            default:
+                check(false);
+                break;
+        }
+        
+        Texture = [Source.Texture newTextureViewWithPixelFormat:MetalFormat textureType:Source.Texture.textureType levels:MipRange slices:Slices];
+        TRACK_OBJECT(STAT_MetalTextureCount, Texture);
     }
     else
 #endif
@@ -319,6 +340,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					[Buf.Buffer retain];
 					INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 					
+					METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"FMetalSurface %p(copyFromBuffer: %p toTexture: %p)", this, Buf.Buffer, Source.StencilTexture);
 					[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Source.Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Source.Texture.width, Source.Texture.height, 1) toTexture:Source.StencilTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
 					
 					bWritten = true;
@@ -396,6 +418,10 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 		PixelFormatKeyMap.Add(MTLPixelFormatDepth32Float_Stencil8, NextKey++);
 #if PLATFORM_MAC
 		PixelFormatKeyMap.Add(MTLPixelFormatDepth24Unorm_Stencil8, NextKey++);
+        if (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepth16))
+        {
+            PixelFormatKeyMap.Add(MTLPixelFormatDepth16Unorm, NextKey++);
+        }
 #endif
 #endif
 	}
@@ -861,6 +887,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 			
 			if (bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate)
 			{
+				METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"FMetalSurface::Lock %p(copyFromTexture:toBuffer:)", this);
 				[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
 				
 				//kick the current command buffer.
@@ -986,6 +1013,7 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			// create a blitter object
 			id<MTLBlitCommandEncoder> Blitter = [CommandBuffer blitCommandEncoder];
 			
+			METAL_DEBUG_COMMAND_BUFFER_BLIT_ASYNC_LOG((&GetMetalDeviceContext()), CommandBuffer, @"FMetalSurface::Unlock %p(copyFromBuffer:toTexture)", this);
 			[Blitter copyFromBuffer:LockedMemory[MipIndex] sourceOffset:0 sourceBytesPerRow:Stride sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Texture destinationSlice:ArrayIndex destinationLevel:MipIndex destinationOrigin:Region.origin];
 			
 			[Blitter endEncoding];
@@ -1111,7 +1139,7 @@ id<MTLTexture> FMetalSurface::GetDrawableTexture()
 void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 {
 #if METAL_API_1_1
-	if (PixelFormat == PF_X24_G8 && Texture != StencilTexture && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
+	if (PixelFormat == PF_X24_G8 && Texture != StencilTexture && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions) && !GetMetalDeviceContext().SupportsFeature(EMetalFeaturesStencilView))
 	{
 		// In this case StencilTexture is the source depth/stencil texture and Texture is our target Stencil-only copy
 		
@@ -1122,6 +1150,7 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 		[Buf.Buffer retain];
 		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 		
+		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"FMetalSurface::UpdateSRV %p(Source %p)", this, SourceTex.GetReference());
 		[BlitEncoder copyFromTexture:StencilTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Texture.width destinationBytesPerImage:SizePerImage options:MTLBlitOptionStencilFromDepthStencil];
 		
 		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
@@ -1247,6 +1276,7 @@ void FMetalDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 		// create a blitter object
 		id<MTLBlitCommandEncoder> Blitter = [CommandBuffer blitCommandEncoder];
 		
+		METAL_DEBUG_COMMAND_BUFFER_BLIT_ASYNC_LOG((&GetMetalDeviceContext()), CommandBuffer, @"RHIGenerateMips %p(Source %p)", this, SourceSurfaceRHI);
 		[Blitter generateMipmapsForTexture:Surf->Texture];
 		
 		// kick it off!
@@ -1308,6 +1338,8 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 	// only handling straight 2D textures here
 	uint32 SliceIndex = 0;
 	MTLOrigin Origin = MTLOriginMake(0,0,0);
+	
+	METAL_DEBUG_COMMAND_BUFFER_BLIT_ASYNC_LOG((&GetMetalDeviceContext()), CommandBuffer, @"RHIAsyncReallocateTexture2D(OldTextureRHI %p, NewMipCount %d, NewSizeX %d, NewSizeY %d) -> %p", OldTextureRHI, NewMipCount, NewSizeX, NewSizeY, NewTexture);
 	
 	id<MTLTexture> Tex = OldTexture->Surface.Texture;
 	[Tex retain];
@@ -1453,6 +1485,8 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 		
 		FMemory::Memcpy([LockedMemory contents], SourceData, BufferSize);
 		
+		METAL_DEBUG_COMMAND_BUFFER_BLIT_ASYNC_LOG((&GetMetalDeviceContext()), CommandBuffer, @"RHIUpdateTexture2D(TextureRHI %p, MipIndex %d, SourcePitch %d)", TextureRHI, MipIndex, SourcePitch);
+		
 		[Blitter copyFromBuffer:LockedMemory sourceOffset:0 sourceBytesPerRow:SourcePitch sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Tex destinationSlice:0 destinationLevel:MipIndex destinationOrigin:Region.origin];
 		
 		[Blitter endEncoding];
@@ -1499,6 +1533,8 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 		id<MTLBuffer> LockedMemory = [Buf.Buffer retain];
 
 		FMemory::Memcpy([LockedMemory contents], SourceData, BufferSize);
+		
+		METAL_DEBUG_COMMAND_BUFFER_BLIT_ASYNC_LOG((&GetMetalDeviceContext()), CommandBuffer, @"RHIUpdateTexture3D(TextureRHI %p, MipIndex %d, SourceRowPitch %d, SourceDepthPitch %d)", TextureRHI, MipIndex, SourceRowPitch, SourceDepthPitch);
 		
 		[Blitter copyFromBuffer:LockedMemory sourceOffset:0 sourceBytesPerRow:SourceRowPitch sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Tex destinationSlice:0 destinationLevel:MipIndex destinationOrigin:Region.origin];
 		

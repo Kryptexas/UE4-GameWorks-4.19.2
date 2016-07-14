@@ -66,4 +66,12 @@ public:
 	 * @param Dirty An optional hint of the area to update. An empty rectangle means that the entire texture should be updated.
 	 */
 	virtual void UpdateTextureThreadSafeRaw(uint32 Width, uint32 Height, const void* Buffer, const FIntRect& Dirty = FIntRect()) = 0;
+
+	/**
+	* Update the texture from a provided FSlateTextureData buffer, also transferring ownership of the texture
+	* @param TextureData A pointer to the provided FSlateTextureData.
+	* 
+	* NOTE: This function transfers ownership of the FSlateTextureData object. It will be deleted once the texture is used
+	*/
+	virtual void UpdateTextureThreadSafeWithTextureData(FSlateTextureData* TextureData) = 0;
 };

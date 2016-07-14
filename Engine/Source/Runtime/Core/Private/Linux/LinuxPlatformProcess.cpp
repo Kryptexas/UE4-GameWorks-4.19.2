@@ -339,7 +339,7 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 FString FLinuxPlatformProcess::GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration)
 {
 	FString PlatformName = GetBinariesSubdirectory();
-	FString ExecutablePath = FString::Printf(TEXT("../%s/%s"), *PlatformName, *AppName);
+	FString ExecutablePath = FString::Printf(TEXT("../../../Engine/Binaries/%s/%s"), *PlatformName, *AppName);
 	
 	if (BuildConfiguration != EBuildConfigurations::Development && BuildConfiguration != EBuildConfigurations::DebugGame)
 	{

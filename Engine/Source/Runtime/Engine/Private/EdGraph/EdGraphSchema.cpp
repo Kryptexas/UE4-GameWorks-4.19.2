@@ -566,11 +566,15 @@ void UEdGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* Tar
 	SourcePin->BreakLinkTo(TargetPin);
 
 #if WITH_EDITOR
-	TargetPin->GetOwningNode()->PinConnectionListChanged(TargetPin);
-	SourcePin->GetOwningNode()->PinConnectionListChanged(SourcePin);
-
-	TargetPin->GetOwningNode()->NodeConnectionListChanged();
-	SourcePin->GetOwningNode()->NodeConnectionListChanged();
+	// get a reference to these now as the following calls can potentially clear the OwningNode (ex: split pins in MakeArray nodes)
+	UEdGraphNode* TargetNode = TargetPin->GetOwningNode();
+	UEdGraphNode* SourceNode = SourcePin->GetOwningNode();
+	
+	TargetNode->PinConnectionListChanged(TargetPin);
+	SourceNode->PinConnectionListChanged(SourcePin);
+	
+	TargetNode->NodeConnectionListChanged();
+	SourceNode->NodeConnectionListChanged();
 #endif	//#if WITH_EDITOR
 }
 

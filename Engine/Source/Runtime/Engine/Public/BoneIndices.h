@@ -22,7 +22,7 @@ FORCEINLINE int32 GetIntFromComp(const int32& InComp)
 	return InComp;
 }
 
-FORCEINLINE FBoneIndexType GetIntFromComp(const FBoneIndexBase& InComp)
+FORCEINLINE int32 GetIntFromComp(const FBoneIndexBase& InComp)
 {
 	return InComp.GetInt();
 }

@@ -70,6 +70,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
+	, bEnableBlueprintProfilerRecentSampleBias(false)
 	, BlueprintProfilerRecentSampleBias(0.2f)
 	, BlueprintProfilerEventThreshold(1.f)
 	, BlueprintProfilerExclNodeThreshold(0.2f)
@@ -112,6 +113,10 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 			}
 		}
 	}
+	else if (Name == FName(TEXT("bEnableBlueprintProfilerRecentSampleBias")))
+	{
+		FScriptPerfData::EnableRecentSampleBias(bEnableBlueprintProfilerRecentSampleBias);
+	}
 	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
 	{
 		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
@@ -122,7 +127,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 	}
 	else if (Name == FName(TEXT("BlueprintProfilerExclNodeThreshold")))
 	{
-		FScriptPerfData::SetNodePerformanceThreshold(BlueprintProfilerExclNodeThreshold);
+		FScriptPerfData::SetExclusivePerformanceThreshold(BlueprintProfilerExclNodeThreshold);
 	}
 	else if (Name == FName(TEXT("BlueprintProfilerInclNodeThreshold")))
 	{
@@ -162,7 +167,6 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 
 	bPromptBeforeAutoImporting = true;
 }
-
 
 // @todo thomass: proper settings support for source control module
 void UEditorLoadingSavingSettings::SccHackInitialize()
@@ -481,8 +485,8 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr)
-		? PropertyChangedEvent.Property->GetFName()
+	const FName Name = (PropertyChangedEvent.MemberProperty != nullptr)
+		? PropertyChangedEvent.MemberProperty->GetFName()
 		: NAME_None;
 
 	if (Name == FName((TEXT("DirectoriesToAlwaysCook"))))
@@ -541,6 +545,14 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 				HttpChunkInstallDataVersion = TEXT("release1");
 			}
 		}
+	}
+	else if (Name == FName((TEXT("ApplocalPrerequisitesDirectory"))))
+	{
+		// fix up path
+		FString Path = ApplocalPrerequisitesDirectory.Path;
+		FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
+		FPaths::MakePathRelativeTo(Path, *ProjectPath);
+		ApplocalPrerequisitesDirectory.Path = Path;
 	}
 }
 

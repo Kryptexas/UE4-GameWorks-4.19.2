@@ -10,6 +10,15 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 
+// Changing this is currently unsupported after content has been chunked with the previous setting
+// Changing this causes a full shader recompile
+static int32 GCVarMaxGPUSkinBones = FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones;
+static FAutoConsoleVariableRef CVarMaxGPUSkinBones(
+	TEXT("Compat.MAX_GPUSKIN_BONES"),
+	GCVarMaxGPUSkinBones,
+	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
+	ECVF_ReadOnly);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters,TEXT("APEXClothParam"));
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBoneMatricesUniformShaderParameters,TEXT("Bones"));
@@ -287,6 +296,11 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 		UniformBuffer = RHICreateUniformBuffer(&GBoneUniformStruct, FBoneMatricesUniformShaderParameters::StaticStruct.GetLayout(), UniformBuffer_MultiFrame);
 	}
 	return false;
+}
+
+int32 FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones()
+{
+	return GCVarMaxGPUSkinBones;
 }
 
 /*-----------------------------------------------------------------------------

@@ -31,7 +31,7 @@ public:
 	uint8					bHasMustBeMappedGUIDs;	// This bunch has guids that must be mapped before we can process this bunch
 
 	TArray< FNetworkGUID >	ExportNetGUIDs;			// List of GUIDs that went out on this bunch
-	TArray< uint64 >		ExportRepLayoutCmds;
+	TArray< uint64 >		NetFieldExports;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FString			DebugString;

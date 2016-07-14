@@ -1,9 +1,14 @@
 ﻿
 
 todo:
+* store last folder[s] in registry
+* xml in ref folder 
+* documentation (hookup help and about)
+* summary line in UI
+* ref folder is read only
 * Generate Report without Thumbnails to Clipboard
 * remove leading \ from folder name
-* Sort bad ones up? Summary
+* Report: Sort bad ones up? Summary
 * FileSystemWatcher should update only the file that has changed (when running the test and watching it will be more efficient)
 * command line args, see https://msdn.microsoft.com/en-us/library/system.io.filesystemwatcher(v=vs.110).aspx
 * better error handling e.g. if cannot load png

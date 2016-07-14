@@ -634,7 +634,7 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 	if(!NewTransform.EqualsNoScale(ComponentToWorld))
 	{
 		const FVector MoveBy = NewTransform.GetLocation() - ComponentToWorld.GetLocation();
-		const FQuat NewRotation = NewTransform.GetRotation();
+		const FRotator NewRotation = NewTransform.Rotator();
 
 		//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
 		MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);

@@ -60,6 +60,13 @@ namespace AutomationTool.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
+
+		/// <summary>
+		/// Tag to be applied to any non-private references the projects have
+		/// (i.e. those that are external and not copied into the output dir)
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
+		public string TagReferences;
 	}
 
 	/// <summary>
@@ -130,6 +137,8 @@ namespace AutomationTool.Tasks
 				{
 					Arguments.Add(Parameters.Arguments);
 				}
+				Arguments.Add("/verbosity:minimal");
+				Arguments.Add("/nologo");
 				foreach(FileReference ProjectFile in ProjectFiles)
 				{
 					CommandUtils.MsBuild(CommandUtils.CmdEnv, ProjectFile.FullName, String.Join(" ", Arguments), null);
@@ -138,7 +147,8 @@ namespace AutomationTool.Tasks
 
 			// Try to figure out the output files
 			HashSet<FileReference> ProjectBuildProducts;
-			if(!FindBuildProducts(ProjectFiles, Properties, out ProjectBuildProducts))
+			HashSet<FileReference> ProjectReferences;
+			if(!FindBuildProducts(ProjectFiles, Properties, out ProjectBuildProducts, out ProjectReferences))
 			{
 				return false;
 			}
@@ -147,6 +157,15 @@ namespace AutomationTool.Tasks
 			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
 			{
 				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(ProjectBuildProducts);
+			}
+
+			if (!String.IsNullOrEmpty(Parameters.TagReferences))
+			{
+				// Apply the optional tag to any references
+				foreach (string TagName in FindTagNamesFromList(Parameters.TagReferences))
+				{
+					FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(ProjectReferences);
+				}
 			}
 
 			// Merge them into the standard set of build products
@@ -177,17 +196,26 @@ namespace AutomationTool.Tasks
 		/// <returns>The tag names which are modified by this task</returns>
 		public override IEnumerable<string> FindProducedTagNames()
 		{
-			return FindTagNamesFromList(Parameters.Tag);
+			foreach (string TagName in FindTagNamesFromList(Parameters.Tag))
+			{
+				yield return TagName;
+			}
+
+			foreach (string TagName in FindTagNamesFromList(Parameters.TagReferences))
+			{
+				yield return TagName;
+			}
 		}
 
 		/// <summary>
 		/// Find all the build products created by compiling the given project file
 		/// </summary>
-		/// <param name="ProjectFile">Initial project file to read. All referenced projects will also be read.</param>
+		/// <param name="ProjectFiles">Initial project file to read. All referenced projects will also be read.</param>
 		/// <param name="InitialProperties">Mapping of property name to value</param>
 		/// <param name="OutBuildProducts">Receives a set of build products on success</param>
+		/// <param name="OutReferences">Receives a set of non-private references on success</param>
 		/// <returns>True if the build products were found, false otherwise.</returns>
-		static bool FindBuildProducts(HashSet<FileReference> ProjectFiles, Dictionary<string, string> InitialProperties, out HashSet<FileReference> OutBuildProducts)
+		static bool FindBuildProducts(HashSet<FileReference> ProjectFiles, Dictionary<string, string> InitialProperties, out HashSet<FileReference> OutBuildProducts, out HashSet<FileReference> OutReferences)
 		{
 			// Read all the project information into a dictionary
 			Dictionary<FileReference, CsProjectInfo> FileToProjectInfo = new Dictionary<FileReference,CsProjectInfo>();
@@ -196,12 +224,14 @@ namespace AutomationTool.Tasks
 				if(!ReadProjectsRecursively(ProjectFile, InitialProperties, FileToProjectInfo))
 				{
 					OutBuildProducts = null;
+					OutReferences = null;
 					return false;
 				}
 			}
 
-			// Find all the build products
+			// Find all the build products and references
 			HashSet<FileReference> BuildProducts = new HashSet<FileReference>();
+			HashSet<FileReference> References = new HashSet<FileReference>();
 			foreach(KeyValuePair<FileReference, CsProjectInfo> Pair in FileToProjectInfo)
 			{
 				CsProjectInfo ProjectInfo = Pair.Value;
@@ -211,15 +241,30 @@ namespace AutomationTool.Tasks
 				ProjectInfo.AddBuildProducts(OutputDir, BuildProducts);
 
 				// Add the referenced assemblies
-				foreach(FileReference OtherAssembly in ProjectInfo.References.Where(x => x.Value).Select(x => x.Key))
+				foreach(KeyValuePair<FileReference, bool> Reference in ProjectInfo.References)
 				{
-					FileReference OutputFile = FileReference.Combine(OutputDir, OtherAssembly.GetFileName());
-					BuildProducts.Add(OutputFile);
-
-					FileReference SymbolFile = OtherAssembly.ChangeExtension(".pdb");
-					if(SymbolFile.Exists())
+					FileReference OtherAssembly = Reference.Key;
+					if (Reference.Value)
 					{
-						BuildProducts.Add(OutputFile.ChangeExtension(".pdb"));
+						// Add reference from the output dir
+						FileReference OutputFile = FileReference.Combine(OutputDir, OtherAssembly.GetFileName());
+						BuildProducts.Add(OutputFile);
+
+						FileReference SymbolFile = OtherAssembly.ChangeExtension(".pdb");
+						if(SymbolFile.Exists())
+						{
+							BuildProducts.Add(OutputFile.ChangeExtension(".pdb"));
+						}
+					}
+					else
+					{
+						// Add reference directly
+						References.Add(OtherAssembly);
+						FileReference SymbolFile = OtherAssembly.ChangeExtension(".pdb");
+						if(SymbolFile.Exists())
+						{
+							References.Add(SymbolFile);
+						}
 					}
 				}
 
@@ -232,6 +277,7 @@ namespace AutomationTool.Tasks
 
 			// Update the output set
 			OutBuildProducts = BuildProducts;
+			OutReferences = References;
 			return true;
 		}
 
@@ -326,6 +372,10 @@ namespace AutomationTool.Tasks
 					case "Exe":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".exe"));
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
+                        FileReference ExeConfig = FileReference.Combine(OutputDir, AssemblyName + ".exe.config");
+						if (ExeConfig.Exists()) { BuildProducts.Add(ExeConfig); }
+						FileReference ExeMDB = FileReference.Combine(OutputDir, AssemblyName + "exe.mdb");
+						if (ExeMDB.Exists()) { BuildProducts.Add(ExeMDB); }
 						return true;
 					case "Library":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".dll"));

@@ -1306,6 +1306,11 @@ FVector2D UKismetMathLibrary::Multiply_Vector2DFloat(FVector2D A, float B)
 	return A * B;
 }
 
+FVector2D UKismetMathLibrary::Multiply_Vector2DVector2D(FVector2D A, FVector2D B)
+{
+	return A * B;
+}
+
 FVector2D UKismetMathLibrary::Divide_Vector2DFloat(FVector2D A, float B)
 {
 	if (B == 0.f)
@@ -2291,13 +2296,17 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 
 	if( bDebugDraw )
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = (WorldContextObject) ? GEngine->GetWorldFromContextObject(WorldContextObject) : nullptr;
 		if(World != nullptr)
 		{
 			DrawDebugSphere(World, OutRectCenter, 10.f, 12, FColor::Yellow, true);
 			DrawDebugCoordinateSystem(World, OutRectCenter, SurfaceNormalMatrix.Rotator(), 100.f, true);
 			DrawDebugLine(World, OutRectCenter - RectSideA * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideA * 0.5f + FVector(0,0,10.f), FColor::Green, true,-1, 0, 5.f);
 			DrawDebugLine(World, OutRectCenter - RectSideB * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideB * 0.5f + FVector(0,0,10.f), FColor::Blue, true,-1, 0, 5.f);
+		}
+		else
+		{
+			FFrame::KismetExecutionMessage(TEXT("WorldContext required for MinimumAreaRectangle to draw a debug visualization."), ELogVerbosity::Warning);
 		}
 	}
 }

@@ -178,10 +178,10 @@ protected:
 			RangeName = FString::Printf(TEXT("%0.2fs - %0.2fs"), HitchThresholdInSeconds, PrevHitchThresholdInSeconds);
 		}
 
-		PrintToEndpoint(FString::Printf(TEXT("Bucket: %s  Count: %i "), *RangeName, GHitchChart[BucketIndex].HitchCount));
+		PrintToEndpoint(FString::Printf(TEXT("Bucket: %s  Count: %i  Time: %.2f"), *RangeName, GHitchChart[BucketIndex].HitchCount, GHitchChart[BucketIndex].FrameTimeSpentInBucket));
 	}
 
-	virtual void HandleHitchSummary(int32 TotalHitchCount, int32 TotalGameThreadBoundHitches, int32 TotalRenderThreadBoundHitches, int32 TotalGPUBoundHitches)
+	virtual void HandleHitchSummary(int32 TotalHitchCount, int32 TotalGameThreadBoundHitches, int32 TotalRenderThreadBoundHitches, int32 TotalGPUBoundHitches, double TotalTimeSpentInHitchBuckets)
 	{
 		const int32 HitchBucketCount = STAT_FPSChart_LastHitchBucketStat - STAT_FPSChart_FirstHitchStat;
 		PrintToEndpoint(FString::Printf(TEXT("Total hitch count (at least %ims):  %i"), GHitchThresholds[HitchBucketCount - 1], TotalHitchCount));
@@ -189,6 +189,9 @@ protected:
 		PrintToEndpoint(FString::Printf(TEXT("Hitch frames bound by render thread:  %i  (%0.1f percent)"), TotalRenderThreadBoundHitches, TotalHitchCount > 0 ? ((float)TotalRenderThreadBoundHitches / (float)TotalHitchCount * 0.0f) : 0.0f));
 		PrintToEndpoint(FString::Printf(TEXT("Hitch frames bound by GPU:  %i  (%0.1f percent)"), TotalGPUBoundHitches, TotalHitchCount > 0 ? ((float)TotalGPUBoundHitches / (float)TotalHitchCount * 100.0f) : 0.0f));
 		PrintToEndpoint(FString::Printf(TEXT("Hitches / min:  %.2f"), AvgHitchesPerMinute));
+		PrintToEndpoint(FString::Printf(TEXT("Time spent in hitch buckets:  %.2f s"), TotalTimeSpentInHitchBuckets));
+		PrintToEndpoint(FString::Printf(TEXT("Avg. hitch frame length:  %.2f s"), TotalTimeSpentInHitchBuckets / TotalTime));
+
 	}
 
 	virtual void HandleFPSThreshold(int32 TargetFPS, int32 NumFramesBelow, float PctTimeAbove, float PctMissedFrames)
@@ -364,19 +367,23 @@ void FDumpFPSChartToEndpoint::DumpChart(float InTotalTime, float InDeltaTime, in
 		int32 TotalGameThreadBoundHitches = 0;
 		int32 TotalRenderThreadBoundHitches = 0;
 		int32 TotalGPUBoundHitches = 0;
+		double TotalTimeSpentInHitchBuckets = 0.0;
+
 		for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GHitchChart); ++BucketIndex)
 		{
 			HandleHitchBucket(BucketIndex);
 
+			const FHitchChartEntry& ChartEntry = GHitchChart[BucketIndex];
 			// Count up the total number of hitches
-			TotalHitchCount += GHitchChart[BucketIndex].HitchCount;
-			TotalGameThreadBoundHitches += GHitchChart[BucketIndex].GameThreadBoundHitchCount;
-			TotalRenderThreadBoundHitches += GHitchChart[BucketIndex].RenderThreadBoundHitchCount;
-			TotalGPUBoundHitches += GHitchChart[BucketIndex].GPUBoundHitchCount;
+			TotalHitchCount += ChartEntry.HitchCount;
+			TotalGameThreadBoundHitches += ChartEntry.GameThreadBoundHitchCount;
+			TotalRenderThreadBoundHitches += ChartEntry.RenderThreadBoundHitchCount;
+			TotalGPUBoundHitches += ChartEntry.GPUBoundHitchCount;
+			TotalTimeSpentInHitchBuckets += ChartEntry.FrameTimeSpentInBucket;
 		}
 
 		AvgHitchesPerMinute = TotalHitchCount / (TotalTime / 60.0f);
-		HandleHitchSummary(TotalHitchCount, TotalGameThreadBoundHitches, TotalRenderThreadBoundHitches, TotalGPUBoundHitches);
+		HandleHitchSummary(TotalHitchCount, TotalGameThreadBoundHitches, TotalRenderThreadBoundHitches, TotalGPUBoundHitches, TotalTimeSpentInHitchBuckets);
 
 		PrintToEndpoint(TEXT("--- End"));
 	}
@@ -405,33 +412,57 @@ protected:
 
 	virtual void HandleHitchBucket(int32 BucketIndex) override
 	{
-		FString ParamName;
+		FString ParamNameBase;
 		if (BucketIndex == 0)
 		{
-			ParamName = FString::Printf(TEXT("Hitch_%i_Plus_HitchCount"), GHitchThresholds[BucketIndex]);
+			ParamNameBase = FString::Printf(TEXT("Hitch_%i_Plus_Hitch"), GHitchThresholds[BucketIndex]);
 		}
 		else
 		{
-			ParamName = FString::Printf(TEXT("Hitch_%i_%i_HitchCount"), GHitchThresholds[BucketIndex], GHitchThresholds[BucketIndex - 1]);
+			ParamNameBase = FString::Printf(TEXT("Hitch_%i_%i_Hitch"), GHitchThresholds[BucketIndex], GHitchThresholds[BucketIndex - 1]);
 		}
 
-		ParamArray.Add(FAnalyticsEventAttribute(ParamName, GHitchChart[BucketIndex].HitchCount));
+		ParamArray.Add(FAnalyticsEventAttribute(ParamNameBase + TEXT("Count"), GHitchChart[BucketIndex].HitchCount));
+		ParamArray.Add(FAnalyticsEventAttribute(ParamNameBase + TEXT("Time"), GHitchChart[BucketIndex].FrameTimeSpentInBucket));
 	}
 
-	virtual void HandleHitchSummary(int32 TotalHitchCount, int32 TotalGameThreadBoundHitches, int32 TotalRenderThreadBoundHitches, int32 TotalGPUBoundHitches) override
+	virtual void HandleHitchSummary(int32 TotalHitchCount, int32 TotalGameThreadBoundHitches, int32 TotalRenderThreadBoundHitches, int32 TotalGPUBoundHitches, double TotalTimeSpentInHitchBuckets) override
 	{
 		// Add hitch totals to the param array
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalHitches"), TotalHitchCount));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGameBoundHitches"), TotalGameThreadBoundHitches));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalRenderBoundHitches"), TotalRenderThreadBoundHitches));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGPUBoundHitches"), TotalGPUBoundHitches));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalTimeInHitchFrames"), TotalTimeSpentInHitchBuckets));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("HitchesPerMinute"), AvgHitchesPerMinute));
+
+		// Determine how much time was spent 'above and beyond' regular frame time in frames that landed in hitch buckets
+		const float EngineTargetMS = FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS();
+		const float HitchThresholdMS = FEnginePerformanceTargets::GetHitchFrameTimeThresholdMS();
+
+		const float AcceptableFramePortionMS = (HitchThresholdMS > EngineTargetMS) ? EngineTargetMS : 0.0f;
+		
+		const float MSToSeconds = 1.0f / 1000.0f;
+		const double RegularFramePortionForHitchFrames = AcceptableFramePortionMS * MSToSeconds * TotalHitchCount;
+
+		ensure(RegularFramePortionForHitchFrames < TotalTimeSpentInHitchBuckets);
+		const double TimeSpentHitching = TotalTimeSpentInHitchBuckets - RegularFramePortionForHitchFrames;
+
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentSpentHitching"), 100.0f * TimeSpentHitching / TotalTime));
 	}
 
 	virtual void HandleFPSThreshold(int32 TargetFPS, int32 NumFramesBelow, float PctTimeAbove, float PctMissedFrames) override
 	{
-		const FString ParamName = FString::Printf(TEXT("PercentAbove%d"), TargetFPS);
-		const FString ParamValue = FString::Printf(TEXT("%4.2f"), PctTimeAbove);
-		ParamArray.Add(FAnalyticsEventAttribute(ParamName, ParamValue));
+		{
+			const FString ParamName = FString::Printf(TEXT("PercentAbove%d"), TargetFPS);
+			const FString ParamValue = FString::Printf(TEXT("%4.2f"), PctTimeAbove);
+			ParamArray.Add(FAnalyticsEventAttribute(ParamName, ParamValue));
+		}
+		{
+			const FString ParamName = FString::Printf(TEXT("MVP%d"), TargetFPS);
+			const FString ParamValue = FString::Printf(TEXT("%4.2f"), PctMissedFrames);
+			ParamArray.Add(FAnalyticsEventAttribute(ParamName, ParamValue));
+		}
 	}
 
 	virtual void HandleBasicStats() override
@@ -543,7 +574,7 @@ protected:
 		FPSChartRow = FPSChartRow.Replace(*SrcToken, *DstToken, ESearchCase::CaseSensitive);
 	}
 
-	virtual void HandleHitchSummary(int32 TotalHitchCount, int32 TotalGameThreadBoundHitches, int32 TotalRenderThreadBoundHitches, int32 TotalGPUBoundHitches) override
+	virtual void HandleHitchSummary(int32 TotalHitchCount, int32 TotalGameThreadBoundHitches, int32 TotalRenderThreadBoundHitches, int32 TotalGPUBoundHitches, double TotalTimeSpentInHitchBuckets) override
 	{
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_HITCH_TOTAL"), *FString::Printf(TEXT("%i"), TotalHitchCount), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_HITCH_GAME_BOUND_COUNT"), *FString::Printf(TEXT("%i"), TotalGameThreadBoundHitches), ESearchCase::CaseSensitive);
@@ -920,25 +951,29 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 						const float HitchThresholdInSeconds = ( float )GHitchThresholds[ CurBucketIndex ] * MSToSeconds;
 						if (DeltaSeconds >= HitchThresholdInSeconds)
 						{
+							FHitchChartEntry& HitchChartEntry = GHitchChart[CurBucketIndex];
+							
 							// Increment the hitch count for this bucket
-							++GHitchChart[ CurBucketIndex ].HitchCount;
+							++HitchChartEntry.HitchCount;
 
+							// Add the time spent to this bucket
+							HitchChartEntry.FrameTimeSpentInBucket += DeltaSeconds;
 						
 							// Check to see what we were limited by this frame
 							if (GGameThreadTime >= (MaxThreadTimeValue - EpsilonCycles))
 							{
 								// Bound by game thread
-								++GHitchChart[ CurBucketIndex ].GameThreadBoundHitchCount;
+								++HitchChartEntry.GameThreadBoundHitchCount;
 							}
 							else if (LocalRenderThreadTime >= (MaxThreadTimeValue - EpsilonCycles))
 							{
 								// Bound by render thread
-								++GHitchChart[ CurBucketIndex ].RenderThreadBoundHitchCount;
+								++HitchChartEntry.RenderThreadBoundHitchCount;
 							}
 							else if( PossibleGPUTime == MaxThreadTimeValue )
 							{
 								// Bound by GPU
-								++GHitchChart[ CurBucketIndex ].GPUBoundHitchCount;
+								++HitchChartEntry.GPUBoundHitchCount;
 							}
 
 
@@ -1466,19 +1501,9 @@ void UEngine::DumpFPSChart( const FString& InMapName, bool bForceDump )
 		TotalTime += GFPSChart[BucketIndex].CummulativeTime;
 	}
 
-	bool bFPSChartIsActive = bForceDump;
+	const bool bFPSChartIsActive = bForceDump;
 
-	bool bMemoryChartIsActive = false;
-	if( FParse::Param( FCommandLine::Get(), TEXT("CaptureMemoryChartInfo") ) || FParse::Param( FCommandLine::Get(), TEXT("gCMCI") ) )
-	{
-		bMemoryChartIsActive = true;
-	}
-
-	if( ( bFPSChartIsActive == true )
-		&& ( TotalTime > 0.f ) 
-		&& ( NumFrames > 0 )
-		&& ( bMemoryChartIsActive == false ) // we do not want to dump out FPS stats if we have been gathering mem stats as that will probably throw off the stats
-		)
+	if (bFPSChartIsActive && (TotalTime > 0.f) && (NumFrames > 0))
 	{
 		// Log chart info to the log.
 		DumpFPSChartToLog( TotalTime, DeltaTime, NumFrames, InMapName );
@@ -1495,12 +1520,7 @@ void UEngine::DumpFPSChart( const FString& InMapName, bool bForceDump )
 	}
 }
 
-/**
-* Dumps the FPS chart information to the passed in archive for analytics.
-*
-* @param	InMapName	Name of the map (Or Global)
-*/
-void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsEventAttribute>& InParamArray)
+void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo)
 {
 	// Iterate over all buckets, gathering total frame count and cumulative time.
 	float TotalTime = 0;
@@ -1512,19 +1532,90 @@ void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsE
 		TotalTime += GFPSChart[BucketIndex].CummulativeTime;
 	}
 
-	bool bMemoryChartIsActive = false;
-	if (FParse::Param(FCommandLine::Get(), TEXT("CaptureMemoryChartInfo")) || FParse::Param(FCommandLine::Get(), TEXT("gCMI")))
-	{
-		bMemoryChartIsActive = true;
-	}
-
-	if (TotalTime > 0.f
-		&& NumFrames > 0
-		&& bMemoryChartIsActive == false)
+	if ((TotalTime > 0.f) && (NumFrames > 0))
 	{
 		if (FApp::IsGame())
 		{
+			// Dump all the basic stats
 			DumpFPSChartToAnalyticsParams(TotalTime, DeltaTime, NumFrames, InMapName, InParamArray);
+
+			if (bIncludeClientHWInfo)
+			{
+				// Dump some extra non-chart-based stats
+
+				// Get the system memory stats
+				FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalPhysical"), static_cast<uint64>(Stats.TotalPhysical)));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalVirtual"), static_cast<uint64>(Stats.TotalVirtual)));
+
+				// Get the texture memory stats
+				FTextureMemoryStats TexMemStats;
+				RHIGetTextureMemoryStats(TexMemStats);
+				const int32 DedicatedVRAM = FMath::DivideAndRoundUp(TexMemStats.DedicatedVideoMemory, (int64)(1024 * 1024));
+				const int32 DedicatedSystem = FMath::DivideAndRoundUp(TexMemStats.DedicatedSystemMemory, (int64)(1024 * 1024));
+				const int32 DedicatedShared = FMath::DivideAndRoundUp(TexMemStats.SharedSystemMemory, (int64)(1024 * 1024));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("VRAM"), DedicatedVRAM));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("VSYS"), DedicatedSystem));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("VSHR"), DedicatedShared));
+
+				// Get the benchmark results and resolution/display settings to phone home
+				const UGameUserSettings* UserSettingsObj = GEngine->GetGameUserSettings();
+				check(UserSettingsObj);
+
+				// Additional CPU information
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU_NumCoresP"), FPlatformMisc::NumberOfCores()));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU_NumCoresL"), FPlatformMisc::NumberOfCoresIncludingHyperthreads()));
+
+				// True adapter / driver version / etc... information
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUVendorID"), GRHIVendorId));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDeviceID"), GRHIDeviceId));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerI"), GRHIAdapterInternalDriverVersion.Trim().TrimTrailing()));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerU"), GRHIAdapterUserDriverVersion.Trim().TrimTrailing()));
+
+				// Benchmark results
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPUBM"), UserSettingsObj->GetLastCPUBenchmarkResult()));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUBM"), UserSettingsObj->GetLastGPUBenchmarkResult()));
+				
+				{
+					int32 StepIndex = 0;
+					for (float StepValue : UserSettingsObj->GetLastCPUBenchmarkSteps())
+					{
+						const FString StepName = FString::Printf(TEXT("CPUBM_%d"), StepIndex);
+						InParamArray.Add(FAnalyticsEventAttribute(StepName, StepValue));
+						++StepIndex;
+					}
+				}
+				{
+					int32 StepIndex = 0;
+					for (float StepValue : UserSettingsObj->GetLastGPUBenchmarkSteps())
+					{
+						const FString StepName = FString::Printf(TEXT("GPUBM_%d"), StepIndex);
+						InParamArray.Add(FAnalyticsEventAttribute(StepName, StepValue));
+						++StepIndex;
+					}
+				}
+
+				// Screen percentage (3D render resolution)
+				//@TODO: Change to use actual cvar (r.screenpercentage), right now this is just a dupe of ResolutionQuality above
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("ScreenPct"), UserSettingsObj->ScalabilityQuality.ResolutionQuality)); 
+
+				// Window mode and window/monitor resolution
+				const EWindowMode::Type FullscreenMode = UserSettingsObj->GetLastConfirmedFullscreenMode();
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("WindowMode"), (int32)FullscreenMode));
+
+				if (ensure(GameViewport && GameViewport->Viewport))
+				{
+					const FIntPoint ViewportSize = GameViewport->Viewport->GetSizeXY();
+					InParamArray.Add(FAnalyticsEventAttribute(TEXT("SizeX"), ViewportSize.X));
+					InParamArray.Add(FAnalyticsEventAttribute(TEXT("SizeY"), ViewportSize.Y));
+				}
+
+				const int32 VSyncValue = UserSettingsObj->IsVSyncEnabled() ? 1 : 0;
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("VSync"), (int32)VSyncValue));
+
+				const float FrameRateLimit = UserSettingsObj->GetFrameRateLimit();
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("FrameRateLimit"), FrameRateLimit));
+			}
 		}
 	}
 }

@@ -352,6 +352,20 @@ float UUserWidget::PauseAnimation(const UWidgetAnimation* InAnimation)
 	return 0;
 }
 
+float UUserWidget::GetAnimationCurrentTime(const UWidgetAnimation* InAnimation) const
+{
+	if (InAnimation)
+	{
+		const UUMGSequencePlayer*const* FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+		if (FoundPlayer)
+		{
+			return (float)(*FoundPlayer)->GetTimeCursorPosition();
+		}
+	}
+
+	return 0;
+}
+
 bool UUserWidget::IsAnimationPlaying(const UWidgetAnimation* InAnimation) const
 {
 	if (InAnimation)
@@ -369,6 +383,11 @@ bool UUserWidget::IsAnimationPlaying(const UWidgetAnimation* InAnimation) const
 	}
 
 	return false;
+}
+
+bool UUserWidget::IsAnyAnimationPlaying() const
+{
+	return ActiveSequencePlayers.Num() > 0;
 }
 
 void UUserWidget::SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 InNumLoopsToPlay)
@@ -964,12 +983,10 @@ void UUserWidget::StopListeningForAllInputActions()
 			InputComponent->RemoveActionBinding( ExistingIndex );
 		}
 
-		if ( APlayerController* Controller = GetOwningPlayer() )
-		{
-			Controller->PopInputComponent( InputComponent );
-		}
+		UnregisterInputComponent();
 
 		InputComponent->ClearActionBindings();
+		InputComponent->MarkPendingKill();
 		InputComponent = nullptr;
 	}
 }
@@ -991,6 +1008,28 @@ bool UUserWidget::IsListeningForInputAction( FName ActionName ) const
 	}
 
 	return bResult;
+}
+
+void UUserWidget::RegisterInputComponent()
+{
+	if ( InputComponent )
+	{
+		if ( APlayerController* Controller = GetOwningPlayer() )
+		{
+			Controller->PushInputComponent(InputComponent);
+		}
+	}
+}
+
+void UUserWidget::UnregisterInputComponent()
+{
+	if ( InputComponent )
+	{
+		if ( APlayerController* Controller = GetOwningPlayer() )
+		{
+			Controller->PopInputComponent(InputComponent);
+		}
+	}
 }
 
 void UUserWidget::SetInputActionPriority( int32 NewPriority )

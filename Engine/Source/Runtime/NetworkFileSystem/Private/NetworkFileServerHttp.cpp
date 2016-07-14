@@ -118,6 +118,8 @@ void libwebsocket_debugLog(int level, const char *line)
 }
 #endif
 
+FNetworkFileServerHttp* user_space_patch = NULL;
+
 bool FNetworkFileServerHttp::Init()
 {
 	// setup log level.
@@ -150,6 +152,20 @@ bool FNetworkFileServerHttp::Init()
 		UE_LOG(LogFileServer, Fatal, TEXT(" Could not create a libwebsocket content for port : %d"), Port);
 		return false;
 	}
+
+	// ========================================
+	// March 11 2016 - nick.shin
+	// libwebsocket_create_context() above is not setting the user_space pointer properly
+	// this can be corrected with the following two code changes:
+//#include "private-libwebsockets.h" // put this in NetworkFileServerHttp.h
+//	Context->user_space = this;
+	// but this fails in UE4 frontend with multiple defined symbols...
+
+	// i will continue to analyze this problem after today's ZBR day
+
+	// since, there's only one of 'this' object -- for now...
+	user_space_patch = this;
+	// ========================================
 
 	Ready.Set(true);
 	return true;
@@ -287,7 +303,8 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 			size_t Len)
 {
 	PerSessionData* BufferInfo = (PerSessionData*)User;
-	FNetworkFileServerHttp* Server = (FNetworkFileServerHttp*)libwebsocket_context_user(Context);
+//	FNetworkFileServerHttp* Server = (FNetworkFileServerHttp*)libwebsocket_context_user(Context);
+	FNetworkFileServerHttp* Server = user_space_patch; // see Init() for details...
 
 	switch (Reason)
 	{

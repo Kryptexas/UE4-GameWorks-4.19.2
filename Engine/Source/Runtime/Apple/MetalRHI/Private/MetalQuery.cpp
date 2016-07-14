@@ -109,11 +109,14 @@ void FMetalRenderQuery::Begin(FMetalContext* Context)
 		Result = 0;
 		bAvailable = false;
 		
-	#if PLATFORM_MAC
-		Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeCounting, Buffer.Offset);
-	#else
-		Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeBoolean, Buffer.Offset);
-	#endif
+		if ((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4) && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesCountingQueries))
+		{
+			Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeCounting, Buffer.Offset);
+		}
+		else
+		{
+			Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeBoolean, Buffer.Offset);
+		}
 	}
 }
 

@@ -58,11 +58,10 @@ void UAnimGraphNode_OrientationDriver::DrawCanvas(FViewport& InViewport, FSceneV
 	Canvas.DrawItem(InterpItem);
 	PosY += YDelta;
 
-	// List each pose with weight
 	int32 PoseIndex = 0;
-	for (const FOrientationDriverPose& Pose : DebugNode->Poses)
+	for (const FOrientationDriverPoseInfo& PoseInfo : DebugNode->PoseInfos)
 	{
-		FString PoseItemString = FString::Printf(TEXT("%d : %f"), PoseIndex, Pose.PoseWeight);
+		FString PoseItemString = FString::Printf(TEXT("%s : %f"), *PoseInfo.PoseName.ToString(), PoseInfo.PoseWeight);
 		FCanvasTextItem PoseItem(FVector2D(MarginX + XDelta, PosY), FText::FromString(PoseItemString), GEngine->GetSmallFont(), FLinearColor::White);
 		Canvas.DrawItem(PoseItem);
 		PosY += YDelta;
@@ -80,7 +79,7 @@ void UAnimGraphNode_OrientationDriver::DrawCanvas(FViewport& InViewport, FSceneV
 	// Iterate over Parameters
 	for (const FOrientationDriverParam& Param : DebugNode->ResultParamSet.Params)
 	{
-		FString ParamItemString = FString::Printf(TEXT("%s : %f"), *Param.ParameterName.ToString(), Param.ParameterValue);
+		FString ParamItemString = FString::Printf(TEXT("%s : %f"), *Param.ParamInfo.Name.ToString(), Param.ParamValue);
 		FCanvasTextItem ParamItem(FVector2D(MarginX + XDelta, PosY), FText::FromString(ParamItemString), GEngine->GetSmallFont(), FLinearColor::White);
 		Canvas.DrawItem(ParamItem);
 		PosY += YDelta;
@@ -98,50 +97,9 @@ void UAnimGraphNode_OrientationDriver::ValidateAnimNodeDuringCompilation(USkelet
 	Super::ValidateAnimNodeDuringCompilation(ForSkeleton, MessageLog);
 }
 
-
-void UAnimGraphNode_OrientationDriver::OnPoseAssetSelected(const FAssetData& AssetData)
-{
-
-}
-
-TSharedRef<SWidget> UAnimGraphNode_OrientationDriver::BuildPoseAssetPicker()
-{
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-
-	FAssetPickerConfig AssetPickerConfig;
-	AssetPickerConfig.Filter.ClassNames.Add(UPoseAsset::StaticClass()->GetFName());
-	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateUObject(this, &UAnimGraphNode_OrientationDriver::OnPoseAssetSelected);
-	AssetPickerConfig.bAllowNullSelection = true;
-	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-	AssetPickerConfig.bFocusSearchBoxWhenOpened = true;
-	AssetPickerConfig.bShowBottomToolbar = false;
-	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
-
-	return 
-		SNew(SBox)
-		.WidthOverride(384)
-		.HeightOverride(768)
-		[
-			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-		];
-}
-
 void UAnimGraphNode_OrientationDriver::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory("Import Driver Setup");
 
-	ImportCategory.AddCustomRow(LOCTEXT("ImportRow", "Import"))
-	[
-		SNew(SComboButton)
-		.ContentPadding(3)
-		.OnGetMenuContent(FOnGetContent::CreateUObject(this, &UAnimGraphNode_OrientationDriver::BuildPoseAssetPicker))
-		.ButtonContent()
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("ImportPosesFromPoseAsset ", "Import Poses From PoseAsset"))
-			.ToolTipText(LOCTEXT("ImportPosesFromPoseAssetTooltip", "Import target poses from a PoseAsset"))
-		]
-	];
 }
 
 

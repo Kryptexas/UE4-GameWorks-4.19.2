@@ -63,8 +63,10 @@ public:
 
 	virtual void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated) override;
 
-	/** handle after compile **/
-	UDebugSkelMeshComponent* GetPreviewMeshComponent();
+	/** Get the preview DebugSkelMeshComponent */
+	UDebugSkelMeshComponent* GetPreviewMeshComponent() const;
+	/** Get the AnimInstance associated with the preview DEbugSkelMeshComponent */
+	UAnimInstance* GetPreviewAnimInstance() const;
 
 	// Gets the skeleton being edited/viewed by this Persona instance
 	USkeleton* GetSkeleton() const;
@@ -696,7 +698,9 @@ private:
 	void OnAssetCreated(const TArray<UObject*> NewAssets);
 	TSharedRef< SWidget > GenerateCreateAssetMenu( USkeleton* Skeleton ) const;
 	void FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const;
+	void FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const;
 	void CreateAnimation(const TArray<UObject*> NewAssets, int32 Option);
+	void CreatePoseAsset(const TArray<UObject*> NewAssets, int32 Option);
 
 	/** Extend menu and toolbar */
 	void ExtendMenu();

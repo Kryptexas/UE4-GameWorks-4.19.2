@@ -220,7 +220,8 @@ static void UpdatePlanarReflectionContents_RenderThread(
 					SCOPED_DRAW_EVENT(RHICmdList, RenderScene);
 					SceneRenderer->Render(RHICmdList);
 				}
-				if(MainSceneRenderer->Scene->ShouldUseDeferredRenderer())
+
+				if (MainSceneRenderer->Scene->GetShadingPath() == EShadingPath::Deferred)
 				{
 					PrefilterPlanarReflection<true>(RHICmdList, View, SceneProxy, Target);
 					RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);

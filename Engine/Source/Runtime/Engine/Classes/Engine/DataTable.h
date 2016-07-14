@@ -22,6 +22,14 @@ struct FTableRowBase
 	GENERATED_USTRUCT_BODY()
 
 	FTableRowBase() { }
+
+	/** 
+	 * Can be overridden by subclasses; Called whenever the owning data table is imported or re-imported.
+	 * Allows for custom fix-ups, parsing, etc. after initial data is read in.
+	 * 
+	 * @param OutCollectedImportProblems	[OUT] List of problems accumulated during import; Can be added to via this method
+	 */
+	virtual void OnPostDataImport(OUT TArray<FString>& OutCollectedImportProblems) {}
 };
 
 
@@ -67,6 +75,27 @@ class UDataTable
 
 	//~ Begin UDataTable Interface
 
+	/** Get all of the rows in the table, regardless of name */
+	template <class T>
+	void GetAllRows(const FString& ContextString, OUT TArray<T*>& OutRowArray) const
+	{
+		if (RowStruct == nullptr)
+		{
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : DataTable '%s' has no RowStruct specified (%s)."), *GetPathName(), *ContextString);
+		}
+		else if (!RowStruct->IsChildOf(T::StaticStruct()))
+		{
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : Incorrect type specified for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+		}
+		else
+		{
+			for (TMap<FName, uint8*>::TConstIterator RowMapIter(RowMap.CreateConstIterator()); RowMapIter; ++RowMapIter)
+			{
+				OutRowArray.Add(reinterpret_cast<T*>(RowMapIter.Value()));
+			}
+		}	
+	}
+
 	/** Function to find the row of a table given its name. */
 	template <class T>
 	T* FindRow(FName RowName, const FString& ContextString, bool bWarnIfRowMissing = true) const
@@ -102,7 +131,7 @@ class UDataTable
 		uint8* RowData = *RowDataPtr;
 		check(RowData);
 
-		return (T*)RowData;
+		return reinterpret_cast<T*>(RowData);
 	}
 
 	/** Returns the column property where PropertyName matches the name of the column property. Returns nullptr if no match is found or the match is not a supported table property */
@@ -199,6 +228,14 @@ public:
 private:
 	void SaveStructData(FArchive& Ar);
 	void LoadStructData(FArchive& Ar);
+
+	/**
+	 * Called whenever new data is imported into the data table via CreateTableFrom*; Alerts each imported row and gives the
+	 * row struct a chance to operate on the imported data
+	 * 
+	 * @param OutCollectedImportProblems	[OUT] Array of strings of import problems
+	 */
+	void OnPostDataImported(OUT TArray<FString>& OutCollectedImportProblems);
 };
 
 

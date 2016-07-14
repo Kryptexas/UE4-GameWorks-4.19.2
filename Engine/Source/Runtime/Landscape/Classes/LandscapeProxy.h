@@ -493,7 +493,7 @@ public:
 #endif
 
 	/** Flag whether or not this Landscape's surface can be used for culling hidden triangles **/
-	UPROPERTY(EditAnywhere, Category = HLOD)
+	UPROPERTY(EditAnywhere, Category = HierarchicalLOD)
 	bool bUseLandscapeForCullingInvisibleHLODVertices;
 
 public:
@@ -657,6 +657,17 @@ public:
 	 * @return true if successful
 	 */
 	LANDSCAPE_API bool ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) const;
+
+
+	/**
+	* Exports landscape geometry contained within InBounds into a raw mesh
+	*
+	* @param InExportLOD Landscape LOD level to use while exporting, INDEX_NONE will use ALanscapeProxy::ExportLOD settings
+	* @param OutRawMesh - Resulting raw mesh
+	* @param InBounds - Box/Sphere bounds which limit the geometry exported out into OutRawMesh
+	* @return true if successful
+	*/
+	LANDSCAPE_API bool ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh, const FBoxSphereBounds& InBounds ) const;
 
 
 	/** @return Current size of bounding rectangle in quads space */

@@ -82,8 +82,6 @@ void FNiagaraEffectInstance::DeleteEmitter(TSharedPtr<FNiagaraSimulation> Emitte
 
 void FNiagaraEffectInstance::Tick(float DeltaSeconds)
 {
-	Constants.SetOrAdd(FName(TEXT("EffectGrid")), VolumeGrid);
-
 	// pass the constants down to the emitter
 	// TODO: should probably just pass a pointer to the table
 	EffectBounds.Init();

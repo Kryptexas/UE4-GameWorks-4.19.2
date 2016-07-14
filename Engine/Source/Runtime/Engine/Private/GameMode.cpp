@@ -8,7 +8,7 @@
 #include "Engine/LevelScriptActor.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "Matinee/MatineeActor.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/DefaultPawn.h"
 #include "GameFramework/SpectatorPawn.h"
@@ -169,15 +169,9 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 
 	if (GetNetMode() != NM_Standalone)
 	{
-		FOnlineSessionSettings* SessionSettings = NULL;
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-		if (SessionInt.IsValid())
-		{
-			SessionSettings = SessionInt->GetSessionSettings(GameSession->SessionName);
-		}
-
 		// Attempt to login, returning true means an async login is in flight
-		if (!SessionSettings && !GameSession->ProcessAutoLogin())
+		if (!UOnlineEngineInterface::Get()->DoesSessionExist(World, GameSession->SessionName) &&
+			!GameSession->ProcessAutoLogin())
 		{
 			GameSession->RegisterServer();
 		}
@@ -390,11 +384,18 @@ AActor* AGameMode::FindPlayerStart_Implementation( AController* Player, const FS
 	// always pick StartSpot at start of match
 	if ( ShouldSpawnAtStartSpot(Player) )
 	{
-		return Player->StartSpot.Get();
+		if (AActor* PlayerStartSpot = Player->StartSpot.Get())
+		{
+			return PlayerStartSpot;
+		}
+		else
+		{
+			UE_LOG(LogGameMode, Error, TEXT("Error - ShouldSpawnAtStartSpot returned true but the Player StartSpot was null."));
+		}
 	}
 
 	AActor* BestStart = ChoosePlayerStart(Player);
-	if (BestStart == NULL)
+	if (BestStart == nullptr)
 	{
 		// no player start found
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
@@ -1028,12 +1029,18 @@ void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
 
 FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal)
 {
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	return InitNewPlayer(NewPlayerController, UniqueIdRepl, Options, Portal);
+}
+
+FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal)
+{
 	check(NewPlayerController);
 
 	FString ErrorMessage;
 
 	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayerController, UniqueId, UGameplayStatics::HasOption(Options, TEXT("bIsFromInvite")));
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId.GetUniqueNetId(), UGameplayStatics::HasOption(Options, TEXT("bIsFromInvite")));
 
 	// Init player's name
 	FString InName = UGameplayStatics::ParseOption(Options, TEXT("Name")).Left(20);
@@ -1068,6 +1075,12 @@ bool AGameMode::MustSpectate_Implementation(APlayerController* NewPlayerControll
 }
 
 APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
+{
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	return Login(NewPlayer, InRemoteRole, Portal, Options, UniqueIdRepl, ErrorMessage);
+}
+
+APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 	if (!ErrorMessage.IsEmpty())
@@ -1259,6 +1272,12 @@ APlayerController* AGameMode::ProcessClientTravel( FString& FURL, FGuid NextMapG
 }
 
 void AGameMode::PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
+{
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	PreLogin(Options, Address, UniqueIdRepl, ErrorMessage);
+}
+
+void AGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 }
@@ -1544,13 +1563,15 @@ void AGameMode::PostCommitMapChange() {}
 void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* PC)
 {
 	check(PlayerState)
-	// don't store if it's an old PlayerState from the previous level or if it's a spectator
-	if (!PlayerState->bFromPreviousLevel && !PlayerState->bOnlySpectator)
+	UWorld* LocalWorld = GetWorld();
+	// don't store if it's an old PlayerState from the previous level or if it's a spectator... or if we are shutting down
+	if (!PlayerState->bFromPreviousLevel && !PlayerState->bOnlySpectator && !LocalWorld->bIsTearingDown)
 	{
 		APlayerState* const NewPlayerState = PlayerState->Duplicate();
 		if (NewPlayerState)
 		{
-			GetWorld()->GameState->RemovePlayerState(NewPlayerState);
+			// Side effect of Duplicate() adding PlayerState to PlayerArray (see APlayerState::PostInitializeComponents)
+			LocalWorld->GameState->RemovePlayerState(NewPlayerState);
 
 			// make PlayerState inactive
 			NewPlayerState->SetReplicates(false);

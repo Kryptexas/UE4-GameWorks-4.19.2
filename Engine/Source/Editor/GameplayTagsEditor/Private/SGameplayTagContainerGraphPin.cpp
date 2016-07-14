@@ -98,7 +98,7 @@ void SGameplayTagContainerGraphPin::ParseDefaultValueData()
 TSharedRef<SWidget> SGameplayTagContainerGraphPin::GetListContent()
 {
 	EditableContainers.Empty();
-	EditableContainers.Add( SGameplayTagWidget::FEditableGameplayTagContainerDatum( GraphPinObj, TagContainer.Get() ) );
+	EditableContainers.Add( SGameplayTagWidget::FEditableGameplayTagContainerDatum( GraphPinObj->GetOwningNode(), TagContainer.Get() ) );
 
 	return SNew( SVerticalBox )
 		+SVerticalBox::Slot()

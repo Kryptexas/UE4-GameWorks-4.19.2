@@ -294,6 +294,7 @@ namespace AutomationTool
 			this.CreateAppBundle = InParams.CreateAppBundle;
 			this.Distribution = InParams.Distribution;
 			this.Prereqs = InParams.Prereqs;
+			this.AppLocalDirectory = InParams.AppLocalDirectory;
 			this.NoBootstrapExe = InParams.NoBootstrapExe;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
@@ -379,6 +380,7 @@ namespace AutomationTool
 			bool? Package = null,
 			bool? Pak = null,
 			bool? Prereqs = null,
+			string AppLocalDirectory = null,
 			bool? NoBootstrapExe = null,
             bool? SignedPak = null,
             bool? NullRHI = null,
@@ -566,6 +568,7 @@ namespace AutomationTool
 			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
+			this.AppLocalDirectory = ParseParamValueIfNotSpecified(Command, AppLocalDirectory, "applocaldir", String.Empty, true);
 			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -633,7 +636,11 @@ namespace AutomationTool
 				if (Command != null)
 				{
 					var ClientConfig = Command.ParseParamValue("clientconfig");
-					if (ClientConfig != null)
+
+                    if (ClientConfig == null)
+                        ClientConfig = Command.ParseParamValue("config");
+
+                    if (ClientConfig != null)
 					{
 						this.ClientConfigsToBuild = new List<UnrealTargetConfiguration>();
 						var Configs = new ParamList<string>(ClientConfig.Split('+'));
@@ -748,7 +755,11 @@ namespace AutomationTool
 				if (Command != null)
 				{
 					var ServerConfig = Command.ParseParamValue("serverconfig");
-					if (ServerConfig != null && ServerConfigsToBuild == null)
+
+                    if (ServerConfig == null)
+                        ServerConfig = Command.ParseParamValue("config");
+
+                    if (ServerConfig != null)
 					{
 						this.ServerConfigsToBuild = new List<UnrealTargetConfiguration>();
 						var Configs = new ParamList<string>(ServerConfig.Split('+'));
@@ -1024,19 +1035,24 @@ namespace AutomationTool
         [Help("nativizeAssets", "Runs a \"nativization\" pass on Blueprint assets, converting then into C++ (replacing the assets with the generated source).")]
         public bool RunAssetNativization;
 
-		/// <summary>
-		/// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
-		/// </summary>
-        public List<FileReference> BlueprintPluginPaths = new List<FileReference>();
+        public struct BlueprintPluginKey
+        {
+            public bool Client;
+            public UnrealTargetPlatform TargetPlatform;
+        }
+        /// <summary>
+        /// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
+        /// </summary>
+        public Dictionary<BlueprintPluginKey, FileReference> BlueprintPluginPaths = new Dictionary<BlueprintPluginKey, FileReference>();
 
-		#endregion
+        #endregion
 
-		#region Build
+        #region Build
 
-		/// <summary>
-		/// Build: True if build step should be executed, command: -build
-		/// </summary>
-		[Help("build", "True if build step should be executed")]
+        /// <summary>
+        /// Build: True if build step should be executed, command: -build
+        /// </summary>
+        [Help("build", "True if build step should be executed")]
 		public bool Build { private set; get; }
 
 		/// <summary>
@@ -1529,7 +1545,10 @@ namespace AutomationTool
 		[Help("prereqs", "stage prerequisites along with the project")]
 		public bool Prereqs { get; set; }
 
-        [Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
+		[Help("applocaldir", "location of prerequisites for applocal deployment")]
+		public string AppLocalDirectory { get; set; }
+
+		[Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
         public bool Prebuilt { get; private set; }
 
         [Help("RunTimeoutSeconds", "timeout to wait after we lunch the game")]
@@ -2277,6 +2296,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("Distribution={0}", Distribution);
                 CommandUtils.LogLog("Prebuilt={0}", Prebuilt);
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);
+				CommandUtils.LogLog("AppLocalDirectory={0}", AppLocalDirectory);
 				CommandUtils.LogLog("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.LogLog("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.LogLog("Run={0}", Run);

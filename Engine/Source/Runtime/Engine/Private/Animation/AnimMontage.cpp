@@ -2094,7 +2094,7 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 				if(CurrentlyPlayingMontage.IsValid())
 				{
 					// set it's weight to 0
-					struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
+					struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
 					if(PrevAnimMontageInst)
 					{
 						// set weight to be 0
@@ -2112,7 +2112,7 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 				ensure(CurrentlyPlayingMontage.IsValid());
 			}
 
-			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
+			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
 			if(AnimMontageInst)
 			{
 				// need to set weight to be 1
@@ -2168,7 +2168,7 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 			if(CurrentlyPlayingMontage.IsValid())
 			{
 				// set it's weight to 0
-				struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
+				struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
 				if(PrevAnimMontageInst)
 				{
 					// set weight to be 0
@@ -2186,7 +2186,7 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 			ensure(CurrentlyPlayingMontage.IsValid());
 		}
 
-		struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
+		struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
 		if(AnimMontageInst)
 		{
 			// set weight to be 1

@@ -1336,8 +1336,27 @@ bool UCookOnTheFlyServer::TickChildCookers()
 		}
 	}
 	return true;
-
 }
+
+
+// callback just before the garbage collector gets called.
+void UCookOnTheFlyServer::PreGarbageCollect()
+{
+	PackageReentryData.Empty();
+}
+
+UCookOnTheFlyServer::FReentryData& UCookOnTheFlyServer::GetReentryData(const UPackage* Package)
+{
+	auto& CurrentReentryData = PackageReentryData.FindOrAdd(Package->GetFName());
+
+	if ( CurrentReentryData.FileName == NAME_None )
+	{
+		CurrentReentryData.FileName = Package->GetFName();
+		GetObjectsWithOuter(Package, CurrentReentryData.CachedObjectsInOuter);	
+	}
+	return CurrentReentryData;
+}
+
 
 uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackageCount )
 {
@@ -1462,11 +1481,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		FString LastLoadedMapName;
 
 		const FString BuildFilename = ToBuild.GetFilename().ToString();
-
-		if ( ToBuild.GetFilename() != CurrentReentryData.FileName )
-		{
-			CurrentReentryData.Reset( ToBuild.GetFilename() );
-		}
 
 		// if we have no target platforms then we want to cook because this will cook for all target platforms in that case
 		bool bShouldCook = TargetPlatformNames.Num() > 0 ? false : ShouldCook( BuildFilename, NAME_None );
@@ -1624,9 +1638,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 #if DEBUG_COOKONTHEFLY
 					UE_LOG( LogCook, Display, TEXT("Request for %s received going to save %s"), *BuildFilename, *PackageFilename );
 #endif
-					// CookedPackages.Add( ToBuild );
+					CookedPackages.Add( FFilePlatformCookedPackage(ToBuild,false) );
 					
-					// ToBuild.SetFilename( PackageFilename );
+					ToBuild.SetFilename( PackageFilename );
 				}
 				else
 				{
@@ -1689,14 +1703,18 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 
 
-		auto BeginPackageCacheForCookedPlatformData = [&]( const TArray<UObject*>& ObjectsInPackage )
+		auto BeginPackageCacheForCookedPlatformData = [&]( const UPackage* Package )
 		{
 			COOK_STAT(FScopedDurationTimer DurationTimer(DetailedCookStats::TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec));
-			if (CurrentReentryData.bBeginCacheFinished)
+
+			auto& CurrentReentryData = GetReentryData(Package);
+
+			if ( CurrentReentryData.bBeginCacheFinished )
 				return true;
-			for (; CurrentReentryData.BeginCacheCount < ObjectsInPackage.Num(); ++CurrentReentryData.BeginCacheCount)
+
+			for (; CurrentReentryData.BeginCacheCount < CurrentReentryData.CachedObjectsInOuter.Num(); ++CurrentReentryData.BeginCacheCount)
 			{
-				const auto& Obj = ObjectsInPackage[CurrentReentryData.BeginCacheCount];
+				const auto& Obj = CurrentReentryData.CachedObjectsInOuter[CurrentReentryData.BeginCacheCount];
 				for ( const auto& TargetPlatform : TargetPlatforms )
 				{
 					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
@@ -1714,10 +1732,15 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			return true;
 		};
 
-		auto FinishPackageCacheForCookedPlatformData = [&]( const TArray<UObject*>& ObjectsInPackage )
+		auto FinishPackageCacheForCookedPlatformData = [&]( const UPackage* Package )
 		{
 			COOK_STAT(FScopedDurationTimer DurationTimer(DetailedCookStats::TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec));
-			for (const auto& Obj : ObjectsInPackage)
+			auto& CurrentReentryData = GetReentryData(Package);
+
+			if ( CurrentReentryData.bFinishedCacheFinished )
+				return true;
+
+			for (const auto& Obj : CurrentReentryData.CachedObjectsInOuter)
 			{
 				for (const auto& TargetPlatform : TargetPlatforms)
 				{
@@ -1736,16 +1759,21 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						return false;
 					}
 				}
+			}
 
+			for (const auto& Obj: CurrentReentryData.CachedObjectsInOuter)
+			{
 				// if this objects data is cached then we can call FinishedCookedPLatformDataCache
 				// we can only safely call this when we are finished caching this object completely.
 				// this doesn't ever happen for cook in editor or cook on the fly mode
-				if (bIsAllDataCached && (CurrentCookMode == ECookMode::CookByTheBook))
+				if (CurrentCookMode == ECookMode::CookByTheBook)
 				{
 					// this might be run multiple times for a single object
 					Obj->WillNeverCacheCookedPlatformDataAgain();
 				}
 			}
+
+			CurrentReentryData.bFinishedCacheFinished = true;
 			return true;
 		};
 
@@ -1754,13 +1782,10 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			SCOPE_TIMER(CallBeginCacheForCookedPlatformData);
 			// cache the resources for this package for each platform
 			
-			TArray<UObject*> ObjectsInPackage;
-			GetObjectsWithOuter( PackagesToSave[0], ObjectsInPackage );
-
-			bIsAllDataCached &= BeginPackageCacheForCookedPlatformData(ObjectsInPackage);
+			bIsAllDataCached &= BeginPackageCacheForCookedPlatformData(PackagesToSave[0]);
 			if( bIsAllDataCached )
 			{
-				bIsAllDataCached &= FinishPackageCacheForCookedPlatformData(ObjectsInPackage);
+				bIsAllDataCached &= FinishPackageCacheForCookedPlatformData(PackagesToSave[0]);
 			}
 		}
 
@@ -1771,17 +1796,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			if (PrecacheTimeSlice > 0.0f)
 			{
 				TickPrecacheObjectsForPlatforms(PrecacheTimeSlice, TargetPlatforms);
-			}
-		}
-
-		// if ( IsRealtimeMode() )
-		{
-			if ( bIsAllDataCached == false )
-			{
-				// reque the current task and process it next tick
-				CookRequests.EnqueueUnique(ToBuild, true);
-				Result |= COSR_WaitingOnCache;
-				break; // break out of the package tick loop
 			}
 		}
 
@@ -1799,6 +1813,33 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
+
+		// if ( IsRealtimeMode() )
+		{
+			if ((bIsAllDataCached == false) && IsCookByTheBookMode() && !IsRealtimeMode())
+			{
+				// don't load anymore stuff unless we have space and we don't already have enough stuff to save
+				if ((!(Result & COSR_RequiresGC)) && 
+					(HasExceededMaxMemory()==false) && 
+					((Timer.NumPackagesSaved + PackagesToSave.Num()) < Timer.MaxNumPackagesToSave)) // if we don't need to GC and also we have memory then load some more packages ;)
+				{
+					CookRequests.EnqueueUnique(ToBuild, false);
+					continue;
+				}
+				else
+				{
+					//was gonna quit but didn't
+					UE_LOG(LogCook, Display, TEXT("Was gonna exit out but didn't num packages to save %d"), PackagesToSave.Num());
+
+					// reque the current task and process it next tick
+					/*
+					CookRequests.EnqueueUnique(ToBuild, true);
+					Result |= COSR_WaitingOnCache;
+					break; // break out of the package tick loop
+					*/
+				}
+			}
+		}
 
 		bool bFinishedSave = true;
 
@@ -1834,13 +1875,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 				bool bShouldFinishTick = false;
 
-				if (Timer.IsTimeUp())
+				if (IsCookByTheBookMode() && Timer.IsTimeUp())
 				{
 					bShouldFinishTick = true;
 					// our timeslice is up
 				}
 
-				if ( (IsRealtimeMode() || IsCookOnTheFlyMode()) && (I >= FirstUnsolicitedPackage) )
+				// if we are cook the fly then save the package which was requested as fast as we can because the client is waiting on it
+				if ( IsCookOnTheFlyMode() && (I >= FirstUnsolicitedPackage))
 				{
 					SCOPE_TIMER(WaitingForCachedCookedPlatformData);
 
@@ -1858,11 +1900,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 					bool bFinishedCachingCookedPlatformData = false;
 					// if we are in realtime mode then don't wait forever for the package to be ready
-					TArray<UObject*> ObjectsInPackage;
-					GetObjectsWithOuter( Package, ObjectsInPackage );
 					while ( (!Timer.IsTimeUp()) && IsRealtimeMode() && (bShouldFinishTick == false) )
 					{
-						if ( FinishPackageCacheForCookedPlatformData(ObjectsInPackage) == true )
+						if ( FinishPackageCacheForCookedPlatformData(Package) == true )
 						{
 							bFinishedCachingCookedPlatformData = true;
 							break;
@@ -1890,6 +1930,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							CookRequests.EnqueueUnique(FFilePlatformRequest(StandardFilename, AllTargetPlatformNames));
 						}
 					}
+					Result |= COSR_WaitingOnCache;
 
 					// break out of the loop
 					bFinishedSave = false;
@@ -1919,16 +1960,12 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if ( NextPackage != Package )
 				{
 					SCOPE_TIMER(PrecachePlatformDataForNextPackage);
-					TArray<UObject*> ObjectsInPackage;
-					GetObjectsWithOuter( NextPackage, ObjectsInPackage );
-					BeginPackageCacheForCookedPlatformData(ObjectsInPackage);
+					BeginPackageCacheForCookedPlatformData(NextPackage);
 				}
 				if ( NextNextPackage != NextPackage )
 				{
 					SCOPE_TIMER(PrecachePlatformDataForNextNextPackage);
-					TArray<UObject*> ObjectsInPackage;
-					GetObjectsWithOuter( NextNextPackage, ObjectsInPackage );
-					BeginPackageCacheForCookedPlatformData(ObjectsInPackage);
+					BeginPackageCacheForCookedPlatformData(NextNextPackage);
 				}
 
 
@@ -1938,15 +1975,18 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				{
 					// we don't want to break out of this function without saving all the packages
 					// we can skip this package and do it later though
-
-					TArray<UObject*> ObjectsInPackage;
-					GetObjectsWithOuter(Package, ObjectsInPackage);
-					if (FinishPackageCacheForCookedPlatformData(ObjectsInPackage) == false)
+					if (FinishPackageCacheForCookedPlatformData(Package) == false)
 					{
 						// add to back of queue
 						PackagesToSave.Add(Package);
+						UE_LOG(LogCook, Display, TEXT("Delaying save for package %s"), *PackageFName.ToString());
 						continue;
 					}
+				}
+
+				if (I > OriginalPackagesToSaveCount)
+				{
+					UE_LOG(LogCook, Display, TEXT("Forcing save package %s because requeued"), *PackageFName.ToString())
 				}
 
 
@@ -2045,13 +2085,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
-		// if after all this our requested file didn't get saved then we need to mark it as saved (this can happen if the file loaded didn't match the one we saved)
-		// for example say we request A.uasset which doesn't exist however A.umap exists, our load call will succeed as it will find A.umap, then the save will save A.umap
-		// our original package request will fail however
-		if ( !CookedPackages.Exists(ToBuild) )
-		{
-			CookedPackages.Add( FFilePlatformCookedPackage(ToBuild, false) );
-		}
 
 		// TODO: Daniel: this is reference code needs to be reimplemented on the callee side.
 		//  cooker can't depend on callee being able to garbage collect
@@ -2080,14 +2113,18 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 	}
 	
-
-	if ((CookRequests.HasItems() == false) && IsCookByTheBookRunning() && !(Result&COSR_WaitingOnChildCookers))
+	bool bHasRunStringAssetReferenceResolve = false;
+	bool bTriedToRunStringAssetReferenceResolve = false;
+	if ((CookRequests.HasItems() == false) && IsCookByTheBookRunning() && (!(Result&COSR_WaitingOnChildCookers)))
 	{
+		bTriedToRunStringAssetReferenceResolve = true;
 		// make sure we resolve all string asset references and nothing is loaded
 		if (GRedirectCollector.HasAnyStringAssetReferencesToResolve())
 		{
 			// resolve redirectors first
 			GRedirectCollector.ResolveStringAssetReference();
+			check(GRedirectCollector.HasAnyStringAssetReferencesToResolve() == false);
+			bHasRunStringAssetReferenceResolve = true;
 		}
 	}
 
@@ -2104,6 +2141,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		(!(Result & COSR_WaitingOnChildCookers)) )
 	{
 		check(IsCookByTheBookMode());
+		UE_LOG(LogCook, Display, TEXT("String asset reference resolve tried %d did %d"), bTriedToRunStringAssetReferenceResolve, bHasRunStringAssetReferenceResolve);
 		// if we are out of stuff and we are in cook by the book from the editor mode then we finish up
 		CookByTheBookFinished();
 	}
@@ -2205,6 +2243,30 @@ void UCookOnTheFlyServer::TickPrecacheObjectsForPlatforms(const float TimeSlice,
 	}
 
 }
+
+
+bool UCookOnTheFlyServer::HasExceededMaxMemory() const
+{
+	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
+
+	//  if we have less emmory free then we should have then gc some stuff
+	if ((MemStats.AvailablePhysical < MinFreeMemory) && 
+		(MinFreeMemory != 0) )
+	{
+		UE_LOG(LogCook, Display, TEXT("Available physical memory low %d bytes, exceeded max memory"), MemStats.AvailablePhysical);
+		return true;
+	}
+
+	uint64 UsedMemory = MemStats.UsedPhysical;
+	if ((UsedMemory >= MaxMemoryAllowance) &&
+		(MaxMemoryAllowance > 0u))
+	{
+		UE_LOG(LogCook, Display, TEXT("Used physical memory high %d bytes, exceeded max memory"), MemStats.UsedPhysical);
+		return true;
+	}
+	return false;
+}
+
 
 void UCookOnTheFlyServer::EditorTick( const float TimeSlice, const TArray<const ITargetPlatform*>& TargetPlatforms )
 {
@@ -2662,6 +2724,8 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	CurrentCookMode = DesiredCookMode;
 	CookFlags = InCookFlags;
 
+	FCoreUObjectDelegates::PreGarbageCollect.AddUObject(this, &UCookOnTheFlyServer::PreGarbageCollect);
+
 	if (IsCookByTheBookMode() && !IsCookingInEditor())
 	{
 		FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded);
@@ -2721,9 +2785,15 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 
 	int32 MaxMemoryAllowanceInMB = 8 * 1024;
 	GConfig->GetInt( TEXT("CookSettings"), TEXT("MaxMemoryAllowance"), MaxMemoryAllowanceInMB, GEditorIni );
+	MaxMemoryAllowanceInMB = FMath::Min(MaxMemoryAllowanceInMB, 0);
 	MaxMemoryAllowance = MaxMemoryAllowanceInMB * 1024LL * 1024LL;
 	
-	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb"), MaxMemoryAllowanceInMB);
+	int32 MinFreeMemoryInMB = 0;
+	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinFreeMemory"), MinFreeMemoryInMB, GEditorIni);
+	MinFreeMemoryInMB = FMath::Min(MinFreeMemoryInMB, 0);
+	MinFreeMemory = MinFreeMemoryInMB * 1024LL * 1024LL;
+
+	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb min free memory %dmb"), MaxMemoryAllowanceInMB, MinFreeMemoryInMB);
 
 	if (IsCookByTheBookMode())
 	{
@@ -5250,3 +5320,4 @@ bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetR
 }
 
 #undef LOCTEXT_NAMESPACE
+

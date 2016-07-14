@@ -285,7 +285,7 @@ public:
 	//~ Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties& GetNavAgentPropertiesRef() const override;
 	virtual FVector GetNavAgentLocation() const override;
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
+	virtual void GetMoveGoalReachTest(const AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	virtual bool ShouldPostponePathUpdates() const override;
 	virtual bool IsFollowingAPath() const override;
 	//~ End INavAgentInterface Interface

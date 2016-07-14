@@ -3,7 +3,6 @@
 #pragma once
 
 #include "NiagaraCommon.h"
-#include "VectorVMDataObject.h"
 #include "NiagaraConstantSet.generated.h"
 
 struct FNiagaraConstants;
@@ -17,7 +16,6 @@ private:
 	TMap<FNiagaraVariableInfo, float> ScalarConstants;
 	TMap<FNiagaraVariableInfo, FVector4> VectorConstants;
 	TMap<FNiagaraVariableInfo, FMatrix> MatrixConstants;
-	TMap<FNiagaraVariableInfo, class UNiagaraDataObject*> DataConstants;
 
 public:
 	FNiagaraConstantMap()
@@ -29,28 +27,22 @@ public:
 	void SetOrAdd(FNiagaraVariableInfo ID, float Sc);
 	void SetOrAdd(FNiagaraVariableInfo ID, const FVector4& Vc);
 	void SetOrAdd(FNiagaraVariableInfo ID, const FMatrix& Mc);
-	void SetOrAdd(FNiagaraVariableInfo ID, UNiagaraDataObject* Cc);
 	void SetOrAdd(FName Name, float Sc);
 	void SetOrAdd(FName Name, const FVector4& Vc);
 	void SetOrAdd(FName Name, const FMatrix& Mc);
-	void SetOrAdd(FName Name, class UNiagaraDataObject* Cc);
 
 	float* FindScalar(FNiagaraVariableInfo ID);
 	FVector4* FindVector(FNiagaraVariableInfo ID);
 	FMatrix* FindMatrix(FNiagaraVariableInfo ID);
-	UNiagaraDataObject* FindDataObj(FNiagaraVariableInfo ID);
 	const float* FindScalar(FNiagaraVariableInfo ID)const;
 	const FVector4* FindVector(FNiagaraVariableInfo ID)const;
 	const FMatrix* FindMatrix(FNiagaraVariableInfo ID)const;
-	UNiagaraDataObject* FindDataObj(FNiagaraVariableInfo ID) const;
 	float* FindScalar(FName Name);
 	FVector4* FindVector(FName Name);
 	FMatrix* FindMatrix(FName Name);
-	UNiagaraDataObject* FindDataObj(FName Name);
 	const float* FindScalar(FName Name)const;
 	const FVector4* FindVector(FName Name)const;
 	const FMatrix* FindMatrix(FName Name)const;
-	UNiagaraDataObject* FindDataObj(FName Name)const;
 
 	void Merge(FNiagaraConstants &InConstants);
 	void Merge(FNiagaraConstantMap &InMap);
@@ -58,17 +50,10 @@ public:
 	const TMap<FNiagaraVariableInfo, float> &GetScalarConstants()	const;
 	const TMap<FNiagaraVariableInfo, FVector4> &GetVectorConstants()	const;
 	const TMap<FNiagaraVariableInfo, FMatrix> &GetMatrixConstants()	const;
-	const TMap<FNiagaraVariableInfo, class UNiagaraDataObject*> &GetDataConstants()	const;
 
 
 	virtual bool Serialize(FArchive &Ar)
 	{
-		// TODO: can't serialize the data object constants at the moment; need to figure that out
-		Ar << ScalarConstants << VectorConstants << MatrixConstants;
-		if (Ar.UE4Ver() >= VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX)
-		{
-			Ar << DataConstants;
-		}
 		return true;
 	}
 };
@@ -144,24 +129,6 @@ struct FNiagaraConstants_Matrix : public FNiagaraConstantBase
 	FMatrix Value;
 };
 
-USTRUCT()
-struct FNiagaraConstants_DataObject : public FNiagaraConstantBase
-{
-	GENERATED_USTRUCT_BODY()
-
-	FNiagaraConstants_DataObject()
-	: Value(nullptr)
-	{}
-
-	FNiagaraConstants_DataObject(FName InName, UNiagaraDataObject* InValue)
-	: FNiagaraConstantBase(InName)
-	, Value(InValue)
-	{}
-
-	UPROPERTY(Instanced, VisibleAnywhere, Category = "Constant")
-	UNiagaraDataObject* Value;
-};
-
 //Dummy struct used to serialize in the old layout of FNiagaraConstants
 //This should be removed once everyone has recompiled and saved their scripts.
 USTRUCT()
@@ -176,16 +143,12 @@ struct FDeprecatedNiagaraConstants
 	TArray<FNiagaraVariableInfo> VectorConstantsInfo_DEPRECATED;
 	UPROPERTY()
 	TArray<FNiagaraVariableInfo> MatrixConstantsInfo_DEPRECATED;
-	//UPROPERTY()
-	TArray<FNiagaraVariableInfo> DataObjectConstantsInfo_DEPRECATED;
 	UPROPERTY()
 	TArray<float> ScalarConstants_DEPRECATED;
 	UPROPERTY()
 	TArray<FVector4> VectorConstants_DEPRECATED;
 	UPROPERTY()
 	TArray<FMatrix> MatrixConstants_DEPRECATED;
-	//UPROPERTY()
-	TArray<void*> DataObjectConstants_DEPRECATED;
 };
 
 USTRUCT()
@@ -201,19 +164,15 @@ public:
 	TArray<FNiagaraConstants_Vector> VectorConstants;
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Constant")
 	TArray<FNiagaraConstants_Matrix> MatrixConstants;
-	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Constant")
-	TArray<FNiagaraConstants_DataObject> DataObjectConstants;
 
 	NIAGARA_API void Empty();
 	NIAGARA_API void GetScalarConstant(int32 Index, float& OutValue, FNiagaraVariableInfo& OutInfo);
 	NIAGARA_API void GetVectorConstant(int32 Index, FVector4& OutValue, FNiagaraVariableInfo& OutInfo);
 	NIAGARA_API void GetMatrixConstant(int32 Index, FMatrix& OutValue, FNiagaraVariableInfo& OutInfo);
-	NIAGARA_API void GetDataObjectConstant(int32 Index, UNiagaraDataObject*& OutValue, FNiagaraVariableInfo& OutInfo);
 
 	const int32 GetNumScalarConstants()const{ return ScalarConstants.Num(); }
 	const int32 GetNumVectorConstants()const{ return VectorConstants.Num(); }
 	const int32 GetNumMatrixConstants()const{ return MatrixConstants.Num(); }
-	const int32 GetNumDataObjectConstants()const{ return DataObjectConstants.Num(); }
 
 	NIAGARA_API void Init(class UNiagaraEmitterProperties* EmitterProps, struct FNiagaraEmitterScriptProperties* ScriptProps);
 
@@ -226,23 +185,18 @@ public:
 	/** Fills the entire constants set into the constant table. */
 	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable)const;
 
-	void AppendBufferConstants(TArray<class UNiagaraDataObject*> &Objs) const;
-
 	/** 
 	Fills only selected constants into the table. In the order they appear in the array of passed names not the order they appear in the set. 
 	Checks the passed map for entires to superceed the default values in the set.
 	*/
 	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable, const FNiagaraConstantMap& Externals)const;
-	void AppendExternalBufferConstants(TArray<class UNiagaraDataObject*> &DataObjs, const FNiagaraConstantMap& Externals) const;
 
 	NIAGARA_API void SetOrAdd(const FNiagaraVariableInfo& Constant, float Value);
 	NIAGARA_API void SetOrAdd(const FNiagaraVariableInfo& Constant, const FVector4& Value);
 	NIAGARA_API void SetOrAdd(const FNiagaraVariableInfo& Constant, const FMatrix& Value);
-	NIAGARA_API void SetOrAdd(const FNiagaraVariableInfo& Constant, UNiagaraDataObject* Value);
 	NIAGARA_API void SetOrAdd(FName Name, float Value);
 	NIAGARA_API void SetOrAdd(FName Name, const FVector4& Value);
 	NIAGARA_API void SetOrAdd(FName Name, const FMatrix& Value);
-	NIAGARA_API void SetOrAdd(FName Name, UNiagaraDataObject* Value);
 
 	FORCEINLINE int32 NumScalars()const { return ScalarConstants.Num(); }
 	FORCEINLINE int32 NumVectors()const { return VectorConstants.Num(); }
@@ -257,7 +211,6 @@ public:
 	NIAGARA_API float* FindScalar(FName Name);
 	NIAGARA_API FVector4* FindVector(FName Name);
 	NIAGARA_API FMatrix* FindMatrix(FName Name);
-	NIAGARA_API UNiagaraDataObject* FindDataObj(FName Name);
 
 	/** Return the first constant used for this constant in a table. */
 	FORCEINLINE int32 GetTableIndex_Scalar(const FNiagaraVariableInfo& Constant)const
@@ -288,10 +241,5 @@ public:
 			return ScalarTableSize() + VectorTableSize() + Idx * 4;
 		}
 		return INDEX_NONE;
-	}
-
-	FORCEINLINE int32 GetTableIndex_DataObj(const FNiagaraVariableInfo& Constant)const
-	{ 
-		return DataObjectConstants.IndexOfByPredicate([&](const FNiagaraConstants_DataObject& V){ return Constant.Name == V.Name; });
 	}
 };

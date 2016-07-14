@@ -187,6 +187,11 @@ void UAbilitySystemComponent::SetNumericAttributeBase(const FGameplayAttribute &
 
 float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute) const
 {
+	if (Attribute.IsSystemAttribute())
+	{
+		return 0.f;
+	}
+
 	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
 
@@ -577,8 +582,10 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}
 
 	// Are we currently immune to this? (ApplicationImmunity)
-	if (ActiveGameplayEffects.HasApplicationImmunityToSpec(Spec))
+	const FActiveGameplayEffect* ImmunityGE=nullptr;
+	if (ActiveGameplayEffects.HasApplicationImmunityToSpec(Spec, ImmunityGE))
 	{
+		OnImmunityBlockGameplayEffect(Spec, ImmunityGE);
 		return FActiveGameplayEffectHandle();
 	}
 
@@ -947,6 +954,11 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 		}
 	}
 	return FActiveGameplayEffectHandle();
+}
+
+void UAbilitySystemComponent::OnImmunityBlockGameplayEffect(const FGameplayEffectSpec& Spec, const FActiveGameplayEffect* ImmunityGE)
+{
+	OnImmunityBlockGameplayEffectDelegate.Broadcast(Spec, ImmunityGE);
 }
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
@@ -1554,6 +1566,164 @@ void UAbilitySystemComponent::DebugLine(FAbilitySystemComponentDebugInfo& Info, 
 		}
 		LogStr += Str;
 		Info.Strings.Add(Str);
+	}
+}
+
+struct FASCDebugTargetInfo
+{
+	FASCDebugTargetInfo()
+	{
+		DebugCategoryIndex = 0;
+		DebugCategories.Add(TEXT("Attributes"));
+		DebugCategories.Add(TEXT("GameplayEffects"));
+		DebugCategories.Add(TEXT("Ability"));
+	}
+
+	TArray<FName> DebugCategories;
+	int32 DebugCategoryIndex;
+
+	TWeakObjectPtr<UWorld>	TargetWorld;
+	TWeakObjectPtr<UAbilitySystemComponent>	LastDebugTarget;
+};
+
+TArray<FASCDebugTargetInfo>	AbilitySystemDebugInfoList;
+
+FASCDebugTargetInfo* GetDebugTargetInfo(UWorld* World)
+{
+	FASCDebugTargetInfo* TargetInfo = nullptr;
+	for (FASCDebugTargetInfo& Info : AbilitySystemDebugInfoList )
+	{
+		if (Info.TargetWorld.Get() == World)
+		{
+			TargetInfo = &Info;
+			break;
+		}
+	}
+	if (TargetInfo == nullptr)
+	{
+		TargetInfo = &AbilitySystemDebugInfoList[AbilitySystemDebugInfoList.AddDefaulted()];
+		TargetInfo->TargetWorld = World;
+	}
+	return TargetInfo;
+}
+
+static void CycleDebugCategory(UWorld* InWorld)
+{
+	FASCDebugTargetInfo* TargetInfo = GetDebugTargetInfo(InWorld);
+	TargetInfo->DebugCategoryIndex = (TargetInfo->DebugCategoryIndex+1) % TargetInfo->DebugCategories.Num();
+}
+
+UAbilitySystemComponent* GetDebugTarget(FASCDebugTargetInfo* Info)
+{
+	// Return target if we already have one
+	if (UAbilitySystemComponent* ASC = Info->LastDebugTarget.Get())
+	{
+		return ASC;
+	}
+
+	// Find one
+	for (TObjectIterator<UAbilitySystemComponent> It; It; ++It)
+	{
+		if (UAbilitySystemComponent* ASC = *It)
+		{
+			// Make use it belongs to our world and will be valid in a TWeakObjPtr (e.g.  not pending kill)
+			if (ASC->GetWorld() == Info->TargetWorld.Get() && TWeakObjectPtr<UAbilitySystemComponent>(ASC).Get())
+			{
+				Info->LastDebugTarget = ASC;
+				if (ASC->AbilityActorInfo->IsLocallyControlledPlayer())
+				{
+					// Default to local player first
+					break;
+				}
+			}
+		}
+	}
+
+	return Info->LastDebugTarget.Get();
+}
+
+void CycleDebugTarget(FASCDebugTargetInfo* TargetInfo, bool Next)
+{
+	GetDebugTarget(TargetInfo);
+
+	// Build a list	of ASCs
+	TArray<UAbilitySystemComponent*> List;
+	for (TObjectIterator<UAbilitySystemComponent> It; It; ++It)
+	{
+		if (UAbilitySystemComponent* ASC = *It)
+		{
+			if (ASC->GetWorld() == TargetInfo->TargetWorld.Get())
+			{
+				List.Add(ASC);
+			}
+		}
+	}
+
+	// Search through list to find prev/next target
+	UAbilitySystemComponent* Previous = nullptr;
+	for (int32 idx=0; idx < List.Num() + 1; ++idx)
+	{
+		UAbilitySystemComponent* ASC = List[idx % List.Num()];
+
+		if (Next && Previous == TargetInfo->LastDebugTarget.Get())
+		{
+			TargetInfo->LastDebugTarget = ASC;
+			return;
+		}
+		if (!Next && ASC == TargetInfo->LastDebugTarget.Get())
+		{
+			TargetInfo->LastDebugTarget = Previous;
+			return;
+		}
+
+		Previous = ASC;
+	}
+}
+
+static void	AbilitySystemCycleDebugTarget(UWorld* InWorld, bool Next)
+{
+	CycleDebugTarget( GetDebugTargetInfo(InWorld), Next );
+}
+
+FAutoConsoleCommandWithWorld AbilitySystemNextDebugTargetCmd(
+	TEXT("AbilitySystem.Debug.NextTarget"),
+	TEXT("Targets next AbilitySystemComponent in ShowDebug AbilitySystem"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(AbilitySystemCycleDebugTarget, true)
+	);
+
+FAutoConsoleCommandWithWorld AbilitySystemPrevDebugTargetCmd(
+	TEXT("AbilitySystem.Debug.PrevTarget"),
+	TEXT("Targets previous AbilitySystemComponent in ShowDebug AbilitySystem"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(AbilitySystemCycleDebugTarget, false)
+	);
+
+static void	AbilitySystemDebugNextCategory(UWorld* InWorld, bool Next)
+{
+	CycleDebugTarget( GetDebugTargetInfo(InWorld), Next );
+}
+
+FAutoConsoleCommandWithWorld AbilitySystemDebugNextCategoryCmd(
+	TEXT("AbilitySystem.Debug.NextCategory"),
+	TEXT("Targets previous AbilitySystemComponent in ShowDebug AbilitySystem"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(CycleDebugCategory)
+	);
+
+void UAbilitySystemComponent::OnShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& YL, float& YPos)
+{
+	if (DisplayInfo.IsDisplayOn(TEXT("AbilitySystem")))
+	{
+		UWorld* World = HUD->GetWorld();
+		FASCDebugTargetInfo* TargetInfo = GetDebugTargetInfo(World);
+	
+		if (UAbilitySystemComponent* ASC = GetDebugTarget(TargetInfo))
+		{
+			TArray<FName> LocalDisplayNames;
+			LocalDisplayNames.Add( TargetInfo->DebugCategories[ TargetInfo->DebugCategoryIndex ] );
+
+			FDebugDisplayInfo LocalDisplayInfo( LocalDisplayNames, TArray<FName>() );
+
+			ASC->DisplayDebug(Canvas, LocalDisplayInfo, YL, YPos);
+		}
 	}
 }
 

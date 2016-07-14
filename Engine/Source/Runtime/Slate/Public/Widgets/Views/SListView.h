@@ -1053,6 +1053,13 @@ public:
 		return SelectedItems.Num();
 	}
 
+	/** Deletes all items and rebuilds the list */
+	void RebuildList()
+	{
+		WidgetGenerator.Clear();
+		RequestListRefresh();
+	}
+
 	/**
 	 * Returns a list of selected item indices, or an empty array if nothing is selected
 	 *

@@ -3130,7 +3130,7 @@ bool GameProjectUtils::HasDefaultBuildSettings(const FName InPlatformInfoName)
 	// first check default build settings for all platforms
 	TArray<FString> BoolKeys, IntKeys, StringKeys, BuildKeys;
 	BuildKeys.Add(TEXT("bCompileApex")); BuildKeys.Add(TEXT("bCompileBox2D")); BuildKeys.Add(TEXT("bCompileICU"));
-	BuildKeys.Add(TEXT("bCompileSimplygon")); BuildKeys.Add(TEXT("bCompileSimplygonSSF")); BuildKeys.Add(TEXT("bCompi8leLeanAndMeanUE"));
+	BuildKeys.Add(TEXT("bCompileSimplygon")); BuildKeys.Add(TEXT("bCompileSimplygonSSF")); BuildKeys.Add(TEXT("bCompileLeanAndMeanUE"));
 	BuildKeys.Add(TEXT("bIncludeADO"));	BuildKeys.Add(TEXT("bCompileRecast")); BuildKeys.Add(TEXT("bCompileSpeedTree"));
 	BuildKeys.Add(TEXT("bCompileWithPluginSupport")); BuildKeys.Add(TEXT("bCompilePhysXVehicle")); BuildKeys.Add(TEXT("bCompileFreeType"));
 	BuildKeys.Add(TEXT("bCompileForSize"));	BuildKeys.Add(TEXT("bCompileCEF3"));

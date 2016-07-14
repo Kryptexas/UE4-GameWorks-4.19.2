@@ -70,7 +70,20 @@ void FComponentTypeRegistryData::AddBasicShapeComponents(TArray<FComponentClassC
 		if (SMC)
 		{
 			const FString MaterialName = TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial");
-			SMC->SetMaterial(0, FindOrLoadObject<UMaterial>(MaterialName));
+			UMaterial* MaterialAsset = FindOrLoadObject<UMaterial>(MaterialName);
+			SMC->SetMaterial(0, MaterialAsset);
+
+			// If the component object is an archetype (template), propagate the material setting to any instances, as instances
+			// of the archetype will end up being created BEFORE we are able to set the override material on the template object.
+			if (SMC->HasAnyFlags(RF_ArchetypeObject))
+			{
+				TArray<UObject*> ArchetypeInstances;
+				SMC->GetArchetypeInstances(ArchetypeInstances);
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
+				{
+					CastChecked<UStaticMeshComponent>(ArchetypeInstance)->SetMaterial(0, MaterialAsset);
+				}
+			}
 		}
 	};
 

@@ -16,7 +16,7 @@ FMovieSceneSlomoTrackInstance::FMovieSceneSlomoTrackInstance(UMovieSceneSlomoTra
 	
 void FMovieSceneSlomoTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	AWorldSettings* WorldSettings = GWorld->GetWorldSettings();
+	AWorldSettings* WorldSettings = Player.GetPlaybackContext()->GetWorld()->GetWorldSettings();
 
 	if (WorldSettings == nullptr)
 	{
@@ -28,7 +28,7 @@ void FMovieSceneSlomoTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UOb
 
 void FMovieSceneSlomoTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	AWorldSettings* WorldSettings = GWorld->GetWorldSettings();
+	AWorldSettings* WorldSettings = Player.GetPlaybackContext()->GetWorld()->GetWorldSettings();
 
 	if (WorldSettings == nullptr)
 	{
@@ -43,12 +43,12 @@ void FMovieSceneSlomoTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObjec
 
 void FMovieSceneSlomoTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	if (!ShouldBeApplied())
+	if (!ShouldBeApplied(Player))
 	{
 		return;
 	}
 
-	AWorldSettings* WorldSettings = GWorld->GetWorldSettings();
+	AWorldSettings* WorldSettings = Player.GetPlaybackContext()->GetWorld()->GetWorldSettings();
 
 	if (WorldSettings == nullptr)
 	{
@@ -70,14 +70,14 @@ void FMovieSceneSlomoTrackInstance::Update(EMovieSceneUpdateData& UpdateData, co
 /* IMovieSceneTrackInstance implementation
  *****************************************************************************/
 
-bool FMovieSceneSlomoTrackInstance::ShouldBeApplied() const
+bool FMovieSceneSlomoTrackInstance::ShouldBeApplied(IMovieScenePlayer& InMovieScenePlayer) const
 {
 	if (GIsEditor)
 	{
 		return true;
 	}
 
-	if (GWorld->GetNetMode() == NM_Client)
+	if (InMovieScenePlayer.GetPlaybackContext()->GetWorld()->GetNetMode() == NM_Client)
 	{
 		return false;
 	}

@@ -34,6 +34,7 @@ struct CORE_API FAndroidPlatformProcess : public FGenericPlatformProcess
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
 	static class FRunnableThread* CreateRunnableThread();
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
+	static FString GetGameBundleId();
 };
 
 typedef FAndroidPlatformProcess FPlatformProcess;

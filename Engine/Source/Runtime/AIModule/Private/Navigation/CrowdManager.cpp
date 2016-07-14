@@ -141,6 +141,7 @@ UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Supe
 	bSingleAreaVisibilityOptimization = true;
 	bPruneStartedOffmeshConnections = false;
 	bEarlyReachTestOptimization = false;
+	bAllowPathReplan = true;
 	bResolveCollisions = false;
 	
 	FCrowdAvoidanceConfig AvoidanceConfig11;		// 11 samples, ECrowdAvoidanceQuality::Low
@@ -220,6 +221,7 @@ void UCrowdManager::Tick(float DeltaTime)
 			}
 
 			// regular steps
+			if (bAllowPathReplan)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepPathsTime);
 				DetourCrowd->updateStepPaths(DeltaTime, DetourAgentDebug);

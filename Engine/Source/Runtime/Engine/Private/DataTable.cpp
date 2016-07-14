@@ -105,6 +105,25 @@ void UDataTable::SaveStructData(FArchive& Ar)
 	}
 }
 
+void UDataTable::OnPostDataImported(TArray<FString>& OutCollectedImportProblems)
+{
+	if (RowStruct && RowStruct->IsChildOf(FTableRowBase::StaticStruct()))
+	{
+		static const FString ContextString(TEXT("UDataTable::OnPostDataImport"));
+		
+		TArray<FTableRowBase*> TableRowBaseRows;
+		GetAllRows(ContextString, TableRowBaseRows);
+
+		for (FTableRowBase* CurRow : TableRowBaseRows)
+		{
+			if (CurRow)
+			{
+				CurRow->OnPostDataImport(OutCollectedImportProblems);
+			}
+		}
+	}
+}
+
 void UDataTable::Serialize( FArchive& Ar )
 {
 #if WITH_EDITORONLY_DATA
@@ -461,9 +480,20 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const TArray<const TCHAR*>&
 	}
 
 	// Generate warning for any properties in struct we are not filling in
-	for(int32 PropIdx=0; PropIdx < ExpectedPropNames.Num(); PropIdx++)
+	for (int32 PropIdx=0; PropIdx < ExpectedPropNames.Num(); PropIdx++)
 	{
 		const UProperty* const ColumnProp = FindField<UProperty>(InRowStruct, ExpectedPropNames[PropIdx]);
+
+#if WITH_EDITOR
+		// If the structure has specified the property as optional for import (gameplay code likely doing a custom fix-up or parse of that property),
+		// then avoid warning about it
+		static const FName DataTableImportOptionalMetadataKey(TEXT("DataTableImportOptional"));
+		if (ColumnProp->HasMetaData(DataTableImportOptionalMetadataKey))
+		{
+			continue;
+		}
+#endif // WITH_EDITOR
+
 		const FString DisplayName = DataTableUtils::GetPropertyDisplayName(ColumnProp, ExpectedPropNames[PropIdx].ToString());
 		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *DisplayName));
 	}
@@ -477,6 +507,7 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 	TArray<FString> OutProblems;
 
 	FDataTableImporterCSV(*this, InString, OutProblems).ReadTable();
+	OnPostDataImported(OutProblems);
 
 	return OutProblems;
 }
@@ -487,6 +518,7 @@ TArray<FString> UDataTable::CreateTableFromJSONString(const FString& InString)
 	TArray<FString> OutProblems;
 
 	FDataTableImporterJSON(*this, InString, OutProblems).ReadTable();
+	OnPostDataImported(OutProblems);
 
 	return OutProblems;
 }

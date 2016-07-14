@@ -167,7 +167,7 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 		{
 			// Go ahead and make this bone physical.
 			int32 NewBodyIndex = CreateNewBody(PhysicsAsset, BoneName);
-			UBodySetup* bs = PhysicsAsset->BodySetup[NewBodyIndex];
+			UBodySetup* bs = PhysicsAsset->SkeletalBodySetups[NewBodyIndex];
 			check(bs->BoneName == BoneName);
 
 			// Fill in collision info for this bone.
@@ -211,7 +211,7 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 		}
 	}
 
-	return PhysicsAsset->BodySetup.Num() > 0;
+	return PhysicsAsset->SkeletalBodySetups.Num() > 0;
 }
 
 bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage)
@@ -559,13 +559,13 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 		return;
 	}
 
-	UBodySetup* Body1 = PhysAsset->BodySetup[BaseBodyIndex];
+	UBodySetup* Body1 = PhysAsset->SkeletalBodySetups[BaseBodyIndex];
 	int32 Bone1Index = SkelComp->SkeletalMesh->RefSkeleton.FindBoneIndex(Body1->BoneName);
 	check(Bone1Index != INDEX_NONE);
 	FTransform Bone1TM = SkelComp->GetBoneTransform(Bone1Index);
 	Bone1TM.RemoveScaling();
 
-	UBodySetup* Body2 = PhysAsset->BodySetup[AddBodyIndex];
+	UBodySetup* Body2 = PhysAsset->SkeletalBodySetups[AddBodyIndex];
 	int32 Bone2Index = SkelComp->SkeletalMesh->RefSkeleton.FindBoneIndex(Body2->BoneName);
 	check(Bone2Index != INDEX_NONE);
 	FTransform Bone2TM = SkelComp->GetBoneTransform(Bone2Index);
@@ -610,7 +610,7 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 	// We need to update the collision disable table to shift any pairs that included body2 to include body1 instead.
 	// We remove any pairs that include body2 & body1.
 
-	for(int32 i=0; i<PhysAsset->BodySetup.Num(); i++)
+	for(int32 i=0; i<PhysAsset->SkeletalBodySetups.Num(); i++)
 	{
 		if(i == AddBodyIndex) 
 			continue;
@@ -726,13 +726,13 @@ int32 CreateNewBody(UPhysicsAsset* PhysAsset, FName InBodyName)
 		return BodyIndex; // if we already have one for this name - just return that.
 	}
 
-	UBodySetup* NewBodySetup = NewObject<UBodySetup>(PhysAsset, NAME_None, RF_Transactional);
+	USkeletalBodySetup* NewBodySetup = NewObject<USkeletalBodySetup>(PhysAsset, NAME_None, RF_Transactional);
 	// make default to be use complex as simple 
 	NewBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 	// newly created bodies default to simulating
 	NewBodySetup->PhysicsType = PhysType_Default;
 
-	int32 BodySetupIndex = PhysAsset->BodySetup.Add( NewBodySetup );
+	int32 BodySetupIndex = PhysAsset->SkeletalBodySetups.Add( NewBodySetup );
 	NewBodySetup->BoneName = InBodyName;
 
 	PhysAsset->UpdateBodySetupIndexMap();
@@ -751,7 +751,7 @@ void DestroyBody(UPhysicsAsset* PhysAsset, int32 bodyIndex)
 	// All elements which refer to a body with index >bodyIndex are adjusted. 
 
 	TMap<FRigidBodyIndexPair,bool> NewCDT;
-	for(int32 i=1; i<PhysAsset->BodySetup.Num(); i++)
+	for(int32 i=1; i<PhysAsset->SkeletalBodySetups.Num(); i++)
 	{
 		for(int32 j=0; j<i; j++)
 		{
@@ -786,7 +786,7 @@ void DestroyBody(UPhysicsAsset* PhysAsset, int32 bodyIndex)
 	}
 
 	// Remove pointer from array. Actual objects will be garbage collected.
-	PhysAsset->BodySetup.RemoveAt(bodyIndex);
+	PhysAsset->SkeletalBodySetups.RemoveAt(bodyIndex);
 
 	PhysAsset->UpdateBodySetupIndexMap();
 	// Update body indices.

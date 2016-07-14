@@ -829,21 +829,29 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 {
 	if( GConfig )
 	{
-		FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIni );
-		for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
+		// Go over all configs so that plugins/etc have a chance to register TaggedPropertyRedirects
+		for (const auto& ConfigPair : *GConfig)
 		{
-			if( It.Key() == TEXT("TaggedPropertyRedirects") )
+			const FString& ConfigFilename = ConfigPair.Key;
+
+			if (FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, ConfigFilename ))
 			{
-				FName ClassName = NAME_None;
-				FName OldPropertyName = NAME_None;
-				FName NewPropertyName = NAME_None;
+				for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
+				{
+					if( It.Key() == TEXT("TaggedPropertyRedirects") )
+					{
+						FName ClassName = NAME_None;
+						FName OldPropertyName = NAME_None;
+						FName NewPropertyName = NAME_None;
 
-				FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
-				FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
-				FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
+						FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
+						FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
+						FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
 
-				check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
-				TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
+						check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
+						TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
+					}
+				}
 			}
 		}
 	}
@@ -1617,7 +1625,7 @@ static TMap<FName,UScriptStruct::ICppStructOps*>& GetDeferredCppStructOps()
 	{
 		~TMapWithAutoCleanup()
 		{
-			for (PairSetType::TConstIterator It(Pairs); It; ++It)
+			for (ElementSetType::TConstIterator It(Pairs); It; ++It)
 			{
 				delete It->Value;
 			}
@@ -2154,7 +2162,11 @@ void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 		{
 			for (int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++)
 			{
-				TheCppStructOps->Construct(Dest + ArrayIndex * Stride);
+				void* PropertyDest = Dest + ArrayIndex * Stride;
+				checkf(IsAligned(PropertyDest, TheCppStructOps->GetAlignment()),
+					TEXT("Destination address for property does not match requirement of %d byte alignment"), 
+					TheCppStructOps->GetAlignment());
+				TheCppStructOps->Construct(PropertyDest);
 			}
 		}
 
@@ -4678,6 +4690,15 @@ void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)
 	Timelines.Empty();
 
 	AnimClassImplementation = nullptr;
+}
+
+UObject* UDynamicClass::FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const
+{
+	UDynamicClass* ThisClass = const_cast<UDynamicClass*>(this);
+	UObject* Archetype = static_cast<UObject*>(FindObjectWithOuter(ThisClass, ArchetypeClass, ArchetypeName));
+	const UClass* SuperClass = GetSuperClass();
+	return Archetype ? Archetype :
+		(SuperClass ? SuperClass->FindArchetype(ArchetypeClass, ArchetypeName) : nullptr);
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,

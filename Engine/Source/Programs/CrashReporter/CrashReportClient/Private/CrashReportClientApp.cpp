@@ -341,6 +341,11 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		FCrashReportAnalytics::Shutdown();
 		FQoSReporter::Shutdown();
 	}
+	else
+	{
+		// Needed to let systems that are shutting down that we are shutting down by request
+		GIsRequestingExit = true;
+	}
 
 	FPrimaryCrashProperties::Shutdown();
 	FPlatformErrorReport::ShutDown();

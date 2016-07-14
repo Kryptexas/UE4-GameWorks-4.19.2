@@ -236,6 +236,7 @@ bool					GUseSeekFreeLoading				= false;
 uint32					GGameThreadId					= 0;
 uint32					GRenderThreadId					= 0;
 uint32					GSlateLoadingThreadId			= 0;
+uint32					GAudioThreadId					= 0;
 /** Has GGameThreadId been set yet?																			*/
 bool					GIsGameThreadIdInitialized		= false;
 

@@ -10,7 +10,8 @@ public class Sequencer : ModuleRules
             new string[] {
                 "Editor/Sequencer/Private",
                 "Editor/Sequencer/Private/DisplayNodes",
-            }
+				"Editor/UnrealEd/Private" // TODO: Fix this, for now it's needed for the fbx exporter
+	}
         );
 
 		PrivateDependencyModuleNames.AddRange(
@@ -43,7 +44,9 @@ public class Sequencer : ModuleRules
 				"PropertyEditor",
 				"Kismet",
 				"SceneOutliner",
-				"SequenceRecorder"
+				"SequenceRecorder",
+				"MainFrame",
+				"DesktopPlatform"
 			}
 		);
 
@@ -55,9 +58,11 @@ public class Sequencer : ModuleRules
 				"WorkspaceMenuStructure",
 				"SequenceRecorder",
 				"SequenceRecorderSections",
+				"MainFrame",
 			}
 		);
 
 		CircularlyReferencedDependentModules.Add("MovieSceneTools");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "FBX");
 	}
 }

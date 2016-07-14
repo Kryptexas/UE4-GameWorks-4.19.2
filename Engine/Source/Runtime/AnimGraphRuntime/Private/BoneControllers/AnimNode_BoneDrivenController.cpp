@@ -188,7 +188,7 @@ void FAnimNode_BoneDrivenController::EvaluateComponentSpaceInternal(FComponentSp
 		FSmartNameMapping::UID NameUID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, ParameterName);
 		if (NameUID != FSmartNameMapping::MaxUID)
 		{
-			Context.Curve.Set(NameUID, FinalDriverValue, (DestinationMode == EDrivenDestinationMode::MorphTarget) ? EAnimCurveFlags::ACF_DrivesMorphTarget : EAnimCurveFlags::ACF_DrivesMaterial);
+			Context.Curve.Set(NameUID, FinalDriverValue, (DestinationMode == EDrivenDestinationMode::MorphTarget) ? EAnimCurveFlags::ACF_DriveMorphTarget : EAnimCurveFlags::ACF_DriveMaterial);
 		}
 	}
 }

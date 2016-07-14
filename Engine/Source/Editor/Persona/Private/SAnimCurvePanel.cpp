@@ -463,7 +463,7 @@ void SCurveEdTrack::DeleteTrack()
 
 void SCurveEdTrack::ToggleCurveMode(ECheckBoxState NewState,EAnimCurveFlags ModeToSet)
 {
-	const int32 AllModes = (ACF_DrivesMorphTarget|ACF_DrivesMaterial|ACF_DrivesPose);
+	const int32 AllModes = (ACF_DriveMorphTarget|ACF_DriveMaterial);
 	check((ModeToSet&AllModes) != 0); //unexpected value for ModeToSet
 
 	FText UndoLabel;
@@ -472,32 +472,24 @@ void SCurveEdTrack::ToggleCurveMode(ECheckBoxState NewState,EAnimCurveFlags Mode
 	
 	if(bIsSwitchingFlagOn)
 	{
-		if(ModeToSet == ACF_DrivesMorphTarget)
+		if(ModeToSet == ACF_DriveMorphTarget)
 		{
 			UndoLabel = LOCTEXT("AnimCurve_TurnOnMorphMode", "Enable driving of morph targets");
 		}
-		else if(ModeToSet == ACF_DrivesMaterial)
+		else if(ModeToSet == ACF_DriveMaterial)
 		{
 			UndoLabel = LOCTEXT("AnimCurve_TurnOnMaterialMode", "Enable driving of materials");
-		}
-		else if (ModeToSet == ACF_DrivesPose)
-		{
-			UndoLabel = LOCTEXT("AnimCurve_TurnOnPoseMode", "Enable driving of pose");
 		}
 	}
 	else
 	{
-		if(ModeToSet == ACF_DrivesMorphTarget)
+		if(ModeToSet == ACF_DriveMorphTarget)
 		{
 			UndoLabel = LOCTEXT("AnimCurve_TurnOffMorphMode", "Disable driving of morph targets");
 		}
-		else if(ModeToSet == ACF_DrivesMaterial)
+		else if(ModeToSet == ACF_DriveMaterial)
 		{
 			UndoLabel = LOCTEXT("AnimCurve_TurnOffMaterialMode", "Disable driving of materials");
-		}
-		else if (ModeToSet == ACF_DrivesPose)
-		{
-			UndoLabel = LOCTEXT("AnimCurve_TurnOffPoseMode", "Disable driving of pose");
 		}
 	}
 
@@ -796,8 +788,8 @@ FReply SAnimCurvePanel::OnContextMenu()
 	{
 		MenuBuilder.AddWidget(
 			SNew(SCheckBox)
-			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DrivesMorphTarget )
-			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DrivesMorphTarget )
+			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DriveMorphTarget )
+			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DriveMorphTarget )
 			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target"))
 			[
 				SNew(STextBlock)
@@ -808,8 +800,8 @@ FReply SAnimCurvePanel::OnContextMenu()
 
 		MenuBuilder.AddWidget(
 			SNew(SCheckBox)
-			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DrivesMaterial )
-			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DrivesMaterial )
+			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DriveMaterial )
+			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DriveMaterial )
 			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material"))
 			.HAlign(HAlign_Left)
 			[
@@ -818,18 +810,6 @@ FReply SAnimCurvePanel::OnContextMenu()
 			],
 			FText()
 		);
-		MenuBuilder.AddWidget(
-			SNew(SCheckBox)
-			.IsChecked(this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DrivesPose)
-			.OnCheckStateChanged(this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DrivesPose)
-			.ToolTipText(LOCTEXT("PoseCurveModeTooltip", "This curve drives a pose"))
-			.HAlign(HAlign_Left)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("PoseCurveMode", "Pose Curve"))
-			],
-			FText()
-			);
 	}
 	MenuBuilder.EndSection();
 
@@ -1330,8 +1310,8 @@ TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FAnimCurveBaseInterf
 	{
 		MenuBuilder.AddWidget(
 			SNew(SCheckBox)
-			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DrivesMorphTarget)
-			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DrivesMorphTarget)
+			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DriveMorphTarget)
+			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DriveMorphTarget)
 			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target"))
 			[
 				SNew(STextBlock)
@@ -1342,24 +1322,12 @@ TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FAnimCurveBaseInterf
 
 		MenuBuilder.AddWidget(
 			SNew(SCheckBox)
-			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DrivesMaterial)
-			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DrivesMaterial)
+			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DriveMaterial)
+			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DriveMaterial)
 			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material"))
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("MaterialCurveMode", "Material Curve"))
-			],
-			FText()
-			);
-
-		MenuBuilder.AddWidget(
-			SNew(SCheckBox)
-			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DrivesPose)
-			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DrivesPose)
-			.ToolTipText(LOCTEXT("PoseCurveModeTooltip", "This curve drives a pose asset"))
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("PoseCurveMode", "Pose Curve"))
 			],
 			FText()
 			);

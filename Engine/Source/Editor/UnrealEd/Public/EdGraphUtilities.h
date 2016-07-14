@@ -70,7 +70,7 @@ public:
 	  * @param OutClonedNodes			Will populate with a full list of cloned nodes if provided
 	  * @param bInIsCompiling			TRUE if the function is being called during compilation, this will eliminate some nodes that will not be compiled
 	  */
-	static void CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* SourceGraph, FCompilerResultsLog& MessageLog, bool bRequireSchemaMatch, bool bInIsCompiling = false, TArray<UEdGraphNode*>* OutClonedNodes = NULL);
+	static void CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* SourceGraph, FCompilerResultsLog& MessageLog, bool bRequireSchemaMatch, bool bInIsCompiling = false, bool bCreateBoundaryNodes = false, TArray<UEdGraphNode*>* OutClonedNodes = NULL);
 
 	/**
 	 * Moves the contents of all of the children graphs of ParentGraph (recursively) into the MergeTarget graph.
@@ -161,7 +161,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE void Reset()
 	{
 		PinName = TEXT("");
-		PinObjectPtr.Reset();
+		PinReference = FEdGraphPinReference();
 		NodeObjectPtr.Reset();
 	}
 
@@ -169,7 +169,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE void operator=(const FWeakGraphPinPtr &OtherPinPtr)
 	{
 		PinName = OtherPinPtr.PinName;
-		PinObjectPtr = OtherPinPtr.PinObjectPtr;
+		PinReference = OtherPinPtr.PinReference;
 		NodeObjectPtr = OtherPinPtr.NodeObjectPtr;
 	}
 
@@ -180,7 +180,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE bool operator==(const FWeakGraphPinPtr &OtherPinPtr) const
 	{
 		return PinName.Equals(OtherPinPtr.PinName)
-			&& PinObjectPtr == OtherPinPtr.PinObjectPtr
+			&& PinReference == OtherPinPtr.PinReference
 			&& NodeObjectPtr == OtherPinPtr.NodeObjectPtr;
 	}
 
@@ -188,7 +188,7 @@ struct FWeakGraphPinPtr
 	FORCEINLINE bool operator!=(const FWeakGraphPinPtr &OtherPinPtr) const
 	{
 		return !PinName.Equals(OtherPinPtr.PinName)
-			|| PinObjectPtr != OtherPinPtr.PinObjectPtr
+			|| PinReference.Get() != OtherPinPtr.PinReference.Get()
 			|| NodeObjectPtr != OtherPinPtr.NodeObjectPtr;
 	}
 
@@ -218,7 +218,7 @@ private:
 	FString PinName;
 
 	/** Weak reference to the UEdGraphPin object */
-	TWeakObjectPtr<class UEdGraphPin> PinObjectPtr;
+	FEdGraphPinReference PinReference;
 
 	/** Weak reference to the UEdGraphNode object that owns the pin object */
 	TWeakObjectPtr<class UEdGraphNode> NodeObjectPtr;

@@ -852,7 +852,7 @@ bool FGameplayTagContainer::NetSerialize(FArchive& Ar, class UPackageMap* Map, b
 	{
 		uint8 NumTags = GameplayTags.Num();
 		uint8 MaxSize = (1 << UGameplayTagsManager::NumBitsForContainerSize);
-		if (!ensureMsgf(NumTags < MaxSize, TEXT("TagContainer has %d elements when max is %d! Tags: %s"), NumTags, NumTags, *ToStringSimple()))
+		if (!ensureMsgf(NumTags < MaxSize, TEXT("TagContainer has %d elements when max is %d! Tags: %s"), NumTags, MaxSize, *ToStringSimple()))
 		{
 			NumTags = MaxSize - 1;
 		}
@@ -1018,6 +1018,41 @@ void FGameplayTag::PostSerialize(const FArchive& Ar)
 		// Rename any tags that may have changed by the ini file.
 		TagManager.RedirectSingleGameplayTag(*this, Ar.GetSerializedProperty());
 	}
+}
+
+bool FGameplayTag::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+{
+	FString ImportedTag = TEXT("");
+	const TCHAR* NewBuffer = UPropertyHelpers::ReadToken(Buffer, ImportedTag, true);
+	if (!NewBuffer)
+	{
+		// Failed to read buffer. Maybe normal ImportText will work.
+		return false;
+	}
+
+	if (ImportedTag == TEXT("None") || ImportedTag.IsEmpty())
+	{
+		// TagName was none
+		TagName = NAME_None;
+		return true;
+	}
+
+	if (ImportedTag[0] == '(')
+	{
+		// Let normal ImportText handle this. It appears to be prepared for it.
+		return false;
+	}
+
+	FName ImportedTagName = FName(*ImportedTag);
+	if (IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(ImportedTagName))
+	{
+		// We found the tag. Assign it here.
+		TagName = ImportedTagName;
+		return true;
+	}
+
+	// Let normal ImportText try.
+	return false;
 }
 
 FGameplayTagQuery::FGameplayTagQuery()

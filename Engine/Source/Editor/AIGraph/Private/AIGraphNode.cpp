@@ -68,6 +68,7 @@ void UAIGraphNode::PostEditImport()
 
 void UAIGraphNode::PostEditUndo()
 {
+	UEdGraphNode::PostEditUndo();
 	ResetNodeOwner();
 	
 	if (ParentNode)

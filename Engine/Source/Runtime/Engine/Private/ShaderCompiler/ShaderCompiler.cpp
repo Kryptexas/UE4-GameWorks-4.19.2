@@ -2385,6 +2385,10 @@ void GlobalBeginCompileShader(
 				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
 				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
 				Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Mobile"), TEXT("Mob"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Linear"), TEXT("Lin"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("INT32_MAX"), TEXT("IMAX"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Policy"), TEXT("Pol"));
 			}
 		}
 		// Sanitize the name to be used as a path
@@ -2528,6 +2532,11 @@ void GlobalBeginCompileShader(
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
 		Input.Environment.SetDefine(TEXT("PROJECT_ALLOW_GLOBAL_CLIP_PLANE"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
+		Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
 	NewJobs.Add(NewJob);

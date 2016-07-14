@@ -9,7 +9,7 @@
 #include "CoreNet.h"
 #include "Engine/EngineTypes.h"
 
-class FCompatibleRepLayout;
+class FNetFieldExportGroup;
 class UPackageMapClient;
 class UNetConnection;
 
@@ -143,7 +143,8 @@ public:
 
 	~FRepState();
 
-	TArray< uint8 >				StaticBuffer;
+	// Properties will be copied in here so memory needs aligned to largest type
+	TArray< uint8, TAlignedHeapAllocator<16> >				StaticBuffer;
 
 	FUnmappedGuidMgr			UnmappedGuids;
 
@@ -170,6 +171,8 @@ public:
 	TArray< uint16 >				ConditionalLifetime;		// Properties the need to be checked conditionally (based on net initial, role, etc)
 	FReplicationFlags				RepFlags;
 	uint32							ActiveStatusChanged;
+
+	TArray< uint16 >				LifetimeChangelist;			// This is the unique list of properties that have changed since the channel was first opened
 };
 
 enum ERepLayoutCmdType
@@ -314,6 +317,8 @@ public:
 	void ValidateWithChecksum( const void* RESTRICT Data, FArchive & Ar ) const;
 	uint32 GenerateChecksum( const FRepState* RepState ) const;
 
+	void PruneChangeList( FRepState * RepState, const void* RESTRICT Data, const TArray< uint16 >& Changed, TArray< uint16 >& PrunedChanged ) const;
+
 	void MergeDirtyList( FRepState * RepState, const void* RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
 
 	bool DiffProperties( TArray<UProperty*>* RepNotifies, void* RESTRICT Destination, const void* RESTRICT Source, const bool bSync ) const;
@@ -416,7 +421,7 @@ private:
 		FRepWriterState &			WriterState,
 		FNetBitWriter &				Writer,
 		UPackageMapClient*			PackageMapClient,
-		FCompatibleRepLayout*		CompatibleRepLayout, 
+		FNetFieldExportGroup*		NetFieldExportGroup,
 		const int32					CmdIndex,
 		const uint8* RESTRICT		StoredData,
 		const uint8* RESTRICT		Data ) const;
@@ -426,18 +431,20 @@ private:
 		FRepWriterState &			WriterState,
 		FNetBitWriter &				Writer,
 		UPackageMapClient*			PackageMapClient,
-		FCompatibleRepLayout*		CompatibleRepLayout,
+		FNetFieldExportGroup*		NetFieldExportGroup,
 		const int32					CmdStart,
 		const int32					CmdEnd,
 		const uint8* RESTRICT		StoredData,
 		const uint8* RESTRICT		Data,
 		uint16						Handle ) const;
 
+	TSharedPtr< FNetFieldExportGroup > CreateNetfieldExportGroup() const;
+
 	int32 FindCompatibleProperty( const int32 CmdStart, const int32 CmdEnd, const uint32 Checksum ) const;
 
 	bool ReceiveProperties_BackwardsCompatible_r(
 		FRepState * RESTRICT	RepState,
-		FCompatibleRepLayout*	CompatibleRepLayout,
+		FNetFieldExportGroup*	NetFieldExportGroup,
 		FNetBitReader &			Reader,
 		const int32				CmdStart,
 		const int32				CmdEnd,
@@ -499,6 +506,8 @@ private:
 		const int32			CmdEnd, 
 		void *				Data,
 		bool &				bHasUnmapped ) const;
+
+	void BuildChangeList_r( const int32 CmdStart, const int32 CmdEnd, uint8* Data, const int32 HandleOffset, TArray< uint16 >& Changed ) const;
 
 	void ConstructProperties( FRepState * RepState ) const;
 	void InitProperties( FRepState * RepState, uint8* Src ) const;

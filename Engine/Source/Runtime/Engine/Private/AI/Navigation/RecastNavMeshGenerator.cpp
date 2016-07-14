@@ -2818,13 +2818,15 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 		return;
 	}
 
+	// Expand by 1 cell height up and down to cover for voxel grid inaccuracy
+	const float OffsetZMax = TileConfig.ch;
+	const float OffsetZMin = -TileConfig.ch - (Modifier.ShouldIncludeAgentHeight() ? TileConfig.AgentHeight : 0.0f);
+
 	// Check whether modifier affects this layer
 	const FBox LayerUnrealBounds = Recast2UnrealBox(Layer.header->bmin, Layer.header->bmax);
 	FBox ModifierBounds = Modifier.GetBounds().TransformBy(LocalToWorld);
-	if (Modifier.ShouldIncludeAgentHeight())
-	{
-		ModifierBounds.Min.Z -= TileConfig.AgentHeight;
-	}
+	ModifierBounds.Max.Z += OffsetZMax;
+	ModifierBounds.Min.Z += OffsetZMin;
 
 	if (!LayerUnrealBounds.Intersect(ModifierBounds))
 	{
@@ -2833,7 +2835,6 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 
 	const float ExpandBy = TileConfig.AgentRadius;
 	const float* LayerRecastOrig = Layer.header->bmin;
-	const float OffsetZ = TileConfig.ch + (Modifier.ShouldIncludeAgentHeight() ? TileConfig.AgentHeight : 0.0f);
 
 	switch (Modifier.GetShapeType())
 	{
@@ -2848,8 +2849,9 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 			CylinderData.Radius *= FMath::Max(Scale3D.X, Scale3D.Y);
 			CylinderData.Origin = LocalToWorld.TransformPosition(CylinderData.Origin);
 			
-			CylinderData.Origin.Z -= OffsetZ;
-			CylinderData.Height += OffsetZ*2.f;
+			const float OffsetZMid = (OffsetZMin + OffsetZMax) * 0.5f;
+			CylinderData.Origin.Z += OffsetZMid;
+			CylinderData.Height += FMath::Abs(OffsetZMid) * 2.f;
 			CylinderData.Radius += ExpandBy;
 			
 			FVector RecastPos = Unreal2RecastPoint(CylinderData.Origin);
@@ -2873,8 +2875,10 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 			Modifier.GetBox(BoxData);
 
 			FBox WorldBox = FBox::BuildAABB(BoxData.Origin, BoxData.Extent).TransformBy(LocalToWorld);
-			WorldBox = WorldBox.ExpandBy(FVector(ExpandBy, ExpandBy, OffsetZ));
-			
+			WorldBox = WorldBox.ExpandBy(FVector(ExpandBy, ExpandBy, 0));
+			WorldBox.Min.Z += OffsetZMin;
+			WorldBox.Max.Z += OffsetZMax;
+
 			FBox RacastBox = Unreal2RecastBox(WorldBox);
 			FVector RecastPos;
 			FVector RecastExtent;
@@ -2902,8 +2906,8 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 
 			TArray<FVector> ConvexVerts;
 			GrowConvexHull(ExpandBy, ConvexData.Points, ConvexVerts);
-			ConvexData.MinZ -= OffsetZ;
-			ConvexData.MaxZ += TileConfig.ch;
+			ConvexData.MinZ += OffsetZMin;
+			ConvexData.MaxZ += OffsetZMax;
 
 			if (ConvexVerts.Num())
 			{

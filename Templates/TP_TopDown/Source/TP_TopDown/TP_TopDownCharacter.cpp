@@ -4,6 +4,7 @@
 #include "TP_TopDownCharacter.h"
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
 #include "Runtime/Engine/Classes/Components/DecalComponent.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 
 ATP_TopDownCharacter::ATP_TopDownCharacter()
 {
@@ -29,7 +30,7 @@ ATP_TopDownCharacter::ATP_TopDownCharacter()
 	CameraBoom->RelativeRotation = FRotator(-60.f, 0.f, 0.f);
 	CameraBoom->bDoCollisionTest = false; // Don't want to pull camera in when it collides with level
 
-	// Create a camera...
+										  // Create a camera...
 	TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 	TopDownCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	TopDownCameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
@@ -54,7 +55,21 @@ void ATP_TopDownCharacter::Tick(float DeltaSeconds)
 {
 	if (CursorToWorld != nullptr)
 	{
-		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
+		{
+			if (UWorld* World = GetWorld())
+			{
+				FHitResult HitResult;
+				FCollisionQueryParams Params;
+				FVector StartLocation = TopDownCameraComponent->GetComponentLocation();
+				FVector EndLocation = TopDownCameraComponent->GetComponentRotation().Vector() * 2000.0f;
+				Params.AddIgnoredActor(this);
+				World->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, Params);
+				FQuat SurfaceRotation = HitResult.ImpactNormal.ToOrientationRotator().Quaternion();
+				CursorToWorld->SetWorldLocationAndRotation(HitResult.Location, SurfaceRotation);
+			}
+		}
+		else if (APlayerController* PC = Cast<APlayerController>(GetController()))
 		{
 			FHitResult TraceHitResult;
 			PC->GetHitResultUnderCursor(ECC_Visibility, true, TraceHitResult);

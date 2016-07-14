@@ -18,6 +18,7 @@
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "MallocProfiler.h"
 
 #include "NetworkVersion.h"
 
@@ -39,6 +40,7 @@
 #endif
 
 #if WITH_ENGINE
+	#include "AudioThread.h"
 	#include "AutomationController.h"
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
@@ -47,7 +49,6 @@
 	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
 	#include "ParticleHelper.h"
-	#include "Online.h"
 	#include "PhysicsPublic.h"
 	#include "PlatformFeatures.h"
 	#include "DeviceProfiles/DeviceProfileManager.h"
@@ -59,6 +60,7 @@
 	#include "ISessionService.h"
 	#include "ISessionServicesModule.h"
 	#include "Engine/GameInstance.h"
+	#include "Net/OnlineEngineInterface.h"
 	#include "Internationalization/EnginePackageLocalizationCache.h"
 
 #if !UE_SERVER
@@ -878,7 +880,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	GIsGameThreadIdInitialized = true;
 
 	FPlatformProcess::SetThreadAffinityMask(FPlatformAffinity::GetMainGameMask());
-	FPlatformProcess::SetupGameOrRenderThread(false);
+	FPlatformProcess::SetupGameThread();
 
 	// Figure out whether we're the editor, ucc or the game.
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
@@ -1257,6 +1259,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// Apply renderer settings from console variables stored in the INI.
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererOverrideSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.StreamingSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.GarbageCollectionSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 
@@ -1439,6 +1442,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if WITH_ENGINE
 
 	EndInitTextLocalization();
+
+	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())
+	{
+		bool bUseThreadedAudio = false;
+		if (!GIsEditor)
+		{
+			GConfig->GetBool(TEXT("Audio"), TEXT("UseAudioThread"), bUseThreadedAudio, GEngineIni);
+		}
+		FAudioThread::SetUseThreadedAudio(bUseThreadedAudio);
+	}
 
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{
@@ -1645,7 +1658,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GUObjectArray.CloseDisregardForGC();
 	}
 
-	if (IOnlineSubsystem::IsLoaded())
+	if (UOnlineEngineInterface::Get()->IsLoaded())
 	{
 		SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
 	}
@@ -2149,7 +2162,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 	}
 
 	// We need this for blueprint projects that have online functionality.
-	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+	//FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
 	if (IsRunningCommandlet())
 	{
@@ -2416,8 +2429,6 @@ void FEngineLoop::Exit()
 	}
 #endif // WITH_ENGINE
 
-	MALLOC_PROFILER( GEngine->Exec( nullptr, TEXT( "MPROF STOP" ) ); )
-
 	if ( GEngine != nullptr )
 	{
 		GEngine->ShutdownAudioDeviceManager();
@@ -2443,6 +2454,9 @@ void FEngineLoop::Exit()
 
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
+#else
+	// AppPreExit() stops malloc profiler, do it here instead
+	MALLOC_PROFILER( GMalloc->Exec(nullptr, TEXT("MPROF STOP"), *GLog);	);
 #endif // !ANDROID
 
 	// Stop the rendering thread.
@@ -3188,6 +3202,27 @@ bool FEngineLoop::AppInit( )
 	}
 #endif
 
+#if WITH_ENGINE
+	if (!IsRunningCommandlet())
+	{
+		// Earliest place to init the online subsystems (via plugins)
+		// Code needs GConfigFile to be valid
+		// Must be after FThreadStats::StartThread();
+		// Must be before Render/RHI subsystem D3DCreate()
+		// For platform services that need D3D hooks like Steam
+		// --
+		// Why load HTTP?
+		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
+		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
+		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
+
+		// These should not be LoadModuleChecked because these modules might not exist
+		FModuleManager::Get().LoadModule(TEXT("XMPP"));
+		FModuleManager::Get().LoadModule(TEXT("HTTP"));
+		// OSS Default/Console are loaded in plugins immediately following
+	}
+#endif
+
 	// Load "pre-init" plugin modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))
 	{
@@ -3291,31 +3326,6 @@ bool FEngineLoop::AppInit( )
 	FApp::InitializeSession();
 #endif
 
-#if WITH_ENGINE
-	if (!IsRunningCommandlet())
-	{
-		// Earliest place to init the online subsystems
-		// Code needs GConfigFile to be valid
-		// Must be after FThreadStats::StartThread();
-		// Must be before Render/RHI subsystem D3DCreate()
-		// For platform services that need D3D hooks like Steam
-		// --
-		// Why load HTTP?
-		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
-		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
-		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
-		if (FModuleManager::Get().ModuleExists(TEXT("XMPP")))
-		{
-			FModuleManager::Get().LoadModule(TEXT("XMPP"));
-		}
-		FModuleManager::Get().LoadModule(TEXT("HTTP"));
-		FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
-		FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
-		// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
-		IOnlineSubsystem::GetByPlatform();
-	}
-#endif
-
 	// Checks.
 	check(sizeof(uint8) == 1);
 	check(sizeof(int8) == 1);
@@ -3356,6 +3366,8 @@ void FEngineLoop::AppPreExit( )
 	UE_LOG(LogExit, Log, TEXT("Preparing to exit.") );
 
 	FCoreDelegates::OnPreExit.Broadcast();
+
+	MALLOC_PROFILER( GMalloc->Exec(nullptr, TEXT("MPROF STOP"), *GLog);	);
 
 #if WITH_ENGINE
 	if (FString(FCommandLine::Get()).Contains(TEXT("CreatePak")) && GetDerivedDataCache())

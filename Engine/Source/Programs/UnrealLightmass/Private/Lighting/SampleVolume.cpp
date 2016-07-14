@@ -296,8 +296,22 @@ void FStaticLightingSystem::BeginCalculateVolumeSamples()
 			const FStaticLightingMapping* CurrentMapping = AllMappings[MappingIndex];
 			const FStaticLightingTextureMapping* TextureMapping = CurrentMapping->GetTextureMapping();
 			const FStaticLightingMesh* CurrentMesh = CurrentMapping->Mesh;
+
+			const uint32 GeoMeshLODIndex = CurrentMesh->GetLODIndices() & 0xFFFF;
+			const uint32 GeoHLODTreeIndex = (CurrentMesh->GetLODIndices() & 0xFFFF0000) >> 16;
+			const uint32 GeoHLODRange = CurrentMesh->GetHLODRange();
+			const uint32 GeoHLODRangeStart = GeoHLODRange & 0xFFFF;
+			const uint32 GeoHLODRangeEnd = (GeoHLODRange & 0xFFFF0000) >> 16;
+
+			bool bMeshBelongsToLOD0 = GeoMeshLODIndex == 0;
+
+			if (GeoHLODTreeIndex > 0)
+			{
+				bMeshBelongsToLOD0 = GeoHLODRangeStart == GeoHLODRangeEnd;
+			}
+
 			// Only place samples on shadow casting meshes.
-			if (CurrentMesh->LightingFlags & GI_INSTANCE_CASTSHADOW)
+			if ((CurrentMesh->LightingFlags & GI_INSTANCE_CASTSHADOW) && bMeshBelongsToLOD0)
 			{
 				// Create a new LevelId array if necessary
 				if (!VolumeLightingSamples.Find(CurrentMesh->LevelGuid))
@@ -529,7 +543,7 @@ void FStaticLightingSystem::ProcessVolumeSamplesTask(const FVolumeSamplesTaskDes
 			&& (!PhotonMappingSettings.bUsePhotonMapping || PhotonMappingSettings.bUseFinalGathering))
 		{
 			const bool bDebugSamples = false;
-			CalculateVolumeSampleIncidentRadiance(UniformHemisphereSamples, MaxUnoccludedLength, CurrentSample, RandomStream, MappingContext, bDebugSamples);
+			CalculateVolumeSampleIncidentRadiance(UniformHemisphereSamples, UniformHemisphereSampleUniforms, MaxUnoccludedLength, CurrentSample, RandomStream, MappingContext, bDebugSamples);
 		}
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 		if (Scene.DebugMapping && DynamicObjectSettings.bVisualizeVolumeLightSamples)

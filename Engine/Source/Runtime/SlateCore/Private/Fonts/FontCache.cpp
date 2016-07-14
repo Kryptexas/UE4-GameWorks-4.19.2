@@ -888,6 +888,9 @@ FCharacterList& FSlateFontCache::GetCharacterList( const FSlateFontInfo &InFontI
 	// Create a key for looking up each character
 	const FSlateFontKey FontKey( InFontInfo, FontScale );
 
+	//@HSL_BEGIN - Chance.Lyon - A critical section to help make this class thread-safe */
+	FScopeLock ScopeLock(&CacheCriticalSection);
+	//@HSL_END
 	TSharedRef< class FCharacterList >* CachedCharacterList = FontToCharacterListCache.Find( FontKey );
 
 	if( CachedCharacterList )
@@ -1006,6 +1009,9 @@ void FSlateFontCache::FlushObject( const UObject* const InObject )
 	}
 
 	bool bHasRemovedEntries = false;
+	//@HSL_BEGIN - Chance.Lyon - A critical section to help make this class thread-safe */
+	FScopeLock ScopeLock(&CacheCriticalSection);
+	//@HSL_END
 	for( auto It = FontToCharacterListCache.CreateIterator(); It; ++It )
 	{
 		if( It.Key().GetFontInfo().FontObject == InObject)

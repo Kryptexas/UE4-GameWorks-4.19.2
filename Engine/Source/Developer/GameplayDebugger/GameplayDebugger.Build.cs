@@ -27,9 +27,14 @@ namespace UnrealBuildTool.Rules
 
 			PrivateIncludePaths.Add("Developer/GameplayDebugger/Private");
 
-            if (UEBuildConfiguration.bBuildEditor == true)
+            if (UEBuildConfiguration.bBuildEditor)
 			{
-				PrivateDependencyModuleNames.Add("UnrealEd");
+                PrivateDependencyModuleNames.AddRange(
+                    new string[] {
+                        "EditorStyle",
+                        "UnrealEd",
+                        "PropertyEditor",
+                    });
 			}
 
             Definitions.Add("ENABLE_OLD_GAMEPLAY_DEBUGGER=" + (bEnableDeprecatedDebugger ? "1" : "0"));

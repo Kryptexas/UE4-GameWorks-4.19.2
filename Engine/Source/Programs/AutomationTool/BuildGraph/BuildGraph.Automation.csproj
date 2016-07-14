@@ -76,6 +76,7 @@
     <Compile Include="Tasks\ChunkTask.cs" />
     <Compile Include="Tasks\CommandletTask.cs" />
     <Compile Include="Tasks\CsCompileTask.cs" />
+    <Compile Include="Tasks\TagReceiptTask.cs" />
     <Compile Include="Tasks\LabelBuildTask.cs" />
     <Compile Include="Tasks\MergeTask.cs" />
     <Compile Include="Tasks\PakFileTask.cs" />
@@ -94,6 +95,7 @@
     <Compile Include="Tasks\StageTask.cs" />
     <Compile Include="Tasks\StripTask.cs" />
     <Compile Include="Tasks\SetVersionTask.cs" />
+    <Compile Include="Tasks\UnzipTask.cs" />
     <Compile Include="Tasks\ZipTask.cs" />
     <Compile Include="TempStorage.cs" />
   </ItemGroup>

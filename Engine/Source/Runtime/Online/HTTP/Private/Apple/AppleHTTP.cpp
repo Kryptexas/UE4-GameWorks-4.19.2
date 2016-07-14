@@ -455,7 +455,7 @@ float FAppleHttpRequest::GetElapsedTime()
 		SecTrustRef PeerTrustInfo = reinterpret_cast<SecTrustRef>([[error userInfo] objectForKey:NSURLErrorFailingURLPeerTrustErrorKey]);
 		if (PeerTrustInfo != nullptr)
 		{
-			SecTrustResultType TrustResult = 0;
+			SecTrustResultType TrustResult = kSecTrustResultInvalid;
 			SecTrustGetTrustResult(PeerTrustInfo, &TrustResult);
 
 			FString TrustResultString;

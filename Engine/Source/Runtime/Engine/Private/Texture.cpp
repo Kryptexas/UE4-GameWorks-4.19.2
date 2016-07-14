@@ -58,7 +58,7 @@ UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
 	CompositeTextureMode = CTM_NormalRoughnessToAlpha;
 	CompositePower = 1.0f;
 	bUseLegacyGamma = false;
-
+	AlphaCoverageThresholds = FVector4(0, 0, 0, 0);
 	PaddingColor = FColor::Black;
 	ChromaKeyColor = FColorList::Magenta;
 	ChromaKeyThreshold = 1.0f / 255.0f;
@@ -470,10 +470,6 @@ bool UTexture::ForceUpdateTextureStreaming()
 {
 	if (!IStreamingManager::HasShutdown())
 	{
-		// Make sure textures can be streamed out so that we can unload current mips.
-		const bool bOldOnlyStreamInTextures = CVarOnlyStreamInTextures->GetInt() != 0;
-		CVarOnlyStreamInTextures->Set(false, ECVF_SetByCode);
-
 #if WITH_EDITOR
 		for( TObjectIterator<UTexture2D> It; It; ++It )
 		{
@@ -490,9 +486,6 @@ bool UTexture::ForceUpdateTextureStreaming()
 		IStreamingManager::Get().UpdateResourceStreaming( 0 );
 		// Block till requests are finished.
 		IStreamingManager::Get().BlockTillAllRequestsFinished();
-
-		// Restore streaming out of textures.
-		CVarOnlyStreamInTextures->Set(bOldOnlyStreamInTextures, ECVF_SetByCode);
 	}
 
 	return true;

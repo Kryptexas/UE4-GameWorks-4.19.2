@@ -29,6 +29,8 @@
 #define PLATFORM_USES_POSIX_IMCP 0
 #endif
 
+class ISocketSubsystem;
+
 /** 
  * Calculate the 16-bit one's complement of the one's complement 
  * sum of the ICMP message starting at the beginning of the IcmpHeader
@@ -46,4 +48,4 @@ int CalculateChecksum(uint8* Address, int Length);
  *
  * @return true if conversion was successful, false otherwise
  */
-bool ResolveIp(const FString& HostName, FString& OutIp);
+bool ResolveIp(ISocketSubsystem* SocketSub, const FString& HostName, FString& OutIp);

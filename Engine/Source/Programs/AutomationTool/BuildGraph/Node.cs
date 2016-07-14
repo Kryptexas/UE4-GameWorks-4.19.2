@@ -81,6 +81,11 @@ namespace AutomationTool
 		public ManualTrigger ControllingTrigger;
 
 		/// <summary>
+		/// Tickets which must be acquired for this node to run
+		/// </summary>
+		public FileReference[] RequiredTickets;
+
+		/// <summary>
 		/// List of tasks to execute
 		/// </summary>
 		public List<CustomTask> Tasks = new List<CustomTask>();
@@ -109,7 +114,8 @@ namespace AutomationTool
 		/// <param name="InInputDependencies">Nodes which this node is dependent on for its inputs</param>
 		/// <param name="InOrderDependencies">Nodes which this node needs to run after. Should include all input dependencies.</param>
 		/// <param name="InControllingTrigger">The trigger which this node is behind</param>
-		public Node(string InName, NodeOutput[] InInputs, string[] InOutputNames, Node[] InInputDependencies, Node[] InOrderDependencies, ManualTrigger InControllingTrigger)
+		/// <param name="InTicket">Optional ticket which must be required for this node to run</param>
+		public Node(string InName, NodeOutput[] InInputs, string[] InOutputNames, Node[] InInputDependencies, Node[] InOrderDependencies, ManualTrigger InControllingTrigger, FileReference[] InRequiredTickets)
 		{
 			Name = InName;
 			Inputs = InInputs;
@@ -122,6 +128,7 @@ namespace AutomationTool
 			InputDependencies = InInputDependencies;
 			OrderDependencies = InOrderDependencies;
 			ControllingTrigger = InControllingTrigger;
+			RequiredTickets = InRequiredTickets;
 		}
 
 		/// <summary>

@@ -1503,7 +1503,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, FadeAmount(0.f)	
 	, bEnableFading(false)
 	, bEnableColorScaling(false)
-	, bEditorCameraCut(false)
 	, bDrawBaseInfo(false)
 	, bDuplicateOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
@@ -1520,6 +1519,8 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bWasControlledByOtherViewport(false)
 	, ActorLockedByMatinee(nullptr)
 	, ActorLockedToCamera(nullptr)
+	, bEditorCameraCut(false)
+	, bWasEditorCameraCut(false)
 {
 	// By default a level editor viewport is pointed to the editor world
 	SetReferenceToWorldContext(GEditor->GetEditorWorldContext());
@@ -2002,6 +2003,12 @@ static FMatrix GPerspViewMatrix;
 
 void FLevelEditorViewportClient::Tick(float DeltaTime)
 {
+	if (bWasEditorCameraCut && bEditorCameraCut)
+	{
+		bEditorCameraCut = false;
+	}
+	bWasEditorCameraCut = bEditorCameraCut;
+
 	FEditorViewportClient::Tick(DeltaTime);
 
 	if (!GUnrealEd->IsPivotMovedIndependently() && GCurrentLevelEditingViewportClient == this &&
@@ -3994,11 +4001,7 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 	{
 		if (FAudioDevice* AudioDevice = ViewportWorld->GetAudioDevice())
 		{
-			FReverbSettings ReverbSettings;
-			FInteriorSettings InteriorSettings;
 			const FVector& ViewLocation = GetViewLocation();
-
-			class AAudioVolume* AudioVolume = ViewportWorld->GetAudioSettings(ViewLocation, &ReverbSettings, &InteriorSettings);
 
 			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.InverseFast();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
@@ -4008,8 +4011,7 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 			ListenerTransform.SetTranslation(ViewLocation);
 			ListenerTransform.NormalizeRotation();
 
-			AudioDevice->SetListener(0, ListenerTransform, 0.f, AudioVolume, InteriorSettings);
-			AudioDevice->SetReverbSettings(AudioVolume, ReverbSettings);
+			AudioDevice->SetListener(ViewportWorld, 0, ListenerTransform, 0.f);
 		}
 	}
 }

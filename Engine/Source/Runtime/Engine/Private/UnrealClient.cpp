@@ -294,6 +294,9 @@ void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInSh
 		bShowUI = bInShowUI;
 		bIsScreenshotRequested = true;
 	}
+
+	GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
+	GAreScreenMessagesEnabled = bInShowUI;
 }
 
 
@@ -1107,8 +1110,6 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				const bool bShowUI = false;
 				const bool bAddFilenameSuffix = true;
 				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
-				GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-				GAreScreenMessagesEnabled = false;
 				HighResScreenshot();
 			}
 			else if(bAnyScreenshotsRequired && bBufferVisualizationDumpingRequired)

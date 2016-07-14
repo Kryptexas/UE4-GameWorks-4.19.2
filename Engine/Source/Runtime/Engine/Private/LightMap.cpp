@@ -1102,7 +1102,10 @@ void FLightMapPendingTexture::CreateUObjects()
 	{
 		Textures[CoefficientIndex] = nullptr;
 		// Skip generating simple lightmaps if wanted.
-		if (!GEngine->bShouldGenerateLowQualityLightmaps && CoefficientIndex >= LQ_LIGHTMAP_COEF_INDEX)
+		static const auto CVarSupportLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
+		const bool bAllowLowQualityLightMaps = (!CVarSupportLowQualityLightmaps) || (CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0);
+
+		if ((!bAllowLowQualityLightMaps) && CoefficientIndex >= LQ_LIGHTMAP_COEF_INDEX)
 		{
 			continue;
 		}
@@ -2369,7 +2372,9 @@ bool FQuantizedLightmapData::HasNonZeroData() const
 		if (LightmapSample.Coverage >= MinCoverageThreshold)
 		{
 			// Don't look at simple lightmap coefficients if we're not building them.
-			const int32 NumCoefficients = GEngine->bShouldGenerateLowQualityLightmaps ? NUM_STORED_LIGHTMAP_COEF : NUM_HQ_LIGHTMAP_COEF;
+			static const auto CVarSupportLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
+			const bool bAllowLowQualityLightMaps = (!CVarSupportLowQualityLightmaps) || (CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0);
+			const int32 NumCoefficients = bAllowLowQualityLightMaps ? NUM_STORED_LIGHTMAP_COEF : NUM_HQ_LIGHTMAP_COEF;
 
 			for (int32 CoefficentIndex = 0; CoefficentIndex < NumCoefficients; CoefficentIndex++)
 			{

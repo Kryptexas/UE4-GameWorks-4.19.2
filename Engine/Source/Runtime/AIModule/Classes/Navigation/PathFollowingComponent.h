@@ -3,16 +3,15 @@
 #pragma once
 #include "AITypes.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "GameFramework/NavMovementComponent.h"
 #include "Components/ActorComponent.h"
 #include "AIResourceInterface.h"
 #include "PathFollowingComponent.generated.h"
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
 
-class UNavMovementComponent;
 class UCanvas;
 class AActor;
-class APawn;
 class INavLinkCustomInterface;
 class INavAgentInterface;
 class UNavigationComponent;
@@ -77,27 +76,30 @@ namespace FPathFollowingResultFlags
 	const Type OffPath = (1 << 2);
 
 	/** Aborted (EPathFollowingResult::Aborted) */
-	const Type ExternalCancel = (1 << 3);
+	const Type UserAbort = (1 << 3);
 
-	/** External cancel: owner no longer wants to move */
+	/** Abort details: owner no longer wants to move */
 	const Type OwnerFinished = (1 << 4);
 
-	/** External cancel: path is no longer valid */
+	/** Abort details: path is no longer valid */
 	const Type InvalidPath = (1 << 5);
 
-	/** External cancel: unable to move */
+	/** Abort details: unable to move */
 	const Type MovementStop = (1 << 6);
 
-	/** External cancel: new movement request was received */
+	/** Abort details: new movement request was received */
 	const Type NewRequest = (1 << 7);
 
-	/** External cancel: blueprint MoveTo function was called */
+	/** Abort details: blueprint MoveTo function was called */
 	const Type ForcedScript = (1 << 8);
 
-	/** Can be used to create project specific reasons */
-	const Type FirstGameplayFlagShift = 9;
+	/** Finish details: never started, agent was already at goal */
+	const Type AlreadyAtGoal = (1 << 9);
 
-	const Type ExternalCancelFlagMask = ~(Success | Blocked | OffPath);
+	/** Can be used to create project specific reasons */
+	const Type FirstGameplayFlagShift = 10;
+
+	const Type UserAbortFlagMask = ~(Success | Blocked | OffPath);
 
 	FString ToString(uint16 Value);
 }
@@ -115,7 +117,7 @@ struct AIMODULE_API FPathFollowingResult
 
 	bool IsSuccess() const { return HasFlag(FPathFollowingResultFlags::Success); }
 	bool IsFailure() const { return !HasFlag(FPathFollowingResultFlags::Success); }
-	bool IsSkipped() const { return HasFlag(FPathFollowingResultFlags::ExternalCancel | FPathFollowingResultFlags::NewRequest); }
+	bool IsInterrupted() const { return HasFlag(FPathFollowingResultFlags::UserAbort | FPathFollowingResultFlags::NewRequest); }
 	
 	FString ToString() const;
 };
@@ -144,6 +146,15 @@ namespace EPathFollowingRequestResult
 		RequestSuccessful
 	};
 }
+
+struct AIMODULE_API FPathFollowingRequestResult
+{
+	FAIRequestID MoveId;
+	TEnumAsByte<EPathFollowingRequestResult::Type> Code;
+
+	FPathFollowingRequestResult() : MoveId(FAIRequestID::InvalidRequest), Code(EPathFollowingRequestResult::Failed) {}
+	operator EPathFollowingRequestResult::Type() const { return Code; }
+};
 
 namespace EPathFollowingDebugTokens
 {
@@ -201,14 +212,18 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** updates cached pointers to relevant owner's components */
 	virtual void UpdateCachedComponents();
 
-	/** start movement along path */
+	/** start movement along path
+	  * @return MoveId of requested move
+	  */
 	virtual FAIRequestID RequestMove(const FAIMoveRequest& RequestData, FNavPathSharedPtr InPath);
 
 	/** aborts following path */
 	virtual void AbortMove(const UObject& Instigator, FPathFollowingResultFlags::Type AbortFlags, FAIRequestID RequestID = FAIRequestID::CurrentRequest, EPathFollowingVelocityMode VelocityMode = EPathFollowingVelocityMode::Reset);
 
-	/** create new request and finish it immediately (e.g. already at goal) */
-	void RequestMoveWithImmediateFinish(EPathFollowingResult::Type Result, EPathFollowingVelocityMode VelocityMode = EPathFollowingVelocityMode::Reset);
+	/** create new request and finish it immediately (e.g. already at goal)
+	 *  @return MoveId of requested (and already finished) move
+	 */
+	FAIRequestID RequestMoveWithImmediateFinish(EPathFollowingResult::Type Result, EPathFollowingVelocityMode VelocityMode = EPathFollowingVelocityMode::Reset);
 
 	/** pause path following
 	*  @param RequestID - request to pause, FAIRequestID::CurrentRequest means pause current request, regardless of its ID */
@@ -292,7 +307,14 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FORCEINLINE UObject* GetCurrentCustomLinkOb() const { return CurrentCustomLinkOb.Get(); }
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
 	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
+	bool HasStartedNavLinkMove() const { return bWalkingNavLinkStart; }
+	bool IsCurrentSegmentNavigationLink() const;
 	FVector GetCurrentDirection() const;
+	/** note that CurrentMoveInput is only valid if MovementComp->UseAccelerationForPathFollowing() == true */
+	FVector GetCurrentMoveInput() const { return CurrentMoveInput; }
+
+	/** check if path following has authority over movement (e.g. not falling) and can update own state */
+	FORCEINLINE bool HasMovementAuthority() const { return (MovementComp == nullptr) || MovementComp->CanStopPathFollowing(); }
 
 	FORCEINLINE const FNavPathSharedPtr GetPath() const { return Path; }
 	FORCEINLINE bool HasValidPath() const { return Path.IsValid() && Path->IsValid(); }
@@ -323,6 +345,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 
 	/** Called when movement is blocked by a collision with another actor.  */
 	virtual void OnMoveBlockedBy(const FHitResult& BlockingImpact) {}
+
+	/** Called when falling movement starts. */
+	virtual void OnStartedFalling();
 
 	/** Called when falling movement ends. */
 	virtual void OnLanded() {}
@@ -426,6 +451,9 @@ protected:
 	/** destination for current path segment */
 	FBasedPosition CurrentDestination;
 
+	/** last MoveInput calculated and passed over to MovementComponent. Valid only if MovementComp->UseAccelerationForPathFollowing() == true */
+	FVector CurrentMoveInput;
+
 	/** relative offset from goal actor's location to end of path */
 	FVector MoveOffset;
 
@@ -452,6 +480,9 @@ protected:
 
 	/** if set, path following is using FMetaNavMeshPath */
 	uint32 bIsUsingMetaPath : 1;
+
+	/** gets set when agent starts following a navigation link. Cleared after agent starts falling or changes segment to a non-link one */
+	uint32 bWalkingNavLinkStart : 1;
 
 	/** timeout for Waiting state, negative value = infinite */
 	float WaitingTimeout;

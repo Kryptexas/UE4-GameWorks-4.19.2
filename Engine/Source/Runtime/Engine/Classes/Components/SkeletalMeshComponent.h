@@ -364,6 +364,10 @@ public:
 	UPROPERTY(transient)
 	class UAnimInstance* AnimScriptInstance;
 
+	/** Any running sub anim instances that need to be updates on the game thread */
+	UPROPERTY(transient)
+	TArray<UAnimInstance*> SubInstances;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(ShowOnlyInnerProperties))
 	struct FSingleAnimationPlayData AnimationData;
 
@@ -564,6 +568,11 @@ public:
 	/** If true, AnimTree has been initialised. */
 	UPROPERTY(transient)
 	uint32 bAnimTreeInitialised:1;
+
+	/** If true, the Location of this Component will be included into its bounds calculation
+	* (this can be useful when using SMU_OnlyTickPoseWhenRendered on a character that moves away from the root and no bones are left near the origin of the component) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = SkeletalMesh)
+	uint32 bIncludeComponentLocationIntoBounds : 1;
 
 	/** If true, line checks will test against the bounding box of this skeletal mesh component and return a hit if there is a collision. */
 	UPROPERTY()
@@ -780,6 +789,8 @@ private:
 	/** Copies the data from the external cloth simulation context. We copy instead of flipping because the API has to return the full struct to make backwards compat easy*/
 	void UpdateClothSimulationContext();
 
+
+
    /** 
 	* clothing actors will be created from clothing assets for cloth simulation 
 	* 1 actor should correspond to 1 asset
@@ -813,6 +824,10 @@ public:
 #endif // WITH_APEX_CLOTHING
 
 private:
+
+	/** Wrapper that calls our constraint broken delegate */
+	void OnConstraintBrokenWrapper(int32 ConstraintIndex);
+
 	/** 
 	 * Morph Target Curves. This will override AnimInstance MorphTargetCurves
 	 * if same curve is found
@@ -1171,6 +1186,9 @@ public:
 	
 	/** Update bHasValidBodies flag */
 	void UpdateHasValidBodies();
+
+	/** Update the bone mapping on each body instance. This is useful when changing skeletal mesh without recreating bodies */
+	void UpdateBoneBodyMapping();
 	
 	/** 
 	 * Initialize SkelControls

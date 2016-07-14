@@ -16,10 +16,15 @@
 //#include "VisualLogger/VisualLogger.h"
 #endif // ENABLE_VISUAL_LOG
 
-const float UGameplayEffect::INFINITE_DURATION = -1.f;
-const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
-const float UGameplayEffect::NO_PERIOD = 0.f;
-const float UGameplayEffect::INVALID_LEVEL = -1.f;
+const float FGameplayEffectConstants::INFINITE_DURATION = -1.f;
+const float FGameplayEffectConstants::INSTANT_APPLICATION = 0.f;
+const float FGameplayEffectConstants::NO_PERIOD = 0.f;
+const float FGameplayEffectConstants::INVALID_LEVEL = -1.f;
+
+const float UGameplayEffect::INFINITE_DURATION = FGameplayEffectConstants::INFINITE_DURATION;
+const float UGameplayEffect::INSTANT_APPLICATION =FGameplayEffectConstants::INSTANT_APPLICATION;
+const float UGameplayEffect::NO_PERIOD = FGameplayEffectConstants::NO_PERIOD;
+const float UGameplayEffect::INVALID_LEVEL = FGameplayEffectConstants::INVALID_LEVEL;
 
 DECLARE_CYCLE_STAT(TEXT("MakeQuery"), STAT_MakeGameplayEffectQuery, STATGROUP_AbilitySystem);
 
@@ -110,6 +115,8 @@ void UGameplayEffect::PostLoad()
 		}
 	}
 
+	HasGrantedApplicationImmunityQuery = !GrantedApplicationImmunityQuery.IsEmpty();
+
 #if WITH_EDITOR
 	GETCURVE_REPORTERROR(Period.Curve);
 	GETCURVE_REPORTERROR(ChanceToApplyToTarget.Curve);
@@ -150,6 +157,8 @@ void UGameplayEffect::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			RemoveGameplayEffectsWithTags.UpdateInheritedTagProperties(Parent ? &Parent->RemoveGameplayEffectsWithTags : NULL);
 		}
 	}
+
+	HasGrantedApplicationImmunityQuery = !GrantedApplicationImmunityQuery.IsEmpty();
 }
 
 #endif // #if WITH_EDITOR
@@ -967,6 +976,11 @@ const FGameplayEffectModifiedAttribute* FGameplayEffectSpecForRPC::GetModifiedAt
 		}
 	}
 	return NULL;
+}
+
+FString FGameplayEffectSpecForRPC::ToSimpleString() const
+{
+	return FString::Printf(TEXT("%s"), *Def->GetName());
 }
 
 FGameplayEffectModifiedAttribute* FGameplayEffectSpec::AddModifiedAttribute(const FGameplayAttribute& Attribute)
@@ -1789,10 +1803,10 @@ FAggregatorRef& FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregator
 	}
 
 	// Create a new aggregator for this attribute.
-	float CurrentValueOfProperty = Owner->GetNumericAttribute(Attribute);
-	ABILITY_LOG(Log, TEXT("Creating new entry in AttributeAggregatorMap for %s. CurrentValue: %.2f"), *Attribute.GetName(), CurrentValueOfProperty);
+	float CurrentBaseValueOfProperty = Owner->GetNumericAttributeBase(Attribute);
+	ABILITY_LOG(Log, TEXT("Creating new entry in AttributeAggregatorMap for %s. CurrentValue: %.2f"), *Attribute.GetName(), CurrentBaseValueOfProperty);
 
-	FAggregator* NewAttributeAggregator = new FAggregator(CurrentValueOfProperty);
+	FAggregator* NewAttributeAggregator = new FAggregator(CurrentBaseValueOfProperty);
 	
 	if (Attribute.IsSystemAttribute() == false)
 	{
@@ -1835,13 +1849,21 @@ void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Ag
 			// GlobalFromNetworkUpdate - only set to true when we are coming from an OnRep or when we are coming from an ActiveGameplayEffect container net update.
 			// NetUpdateID - updated once whenever an AttributeSet is received over the network. It will be incremented one time per actor that gets an update.
 					
-
-			float FinalValue = Owner->GetNumericAttribute(Attribute);
-			float BaseValue = Aggregator->ReverseEvaluate(FinalValue, EvaluationParameters);
+			float BaseValue = 0.f;
+			if (!FGameplayAttribute::IsGameplayAttributeDataProperty(Attribute.GetUProperty()))
+			{
+				// Legacy float attribute case requires the base value to be deduced from the final value, as it is not replicated
+				float FinalValue = Owner->GetNumericAttribute(Attribute);
+				BaseValue = Aggregator->ReverseEvaluate(FinalValue, EvaluationParameters);
+				ABILITY_LOG(Log, TEXT("Reverse Evaluated %s. FinalValue: %.2f  BaseValue: %.2f "), *Attribute.GetName(), FinalValue, BaseValue);
+			}
+			else
+			{
+				BaseValue = Owner->GetNumericAttributeBase(Attribute);
+			}
+			
 			Aggregator->SetBaseValue(BaseValue, false);
 			Aggregator->NetUpdateID = FScopedAggregatorOnDirtyBatch::NetUpdateID;
-
-			ABILITY_LOG(Log, TEXT("Reverse Evaluated %s. FinalValue: %.2f  BaseValue: %.2f "), *Attribute.GetName(), FinalValue, BaseValue);
 		}
 
 		EvaluationParameters.IncludePredictiveMods = true;
@@ -2170,21 +2192,36 @@ void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplay
 
 void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue)
 {
+	// if we're using the new attributes we should always update their base value
+	bool bIsGameplayAttributeDataProperty = FGameplayAttribute::IsGameplayAttributeDataProperty(Attribute.GetUProperty());
+	if (bIsGameplayAttributeDataProperty)
+	{
+		const UStructProperty* StructProperty = Cast<UStructProperty>(Attribute.GetUProperty());
+		check(StructProperty);
+		UAttributeSet* AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(Attribute.GetAttributeSetClass()));
+		ensure(AttributeSet);
+		FGameplayAttributeData* DataPtr = StructProperty->ContainerPtrToValuePtr<FGameplayAttributeData>(AttributeSet);
+		if (ensure(DataPtr))
+		{
+			DataPtr->SetBaseValue(NewBaseValue);
+		}
+	}
+
 	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
 	if (RefPtr)
 	{
 		// There is an aggregator for this attribute, so set the base value. The dirty callback chain
 		// will update the actual AttributeSet property value for us.
-		
-		const UAttributeSet* Set = Owner->GetAttributeSubobject( Attribute.GetAttributeSetClass() );
+
+		const UAttributeSet* Set = Owner->GetAttributeSubobject(Attribute.GetAttributeSetClass());
 		check(Set);
 
 		Set->PreAttributeBaseChange(Attribute, NewBaseValue);
 		RefPtr->Get()->SetBaseValue(NewBaseValue);
 	}
+	// if there is no aggregator set the current value (base == current in this case)
 	else
 	{
-		// There is no aggregator yet, so we can just set the numeric value directly
 		InternalUpdateNumericalAttribute(Attribute, NewBaseValue, nullptr);
 	}
 }
@@ -2193,10 +2230,25 @@ float FActiveGameplayEffectsContainer::GetAttributeBaseValue(FGameplayAttribute 
 {
 	float BaseValue = 0.f;
 	const FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
-	if (RefPtr)
+	// if this attribute is of type FGameplayAttributeData then use the base value stored there
+	if (FGameplayAttribute::IsGameplayAttributeDataProperty(Attribute.GetUProperty()))
+	{
+		const UStructProperty* StructProperty = Cast<UStructProperty>(Attribute.GetUProperty());
+		check(StructProperty);
+		const UAttributeSet* AttributeSet = Owner->GetAttributeSubobject(Attribute.GetAttributeSetClass());
+		ensure(AttributeSet);
+		const FGameplayAttributeData* DataPtr = StructProperty->ContainerPtrToValuePtr<FGameplayAttributeData>(AttributeSet);
+		if (DataPtr)
+		{
+			BaseValue = DataPtr->GetBaseValue();
+		}
+	}
+	// otherwise, if we have an aggregator use the base value in the aggregator
+	else if (RefPtr)
 	{
 		BaseValue = RefPtr->Get()->GetBaseValue();
 	}
+	// if the attribute is just a float and there is no aggregator then the base value is the current value
 	else
 	{
 		BaseValue = Owner->GetNumericAttribute(Attribute);
@@ -2271,41 +2323,17 @@ bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Sp
 
 void FActiveGameplayEffectsContainer::ApplyModToAttribute(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude, const FGameplayEffectModCallbackData* ModData)
 {
-	// Do we have active GE's that are already modifying this?
-	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
-	if (RefPtr)
+	CurrentModcallbackData = ModData;
+	float CurrentBase = GetAttributeBaseValue(Attribute);
+	float NewBase = FAggregator::StaticExecModOnBaseValue(CurrentBase, ModifierOp, ModifierMagnitude);
+
+	SetAttributeBaseValue(Attribute, NewBase);
+
+	if (CurrentModcallbackData)
 	{
-		ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *Attribute.GetName());
-		FAggregator* Agg = RefPtr->Get();
-		
-		// We must give the attribute set a change to clamp to base value. Otherwise we may haver aggregator base values get 
-		// way out of sync with the final uproperty value.
-		float NewBase = Agg->GetBaseValue();
-		NewBase = FAggregator::StaticExecModOnBaseValue(NewBase, ModifierOp, ModifierMagnitude);
-		
-		const UAttributeSet* Set = Owner->GetAttributeSubobject( Attribute.GetAttributeSetClass() );
-		check(Set);
-
-		// Cache this off here so we dont have to pipe ModData through the agggregator system. This works because the AGE OnDirty will always be called first before any other possible aggregator dependants.
-		CurrentModcallbackData = ModData;
-
-		Set->PreAttributeBaseChange(Attribute, NewBase);
-		Agg->SetBaseValue(NewBase);
-
-		if (CurrentModcallbackData)
-		{
-			// We expect this to be cleared for us in InternalUpdateNumericalAttribute
-			ABILITY_LOG(Warning, TEXT("FActiveGameplayEffectsContainer::ApplyModToAttribute CurrentModcallbackData was not consumed For attribute %s on %s."), *Attribute.GetName(), *Owner->GetFullName() );
-			CurrentModcallbackData = nullptr;
-		}
-	}
-	else
-	{
-		// Modify the property in place, without putting it in the AttributeAggregatorMap map
-		float		CurrentValueOfProperty = Owner->GetNumericAttribute(Attribute);
-		const float NewPropertyValue = FAggregator::StaticExecModOnBaseValue(CurrentValueOfProperty, ModifierOp, ModifierMagnitude);
-
-		InternalUpdateNumericalAttribute(Attribute, NewPropertyValue, ModData);
+		// We expect this to be cleared for us in InternalUpdateNumericalAttribute
+		ABILITY_LOG(Warning, TEXT("FActiveGameplayEffectsContainer::ApplyModToAttribute CurrentModcallbackData was not consumed For attribute %s on %s."), *Attribute.GetName(), *Owner->GetFullName());
+		CurrentModcallbackData = nullptr;
 	}
 }
 
@@ -2668,8 +2696,14 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 		Owner->AddMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
 	}
 
+	// Immunity
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, 1);
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
+
+	if (Effect.Spec.Def->HasGrantedApplicationImmunityQuery)
+	{	
+		ApplicationImmunityQueryEffects.Add(Effect.Spec.Def);
+	}
 
 	// Grant abilities
 	if (IsNetAuthority() && !Owner->bSuppressGrantAbility)
@@ -2861,7 +2895,11 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FAct
 		RemoveActiveEffectTagDependency(Effect.Spec.Def->OngoingTagRequirements.IgnoreTags, Effect.Handle);
 		RemoveActiveEffectTagDependency(Effect.Spec.Def->OngoingTagRequirements.RequireTags, Effect.Handle);
 
-		RemoveActiveGameplayEffectGrantedTagsAndModifiers(Effect, bInvokeGameplayCueEvents);
+		// Only Need to update tags and modifiers if the gameplay effect is active.
+		if (!Effect.bIsInhibited)
+		{
+			RemoveActiveGameplayEffectGrantedTagsAndModifiers(Effect, bInvokeGameplayCueEvents);
+		}
 	}
 	else
 	{
@@ -2901,8 +2939,14 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 		Owner->RemoveMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
 	}
 
+	// Immunity
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, -1);
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, -1);
+
+	if (Effect.Spec.Def->HasGrantedApplicationImmunityQuery)
+	{
+		ApplicationImmunityQueryEffects.Remove(Effect.Spec.Def);
+	}
 
 	// Cancel/remove granted abilities
 	if (IsNetAuthority())
@@ -3046,7 +3090,7 @@ void FActiveGameplayEffectsContainer::OnOwnerTagChange(FGameplayTag TagChange, i
 	}
 }
 
-bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply) const
+bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply, const FActiveGameplayEffect*& OutGEThatProvidedImmunity) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_HasApplicationImmunityToSpec)
 
@@ -3056,16 +3100,36 @@ bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGamepl
 		return false;
 	}
 
+	// Query
+	for (const UGameplayEffect* EffectDef : ApplicationImmunityQueryEffects)
+	{
+		if (EffectDef->GrantedApplicationImmunityQuery.Matches(SpecToApply))
+		{
+			// This is blocked, but who blocked? Search for that Active GE
+			for (const FActiveGameplayEffect& Effect : this)
+			{
+				if (Effect.Spec.Def == EffectDef)
+				{
+					OutGEThatProvidedImmunity = &Effect;
+					return true;
+				}
+			}
+			ABILITY_LOG(Error, TEXT("Application Immunity was triggered for Applied GE: %s by Granted GE: %s. But this GE was not found in the Active GameplayEffects list!"), *GetNameSafe(SpecToApply.Def), *GetNameSafe( EffectDef));
+			break;
+		}
+	}
+
 	// Quick map test
 	if (!AggregatedSourceTags->MatchesAny(ApplicationImmunityGameplayTagCountContainer.GetExplicitGameplayTags(), false))
 	{
 		return false;
 	}
 
-	for (const FActiveGameplayEffect& Effect :  this)
+	for (const FActiveGameplayEffect& Effect : this)
 	{
 		if (Effect.Spec.Def->GrantedApplicationImmunityTags.IsEmpty() == false && Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *AggregatedSourceTags ))
 		{
+			OutGEThatProvidedImmunity = &Effect;
 			return true;
 		}
 	}
@@ -3080,7 +3144,7 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 		EReplicationMode ReplicationMode = Owner->ReplicationMode;
 		if (ReplicationMode == EReplicationMode::Minimal)
 		{
-			return true;
+			return false;
 		}
 		else if (ReplicationMode == EReplicationMode::Mixed)
 		{
@@ -3095,7 +3159,7 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 					// data will go to everyone else.
 					if (!Owner->GetOwner()->IsOwnedBy(Connection->OwningActor))
 					{
-						return true;
+						return false;
 					}
 				}
 			}
@@ -4018,6 +4082,10 @@ bool FGameplayEffectQuery::Matches(const FGameplayEffectSpec& Spec) const
 		check(IsInGameThread());
 		static FGameplayTagContainer TargetTags;
 		TargetTags.RemoveAllTags();
+		if (Spec.Def->InheritableGameplayEffectTags.CombinedTags.Num() > 0)
+		{
+			TargetTags.AppendTags(Spec.Def->InheritableGameplayEffectTags.CombinedTags);
+		}
 		if (Spec.Def->InheritableOwnedTagsContainer.CombinedTags.Num() > 0)
 		{
 			TargetTags.AppendTags(Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
@@ -4106,6 +4174,19 @@ bool FGameplayEffectQuery::Matches(const FGameplayEffectSpec& Spec) const
 	}
 
 	return true;
+}
+
+bool FGameplayEffectQuery::IsEmpty() const
+{
+	return 
+	(
+		OwningTagQuery.IsEmpty() &&
+		EffectTagQuery.IsEmpty() &&
+		SourceTagQuery.IsEmpty() &&
+		!ModifyingAttribute.IsValid() &&
+		!EffectSource &&
+		!EffectDefinition
+	);
 }
 
 // static

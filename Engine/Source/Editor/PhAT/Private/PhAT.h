@@ -236,6 +236,8 @@ private:
 	
 	void Mirror();
 
+	void EditPhysicalAnimations();
+
 	//menu commands
 	void OnSelectAll();
 	void SetHierarchyFilter(EPhatHierarchyFilterMode Mode);
@@ -261,6 +263,9 @@ private:
 	/** Properties Tab */
 	TSharedPtr<class IDetailsView> Properties;
 
+	/** Physics asset properties tab */
+	TSharedPtr<class IDetailsView> PhysAssetProperties;
+
 	/** Bone Hierarchy Tree View */
 	TSharedPtr< STreeView<FTreeElemPtr> > Hierarchy;
 	TSharedPtr<SBorder> HierarchyControl;
@@ -273,6 +278,8 @@ private:
 
 	/** Data and methods shared across multiple classes */
 	TSharedPtr<FPhATSharedData> SharedData;
+
+	TSharedPtr<STextComboBox> PhysicalAnimationComboBox;
 
 	/** Toolbar extender - used repeatedly as the body/constraints mode will remove/add this when changed */
 	TSharedPtr<FExtender> ToolbarExtender;
@@ -288,6 +295,9 @@ private:
 
 	/** True if we want to only simulate from selected body/constraint down*/
 	bool SelectedSimulation;
+
+	/** Holds the array of strings the UI needs to show physical animation profiles for the editing physics asset*/
+	TArray<TSharedPtr<FString>> PhysicalAnimationProfiles;
 
 	/** Determines which simulation mode wer're currently in */
 	EPhATSimulationMode SimulationMode;

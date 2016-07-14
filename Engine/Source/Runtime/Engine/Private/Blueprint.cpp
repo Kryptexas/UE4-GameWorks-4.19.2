@@ -491,6 +491,50 @@ void UBlueprint::PostLoad()
 {
 	Super::PostLoad();
 
+	if (DeprecatedPinWatches.Num() > 0)
+	{
+		// patch DeprecatedPinWatches to WatchedPins:
+		for (UEdGraphPin_Deprecated* OldPin : DeprecatedPinWatches)
+		{
+			if (UEdGraphPin* NewPin = UEdGraphPin::FindPinCreatedFromDeprecatedPin(OldPin))
+			{
+				WatchedPins.Add(NewPin);
+			}
+		}
+
+		DeprecatedPinWatches.Empty();
+	}
+
+	// now that pin watches have been fixed up, we can remove the old pins:
+	{
+		TArray<UEdGraph*> Graphs;
+		GetAllGraphs(Graphs);
+		for (UEdGraph* Graph : Graphs)
+		{
+			if (Graph)
+			{
+				for (UEdGraphNode* Node : Graph->Nodes)
+				{
+					if (Node)
+					{
+						TArray<UEdGraphPin_Deprecated*>& DeprecatedPins = Node->DeprecatedPins;
+						if (DeprecatedPins.Num() > 0)
+						{
+							for (UEdGraphPin_Deprecated* LegacyPin : DeprecatedPins)
+							{
+								LegacyPin->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders);
+								LegacyPin->SetFlags(RF_Transient);
+								LegacyPin->MarkPendingKill();
+							}
+
+							DeprecatedPins.Empty();
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Can't use TGuardValue here as bIsRegeneratingOnLoad is a bitfield
 	struct FScopedRegeneratingOnLoad
 	{
@@ -796,12 +840,12 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	OutTags.Add( FAssetRegistryTag("ClassFlags", FString::FromInt(ClassFlagsTagged), FAssetRegistryTag::TT_Hidden) );
 
-	if ( ParentClass )
-	{
-		OutTags.Add( FAssetRegistryTag( "IsDataOnly",
+	OutTags.Add( FAssetRegistryTag( "IsDataOnly",
 			FBlueprintEditorUtils::IsDataOnlyBlueprint(this) ? TEXT("True") : TEXT("False"),
 			FAssetRegistryTag::TT_Alphabetical ) );
 
+	if ( ParentClass )
+	{
 		OutTags.Add( FAssetRegistryTag("FiBData", FFindInBlueprintSearchManager::Get().QuerySingleBlueprint((UBlueprint*)this, false), FAssetRegistryTag::TT_Hidden) );
 	}
 

@@ -4,28 +4,35 @@
 #include "Animation/AnimInstance.h"
 #include "Persona.h"
 
+class SAnimCurveViewer;
+
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedAnimCurveInfo
 
 class FDisplayedAnimCurveInfo
 {
 public:
-	FName Name;
+	FSmartName SmartName;
 	float Weight;
 	bool bAutoFillData;
+	const class USkeleton* Skeleton;		// The skeleton we're associated with
+	TSharedPtr<SInlineEditableTextBlock> EditableText;	// The editable text box in the list, used to focus from the context menu
+	FName ContainerName;	// The container in the skeleton this name resides in
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedAnimCurveInfo> Make(const FName& Source)
+	static TSharedRef<FDisplayedAnimCurveInfo> Make(const class USkeleton* InSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
 	{
-		return MakeShareable(new FDisplayedAnimCurveInfo(Source));
+		return MakeShareable(new FDisplayedAnimCurveInfo(InSkeleton, InContainerName, InSmartName));
 	}
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedAnimCurveInfo(const FName& InSource)
-		: Name( InSource )
+	FDisplayedAnimCurveInfo(const class USkeleton* InSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+		: SmartName(InSmartName)
 		, Weight( 0 )
 		, bAutoFillData(true)
+		, Skeleton(InSkeleton)
+		, ContainerName(InContainerName)
 	{}
 
 	/** Hidden constructor, always use Make above */
@@ -33,6 +40,66 @@ protected:
 };
 
 typedef SListView< TSharedPtr<FDisplayedAnimCurveInfo> > SAnimCurveListType;
+
+//////////////////////////////////////////////////////////////////////////
+// SAnimCurveListRow
+
+class SAnimCurveListRow : public SMultiColumnTableRow< TSharedPtr<FDisplayedAnimCurveInfo> >
+{
+public:
+
+	SLATE_BEGIN_ARGS(SAnimCurveListRow) {}
+
+		/** The item for this row **/
+		SLATE_ARGUMENT(TSharedPtr<FDisplayedAnimCurveInfo>, Item)
+
+		/* The SAnimCurveViewer that we push the morph target weights into */
+		SLATE_ARGUMENT(class TWeakPtr<SAnimCurveViewer>, AnimCurveViewerPtr)
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView);
+
+	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+
+private:
+
+	/**
+	* Called when the user changes the value of the SSpinBox
+	*
+	* @param NewWeight - The new number the SSpinBox is set to
+	*
+	*/
+	void OnAnimCurveWeightChanged(float NewWeight);
+	/**
+	* Called when the user types the value and enters
+	*
+	* @param NewWeight - The new number the SSpinBox is set to
+	*
+	*/
+	void OnAnimCurveWeightValueCommitted(float NewWeight, ETextCommit::Type CommitType);
+
+	/** Auto fill check call back functions */
+	void OnAnimCurveAutoFillChecked(ECheckBoxState InState);
+	ECheckBoxState IsAnimCurveAutoFillChangedChecked() const;
+
+	/** Returns the weight of this curve */
+	float GetWeight() const;
+	/** Returns name of this curve */
+	FText GetItemName() const;
+	/** Return color for text of item */
+	FSlateColor GetItemTextColor() const;
+
+	/** Get current active weight. Returns false if not currently active */
+	bool GetActiveWeight(float& OutWeight) const;
+
+	/* The SAnimCurveViewer that we push the morph target weights into */
+	TWeakPtr<SAnimCurveViewer> AnimCurveViewerPtr;
+
+	/** The name and weight of the morph target */
+	TSharedPtr<FDisplayedAnimCurveInfo>	Item;
+};
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurveViewer
@@ -44,7 +111,7 @@ public:
 		: _Persona()
 	{}
 		
-		/* The Persona that owns this table */
+		/** The Persona that owns this table */
 		SLATE_ARGUMENT( TWeakPtr< FPersona >, Persona )
 
 	SLATE_END_ARGS()
@@ -78,6 +145,9 @@ public:
 	*/
 	void OnPreviewAssetChanged(class UAnimationAsset* NewPreviewAsset);
 
+	/** Is registered with Persona to handle when curves change. */
+	void OnCurvesChanged();
+
 	/**
 	* Filters the SListView when the user changes the search text box (NameFilterBox)
 	*
@@ -85,6 +155,9 @@ public:
 	*
 	*/
 	void OnFilterTextChanged( const FText& SearchText );
+
+
+
 
 	/**
 	* Filters the SListView when the user hits enter or clears the search box
@@ -129,10 +202,6 @@ public:
 	FText& GetFilterText() { return FilterText; }
 
 	/**
-	 * Get Title text
-	 */
-	FText GetTitleText() const;
-	/**
 	 * Refreshes the morph target list after an undo
 	 */
 	void OnPostUndo();
@@ -140,6 +209,9 @@ public:
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
 	void RefreshCurveList();
+
+	// When a name is committed after being edited in the list
+	virtual void OnNameCommitted(const FText& NewName, ETextCommit::Type CommitType, TSharedPtr<FDisplayedAnimCurveInfo> Item);
 
 private:
 
@@ -153,10 +225,30 @@ private:
 	*
 	*/
 	void CreateAnimCurveList( const FString& SearchText = FString() );
-	void CreateAnimCurveTypeList(TSharedRef<SVerticalBox> VerticalBox);
+	void CreateAnimCurveTypeList(TSharedRef<SHorizontalBox> HorizontalBox);
 
 	void ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const;
 	void RefreshCachePreviewInstance();
+
+	void OnDeleteNameClicked();
+	bool CanDelete();
+
+	void OnRenameClicked();
+	bool CanRename();
+
+	void OnAddClicked();
+
+	ECheckBoxState IsShowingAllCurves() const;
+	void OnToggleShowingAllCurves(ECheckBoxState NewState);
+
+	bool IsCurveFilterEnabled() const;
+
+	// Adds a new smartname entry to the skeleton in the container we are managing
+	void CreateNewNameEntry(const FText& CommittedText, ETextCommit::Type CommitType);
+
+	/** Get the SmartNameMapping for anim curves */
+	const struct FSmartNameMapping* GetAnimCurveMapping();
+
 
 	/** Pointer back to the Persona that owns us */
 	TWeakPtr<FPersona> PersonaPtr;
@@ -164,17 +256,26 @@ private:
 	/** Box to filter to a specific morph target name */
 	TSharedPtr<SSearchBox>	NameFilterBox;
 
-	/** Widget used to display the list of animation curve */
-	TSharedPtr<SAnimCurveListType> AnimCurveListView;
-
 	/** A list of animation curve. Used by the AnimCurveListView. */
 	TArray< TSharedPtr<FDisplayedAnimCurveInfo> > AnimCurveList;
 
 	/** The skeletal mesh that we grab the animation curve from */
 	UAnimInstance* CachedPreviewInstance;
 
+	/** The current skeleton being edited by out Persona instance */
+	class USkeleton* CurrentSkeleton;									
+
+	/** Widget used to display the list of animation curve */
+	TSharedPtr<SAnimCurveListType> AnimCurveListView;
+
+	/** Name of the skeleton smart name container to display in the list */
+	FName ContainerName;
+
 	/** Current text typed into NameFilterBox */
 	FText FilterText;
+
+	/** Are we showing all curves, or only active ones. */
+	bool bShowAllCurves;
 
 	int32 CurrentCurveFlag;
 

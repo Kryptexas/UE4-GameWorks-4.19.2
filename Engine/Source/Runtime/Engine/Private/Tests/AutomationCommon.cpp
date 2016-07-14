@@ -54,9 +54,10 @@ bool AutomationOpenMap(const FString& MapName)
 	{
 		//will happen on a subsequent frame
 		check(GEngine->GetWorldContexts().Num() == 1);
-		check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
-		//Don't reload the map if it's already loaded
-		if (GEngine->GetWorldContexts()[0].World()->GetName() != MapName)
+		check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);	
+		//Don't reload the map if it's already loaded. Check if the two are equal or one contains the other,
+		// since sometime one is a path and the other is the asset name, depending on whether we're in PIE.
+		if (!GEngine->GetWorldContexts()[0].World()->GetName().Contains(MapName) && !MapName.Contains(GEngine->GetWorldContexts()[0].World()->GetName()))
 		{
 			GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
 		}

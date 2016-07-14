@@ -52,6 +52,9 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
 /** Notify interested parties that ability spec has been modified */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilitySpecDirtied, const FGameplayAbilitySpec&);
 
+/** Notifies when GameplayEffectSpec is blocked by an ActiveGameplayEffect due to immunity  */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FImmunityBlockGE, const FGameplayEffectSpec& /*BlockedSpec*/, const FActiveGameplayEffect* /*ImmunityGameplayEffect*/);
+
 UENUM()
 enum class EReplicationMode : uint8
 {
@@ -611,6 +614,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue);
 	}
 
+	void SetBaseAttributeValueFromReplication(FGameplayAttributeData NewValue, FGameplayAttribute Attribute)
+	{
+		ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue.GetBaseValue());
+	}
+
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
 	{
@@ -971,6 +979,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		int32 GameFlags; // arbitrary flags for games to set/read in Debug_Internal
 	};
 
+	static void OnShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& YL, float& YPos);
+
 	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 	virtual void PrintDebug();
 
@@ -1252,8 +1262,13 @@ protected:
 	/** Returns true if the specified ability should be activated from an event in this network mode */
 	bool HasNetworkAuthorityToActivateTriggeredAbility(const FGameplayAbilitySpec &Spec) const;
 
+	virtual void OnImmunityBlockGameplayEffect(const FGameplayEffectSpec& Spec, const FActiveGameplayEffect* ImmunityGE);
+
 	// -----------------------------------------------------------------------------
 public:
+
+	/** Immunity notification support */
+	FImmunityBlockGE OnImmunityBlockGameplayEffectDelegate;
 
 	/** The actor that owns this component logically */
 	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)

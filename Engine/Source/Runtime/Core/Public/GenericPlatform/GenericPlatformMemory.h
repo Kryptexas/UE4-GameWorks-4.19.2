@@ -265,8 +265,9 @@ struct CORE_API FGenericPlatformMemory
 	 * Returns pages allocated by BinnedAllocFromOS to the OS.
 	 *
 	 * @param A pointer previously returned from BinnedAllocFromOS
+	 * @param Size size of the allocation previously passed to BinnedAllocFromOS
 	 */
-	static void BinnedFreeToOS( void* Ptr );
+	static void BinnedFreeToOS( void* Ptr, SIZE_T Size );
 
 	// These alloc/free memory that is mapped to the GPU
 	// Only for platforms with UMA (XB1/PS4/etc)

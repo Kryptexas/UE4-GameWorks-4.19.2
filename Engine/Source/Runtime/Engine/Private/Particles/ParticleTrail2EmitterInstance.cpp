@@ -2190,14 +2190,14 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					if (SourceIndices[InTrailIdx] != -1)
 					{
 						FBaseParticle* SourceParticle = SourceEmitter->GetParticleDirect(SourceIndices[InTrailIdx]);
-						if (SourceParticle == NULL)
+						if (SourceParticle == NULL || SourceParticle->RelativeTime>1.0f)
 						{
 							// If the previous particle is not found, force the trail to pick a new one
 							SourceIndices[InTrailIdx] = -1;
 						}
 					}
 
-					if (SourceIndices[InTrailIdx] == -1)
+					if (SourceIndices[InTrailIdx] == -1 && SourceEmitter->ActiveParticles > 0)
 					{
 						int32 Index = 0;
 						switch (SourceModule->SelectionMethod)
@@ -2249,6 +2249,43 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 							!ensureMsgf(!WorldOrigin.ContainsNaN(), TEXT("NaN in WorldOrigin. Template: %s, Component: %s"), Comp ? *GetNameSafe(Comp->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Comp))
 							)
 						{
+							UE_LOG(LogParticles, Warning, TEXT("TrailIdx: %d"), InTrailIdx);
+							UE_LOG(LogParticles, Warning, TEXT("SourceEmitterParticleIndex: %d"), SourceEmitterParticleIndex);
+							UE_LOG(LogParticles, Warning, TEXT("ActiveParticles: %d"), SourceEmitter->ActiveParticles);
+
+							UE_LOG(LogParticles, Warning, TEXT("==============ParticleIndices================="));
+							for (int32 i = 0; i < SourceEmitter->ActiveParticles; ++i)
+							{
+								UE_LOG(LogParticles, Warning, TEXT("%d: %d"), i, SourceEmitter->ParticleIndices[i]);
+							}
+
+							UE_LOG(LogParticles, Warning, TEXT("==============ParticleData================="));
+							for (int32 i = 0; i < SourceEmitter->ActiveParticles; ++i)
+							{
+								UE_LOG(LogParticles, Warning, TEXT("-- Particle %d --"), i);
+								if (FBaseParticle* DumpParticle = SourceEmitter->GetParticleDirect(i))
+								{
+									UE_LOG(LogParticles, Warning, TEXT("Location:{%6.4f, %6.4f, %6.4f}"), DumpParticle->Location.X, DumpParticle->Location.Y, DumpParticle->Location.Z);
+									UE_LOG(LogParticles, Warning, TEXT("OldLocation:{%6.4f, %6.4f, %6.4f}"), DumpParticle->OldLocation.X, DumpParticle->OldLocation.Y, DumpParticle->OldLocation.Z);
+									UE_LOG(LogParticles, Warning, TEXT("BaseVelocity:{%6.4f, %6.4f, %6.4f}"), DumpParticle->BaseVelocity.X, DumpParticle->BaseVelocity.Y, DumpParticle->BaseVelocity.Z);
+									UE_LOG(LogParticles, Warning, TEXT("Velocity:{%6.4f, %6.4f, %6.4f}"), DumpParticle->Velocity.X, DumpParticle->Velocity.Y, DumpParticle->Velocity.Z);
+									UE_LOG(LogParticles, Warning, TEXT("BaseSize:{%6.4f, %6.4f, %6.4f}"), DumpParticle->BaseSize.X, DumpParticle->BaseSize.Y, DumpParticle->BaseSize.Z);
+									UE_LOG(LogParticles, Warning, TEXT("Size:{%6.4f, %6.4f, %6.4f}"), DumpParticle->Size.X, DumpParticle->Size.Y, DumpParticle->Size.Z);
+									UE_LOG(LogParticles, Warning, TEXT("RelativeTime: %6.4f"), DumpParticle->RelativeTime);
+									UE_LOG(LogParticles, Warning, TEXT("OneOverMaxLifetime: %6.4f"), DumpParticle->OneOverMaxLifetime);
+									UE_LOG(LogParticles, Warning, TEXT("Rotation: %6.4f"), DumpParticle->Rotation);
+									UE_LOG(LogParticles, Warning, TEXT("BaseRotationRate: %6.4f"), DumpParticle->BaseRotationRate);
+									UE_LOG(LogParticles, Warning, TEXT("RotationRate: %6.4f"), DumpParticle->RotationRate);
+									UE_LOG(LogParticles, Warning, TEXT("Flags: %d"), DumpParticle->Flags);
+									UE_LOG(LogParticles, Warning, TEXT("Color:{%6.4f, %6.4f, %6.4f, %6.4f}"), DumpParticle->Color.R, DumpParticle->Color.G, DumpParticle->Color.B, DumpParticle->Color.A);
+									UE_LOG(LogParticles, Warning, TEXT("BaseColor:{%6.4f, %6.4f, %6.4f, %6.4f}"), DumpParticle->BaseColor.R, DumpParticle->BaseColor.G, DumpParticle->BaseColor.B, DumpParticle->BaseColor.A)
+								}
+								else
+								{
+									UE_LOG(LogParticles, Warning, TEXT("Dump Particle was NULL"));
+								}
+							}
+
 							// Contains NaN!
 							bEncounteredNaNError = true;
 						}

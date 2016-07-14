@@ -12,6 +12,8 @@
 #include "Animation/PoseAsset.h"
 
 
+class SPoseViewer;
+
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedPoseInfo
 
@@ -27,6 +29,10 @@ public:
 		return MakeShareable(new FDisplayedPoseInfo(Source));
 	}
 
+	/** Delegate for when the context menu requests a rename */
+	DECLARE_DELEGATE(FOnRenameRequested);
+	FOnRenameRequested OnRenameRequested;
+
 protected:
 	/** Hidden constructor, always use Make above */
 	FDisplayedPoseInfo(const FName& InSource)
@@ -39,6 +45,77 @@ protected:
 };
 
 typedef SListView< TSharedPtr<FDisplayedPoseInfo> > SPoseListType;
+
+//////////////////////////////////////////////////////////////////////////
+// SPoseListRow
+
+class SPoseListRow : public SMultiColumnTableRow< TSharedPtr<FDisplayedPoseInfo> >
+{
+public:
+
+	SLATE_BEGIN_ARGS(SPoseListRow) {}
+
+		/** The item for this row **/
+		SLATE_ARGUMENT(TSharedPtr<FDisplayedPoseInfo>, Item)
+
+		/* The SPoseViewer that we push the morph target weights into */
+		SLATE_ARGUMENT(TWeakPtr<SPoseViewer>, PoseViewer)
+
+		/** Filter text typed by the user into the parent tree's search widget */
+		SLATE_ARGUMENT(FText, FilterText);
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView);
+
+	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+
+private:
+
+	/**
+	* Called when the user changes the value of the SSpinBox
+	*
+	* @param NewWeight - The new number the SSpinBox is set to
+	*
+	*/
+	void OnPoseWeightChanged(float NewWeight);
+	/**
+	* Called when the user types the value and enters
+	*
+	* @param NewWeight - The new number the SSpinBox is set to
+	*
+	*/
+	void OnPoseWeightValueCommitted(float NewWeight, ETextCommit::Type CommitType);
+
+	/** Delegate to get labels root text from settings */
+	FText GetName() const;
+
+	/** Delegate to commit labels root text to settings */
+	void OnNameCommitted(const FText& InText, ETextCommit::Type InCommitType) const;
+
+	bool OnVerifyNameChanged(const FText& InText, FText& OutErrorMessage);
+
+
+	/**
+	* Returns the weight of this morph target
+	*
+	* @return SearchText - The new number the SSpinBox is set to
+	*
+	*/
+	float GetWeight() const;
+
+	bool CanChangeWeight() const;
+
+	/* The SPoseViewer that we push the pose weights into */
+	TWeakPtr<SPoseViewer> PoseViewerPtr;
+
+	/** The name and weight of the morph target */
+	TSharedPtr<FDisplayedPoseInfo>	Item;
+
+	/** Text the user typed into the search box - used for text highlighting */
+	FText FilterText;
+};
 
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedCurveInfo
@@ -64,7 +141,47 @@ protected:
 	FDisplayedCurveInfo() {}
 };
 
+//////////////////////////////////////////////////////////////////////////
+// SCurveListRow
+
 typedef SListView< TSharedPtr<FDisplayedCurveInfo> > SCurveListType;
+
+
+class SCurveListRow : public SMultiColumnTableRow< TSharedPtr<FDisplayedCurveInfo> >
+{
+public:
+
+	SLATE_BEGIN_ARGS(SCurveListRow) {}
+
+		/** The item for this row **/
+		SLATE_ARGUMENT(TSharedPtr<FDisplayedCurveInfo>, Item)
+
+		/* The SPoseViewer that we push the morph target weights into */
+		SLATE_ARGUMENT(TWeakPtr<SPoseViewer>, PoseViewer)
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView);
+
+	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+
+private:
+
+	/** Delegate to get labels root text from settings */
+	FText GetName() const;
+
+	/** Delegate to get weight of curve in selected pose */
+	FText GetValue() const;
+
+	/** The name and weight of the morph target */
+	TSharedPtr<FDisplayedCurveInfo>	Item;
+
+	/* The SPoseViewer that we push the morph target weights into */
+	TWeakPtr<SPoseViewer> PoseViewerPtr;
+};
+
+
 //////////////////////////////////////////////////////////////////////////
 // SPoseViewer
 
@@ -81,13 +198,13 @@ public:
 
 	SLATE_END_ARGS()
 
-		/**
-		* Slate construction function
-		*
-		* @param InArgs - Arguments passed from Slate
-		*
-		*/
-		void Construct(const FArguments& InArgs);
+	/**
+	* Slate construction function
+	*
+	* @param InArgs - Arguments passed from Slate
+	*
+	*/
+	void Construct(const FArguments& InArgs);
 
 	/**
 	* Destructor - resets the animation curve
@@ -132,19 +249,20 @@ public:
 	TSharedRef<ITableRow> GeneratePoseRow(TSharedPtr<FDisplayedPoseInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
 	TSharedRef<ITableRow> GenerateCurveRow(TSharedPtr<FDisplayedCurveInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
-	/**
-	* Provides state to the IsEnabled property of the delete morph targets button
-	*
-	*/
 	bool IsPoseSelected() const;
+	bool IsSinglePoseSelected() const;
 	bool IsCurveSelected() const;
 
-	/**
-	* Handler for the delete poses button
-	*/
+	/** Handler for the delete poses option */
 	void OnDeletePoses();
+
+	/** Handler for rename pose option */
+	void OnRenamePose();
+
+	/** Handler for delete curves option */
 	void OnDeleteCurves();
 
+	/** Handler for pasting names from clipboard */
 	void OnPastePoseNamesFromClipBoard(bool bSelectedOnly);
 
 	/**
@@ -152,16 +270,11 @@ public:
 	*
 	* @param Name - Name of the morph target we want to override
 	* @param Weight - How much of this morph target to apply (0.0 - 1.0)
-	*
 	*/
-	void AddPoseOverride(FName& Name, float Weight);
-	void RemovePoseOverride(FName& Name);
+	void AddCurveOverride(FName& Name, float Weight);
 
-	/**
-	* Tells the AnimInstance to reset all of its morph target curves
-	*
-	*/
-	void ResetPoses();
+	/** Remove a named curve override */ 
+	void RemoveCurveOverride(FName& Name);
 
 	/**
 	* Accessor so our rows can grab the filtertext for highlighting
@@ -176,7 +289,7 @@ public:
 	/**
 	* Refreshes the morph target list after an undo
 	*/
-	void OnPostUndo();
+	void RefreshList();
 
 	bool ModifyName(FName OldName, FName NewName, bool bSilence = false);
 	bool IsBasePose(FName PoseName) const;
@@ -187,6 +300,9 @@ private:
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
 	/** Handler for curve list context menu*/
 	TSharedPtr<SWidget> OnGetContextMenuContentForCurveList() const;
+	/** Called when list double-clicked */
+	void OnListDoubleClick(TSharedPtr<FDisplayedPoseInfo> InItem);
+
 
 	/**
 	* Clears and rebuilds the table, according to an optional search string

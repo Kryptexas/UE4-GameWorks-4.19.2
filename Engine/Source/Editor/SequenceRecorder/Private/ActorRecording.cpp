@@ -68,7 +68,7 @@ bool UActorRecording::StartRecording(ULevelSequence* CurrentSequence, float Curr
 {
 	bNewComponentAddedWhileRecording = false;
 
-	if(ActorToRecord.IsValid())
+	if(GetActorToRecord() != nullptr)
 	{
 		if(CurrentSequence != nullptr)
 		{
@@ -77,7 +77,7 @@ bool UActorRecording::StartRecording(ULevelSequence* CurrentSequence, float Curr
 		else
 		{
 			TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimationRecorder = MakeShareable(new FMovieSceneAnimationSectionRecorder(AnimationSettings, TargetAnimation.Get()));
-			AnimationRecorder->CreateSection(ActorToRecord.Get(), nullptr, FGuid(), 0.0f);
+			AnimationRecorder->CreateSection(GetActorToRecord(), nullptr, FGuid(), 0.0f);
 			AnimationRecorder->Record(0.0f);
 			SectionRecorders.Add(AnimationRecorder);			
 		}
@@ -111,9 +111,9 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 	// it is not enough to just go through the owned components array here
 	// we need to traverse the scene component hierarchy as well, as some components may be 
 	// owned by other actors (e.g. for pooling) and some may not be part of the hierarchy
-	if(ActorToRecord.IsValid())
+	if(GetActorToRecord() != nullptr)
 	{
-		USceneComponent* RootComponent = ActorToRecord->GetRootComponent();
+		USceneComponent* RootComponent = GetActorToRecord()->GetRootComponent();
 		if(RootComponent)
 		{
 			// note: GetChildrenComponents clears array!
@@ -122,7 +122,7 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 		}
 
 		// add owned components that are *not* part of the hierarchy
-		TInlineComponentArray<USceneComponent*> OwnedComponents(ActorToRecord.Get());
+		TInlineComponentArray<USceneComponent*> OwnedComponents(GetActorToRecord());
 		for(USceneComponent* OwnedComponent : OwnedComponents)
 		{
 			if(OwnedComponent->GetAttachParent() == nullptr && OwnedComponent != RootComponent)
@@ -133,7 +133,7 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 
 		if(!bIncludeNonCDO)
 		{
-			AActor* CDO = Cast<AActor>(ActorToRecord->GetClass()->GetDefaultObject());
+			AActor* CDO = Cast<AActor>(GetActorToRecord()->GetClass()->GetDefaultObject());
 
 			auto ShouldRemovePredicate = [&](UActorComponent* PossiblyRemovedComponent)
 				{
@@ -221,14 +221,14 @@ bool UActorRecording::ValidComponent(USceneComponent* SceneComponent) const
 
 void UActorRecording::FindOrAddFolder(UMovieScene* MovieScene)
 {
-	check(ActorToRecord.IsValid());
+	check(GetActorToRecord() != nullptr);
 
 	FName FolderName(NAME_None);
-	if(ActorToRecord.Get()->IsA<ACharacter>() || ActorToRecord.Get()->IsA<ASkeletalMeshActor>())
+	if(GetActorToRecord()->IsA<ACharacter>() || GetActorToRecord()->IsA<ASkeletalMeshActor>())
 	{
 		FolderName = TEXT("Characters");
 	}
-	else if(ActorToRecord.Get()->IsA<ACameraActor>() || ActorToRecord.Get()->IsA<ACameraRig_Crane>() || ActorToRecord.Get()->IsA<ACameraRig_Rail>())
+	else if(GetActorToRecord()->IsA<ACameraActor>() || GetActorToRecord()->IsA<ACameraRig_Crane>() || GetActorToRecord()->IsA<ACameraRig_Rail>())
 	{
 		FolderName = TEXT("Cameras");
 	}
@@ -265,12 +265,11 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 		// set up our spawnable for this actor
 		UMovieScene* MovieScene = CurrentSequence->GetMovieScene();
 
-		AActor* Actor = ActorToRecord.Get();
+		AActor* Actor = GetActorToRecord();
 		FString TemplateName = GetUniqueSpawnableName(MovieScene, Actor->GetName());
 
-		UClass* ActorClass = Actor->GetClass();
-		AActor* ObjectTemplate = NewObject<AActor>(MovieScene, ActorClass, *TemplateName);
-		
+		AActor* ObjectTemplate = CastChecked<AActor>(CurrentSequence->MakeSpawnableTemplateFromInstance(*Actor, *TemplateName));
+
 		if (ObjectTemplate)
 		{
 			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
@@ -303,7 +302,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			const bool bIncludeNonCDO = false;
 			SyncTrackedComponents(bIncludeNonCDO);
 
-			TInlineComponentArray<USceneComponent*> SceneComponents(ActorToRecord.Get());
+			TInlineComponentArray<USceneComponent*> SceneComponents(GetActorToRecord());
 
 			// check if components need recording
 			TInlineComponentArray<USceneComponent*> ValidSceneComponents;
@@ -326,7 +325,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			TSharedPtr<FMovieSceneAnimationSectionRecorder> FirstAnimRecorder = nullptr;
 			for(USceneComponent* SceneComponent : ValidSceneComponents)
 			{
-				TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, ActorToRecord.Get(), CurrentSequence, CurrentSequenceTime);
+				TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime);
 				if(!FirstAnimRecorder.IsValid() && AnimRecorder.IsValid())
 				{
 					FirstAnimRecorder = AnimRecorder;
@@ -334,7 +333,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			}
 
 			// we need to create a transform track even if we arent recording transforms
-			if (FSequenceRecorder::Get().GetTransformRecorderFactory().CanRecordObject(ActorToRecord.Get()))
+			if (FSequenceRecorder::Get().GetTransformRecorderFactory().CanRecordObject(GetActorToRecord()))
 			{
 				UMovieScene3DTransformSectionRecorderSettings* Settings = ActorSettings.GetSettingsObject<UMovieScene3DTransformSectionRecorderSettings>();
 				check(Settings);
@@ -342,7 +341,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 				TSharedPtr<IMovieSceneSectionRecorder> Recorder = FSequenceRecorder::Get().GetTransformRecorderFactory().CreateSectionRecorder(Settings->bRecordTransforms, FirstAnimRecorder);
 				if(Recorder.IsValid())
 				{ 
-					Recorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime);
+					Recorder->CreateSection(GetActorToRecord(), MovieScene, Guid, CurrentSequenceTime);
 					Recorder->Record(CurrentSequenceTime);
 					SectionRecorders.Add(Recorder);
 				}
@@ -351,12 +350,12 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			TArray<IMovieSceneSectionRecorderFactory*> ModularFeatures = IModularFeatures::Get().GetModularFeatureImplementations<IMovieSceneSectionRecorderFactory>(MovieSceneSectionRecorderFactoryName);
 			for (IMovieSceneSectionRecorderFactory* Factory : ModularFeatures)
 			{
-				if (Factory->CanRecordObject(ActorToRecord.Get()))
+				if (Factory->CanRecordObject(GetActorToRecord()))
 				{
 					TSharedPtr<IMovieSceneSectionRecorder> Recorder = Factory->CreateSectionRecorder(ActorSettings);
 					if (Recorder.IsValid())
 					{
-						Recorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime);
+						Recorder->CreateSection(GetActorToRecord(), MovieScene, Guid, CurrentSequenceTime);
 						Recorder->Record(CurrentSequenceTime);
 						SectionRecorders.Add(Recorder);
 					}
@@ -492,6 +491,23 @@ bool UActorRecording::IsRecording() const
 	return ActorToRecord.IsValid() && SectionRecorders.Num() > 0;
 }
 
+AActor* UActorRecording::GetActorToRecord() const
+{
+	if (ActorToRecord.IsValid())
+	{
+		AActor* OutActor = EditorUtilities::GetSimWorldCounterpartActor(ActorToRecord.Get());
+
+		if (OutActor != nullptr)
+		{
+			return OutActor;
+		}
+
+		return ActorToRecord.Get();
+	}
+
+	return nullptr;
+}
+
 static FName FindParentComponentOwnerClassName(USceneComponent* SceneComponent, UBlueprint* Blueprint)
 {
 	if(SceneComponent->GetAttachParent())
@@ -515,7 +531,7 @@ static FName FindParentComponentOwnerClassName(USceneComponent* SceneComponent, 
 
 void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequence, float CurrentSequenceTime)
 {
-	if (ActorToRecord.IsValid())
+	if (GetActorToRecord() != nullptr)
 	{
 		// find the new component(s)
 		TArray<USceneComponent*> NewComponents;
@@ -588,7 +604,7 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 				NewName = SceneComponent->GetFName();
 			}
 
-			StartRecordingComponentProperties(NewName, SceneComponent, ActorToRecord.Get(), CurrentSequence, CurrentSequenceTime);
+			StartRecordingComponentProperties(NewName, SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime);
 
 			bNewComponentAddedWhileRecording = true;
 		}

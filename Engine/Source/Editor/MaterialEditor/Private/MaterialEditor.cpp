@@ -122,6 +122,10 @@ bool FMatExpressionPreview::ShouldCache(EShaderPlatform Platform, const FShaderT
 			{
 				return true;
 			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("Simple")))
+			{
+				return true;
+			}
 		}
 	}
 
@@ -3001,23 +3005,6 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		if( StaticComponentMaskExpression )
 		{
 			StaticComponentMaskExpression->DefaultR = true;
-		}
-
-		UMaterialExpressionRotateAboutAxis* RotateAboutAxisExpression = Cast<UMaterialExpressionRotateAboutAxis>( NewExpression );
-		if( RotateAboutAxisExpression )
-		{
-			// Create a default expression for the Position input
-			UMaterialExpressionWorldPosition* WorldPositionExpression = NewObject<UMaterialExpressionWorldPosition>(ExpressionOuter, NAME_None, RF_Transactional);
-			Material->Expressions.Add( WorldPositionExpression );
-			WorldPositionExpression->Material = Material;
-			RotateAboutAxisExpression->Position.Expression = WorldPositionExpression;
-			WorldPositionExpression->MaterialExpressionEditorX = RotateAboutAxisExpression->MaterialExpressionEditorX - 250;
-			WorldPositionExpression->MaterialExpressionEditorY = RotateAboutAxisExpression->MaterialExpressionEditorY + 73;
-			Material->MaterialGraph->AddExpression(WorldPositionExpression);
-			if ( bAutoSelect )
-			{
-				GraphEditor->SetNodeSelection(WorldPositionExpression->GraphNode, true);
-			}
 		}
 
 		// Setup defaults for the most likely use case

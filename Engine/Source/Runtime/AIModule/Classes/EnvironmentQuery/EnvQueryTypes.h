@@ -731,8 +731,11 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 {
 	typedef float FNamedParamValueType;
 
-	/** short name of query template */
+	/** short name of query template - friendly name for debugging */
 	FString QueryName;
+
+	/** unique name of query template - object name */
+	FName UniqueName;
 
 	/** world owning this query instance */
 	UWorld* World;

@@ -882,4 +882,9 @@ private:
 
 	/** The frame counter the last time the font cache was asked to be flushed */
 	uint64 FrameCounterLastFlushRequest;
+
+//@HSL_BEGIN - Chance.Lyon - A critical section to help make this class thread-safe */
+	/** Critical section for thread synchronization for the font cache */
+	mutable FCriticalSection CacheCriticalSection;
+//@HSL_END
 };

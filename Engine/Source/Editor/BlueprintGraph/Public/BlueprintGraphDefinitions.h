@@ -66,5 +66,6 @@
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
 #include "K2Node_SetFieldsInStruct.h"
+#include "K2Node_TunnelBoundary.h"
 
 #include "NodeDependingOnEnumInterface.h"

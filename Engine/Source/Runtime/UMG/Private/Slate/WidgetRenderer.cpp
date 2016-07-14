@@ -68,6 +68,7 @@ FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	: bPrepassNeeded(true)
 	, bUseGammaSpace(bUseGammaCorrection)
 	, bClearTarget(bInClearTarget)
+	, ViewOffset(0.0f, 0.0f)
 {
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -199,7 +200,12 @@ void FWidgetRenderer::DrawWindow(
 			    Window->IsEnabled());
 	    }
 
+		//MaxLayerId = WindowElementList.PaintDeferred(MaxLayerId);
+		DeferredPaints = WindowElementList.GetDeferredPaintList();
+
 		Renderer->DrawWindow_GameThread(DrawBuffer);
+
+		DrawBuffer.ViewOffset = ViewOffset;
 
 		struct FRenderThreadContext
 		{

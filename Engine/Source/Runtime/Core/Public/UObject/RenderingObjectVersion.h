@@ -18,6 +18,9 @@ struct CORE_API FRenderingObjectVersion
 		// Allows specifying resolution for reflecture capture probes
 		RemovedTextureStreamingLevelData,
 
+		// translucency is now a property which matters for materials with the decal domain
+		IntroducedMeshDecals,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

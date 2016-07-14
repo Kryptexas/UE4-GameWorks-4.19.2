@@ -17,7 +17,7 @@ public:
 	FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, bool bInIsImmediate);
 	virtual ~FVulkanCommandListContext();
 
-	bool IsImmediate() const
+	inline bool IsImmediate() const
 	{
 		return bIsImmediate;
 	}
@@ -112,7 +112,7 @@ public:
 		return CommandBufferManager;
 	}
 
-	VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
+	inline VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
 	{
 		return TempFrameAllocationBuffer;
 	}
@@ -121,6 +121,11 @@ public:
 	{
 		check(PendingState);
 		return *PendingState;
+	}
+
+	inline FVulkanDescriptorPool* GetDescriptorPool()
+	{
+		return &DescriptorPool;
 	}
 
 protected:
@@ -148,8 +153,12 @@ protected:
 
 	FVulkanCommandBufferManager* CommandBufferManager;
 
+	FVulkanDescriptorPool DescriptorPool;
+
 	//#todo-rco: Temp!
 	FVulkanPendingState* PendingState;
 
 	void SubmitCurrentCommands();
+
+	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 };

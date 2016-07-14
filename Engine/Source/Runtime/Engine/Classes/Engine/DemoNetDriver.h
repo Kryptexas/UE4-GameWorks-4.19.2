@@ -227,13 +227,18 @@ private:
 	float MaxDesiredRecordTimeMS;
 
 	/** A player controller that this driver should consider its viewpoint for actor prioritization purposes. */
-	APlayerController* ViewerOverride;
+	TWeakObjectPtr<APlayerController> ViewerOverride;
 
 	/** Array of prioritized actors, used in TickDemoRecord. Stored as a member so that its storage doesn't have to be re-allocated each frame. */
 	TArray<FActorPriority> PrioritizedActors;
 
 	/** If true, recording will prioritize replicating actors based on the value that AActor::GetReplayPriority returns. */
 	bool bPrioritizeActors;
+
+
+
+	/** If true, will skip recording, but leaves the replay open so that recording can be resumed again. */
+	bool bPauseRecording;
 
 public:
 
@@ -299,6 +304,8 @@ public:
 
 	void TickDemoRecord( float DeltaSeconds );
 	void PauseChannels( const bool bPause );
+	void PauseRecording( const bool bInPauseRecording ) { bPauseRecording = bInPauseRecording; }
+	bool IsRecordingPaused() const { return bPauseRecording; }
 
 	bool ConditionallyProcessPlaybackPackets();
 	void ProcessAllPlaybackPackets();

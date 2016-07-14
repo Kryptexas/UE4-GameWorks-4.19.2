@@ -642,6 +642,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer = RenderBatch.CustomDrawer.Pin();
 			if (CustomDrawer.IsValid())
 			{
+				// Disable scissor rect. A previous draw element may have had one
+				RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+
 				// This element is custom and has no Slate geometry.  Tell it to render itself now
 				CustomDrawer->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
 

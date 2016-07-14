@@ -134,3 +134,6 @@ struct ENGINE_API FTwistConstraint : public FConstraintBaseParams
 	void UpdatePhysXTwistLimit_AssumesLocked(physx::PxD6Joint* Joint, float AverageMass) const;
 #endif
 };
+
+#define		RB_MinSizeToLockDOF				(0.1)
+#define		RB_MinAngleToLockDOF			(5.0)

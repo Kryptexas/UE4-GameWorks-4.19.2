@@ -72,13 +72,7 @@ void UMaterialGraphNode::RecreateAndLinkNode()
 		Pin->Modify();
 		Pin->BreakAllPinLinks();
 
-#if 0
-		UEdGraphNode::ReturnPinToPool(Pin);
-#else
-		Pin->Rename(NULL, GetTransientPackage(), REN_None);
-		Pin->RemoveFromRoot();
-		Pin->MarkPendingKill();
-#endif
+		UEdGraphNode::DestroyPin(Pin);
 	}
 	Pins.Empty();
 

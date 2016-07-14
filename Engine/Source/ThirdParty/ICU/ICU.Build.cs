@@ -198,6 +198,7 @@ public class ICU : ModuleRules
 
                             PublicDelayLoadDLLs.Add(LibraryPath);
                             PublicAdditionalShadowFiles.Add(LibraryPath);
+                            RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
                         }
                         else if (Target.Platform == UnrealTargetPlatform.Linux)
                         {

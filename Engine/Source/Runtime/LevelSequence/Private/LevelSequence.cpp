@@ -8,6 +8,12 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelSequence, Log, All);
 
+static TAutoConsoleVariable<int32> CVarFixedFrameIntervalPlayback(
+	TEXT("LevelSequence.DefaultFixedFrameIntervalPlayback"),
+	1,
+	TEXT("When non-zero, all newly created level sequences will default to fixed frame interval playback."),
+	ECVF_Default);
+
 ULevelSequence::ULevelSequence(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, MovieScene(nullptr)
@@ -18,8 +24,30 @@ void ULevelSequence::Initialize()
 {
 	// @todo sequencer: gmp: fix me
 	MovieScene = NewObject<UMovieScene>(this, NAME_None, RF_Transactional);
-	MovieScene->SetForceFixedFrameIntervalPlayback( true );
+
+	const bool bForceFixedPlayback = CVarFixedFrameIntervalPlayback.GetValueOnGameThread() != 0;
+
+	MovieScene->SetForceFixedFrameIntervalPlayback( bForceFixedPlayback );
 	MovieScene->SetFixedFrameInterval( 1 / 30.0f );
+}
+
+UObject* ULevelSequence::MakeSpawnableTemplateFromInstance(UObject& InSourceObject, FName ObjectName)
+{
+	UObject* NewInstance = NewObject<UObject>(MovieScene, InSourceObject.GetClass(), ObjectName);
+
+	UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+	CopyParams.bNotifyObjectReplacement = false;
+	UEngine::CopyPropertiesForUnrelatedObjects(&InSourceObject, NewInstance, CopyParams);
+
+	AActor* Actor = CastChecked<AActor>(NewInstance);
+	if (Actor->GetAttachParentActor() != nullptr)
+	{
+		// We don't support spawnables and attachments right now
+		// @todo: map to attach track?
+		Actor->DetachFromActor(FDetachmentTransformRules(FAttachmentTransformRules(EAttachmentRule::KeepRelative, false), false));
+	}
+
+	return NewInstance;
 }
 
 void ULevelSequence::PostLoad()
@@ -41,7 +69,7 @@ void ULevelSequence::PostLoad()
 				UObject* NewTemplate = NewObject<UObject>(MovieScene, Spawnable.GeneratedClass_DEPRECATED, TemplateName);
 				if (NewTemplate)
 				{
-					Spawnable.CopyObjectTemplate(*NewTemplate, *MovieScene);
+					Spawnable.CopyObjectTemplate(*NewTemplate, *this);
 				}
 			}
 		}

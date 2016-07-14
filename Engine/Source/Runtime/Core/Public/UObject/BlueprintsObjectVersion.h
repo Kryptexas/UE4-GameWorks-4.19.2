@@ -11,6 +11,7 @@ struct CORE_API FBlueprintsObjectVersion
 		OverridenEventReferenceFixup,
 		CleanBlueprintFunctionFlags,
 		ArrayGetByRefUpgrade,
+		EdGraphPinOptimized,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

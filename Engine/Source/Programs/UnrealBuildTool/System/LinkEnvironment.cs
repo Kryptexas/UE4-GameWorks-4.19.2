@@ -107,6 +107,11 @@ namespace UnrealBuildTool
 		public bool bCreateDebugInfo = true;
 
 		/// <summary>
+		/// True if debug symbols that are cached for some platforms should not be created.
+		/// </summary>
+		public bool bDisableSymbolCache = true;
+
+		/// <summary>
 		/// Whether the CLR (Common Language Runtime) support should be enabled for C++ targets (C++/CLI).
 		/// </summary>
 		public CPPCLRMode CLRMode = CPPCLRMode.CLRDisabled;

@@ -154,6 +154,17 @@ struct FMeshReductionSettings
 	}
 };
 
+UENUM()
+namespace ELandscapeCullingPrecision
+{
+	enum Type
+	{
+		High = 0 UMETA(DisplayName = "High memory intensity and computation time"),
+		Medium = 1 UMETA(DisplayName = "Medium memory intensity and computation time"),
+		Low = 2 UMETA(DisplayName = "Low memory intensity and computation time")
+	};
+}
+
 USTRUCT()
 struct FMeshProxySettings
 {
@@ -210,6 +221,14 @@ struct FMeshProxySettings
 	UPROPERTY()
 	bool bBakeVertexData_DEPRECATED;
 
+	/** Whether or not to use available landscape geometry to cull away invisible triangles */
+	UPROPERTY(EditAnywhere, Category = LandscapeCulling)
+	bool bUseLandscapeCulling;
+
+	/** Level of detail of the landscape that should be used for the culling */
+	UPROPERTY(EditAnywhere, Category = LandscapeCulling, meta = (EditCondition="bUseLandscapeCulling"))
+	TEnumAsByte<ELandscapeCullingPrecision::Type> LandscapeCullingPrecision;
+
 	/** Default settings. */
 	FMeshProxySettings()
 		: ScreenSize(300)
@@ -223,6 +242,7 @@ struct FMeshProxySettings
 		, HardAngleThreshold(80.0f)
 		, LightMapResolution(256)
 		, bRecalculateNormals(true)
+		, bUseLandscapeCulling(false)
 	{ 
 		MaterialSettings.MaterialMergeType = EMaterialMergeType::MaterialMergeType_Simplygon;
 	}
@@ -296,6 +316,10 @@ struct FMeshMergingSettings
 	UPROPERTY(EditAnywhere, Category = MeshSettings, meta = (editcondition = "!bCalculateCorrectLODModel", ClampMin = "0", ClampMax = "8"))
 	int32 ExportSpecificLOD;
 
+	/** Whether or not to use available landscape geometry to cull away invisible triangles */
+	UPROPERTY(EditAnywhere, Category = LandscapeCulling)
+	bool bUseLandscapeCulling;
+
 	/** Whether to export normal maps for material merging */
 	UPROPERTY()
 	bool bExportNormalMap_DEPRECATED;
@@ -324,6 +348,7 @@ struct FMeshMergingSettings
 		, bBakeVertexData(false)
 		, bCalculateCorrectLODModel(false)
 		, ExportSpecificLOD(0)
+		, bUseLandscapeCulling(false)
 		, bExportNormalMap_DEPRECATED(true)
 		, bExportMetallicMap_DEPRECATED(false)
 		, bExportRoughnessMap_DEPRECATED(false)

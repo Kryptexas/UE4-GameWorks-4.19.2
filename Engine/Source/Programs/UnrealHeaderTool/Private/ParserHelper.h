@@ -105,6 +105,7 @@ public:
 
 	UClass* MetaClass;
 	FName   DelegateName;
+	UClass*	DelegateSignatureOwnerClass;
 	FName   RepNotifyName;
 
 	/** Raw string (not type-checked) used for specifying special text when exporting a property to the *Classes.h file */
@@ -127,8 +128,9 @@ public:
 	, RefQualifier        (ERefQualifier::None)
 	, PropertyExportFlags (PROPEXPORT_Public)
 	, StringSize          (0)
-	, MetaClass           (NULL)
+	, MetaClass           (nullptr)
 	, DelegateName        (NAME_None)
+	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
 	, IntType             (GetSizedIntTypeFromPropertyType(InType))
@@ -143,8 +145,9 @@ public:
 	, RefQualifier        (ERefQualifier::None)
 	, PropertyExportFlags (PROPEXPORT_Public)
 	, StringSize          (0)
-	, MetaClass           (NULL)
+	, MetaClass           (nullptr)
 	, DelegateName        (NAME_None)
+	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
 	, IntType             (InIntType)
@@ -159,8 +162,9 @@ public:
 	, RefQualifier        (ERefQualifier::None)
 	, PropertyExportFlags (PROPEXPORT_Public)
 	, Enum                (InEnum)
-	, MetaClass           (NULL)
+	, MetaClass           (nullptr)
 	, DelegateName        (NAME_None)
+	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
 	, IntType             (GetSizedIntTypeFromPropertyType(InType))
@@ -177,6 +181,7 @@ public:
 	, PropertyClass       (InClass)
 	, MetaClass           (InMetaClass)
 	, DelegateName        (NAME_None)
+	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
 	, IntType             (EIntType::None)
@@ -236,6 +241,7 @@ public:
 	, Struct              (InStruct)
 	, MetaClass           (NULL)
 	, DelegateName        (NAME_None)
+	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
 	, IntType             (EIntType::None)
@@ -245,6 +251,7 @@ public:
 	explicit FPropertyBase(UProperty* Property)
 	: PropertyExportFlags(PROPEXPORT_Public)
 	, DelegateName       (NAME_None)
+	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName      (NAME_None)
 	, IntType            (EIntType::None)
 	{

@@ -2,6 +2,10 @@
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../Schema.xsd" >
 	<Agent Name="Properties Agent" Type="CompileWin64">
 		<Node Name="Property Examples">
+			<!-- Set some default properties if they aren't already set -->
+			<Property Name="PreflightChange" Default=""/>
+			<Property Name="COMMANDER_JOBSTEPID" Default=""/>
+			
 			<!-- Some predefined properties -->
 			<Log Message="Property: Branch=$(Branch)"/>
 			<Log Message="Property: EscapedBranch=$(EscapedBranch)"/>
@@ -15,21 +19,17 @@
 			<Property Name="MessageText" Value="Hello"/>
 			<Property Name="MessageText" Value="$(MessageText) World"/>
 			<Log Message="MessageText=$(MessageText)"/>
-
-			<!-- Local properties take precedence over global properties for the duration of their scope -->
-			<Local Name="MessageText" Value="$(MessageText)!!!"/>
-			<Log Message="MessageText=$(MessageText)"/>
 			
 			<!-- Combine some paths together -->
-			<Local Name="TestDirWithSlash" Value="$(RootDir)\Test"/>
-			<Local Name="TestDirWithSlash" Value="$(TestDirWithSlash)\" If="!HasTrailingSlash('$(TestDirWithSlash)')"/>
-			<Local Name="TestFile" Value="$(TestDirWithSlash)Test.txt"/>
+			<Property Name="TestDirWithSlash" Value="$(RootDir)\Test"/>
+			<Property Name="TestDirWithSlash" Value="$(TestDirWithSlash)\" If="!HasTrailingSlash('$(TestDirWithSlash)')"/>
+			<Property Name="TestFile" Value="$(TestDirWithSlash)Test.txt"/>
 			<Log Message="TestFile=$(TestFile)"/>
 
 			<!-- All scalar values are stored as case insensitive strings, and are identical whether they are quoted or not -->
-			<Local Name="A" Value="true"/>
-			<Local Name="B" Value="false"/>
-			<Local Name="C" Value="true"/>
+			<Property Name="A" Value="true"/>
+			<Property Name="B" Value="false"/>
+			<Property Name="C" Value="true"/>
 			<Log Message="Logic tests, where A=$(A), B=$(B), C=$(C):"/> 
 			<Log Message="  A is true" If="$(A) == true"/>
 			<Log Message="  A is True" If="$(A) == True"/>
@@ -46,11 +46,62 @@
 			<Log Message="  A and (B or C)" If="$(A) and ($(B) or $(C))"/>
 			<Log Message="  (A and B) or C" If="($(A) and $(B)) or $(C)"/>
 			<Log Message="  (A and B) or B" If="($(A) and $(B)) or $(B)"/>
+			
+			<!-- Relative comparisons (unfortunately 'less than' and 'greater than' operators need to be escaped in XML) -->
+			<Log Message="  1 &lt; 2" If="1 &lt; 2"/>
+			<Log Message="  2 &lt; 1" If="2 &lt; 1"/>
+			<Log Message="  1 &lt; 1" If="1 &lt; 1"/>
+
+			<Log Message="  1 &gt; 2" If="1 &gt; 2"/>
+			<Log Message="  2 &gt; 1" If="2 &gt; 1"/>
+			<Log Message="  1 &gt; 1" If="1 &gt; 1"/>
+
+			<Log Message="  1 &lt;= 2" If="1 &lt;= 2"/>
+			<Log Message="  2 &lt;= 1" If="2 &lt;= 1"/>
+			<Log Message="  1 &lt;= 1" If="1 &lt;= 1"/>
+
+			<Log Message="  1 &gt;= 2" If="1 &gt;= 2"/>
+			<Log Message="  2 &gt;= 1" If="2 &gt;= 1"/>
+			<Log Message="  1 &gt;= 1" If="1 &gt;= 1"/>
 
 			<!-- Test environment variables -->
 			<Log Message="SystemRoot = $(SystemRoot)"/>
 			<Log Message="ComSpec = $(ComSpec)"/>
 			<Log Message="COMMANDER_JOBSTEPID is $(COMMANDER_JOBSTEPID)"/>
+
+			<!-- Conditional blocks -->
+			<Property Name="EnterConditionalBlock" Value="true"/>
+			<Property Name="LocalPropertyOutsideConditional" Value="12345"/>
+			<Do If="$(EnterConditionalBlock)">
+				<Log Message="This is inside a conditional block"/>
+				<Log Message="Multiple tasks are allowed"/>
+				<Log Message="Flow control statements may appear at any scope, not just inside nodes"/>
+				<Property Name="LocalPropertyOutsideConditional" Value="56789"/>
+			</Do>
+			<Log Message="The property changed inside the conditional block is now set to $(LocalPropertyOutsideConditional)"/>
+
+			<!-- Choose blocks -->
+			<Choose>
+				<Option If="0 == 1">
+					<Log Message="0 equals 1"/>
+				</Option>
+				<Option If="0 == 2">
+					<Log Message="0 equals 2"/>
+				</Option>
+				<Otherwise>
+					<Log Message="0 does not equal 1 or 2"/>
+				</Otherwise>
+			</Choose>
+
+			<!-- Loops based on properties -->
+			<Property Name="FirstTwo" Value="1;2"/>
+			<ForEach Name="SomeProperty" Values="$(FirstTwo);3;4;5">
+				<Log Message="ForEach Test: SomeProperty is $(SomeProperty)"/>
+			</ForEach>
+			
+			<!-- Validating properties passed from the command-line -->
+			<Property Name="CommandLineProperty" Restrict="1;2;3" Default="2"/>
+			<Log Message="Value of CommandLineProperty is $(CommandLineProperty)"/>
 		</Node>
 	</Agent>
 </BuildGraph>

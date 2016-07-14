@@ -11,6 +11,8 @@ class FMovieSceneSequenceInstance;
 class ULevel;
 class UMovieSceneBindings;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelSequencePlayerEvent);
+
 USTRUCT(BlueprintType)
 struct FLevelSequenceSnapshotSettings
 {
@@ -116,9 +118,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject"))
 	static ULevelSequencePlayer* CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* LevelSequence, FLevelSequencePlaybackSettings Settings);
 
-	/** Start playback from the current time cursor position, using the current play rate. */
+	/** Start playback forwards from the current time cursor position, using the current play rate. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Play();
+
+	/** Reverse playback. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void PlayReverse();
+
+	/** Changes the direction of playback (go in reverse if it was going forward, or vice versa) */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void ChangePlaybackDirection();
 
 	/**
 	 * Start playback from the current time cursor position, looping the specified number of times.
@@ -130,7 +140,7 @@ public:
 	/** Start playback from the current time cursor position, using the current play rate. Does not update the animation until next tick. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void StartPlayingNextTick();
-
+	
 	/** Pause playback. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Pause();
@@ -202,7 +212,7 @@ protected:
 
 	// IMovieScenePlayer interface
 	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<TWeakObjectPtr<UObject>>& OutObjects) const override;
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) const override;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
@@ -216,12 +226,18 @@ protected:
 
 public:
 
+	/** Populate the specified array with any given event contexts for the specified world */
+	static void GetEventContexts(UWorld& InWorld, TArray<UObject*>& OutContexts);
+
 	void Update(const float DeltaSeconds);
 
 	/** Take a snapshot of the current state of this player */
 	void TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSnapshot) const;
 
 private:
+
+	/** Internal play function. */
+	void PlayInternal();
 
 	/** Update the movie scene instance from the specified previous position, to the specified time position. */
 	void UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition);
@@ -232,15 +248,26 @@ private:
 	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
 	void SetTickPrerequisites(bool bAddTickPrerequisites);
 	
+	/** Returns whether playback should be stopped or looped because it has gone out of the playback bounds. */
+	bool ShouldStopOrLoop(float NewPosition);
+
 private:
 
 	/** The level sequence to play. */
 	UPROPERTY(transient)
 	ULevelSequence* LevelSequence;
 
+	/** The level sequence player. */
+	UPROPERTY(transient)
+	ULevelSequencePlayer* CurrentPlayer;
+
 	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
 	UPROPERTY()
 	bool bIsPlaying;
+
+	/** Whether we're currently playing in reverse. */
+	UPROPERTY()
+	bool bReversePlayback;
 
 	/** True where we're waiting for the first update of the sequence after calling StartPlayingNextTick. */
 	bool bPendingFirstUpdate;
@@ -280,7 +307,7 @@ private:
 	TSharedPtr<FLevelSequenceSpawnRegister> SpawnRegister;
 
 	/** The last view target to reset to when updating camera cuts to null */
-	mutable TWeakObjectPtr<AActor> LastViewTarget;
+	TWeakObjectPtr<AActor> LastViewTarget;
 
 protected:
 
@@ -292,6 +319,18 @@ public:
 	/** An event that is broadcast each time this level sequence player is updated */
 	DECLARE_EVENT_ThreeParams( ULevelSequencePlayer, FOnLevelSequencePlayerUpdated, const ULevelSequencePlayer&, float /*current time*/, float /*previous time*/ );
 	FOnLevelSequencePlayerUpdated& OnSequenceUpdated() const { return OnLevelSequencePlayerUpdate; }
+
+	/** Event triggered when the level sequence player is played */
+	UPROPERTY(BlueprintAssignable, Category="Game|Cinematic")
+	FOnLevelSequencePlayerEvent OnPlay;
+
+	/** Event triggered when the level sequence player is stopped */
+	UPROPERTY(BlueprintAssignable, Category="Game|Cinematic")
+	FOnLevelSequencePlayerEvent OnStop;
+
+	/** Event triggered when the level sequence player is paused */
+	UPROPERTY(BlueprintAssignable, Category="Game|Cinematic")
+	FOnLevelSequencePlayerEvent OnPause;
 
 private:
 

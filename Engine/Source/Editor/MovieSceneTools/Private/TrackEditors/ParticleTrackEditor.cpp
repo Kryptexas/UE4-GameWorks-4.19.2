@@ -345,7 +345,7 @@ void CopyInterpParticleTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackToggl
 {
 	if (FMatineeImportTools::CopyInterpParticleTrack(MatineeToggleTrack, ParticleTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 

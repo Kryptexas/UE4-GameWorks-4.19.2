@@ -227,6 +227,43 @@ void FPoseAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 			.IsEnabled(this, &FPoseAssetDetails::CanApplySettings)
 		]
 	];
+
+	IDetailCategoryBuilder& SourceCategory = DetailBuilder.EditCategory("Source");
+	SourceAnimationPropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPoseAsset, SourceAnimation));
+
+	DetailBuilder.HideProperty(SourceAnimationPropertyHandle);
+
+	SourceCategory.AddCustomRow(SourceAnimationPropertyHandle->GetPropertyDisplayName())
+	.NameContent()
+	[
+		SourceAnimationPropertyHandle->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	.MinDesiredWidth(200)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SourceAnimationPropertyHandle->CreatePropertyValueWidget()
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SBox)
+			.Padding(5)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.WidthOverride(100)
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("UpdateSource_Lable", "Update Source"))
+				.ToolTipText(LOCTEXT("UpdateSource_Tooltip", "Update Pose From Source Animation"))
+				.OnClicked(this, &FPoseAssetDetails::OnUpdatePoseSourceAnimation)
+				.HAlign(HAlign_Center)
+			]
+		]
+	];
 }
 
 FText FPoseAssetDetails::GetButtonText() const
@@ -513,6 +550,28 @@ void FPoseAssetDetails::CachePoseAssetData()
  ECheckBoxState FPoseAssetDetails::IsAdditiveChecked() const
  {
 	 return (bCachedAdditive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+ }
+
+
+ FReply FPoseAssetDetails::OnUpdatePoseSourceAnimation()
+ {
+	 if (PoseAsset.IsValid())
+	 {
+		 UObject* ObjectSet;
+		 SourceAnimationPropertyHandle->GetValue(ObjectSet);
+
+		 UAnimSequence* AnimSequenceSelected = Cast<UAnimSequence>(ObjectSet);
+		 if (AnimSequenceSelected && AnimSequenceSelected->GetSkeleton() == PoseAsset->GetSkeleton())
+		 {
+			 PoseAsset->UpdatePoseFromAnimation(AnimSequenceSelected);
+		 }
+		 else
+		 {
+			 // invalid source asset message
+			 FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("UpdatePoseWithInvalidSkeleton", "The source animation contains invalid skeleton. Make sure to select source with the skeleton that matches current pose asset."));
+		 }
+	 }
+	 return FReply::Handled();
  }
 
 #undef LOCTEXT_NAMESPACE

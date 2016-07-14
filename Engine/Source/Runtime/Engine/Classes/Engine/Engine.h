@@ -1164,10 +1164,10 @@ public:
 	int32 NumPawnsAllowedToBeSpawnedInAFrame;
 
 	/**
-	 * Whether or not the LQ lightmaps should be generated during lighting rebuilds.
+	 * Whether or not the LQ lightmaps should be generated during lighting rebuilds.  This has been moved to r.SupportLowQualityLightmaps.
 	 */
 	UPROPERTY(globalconfig)
-	uint32 bShouldGenerateLowQualityLightmaps:1;
+	uint32 bShouldGenerateLowQualityLightmaps_DEPRECATED :1;
 
 	/**
 	 * Bool that indicates that 'console' input is desired. This flag is mis named as it is used for a lot of gameplay related things
@@ -2022,7 +2022,7 @@ public:
 	*
 	* @param	InMapName	Name of the map (Or Global)
 	*/
-	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
+	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo);
 
 	/** Delegate called when FPS charting detects a hitch (it is not triggered if a capture isn't in progress). */
 	FEngineHitchDetectedDelegate OnHitchDetectedDelegate;
@@ -2261,6 +2261,7 @@ public:
 
 		/** Skips copying properties with BlueprintCompilerGeneratedDefaults metadata */
 		bool bSkipCompilerGeneratedDefaults;
+		bool bNotifyObjectReplacement;
 
 		FCopyPropertiesForUnrelatedObjectsParams()
 			: bAggressiveDefaultSubobjectReplacement(false)
@@ -2269,6 +2270,7 @@ public:
 			, bCopyDeprecatedProperties(false)
 			, bPreserveRootComponent(true)
 			, bSkipCompilerGeneratedDefaults(false)
+			, bNotifyObjectReplacement(true)
 		{}
 	};
 	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, FCopyPropertiesForUnrelatedObjectsParams Params = FCopyPropertiesForUnrelatedObjectsParams());//bool bAggressiveDefaultSubobjectReplacement = false, bool bDoDelta = true);
@@ -2295,8 +2297,6 @@ protected:
 	 *	@return true if there is an initialized device, false otherwise
 	 */
 	virtual bool InitializeHMDDevice();
-
-	virtual void InitializeViewExtentions();
 
 	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();
@@ -2926,8 +2926,10 @@ private:
 	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
-#endif
+	bool ToggleStatSoundWaves(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatSoundCues(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+#endif
 
 	/**
 	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats.
@@ -2956,8 +2958,8 @@ private:
 	int32 RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 	int32 RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 	int32 RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
-#endif // !UE_BUILD_SHIPPING
 	int32 RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+#endif // !UE_BUILD_SHIPPING
 	int32 RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #if STATS
 	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);

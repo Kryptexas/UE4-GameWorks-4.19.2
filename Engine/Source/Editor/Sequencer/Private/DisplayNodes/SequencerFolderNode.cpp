@@ -261,7 +261,7 @@ void FSequencerFolderNode::Drop( const TArray<TSharedRef<FSequencerDisplayNode>>
 		}
 	}
 	SetExpansionState( true );
-	ParentTree.GetSequencer().NotifyMovieSceneDataChanged();
+	ParentTree.GetSequencer().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
 }
 
 void FSequencerFolderNode::BuildContextMenu(FMenuBuilder& MenuBuilder)

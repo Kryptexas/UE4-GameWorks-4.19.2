@@ -221,14 +221,6 @@ bool FText::FSortPredicate::operator()(const FText& A, const FText& B) const
 	return Implementation->Compare(A, B);
 }
 
-bool FText::IsLetter( const TCHAR Char )
-{
-	icu::UnicodeString PatternString = ICUUtilities::ConvertString(TEXT("[\\p{L}]"));
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	icu::UnicodeSet Uniscode(PatternString, ICUStatus);
-	return Uniscode.contains(Char) != 0;
-}
-
 bool FUnicodeChar::CodepointToString(const uint32 InCodepoint, FString& OutString)
 {
 	icu::UnicodeString CodepointString;

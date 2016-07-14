@@ -95,7 +95,7 @@ void FVulkanShader::Create(EShaderFrequency Frequency, const TArray<uint8>& InSh
 	CodeSize = ModuleCreateInfo.codeSize;
 	ModuleCreateInfo.pCode = Code;
 
-	VERIFYVULKANRESULT(vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &ShaderModule));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &ShaderModule));
 }
 
 
@@ -118,7 +118,7 @@ FVulkanShader::~FVulkanShader()
 
 	if (ShaderModule != VK_NULL_HANDLE)
 	{
-		vkDestroyShaderModule(Device->GetInstanceHandle(), ShaderModule, nullptr);
+		Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::ShaderModule, ShaderModule);
 		ShaderModule = VK_NULL_HANDLE;
 	}
 }
@@ -244,10 +244,6 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	FMemory::Memzero(DescriptorBufferInfoForStage);
 	FMemory::Memzero(SRVWriteInfoForStage);
 
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		FMemory::Memzero(ImageDescCount);		
-	#endif
-
 	check(Device);
 
 	Layout = new FVulkanDescriptorSetsLayout(Device);
@@ -347,7 +343,8 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 
 	if (PipelineLayout != VK_NULL_HANDLE)
 	{
-		vkDestroyPipelineLayout(Device->GetInstanceHandle(), PipelineLayout, nullptr);
+		Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::PipelineLayout, PipelineLayout);
+		PipelineLayout = VK_NULL_HANDLE;
 	}
 
 	DEC_DWORD_STAT(STAT_VulkanNumBoundShaderState);
@@ -405,10 +402,6 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 
 void FVulkanBoundShaderState::ResetState()
 {
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		LastError.Reset();
-	#endif
-
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");
 	for(uint32 Stage = 0; Stage < SF_Compute; Stage++)
 	{
@@ -444,9 +437,19 @@ const VkPipelineLayout& FVulkanBoundShaderState::GetPipelineLayout() const
 	CreateInfo.pushConstantRangeCount = 0;
 	CreateInfo.pPushConstantRanges = nullptr;
 
-	VERIFYVULKANRESULT(vkCreatePipelineLayout(Device->GetInstanceHandle(), &CreateInfo, nullptr, &PipelineLayout));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineLayout(Device->GetInstanceHandle(), &CreateInfo, nullptr, &PipelineLayout));
 
 	return PipelineLayout;
+}
+
+void FVulkanBoundShaderState::BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline)
+{
+	if (LastBoundPipeline != NewPipeline)
+	{
+		//#todo-rco: Compute
+		VulkanRHI::vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
+		LastBoundPipeline = NewPipeline;
+	}
 }
 
 void FVulkanBoundShaderState::InitGlobalUniforms(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings)
@@ -587,9 +590,6 @@ void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformSamplerC
 				WriteDesc->pImageInfo = TextureInfo;
 				//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
 				SRVWriteInfoForStage[Stage].Add(WriteDesc);
-#if VULKAN_HAS_DEBUGGING_ENABLED
-				ImageDescCount[Stage]++;
-#endif
 			}
 		}
 
@@ -675,12 +675,10 @@ void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, c
 				{
 					if (Attributes[AttributeIndex].binding == CurrBinding.binding)
 					{
-						// This section of the could should not be reached
-						SetLastError(FString::Printf(
-							TEXT("Missing binding on location %d in '%s' vertex shader"),
+						UE_LOG(LogVulkanRHI, Warning, TEXT("Missing binding on location %d in '%s' vertex shader"),
 							CurrBinding.binding,
-							*GetShader(SF_Vertex).DebugName));
-						break;
+							*GetShader(SF_Vertex).DebugName);
+						ensure(0);
 					}
 				}
 			#endif
@@ -703,7 +701,7 @@ void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, c
 		// Incorrect:	1, 0, 2, 3
 		// Incorrect:	0, 2, 3, 5
 		// Reordering and creation of stream binding index is done in "GenerateVertexInputStateInfo()"
-		vkCmdBindVertexBuffers(Cmd->GetHandle(), 0, Tmp.VertexBuffers.Num(), Tmp.VertexBuffers.GetData(), Tmp.VertexOffsets.GetData());
+		VulkanRHI::vkCmdBindVertexBuffers(Cmd->GetHandle(), 0, Tmp.VertexBuffers.Num(), Tmp.VertexBuffers.GetData(), Tmp.VertexOffsets.GetData());
 	}
 }
 
@@ -1048,22 +1046,13 @@ void FVulkanBoundShaderState::GetDescriptorInfoCounts(uint32& OutSamplerCount, u
 	}
 }
 
-#if VULKAN_HAS_DEBUGGING_ENABLED
-void FVulkanBoundShaderState::SetLastError(const FString& Error)
-{
-	LastError = Error;
-	UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *LastError);
-}
-#endif
-
 FVulkanBoundShaderState::FDescriptorSetsPair::~FDescriptorSetsPair()
 {
 	delete DescriptorSets;
 }
 
-inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer)
+inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer)
 {
-	//#todo-rco: Make thread safe!
 	FDescriptorSetsEntry* FoundEntry = nullptr;
 	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
 	{
@@ -1091,7 +1080,7 @@ inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVu
 	}
 
 	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
-	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Device->GetDescriptorPool());
+	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Context->GetDescriptorPool());
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
@@ -1109,7 +1098,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 
 	int32 WriteIndex = 0;
 
-	CurrDescriptorSets = RequestDescriptorSets(CmdBuffer);
+	CurrDescriptorSets = RequestDescriptorSets(CmdListContext, CmdBuffer);
 
 	const TArray<VkDescriptorSet>& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;
@@ -1224,7 +1213,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 		SCOPE_CYCLE_COUNTER(STAT_VulkanVkUpdateDS);
 #endif
-		vkUpdateDescriptorSets(Device->GetInstanceHandle(), DescriptorWrites.Num(), DescriptorWrites.GetData(), 0, nullptr);
+		VulkanRHI::vkUpdateDescriptorSets(Device->GetInstanceHandle(), DescriptorWrites.Num(), DescriptorWrites.GetData(), 0, nullptr);
 	}
 
 	{

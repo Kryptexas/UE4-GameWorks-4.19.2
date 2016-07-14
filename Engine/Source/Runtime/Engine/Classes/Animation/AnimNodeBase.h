@@ -164,9 +164,9 @@ public:
 		Pose.ResetToRefPose();	
 	}
 
-	void ResetToIdentity()
+	void ResetToAdditiveIdentity()
 	{
-		Pose.ResetToIdentity();
+		Pose.ResetToAdditiveIdentity();
 	}
 
 	bool ContainsNaN() const
@@ -444,6 +444,7 @@ struct FExposedValueCopyRecord
 		, DestProperty(nullptr)
 		, DestArrayIndex(0)
 		, Size(0)
+		, bInstanceIsTarget(false)
 		, PostCopyOperation(EPostCopyOperation::None)
 		, CachedBoolSourceProperty(nullptr)
 		, CachedBoolDestProperty(nullptr)
@@ -475,6 +476,10 @@ struct FExposedValueCopyRecord
 
 	UPROPERTY()
 	int32 Size;
+
+	// Whether or not the anim instance object is the target for the copy instead of a node.
+	UPROPERTY()
+	bool bInstanceIsTarget;
 
 	UPROPERTY()
 	EPostCopyOperation PostCopyOperation;
@@ -602,4 +607,9 @@ struct ENGINE_API FAnimNode_Base
 protected:
 	/** return true if enabled, otherwise, return false. This is utility function that can be used per node level */
 	bool IsLODEnabled(FAnimInstanceProxy* AnimInstanceProxy, int32 InLODThreshold);
+
+	/** Called once, from game thread as the parent anim instance is created */
+	virtual void RootInitialize(const FAnimInstanceProxy* InProxy) {}
+
+	friend struct FAnimInstanceProxy;
 };

@@ -910,6 +910,11 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 		}
 	}
 
+	if (MovementMode != MOVE_Falling && PreviousMovementMode == MOVE_Falling && PathFollowingComp.IsValid())
+	{
+		PathFollowingComp->OnStartedFalling();
+	}
+
 	CharacterOwner->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 	ensure(GroundMovementMode == MOVE_Walking || GroundMovementMode == MOVE_NavWalking);
 };
@@ -2219,12 +2224,24 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 	bForceNextFloorCheck = true;
 
 	// OnStartCrouch takes the change from the Default size, not the current one (though they are usually the same).
+	const float MeshAdjust = ScaledHalfHeightAdjust;
 	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
 	HalfHeightAdjust = (DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - ClampedCrouchedHalfHeight);
 	ScaledHalfHeightAdjust = HalfHeightAdjust * ComponentScale;
 
 	AdjustProxyCapsuleSize();
 	CharacterOwner->OnStartCrouch( HalfHeightAdjust, ScaledHalfHeightAdjust );
+
+	// Don't smooth this change in mesh position
+	if (bClientSimulation && CharacterOwner->Role == ROLE_SimulatedProxy)
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData && ClientData->MeshTranslationOffset.Z != 0.f)
+		{
+			ClientData->MeshTranslationOffset -= FVector(0.f, 0.f, MeshAdjust);
+			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
+		}
+	}
 }
 
 
@@ -2357,8 +2374,20 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 	bUpdateOverlaps = true;
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), bUpdateOverlaps);
 
+	const float MeshAdjust = ScaledHalfHeightAdjust;
 	AdjustProxyCapsuleSize();
 	CharacterOwner->OnEndCrouch( HalfHeightAdjust, ScaledHalfHeightAdjust );
+
+	// Don't smooth this change in mesh position
+	if (bClientSimulation && CharacterOwner->Role == ROLE_SimulatedProxy)
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData && ClientData->MeshTranslationOffset.Z != 0.f)
+		{
+			ClientData->MeshTranslationOffset += FVector(0.f, 0.f, MeshAdjust);
+			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
+		}
+	}
 }
 
 void UCharacterMovementComponent::StartNewPhysics(float deltaTime, int32 Iterations)
@@ -4562,72 +4591,17 @@ FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSecon
 		{
 			UE_LOG(LogNavMeshMovement, VeryVerbose, TEXT("ProjectLocationFromNavMesh(): %s interval: %.3f velocity: %s"), *GetNameSafe(CharacterOwner), NavMeshProjectionInterval, *Velocity.ToString());
 
-			// raycast to underlying mesh to allow us to more closely follow geometry
-			// we use static objects here as a best approximation to accept only objects that
-			// influence navmesh generation
-			FCollisionQueryParams Params(CharacterMovementComponentStatics::ProjectLocationName, false);
+			FHitResult HitResult;
+			FindBestNavMeshLocation(TraceStart, TraceEnd, CurrentFeetLocation, TargetNavLocation, HitResult);
 
-			// blocked by world static and optionally world dynamic
-			FCollisionResponseParams ResponseParams(ECR_Ignore);
-			ResponseParams.CollisionResponse.SetResponse(ECC_WorldStatic, ECR_Overlap);
-			ResponseParams.CollisionResponse.SetResponse(ECC_WorldDynamic, bProjectNavMeshOnBothWorldChannels ? ECR_Overlap : ECR_Ignore);
-
-			TArray<FHitResult> MultiTraceHits;
-			GetWorld()->LineTraceMultiByChannel(MultiTraceHits, TraceStart, TraceEnd, ECC_WorldStatic, Params, ResponseParams);
-
-			struct FCompareFHitResultNavMeshTrace
+			// discard result if we were already inside something			
+			if (HitResult.bStartPenetrating || !HitResult.bBlockingHit)
 			{
-				explicit FCompareFHitResultNavMeshTrace(const FVector& inSourceLocation) : SourceLocation(inSourceLocation)
-				{
-				}
-
-				FORCEINLINE bool operator()(const FHitResult& A, const FHitResult& B) const
-				{
-					const float ADistSqr = (SourceLocation - A.ImpactPoint).SizeSquared();
-					const float BDistSqr = (SourceLocation - B.ImpactPoint).SizeSquared();
-
-					return (ADistSqr < BDistSqr);
-				}
-
-				const FVector& SourceLocation;
-			};
-
-			struct FRemoveNotBlockingResponseNavMeshTrace
-			{
-				FRemoveNotBlockingResponseNavMeshTrace(bool bInCheckOnlyWorldStatic) : bCheckOnlyWorldStatic(bInCheckOnlyWorldStatic) {}
-
-				FORCEINLINE bool operator()(const FHitResult& TestHit) const
-				{
-					UPrimitiveComponent* PrimComp = TestHit.GetComponent();
-					const bool bBlockOnWorldStatic = PrimComp && (PrimComp->GetCollisionResponseToChannel(ECC_WorldStatic) == ECR_Block);
-					const bool bBlockOnWorldDynamic = PrimComp && (PrimComp->GetCollisionResponseToChannel(ECC_WorldDynamic) == ECR_Block);
-
-					return !bBlockOnWorldStatic && (!bBlockOnWorldDynamic || bCheckOnlyWorldStatic);
-				}
-
-				bool bCheckOnlyWorldStatic;
-			};
-
-			MultiTraceHits.RemoveAllSwap(FRemoveNotBlockingResponseNavMeshTrace(!bProjectNavMeshOnBothWorldChannels), /*bAllowShrinking*/false);
-			if (MultiTraceHits.Num() > 0)
-			{
-				// Sort the hits by the closest to our origin.
-				MultiTraceHits.Sort(FCompareFHitResultNavMeshTrace(TargetNavLocation));
-
-				// Cache the closest hit and treat it as a blocking hit (we used an overlap to get all the world static hits so we could sort them ourselves)
-				CachedProjectedNavMeshHitResult = MultiTraceHits[0];
-				CachedProjectedNavMeshHitResult.bBlockingHit = true;
-
-				// discard result if we were already inside something			
-				if (CachedProjectedNavMeshHitResult.bStartPenetrating)
-				{
-					CachedProjectedNavMeshHitResult.Reset();
-				}
+				CachedProjectedNavMeshHitResult.Reset();
 			}
 			else
 			{
-				// Didn't hit anything.
-				CachedProjectedNavMeshHitResult.Reset();
+				CachedProjectedNavMeshHitResult = HitResult;
 			}
 		}
 		else
@@ -4680,6 +4654,65 @@ FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSecon
 	return NewLocation;
 }
 
+void UCharacterMovementComponent::FindBestNavMeshLocation(const FVector& TraceStart, const FVector& TraceEnd, const FVector& CurrentFeetLocation, const FVector& TargetNavLocation, FHitResult& OutHitResult) const
+{
+	// raycast to underlying mesh to allow us to more closely follow geometry
+	// we use static objects here as a best approximation to accept only objects that
+	// influence navmesh generation
+	FCollisionQueryParams Params(CharacterMovementComponentStatics::ProjectLocationName, false);
+
+	// blocked by world static and optionally world dynamic
+	FCollisionResponseParams ResponseParams(ECR_Ignore);
+	ResponseParams.CollisionResponse.SetResponse(ECC_WorldStatic, ECR_Overlap);
+	ResponseParams.CollisionResponse.SetResponse(ECC_WorldDynamic, bProjectNavMeshOnBothWorldChannels ? ECR_Overlap : ECR_Ignore);
+
+	TArray<FHitResult> MultiTraceHits;
+	GetWorld()->LineTraceMultiByChannel(MultiTraceHits, TraceStart, TraceEnd, ECC_WorldStatic, Params, ResponseParams);
+
+	struct FCompareFHitResultNavMeshTrace
+	{
+		explicit FCompareFHitResultNavMeshTrace(const FVector& inSourceLocation) : SourceLocation(inSourceLocation)
+		{
+		}
+
+		FORCEINLINE bool operator()(const FHitResult& A, const FHitResult& B) const
+		{
+			const float ADistSqr = (SourceLocation - A.ImpactPoint).SizeSquared();
+			const float BDistSqr = (SourceLocation - B.ImpactPoint).SizeSquared();
+
+			return (ADistSqr < BDistSqr);
+		}
+
+		const FVector& SourceLocation;
+	};
+
+	struct FRemoveNotBlockingResponseNavMeshTrace
+	{
+		FRemoveNotBlockingResponseNavMeshTrace(bool bInCheckOnlyWorldStatic) : bCheckOnlyWorldStatic(bInCheckOnlyWorldStatic) {}
+
+		FORCEINLINE bool operator()(const FHitResult& TestHit) const
+		{
+			UPrimitiveComponent* PrimComp = TestHit.GetComponent();
+			const bool bBlockOnWorldStatic = PrimComp && (PrimComp->GetCollisionResponseToChannel(ECC_WorldStatic) == ECR_Block);
+			const bool bBlockOnWorldDynamic = PrimComp && (PrimComp->GetCollisionResponseToChannel(ECC_WorldDynamic) == ECR_Block);
+
+			return !bBlockOnWorldStatic && (!bBlockOnWorldDynamic || bCheckOnlyWorldStatic);
+		}
+
+		bool bCheckOnlyWorldStatic;
+	};
+
+	MultiTraceHits.RemoveAllSwap(FRemoveNotBlockingResponseNavMeshTrace(!bProjectNavMeshOnBothWorldChannels), /*bAllowShrinking*/false);
+	if (MultiTraceHits.Num() > 0)
+	{
+		// Sort the hits by the closest to our origin.
+		MultiTraceHits.Sort(FCompareFHitResultNavMeshTrace(TargetNavLocation));
+
+		// Cache the closest hit and treat it as a blocking hit (we used an overlap to get all the world static hits so we could sort them ourselves)
+		OutHitResult = MultiTraceHits[0];
+		OutHitResult.bBlockingHit = true;
+	}
+}
 
 const ANavigationData* UCharacterMovementComponent::GetNavData() const
 {

@@ -170,6 +170,8 @@ struct ENGINE_API FVisualLogEntry
 #if ENABLE_VISUAL_LOG
 	float TimeStamp;
 	FVector Location;
+	uint8 bIsClassWhitelisted : 1;
+	uint8 bIsObjectWhitelisted : 1;	
 	uint8 bIsAllowedToLog : 1;
 
 	TArray<FVisualLogEvent> Events;
@@ -185,6 +187,7 @@ struct ENGINE_API FVisualLogEntry
 	FVisualLogEntry(float InTimeStamp, FVector InLocation, const UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children);
 
 	void Reset();
+	void UpdateAllowedToLog();
 
 	void AddText(const FString& TextLine, const FName& CategoryName, ELogVerbosity::Type Verbosity);
 	// path

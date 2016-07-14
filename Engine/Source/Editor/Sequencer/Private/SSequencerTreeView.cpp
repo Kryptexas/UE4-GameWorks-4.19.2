@@ -552,7 +552,7 @@ bool SSequencerTreeView::SynchronizeSequencerSelectionWithTreeSelection()
 TSharedPtr<SWidget> SSequencerTreeView::OnContextMenuOpening()
 {
 	const TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = SequencerNodeTree->GetSequencer().GetSelection().GetSelectedOutlinerNodes();
-	if ( SelectedNodes.Num() == 1 )
+	if ( SelectedNodes.Num() > 0 )
 	{
 		return SelectedNodes.Array()[0]->OnSummonContextMenu();
 	}

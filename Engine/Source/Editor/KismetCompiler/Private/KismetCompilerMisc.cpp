@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "KismetCompilerPrivatePCH.h"
+
+#include "AnimGraphNode_Base.h"
 #include "KismetCompilerMisc.h"
 #include "K2Node_EnumLiteral.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
@@ -1403,9 +1405,7 @@ void FNodeHandlingFunctor::RegisterNets(FKismetFunctionContext& Context, UEdGrap
 
 //////////////////////////////////////////////////////////////////////////
 // FNetNameMapping
-
-template<>
-KISMETCOMPILER_API FString FNetNameMapping::MakeBaseName<UEdGraphPin>(const UEdGraphPin* Net)
+FString FNetNameMapping::MakeBaseName(const UEdGraphPin* Net)
 {
 	UEdGraphNode* Owner = Net->GetOwningNode();
 	FString Part1 = Owner->GetDescriptiveCompiledName();
@@ -1413,10 +1413,14 @@ KISMETCOMPILER_API FString FNetNameMapping::MakeBaseName<UEdGraphPin>(const UEdG
 	return FString::Printf(TEXT("%s_%s"), *Part1, *Net->PinName);
 }
 
-template<>
-KISMETCOMPILER_API FString FNetNameMapping::MakeBaseName<UEdGraphNode>(const UEdGraphNode* Net)
+FString FNetNameMapping::MakeBaseName(const UEdGraphNode* Net)
 {
 	return FString::Printf(TEXT("%s"), *Net->GetDescriptiveCompiledName());
+}
+
+FString FNetNameMapping::MakeBaseName(const UAnimGraphNode_Base* Net)
+{
+	return FString::Printf(TEXT("%s_%s"), *Net->GetDescriptiveCompiledName(), *Net->NodeGuid.ToString());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1929,7 +1933,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 void FBPTerminal::CopyFromPin(UEdGraphPin* Net, const FString& NewName)
 {
 	Type = Net->PinType;
-	Source = Net;
+	SourcePin = Net;
 	Name = NewName;
 
 	bPassedByReference = Net->PinType.bIsReference;

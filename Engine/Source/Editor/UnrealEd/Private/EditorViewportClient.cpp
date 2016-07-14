@@ -31,6 +31,7 @@
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "EditorBuildUtils.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -3240,7 +3241,9 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 			ViewFamily.EngineShowFlags.CameraInterpolation = 0;
 		}
 
-		if( !bStereoRendering )
+		static auto* ScreenPercentageEditorCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ScreenPercentage.Editor"));
+
+		if( !bStereoRendering && ScreenPercentageEditorCVar && ScreenPercentageEditorCVar->GetValueOnAnyThread() == 0)
 		{
 			// Keep the image sharp - ScreenPercentage is an optimization and should not affect the editor (except when
 			// stereo is enabled, as many HMDs require this for proper visuals
@@ -4586,10 +4589,13 @@ void FEditorViewportClient::UpdateHiddenCollisionDrawing()
 			bool bCollisionMode = EngineShowFlags.Collision || EngineShowFlags.CollisionVisibility || EngineShowFlags.CollisionPawn;
 
 			// Tell engine to create proxies for hidden components, so we can still draw collision
-			World->bCreateRenderStateForHiddenComponents = bCollisionMode;
+			if (World->bCreateRenderStateForHiddenComponents != bCollisionMode)
+			{
+				World->bCreateRenderStateForHiddenComponents = bCollisionMode;
 
-			// Need to recreate scene proxies when this flag changes.
-			FGlobalComponentRecreateRenderStateContext Recreate;
+				// Need to recreate scene proxies when this flag changes.
+				FGlobalComponentRecreateRenderStateContext Recreate;
+			}
 		}
 	}
 }
@@ -4617,6 +4623,10 @@ void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	if (IsPerspective())
 	{
+		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshTexCoordSizeAccuracy || InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy)
+		{
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy, true);
+		}
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
 		bForcingUnlitForNewMap = false;

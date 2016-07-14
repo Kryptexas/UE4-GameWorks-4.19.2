@@ -23,7 +23,16 @@ public class CrashReportClientTarget : TargetRules
 		return true;
 	}
 
-	public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
+    public override bool ConfigureToolchain(TargetInfo Target)
+    {
+        if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            WindowsPlatform.Compiler = WindowsCompiler.VisualStudio2013;
+        }
+        return true;
+    }
+
+    public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
 	{
 		if( base.GetSupportedConfigurations( ref OutConfigurations, bIncludeTestAndShippingConfigs ) )
 		{
@@ -62,7 +71,7 @@ public class CrashReportClientTarget : TargetRules
 		return true;
 	}
 
-	public override void SetupGlobalEnvironment(
+    public override void SetupGlobalEnvironment(
 		TargetInfo Target,
 		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
@@ -77,7 +86,6 @@ public class CrashReportClientTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 		UEBuildConfiguration.bUseLoggingInShipping = true;
-		UEBuildConfiguration.bCompileSteamOSS = false;
 
 		UEBuildConfiguration.bIncludeADO = false;
 		

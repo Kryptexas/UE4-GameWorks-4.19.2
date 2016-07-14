@@ -706,12 +706,6 @@ public:
 	/** When enabled, the cascade only renders objects marked with bCastFarShadows enabled (e.g. Landscape). */
 	bool bFarShadowCascade;
 
-	/** Whether the shadow will be computed by ray tracing the distance field. */
-	bool bRayTracedDistanceField;
-
-	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
-	bool bOnePassPointLightShadow;
-
 	/** 
 	 * Index of the split if this is a whole scene shadow from a directional light, 
 	 * Or index of the direction if this is a whole scene shadow from a point light, otherwise INDEX_NONE. 
@@ -726,8 +720,6 @@ public:
 		, FadePlaneOffset(SplitFar)
 		, FadePlaneLength(SplitFar - FadePlaneOffset)
 		, bFarShadowCascade(false)
-		, bRayTracedDistanceField(false)
-		, bOnePassPointLightShadow(false)
 		, ShadowSplitIndex(INDEX_NONE)
 	{
 	}
@@ -754,6 +746,20 @@ public:
 	/** Default constructor. */
 	FProjectedShadowInitializer()
 	{}
+
+	bool IsCachedShadowValid(const FProjectedShadowInitializer& CachedShadow) const
+	{
+		return PreShadowTranslation == CachedShadow.PreShadowTranslation
+			&& WorldToLight == CachedShadow.WorldToLight
+			&& Scales == CachedShadow.Scales
+			&& FaceDirection == CachedShadow.FaceDirection
+			&& SubjectBounds.Origin == CachedShadow.SubjectBounds.Origin
+			&& SubjectBounds.BoxExtent == CachedShadow.SubjectBounds.BoxExtent
+			&& SubjectBounds.SphereRadius == CachedShadow.SubjectBounds.SphereRadius
+			&& WAxis == CachedShadow.WAxis
+			&& MinLightW == CachedShadow.MinLightW
+			&& MaxDistanceToCastInLightW == CachedShadow.MaxDistanceToCastInLightW;
+	}
 };
 
 /** Information needed to create a per-object projected shadow. */
@@ -768,6 +774,20 @@ class ENGINE_API FWholeSceneProjectedShadowInitializer : public FProjectedShadow
 {
 public:
 	FShadowCascadeSettings CascadeSettings;
+	bool bOnePassPointLightShadow;
+	bool bRayTracedDistanceField;
+
+	FWholeSceneProjectedShadowInitializer() :
+		bOnePassPointLightShadow(false),
+		bRayTracedDistanceField(false)
+	{}
+
+	bool IsCachedShadowValid(const FWholeSceneProjectedShadowInitializer& CachedShadow) const
+	{
+		return FProjectedShadowInitializer::IsCachedShadowValid((const FProjectedShadowInitializer&)CachedShadow)
+			&& bOnePassPointLightShadow == CachedShadow.bOnePassPointLightShadow
+			&& bRayTracedDistanceField == CachedShadow.bRayTracedDistanceField;
+	}
 };
 
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
@@ -1562,6 +1582,12 @@ public:
 	{
 		const int32 Index = MeshBatchStorage.Add(1);
 		return MeshBatchStorage[Index];
+	}
+
+	// @return number of MeshBatches collected (so far) for a given view
+	uint32 GetMeshBatchCount(uint32 ViewIndex) const
+	{
+		return MeshBatches[ViewIndex]->Num();
 	}
 
 	/** 

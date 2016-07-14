@@ -256,7 +256,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.OnPinTypeChanged(this, &FBlueprintVarActionDetails::OnVarTypeChanged)
 		.IsEnabled(this, &FBlueprintVarActionDetails::GetVariableTypeChangeEnabled)
 		.Schema(Schema)
-		.bAllowExec(false)
+		.TypeTreeFilter(ETypeTreeFilter::None)
 		.Font( DetailFontInfo )
 		.ToolTip(VarTypeTooltip)
 	];
@@ -363,24 +363,24 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(PrivateTooltip)
 	];
 
-	TSharedPtr<SToolTip> ExposeToMatineeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToMatinee_Tooltip", "Should this variable be exposed for Matinee to modify?"), NULL, DocLink, TEXT("ExposeToMatinee"));
+	TSharedPtr<SToolTip> ExposeToCinematicsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToCinematics_Tooltip", "Should this variable be exposed for Matinee or Sequencer to modify?"), NULL, DocLink, TEXT("ExposeToCinematics"));
 
-	Category.AddCustomRow( LOCTEXT("VariableExposeToMatinee", "Expose to Matinee") )
-	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeToMatineeVisibility))
+	Category.AddCustomRow( LOCTEXT("VariableExposeToCinematics", "Expose to Cinematics") )
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeToCinematicsVisibility))
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.ToolTip(ExposeToMatineeTooltip)
-		.Text( LOCTEXT("VariableExposeToMatinee", "Expose to Matinee") )
+		.ToolTip(ExposeToCinematicsTooltip)
+		.Text( LOCTEXT("VariableExposeToCinematics", "Expose to Cinematics") )
 		.Font( DetailFontInfo )
 	]
 	.ValueContent()
 	[
 		SNew(SCheckBox)
-		.IsChecked( this, &FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState )
-		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnExposedToMatineeChanged )
+		.IsChecked( this, &FBlueprintVarActionDetails::OnGetExposedToCinematicsCheckboxState )
+		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnExposedToCinematicsChanged )
 		.IsEnabled(IsVariableInBlueprint())
-		.ToolTip(ExposeToMatineeTooltip)
+		.ToolTip(ExposeToCinematicsTooltip)
 	];
 
 	// Build the property specific config variable tool tip
@@ -1619,7 +1619,7 @@ EVisibility FBlueprintVarActionDetails::ExposePrivateVisibility() const
 	return EVisibility::Collapsed;
 }
 
-ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToCinematicsCheckboxState() const
 {
 	UProperty* Property = CachedVariableProperty.Get();
 	if (Property)
@@ -1629,19 +1629,19 @@ ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState() 
 	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnExposedToMatineeChanged(ECheckBoxState InNewState)
+void FBlueprintVarActionDetails::OnExposedToCinematicsChanged(ECheckBoxState InNewState)
 {
 	// Toggle the flag on the blueprint's version of the variable description, based on state
-	const bool bExposeToMatinee = (InNewState == ECheckBoxState::Checked);
+	const bool bExposeToCinematics = (InNewState == ECheckBoxState::Checked);
 	
 	const FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		FBlueprintEditorUtils::SetInterpFlag(GetBlueprintObj(), VarName, bExposeToMatinee);
+		FBlueprintEditorUtils::SetInterpFlag(GetBlueprintObj(), VarName, bExposeToCinematics);
 	}
 }
 
-EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
+EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 {
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 	if (VariableProperty && !IsALocalVariable(VariableProperty))
@@ -1900,29 +1900,33 @@ TSharedPtr<FString> FBlueprintVarActionDetails::GetVariableReplicationType() con
 	uint64 PropFlags = 0;
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 
-	if (VariableProperty && IsVariableInBlueprint())
+	if (VariableProperty && (IsVariableInBlueprint() || IsVariableInheritedByBlueprint()))
 	{
-		uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(GetPropertyOwnerBlueprint(), VariableProperty->GetFName());
-		
-		if (PropFlagPtr != NULL)
+		UBlueprint* BlueprintObj = GetPropertyOwnerBlueprint();
+		if (BlueprintObj != nullptr)
 		{
-			PropFlags = *PropFlagPtr;
-			bool IsReplicated = (PropFlags & CPF_Net) > 0;
-			bool bHasRepNotify = FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(GetPropertyOwnerBlueprint(), VariableProperty->GetFName()) != NAME_None;
-			if (bHasRepNotify)
-			{
-				// Verify they actually have a valid rep notify function still
-				UClass* GenClass = GetPropertyOwnerBlueprint()->SkeletonGeneratedClass;
-				UFunction* OnRepFunc = GenClass->FindFunctionByName(FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(GetPropertyOwnerBlueprint(), VariableProperty->GetFName()));
-				if( OnRepFunc == NULL || OnRepFunc->NumParms != 0 || OnRepFunc->GetReturnProperty() != NULL )
-				{
-					bHasRepNotify = false;
-					ReplicationOnRepFuncChanged(FName(NAME_None).ToString());	
-				}
-			}
+			uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(BlueprintObj, VariableProperty->GetFName());
 
-			VariableReplication = !IsReplicated ? EVariableReplication::None : 
-				bHasRepNotify ? EVariableReplication::RepNotify : EVariableReplication::Replicated;
+			if (PropFlagPtr != NULL)
+			{
+				PropFlags = *PropFlagPtr;
+				bool IsReplicated = (PropFlags & CPF_Net) > 0;
+				bool bHasRepNotify = FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(BlueprintObj, VariableProperty->GetFName()) != NAME_None;
+				if (bHasRepNotify)
+				{
+					// Verify they actually have a valid rep notify function still
+					UClass* GenClass = GetPropertyOwnerBlueprint()->SkeletonGeneratedClass;
+					UFunction* OnRepFunc = GenClass->FindFunctionByName(FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(BlueprintObj, VariableProperty->GetFName()));
+					if (OnRepFunc == NULL || OnRepFunc->NumParms != 0 || OnRepFunc->GetReturnProperty() != NULL)
+					{
+						bHasRepNotify = false;
+						ReplicationOnRepFuncChanged(FName(NAME_None).ToString());
+					}
+				}
+
+				VariableReplication = !IsReplicated ? EVariableReplication::None :
+					bHasRepNotify ? EVariableReplication::RepNotify : EVariableReplication::Replicated;
+			}
 		}
 	}
 
@@ -2267,6 +2271,17 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
+	ETypeTreeFilter TypeTreeFilter = ETypeTreeFilter::None;
+	if (TargetNode->CanModifyExecutionWires())
+	{
+		TypeTreeFilter |= ETypeTreeFilter::AllowExec;
+	}
+
+	if (ShouldAllowWildcard(TargetNode))
+	{
+		TypeTreeFilter |= ETypeTreeFilter::AllowWildcard;
+	}
+
 	NodeRow
 	.NameContent()
 	[
@@ -2296,8 +2311,7 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 				.OnPinTypePreChanged(this, &FBlueprintGraphArgumentLayout::OnPrePinInfoChange)
 				.OnPinTypeChanged(this, &FBlueprintGraphArgumentLayout::PinInfoChanged)
 				.Schema(K2Schema)
-				.bAllowExec(TargetNode->CanModifyExecutionWires())
-				.bAllowWildcard(ShouldAllowWildcard(TargetNode))
+				.TypeTreeFilter(TypeTreeFilter)
 				.bAllowArrays(!ShouldPinBeReadOnly())
 				.IsEnabled(!ShouldPinBeReadOnly(true))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )

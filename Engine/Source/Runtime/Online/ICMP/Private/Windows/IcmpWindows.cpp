@@ -57,12 +57,12 @@ namespace IcmpWindows
 	}
 }
 
-FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
+FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout)
 {
 	FIcmpEchoResult Result;
 
 	FString ResolvedAddress;
-	if (!ResolveIp(TargetAddress, ResolvedAddress))
+	if (!ResolveIp(SocketSub, TargetAddress, ResolvedAddress))
 	{
 		Result.Status = EIcmpResponseStatus::Unresolvable;
 		return Result;

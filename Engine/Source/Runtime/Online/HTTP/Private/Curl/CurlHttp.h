@@ -333,13 +333,18 @@ private:
 	float ElapsedTime;
 	/** Elapsed time since the last received HTTP response. */
 	float TimeSinceLastResponse;
-
 	/** Number of bytes sent already */
 	FThreadSafeCounter BytesSent;
 	/** Last bytes read reported to progress delegate */
 	int32 LastReportedBytesRead;
 	/** Last bytes sent reported to progress delegate */
 	int32 LastReportedBytesSent;
+	/** Number of info channel messages to cache */
+	static int32 NumberOfInfoMessagesToCache;
+	/** Index of least recently cached message */
+	int32 LeastRecentlyCachedInfoMessageIndex;
+	/** Cache of info messages from libcurl */
+	TArray<FString> InfoMessageCache;
 };
 
 

@@ -341,8 +341,14 @@ static void BuildMetalShaderOutput(
 	}
 
 	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::ES3_1);
-	Header.ShaderName = CCHeader.Name;
 
+	FString MetalCode = FString(USFSource);
+	if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) || ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Debug))
+	{
+		MetalCode.InsertAt(0, FString::Printf(TEXT("// %s\n"), *CCHeader.Name));
+		Header.ShaderName = CCHeader.Name;
+	}
+	
 	if (Header.Bindings.NumSamplers > MaxSamplers)
 	{
 		ShaderOutput.bSucceeded = false;
@@ -370,14 +376,27 @@ static void BuildMetalShaderOutput(
 	else
 	{
 		// at this point, the shader source is ready to be compiled
-		FString InputFilename = FPaths::CreateTempFilename(*FPaths::EngineIntermediateDir(), TEXT("ShaderIn"), TEXT(""));
+		// We need to use a temp directory path that will be consistent across devices so that debug info
+		// can be loaded (as it must be at a consistent location).
+#if PLATFORM_MAC
+		TCHAR const* TempDir = TEXT("/tmp");
+#else
+		TCHAR const* TempDir = FPlatformProcess::UserTempDir();
+#endif
+		FString InputFilename = FPaths::CreateTempFilename(TempDir, TEXT("ShaderIn"), TEXT(""));
 		FString ObjFilename = InputFilename + TEXT(".o");
 		FString ArFilename = InputFilename + TEXT(".ar");
 		FString OutputFilename = InputFilename + TEXT(".lib");
 		InputFilename = InputFilename + TEXT(".metal");
 		
+		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
+		{
+			Header.ShaderCode = MetalCode;
+			Header.ShaderPath = InputFilename;
+		}
+		
 		// write out shader source
-		FFileHelper::SaveStringToFile(FString(USFSource), *InputFilename);
+		FFileHelper::SaveStringToFile(MetalCode, *InputFilename);
 		
 		int32 ReturnCode = 0;
 		FString Results;
@@ -409,8 +428,11 @@ static void BuildMetalShaderOutput(
 			if (IFileManager::Get().FileSize(*MetalPath) > 0)
 			{
 				// metal commandlines
+				FString DebugInfo = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) ? TEXT("-gline-tables-only") : TEXT("");
 				FString MathMode = Header.bFastMath ? TEXT("-ffast-math") : TEXT("-fno-fast-math");
-				FString Params = FString::Printf(TEXT("%s -Wno-null-character %s %s -o %s"), *MathMode, Standard, *InputFilename, *ObjFilename);
+				
+				FString Params = FString::Printf(TEXT("%s %s -Wno-null-character %s %s -o %s"), *DebugInfo, *MathMode, Standard, *InputFilename, *ObjFilename);
+				
 				FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 
 				// handle compile error
@@ -748,9 +770,9 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		int32 SourceLen = MetalShaderSource ? FCStringAnsi::Strlen(MetalShaderSource) : 0;
 		if(MetalShaderSource)
 		{
-			uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(MetalShaderSource) + 20;
+			uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.DebugGroupName)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(MetalShaderSource) + 21;
 			char* Dest = (char*)malloc(Len);
-			FCStringAnsi::Snprintf(Dest, Len, "// ! %s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)MetalShaderSource);
+			FCStringAnsi::Snprintf(Dest, Len, "// ! %s/%s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.DebugGroupName), (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)MetalShaderSource);
 			free(MetalShaderSource);
 			MetalShaderSource = Dest;
 			SourceLen = FCStringAnsi::Strlen(MetalShaderSource);

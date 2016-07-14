@@ -42,6 +42,9 @@ static void ReportMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffe
 	FString FailureString = FailureDesc ? FString(FailureDesc) : FString(TEXT("Unknown"));
 	FString RecoveryString = RecoveryDesc ? FString(RecoveryDesc) : FString(TEXT("Unknown"));
 	
+	NSString* Desc = CompletedBuffer.debugDescription;
+	UE_LOG(LogMetal, Warning, TEXT("%s"), *FString(Desc));
+	
 	checkf(CompletedBuffer.status != MTLCommandBufferStatusError, TEXT("Command Buffer %s Failed with %s Error! Error Domain: %s Code: %d Description %s %s %s"), *LabelString, ErrorType, *DomainString, Code, *ErrorString, *FailureString, *RecoveryString);
 }
 
@@ -162,7 +165,7 @@ void FMetalCommandList::Commit(id<MTLCommandBuffer> Buffer, bool const bWait)
 	check(Buffer);
 	
 	[Buffer addCompletedHandler : ^ (id <MTLCommandBuffer> CompletedBuffer)
-	 {
+	{
 		if (CompletedBuffer.status == MTLCommandBufferStatusError)
 		{
 			HandleMetalCommandBufferFailure(CompletedBuffer);

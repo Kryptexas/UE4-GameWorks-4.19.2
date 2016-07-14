@@ -245,20 +245,8 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 				PaintGeometry,
 				Thumbnail,
 				ThumbnailClipRect,
-				DrawEffects | ESlateDrawEffect::NoGamma | ESlateDrawEffect::NoBlending
-				);
-		}
-
-		if (Fade > 0.0f)
-		{
-			FSlateDrawElement::MakeBox(
-				InPainter.DrawElements,
-				LayerId + 1,
-				PaintGeometry,
-				WhiteBrush,
-				ThumbnailClipRect,
-				DrawEffects,
-				FLinearColor(0.0f, 0.0f, 0.0f, Fade)
+				DrawEffects | ESlateDrawEffect::NoGamma,
+				FLinearColor(1.f, 1.f, 1.f, 1.f - Fade)
 				);
 		}
 	}
@@ -279,7 +267,7 @@ void FThumbnailSection::Tick(const FGeometry& AllottedGeometry, const FGeometry&
 		const TRange<float> VisibleRange = SequencerPtr.Pin()->GetViewRange();
 		const TRange<float> SectionRange = Section->IsInfinite() ? VisibleRange : Section->GetRange();
 
-		ThumbnailCache.Update(SectionRange, VisibleRange, AllocatedSize, Settings->ThumbnailSize);
+		ThumbnailCache.Update(SectionRange, VisibleRange, AllocatedSize, Settings->ThumbnailSize, Settings->Quality, InCurrentTime);
 	}
 }
 

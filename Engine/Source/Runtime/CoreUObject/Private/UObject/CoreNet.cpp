@@ -123,6 +123,7 @@ uint32 FClassNetCacheMgr::GetFunctionChecksum( const UFunction* Function, uint32
 	// Evolve the checksum on function flags
 	Checksum = FCrc::StrCrc32( *FString::Printf( TEXT( "%u" ), Function->FunctionFlags ), Checksum );
 
+#if 0	// This is disabled now that we have backwards compatibility for RPC parameters working in replays 
 	TArray< UProperty * > Parms;
 
 	for ( TFieldIterator< UProperty > It( Function ); It && ( It->PropertyFlags & ( CPF_Parm | CPF_ReturnParm ) ) == CPF_Parm; ++It )
@@ -138,6 +139,7 @@ uint32 FClassNetCacheMgr::GetFunctionChecksum( const UFunction* Function, uint32
 	{
 		Checksum = GetPropertyChecksum( Parm, Checksum, true );
 	}
+#endif
 
 	return Checksum;
 }

@@ -10,12 +10,12 @@
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
 #include "Engine/NetDriver.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;
-class FUniqueNetId;
 struct FNetworkObjectInfo;
 
 /*-----------------------------------------------------------------------------
@@ -229,8 +229,9 @@ public:
 
 	/** Whether this channel needs to byte swap all data or not */
 	bool			bNeedsByteSwapping;
-	/** Net id of remote player on this connection. Only valid on client connections. */
-	TSharedPtr<const FUniqueNetId> PlayerId;
+	/** Net id of remote player on this connection. Only valid on client connections (server side).*/
+	UPROPERTY()
+	FUniqueNetIdRepl PlayerId;
 
 	// Negotiated parameters.
 	int32			PacketOverhead;			// Bytes overhead per packet sent.
@@ -327,7 +328,7 @@ public:
 	TMap<TWeakObjectPtr<AActor>, UActorChannel*, FDefaultSetAllocator, TWeakObjectPtrMapKeyFuncs<TWeakObjectPtr<AActor>, UActorChannel*>> ActorChannels;
 
 	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
-	TMap<FNetworkGUID,class UActorChannel*> KeepProcessingActorChannelBunchesMap;
+	TMap<FNetworkGUID, TArray<class UActorChannel*>> KeepProcessingActorChannelBunchesMap;
 
 	/** Actors that have gone dormant on this connection	
 	 *  The only way to get on this list is when the actor channel closes. UActorChannel::Close.
@@ -375,6 +376,15 @@ public:
 	/** Copies the settings from the net driver to our local copy */
 	void UpdatePacketSimulationSettings(void);
 #endif
+
+	/** 
+	 * If true, will resend everything this connection has ever sent, since the connection has been open.
+	 *	This functionality is used during replay checkpoints for example, so we can re-use the existing connection and channels to record
+	 *	a version of each actor and capture all properties that have changed since the actor has been alive...
+	 *	This will also act as if it needs to re-open all the channels, etc.
+	 *   NOTE - This doesn't force all exports to happen again though, it will only export new stuff, so keep that in mind.
+	 */
+	bool bResendAllDataSinceOpen;
 
 	/**
 	 * Called to determine if a voice packet should be replicated to this

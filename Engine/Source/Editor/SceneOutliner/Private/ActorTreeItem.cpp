@@ -240,7 +240,7 @@ FTreeItemPtr FActorTreeItem::CreateParent() const
 	}
 
 	AActor* ParentActor = ActorPtr->GetAttachParentActor();
-	if (ParentActor)
+	if (ParentActor && ensureMsgf(ParentActor != ActorPtr, TEXT("Encountered an Actor attached to itself (%s)"), *ParentActor->GetName()))
 	{
 		return MakeShareable(new FActorTreeItem(ParentActor));
 	}

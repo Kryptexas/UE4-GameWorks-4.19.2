@@ -73,13 +73,12 @@ protected:
 	void MarkComplete()
 	{
 		Complete = true;
+		CompletionEvent->Trigger();
 
 		if (CompletionCallback)
 		{
 			CompletionCallback();
 		}
-
-		CompletionEvent->Trigger();
 	}
 
 private:
@@ -187,7 +186,7 @@ public:
 	 */
 	bool IsReady() const
 	{
-		return State->IsComplete();
+		return State.IsValid() ? State->IsComplete() : false;
 	}
 
 	/**
@@ -223,7 +222,7 @@ public:
 	 */
 	bool WaitFor(const FTimespan& Duration) const
 	{
-		return State->WaitFor(Duration);
+		return State.IsValid() ? State->WaitFor(Duration) : false;
 	}
 
 	/**

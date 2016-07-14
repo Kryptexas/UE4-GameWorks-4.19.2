@@ -13,7 +13,7 @@
 #include "Engine/VoiceChannel.h"
 #include "Engine/NetworkObjectList.h"
 #include "GameFramework/GameNetworkManager.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "NetworkingDistanceConstants.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
@@ -67,7 +67,6 @@ DEFINE_STAT(STAT_NumActors);
 DEFINE_STAT(STAT_NumNetActors);
 DEFINE_STAT(STAT_NumDormantActors);
 DEFINE_STAT(STAT_NumInitiallyDormantActors);
-DEFINE_STAT(STAT_NumActorChannelsReadyDormant);
 DEFINE_STAT(STAT_NumNetGUIDsAckd);
 DEFINE_STAT(STAT_NumNetGUIDsPending);
 DEFINE_STAT(STAT_NumNetGUIDsUnAckd);
@@ -383,7 +382,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 NumOpenChannels = 0;
 		int32 NumActorChannels = 0;
 		int32 NumDormantActors = 0;
-		int32 NumActorChannelsReadyDormant = 0;
 		int32 NumActors = 0;
 		int32 AckCount = 0;
 		int32 UnAckCount = 0;
@@ -446,15 +444,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				NumActorChannels = Connection->ActorChannels.Num();
 				NumDormantActors = Connection->DormantActors.Num();
 
-				for (auto It = Connection->ActorChannels.CreateIterator(); It; ++It)
-				{
-					UActorChannel* Chan = It.Value();
-					if (Chan && Chan->ReadyForDormancy(true))
-					{
-						NumActorChannelsReadyDormant++;
-					}
-				}
-
 				if (World)
 				{
 					NumActors = World->GetActorCount();
@@ -510,7 +499,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
 		SET_DWORD_STAT(STAT_NumActors, NumActors);
 		SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num());
-		SET_DWORD_STAT(STAT_NumActorChannelsReadyDormant, NumActorChannelsReadyDormant);
 		SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
 		SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
 		SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
@@ -830,22 +818,19 @@ void UNetDriver::ProcessLocalServerPackets()
 {
 	if (World)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
-		if (VoiceInt.IsValid())
+		int32 NumLocalTalkers = UOnlineEngineInterface::Get()->GetNumLocalTalkers(World);
+		// Process all of the local packets
+		for (int32 Index = 0; Index < NumLocalTalkers; Index++)
 		{
-			// Process all of the local packets
-			for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
+			// Returns a ref counted copy of the local voice data or NULL if nothing to send
+			TSharedPtr<FVoicePacket> LocalPacket = UOnlineEngineInterface::Get()->GetLocalPacket(World, Index);
+			// Check for something to send for this local talker
+			if (LocalPacket.IsValid())
 			{
-				// Returns a ref counted copy of the local voice data or NULL if nothing to send
-				TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
-				// Check for something to send for this local talker
-				if (LocalPacket.IsValid())
-				{
-					// See if anyone wants this packet
-					ReplicateVoicePacket(LocalPacket, NULL);
+				// See if anyone wants this packet
+				ReplicateVoicePacket(LocalPacket, NULL);
 
-					// once all local voice packets are processed then call ClearVoicePackets()
-				}
+				// once all local voice packets are processed then call ClearVoicePackets()
 			}
 		}
 	}
@@ -858,17 +843,17 @@ void UNetDriver::ProcessLocalClientPackets()
 {
 	if (World)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
-		if (VoiceInt.IsValid())
+		int32 NumLocalTalkers = UOnlineEngineInterface::Get()->GetNumLocalTalkers(World);
+		if (NumLocalTalkers)
 		{
 			UVoiceChannel* VoiceChannel = ServerConnection->GetVoiceChannel();
 			if (VoiceChannel)
 			{
 				// Process all of the local packets
-				for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
+				for (int32 Index = 0; Index < NumLocalTalkers; Index++)
 				{
 					// Returns a ref counted copy of the local voice data or NULL if nothing to send
-					TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
+					TSharedPtr<FVoicePacket> LocalPacket = UOnlineEngineInterface::Get()->GetLocalPacket(World, Index);
 					// Check for something to send for this local talker
 					if (LocalPacket.IsValid())
 					{
@@ -891,14 +876,9 @@ void UNetDriver::PostTickFlush()
 {
 	if (World)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
-		if (VoiceInt.IsValid())
-		{
-			VoiceInt->ClearVoicePackets();
-		}
+		UOnlineEngineInterface::Get()->ClearVoicePackets(World);
 	}
 }
-
 
 bool UNetDriver::InitConnectionClass(void)
 {
@@ -1315,21 +1295,24 @@ void UNetDriver::InternalProcessRemoteFunction
 	TSharedPtr<FRepLayout> RepLayout = GetFunctionRepLayout( Function );
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, TempWriter, Parms );
 
+	// Make sure net field export group is registered
+	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj->GetClass() );
+
 	int32 HeaderBits	= 0;
 	int32 ParameterBits	= 0;
 
 	// Queue unreliable multicast 
-	bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
+	const bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
 
 	if ( QueueBunch )
 	{
-		Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, TempWriter );
+		Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
 		ParameterBits = Bunch.GetNumBits();
 	}
 	else
 	{
 		FNetBitWriter TempBlockWriter( Bunch.PackageMap, 0 );
-		Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, TempWriter );
+		Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
 		ParameterBits = TempBlockWriter.GetNumBits();
 		HeaderBits = Ch->WriteContentBlockPayload( TargetObj, Bunch, false, TempBlockWriter );
 	}
@@ -1858,7 +1841,6 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 {
 	// Remove the actor from the property tracker map
 	RepChangedPropertyTrackerMap.Remove(ThisActor);
-#if WITH_SERVER_CODE
 
 	FActorDestructionInfo* DestructionInfo = NULL;
 	const bool bIsServer = ServerConnection == NULL;
@@ -1900,7 +1882,6 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 			Connection->DormantActors.Remove( ThisActor );
 		}
 	}
-#endif // WITH_SERVER_CODE
 }
 
 void UNetDriver::NotifyStreamingLevelUnload( ULevel* Level)
@@ -3141,8 +3122,14 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
+	UWorld* LocalWorld = GetWorld();
+	if (!LocalWorld)
+	{
+		return;
+	}
+
 	ULocalPlayer*	LocalPlayer = NULL;
-	for(FLocalPlayerIterator It(GEngine, GetWorld());It;++It)
+	for(FLocalPlayerIterator It(GEngine, LocalWorld);It;++It)
 	{
 		LocalPlayer = *It;
 		break;
@@ -3154,7 +3141,7 @@ void UNetDriver::DrawNetDriverDebug()
 
 	const float CullDistSqr = FMath::Square(CVarNetDormancyDrawCullDistance.GetValueOnGameThread());
 
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (FActorIterator It(LocalWorld); It; ++It)
 	{
 		if ((It->GetActorLocation() - LocalPlayer->LastViewLocation).SizeSquared() > CullDistSqr)
 		{
@@ -3176,7 +3163,7 @@ void UNetDriver::DrawNetDriverDebug()
 		}
 
 		FBox Box = 	It->GetComponentsBoundingBox();
-		DrawDebugBox( GetWorld(), Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
+		DrawDebugBox( LocalWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
 	}
 }
 

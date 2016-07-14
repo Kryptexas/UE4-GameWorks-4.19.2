@@ -300,7 +300,7 @@ float3 ApproximateSpecularIBL( uint2 Random, float3 SpecularColor, float Roughne
 
 	// Function replaced with 2D texture sample
 	float NoV = saturate( dot( N, V ) );
-	float2 AB = IntegrateBRDF( Random, Roughness, NoV );
+	float2 AB = IntegrateBRDF( Random, Roughness, NoV ).xy;
 
 	return PrefilteredColor * ( SpecularColor * AB.x + AB.y );
 }

@@ -93,8 +93,6 @@ bool FHighResScreenshotConfig::ParseConsoleCommand(const FString& InCmd, FOutput
 		GScreenshotResolutionX *= ResolutionMultiplier;
 		GScreenshotResolutionY *= ResolutionMultiplier;
 		GIsHighResScreenshot = true;
-		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-		GAreScreenMessagesEnabled = false;
 
 		return true;
 	}

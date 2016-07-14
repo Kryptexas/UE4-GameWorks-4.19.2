@@ -304,7 +304,6 @@ private:
 		SetShaderComplexityWithQuadOverdraw(false);
 		SetStationaryLightOverlap(false);
 		SetLightMapDensity(false);
-		SetVertexDensities(false);
 		SetLODColoration(false);
 		SetHLODColoration(false);
 		SetVisualizeLPV(false);

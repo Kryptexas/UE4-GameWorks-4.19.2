@@ -38,6 +38,12 @@ struct CORE_API FFrameworkObjectVersion
 		// Refactor ConstraintInstance so that we have an easy way to swap behavior paramters
 		ConstraintInstanceBehaviorParameters,
 
+		// Pose Asset support mask per bone
+		PoseAssetSupportPerBoneMask,
+
+		// Physics Assets now use SkeletalBodySetup instead of BodySetup
+		PhysAssetUseSkeletalBodySetup,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

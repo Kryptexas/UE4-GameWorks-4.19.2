@@ -9,7 +9,7 @@
 #include "Interfaces/NetworkPredictionInterface.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
-#include "OnlineSubsystemUtils.h"
+#include "Net/OnlineEngineInterface.h"
 #include "GameFramework/OnlineSession.h"
 #include "IHeadMountedDisplay.h"
 #include "IMotionController.h"
@@ -682,6 +682,7 @@ void APlayerController::ClientRetryClientRestart_Implementation(APawn* NewPawn)
 	{
 		SetPawn(NewPawn);
 		NewPawn->Controller = this;
+		NewPawn->OnRep_Controller();
 		ClientRestart(GetPawn());
 	}
 }
@@ -2818,6 +2819,8 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		DisplayDebugManager.SetDrawColor(FColor::White);
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
 	}
+
+	YPos = DisplayDebugManager.GetYPos();
 }
 
 void APlayerController::SetCinematicMode(bool bInCinematicMode, bool bHidePlayer, bool bAffectsHUD, bool bAffectsMovement, bool bAffectsTurning)
@@ -3004,17 +3007,13 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	if (LP != NULL)
 	{
 		UWorld* World = GetWorld();
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
-		if (VoiceInt.IsValid())
+		if (bSpeaking)
 		{
-			if (bSpeaking)
-			{
-				VoiceInt->StartNetworkedVoice(LP->GetControllerId());
-			}
-			else
-			{
-				VoiceInt->StopNetworkedVoice(LP->GetControllerId());
-			}
+			UOnlineEngineInterface::Get()->StartNetworkedVoice(World, LP->GetControllerId());
+		}
+		else
+		{
+			UOnlineEngineInterface::Get()->StopNetworkedVoice(World, LP->GetControllerId());
 		}
 	}
 }
@@ -3786,6 +3785,13 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 
 	UpdateStateInputComponents();
 
+#if ENABLE_VISUAL_LOG
+	if (Role == ROLE_Authority && FVisualLogger::Get().IsRecordingOnServer())
+	{
+		OnServerStartedVisualLogger(true);
+	}
+#endif
+
 	// notify script that we've been assigned a valid player
 	ReceivedPlayer();
 }
@@ -3793,6 +3799,11 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 ULocalPlayer* APlayerController::GetLocalPlayer() const
 {
 	return Cast<ULocalPlayer>(Player);
+}
+
+bool APlayerController::IsInViewportClient(UGameViewportClient* ViewportClient) const
+{
+	return ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered();
 }
 
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)
@@ -3813,7 +3824,7 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 			UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
 
 			// Only send mouse hit events if we're directly over the viewport.
-			if ( ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered() )
+			if ( IsInViewportClient(ViewportClient) )
 			{
 				if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
 				{

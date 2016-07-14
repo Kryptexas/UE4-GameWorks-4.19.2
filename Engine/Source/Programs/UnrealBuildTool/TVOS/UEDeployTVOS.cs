@@ -7,17 +7,23 @@ using System.Text;
 using System.Xml;
 using System.IO;
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
 	public class UEDeployTVOS : UEDeployIOS
 	{
+
+		public UEDeployTVOS(FileReference InProjectFile) : base(InProjectFile)
+		{
+		}
+
 		protected override string GetTargetPlatformName()
 		{
 			return "TVOS";
 		}
 
-		public static bool GenerateTVOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public static bool GenerateTVOSPList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, UEDeployTVOS InThis = null)
 		{
 			// @todo tvos: THIS!
 
@@ -280,12 +286,35 @@ namespace UnrealBuildTool
             Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
 
-			// write the file out
+			// Create the intermediate directory if needed
 			if (!Directory.Exists(IntermediateDirectory))
 			{
 				Directory.CreateDirectory(IntermediateDirectory);
 			}
-			File.WriteAllText(PListFile, Text.ToString());
+
+			if(InThis != null && InThis.UPL != null)
+			{
+				// Allow UPL to modify the plist here
+				XDocument XDoc;
+				try
+				{
+					XDoc = XDocument.Parse(Text.ToString());
+				}
+				catch (Exception e)
+				{
+					throw new BuildException("plist is invalid {0}\n{1}", e, Text.ToString());
+				}
+
+				XDoc.DocumentType.InternalSubset = "";
+				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
+				string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString();
+				File.WriteAllText(PListFile, result);
+			}
+			else
+			{
+				File.WriteAllText(PListFile, Text.ToString());
+			}
+
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				if (!Directory.Exists(AppDirectory))
@@ -300,7 +329,7 @@ namespace UnrealBuildTool
 
 		public override bool GeneratePList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
-			return GenerateTVOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory);
+			return GenerateTVOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}
 
         protected override void CopyGraphicsResources(bool bSkipDefaultPNGs, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir)

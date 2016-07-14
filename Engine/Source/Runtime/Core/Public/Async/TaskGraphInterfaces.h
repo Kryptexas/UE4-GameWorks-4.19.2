@@ -36,6 +36,7 @@ namespace ENamedThreads
 		StatsThread, 
 #endif
 		RHIThread,
+		AudioThread,
 		GameThread,
 		// The render thread is sometimes the game thread and is sometimes the actual rendering thread
 		ActualRenderingThread = GameThread + 1,

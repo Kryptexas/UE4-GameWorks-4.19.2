@@ -45,7 +45,7 @@ void FAnimationRecorder::SetSampleRateAndLength(float SampleRateHz, float Length
 	if (LengthInSeconds <= 0.f)
 	{
 		// invalid length passed in, default to unbounded
-		SampleRateHz = FAnimationRecordingSettings::DefaultSampleRate;
+		LengthInSeconds = FAnimationRecordingSettings::UnboundedMaximumLength;
 	}
 
 	IntervalTime = 1.0f / SampleRateHz;
@@ -311,6 +311,9 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 
 				FFloatCurve* FloatCurveData = nullptr;
 
+				TArray<float> TimesToRecord;
+				TArray<float> ValuesToRecord;
+
 				for (int32 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
 				{
 					const float TimeToRecord = FrameIndex*IntervalTime;
@@ -325,13 +328,20 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 							FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, FRawCurveTracks::FloatType));
 						}
 					}
-					else if (FloatCurveData)
+
+					if (FloatCurveData)
 					{
-						FloatCurveData->FloatCurve.AddKey(TimeToRecord, CurCurve.Value);
+						TimesToRecord.Add(TimeToRecord);
+						ValuesToRecord.Add(CurCurve.Value);
 					}
 				}
-			}
-	
+
+				// Fill all the curve data at once
+				if (FloatCurveData)
+				{
+					FloatCurveData->FloatCurve.SetKeys(TimesToRecord, ValuesToRecord);
+				}
+			}	
 		}
 
 		//AnimationObject->RawCurveData.RemoveRedundantKeys();
@@ -480,7 +490,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 			FBlendedHeapCurve BlendedCurve;
 			if (AnimCurves.Elements.Num() > 0 && PreviousAnimCurves.Elements.Num() == AnimCurves.Elements.Num())
 			{
-				BlendedCurve.Blend(PreviousAnimCurves, AnimCurves, BlendAlpha);
+				BlendedCurve.Lerp(PreviousAnimCurves, AnimCurves, BlendAlpha);
 			}
 			else
 			{

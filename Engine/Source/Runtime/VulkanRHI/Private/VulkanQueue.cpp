@@ -24,8 +24,11 @@ FVulkanQueue::FVulkanQueue(FVulkanDevice* InDevice, uint32 InFamilyIndex, uint32
 	, FamilyIndex(InFamilyIndex)
 	, QueueIndex(InQueueIndex)
 	, Device(InDevice)
+	, LastSubmittedCmdBuffer(nullptr)
+	, LastSubmittedCmdBufferFenceCounter(0)
+	, SubmitCounter(0)
 {
-	vkGetDeviceQueue(Device->GetInstanceHandle(), FamilyIndex, InQueueIndex, &Queue);
+	VulkanRHI::vkGetDeviceQueue(Device->GetInstanceHandle(), FamilyIndex, InQueueIndex, &Queue);
 }
 
 FVulkanQueue::~FVulkanQueue()
@@ -62,15 +65,24 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 		SubmitInfo.pWaitSemaphores = &Semaphores[1];
 		SubmitInfo.pWaitDstStageMask = &WaitStageFlags;
 	}
-	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** VkQueueSubmit CmdBuffer %p Fence %p\n"), (void*)CmdBuffer->GetHandle(), (void*)Fence->GetHandle());
-	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
+	VERIFYVULKANRESULT(VulkanRHI::vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 
 	if (GWaitForIdleOnSubmit != 0)
 	{
-		VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
+		VERIFYVULKANRESULT(VulkanRHI::vkQueueWaitIdle(Queue));
 	}
 
 	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
 
+	UpdateLastSubmittedCommandBuffer(CmdBuffer);
+
 	CmdBuffer->GetOwner()->RefreshFenceStatus();
+}
+
+void FVulkanQueue::UpdateLastSubmittedCommandBuffer(FVulkanCmdBuffer* CmdBuffer)
+{
+	FScopeLock ScopeLock(&CS);
+	LastSubmittedCmdBuffer = CmdBuffer;
+	LastSubmittedCmdBufferFenceCounter = CmdBuffer->GetFenceSignaledCounter();
+	++SubmitCounter;
 }

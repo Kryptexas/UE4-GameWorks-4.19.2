@@ -21,9 +21,15 @@ namespace AutomationTool.Tasks
 		[TaskParameter]
 		public string AppName;
 
-        /// <summary>
-        /// Unique build version of the app.
-        /// </summary>
+		/// <summary>
+		/// The application id
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public int AppID = 1;
+
+		/// <summary>
+		/// Unique build version of the app.
+		/// </summary>
 		[TaskParameter]
         public string BuildVersion;
 
@@ -34,7 +40,7 @@ namespace AutomationTool.Tasks
         public MCPPlatform Platform;
 
 		/// <summary>
-		/// The label to apply to this build.
+		/// The label(s) to apply to this build.
 		/// </summary>
 		[TaskParameter]
 		public string Label;
@@ -75,9 +81,12 @@ namespace AutomationTool.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			BuildPatchToolStagingInfo StagingInfo = new BuildPatchToolStagingInfo(Job.OwnerCommand, Parameters.AppName, 1, Parameters.BuildVersion, Parameters.Platform, null, null);
-			string LabelWithPlatform = BuildInfoPublisherBase.Get().GetLabelWithPlatform(Parameters.Label, Parameters.Platform);
-			BuildInfoPublisherBase.Get().LabelBuild(StagingInfo, LabelWithPlatform, Parameters.McpConfig);
+			BuildPatchToolStagingInfo StagingInfo = new BuildPatchToolStagingInfo(Job.OwnerCommand, Parameters.AppName, Parameters.AppID, Parameters.BuildVersion, Parameters.Platform, null, null);
+			foreach (string Label in SplitDelimitedList(Parameters.Label))
+			{
+				string LabelWithPlatform = BuildInfoPublisherBase.Get().GetLabelWithPlatform(Label, Parameters.Platform);
+				BuildInfoPublisherBase.Get().LabelBuild(StagingInfo, LabelWithPlatform, Parameters.McpConfig);
+			}
 			return true;
 		}
 

@@ -92,6 +92,9 @@ void FMovieScene3DTransformKeyStruct::PropagateChanges(const FPropertyChangedEve
 
 UMovieScene3DTransformSection::UMovieScene3DTransformSection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if WITH_EDITORONLY_DATA
+	, Show3DTrajectory(EShow3DTrajectory::EST_OnlyWhenSelected)
+#endif
 { }
 
 

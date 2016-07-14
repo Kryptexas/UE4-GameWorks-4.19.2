@@ -54,29 +54,6 @@ enum ECustomSortAlternateIndexMode
 };
 
 
-// Custom serialization version for RecomputeTangent
-struct FSkeletalMeshCustomVersion
-{
-	enum Type
-	{
-		// Before any version changes were made
-		BeforeCustomVersionWasAdded = 0,
-		// Remove Chunks array in FStaticLODModel and combine with Sections array
-		CombineSectionWithChunk = 1,
-		// Remove FRigidSkinVertex and combine with FSoftSkinVertex array
-		CombineSoftAndRigidVerts = 2,
-		// -----<new versions can be added above this line>-------------------------------------------------
-		VersionPlusOne,
-		LatestVersion = VersionPlusOne - 1
-	};
-
-	// The GUID for this custom version number
-	const static FGuid GUID;
-
-private:
-	FSkeletalMeshCustomVersion() {}
-};
-
 class USkeletalMesh;
 
 

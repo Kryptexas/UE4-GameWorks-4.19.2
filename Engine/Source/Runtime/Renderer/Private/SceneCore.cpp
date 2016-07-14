@@ -199,17 +199,19 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	if (bIsDynamic)
 	{
 		// Add the interaction to the light's interaction list.
-		PrevPrimitiveLink = &LightSceneInfo->DynamicPrimitiveList;
+		PrevPrimitiveLink = PrimitiveSceneInfo->Proxy->IsMeshShapeOftenMoving() ? &LightSceneInfo->DynamicInteractionOftenMovingPrimitiveList : &LightSceneInfo->DynamicInteractionStaticPrimitiveList;
 
 		// ES2 dynamic point lights
 		if (PrimitiveSceneInfo->Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4 && LightSceneInfo->Proxy->GetLightType() == LightType_Point && LightSceneInfo->Proxy->IsMovable())
 		{
 			bES2DynamicPointLight = true;
 			PrimitiveSceneInfo->NumES2DynamicPointLights++;
-			// The forward renderer renders dynamic point lights as part of the base pass using the dynamic path only.
+			// The mobile renderer hanldes dynamic point lights as part of the base pass using the dynamic path only.
 			PrimitiveSceneInfo->Proxy->bDisableStaticPath = true;
 		}
 	}
+
+	FlushCachedShadowMapData();
 
 	NextPrimitive = *PrevPrimitiveLink;
 	if(*PrevPrimitiveLink)
@@ -218,7 +220,7 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	}
 	*PrevPrimitiveLink = this;
 
-	// Add the interaction to the primitive's interaction list.
+	// Add the interaction to the primitives' interaction list.
 	PrevLightLink = &PrimitiveSceneInfo->LightList;
 	NextLight = *PrevLightLink;
 	if(*PrevLightLink)
@@ -244,6 +246,8 @@ FLightPrimitiveInteraction::~FLightPrimitiveInteraction()
 	}
 #endif
 
+	FlushCachedShadowMapData();
+
 	// Track ES2 dynamic point light count
 	if (bES2DynamicPointLight)
 	{
@@ -267,6 +271,19 @@ FLightPrimitiveInteraction::~FLightPrimitiveInteraction()
 		NextLight->PrevLightLink = PrevLightLink;
 	}
 	*PrevLightLink = NextLight;
+}
+
+void FLightPrimitiveInteraction::FlushCachedShadowMapData()
+{
+	if (bCastShadow && !PrimitiveSceneInfo->Proxy->IsMeshShapeOftenMoving())
+	{
+		FCachedShadowMapData* CachedShadowMapData = PrimitiveSceneInfo->Scene->CachedShadowMaps.Find(LightSceneInfo->Id);
+
+		if (CachedShadowMapData)
+		{
+			CachedShadowMapData->ShadowMap.Release();
+		}
+	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -311,7 +328,7 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 		return;
 	}
 
-	if (Scene->ShouldUseDeferredRenderer())
+	if (Scene->GetShadingPath() == EShadingPath::Deferred)
 	{
 		if (bUseAsOccluder)
 		{
@@ -324,13 +341,8 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 			EDepthDrawingMode EarlyZPassMode = (EDepthDrawingMode)EarlyZPass;
 			bool bEarlyZPassMovable = GEarlyZPassMovable != 0;
 
-			static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
-			bool bDBufferAllowed = CDBufferVar ? CDBufferVar->GetInt() != 0 : false;
-
-			static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
-			bool bStencilLODDither = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
-
-			if (bDBufferAllowed || bStencilLODDither)
+			extern bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel);
+			if (ShouldForceFullDepthPass(Scene->GetFeatureLevel()))
 			{
 				// DBuffer decals force a full prepass
 				EarlyZPassMode = DDM_AllOccluders;
@@ -354,7 +366,7 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 			FVelocityDrawingPolicyFactory::AddStaticMesh(Scene, this);
 		}
 	}
-	else
+	else if (Scene->GetShadingPath() == EShadingPath::Mobile)
 	{
 		if (bUseForMaterial)
 		{

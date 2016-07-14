@@ -141,8 +141,7 @@ TSharedRef< SWidget > SBoneMappingListRow::GenerateWidgetForColumn( const FName&
 
 				+SHorizontalBox::Slot()
 				[
-					SNew(SBoneSelectionWidget)
-					.Skeleton(Item->Skeleton)
+					SNew(SBoneSelectionWidget, Item->Skeleton)
 					.Tooltip(FText::Format(LOCTEXT("BoneSelectinWidget", "Select Bone for node {0}"), FText::FromString(Item->GetDisplayName())))
 					.OnBoneSelectionChanged(this, &SBoneMappingListRow::OnBoneSelectionChanged)
 					.OnGetSelectedBone(this, &SBoneMappingListRow::GetSelectedBone)

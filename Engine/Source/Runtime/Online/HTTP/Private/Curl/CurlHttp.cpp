@@ -9,6 +9,8 @@
 
 // FCurlHttpRequest
 
+int32 FCurlHttpRequest::NumberOfInfoMessagesToCache = 10;
+
 FCurlHttpRequest::FCurlHttpRequest()
 	:	EasyHandle(NULL)
 	,	HeaderList(NULL)
@@ -19,9 +21,10 @@ FCurlHttpRequest::FCurlHttpRequest()
 	,	CompletionStatus(EHttpRequestStatus::NotStarted)
 	,	ElapsedTime(0.0f)
 	,	TimeSinceLastResponse(0.0f)
-	,	BytesSent(0)
+	,   BytesSent(0)
 	,	LastReportedBytesRead(0)
 	,	LastReportedBytesSent(0)
+	,   LeastRecentlyCachedInfoMessageIndex(0)
 {
 	EasyHandle = curl_easy_init();
 
@@ -70,6 +73,8 @@ FCurlHttpRequest::FCurlHttpRequest()
 	{
 		curl_easy_setopt(EasyHandle, CURLOPT_CAINFO, FCurlHttpManager::CurlRequestOptions.CertBundlePath);
 	}
+
+		InfoMessageCache.AddDefaulted(NumberOfInfoMessagesToCache);
 }
 
 FCurlHttpRequest::~FCurlHttpRequest()
@@ -398,6 +403,11 @@ size_t FCurlHttpRequest::DebugCallback(CURL * Handle, curl_infotype DebugInfoTyp
 				DebugText.ReplaceInline(TEXT("\n"), TEXT(""), ESearchCase::CaseSensitive);
 				DebugText.ReplaceInline(TEXT("\r"), TEXT(""), ESearchCase::CaseSensitive);
 				UE_LOG(LogHttp, VeryVerbose, TEXT("%p: '%s'"), this, *DebugText);
+				if (InfoMessageCache.Num() > 0)
+				{
+					InfoMessageCache[LeastRecentlyCachedInfoMessageIndex] = DebugText;
+					LeastRecentlyCachedInfoMessageIndex = (LeastRecentlyCachedInfoMessageIndex + 1) % InfoMessageCache.Num();
+				}
 			}
 			break;
 
@@ -645,7 +655,7 @@ bool FCurlHttpRequest::StartThreadedRequest()
 	// reset timeout
 	ElapsedTime = 0.0f;
 	TimeSinceLastResponse = 0.0f;
-
+	
 	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has started threaded processing"), this, EasyHandle);
 
 	return true;
@@ -704,7 +714,7 @@ void FCurlHttpRequest::Tick(float DeltaSeconds)
 }
 
 void FCurlHttpRequest::CheckProgressDelegate()
-{
+	{
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_CheckProgressDelegate);
 	int32 CurrentBytesRead = Response.IsValid() ? Response->TotalBytesRead.GetValue() : 0;
 	int32 CurrentBytesSent = BytesSent.GetValue();
@@ -817,11 +827,19 @@ void FCurlHttpRequest::FinishedRequest()
 	{
 		if (CurlAddToMultiResult != CURLM_OK)
 		{
-			UE_LOG(LogHttp, Verbose, TEXT("%p: request failed, libcurl multi error: %d (%s)"), this, (int32)CurlAddToMultiResult, ANSI_TO_TCHAR(curl_multi_strerror(CurlAddToMultiResult)));
+			UE_LOG(LogHttp, Warning, TEXT("%p: request failed, libcurl multi error: %d (%s)"), this, (int32)CurlAddToMultiResult, ANSI_TO_TCHAR(curl_multi_strerror(CurlAddToMultiResult)));
 		}
 		else
 		{
-			UE_LOG(LogHttp, Verbose, TEXT("%p: request failed, libcurl error: %d (%s)"), this, (int32)CurlCompletionResult, ANSI_TO_TCHAR(curl_easy_strerror(CurlCompletionResult)));
+		UE_LOG(LogHttp, Warning, TEXT("%p: request failed, libcurl error: %d (%s)"), this, (int32)CurlCompletionResult, ANSI_TO_TCHAR(curl_easy_strerror(CurlCompletionResult)));
+		}
+
+		for (int32 i = 0; i < InfoMessageCache.Num(); ++i)
+		{
+			if (InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % InfoMessageCache.Num()].Len() > 0)
+			{
+				UE_LOG(LogHttp, Warning, TEXT("%p: libcurl info message cache %d (%s)"), this, i, *(InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % NumberOfInfoMessagesToCache]));
+			}
 		}
 
 		// Mark last request attempt as completed but failed
@@ -844,7 +862,7 @@ void FCurlHttpRequest::FinishedRequest()
 
 		{
 			FSimpleScopeSecondsCounter TickTimer(DelegateTime);
-			OnProcessRequestComplete().ExecuteIfBound(SharedThis(this), NULL, false);
+		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),NULL,false);
 		}
 
 		if (DelegateTime > 0.01)

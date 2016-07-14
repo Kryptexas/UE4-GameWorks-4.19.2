@@ -129,6 +129,9 @@ public:
 	/** Add an actor for this trace to ignore */
 	void AddIgnoredActor(const AActor* InIgnoreActor);
 
+	/** Add an actor by ID for this trace to ignore */
+	void AddIgnoredActor(const uint32 InIgnoreActorID);
+
 	/** Add a collection of actors for this trace to ignore */
 	void AddIgnoredActors(const TArray<AActor*>& InIgnoreActors);
 

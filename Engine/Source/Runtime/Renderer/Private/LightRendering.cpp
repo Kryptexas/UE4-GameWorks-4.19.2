@@ -315,6 +315,8 @@ void FSceneRenderer::GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy
 #endif
 }
 
+extern int32 GbEnableAsyncComputeTranslucencyLightingVolumeClear;
+
 uint32 GetShadowQuality();
 
 /** Renders the scene's lighting. */
@@ -333,7 +335,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 	TArray<FSortedLightSceneInfo, SceneRenderingAllocator> SortedLights;
 	SortedLights.Empty(Scene->Lights.Num());
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 	
 	// Build a list of visible lights.
 	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
@@ -416,6 +418,12 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 		}
 		
+		if (GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute)
+		{
+			//Gfx pipe must wait for the async compute clear of the translucency volume clear.
+			RHICmdList.WaitComputeFence(TranslucencyLightingVolumeClearEndFence);
+		}
+
 		if(ViewFamily.EngineShowFlags.DirectLighting)
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, NonShadowedLights);
@@ -511,7 +519,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					if ( LightSceneInfo.Proxy->HasReflectiveShadowMap() )
 					{
 						INC_DWORD_STAT(STAT_NumReflectiveShadowMapLights);
-						RenderReflectiveShadowMaps( RHICmdList, &LightSceneInfo );
+						InjectReflectiveShadowMaps(RHICmdList, &LightSceneInfo);
 						bRenderedRSM = true;
 					}
 				}
@@ -596,10 +604,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					bool bClearToWhite = true;
 					SceneContext.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
 
-					bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
-					// Render non-modulated projected shadows to the attenuation buffer.
-					RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
-				
+					RenderShadowProjections(RHICmdList, &LightSceneInfo, bInjectedTranslucentVolume);
+
 					bUsedLightAttenuation = true;
 				}
 

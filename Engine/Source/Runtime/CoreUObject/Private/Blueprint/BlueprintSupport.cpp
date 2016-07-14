@@ -1826,9 +1826,21 @@ bool FObjectInitializer::InitNonNativeProperty(UProperty* Property, UObject* Dat
 FObjectInitializer* FDeferredObjInitializerTracker::Add(const FObjectInitializer& DeferringInitializer)
 {
 	UObject* InitingObj = DeferringInitializer.GetObj();
-	DEFERRED_DEPENDENCY_CHECK((InitingObj != nullptr) && InitingObj->HasAnyFlags(RF_ClassDefaultObject));
+	DEFERRED_DEPENDENCY_CHECK(InitingObj != nullptr);
+	const bool bIsSubObjTemplate = InitingObj && InitingObj->HasAnyFlags(RF_InheritableComponentTemplate);
 
-	UClass* LoadClass = (InitingObj != nullptr) ? InitingObj->GetClass() : nullptr;
+	UClass* LoadClass = nullptr;
+	if (bIsSubObjTemplate)
+	{
+		LoadClass = Cast<UClass>(InitingObj->GetOuter());
+	}
+	else if (InitingObj != nullptr)
+	{
+		DEFERRED_DEPENDENCY_CHECK(InitingObj->HasAnyFlags(RF_ClassDefaultObject));
+		LoadClass = InitingObj->GetClass();
+	}
+	
+	FObjectInitializer* DeferredCopy = nullptr;
 	if (LoadClass != nullptr)
 	{
 		FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
@@ -1840,18 +1852,35 @@ FObjectInitializer* FDeferredObjInitializerTracker::Add(const FObjectInitializer
 		UObject* SuperCDO = SuperClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
 		DEFERRED_DEPENDENCY_CHECK( SuperCDO && (SuperCDO->HasAnyFlags(RF_NeedLoad) ||
 			(SuperClass->GetLinker() && SuperClass->GetLinker()->IsBlueprintFinalizationPending()) || IsCdoDeferred(SuperClass)) );
+
+		FLinkerLoad* ClassLinker = LoadClass->GetLinker();
+		DEFERRED_DEPENDENCY_CHECK((bIsSubObjTemplate && ClassLinker->IsBlueprintFinalizationPending()) || 
+			(ClassLinker->LoadFlags & LOAD_DeferDependencyLoads) != 0);
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 		
-		auto& InitializersCache = ThreadInst.DeferredInitializers;
-		DEFERRED_DEPENDENCY_CHECK(InitializersCache.Find(LoadClass) == nullptr); // did we try to init the CDO twice?
-		DEFERRED_DEPENDENCY_CHECK(LoadClass->GetLinker()->LoadFlags & LOAD_DeferDependencyLoads);
+		if (bIsSubObjTemplate)
+		{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			TArray<FObjectInitializer*> DeferredSubObjInitializers;
+			ThreadInst.DeferredSubObjInitializers.MultiFindPointer(LoadClass, DeferredSubObjInitializers);
+			// check to make sure that we haven't already added this one for deferral
+			for (FObjectInitializer* SubObjInitializer : DeferredSubObjInitializers)
+			{
+				DEFERRED_DEPENDENCY_CHECK(SubObjInitializer->GetObj() != DeferringInitializer.GetObj());
+			}
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			DeferredCopy = &ThreadInst.DeferredSubObjInitializers.Add(LoadClass, DeferringInitializer);
+		}
+		else
+		{
+			auto& InitializersCache = ThreadInst.DeferredInitializers;
+			DEFERRED_DEPENDENCY_CHECK(InitializersCache.Find(LoadClass) == nullptr); // did we try to init the CDO twice?
 
-		// NOTE: we copy the FObjectInitializer, because it is most likely being destroyed
-		FObjectInitializer& DeferredCopy = InitializersCache.Add(LoadClass, DeferringInitializer);
-
-		return &DeferredCopy;
+			// NOTE: we copy the FObjectInitializer, because it is most likely being destroyed
+			DeferredCopy = &InitializersCache.Add(LoadClass, DeferringInitializer);
+		}
 	}
-	return nullptr;
+	return DeferredCopy;
 }
 
 FObjectInitializer* FDeferredObjInitializerTracker::Find(UClass* LoadClass)
@@ -1867,29 +1896,67 @@ bool FDeferredObjInitializerTracker::IsCdoDeferred(UClass* LoadClass)
 
 bool FDeferredObjInitializerTracker::DeferSubObjectPreload(UObject* SubObject)
 {
-	DEFERRED_DEPENDENCY_CHECK(SubObject->HasAnyFlags(RF_DefaultSubObject));
+	bool bDeferralNeeded = false;
+	// if this is an "InheritableComponentTemplate" we expect it's outer to be
+	// the class it belongs to, and know that this overrides a inherited 
+	// component (belonging to the owner's super)
+	const bool bIsComponentOverride = SubObject->HasAnyFlags(RF_InheritableComponentTemplate);
 
-	UObject* CdoOuter = SubObject->GetOuter();
-	UClass* OuterClass = CdoOuter->GetClass();
-
-	FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
-	if (IsCdoDeferred(OuterClass) && (OuterClass != ThreadInst.ResolvingClass))
+	UClass* OwningClass = nullptr;
+	if (bIsComponentOverride)
 	{
-		DEFERRED_DEPENDENCY_CHECK(CdoOuter->HasAnyFlags(RF_ClassDefaultObject));
-
-		UObject* SubObjTemplate = SubObject->GetArchetype();
-		// check that this is an inherited sub-object (that it is defined on the 
-		// parent class)... we only need to defer Preload() for inherited 
-		// components because they're what gets filled out in the CDO's InitSubobjectProperties()
-		if (SubObjTemplate && (SubObjTemplate->GetOuter() != CdoOuter))
-		{
-			
-			ThreadInst.DeferredSubObjects.AddUnique(OuterClass, SubObject);
-
-			return true;
-		}
+		OwningClass = Cast<UClass>(SubObject->GetOuter());
+		DEFERRED_DEPENDENCY_CHECK(OwningClass != nullptr);
 	}
-	return false;
+	else
+	{
+		DEFERRED_DEPENDENCY_CHECK(SubObject->HasAnyFlags(RF_DefaultSubObject));
+
+		UObject* SubObjOuter = SubObject->GetOuter();
+		OwningClass = SubObjOuter->GetClass();
+		// NOTE: the outer of a DSO may not be a CDO like we want, it could 
+		//       be something like a component template; right now we ignore 
+		//       those cases (IsCdoDeferred() below will reject this), but if 
+		//       this case proves to be a problem, then we may need to look up 
+		//       the outer chain, or see if the outer sub-obj is deferred itself
+	}
+
+	FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();	
+	if (IsCdoDeferred(OwningClass) && (OwningClass != ThreadInst.ResolvingClass))
+	{
+		// no need to check the archetype, we know that this is overriding a
+		// super component - we need to defer Preload()
+		if (bIsComponentOverride)
+		{
+			ThreadInst.DeferredSubObjects.AddUnique(OwningClass, SubObject);
+			bDeferralNeeded = true;
+		}
+		else
+		{
+			DEFERRED_DEPENDENCY_CHECK(SubObject->GetOuter()->HasAnyFlags(RF_ClassDefaultObject));
+
+			UObject* SubObjTemplate = SubObject->GetArchetype();
+			// check that this is an inherited sub-object (that it is defined on the 
+			// parent class)... we only need to defer Preload() for inherited 
+			// components because they're what gets filled out in the CDO's InitSubobjectProperties()
+			if (SubObjTemplate && (SubObjTemplate->GetOuter() != SubObject->GetOuter()))
+			{
+				ThreadInst.DeferredSubObjects.AddUnique(OwningClass, SubObject);
+				bDeferralNeeded = true;
+			}
+		}		
+	}
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	TArray<FObjectInitializer*> DeferredSubObjInitializers;
+	ThreadInst.DeferredSubObjInitializers.MultiFindPointer(OwningClass, DeferredSubObjInitializers);
+	// check to make sure that we haven't already added this one for deferral
+	for (FObjectInitializer* SubObjInitializer : DeferredSubObjInitializers)
+	{
+		DEFERRED_DEPENDENCY_CHECK(bDeferralNeeded || SubObjInitializer->GetObj() != SubObject);
+	}
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	return bDeferralNeeded;
 }
 
 void FDeferredObjInitializerTracker::Remove(UClass* LoadClass)
@@ -1898,6 +1965,7 @@ void FDeferredObjInitializerTracker::Remove(UClass* LoadClass)
 	ThreadInst.DeferredInitializers.Remove(LoadClass);
 	ThreadInst.DeferredSubObjects.Remove(LoadClass);
 	ThreadInst.SuperClassMap.RemoveSingle(LoadClass->GetSuperClass(), LoadClass);
+	ThreadInst.DeferredSubObjInitializers.Remove(LoadClass);
 }
 
 bool FDeferredObjInitializerTracker::ResolveDeferredInitialization(UClass* LoadClass)
@@ -1917,6 +1985,12 @@ bool FDeferredObjInitializerTracker::ResolveDeferredInitialization(UClass* LoadC
 
 		return true;
 	}
+	else
+	{
+		// make sure we're not missing sub-obj initializers that would have been 
+		// ran in the above if case
+		DEFERRED_DEPENDENCY_CHECK(FDeferredObjInitializerTracker::Get().DeferredSubObjInitializers.Find(LoadClass) == nullptr);
+	}
 	return false;
 }
 
@@ -1926,11 +2000,20 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubObjects(UObject* CDO)
 	UClass* LoadClass = CDO->GetClass();
 
 	FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
-	TArray<UObject*> DeferredSubObjects;
-	ThreadInst.DeferredSubObjects.MultiFind(LoadClass, DeferredSubObjects);
-
 	// guard to keep sub-object preloads from ending up back in DeferSubObjectPreload()
 	TGuardValue<UClass*> ResolvingGuard(ThreadInst.ResolvingClass, LoadClass);
+	
+	TArray<FObjectInitializer*> DeferredSubObjInitializers;
+	ThreadInst.DeferredSubObjInitializers.MultiFindPointer(LoadClass, DeferredSubObjInitializers);
+
+	for (FObjectInitializer* DeferredInitializer : DeferredSubObjInitializers)
+	{
+		FScriptIntegrationObjectHelper::PostConstructInitObject(*DeferredInitializer);
+	}
+	ThreadInst.DeferredSubObjInitializers.Remove(LoadClass);
+	
+	TArray<UObject*> DeferredSubObjects;
+	ThreadInst.DeferredSubObjects.MultiFind(LoadClass, DeferredSubObjects);
 
 	FLinkerLoad* ClassLinker = LoadClass->GetLinker();
 	DEFERRED_DEPENDENCY_CHECK(ClassLinker != nullptr);
@@ -1943,24 +2026,9 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubObjects(UObject* CDO)
 		// skipped on account of the deferred CDO initialization
 		for (UObject* SubObj : DeferredSubObjects)
 		{
-			// no longer need to handle this case, because we're no longer 
-			// attempting to recreate the CDO object in 
-			// FLinkerLoad::ResolveDeferredExports() (when the super class has
-			// been regenerated)
-// 			if (SubObj->GetOuter() != CDO)
-// 			{
-// 				// we may have had to recreate the CDO (because its super has had 
-// 				// its layout altered through regeneration); see 
-// 				// FLinkerLoad::ResolveDeferredExports() for more context
-// 				//
-// 				// @TODO: Are we sure that DeferredSubObjects would have all the
-// 				//        sub-objects that we need to over?
-// 				// 
-// 				// @TODO: Are we sure these are the right rename clags to use?
-// 				const ERenameFlags RenameFlags = (REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional | REN_DoNotDirty);
-// 				SubObj->Rename(nullptr, CDO, RenameFlags);
-// 			}
-			DEFERRED_DEPENDENCY_CHECK(SubObj->GetOuter() == CDO);
+			DEFERRED_DEPENDENCY_CHECK( (SubObj->GetOuter() == CDO && SubObj->HasAnyFlags(RF_DefaultSubObject)) || 
+				(SubObj->GetOuter() == LoadClass && SubObj->HasAnyFlags(RF_InheritableComponentTemplate)) );
+			
 			ClassLinker->Preload(SubObj);
 		}
 	}

@@ -6,6 +6,7 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
 #include "SceneTypes.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Engine/EngineTypes.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "PrimitiveComponent.generated.h"
@@ -1177,6 +1178,22 @@ public:
 	 */
 	void GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
+	/**
+	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	*
+	* @param bCheckTexCoordScales - If true, section data must contains texcoord scales to be valid.
+	*
+	* @return - true if some sections have missing data. If this component is not expected to have data, this should return false.
+	*/
+	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const { return false; }
+
+	/**
+	* Update section data for texture streaming. Note that this data is expected to be transient.
+	* Only useful within the texture streaming build, or streaming accuracy viewmodes.
+	*
+	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
+	*/
+	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) {}
 
 	/**
 	 * Determines the DPG the primitive's primary elements are drawn in.

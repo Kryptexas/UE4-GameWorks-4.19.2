@@ -34,8 +34,8 @@ FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 	{
 		if (UEdGraphNode* Node = InPin->GetOwningNodeUnchecked())
 		{
-			PinName = InPin->PinName;
 			NodeGuid = Node->NodeGuid;
+			PinId = InPin->PinId;
 		}
 	}
 }
@@ -50,7 +50,7 @@ TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPan
 		{
 			UEdGraphNode* Node = GraphNode->GetNodeObj();
 
-			if (UEdGraphPin* Pin = Node->FindPin(PinName))
+			if (UEdGraphPin* Pin = Node->FindPinById(PinId))
 			{
 				return GraphNode->FindWidgetForPin(Pin);
 			}
@@ -1599,14 +1599,15 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 		// the widget immediately it won't be able to create its pins). There are lots of other examples, 
 		// and I can't be sure that I've found them all.... 
 		
-		// Minor note, the ugly little lambdas are just to deal with the  time values and return values 
+		// Minor note, the ugly little lambdas are just to deal with the time values and return values 
 		// that the timer system requires (and we don't leverage):
 		if (bWasRemoveAction)
 		{
 			const auto RemoveNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, TWeakObjectPtr<UEdGraphNode> NodePtr) -> EActiveTimerReturnType
 			{
-				if (UEdGraphNode* Node = NodePtr.Get())
+				if (NodePtr.IsValid())
 				{
+					UEdGraphNode* Node = NodePtr.Get();
 					Parent->RemoveNode(Node);
 				}
 				return EActiveTimerReturnType::Stop;
@@ -1622,8 +1623,9 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 		{
 			const auto AddNodeDelegateWrapper = [](double, float, SGraphPanel* Parent, TWeakObjectPtr<UEdGraphNode> NodePtr, bool bForceUserAdded) -> EActiveTimerReturnType
 			{
-				if (UEdGraphNode* Node = NodePtr.Get())
+				if (NodePtr.IsValid())
 				{
+					UEdGraphNode* Node = NodePtr.Get();
 					Parent->RemoveNode(Node);
 					Parent->AddNode(Node, bForceUserAdded ? WasUserAdded : NotUserAdded);
 				}
@@ -1643,8 +1645,9 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 				Parent->DeferredSelectionTargetObjects.Empty();
 				for (TWeakObjectPtr<UEdGraphNode>& NodePtr : NodePtrs)
 				{
-					if (UEdGraphNode* Node = NodePtr.Get())
+					if (NodePtr.IsValid())
 					{
+						UEdGraphNode* Node = NodePtr.Get();
 						Parent->DeferredSelectionTargetObjects.Add(Node);
 					}
 				}

@@ -68,18 +68,6 @@ public:
 	UNetDriver * Driver;
 };
 
-bool IsCustomDeltaProperty( UProperty * Property )
-{
-	UStructProperty * StructProperty = Cast< UStructProperty >( Property );
-
-	if ( StructProperty != NULL && StructProperty->Struct->StructFlags & STRUCT_NetDeltaSerializeNative )
-	{
-		return true;
-	}
-
-	return false;
-}
-
 bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connection, void* Src, UProperty * Property, uint32 ArrayIndex, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> &NewFullState, TSharedPtr<INetDeltaBaseState> & OldState )
 {
 	check( NewFullState.IsValid() == false ); // NewState is passed in as NULL and instantiated within this function if necessary
@@ -158,6 +146,9 @@ void FObjectReplicator::InitRecentProperties( uint8* Source )
 					TSharedPtr<INetDeltaBaseState> OldState;
 
 					SerializeCustomDeltaProperty( Connection, Source, *It, ArrayIdx, DeltaState, NewState, OldState );
+
+					// Store the initial delta state in case we need it for when we're asked to resend all data since channel was first openeded (bResendAllDataSinceOpen)
+					CDOCustomDeltaState.Add( It->RepIndex + ArrayIdx, NewState );
 				}
 			}
 		}
@@ -481,13 +472,15 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 		}
 	}
 
+	FNetFieldExportGroup* NetFieldExportGroup = OwningChannel->GetNetFieldExportGroupForClassNetCache( ObjectClass );
+
 	FNetBitReader Reader( Bunch.PackageMap );
 
 	// Read fields from stream
 	const FFieldNetCache * FieldCache = nullptr;
 	
 	// Read each property/function blob into Reader (so we've safely jumped over this data in the Bunch/stream at this point)
-	while ( OwningChannel->ReadFieldHeaderAndPayload( Object, ClassCache, Bunch, &FieldCache, Reader ) )
+	while ( OwningChannel->ReadFieldHeaderAndPayload( Object, ClassCache, NetFieldExportGroup, Bunch, &FieldCache, Reader ) )
 	{
 		if ( Bunch.IsError() )
 		{
@@ -823,6 +816,9 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 	ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;
 	ConditionMap[COND_ReplayOnly] = bIsReplay;
 
+	// Make sure net field export group is registered
+	FNetFieldExportGroup* NetFieldExportGroup = OwningChannel->GetOrCreateNetFieldExportGroupForClassNetCache( ObjectClass );
+
 	// Replicate those properties.
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )
 	{
@@ -847,22 +843,35 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 			}
 		}
 
-		const int32 BitsWrittenBeforeThis = Bunch.GetNumBits();
-
 		// If this is a dynamic array, we do the delta here
-		TSharedPtr<INetDeltaBaseState> & OldState = RecentCustomDeltaState.FindOrAdd( RetireIndex );
 		TSharedPtr<INetDeltaBaseState> NewState;
+
+		FNetBitWriter TempBitWriter( OwningChannel->Connection->PackageMap, 0 );
+
+		if ( Connection->bResendAllDataSinceOpen )
+		{
+			// If we are resending data since open, we don't want to affect the current state of channel/replication, so just do the minimum and send the data, and return
+			// In this case, we'll send all of the properties since the CDO, so use the initial CDO delta state
+			TSharedPtr<INetDeltaBaseState>& OldState = CDOCustomDeltaState.FindChecked( RetireIndex );
+
+			if ( SerializeCustomDeltaProperty( OwningChannelConnection, ( void* )Object, It, Index, TempBitWriter, NewState, OldState ) )
+			{
+				// Write property header and payload to the bunch
+				WritePropertyHeaderAndPayload( Object, It, NetFieldExportGroup, Bunch, TempBitWriter );
+			}
+			continue;
+		}
 
 		// Update Retirement records with this new state so we can handle packet drops.
 		// LastNext will be pointer to the last "Next" pointer in the list (so pointer to a pointer)
-		FPropertyRetirement ** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId, Object );
+		FPropertyRetirement** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId, Object );
 
 		check( LastNext != NULL );
 		check( *LastNext == NULL );
 
 		ValidateRetirementHistory( Retire, Object );
 
-		FNetBitWriter TempBitWriter( OwningChannel->Connection->PackageMap, 0 );
+		TSharedPtr<INetDeltaBaseState>& OldState = RecentCustomDeltaState.FindOrAdd( RetireIndex );
 
 		//-----------------------------------------
 		//	Do delta serialization on dynamic properties
@@ -883,7 +892,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 		OldState = NewState; 
 
 		// Write property header and payload to the bunch
-		WritePropertyHeaderAndPayload( Object, It, Bunch, TempBitWriter );
+		WritePropertyHeaderAndPayload( Object, It, NetFieldExportGroup, Bunch, TempBitWriter );
 
 		NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( It, TempBitWriter.GetNumBits(), Connection ) );
 	}
@@ -918,6 +927,20 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	// Replicate all the custom delta properties (fast arrays, etc)
 	ReplicateCustomDeltaProperties( Writer, RepFlags );
+
+	if ( OwningChannelConnection->bResendAllDataSinceOpen )
+	{
+		// If we are resending data since open, we don't want to affect the current state of channel/replication, so just send the data, and return
+		const bool WroteImportantData = Writer.GetNumBits() != 0;
+
+		if ( WroteImportantData )
+		{
+			OwningChannel->WriteContentBlockPayload( Object, Bunch, bHasRepLayout, Writer );
+			return true;
+		}
+
+		return false;
+	}
 
 	// LastUpdateEmpty - this is done before dequeing the multicasted unreliable functions on purpose as they should not prevent
 	// an actor channel from going dormant.
@@ -1328,10 +1351,11 @@ void FObjectReplicator::QueuePropertyRepNotify( UObject* Object, UProperty * Pro
 }
 
 void FObjectReplicator::WritePropertyHeaderAndPayload(
-	UObject*			Object,
-	UProperty*			Property,
-	FNetBitWriter&		Bunch,
-	FNetBitWriter&		Payload ) const
+	UObject*				Object,
+	UProperty*				Property,
+	FNetFieldExportGroup*	NetFieldExportGroup,
+	FNetBitWriter&			Bunch,
+	FNetBitWriter&			Payload ) const
 {
 	// Get class network info cache.
 	const FClassNetCache* ClassCache = Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
@@ -1346,7 +1370,7 @@ void FObjectReplicator::WritePropertyHeaderAndPayload(
 	// Send property name and optional array index.
 	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
 
-	const int32 HeaderBits = OwningChannel->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, Payload );
+	const int32 HeaderBits = OwningChannel->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, NetFieldExportGroup, Payload );
 
 	NETWORK_PROFILER( GNetworkProfiler.TrackWritePropertyHeader( Property, HeaderBits, nullptr ) );
 }

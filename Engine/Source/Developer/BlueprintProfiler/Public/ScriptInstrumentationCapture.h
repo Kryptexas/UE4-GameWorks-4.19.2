@@ -52,6 +52,9 @@ public:
 	/** Returns the system time when this event was generated */
 	double GetTime() const { return Time; }
 
+	/** Overrides the system time for this event */
+	void OverrideTime(const double OverrideTime) { Time = OverrideTime; }
+
 	/** Returns if this event represents a change in active class/blueprint */
 	bool IsNewClass() const { return EventType == EScriptInstrumentation::Class; }
 
@@ -66,6 +69,12 @@ public:
 
 	/** Returns if this event represents a node execution event */
 	bool IsNodeTiming() const {	return EventType == EScriptInstrumentation::NodeEntry || EventType == EScriptInstrumentation::NodeExit;	}
+
+	/** Returns if this event represents a node entry event */
+	bool IsNodeEntry() const { return EventType == EScriptInstrumentation::NodeEntry || EventType == EScriptInstrumentation::NodeDebugSite; }
+
+	/** Returns if this event represents a node exit event */
+	bool IsNodeExit() const { return EventType == EScriptInstrumentation::NodeExit; }
 
 protected:
 	

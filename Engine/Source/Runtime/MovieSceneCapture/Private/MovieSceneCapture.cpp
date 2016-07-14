@@ -8,6 +8,7 @@
 #include "SceneViewExtension.h"
 #include "JsonObjectConverter.h"
 #include "RemoteConfigIni.h"
+#include "SceneViewport.h"
 
 #if WITH_EDITOR
 #include "ImageWrapper.h"
@@ -58,8 +59,8 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 		InheritedCommandLineArguments.Append(Switch);
 		InheritedCommandLineArguments.AppendChar(' ');
 	}
-
-	AdditionalCommandLineArguments += TEXT("-NoLoadingScreen -NOSCREENMESSAGES -ForceRes");
+	
+	AdditionalCommandLineArguments += TEXT("-NOSCREENMESSAGES");
 
 	Handle = FUniqueMovieSceneCaptureHandle();
 
@@ -158,7 +159,7 @@ void UMovieSceneCapture::Initialize(TSharedPtr<FSceneViewport> InSceneViewport, 
 	FormatMappings.Add(TEXT("fps"), FString::Printf(TEXT("%d"), Settings.FrameRate));
 	FormatMappings.Add(TEXT("width"), FString::Printf(TEXT("%d"), CachedMetrics.Width));
 	FormatMappings.Add(TEXT("height"), FString::Printf(TEXT("%d"), CachedMetrics.Height));
-	FormatMappings.Add(TEXT("world"), GWorld->GetName());
+	FormatMappings.Add(TEXT("world"), InSceneViewport->GetClient()->GetWorld()->GetName());
 
 	FrameNumberFormat = FString::Printf(TEXT("%%0%dd"), Settings.ZeroPadFrameNumbers);
 

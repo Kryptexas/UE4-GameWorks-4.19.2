@@ -509,14 +509,10 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	if (!BSS.HasError())
-#endif
-	{
-		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
-		vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
-	}
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
+	NumInstances = FMath::Min(1U, NumInstances);
+	VulkanRHI::vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
 
 	//if (IsImmediate())
 	{
@@ -552,20 +548,16 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 
 	FVulkanBoundShaderState& BSS = PendingState->GetBoundShaderState();
 
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		if(!BSS.HasError())
-	#endif
-	{
-		FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
-		FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();
-		VkCommandBuffer CmdBuffer = Cmd->GetHandle();
-		PendingState->PrepareDraw(this, Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
+	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
+	FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();
+	VkCommandBuffer CmdBuffer = Cmd->GetHandle();
+	PendingState->PrepareDraw(this, Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
 
-		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
+	VulkanRHI::vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
 
-		uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
-		vkCmdDrawIndexed(CmdBuffer, NumIndices, NumInstances, StartIndex, 0, FirstInstance);
-	}
+	uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
+	NumInstances = FMath::Min(1U, NumInstances);
+	VulkanRHI::vkCmdDrawIndexed(CmdBuffer, NumIndices, NumInstances, StartIndex, BaseVertexIndex, FirstInstance);
 
 	//if (IsImmediate())
 	{
@@ -647,14 +639,9 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 
 	PendingState->SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
 	
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		if(!Shader.HasError())
-	#endif
-	{
-		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
-		vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
-	}
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+	VulkanRHI::vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
 
 	//if (IsImmediate())
 	{
@@ -694,17 +681,12 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 
 	PendingState->SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
 
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		if(!Shader.HasError())
-	#endif
-	{
-		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		VkCommandBuffer Cmd = CmdBuffer->GetHandle();
-		PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
-		uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
-		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.GetHandle(), PendingDrawPrimUPIndexAllocInfo.GetBindOffset(), PendingPrimitiveIndexType);
-		vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
-	}
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	VkCommandBuffer Cmd = CmdBuffer->GetHandle();
+	PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+	uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
+	VulkanRHI::vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.GetHandle(), PendingDrawPrimUPIndexAllocInfo.GetBindOffset(), PendingPrimitiveIndexType);
+	VulkanRHI::vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
 
 	//if (IsImmediate())
 	{
@@ -714,15 +696,20 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 
 void FVulkanCommandListContext::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
-	check(Device);
+	if (!(bClearColor || bClearDepth || bClearStencil))
+	{
+		return;
+	}
+
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	PendingState->UpdateRenderPass(CmdBuffer);
+
 	const uint32 NumColorAttachments = PendingState->GetFrameBuffer()->GetNumColorAttachments();
-	FVulkanCommandListContext::RHIClearMRT(bClearColor, NumColorAttachments, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	FVulkanCommandListContext::InternalClearMRT(CmdBuffer, bClearColor, NumColorAttachments, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
 void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
-	check(Device);
-
 	if (!(bClearColor || bClearDepth || bClearStencil))
 	{
 		return;
@@ -730,8 +717,16 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 
 	check(bClearColor ? NumClearColors > 0 : true);
 
-	PendingState->UpdateRenderPass(CommandBufferManager->GetActiveCmdBuffer());
-	
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	PendingState->UpdateRenderPass(CmdBuffer);
+
+	const uint32 NumColorAttachments = PendingState->GetFrameBuffer()->GetNumColorAttachments();
+	check((uint32)NumClearColors <= NumColorAttachments);
+	InternalClearMRT(CmdBuffer, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+}
+
+void FVulkanCommandListContext::InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+{
 #if VULKAN_ALLOW_MIDPASS_CLEAR
 	VkClearRect Rect;
 	FMemory::Memzero(Rect);
@@ -739,33 +734,34 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 	Rect.rect.offset.y = 0;
 	Rect.rect.extent = PendingState->GetRenderPass().GetLayout().GetExtent2D();
 
-	VkClearAttachment Attachement;
-	FMemory::Memzero(Attachement);
+	VkClearAttachment Attachments[MaxSimultaneousRenderTargets + 1];
+	FMemory::Memzero(Attachments);
 
-	if(bClearColor)
+	uint32 NumAttachments = NumClearColors;
+	if (bClearColor)
 	{
 		for (int32 i = 0; i < NumClearColors; ++i)
 		{
-			Attachement.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			Attachement.colorAttachment = i;
-			Attachement.clearValue.color.float32[0] = ClearColorArray[i].R;
-			Attachement.clearValue.color.float32[1] = ClearColorArray[i].G;
-			Attachement.clearValue.color.float32[2] = ClearColorArray[i].B;
-			Attachement.clearValue.color.float32[3] = ClearColorArray[i].A;
-			vkCmdClearAttachments(PendingState->GetCommandBuffer(), 1, &Attachement, 1, &Rect);
+			Attachments[i].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			Attachments[i].colorAttachment = i;
+			Attachments[i].clearValue.color.float32[0] = ClearColorArray[i].R;
+			Attachments[i].clearValue.color.float32[1] = ClearColorArray[i].G;
+			Attachments[i].clearValue.color.float32[2] = ClearColorArray[i].B;
+			Attachments[i].clearValue.color.float32[3] = ClearColorArray[i].A;
 		}
 	}
 
 	if(bClearDepth || bClearStencil)
 	{
-		Attachement.aspectMask = 0;
-		Attachement.aspectMask |= bClearDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
-		Attachement.aspectMask |= bClearStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
-		Attachement.colorAttachment = NumClearColors;	// Depth attachment is always stored after the color attachment
-		Attachement.clearValue.depthStencil.depth = Depth;
-		Attachement.clearValue.depthStencil.stencil = Stencil;
-		vkCmdClearAttachments(PendingState->GetCommandBuffer(), 1, &Attachement, 1, &Rect);
+		Attachments[NumClearColors].aspectMask = bClearDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+		Attachments[NumClearColors].aspectMask |= bClearStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+		Attachments[NumClearColors].colorAttachment = 0;
+		Attachments[NumClearColors].clearValue.depthStencil.depth = Depth;
+		Attachments[NumClearColors].clearValue.depthStencil.stencil = Stencil;
+		++NumAttachments;
 	}
+
+	VulkanRHI::vkCmdClearAttachments(CmdBuffer->GetHandle(), NumAttachments, Attachments, 1, &Rect);
 #endif
 }
 

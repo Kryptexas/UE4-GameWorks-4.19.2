@@ -1223,6 +1223,12 @@ FORCEINLINE bool IsInGameThread()
 	return true;
 }
 
+/** @return True if called from the audio thread, and not merely a thread calling audio functions. */
+extern CORE_API bool IsInAudioThread();
+
+/** Thread used for audio */
+extern CORE_API FRunnableThread* GAudioThread;
+
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
 extern CORE_API bool IsInSlateThread();
 

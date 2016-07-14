@@ -19,7 +19,7 @@
 #include "HAL/ExceptionHandling.h"
 #include "AsyncLoadingPrivate.h"
 
-#define FIND_MEMORY_STOMPS (1 && PLATFORM_WINDOWS && !WITH_EDITORONLY_DATA)
+#define FIND_MEMORY_STOMPS (1 && (PLATFORM_WINDOWS || PLATFORM_LINUX) && !WITH_EDITORONLY_DATA)
 
 //#pragma clang optimize off
 
@@ -1494,7 +1494,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 				(!GetConvertedDynamicPackageNameToTypeName().Contains(Desc.Name) &&
 				!DoesPackageExist))
 			{
-				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code."), *Desc.Name.ToString());
+				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code. NameToLoad: %s"), *Desc.Name.ToString(), *Desc.NameToLoad.ToString());
 				bLoadHasFailed = true;
 				return EAsyncPackageState::TimeOut;
 			}
@@ -2257,15 +2257,48 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 	Result = (DeferredPostLoadIndex == DeferredPostLoadObjects.Num()) ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
 	if (Result == EAsyncPackageState::Complete)
 	{
+		TArray<UObject*> CDODefaultSubobjects;
 		// Clear async loading flags (we still want RF_Async, but EInternalObjectFlags::AsyncLoading can be cleared)
 		for (UObject* Object : DeferredFinalizeObjects)
 		{
-			Object->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+			if (Object)
+			{
+				Object->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+			}
+
+			// CDO need special handling, no matter if it's listed in DeferredFinalizeObjects or created here for DynamicClass
+			UObject* CDOToHandle = nullptr;
+
 			// Dynamic Class doesn't require/use pre-loading (or post-loading). 
 			// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
 			if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Object))
 			{
-				DynamicClass->GetDefaultObject(true);
+				UObject* OldCDO = DynamicClass->GetDefaultObject(false);
+				UObject* NewCDO = DynamicClass->GetDefaultObject(true);
+				const bool bCDOWasJustCreated = (OldCDO != NewCDO);
+				if (bCDOWasJustCreated && (NewCDO != nullptr))
+				{
+					NewCDO->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+					CDOToHandle = NewCDO;
+				}
+			}
+			else
+			{
+				CDOToHandle = ((Object != nullptr) && Object->HasAnyFlags(RF_ClassDefaultObject)) ? Object : nullptr;
+			}
+
+			// Clear AsyncLoading in CDO's subobjects.
+			if(CDOToHandle != nullptr)
+			{
+				CDOToHandle->GetDefaultSubobjects(CDODefaultSubobjects);
+				for (UObject* SubObject : CDODefaultSubobjects)
+				{
+					if (SubObject && SubObject->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+					{
+						SubObject->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
+					}
+				}
+				CDODefaultSubobjects.Reset();
 			}
 		}
 
@@ -2656,11 +2689,7 @@ static uint8* MallocAsyncBuffer(const SIZE_T Size, SIZE_T& OutAllocatedSize)
 	const SIZE_T AllocFullPageSize = AlignedSize + (PageSize - 1) & ~(PageSize - 1U);
 	check(AllocFullPageSize >= Size);
 	OutAllocatedSize = AllocFullPageSize;
-#if PLATFORM_LINUX || PLATFORM_MAC
-	Result = (uint8*)mmap(nullptr, AllocFullPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-#else
 	Result = (uint8*)FPlatformMemory::BinnedAllocFromOS(AllocFullPageSize);
-#endif // PLATFORM_LINUX || PLATFORM_MAC
 #else
 	OutAllocatedSize = Size;
 	Result = (uint8*)FMemory::Malloc(Size);
@@ -2673,11 +2702,7 @@ static void FreeAsyncBuffer(uint8* Buffer, const SIZE_T AllocatedSize)
 	if (Buffer)
 	{
 #if FIND_MEMORY_STOMPS
-#if PLATFORM_LINUX || PLATFORM_MAC
-		munmap(Buffer, AllocatedSize);
-#else
-		FPlatformMemory::BinnedFreeToOS(Buffer);
-#endif // PLATFORM_LINUX || PLATFORM_MAC
+		FPlatformMemory::BinnedFreeToOS(Buffer, AllocatedSize);
 #else
 		FMemory::Free(Buffer);
 #endif // FIND_MEMORY_STOMPS

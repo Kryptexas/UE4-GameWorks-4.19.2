@@ -353,14 +353,15 @@ void ACharacter::OnEndCrouch( float HeightAdjust, float ScaledHeightAdjust )
 {
 	RecalculateBaseEyeHeight();
 
-	if (Mesh)
+	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+	if (Mesh && DefaultChar->Mesh)
 	{
-		Mesh->RelativeLocation.Z = GetDefault<ACharacter>(GetClass())->Mesh->RelativeLocation.Z;
+		Mesh->RelativeLocation.Z = DefaultChar->Mesh->RelativeLocation.Z;
 		BaseTranslationOffset.Z = Mesh->RelativeLocation.Z;
 	}
 	else
 	{
-		BaseTranslationOffset.Z = GetDefault<ACharacter>(GetClass())->BaseTranslationOffset.Z;
+		BaseTranslationOffset.Z = DefaultChar->BaseTranslationOffset.Z;
 	}
 
 	K2_OnEndCrouch(HeightAdjust, ScaledHeightAdjust);
@@ -370,9 +371,10 @@ void ACharacter::OnStartCrouch( float HeightAdjust, float ScaledHeightAdjust )
 {
 	RecalculateBaseEyeHeight();
 
-	if (Mesh)
+	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+	if (Mesh && DefaultChar->Mesh)
 	{
-		Mesh->RelativeLocation.Z = GetDefault<ACharacter>(GetClass())->Mesh->RelativeLocation.Z + HeightAdjust;
+		Mesh->RelativeLocation.Z = DefaultChar->Mesh->RelativeLocation.Z + HeightAdjust;
 		BaseTranslationOffset.Z = Mesh->RelativeLocation.Z;
 	}
 	else

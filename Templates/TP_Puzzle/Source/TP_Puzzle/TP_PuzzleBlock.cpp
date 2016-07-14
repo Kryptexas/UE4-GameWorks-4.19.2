@@ -10,10 +10,12 @@ ATP_PuzzleBlock::ATP_PuzzleBlock()
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
+		ConstructorHelpers::FObjectFinderOptional<UMaterial> BaseMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> BlueMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> OrangeMaterial;
 		FConstructorStatics()
 			: PlaneMesh(TEXT("/Game/Puzzle/Meshes/PuzzleCube.PuzzleCube"))
+			, BaseMaterial(TEXT("/Game/Puzzle/Meshes/BaseMaterial.BaseMaterial"))
 			, BlueMaterial(TEXT("/Game/Puzzle/Meshes/BlueMaterial.BlueMaterial"))
 			, OrangeMaterial(TEXT("/Game/Puzzle/Meshes/OrangeMaterial.OrangeMaterial"))
 		{
@@ -36,13 +38,26 @@ ATP_PuzzleBlock::ATP_PuzzleBlock()
 	BlockMesh->OnInputTouchBegin.AddDynamic(this, &ATP_PuzzleBlock::OnFingerPressedBlock);
 
 	// Save a pointer to the orange material
+	BaseMaterial = ConstructorStatics.BaseMaterial.Get();
+	BlueMaterial = ConstructorStatics.BlueMaterial.Get();
 	OrangeMaterial = ConstructorStatics.OrangeMaterial.Get();
 }
 
 void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked)
 {
+	HandleClicked();
+}
+
+
+void ATP_PuzzleBlock::OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
+{
+	HandleClicked();
+}
+
+void ATP_PuzzleBlock::HandleClicked()
+{
 	// Check we are not already active
-	if(!bIsActive)
+	if (!bIsActive)
 	{
 		bIsActive = true;
 
@@ -50,15 +65,27 @@ void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey Button
 		BlockMesh->SetMaterial(0, OrangeMaterial);
 
 		// Tell the Grid
-		if(OwningGrid != NULL)
+		if (OwningGrid != nullptr)
 		{
 			OwningGrid->AddScore();
 		}
 	}
 }
 
-
-void ATP_PuzzleBlock::OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
+void ATP_PuzzleBlock::Highlight(bool bOn)
 {
-	BlockClicked(TouchedComponent, EKeys::Invalid);
+	// Do not highlight if the block has already been activated.
+	if (bIsActive)
+	{
+		return;
+	}
+
+	if (bOn)
+	{
+		BlockMesh->SetMaterial(0, BaseMaterial);
+	}
+	else
+	{
+		BlockMesh->SetMaterial(0, BlueMaterial);
+	}
 }
