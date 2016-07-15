@@ -1075,7 +1075,7 @@ namespace APIDocTool
                     // Run Doxygen
                     if (!Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, true))
                     {
-                        Console.WriteLine("  Doxygen crashed. Skipping.");
+                        Console.WriteLine("  error: Doxygen crashed. Skipping.");
                         return false;
                     }
                 }
