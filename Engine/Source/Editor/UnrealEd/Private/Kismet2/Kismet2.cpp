@@ -1168,7 +1168,7 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	return bCanCreateBlueprint && bIsValidClass;
 }
 
-UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path, AActor* Actor, const bool bReplaceActor )
+UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path, AActor* Actor, const bool bReplaceActor, bool bKeepMobility /*= false*/)
 {
 	UBlueprint* NewBlueprint = nullptr;
 
@@ -1189,13 +1189,13 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path
 
 	if(Package)
 	{
-		NewBlueprint = CreateBlueprintFromActor(FName(*AssetName), Package, Actor, bReplaceActor);
+		NewBlueprint = CreateBlueprintFromActor(FName(*AssetName), Package, Actor, bReplaceActor, bKeepMobility);
 	}
 
 	return NewBlueprint;
 }
 
-void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, const TArray<UActorComponent*>& Components, bool bHarvesting, USCS_Node* OptionalNewRootNode)
+void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, const TArray<UActorComponent*>& Components, bool bHarvesting, USCS_Node* OptionalNewRootNode, bool bKeepMobility /*= false*/)
 {
 	USimpleConstructionScript* SCS = Blueprint->SimpleConstructionScript;
 
@@ -1212,7 +1212,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 		 * component (leaving the new node unattached). If a copy was already 
 		 * made (found  in NewSceneComponents) then that will be returned instead.
 		 */
-		static USCS_Node* MakeComponentCopy(UActorComponent* ActorComponent, USimpleConstructionScript* TargetSCS, TMap<USceneComponent*, USCS_Node*>& NewSceneComponents)
+		static USCS_Node* MakeComponentCopy(UActorComponent* ActorComponent, USimpleConstructionScript* TargetSCS, TMap<USceneComponent*, USCS_Node*>& NewSceneComponents, bool bInternalKeepMobility)
 		{
 			USceneComponent* AsSceneComponent = Cast<USceneComponent>(ActorComponent);
 			if (AsSceneComponent != nullptr)
@@ -1235,7 +1235,10 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 			if (AsSceneComponent != nullptr)
 			{
 				NewSceneComponents.Add(AsSceneComponent, NewSCSNode);
-				Cast<USceneComponent>(NewSCSNode->ComponentTemplate)->SetMobility(EComponentMobility::Movable);
+				if (!bInternalKeepMobility)
+				{
+					Cast<USceneComponent>(NewSCSNode->ComponentTemplate)->SetMobility(EComponentMobility::Movable);
+				}
 			}
 			return NewSCSNode;
 		}
@@ -1262,7 +1265,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 				continue;
 			}
 
-			USCS_Node* SCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(ActorComponent, SCS, InstanceComponentToNodeMap);
+			USCS_Node* SCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(ActorComponent, SCS, InstanceComponentToNodeMap, bKeepMobility);
 
 			USceneComponent* SceneComponent = Cast<USceneComponent>(ActorComponent);
 			// The easy part is non-scene component or the Root simply add it
@@ -1310,7 +1313,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 						// since you cannot rely on the order of the supplied  
 						// Components array, we might be looking for a parent 
 						// that hasn't been added yet
-						ParentSCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(SceneComponent->GetAttachParent(), SCS, InstanceComponentToNodeMap);
+						ParentSCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(SceneComponent->GetAttachParent(), SCS, InstanceComponentToNodeMap, bKeepMobility);
 					}
 					else
 					{
@@ -1384,7 +1387,7 @@ private:
 	friend class FKismetEditorUtilities;
 };
 
-UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, const bool bReplaceActor )
+UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, const bool bReplaceActor, bool bKeepMobility /*= false*/)
 {
 	UBlueprint* NewBlueprint = nullptr;
 
@@ -1407,7 +1410,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 			// If the source Actor has Instance Components we need to translate these in to SCS Nodes
 			if (Actor->GetInstanceComponents().Num() > 0)
 			{
-				AddComponentsToBlueprint(NewBlueprint, Actor->GetInstanceComponents());
+				AddComponentsToBlueprint(NewBlueprint, Actor->GetInstanceComponents(), false,  (USCS_Node*)nullptr, bKeepMobility);
 			}
 
 			if (NewBlueprint->GeneratedClass != nullptr)

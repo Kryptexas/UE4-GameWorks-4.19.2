@@ -2939,6 +2939,11 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 			Ar << ClothingAssets[Idx];
 		}
 
+		if (Ar.UE4Ver() < VER_UE4_REFERENCE_SKELETON_REFACTOR)
+		{
+			RebuildRefSkeletonNameToIndexMap();
+		}
+
 #if WITH_APEX_CLOTHING
 		if (Ar.IsLoading())
 		{
@@ -3272,49 +3277,7 @@ void USkeletalMesh::PostLoad()
 
 	if( GetLinkerUE4Version() < VER_UE4_REFERENCE_SKELETON_REFACTOR )
 	{
-		TArray<FBoneIndexType> DuplicateBones;
-		// Make sure we have no duplicate bones. Some content got corrupted somehow. :(
-		RefSkeleton.RemoveDuplicateBones(this, DuplicateBones);
-
-		// If we have removed any duplicate bones, we need to fix up any broken LODs as well.
-		// Duplicate bones are given from highest index to lowest. 
-		// so it's safe to decrease indices for children, we're not going to lose the index of the remaining duplicate bones.
-		for(int32 Index=0; Index<DuplicateBones.Num(); Index++)
-		{
-			const FBoneIndexType& DuplicateBoneIndex = DuplicateBones[Index];
-			for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
-			{
-				FStaticLODModel & ThisLODModel = ImportedResource->LODModels[LodIndex];
-				{
-					int32 FoundIndex;
-					if( ThisLODModel.RequiredBones.Find(DuplicateBoneIndex, FoundIndex) )
-					{
-						ThisLODModel.RequiredBones.RemoveAt(FoundIndex, 1);
-						// we need to shift indices of the remaining bones.
-						for(int32 j=FoundIndex; j<ThisLODModel.RequiredBones.Num(); j++)
-						{
-							ThisLODModel.RequiredBones[j] = ThisLODModel.RequiredBones[j] - 1;
-						}
-					}
-				}
-
-				{
-					int32 FoundIndex;
-					if( ThisLODModel.ActiveBoneIndices.Find(DuplicateBoneIndex, FoundIndex) )
-					{
-						ThisLODModel.ActiveBoneIndices.RemoveAt(FoundIndex, 1);
-						// we need to shift indices of the remaining bones.
-						for(int32 j=FoundIndex; j<ThisLODModel.ActiveBoneIndices.Num(); j++)
-						{
-							ThisLODModel.ActiveBoneIndices[j] = ThisLODModel.ActiveBoneIndices[j] - 1;
-						}
-					}
-				}
-			}
-		}
-
-		// Rebuild name table.
-		RefSkeleton.RebuildNameToIndexMap();
+		RebuildRefSkeletonNameToIndexMap();
 	}
 
 #if WITH_APEX_CLOTHING
@@ -3343,6 +3306,53 @@ void USkeletalMesh::PostLoad()
 
 	// Bounds have been loaded - apply extensions.
 	CalculateExtendedBounds();
+}
+
+void USkeletalMesh::RebuildRefSkeletonNameToIndexMap()
+{
+	TArray<FBoneIndexType> DuplicateBones;
+	// Make sure we have no duplicate bones. Some content got corrupted somehow. :(
+	RefSkeleton.RemoveDuplicateBones(this, DuplicateBones);
+
+	// If we have removed any duplicate bones, we need to fix up any broken LODs as well.
+	// Duplicate bones are given from highest index to lowest. 
+	// so it's safe to decrease indices for children, we're not going to lose the index of the remaining duplicate bones.
+	for (int32 Index = 0; Index < DuplicateBones.Num(); Index++)
+	{
+		const FBoneIndexType& DuplicateBoneIndex = DuplicateBones[Index];
+		for (int32 LodIndex = 0; LodIndex < LODInfo.Num(); LodIndex++)
+		{
+			FStaticLODModel & ThisLODModel = ImportedResource->LODModels[LodIndex];
+			{
+				int32 FoundIndex;
+				if (ThisLODModel.RequiredBones.Find(DuplicateBoneIndex, FoundIndex))
+				{
+					ThisLODModel.RequiredBones.RemoveAt(FoundIndex, 1);
+					// we need to shift indices of the remaining bones.
+					for (int32 j = FoundIndex; j < ThisLODModel.RequiredBones.Num(); j++)
+					{
+						ThisLODModel.RequiredBones[j] = ThisLODModel.RequiredBones[j] - 1;
+					}
+				}
+			}
+
+			{
+				int32 FoundIndex;
+				if (ThisLODModel.ActiveBoneIndices.Find(DuplicateBoneIndex, FoundIndex))
+				{
+					ThisLODModel.ActiveBoneIndices.RemoveAt(FoundIndex, 1);
+					// we need to shift indices of the remaining bones.
+					for (int32 j = FoundIndex; j < ThisLODModel.ActiveBoneIndices.Num(); j++)
+					{
+						ThisLODModel.ActiveBoneIndices[j] = ThisLODModel.ActiveBoneIndices[j] - 1;
+					}
+				}
+			}
+		}
+	}
+
+	// Rebuild name table.
+	RefSkeleton.RebuildNameToIndexMap();
 }
 
 void USkeletalMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const

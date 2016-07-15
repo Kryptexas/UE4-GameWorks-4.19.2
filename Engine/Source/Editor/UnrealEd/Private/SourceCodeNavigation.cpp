@@ -1748,7 +1748,7 @@ void FSourceCodeNavigationImpl::OnSuggestedIDEInstallerDownloadComplete(FHttpReq
 		// Copy the content from the response into the installer file
 		auto InstallerContent = Response->GetContent();
 
-		bool bWriteSucceeded = InstallerFileHandle->Write(InstallerContent.GetData(), InstallerContent.Num());
+		bool bWriteSucceeded = InstallerFileHandle ? InstallerFileHandle->Write(InstallerContent.GetData(), InstallerContent.Num()) : false;
 		delete InstallerFileHandle;
 
 		if (bWriteSucceeded)

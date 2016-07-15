@@ -297,45 +297,56 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 	bool ShouldAddSourceLocationsAsComments = true;
 	GetBoolFromConfig(*SectionName, TEXT("ShouldAddSourceLocationsAsComments"), ShouldAddSourceLocationsAsComments, ConfigPath);
 
-	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
-	// Load the manifest info
+	// Prepare the manifest
+	TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable(new FInternationalizationManifest());
 	{
-		FString ManifestFilePath = SourcePath / ManifestName;
-		if( !FPaths::FileExists(ManifestFilePath) )
+		const FString ManifestFileName = SourcePath / ManifestName;
+		if (!FPaths::FileExists(ManifestFileName))
 		{
-			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not find manifest file %s."), *ManifestFilePath);
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to find manifest '%s'."), *ManifestFileName);
 			return false;
 		}
 
-		TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile( ManifestFilePath );
-
-		if( !ManifestJsonObject.IsValid() )
+		const TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile(ManifestFileName);
+		if (!ManifestJsonObject.IsValid())
 		{
-			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not read manifest file %s."), *ManifestFilePath);
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to parse manifest '%s'."), *ManifestFileName);
 			return false;
 		}
 
 		FJsonInternationalizationManifestSerializer ManifestSerializer;
-		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
+		InternationalizationManifest = MakeShareable(new FInternationalizationManifest());
+		if (!ManifestSerializer.DeserializeManifest(ManifestJsonObject.ToSharedRef(), InternationalizationManifest))
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to deserialize manifest '%s'."), *ManifestFileName);
+			return false;
+		}
 	}
 
-	TArray< TSharedPtr<FInternationalizationArchive> > NativeArchives;
+	// Load the native archive info
+	TSharedRef<FInternationalizationArchive> NativeArchive = MakeShareable(new FInternationalizationArchive());
 	{
-		const FString NativeCulturePath = SourcePath / *(NativeCultureName);
-		TArray<FString> NativeArchiveFileNames;
-		IFileManager::Get().FindFiles(NativeArchiveFileNames, *(NativeCulturePath / TEXT("*.archive")), true, false);
+		const FString NativeCulturePath = SourcePath / NativeCultureName;
 
-		for (const FString& NativeArchiveFileName : NativeArchiveFileNames)
+		const FString NativeArchiveFileName = NativeCulturePath / ArchiveName;
+		if (!FPaths::FileExists(NativeArchiveFileName))
 		{
-			// Read each archive file from the culture-named directory in the source path.
-			FString ArchiveFilePath = NativeCulturePath / NativeArchiveFileName;
-			ArchiveFilePath = FPaths::ConvertRelativePathToFull(ArchiveFilePath);
-			TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive);
-			TSharedPtr< FJsonObject > ArchiveJsonObject = ReadJSONTextFile( ArchiveFilePath );
-			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to find archive '%s'."), *NativeArchiveFileName);
+			return false;
+		}
 
-			NativeArchives.Add(InternationalizationArchive);
+		const TSharedPtr<FJsonObject> ArchiveJsonObject = ReadJSONTextFile(NativeArchiveFileName);
+		if (!ArchiveJsonObject.IsValid())
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to read archive file '%s'."), *NativeArchiveFileName);
+			return false;
+		}
+
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+		if (!ArchiveSerializer.DeserializeArchive(ArchiveJsonObject.ToSharedRef(), NativeArchive))
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to deserialize archive '%s'."), *NativeArchiveFileName);
+			return false;
 		}
 	}
 
@@ -345,12 +356,11 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		// Load the archive
 		const FString CultureName = CulturesToGenerate[Culture];
 		const FString CulturePath = SourcePath / CultureName;
-		FString ArchiveFileName = CulturePath / ArchiveName;
-		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
 
+		FString ArchiveFileName = CulturePath / ArchiveName;
 		if( FPaths::FileExists(ArchiveFileName) )
 		{
-			ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
+			TSharedPtr< FJsonObject > ArchiveJsonObject = ReadJSONTextFile(ArchiveFileName);
 
 			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
@@ -380,9 +390,61 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 						// For each context, we may need to create a different or even multiple PO entries.
 						for( auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
 						{
-							const FContext& Context = *ContextIter;
+							const FManifestContext& Context = *ContextIter;
+
+							bool bHasAddedPOEntry = false;
+
+							// If we're exporting for something other than the native culture, we'll need to create PO entries for archive entries based on the native archive's translation.
+							if (CultureName != NativeCultureName)
+							{
+								// Find the native archive entry which matches the exact same namespace, source, and key metadata, if it exists.
+								TSharedPtr<FArchiveEntry> NativeArchiveEntry = NativeArchive->FindEntryBySource( Namespace, Source, Context.KeyMetadataObj );
+								if (NativeArchiveEntry.IsValid())
+								{
+									// Only need to create this PO entry if the native archive entry's translation differs from its source, in which case we need to find the our translation of the native translation.
+									if (!NativeArchiveEntry->Source.IsExactMatch(NativeArchiveEntry->Translation))
+									{
+										const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, NativeArchiveEntry->Translation, NativeArchiveEntry->KeyMetadataObj );
+										if (ArchiveEntry.IsValid())
+										{
+											const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
+											const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
+
+											TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
+											//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
+											PoEntry->MsgId = ConditionedArchiveSource;
+											PoEntry->MsgCtxt = ConditionIdentityForPOMsgCtxt(Namespace, Context.Key, Context.KeyMetadataObj);
+											PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
+
+											const FString PORefString = ConvertSrcLocationToPORef( Context.SourceLocation );
+											PoEntry->AddReference( PORefString ); // Source location.
+
+											PoEntry->AddExtractedComment( FString::Printf(TEXT("Key:\t%s"), *Context.Key) ); // "Notes from Programmer" in the form of the Key.
+											PoEntry->AddExtractedComment( FString::Printf(TEXT("SourceLocation:\t%s"), *PORefString) ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
+											TArray<FString> InfoMetaDataStrings;
+											if (Context.InfoMetadataObj.IsValid())
+											{
+												for (auto InfoMetaDataPair : Context.InfoMetadataObj->Values)
+												{
+													const FString KeyName = InfoMetaDataPair.Key;
+													const TSharedPtr<FLocMetadataValue> Value = InfoMetaDataPair.Value;
+													InfoMetaDataStrings.Add(FString::Printf(TEXT("InfoMetaData:\t\"%s\" : \"%s\""), *KeyName, *Value->ToString()));
+												}
+											}
+											if (InfoMetaDataStrings.Num())
+											{
+												PoEntry->AddExtractedComments(InfoMetaDataStrings);
+											}
+
+											bHasAddedPOEntry = true;
+											NewPortableObject.AddEntry( PoEntry );
+										}
+									}
+								}
+							}
 
 							// Create the typical PO entry from the archive entry which matches the exact same namespace, source, and key metadata, if it exists.
+							if (!bHasAddedPOEntry)
 							{
 								const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, Context.KeyMetadataObj );
 								if( ArchiveEntry.IsValid() )
@@ -421,65 +483,8 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 										PoEntry->AddExtractedComments(InfoMetaDataStrings);
 									}
 
+									bHasAddedPOEntry = true;
 									NewPortableObject.AddEntry( PoEntry );
-								}
-							}
-
-							// If we're exporting for something other than the native culture, we'll need to create PO entries for archive entries based on the native archive's translation.
-							if (CultureName != NativeCultureName)
-							{
-								TSharedPtr<FArchiveEntry> NativeArchiveEntry;
-								// Find the native archive entry which matches the exact same namespace, source, and key metadata, if it exists.
-								for (const auto& NativeArchive : NativeArchives)
-								{
-									const TSharedPtr<FArchiveEntry> PotentialNativeArchiveEntry = NativeArchive->FindEntryBySource( Namespace, Source, Context.KeyMetadataObj );
-									if (PotentialNativeArchiveEntry.IsValid())
-									{
-										NativeArchiveEntry = PotentialNativeArchiveEntry;
-										break;
-									}
-								}
-
-								if (NativeArchiveEntry.IsValid())
-								{
-									// Only need to create this PO entry if the native archive entry's translation differs from its source, in which case we need to find the our translation of the native translation.
-									if (!NativeArchiveEntry->Source.IsExactMatch(NativeArchiveEntry->Translation))
-									{
-										const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, NativeArchiveEntry->Translation, NativeArchiveEntry->KeyMetadataObj );
-										if (ArchiveEntry.IsValid())
-										{
-											const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
-											const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
-
-											TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
-											//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
-											PoEntry->MsgId = ConditionedArchiveSource;
-											PoEntry->MsgCtxt = ConditionIdentityForPOMsgCtxt(Namespace, Context.Key, Context.KeyMetadataObj);
-											PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
-
-											const FString PORefString = ConvertSrcLocationToPORef( Context.SourceLocation );
-											PoEntry->AddReference( PORefString ); // Source location.
-
-											PoEntry->AddExtractedComment( FString::Printf(TEXT("Key:\t%s"), *Context.Key) ); // "Notes from Programmer" in the form of the Key.
-											PoEntry->AddExtractedComment( FString::Printf(TEXT("SourceLocation:\t%s"), *PORefString) ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
-											TArray<FString> InfoMetaDataStrings;
-											if (Context.InfoMetadataObj.IsValid())
-											{
-												for (auto InfoMetaDataPair : Context.InfoMetadataObj->Values)
-												{
-													const FString KeyName = InfoMetaDataPair.Key;
-													const TSharedPtr<FLocMetadataValue> Value = InfoMetaDataPair.Value;
-													InfoMetaDataStrings.Add(FString::Printf(TEXT("InfoMetaData:\t\"%s\" : \"%s\""), *KeyName, *Value->ToString()));
-												}
-											}
-											if (InfoMetaDataStrings.Num())
-											{
-												PoEntry->AddExtractedComments(InfoMetaDataStrings);
-											}
-
-											NewPortableObject.AddEntry( PoEntry );
-										}
-									}
 								}
 							}
 						}
@@ -650,8 +655,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 			continue;
 		}
 
-		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
-		ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
+		TSharedPtr< FJsonObject > ArchiveJsonObject = ReadJSONTextFile(ArchiveFileName);
 
 		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
@@ -691,7 +695,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 						const TSharedRef<FManifestEntry>& ManifestEntry = ManifestEntryIterator->Value;
 						if (ManifestEntry->Namespace == Namespace)
 						{
-							FContext* const MatchingContext = ManifestEntry->Contexts.FindByPredicate([&](FContext& Context) -> bool
+							FManifestContext* const MatchingContext = ManifestEntry->Contexts.FindByPredicate([&](FManifestContext& Context) -> bool
 								{
 									return Context.Key == Key;
 								});
@@ -707,7 +711,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 				const TSharedPtr< FArchiveEntry > FoundEntry = InternationalizationArchive->FindEntryBySource( Namespace, SourceText, KeyMetaDataObject );
 				if( !FoundEntry.IsValid() )
 				{
-					UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
+					UE_LOG(LogInternationalizationExportCommandlet, Log, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
 					continue;
 				}
 

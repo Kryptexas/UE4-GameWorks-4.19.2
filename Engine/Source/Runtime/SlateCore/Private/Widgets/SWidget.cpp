@@ -111,6 +111,13 @@ void SWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FW
 {
 }
 
+void SWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	OnFocusChanging(PreviousFocusPath, NewWidgetPath);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
 FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
 	return FReply::Unhandled();
@@ -471,7 +478,12 @@ const FSlateBrush* SWidget::GetFocusBrush() const
 
 bool SWidget::HasMouseCapture() const
 {
-	return FSlateApplicationBase::Get().HasMouseCapture(SharedThis(this));
+	return FSlateApplicationBase::Get().DoesWidgetHaveMouseCapture(SharedThis(this));
+}
+
+bool SWidget::HasMouseCaptureByUser(int32 UserIndex, TOptional<int32> PointerIndex) const
+{
+	return FSlateApplicationBase::Get().DoesWidgetHaveMouseCaptureByUser(SharedThis(this), UserIndex, PointerIndex);
 }
 
 void SWidget::OnMouseCaptureLost()

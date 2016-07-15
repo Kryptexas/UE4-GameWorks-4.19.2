@@ -153,11 +153,6 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 		NewWidgetBlueprintClass->WidgetTree->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders | REN_DontCreateRedirectors);
 		NewWidgetBlueprintClass->WidgetTree = nullptr;
 	}
-	if ( NewWidgetBlueprintClass->DesignerWidgetTree )
-	{
-		NewWidgetBlueprintClass->DesignerWidgetTree->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders | REN_DontCreateRedirectors);
-		NewWidgetBlueprintClass->DesignerWidgetTree = nullptr;
-	}
 
 	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
 	{
@@ -276,7 +271,7 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 		{
 			FBlueprintEditorUtils::ForceLoadMembers(WidgetBP->WidgetTree);
 		}
-		BPGClass->WidgetTree = BPGClass->DesignerWidgetTree = DuplicateObject<UWidgetTree>(WidgetBP->WidgetTree, BPGClass);
+		BPGClass->WidgetTree = DuplicateObject<UWidgetTree>(WidgetBP->WidgetTree, BPGClass);
 
 		for ( const UWidgetAnimation* Animation : WidgetBP->Animations )
 		{

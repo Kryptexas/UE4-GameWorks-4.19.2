@@ -802,7 +802,7 @@ void FTextLayout::FlowHighlights()
 			const TSharedRef<ILayoutBlock>& StartBlock = LineView.Blocks[VisualHighlightStart.BlockIndex];
 			const TSharedRef<ILayoutBlock>& EndBlock = LineView.Blocks[VisualHighlightEnd.BlockIndex];
 			const bool bIsSingleBlock = VisualHighlightStart.BlockIndex == VisualHighlightEnd.BlockIndex;
-			const bool bIsVisuallyContiguous = StartBlock->GetTextContext().TextDirection == EndBlock->GetTextContext().TextDirection;
+			const bool bIsVisuallyContiguous = StartBlock->GetTextContext().TextDirection == EndBlock->GetTextContext().TextDirection && StartBlock->GetTextContext().TextDirection == StartBlock->GetTextContext().BaseDirection;
 
 			float RunningBlockOffset = LineViewHighlight.OffsetX;
 
@@ -876,11 +876,19 @@ void FTextLayout::FlowHighlights()
 						LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
 					}
 
-					// Right-to-left text in a left-to-right text flow will need to apply an offset to compensate for the fact that the blocks flow left-to-right, but the text within them flows right-to-left
-					// When the text flow is right-to-left, this is naturally dealt with by the block re-ordering
-					if (EndBlock->GetTextContext().TextDirection == TextBiDi::ETextDirection::RightToLeft && EndBlock->GetTextContext().BaseDirection == TextBiDi::ETextDirection::LeftToRight)
+					// When the text flow direction doesn't match the block text flow direction, we'll need to apply an offset to compensate for the selection potentially starting mid-way through the block
+					if (EndBlock->GetTextContext().TextDirection != EndBlock->GetTextContext().BaseDirection)
 					{
-						LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+						// In left-to-right text, the space before the start of the text is added as an offset
+						// In right-to-left text, the space after the end of the text (which is visually on the left) is added as an offset
+						if (EndBlock->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
+						{
+							LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
+						}
+						else
+						{
+							LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+						}
 					}
 				}
 			}

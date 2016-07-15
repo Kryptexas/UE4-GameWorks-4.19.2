@@ -354,13 +354,13 @@ void FPerforceSourceControlProvider::Tick()
 			{
 				// run the completion delegate if we have one bound
 				ECommandResult::Type Result = ECommandResult::Failed;
-				if (Command.bCommandSuccessful)
-				{
-					Result = ECommandResult::Succeeded;
-				}
-				else if (Command.bCancelled)
+				if (Command.bCancelled)
 				{
 					Result = ECommandResult::Cancelled;
+				}
+				else if (Command.bCommandSuccessful)
+				{
+					Result = ECommandResult::Succeeded;
 				}
 				Command.OperationCompleteDelegate.ExecuteIfBound(Command.Operation, Result);
 			}

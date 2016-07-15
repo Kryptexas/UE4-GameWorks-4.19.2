@@ -16,6 +16,7 @@ public class Paper2D : ModuleRules
 				"ShaderCore",
 				"RenderCore",
 				"RHI",
+                "SlateRHIRenderer",
 			}
 			);
 

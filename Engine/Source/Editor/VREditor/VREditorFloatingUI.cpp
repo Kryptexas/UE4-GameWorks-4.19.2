@@ -270,16 +270,6 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 			FadeAlpha = bShow ? 1.0f : 0.0f;
 		}
 
-		const TSharedRef<SViewport>& ViewportWidget = Owner->GetOwner().GetLevelViewportPossessedForVR().GetViewportWidget().Pin().ToSharedRef();
-		if ( bShow )
-		{
-			WidgetComponent->RegisterHitTesterWithViewport(ViewportWidget);
-		}
-		else
-		{
-			WidgetComponent->UnregisterHitTesterWithViewport(ViewportWidget);
-		}
-
 		FadeDelay = InitFadeDelay;
 	}
 }

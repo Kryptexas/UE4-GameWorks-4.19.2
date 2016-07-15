@@ -433,10 +433,13 @@ UObject* UFbxFactory::FactoryCreateBinary
 								// Disable material importing when importing morph targets
 								uint32 bImportMaterials = ImportOptions->bImportMaterials;
 								ImportOptions->bImportMaterials = 0;
+								uint32 bImportTextures = ImportOptions->bImportTextures;
+								ImportOptions->bImportTextures = 0;
 
 								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, LODIndex);
 							
 								ImportOptions->bImportMaterials = !!bImportMaterials;
+								ImportOptions->bImportTextures = !!bImportTextures;
 							}
 						}
 					

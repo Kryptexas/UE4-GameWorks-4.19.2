@@ -281,6 +281,8 @@ void GenerateWindowsErrorReport(const FString & WERPath, bool bReportingNonCrash
 		WriteLine(ReportFile, TEXT("\t\t<Parameter2>1033</Parameter2>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bReportingNonCrash ? TEXT("1") : TEXT("0")));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bReportingNonCrash, FDebug::bHasAsserted)));
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));

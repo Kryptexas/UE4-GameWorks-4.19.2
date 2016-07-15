@@ -1353,10 +1353,11 @@ void UStaticMeshComponent::ImportCustomProperties(const TCHAR* SourceText, FFeed
 		int32 LODIndex;
 		FString TmpStr;
 
-		if (FParse::Value(SourceText, TEXT("LOD="), LODIndex))
+		static const TCHAR LODString[] = TEXT("LOD=");
+		if (FParse::Value(SourceText, LODString, LODIndex))
 		{
 			TmpStr = FString::Printf(TEXT("%d"), LODIndex);
-			SourceText += TmpStr.Len() + 5;
+			SourceText += TmpStr.Len() + (ARRAY_COUNT(LODString) - 1); // without the zero terminator
 
 			// See if we need to add a new element to the LODData array
 			if (LODIndex > MaxLODIndex)

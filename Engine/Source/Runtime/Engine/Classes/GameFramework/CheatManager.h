@@ -244,18 +244,6 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void TestCollisionDistance();
 
-	/** Spawns a Slate Widget Inspector in game **/
-	UFUNCTION(exec)
-	virtual void WidgetReflector();
-
-	/** Spawns a Slate texture atlas visualizer in game */
-	UFUNCTION(exec)
-	virtual void TextureAtlasVisualizer();
-
-	/** Spawns a Slate font atlas visualizer in game */
-	UFUNCTION(exec)
-	virtual void FontAtlasVisualizer();
-
 	/** Builds the navigation mesh (or rebuilds it). **/
 	UFUNCTION(exec)
 	virtual void RebuildNavigation();

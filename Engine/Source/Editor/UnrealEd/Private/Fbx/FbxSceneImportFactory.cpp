@@ -253,6 +253,24 @@ static void ExtractMaterialInfoFromNode(UnFbx::FFbxImporter* FbxImporter, FbxNod
 				MaterialInfo->HierarchyPath = CurrentHierarchyPath;
 				MaterialInfo->UniqueId = FbxMaterial->GetUniqueID();
 				MaterialInfo->Name = UTF8_TO_TCHAR(FbxMaterial->GetName());
+				TCHAR IllegalCharacters[7] = { '/', '\\', ' ', '`', '\t', '\r', '\n' };
+				bool DisplayInvalidNameError = false;
+				FString OldMaterialName = MaterialInfo->Name;
+				for (TCHAR IllegalCharacter : IllegalCharacters)
+				{
+					TCHAR IllegalChar[2];
+					IllegalChar[0] = IllegalCharacter;
+					IllegalChar[1] = '\0';
+					if (MaterialInfo->Name.Contains(&IllegalChar[0]))
+					{
+						MaterialInfo->Name = MaterialInfo->Name.Replace(&IllegalChar[0], L"_");
+						DisplayInvalidNameError = true;
+					}
+				}
+				if (DisplayInvalidNameError)
+				{
+					FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FoundInvalidCharacterInMaterialName", "Found invalid character in a material name. Original name: {0} New name: {1}"), FText::FromString(OldMaterialName), FText::FromString(MaterialInfo->Name))), FFbxErrors::Generic_InvalidCharacterInName);
+				}
 				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sDiffuse, ExtractedTextures);
 				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sEmissive, ExtractedTextures);
 				ExtractPropertyTextures(FbxMaterial, MaterialInfo, FbxSurfaceMaterial::sSpecular, ExtractedTextures);
@@ -443,7 +461,7 @@ TSharedPtr<FFbxSceneInfo> UFbxSceneImportFactory::ConvertSceneInfo(void* VoidFbx
 	UnFbx::FBXImportOptions* FbxImportOptionsPtr = FbxImporter->GetImportOptions();
 	bool OldValueImportMeshesInBoneHierarchy = FbxImportOptionsPtr->bImportMeshesInBoneHierarchy;
 	FbxImportOptionsPtr->bImportMeshesInBoneHierarchy = true;
-	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false);
+	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false, true);
 	FbxImportOptionsPtr->bImportMeshesInBoneHierarchy = OldValueImportMeshesInBoneHierarchy;
 
 	for (int32 i = 0; i < SkelMeshArray.Num(); i++)
@@ -460,8 +478,28 @@ TSharedPtr<FFbxSceneInfo> UFbxSceneImportFactory::ConvertSceneInfo(void* VoidFbx
 		if (Mesh != nullptr)
 		{
 			ValidSkeletalMesh.Add(Mesh->GetUniqueID(), Mesh);
+			for (FbxNode* SkelMeshNode : NodeArray)
+			{
+				uint64 MeshNodeID = SkelMeshNode->GetUniqueID();
+				FbxMesh* SkeletalMeshAttribute = SkelMeshNode->GetMesh();
+				
+				if (SkeletalMeshAttribute != nullptr)
+					MeshNodeID = SkeletalMeshAttribute->GetUniqueID();
+
+				for (UnFbx::FbxMeshInfo &MeshInfo : SceneInfo.MeshInfo)
+				{
+					if (MeshInfo.UniqueId == MeshNodeID)
+					{
+						//We have either a skeletal mesh or a rigid mesh
+						MeshInfo.bIsSkelMesh = true;
+						break;
+					}
+				}
+			}
 		}
 	}
+
+	
 
 	for (const UnFbx::FbxMeshInfo MeshInfo : SceneInfo.MeshInfo)
 	{
@@ -524,12 +562,15 @@ TSharedPtr<FFbxSceneInfo> UFbxSceneImportFactory::ConvertSceneInfo(void* VoidFbx
 
 		//Find the attribute info
 		NodeInfoPtr->AttributeInfo = nullptr;
-		for (TSharedPtr<FFbxMeshInfo> AttributePtr : SceneInfoPtr->MeshInfo)
+		if (NodeInfoPtr->AttributeType.Compare(TEXT("eMesh")) == 0)
 		{
-			if (AttributePtr->UniqueId == NodeInfo.AttributeUniqueId)
+			for (TSharedPtr<FFbxMeshInfo> AttributePtr : SceneInfoPtr->MeshInfo)
 			{
-				NodeInfoPtr->AttributeInfo = AttributePtr;
-				break;
+				if (AttributePtr->UniqueId == NodeInfo.AttributeUniqueId)
+				{
+					NodeInfoPtr->AttributeInfo = AttributePtr;
+					break;
+				}
 			}
 		}
 
@@ -977,7 +1018,7 @@ FFeedbackContext*	Warn
 				FString AssetName = TEXT("FbxScene_") + FPaths::GetBaseFilename(UFactory::CurrentFilename);
 				UPackage *Pkg = CreatePackageForNode(FullnameBP, AssetName);
 				//Create the blueprint from the actor and replace the actor with a blueprintactor that point on the blueprint
-				UBlueprint* SceneBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(Pkg->GetName(), HierarchyActor, true);
+				UBlueprint* SceneBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(Pkg->GetName(), HierarchyActor, true, true);
 				if (SceneBlueprint != nullptr && ReimportData != nullptr)
 				{
 					//let the scene blueprint be the return object for this import
@@ -1774,7 +1815,7 @@ void UFbxSceneImportFactory::ImportAllSkeletalMesh(void* VoidRootNodeToImport, v
 	FbxNode *RootNodeToImport = (FbxNode *)VoidRootNodeToImport;
 	InterestingNodeCount = 1;
 	TArray< TArray<FbxNode*>* > SkelMeshArray;
-	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false);
+	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false, true);
 	InterestingNodeCount = SkelMeshArray.Num();
 
 	int32 TotalNumNodes = 0;
@@ -2019,6 +2060,11 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, TArray<void*
 		Args.Add(TEXT("ArrayLength"), Total);
 		GWarn->StatusUpdate(NodeIndex, Total, FText::Format(NSLOCTEXT("UnrealEd", "Importingf", "Importing ({NodeIndex} of {ArrayLength})"), Args));
 	}
+	else if(Pkg != nullptr)
+	{
+		Pkg->RemoveFromRoot();
+		Pkg->ConditionalBeginDestroy();
+	}
 
 	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 	return NewObject;
@@ -2058,6 +2104,10 @@ UPackage *UFbxSceneImportFactory::CreatePackageForNode(FString PackageName, FStr
 		return nullptr;
 	}
 	bool IsPkgExist = FPackageName::DoesPackageExist(PackageNameOfficial);
+	if (!IsPkgExist)
+	{
+		IsPkgExist = FindObject<UPackage>(nullptr, *PackageNameOfficial) != nullptr;
+	}
 	int32 tryCount = 1;
 	while (IsPkgExist)
 	{
@@ -2066,6 +2116,10 @@ UPackage *UFbxSceneImportFactory::CreatePackageForNode(FString PackageName, FStr
 		PackageNameOfficial += FString::FromInt(tryCount++);
 		PackageNameOfficial = PackageTools::SanitizePackageName(PackageNameOfficial);
 		IsPkgExist = FPackageName::DoesPackageExist(PackageNameOfficial);
+		if (!IsPkgExist)
+		{
+			IsPkgExist = FindObject<UPackage>(nullptr, *PackageNameOfficial) != nullptr;
+		}
 	}
 	UPackage* Pkg = CreatePackage(nullptr, *PackageNameOfficial);
 	if (!ensure(Pkg))

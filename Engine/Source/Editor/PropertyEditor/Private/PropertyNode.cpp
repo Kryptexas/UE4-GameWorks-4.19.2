@@ -51,6 +51,10 @@ FPropertyNode::FPropertyNode(void)
 	, PropertyNodeFlags (EPropertyNodeFlags::NoFlags)
 	, bRebuildChildrenRequested( false )
 	, PropertyPath(TEXT(""))
+	, bIsEditConst(false)
+	, bUpdateEditConstState(true)
+	, bDiffersFromDefault(false)
+	, bUpdateDiffersFromDefault(true)
 {
 }
 
@@ -475,15 +479,12 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			TSharedPtr<FPropertyNode>& ChildNode = ChildNodes[Scan];
 			check(ChildNode.IsValid());
 
-			// @todo Slate Property Window 
-			//if (ChildNode->HasNodeFlags(EPropertyNodeFlags::IsSeen))
-			//{
 			FPropertyNode::DataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
 			if (FinalResult == DataValid && ChildDataResult != DataValid)
 			{
 				FinalResult = ChildDataResult;
 			}
-			//}
+
 		}
 	}
 
@@ -531,52 +532,57 @@ TSharedPtr<FPropertyNode> FPropertyNode::FindChildPropertyNode( const FName InPr
 		}
 	}
 
-	// Return NULL if not found...
-	return NULL;
+	// Return nullptr if not found...
+	return nullptr;
 }
 
 
 /** @return whether this window's property is constant (can't be edited by the user) */
 bool FPropertyNode::IsEditConst() const
 {
-	// Ask the objects whether this property can be changed
-	const FObjectPropertyNode* ObjectPropertyNode = FindObjectItemParent();
-
-	bool bIsEditConst = (HasNodeFlags(EPropertyNodeFlags::IsReadOnly) != 0);
-	if (!bIsEditConst && Property != NULL && ObjectPropertyNode)
+	if( bUpdateEditConstState )
 	{
-		bIsEditConst = (Property->PropertyFlags & CPF_EditConst) ? true : false;
-		if (!bIsEditConst)
-		{
-			// travel up the chain to see if this property's owner struct is editconst - if it is, so is this property
-			FPropertyNode* NextParent = ParentNode;
-			while (NextParent != NULL && Cast<UStructProperty>(NextParent->GetProperty()) != NULL)
-			{
-				if (NextParent->IsEditConst())
-				{
-					bIsEditConst = true;
-					break;
-				}
-				NextParent = NextParent->ParentNode;
-			}
-		}
+		// Ask the objects whether this property can be changed
+		const FObjectPropertyNode* ObjectPropertyNode = FindObjectItemParent();
 
-		if( !bIsEditConst )
+		bIsEditConst = (HasNodeFlags(EPropertyNodeFlags::IsReadOnly) != 0);
+		if(!bIsEditConst && Property != nullptr && ObjectPropertyNode)
 		{
-			for( TPropObjectConstIterator CurObjectIt( ObjectPropertyNode->ObjectConstIterator() ); CurObjectIt; ++CurObjectIt )
+			bIsEditConst = (Property->PropertyFlags & CPF_EditConst) ? true : false;
+			if(!bIsEditConst)
 			{
-				const TWeakObjectPtr<UObject> CurObject = *CurObjectIt;
-				if( CurObject.IsValid() )
+				// travel up the chain to see if this property's owner struct is editconst - if it is, so is this property
+				FPropertyNode* NextParent = ParentNode;
+				while(NextParent != nullptr && Cast<UStructProperty>(NextParent->GetProperty()) != NULL)
 				{
-					if( !CurObject->CanEditChange( Property.Get() ) )
+					if(NextParent->IsEditConst())
 					{
-						// At least one of the objects didn't like the idea of this property being changed.
 						bIsEditConst = true;
 						break;
+					}
+					NextParent = NextParent->ParentNode;
+				}
+			}
+
+			if(!bIsEditConst)
+			{
+				for(TPropObjectConstIterator CurObjectIt(ObjectPropertyNode->ObjectConstIterator()); CurObjectIt; ++CurObjectIt)
+				{
+					const TWeakObjectPtr<UObject> CurObject = *CurObjectIt;
+					if(CurObject.IsValid())
+					{
+						if(!CurObject->CanEditChange(Property.Get()))
+						{
+							// At least one of the objects didn't like the idea of this property being changed.
+							bIsEditConst = true;
+							break;
+						}
 					}
 				}
 			}
 		}
+
+		bUpdateEditConstState = false;
 	}
 
 
@@ -1254,7 +1260,7 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 {	
 	check( InProperty );
 
-	bool bDiffersFromDefault = false;
+	bool bDiffersFromDefaultForObject = false;
 
 	if ( ValueTracker.IsValidTracker() && ValueTracker.HasDefaultValue() && GetParentNode() != NULL )
 	{
@@ -1267,12 +1273,12 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 			// make sure we're not trying to compare against an element that doesn't exist
 			if ( ValueTracker.GetPropertyDefaultBaseAddress() != NULL && GetArrayIndex() >= FScriptArrayHelper::Num(ValueTracker.GetPropertyDefaultBaseAddress()) )
 			{
-				bDiffersFromDefault = true;
+				bDiffersFromDefaultForObject = true;
 			}
 		}
 
 		// The property is a simple field.  Compare it against the enclosing object's default for that property.
-		if ( !bDiffersFromDefault )
+		if ( !bDiffersFromDefaultForObject)
 		{
 			uint32 PortFlags = 0;
 			UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(InProperty);
@@ -1294,13 +1300,13 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 			{
 				// if either are NULL, we had a dynamic array somewhere in our parent chain and the array doesn't
 				// have enough elements in either the default or the object
-				bDiffersFromDefault = true;
+				bDiffersFromDefaultForObject = true;
 			}
 			else if ( GetArrayIndex() == INDEX_NONE && InProperty->ArrayDim > 1 )
 			{
-				for ( int32 Idx = 0; !bDiffersFromDefault && Idx < InProperty->ArrayDim; Idx++ )
+				for ( int32 Idx = 0; !bDiffersFromDefaultForObject && Idx < InProperty->ArrayDim; Idx++ )
 				{
-					bDiffersFromDefault = !InProperty->Identical(
+					bDiffersFromDefaultForObject = !InProperty->Identical(
 						ValueTracker.GetPropertyValueAddress() + Idx * InProperty->ElementSize,
 						ValueTracker.GetPropertyDefaultAddress() + Idx * InProperty->ElementSize,
 						PortFlags
@@ -1314,7 +1320,7 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 
 				if( PropertyValueAddr != NULL && DefaultPropertyValueAddr != NULL )
 				{
-					bDiffersFromDefault = !InProperty->Identical(
+					bDiffersFromDefaultForObject = !InProperty->Identical(
 						PropertyValueAddr,
 						DefaultPropertyValueAddr,
 						PortFlags
@@ -1324,7 +1330,7 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 		}
 	}
 
-	return bDiffersFromDefault;
+	return bDiffersFromDefaultForObject;
 }
 
 /**
@@ -1332,25 +1338,32 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
  */
 bool FPropertyNode::GetDiffersFromDefault()
 {
-	FObjectPropertyNode* ObjectNode = FindObjectItemParent();
-	if ( ObjectNode && Property.IsValid() )
+	if( bUpdateDiffersFromDefault )
 	{
-		// Get an iterator for the enclosing objects.
-		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
+		bUpdateDiffersFromDefault = false;
+		bDiffersFromDefault = false;
+
+		FObjectPropertyNode* ObjectNode = FindObjectItemParent();
+		if(ObjectNode && Property.IsValid() && !IsEditConst())
 		{
-			UObject* Object = ObjectNode->GetUObject(ObjIndex);
-
-			TSharedPtr<FPropertyItemValueDataTrackerSlate> ValueTracker = GetValueTracker(Object, ObjIndex);
-
-			if( ValueTracker.IsValid() && Object && GetDiffersFromDefaultForObject( *ValueTracker, Property.Get() ) )
+			// Get an iterator for the enclosing objects.
+			for(int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex)
 			{
-				// If any object being observed differs from the result then there is no need to keep searching
-				return true;
+				UObject* Object = ObjectNode->GetUObject(ObjIndex);
+
+				TSharedPtr<FPropertyItemValueDataTrackerSlate> ValueTracker = GetValueTracker(Object, ObjIndex);
+
+				if(ValueTracker.IsValid() && Object && GetDiffersFromDefaultForObject(*ValueTracker, Property.Get()))
+				{
+					// If any object being observed differs from the result then there is no need to keep searching
+					bDiffersFromDefault = true;
+					break;
+				}
 			}
 		}
 	}
 
-	return false;
+	return bDiffersFromDefault;
 }
 
 FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataTrackerSlate& ValueTracker, UObject* InObject, UProperty* InProperty )
@@ -1358,7 +1371,7 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 	check( InObject );
 	check( InProperty );
 
-	bool bDiffersFromDefault = false;
+	bool bDiffersFromDefaultForObject = false;
 	FString DefaultValue;
 
 	// special case for Object class - no defaults to compare against
@@ -1375,13 +1388,13 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 				// make sure we're not trying to compare against an element that doesn't exist
 				if ( ValueTracker.GetPropertyDefaultBaseAddress() != NULL && GetArrayIndex() >= FScriptArrayHelper::Num(ValueTracker.GetPropertyDefaultBaseAddress()) )
 				{
-					bDiffersFromDefault = true;
+					bDiffersFromDefaultForObject = true;
 					DefaultValue = NSLOCTEXT("PropertyEditor", "ArrayLongerThanDefault", "Array is longer than the default.").ToString();
 				}
 			}
 
 			// The property is a simple field.  Compare it against the enclosing object's default for that property.
-			if ( !bDiffersFromDefault )
+			if ( !bDiffersFromDefaultForObject)
 			{
 				uint32 PortFlags = 0;
 				UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(InProperty);
@@ -1407,7 +1420,7 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 				}
 				else if ( GetArrayIndex() == INDEX_NONE && InProperty->ArrayDim > 1 )
 				{
-					for ( int32 Idx = 0; !bDiffersFromDefault && Idx < InProperty->ArrayDim; Idx++ )
+					for ( int32 Idx = 0; !bDiffersFromDefaultForObject && Idx < InProperty->ArrayDim; Idx++ )
 					{
 						uint8* DefaultAddress = ValueTracker.GetPropertyDefaultAddress() + Idx * InProperty->ElementSize;
 						FString DefaultItem;
@@ -2021,6 +2034,9 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 			}
 		}
 	}
+
+	bUpdateEditConstState = true;
+	bUpdateDiffersFromDefault = true;
 
 	// Broadcast the change to any listeners
 	BroadcastPropertyChangedDelegates();

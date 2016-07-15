@@ -291,14 +291,14 @@ void UUserWidget::Invalidate()
 	}
 }
 
-void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
+void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, float PlaybackSpeed, EUMGSequencePlayMode::Type PlayMode)
 {
 	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimation");
 
 	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
 	if (Player)
 	{
-		Player->Play(StartAtTime, NumberOfLoops, PlayMode);
+		Player->Play(StartAtTime, NumberOfLoops, PlaybackSpeed, PlayMode);
 
 		Invalidate();
 
@@ -306,14 +306,14 @@ void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float Star
 	}
 }
 
-void UUserWidget::PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
+void UUserWidget::PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, float PlaybackSpeed, EUMGSequencePlayMode::Type PlayMode)
 {
 	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimationTo");
 
 	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
 	if (Player)
 	{
-		Player->PlayTo(StartAtTime, EndAtTime, NumberOfLoops, PlayMode);
+		Player->PlayTo(StartAtTime, EndAtTime, NumberOfLoops, PlaybackSpeed, PlayMode);
 
 		Invalidate();
 
@@ -399,6 +399,19 @@ void UUserWidget::SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 I
 		if (FoundPlayer)
 		{
 			(*FoundPlayer)->SetNumLoopsToPlay(InNumLoopsToPlay);
+		}
+	}
+}
+
+void UUserWidget::SetPlaybackSpeed(const UWidgetAnimation* InAnimation, float PlaybackSpeed)
+{
+	if (InAnimation)
+	{
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+
+		if (FoundPlayer)
+		{
+			(*FoundPlayer)->SetPlaybackSpeed(PlaybackSpeed);
 		}
 	}
 }

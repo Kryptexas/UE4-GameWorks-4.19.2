@@ -95,7 +95,7 @@ void FTranslationDataManager::Initialize()
 				for(auto ContextIter( ManifestEntry->Contexts.CreateConstIterator() ); ContextIter; ++ContextIter)
 				{
 					FTranslationContextInfo ContextInfo;
-					const FContext& AContext = *ContextIter;
+					const FManifestContext& AContext = *ContextIter;
 
 					ContextInfo.Context = AContext.SourceLocation;
 					ContextInfo.Key = AContext.Key;
@@ -498,7 +498,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits()
 									PreviousSourceText = ContextInfo.Changes[0].Source;
 								}
 
-								FContext SearchContext;
+								FManifestContext SearchContext;
 								SearchContext.Key = ContextInfo.Key;
 								TSharedPtr< FManifestEntry > OldManifestEntryPtr = OldManifest->FindEntryByContext(TranslationUnit->Namespace, SearchContext);
 								if (!OldManifestEntryPtr.IsValid())

@@ -1990,7 +1990,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 	};
 
 
-	FDuplicateDataReader	Reader(DuplicatedObjectAnnotation,ObjectData, Parameters.PortFlags);
+	FDuplicateDataReader	Reader(DuplicatedObjectAnnotation, ObjectData, Parameters.PortFlags, Parameters.DestOuter);
 	for(int32 ObjectIndex = 0;ObjectIndex < SerializedObjects.Num();ObjectIndex++)
 	{
 		UObject* SerializedObject = SerializedObjects[ObjectIndex];

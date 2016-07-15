@@ -112,16 +112,17 @@ public:
 	static bool CanCreateBlueprintOfClass(const UClass* Class);
 
 	/** Take a list of components that belong to a single Actor and add them to a blueprint as SCSNodes */
-	static void AddComponentsToBlueprint(UBlueprint* Blueprint, const TArray<UActorComponent*>& Components, bool bHarvesting = false, class USCS_Node* OptionalNewRootNode = nullptr);
+	static void AddComponentsToBlueprint(UBlueprint* Blueprint, const TArray<UActorComponent*>& Components, bool bHarvesting = false, class USCS_Node* OptionalNewRootNode = nullptr, bool bKeepMobility = false);
 
 	/** 
 	 * Take an Actor and generate a blueprint based on it. Uses the Actors type as the parent class. 
 	 * @param Path					The path to use when creating the package for the new blueprint
 	 * @param Actor					The actor to use as the template for the blueprint
 	 * @param bReplaceActor			If true, replace the actor in the scene with one based on the created blueprint
+	 * @param bKeepMobility			If true, The mobility of each actor components will be copy
 	 * @return The blueprint created from the actor
 	 */
-	static UBlueprint* CreateBlueprintFromActor(const FString& Path, AActor* Actor, bool bReplaceActor );
+	static UBlueprint* CreateBlueprintFromActor(const FString& Path, AActor* Actor, bool bReplaceActor, bool bKeepMobility = false );
 
 	/** 
 	 * Take an Actor and generate a blueprint based on it. Uses the Actors type as the parent class. 
@@ -129,9 +130,10 @@ public:
 	 * @param Outer					The outer object to create the blueprint within
 	 * @param Actor					The actor to use as the template for the blueprint
 	 * @param bReplaceActor			If true, replace the actor in the scene with one based on the created blueprint
+	 * @param bKeepMobility			If true, The mobility of each actor components will be copy
 	 * @return The blueprint created from the actor
 	 */
-	static UBlueprint* CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, bool bReplaceActor );
+	static UBlueprint* CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, bool bReplaceActor, bool bKeepMobility = false);
 
 	/** 
 	 * Take a list of Actors and generate a blueprint  by harvesting the components they have. Uses AActor as parent class type as the parent class. 

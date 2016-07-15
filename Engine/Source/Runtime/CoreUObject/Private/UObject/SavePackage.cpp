@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "UObject/UTextProperty.h"
+#include "TextPackageNamespaceUtil.h"
 #include "Interface.h"
 #include "TargetPlatform.h"
 #include "UObject/UObjectThreadContext.h"
@@ -3560,6 +3561,15 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
 			}
 		
+#if USE_STABLE_LOCALIZATION_KEYS
+			if (GIsEditor)
+			{
+				// We need to ensure that we have a package localization namespace as the package loading will need it
+				// We need to do this before entering the GIsSavingPackage block as it may change the package meta-data
+				TextNamespaceUtil::EnsurePackageNamespace(InOuter);
+			}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 			{
 				check(!IsGarbageCollecting());
 				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly								
@@ -3658,7 +3668,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					// Allocate the linker, forcing byte swapping if wanted.
 					Linker = new FLinkerSave(InOuter, *TempFilename, bForceByteSwapping, bSaveUnversioned);
 				}
-
 
 #if WITH_EDITOR
 				if (!!TargetPlatform)
@@ -3816,10 +3825,15 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 				SlowTask.EnterProgressFrame();
 
+				bool bCanCacheGatheredText = false;
 				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
 				{
 					// Gathers from the given package
-					FPropertyLocalizationDataGatherer(Linker->GatherableTextDataMap, InOuter);
+					EPropertyLocalizationGathererResultFlags GatherableTextResultFlags = EPropertyLocalizationGathererResultFlags::Empty;
+					FPropertyLocalizationDataGatherer(Linker->GatherableTextDataMap, InOuter, GatherableTextResultFlags);
+
+					// We can only cache packages that don't contain script data, as script data is very volatile and can only be safely gathered after it's been compiled (which happens automatically on asset load)
+					bCanCacheGatheredText = !(GatherableTextResultFlags & EPropertyLocalizationGathererResultFlags::HasScript);
 				}
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
@@ -4132,7 +4146,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 				Linker->Summary.GatherableTextDataOffset = 0;
 				Linker->Summary.GatherableTextDataCount = 0;
-				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
+				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) && bCanCacheGatheredText )
 				{
 					Linker->Summary.GatherableTextDataOffset = Linker->Tell();
 

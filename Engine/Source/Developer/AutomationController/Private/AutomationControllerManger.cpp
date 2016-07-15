@@ -614,6 +614,11 @@ void FAutomationControllerManager::HandleReceivedScreenShot( const FAutomationWo
 	// Forward the screen shot on to listeners
 	FAutomationWorkerScreenImage* ImageMessage = new FAutomationWorkerScreenImage( Message );
 	MessageEndpoint->Publish(ImageMessage, EMessageScope::Network);
+
+	// Save the screen shot locally (assuming that the controller manager is running on PC/Mac)
+	const bool bTree = true;
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(Message.ScreenShotName), bTree);
+	FFileHelper::SaveArrayToFile(Message.ScreenImage, *Message.ScreenShotName);
 }
 
 void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context )

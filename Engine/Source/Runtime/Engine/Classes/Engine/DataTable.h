@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "DataTableUtils.h" // Needed here for LogDataTable
+#include "DataTableUtils.h" // Needed here for LogDataTable and EDataTableExportFlags
 #include "DataTable.generated.h"
 
 
@@ -183,19 +183,19 @@ public:
 	ENGINE_API void RestoreAfterStructChange();
 
 	/** Output entire contents of table as a string */
-	ENGINE_API FString GetTableAsString() const;
+	ENGINE_API FString GetTableAsString(const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
 	/** Output entire contents of table as CSV */
-	ENGINE_API FString GetTableAsCSV() const;
+	ENGINE_API FString GetTableAsCSV(const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
 	/** Output entire contents of table as JSON */
-	ENGINE_API FString GetTableAsJSON() const;
+	ENGINE_API FString GetTableAsJSON(const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
 	/** Output entire contents of table as JSON */
-	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const;
+	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
 	/** Output the fields from a particular row (use RowMap to get RowData) to an existing JsonWriter */
-	ENGINE_API bool WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData) const;
+	ENGINE_API bool WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
 	/** 
 	 *	Create table from CSV style comma-separated string. 
@@ -220,7 +220,7 @@ public:
 	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
 
 	/** Get array for each row in the table. The first row is the titles*/
-	ENGINE_API TArray< TArray<FString> > GetTableData() const;
+	ENGINE_API TArray< TArray<FString> > GetTableData(const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 #endif //WITH_EDITOR
 
 	//~ End UDataTable Interface

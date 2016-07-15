@@ -632,6 +632,11 @@ public:
 	void ShowPackageNotification();
 
 	/**
+	 * @return Returns the number of dirty packages that require checkout.
+	 */
+	int32 GetNumDirtyPackagesThatNeedCheckout() const;
+
+	/**
 	 * Checks to see if there are any packages in the PackageToNotifyState map that are not checked out by the user
 	 *
 	 * @return True if packages need to be checked out.
@@ -768,10 +773,21 @@ public:
 	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent);
 	
 protected:
+	/** Called when global editor selection changes */
+	void OnEditorSelectionChanged(UObject* SelectionThatChanged);
+
+	/** Called when blueprint objects are replaced so that we can update the cached visualizer selection */
+	void ReplaceCachedVisualizerObjects(const TMap<UObject*, UObject*>& ReplacementMap);
+
 	EWriteDisallowedWarningState GetWarningStateForWritePermission(const FString& PackageName) const;
 	
 	/** The package auto-saver instance used by the editor */
 	TUniquePtr<IPackageAutoSaver> PackageAutoSaver;
+
+	/**
+	 * The list of visualizers to draw when selection changes
+	 */
+	TArray<FCachedComponentVisualizer> VisualizersForSelection;
 
 	/** Instance responsible for monitoring this editor's performance */
 	FPerformanceMonitor* PerformanceMonitor;
@@ -781,4 +797,16 @@ protected:
 
 	/** Whether the pivot has been moved independently */
 	bool bPivotMovedIndependently;
+
+	TWeakPtr<SNotificationItem> CheckOutNotificationWeakPtr;
+
+private:
+	/**
+	* Internal helper function to count how many dirty packages require checkout.
+	*
+	* @param	bCheckIfAny		If true, checks instead if any packages need checkout.
+	*
+	* @return	Returns the number of dirty packages that require checkout. If bCheckIfAny is true, returns 1 if any packages will require checkout.
+	*/
+	int32 InternalGetNumDirtyPackagesThatNeedCheckout(bool bCheckIfAny) const;
 };

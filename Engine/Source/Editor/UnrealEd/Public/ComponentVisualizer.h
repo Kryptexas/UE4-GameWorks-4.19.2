@@ -82,3 +82,14 @@ public:
 	/** Get a component pointer from the property name */
 	static UActorComponent* GetComponentFromPropertyName(const AActor* CompOwner, const FPropertyNameAndIndex& Property);
 };
+
+struct FCachedComponentVisualizer
+{
+	TWeakObjectPtr<UActorComponent> Component;
+	TSharedPtr<FComponentVisualizer> Visualizer;
+	
+	FCachedComponentVisualizer(UActorComponent* InComponent, TSharedPtr<FComponentVisualizer>& InVisualizer)
+		: Component(InComponent)
+		, Visualizer(InVisualizer)
+	{}
+};

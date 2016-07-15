@@ -7,6 +7,7 @@
 #include "SlateDelegates.h"
 #include "SlateApplicationBase.h"
 #include "NavigationConfig.h"
+#include "Templates/Function.h"
 
 
 class SToolTip;
@@ -80,8 +81,69 @@ class SLATE_API FPopupSupport
 
 	/** List of subscriptions that want to be notified when the user clicks outside a certain widget. */
 	TArray<FClickSubscriber> ClickZoneNotifications;
-
 };
+
+
+
+/**
+ * A representation of a slate input providing user.  We allocate a slate user as new input sources are
+ * discovered.
+ */
+class SLATE_API FSlateUser
+{
+public:
+	FSlateUser(int32 InUserIndex, bool InVirtualUser);
+	virtual ~FSlateUser();
+
+	FORCEINLINE int32 GetUserIndex() const { return UserIndex; }
+	FORCEINLINE bool IsVirtualUser() const { return bVirtualUser; }
+
+	TSharedPtr<SWidget> GetFocusedWidget() const;
+
+private:
+	/** The index the user was assigned. */
+	int32 UserIndex;
+
+	/** Is this a virtual user?  Virtual users are generally ignored in most operations that affect all users. */
+	bool bVirtualUser;
+
+	struct FUserFocusEntry
+	{
+		/** A weak path to the widget currently focused by a user, if any. */
+		FWeakWidgetPath WidgetPath;
+		/** Reason a widget was focused by a user, if any. */
+		EFocusCause FocusCause;
+		/** If we should show this focus */
+		bool ShowFocus;
+	};
+
+	FUserFocusEntry Focus;
+
+	friend class FSlateApplication;
+};
+
+/**
+ * Represents a virtual user of slate.
+ */
+class SLATE_API FSlateVirtualUser
+{
+public:
+	FSlateVirtualUser(int32 InUserIndex, int32 InVirtualUserIndex);
+	virtual ~FSlateVirtualUser();
+
+	FORCEINLINE int32 GetUserIndex() const { return UserIndex; }
+	FORCEINLINE int32 GetVirtualUserIndex() const { return UserIndex; }
+
+private:
+
+	/** The index the user was assigned. */
+	int32 UserIndex;
+
+	/** The index the user was assigned. */
+	int32 VirtualUserIndex;
+};
+
+
 
 class SLATE_API FSlateApplication
 	: public FSlateApplicationBase
@@ -437,6 +499,17 @@ public:
 	void UnregisterGameViewport();
 
 	/**
+	 * Register another window that may be visible in a non-top level way that still needs to be able to maintain focus paths.
+	 * Generally speaking - this is for Virtual Windows that are created to render in the 3D world slate content.
+	 */
+	void RegisterVirtualWindow(TSharedRef<SWindow> InWindow);
+
+	/**
+	 * Unregister a virtual window.
+	 */
+	void UnregisterVirtualWindow(TSharedRef<SWindow> InWindow);
+
+	/**
 	 * Flushes the render state of slate, releasing accesses and flushing all render commands.
 	 */
 	void FlushRenderState();
@@ -544,9 +617,11 @@ public:
 	/** returning platform-specific value designating window that captures mouse, or nullptr if mouse isn't captured */
 	virtual void* GetMouseCaptureWindow( void ) const;
 
-
-	/** Releases the mouse capture from whatever it currently is on. */
+	/** Releases the mouse capture from whatever it currently is on - for all users for all pointers. */
 	void ReleaseMouseCapture();
+
+	/** Releases the mouse capture from whatever it currently is on for a particular user. */
+	void ReleaseMouseCaptureForUser(int32 UserIndex);
 
 	/** @return The active modal window or nullptr if there is no modal window. */
 	TSharedPtr<SWindow> GetActiveModalWindow() const;
@@ -799,12 +874,59 @@ public:
 	 */
 	void ReleaseResourcesForLayoutCache(const ILayoutCache* LayoutCache);
 
+	/**
+	 * @return a handle for the existing or newly created virtual slate user.  This is handy when you need to create
+	 * virtual hardware users for slate components in the virtual world that may need to be interacted with with virtual hardware.
+	 */
+	TSharedRef<FSlateVirtualUser> FindOrCreateVirtualUser(int32 VirtualUserIndex);
+
+	/**
+	 * 
+	 */
+	void UnregisterUser(int32 UserIndex);
+
+	/**
+	 * Allows you do some operations for every registered user.
+	 */
+	void ForEachUser(TFunctionRef<void(FSlateUser*)> InPredicate, bool bIncludeVirtualUsers = false);
+
 protected:
+	/**
+	 * Register a user with Slate.  Normally this is unnecessary as Slate automatically adds
+	 * a user entry if it gets input from a controller for that index.  Might happen if the user
+	 * allocates the virtual user.
+	 */
+	void RegisterUser(TSharedRef<FSlateUser> User);
+
+	FORCEINLINE const FSlateUser* GetUser(int32 UserIndex) const
+	{
+		return UserIndex < Users.Num() ? Users[UserIndex].Get() : nullptr;
+	}
+
+	FORCEINLINE FSlateUser* GetUser(int32 UserIndex)
+	{
+		return UserIndex < Users.Num() ? Users[UserIndex].Get() : nullptr;
+	}
+
+	FORCEINLINE FSlateUser* GetOrCreateUser(int32 UserIndex)
+	{
+		if ( FSlateUser* User = GetUser(UserIndex) )
+		{
+			return User;
+		}
+
+		TSharedRef<FSlateUser> NewUser = MakeShareable(new FSlateUser(UserIndex, false));
+		RegisterUser(NewUser);
+
+		return &NewUser.Get();
+	}
 
 	friend class FAnalogCursor;
 	friend class FEventRouter;
 
-	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
+	virtual bool DoesWidgetHaveMouseCaptureByUser(const TSharedPtr<const SWidget> Widget, int32 UserIndex, TOptional<int32> PointerIndex) const override;
+	virtual bool DoesWidgetHaveMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
+
 	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const override;
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const override;
@@ -1100,7 +1222,12 @@ public:
 
 	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) override
 	{
-		return FSlateWindowHelper::FindPathToWidget(GetInteractiveTopLevelWindows(), InWidget, OutWidgetPath, VisibilityFilter);
+		if ( !FSlateWindowHelper::FindPathToWidget(GetInteractiveTopLevelWindows(), InWidget, OutWidgetPath, VisibilityFilter) )
+		{
+			return FSlateWindowHelper::FindPathToWidget(SlateVirtualWindows, InWidget, OutWidgetPath, VisibilityFilter);
+		}
+
+		return true;
 	}
 
 	virtual const double GetCurrentTime() const override
@@ -1142,6 +1269,7 @@ public:
 	//~ Begin FSlateApplicationBase Interface
 
 	virtual bool HasAnyMouseCaptor() const override;
+	virtual bool HasUserMouseCapture(int32 UserIndex) const override;
 	virtual FSlateRect GetPreferredWorkArea() const override;
 	virtual bool HasFocusedDescendants( const TSharedRef<const SWidget>& Widget ) const override;
 	virtual bool HasUserFocusedDescendants(const TSharedRef< const SWidget >& Widget, int32 UserIndex) const override;
@@ -1382,6 +1510,9 @@ private:
 	/** All the top-level windows owned by this application; they are tracked here in a platform-agnostic way. */
 	TArray< TSharedRef<SWindow> > SlateWindows;
 
+	/** All the virtual windows, which can be anywhere - likely inside the virtual world. */
+	TArray< TSharedRef<SWindow> > SlateVirtualWindows;
+
 	/** The currently active slate window that is a top-level window (full fledged window; not a menu or tooltip)*/
 	TWeakPtr<SWindow> ActiveTopLevelWindow;
 	
@@ -1412,9 +1543,17 @@ private:
 		bool HasCapture() const;
 
 		/**
+		* Returns whether or not the particular UserIndex has capture.
+		*/
+		bool HasCaptureForUser(uint32 UserIndex) const;
+
+		/**
 		 * Returns whether or not the particular PointerIndex has capture.
 		 */
 		bool HasCaptureForPointerIndex(uint32 UserIndex, uint32 PointerIndex) const;
+
+		bool DoesWidgetHaveMouseCapture(const TSharedPtr<const SWidget> Widget) const;
+		bool DoesWidgetHaveMouseCaptureByUser(const TSharedPtr<const SWidget> Widget, int32 UserIndex, TOptional<int32> PointerIndex) const;
 
 		/**
 		 * Sets a new mouse captor widget for a specific pointer index, invalidating the previous one if any and calling
@@ -1431,6 +1570,9 @@ private:
 
 		/** Invalidates a specific mouse captor. Calls OnMouseCaptureLost() on the specific mouse captor if one exists */
 		void InvalidateCaptureForPointer(uint32 UserIndex, uint32 PointIndex);
+
+		/** Invalidates a specific mouse captor. Calls OnMouseCaptureLost() on the specific mouse captor if one exists */
+		void InvalidateCaptureForUser(uint32 UserIndex);
 
 		/**
 		 * Retrieves a resolved FWidgetPath for a specific pointer index, if possible.
@@ -1484,19 +1626,19 @@ private:
 	/** The hit-test radius of the cursor. Default value is 0. */
 	float CursorRadius;
 
+	/**
+	 * All users currently registered with Slate.  Normally this is 1, but in a 
+	 * situation where multiple users are providing input you need to track ui state
+	 * of each user separately.
+	 */
+	TArray<TSharedPtr<FSlateUser>> Users;
 
-	struct FUserFocusEntry
-	{
-		/** A weak path to the widget currently focused by a user, if any. */
-		FWeakWidgetPath WidgetPath;
-		/** Reason a widget was focused by a user, if any. */
-		EFocusCause FocusCause;
-		/** If we should show this focus */
-		bool ShowFocus;
-	};
+	/**
+	 * Weak pointers to the allocated virtual users.
+	 */
+	TArray<TWeakPtr<FSlateVirtualUser>> VirtualUsers;
 
-	/** State of focus for all users */
-	FUserFocusEntry UserFocusEntries[SlateApplicationDefs::MaxUsers];
+	typedef FSlateUser::FUserFocusEntry FUserFocusEntry;
 
 	/**
 	 * Application throttling

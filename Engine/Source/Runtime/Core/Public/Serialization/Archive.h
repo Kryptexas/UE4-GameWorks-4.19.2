@@ -33,7 +33,9 @@ public:
 		return Offset;
 	}
 
-	virtual FArchive& operator<<( class FName& N )
+	using FArchive::operator<<; // For visibility of the overloads we don't override
+
+	virtual FArchive& operator<<( class FName& N ) override
 	{
 		// Serialize the FName as a string
 		if (IsLoading())
@@ -50,7 +52,7 @@ public:
 		return *this;
 	}
 
-	virtual FArchive& operator<<( class UObject*& Res )
+	virtual FArchive& operator<<( class UObject*& Res ) override
 	{
 		// Not supported through this archive
 		check(0);

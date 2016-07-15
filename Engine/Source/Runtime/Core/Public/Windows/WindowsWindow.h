@@ -78,6 +78,9 @@ public:
 
 	float GetAspectRatio() const { return AspectRatio; }
 
+	/** @return True if the window is enabled */
+	bool IsEnabled();
+
 public:
 
 	// FGenericWindow interface

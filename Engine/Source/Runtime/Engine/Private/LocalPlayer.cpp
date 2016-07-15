@@ -1025,27 +1025,6 @@ bool ULocalPlayer::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-bool ULocalPlayer::HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
-{
-	Super::Exec(InWorld, TEXT("Pause"),Ar);
-
-	if (!InWorld->IsPaused())
-	{
-		if (ViewportClient && ViewportClient->Viewport)
-		{
-			ViewportClient->Viewport->SetUserFocus(true);
-			ViewportClient->Viewport->CaptureMouse(true);
-		}
-	}
-	else
-	{
-		FSlateApplication::Get().ResetToDefaultInputSettings();
-	}
-	
-
-	return true;
-}
-
 bool ULocalPlayer::HandleListMoveBodyCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	GShouldLogOutAFrameOfSetBodyTransform = true;
@@ -1276,8 +1255,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 			return HandleDNCommand( Cmd, Ar );
 		}
 
-		if( FParse::Command(&Cmd,TEXT("CloseEditorViewport")) 
-		||	FParse::Command(&Cmd,TEXT("Exit")) 
+		if( FParse::Command(&Cmd,TEXT("Exit")) 
 		||	FParse::Command(&Cmd,TEXT("Quit")))
 		{
 			return HandleExitCommand( Cmd, Ar );
@@ -1294,10 +1272,6 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 			return true;
 		}
 
-		if( FParse::Command(&Cmd,TEXT("Pause") ))
-		{
-			return HandlePauseCommand( Cmd, Ar, InWorld );
-		}
 	}
 #endif // WITH_EDITOR
 

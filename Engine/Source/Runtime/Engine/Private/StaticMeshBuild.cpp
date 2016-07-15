@@ -59,6 +59,12 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 		return;
 	}
 
+	if (SourceModels.Num() > MAX_STATIC_MESH_LODS)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Cannot build LOD %d.  The maximum allowed is %d.  Skipping."), SourceModels.Num(), MAX_STATIC_MESH_LODS);
+		return;
+	}
+
 	if(!bSilent)
 	{
 		FFormatNamedArguments Args;

@@ -77,16 +77,20 @@ struct ENGINE_API FInputModeUIOnly : public FInputModeDataBase
 	FInputModeUIOnly& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
 
 	/** Whether to lock the mouse to the viewport */
-	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+	DEPRECATED(4.13, "Mouse locking behavior is now controlled by an enum. Please use SetLockMouseToViewportBehavior(...) instead.")
+	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { return SetLockMouseToViewportBehavior( InLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock ); }
+
+	/** Sets the mouse locking behavior of the viewport */
+	FInputModeUIOnly& SetLockMouseToViewportBehavior(EMouseLockMode InMouseLockMode) { MouseLockMode = InMouseLockMode; return *this; }
 
 	FInputModeUIOnly()
 		: WidgetToFocus()
-		, bLockMouseToViewport(false)
+		, MouseLockMode(EMouseLockMode::DoNotLock)
 	{}
 
 protected:
 	TSharedPtr<SWidget> WidgetToFocus;
-	bool bLockMouseToViewport;
+	EMouseLockMode MouseLockMode;
 
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
@@ -98,21 +102,25 @@ struct ENGINE_API FInputModeGameAndUI : public FInputModeDataBase
 	FInputModeGameAndUI& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
 
 	/** Whether to lock the mouse to the viewport */
-	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+	DEPRECATED(4.13, "Mouse locking behavior is now controlled by an enum. Please use SetLockMouseToViewportBehavior(...) instead.")
+	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { return SetLockMouseToViewportBehavior( InLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock ); }
+
+	/** Sets the mouse locking behavior of the viewport */
+	FInputModeGameAndUI& SetLockMouseToViewportBehavior(EMouseLockMode InMouseLockMode) { MouseLockMode = InMouseLockMode; return *this; }
 
 	/** Whether to hide the cursor during temporary mouse capture caused by a mouse down */
 	FInputModeGameAndUI& SetHideCursorDuringCapture(bool InHideCursorDuringCapture) { bHideCursorDuringCapture = InHideCursorDuringCapture; return *this; }
 
 	FInputModeGameAndUI()
 		: WidgetToFocus()
-		, bLockMouseToViewport(false)
+		, MouseLockMode(EMouseLockMode::DoNotLock)
 		, bHideCursorDuringCapture(true)
 	{}
 
 protected:
 
 	TSharedPtr<SWidget> WidgetToFocus;
-	bool bLockMouseToViewport;
+	EMouseLockMode MouseLockMode;
 	bool bHideCursorDuringCapture;
 
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
@@ -1250,6 +1258,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void EnableInput(class APlayerController* PlayerController) override;
 	virtual void DisableInput(class APlayerController* PlayerController) override;
+	virtual void BeginPlay() override;
 	//~ End AActor Interface
 
 	//~ Begin AController Interface

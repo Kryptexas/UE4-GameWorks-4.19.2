@@ -1013,7 +1013,11 @@ EVisibility FLandscapeEditorDetailCustomization_NewLandscape::GetHeightmapErrorV
 {
 	uint8 HeightmapErrorAsByte = 0;
 	FPropertyAccess::Result Result = PropertyHandle_HeightmapError->GetValue(HeightmapErrorAsByte);
-	check(Result == FPropertyAccess::Success);
+
+	if (!ensure(Result == FPropertyAccess::Success))
+	{
+		return EVisibility::Collapsed;
+	}
 
 	if (Result == FPropertyAccess::MultipleValues)
 	{
@@ -1024,6 +1028,7 @@ EVisibility FLandscapeEditorDetailCustomization_NewLandscape::GetHeightmapErrorV
 	{
 		return EVisibility::Visible;
 	}
+
 	return EVisibility::Collapsed;
 }
 
@@ -1031,7 +1036,11 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetHeightmapErrorText(TS
 {
 	uint8 HeightmapErrorAsByte = 0;
 	FPropertyAccess::Result Result = PropertyHandle_HeightmapError->GetValue(HeightmapErrorAsByte);
-	check(Result == FPropertyAccess::Success);
+	
+	if (!ensure(Result == FPropertyAccess::Success))
+	{
+		return FText::GetEmpty();
+	}
 
 	if (Result == FPropertyAccess::MultipleValues)
 	{
@@ -1063,7 +1072,11 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetImportHeightmapFilena
 {
 	FString HeightmapFilename;
 	FPropertyAccess::Result Result = PropertyHandle_HeightmapFilename->GetValue(HeightmapFilename);
-	check(Result == FPropertyAccess::Success);
+	
+	if (!ensure(Result == FPropertyAccess::Success))
+	{
+		return FText::GetEmpty();
+	}
 
 	if (Result == FPropertyAccess::MultipleValues)
 	{

@@ -423,7 +423,8 @@ void FSkeletalMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegre
 	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->GetSkeletalMeshComponent()->Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewActor->GetSkeletalMeshComponent()->SkeletalMesh->ThumbnailInfo);
+	// Since we're using USceneThumbnailInfoWithPrimitive in SetMaterialInterface, we should use it here instead of USceneThumbnailInfoWithPrimitive for consistency.
+	USceneThumbnailInfoWithPrimitive* ThumbnailInfo = Cast<USceneThumbnailInfoWithPrimitive>(PreviewActor->GetSkeletalMeshComponent()->SkeletalMesh->ThumbnailInfo);
 	if ( ThumbnailInfo )
 	{
 		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )
@@ -433,7 +434,7 @@ void FSkeletalMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegre
 	}
 	else
 	{
-		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+		ThumbnailInfo = USceneThumbnailInfoWithPrimitive::StaticClass()->GetDefaultObject<USceneThumbnailInfoWithPrimitive>();
 	}
 
 	OutOrigin = FVector(0, 0, -BoundsZOffset);
@@ -1082,21 +1083,25 @@ FBlueprintThumbnailScene::FBlueprintThumbnailScene()
 void FBlueprintThumbnailScene::SetBlueprint(UBlueprint* Blueprint)
 {
 	CurrentBlueprint = Blueprint;
-	UClass* BPClass = (CurrentBlueprint ? CurrentBlueprint->GeneratedClass : nullptr);
+	UClass* BPClass = (Blueprint ? Blueprint->GeneratedClass : nullptr);
 	SpawnPreviewActor(BPClass);
 }
 
-void FBlueprintThumbnailScene::BlueprintChanged(class UBlueprint* Blueprint)
+void FBlueprintThumbnailScene::BlueprintChanged(UBlueprint* Blueprint)
 {
-	UClass* BPClass = (CurrentBlueprint ? CurrentBlueprint->GeneratedClass : nullptr);
-	SpawnPreviewActor(BPClass);
+	if (CurrentBlueprint == Blueprint)
+	{
+		UClass* BPClass = (Blueprint ? Blueprint->GeneratedClass : nullptr);
+		SpawnPreviewActor(BPClass);
+	}
 }
 
 USceneThumbnailInfo* FBlueprintThumbnailScene::GetSceneThumbnailInfo(const float TargetDistance) const
 {
-	check(CurrentBlueprint);
+	UBlueprint* Blueprint = CurrentBlueprint.Get();
+	check(Blueprint);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(CurrentBlueprint->ThumbnailInfo);
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(Blueprint->ThumbnailInfo);
 	if ( ThumbnailInfo )
 	{
 		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )

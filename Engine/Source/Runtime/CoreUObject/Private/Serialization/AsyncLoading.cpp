@@ -39,6 +39,7 @@ DECLARE_CYCLE_STAT(TEXT("FinishLinker AsyncPackage"),STAT_FAsyncPackage_FinishLi
 DECLARE_CYCLE_STAT(TEXT("LoadImports AsyncPackage"),STAT_FAsyncPackage_LoadImports,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("CreateImports AsyncPackage"),STAT_FAsyncPackage_CreateImports,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("FinishTextureAllocations AsyncPackage"),STAT_FAsyncPackage_FinishTextureAllocations,STATGROUP_AsyncLoad);
+DECLARE_CYCLE_STAT(TEXT("CreateMetaData AsyncPackage"),STAT_FAsyncPackage_CreateMetaData,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("CreateExports AsyncPackage"),STAT_FAsyncPackage_CreateExports,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("FreeReferencedImports AsyncPackage"), STAT_FAsyncPackage_FreeReferencedImports, STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("Precache ArchiveAsync"), STAT_FArchiveAsync_Precache, STATGROUP_AsyncLoad);
@@ -1382,6 +1383,15 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 			LoadingState = FinishTextureAllocations();
 		}
 
+#if WITH_EDITORONLY_DATA
+		// Create and preload the package meta-data
+		if (LoadingState == EAsyncPackageState::Complete)
+		{
+			SCOPED_LOADTIMER(Package_CreateMetaData);
+			LoadingState = CreateMetaData();
+		}
+#endif // WITH_EDITORONLY_DATA
+
 		// Create exports from linker export table and also preload them.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
@@ -1842,6 +1852,27 @@ EAsyncPackageState::Type FAsyncPackage::FinishTextureAllocations()
 #endif		// WITH_ENGINE
 }
 
+#if WITH_EDITORONLY_DATA
+/**
+* Creates and loads meta-data for the package.
+*
+* @return true if we finished creating meta-data, false otherwise.
+*/
+EAsyncPackageState::Type FAsyncPackage::CreateMetaData()
+{
+	SCOPED_LOADTIMER(CreateMetaDataTime);
+	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateMetaData);
+
+	if (!MetaDataIndex.IsSet())
+	{
+		checkSlow(!FPlatformProperties::RequiresCookedData());
+		MetaDataIndex = Linker->LoadMetaDataFromExportMap();
+	}
+
+	return EAsyncPackageState::Complete;
+}
+#endif // WITH_EDITORONLY_DATA
+
 /**
  * Create exports till time limit is exceeded.
  *
@@ -1858,6 +1889,15 @@ EAsyncPackageState::Type FAsyncPackage::CreateExports()
 	// Create exports.
 	while( ExportIndex < Linker->ExportMap.Num() && !IsTimeLimitExceeded() )
 	{
+#if WITH_EDITORONLY_DATA
+		checkf(MetaDataIndex.IsSet(), TEXT("FAsyncPackage::CreateExports called before FAsyncPackage::CreateMetaData!"));
+		if (ExportIndex == MetaDataIndex.GetValue())
+		{
+			++ExportIndex;
+			continue;
+		}
+#endif // WITH_EDITORONLY_DATA
+
 		const FObjectExport& Export = Linker->ExportMap[ExportIndex];
 		// Precache data and see whether it's already finished.
 		bool bReady;

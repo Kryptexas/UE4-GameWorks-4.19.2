@@ -152,6 +152,11 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 	const FString EditorSplash_TargetImagePath = GetSplashFilename(EImageScope::GameOverride, true);
 	const FString EditorSplash_DefaultImagePath = GetSplashFilename(EImageScope::Engine, true);
 
+	TArray<FString> ImageExtensions;
+	ImageExtensions.Add(TEXT("png"));
+	ImageExtensions.Add(TEXT("jpg"));
+	ImageExtensions.Add(TEXT("bmp"));
+
 	EditorSplashWidgetRow
 	.NameContent()
 	[
@@ -179,6 +184,8 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 			.OnGetPickerPath(FOnGetPickerPath::CreateSP(this, &FWindowsTargetSettingsDetails::GetPickerPath))
 			.OnPostExternalImageCopy(FOnPostExternalImageCopy::CreateSP(this, &FWindowsTargetSettingsDetails::HandlePostExternalIconCopy))
 			.DeleteTargetWhenDefaultChosen(true)
+			.FileExtensions(ImageExtensions)
+			.DeletePreviousTargetWhenExtensionChanges(true)
 		]
 	];
 
@@ -213,6 +220,9 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 			.FileDescription(GameSplashDesc)
 			.OnGetPickerPath(FOnGetPickerPath::CreateSP(this, &FWindowsTargetSettingsDetails::GetPickerPath))
 			.OnPostExternalImageCopy(FOnPostExternalImageCopy::CreateSP(this, &FWindowsTargetSettingsDetails::HandlePostExternalIconCopy))
+			.DeleteTargetWhenDefaultChosen(true)
+			.FileExtensions(ImageExtensions)
+			.DeletePreviousTargetWhenExtensionChanges(true)
 		]
 	];
 

@@ -381,6 +381,8 @@ private:
 	public:
 		static TSharedRef<FTextInputMethodContext> Create(FSlateEditableTextLayout& InOwnerLayout);
 
+		void CacheWindow();
+
 		FORCEINLINE bool IsComposing() const
 		{
 			return bIsComposing;
@@ -419,6 +421,7 @@ private:
 	private:
 		FTextInputMethodContext(FSlateEditableTextLayout& InOwnerLayout);
 		FSlateEditableTextLayout* OwnerLayout;
+		TWeakPtr<SWindow> CachedParentWindow;
 
 		FGeometry CachedGeometry;
 		bool bIsComposing;

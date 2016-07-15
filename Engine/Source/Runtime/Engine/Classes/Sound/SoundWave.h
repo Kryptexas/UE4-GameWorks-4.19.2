@@ -281,7 +281,6 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;	
 #endif // WITH_EDITOR
-	virtual bool IsLocalizedResource() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual FName GetExporterName() override;
 	virtual FString GetDesc() override;

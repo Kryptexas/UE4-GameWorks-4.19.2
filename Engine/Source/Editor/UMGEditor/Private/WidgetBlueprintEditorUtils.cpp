@@ -7,6 +7,7 @@
 #include "WidgetBlueprintEditor.h"
 #include "Kismet2NameValidators.h"
 #include "BlueprintEditorUtils.h"
+#include "TextPackageNamespaceUtil.h"
 #include "K2Node_Variable.h"
 #include "WidgetTemplateClass.h"
 #include "Factories.h"
@@ -585,7 +586,7 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgets, BP, Widgets, ReplacementClass),
-					FCanExecuteAction()
+					FCanExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::CanBeReplaced, Widgets)
 				));
 		}
 	}
@@ -628,6 +629,20 @@ void FWidgetBlueprintEditorUtils::ReplaceWidgetWithChildren(UWidgetBlueprint* BP
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 	}
+}
+
+bool FWidgetBlueprintEditorUtils::CanBeReplaced(TSet<FWidgetReference> Widgets)
+{
+	for ( FWidgetReference& Item : Widgets )
+	{
+		UPanelWidget* ExisitingPanel = Cast<UPanelWidget>( Item.GetTemplate() );
+		if ( !ExisitingPanel )
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void FWidgetBlueprintEditorUtils::ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass)
@@ -932,6 +947,18 @@ void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, co
 	// objects not part of the deserialization set are unresolved.
 	UPackage* TempPackage = NewObject<UPackage>(nullptr, TEXT("/Engine/UMG/Editor/Transient"), RF_Transient);
 	TempPackage->AddToRoot();
+
+	// Force the transient package to have the same namespace as the final widget blueprint package.
+	// This ensures any text properties serialized from the buffer will be keyed correctly for the target package.
+#if USE_STABLE_LOCALIZATION_KEYS
+	{
+		const FString PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(BP);
+		if (!PackageNamespace.IsEmpty())
+		{
+			TextNamespaceUtil::ForcePackageNamespace(TempPackage, PackageNamespace);
+		}
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 	// Turn the text buffer into objects
 	FWidgetObjectTextFactory Factory;

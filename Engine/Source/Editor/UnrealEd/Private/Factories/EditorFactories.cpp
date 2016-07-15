@@ -119,6 +119,32 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 #define LOCTEXT_NAMESPACE "EditorFactories"
 
 /*------------------------------------------------------------------------------
+	Shared - used by multiple factories
+------------------------------------------------------------------------------*/
+
+class FAssetClassParentFilter : public IClassViewerFilter
+{
+public:
+	/** All children of these classes will be included unless filtered out by another setting. */
+	TSet< const UClass* > AllowedChildrenOfClasses;
+
+	/** Disallowed class flags. */
+	uint32 DisallowedClassFlags;
+
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
+	{
+		return !InClass->HasAnyClassFlags(DisallowedClassFlags)
+			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed;
+	}
+
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
+	{
+		return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags)
+			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed;
+	}
+};
+
+/*------------------------------------------------------------------------------
 	UTexture2DFactoryNew implementation.
 ------------------------------------------------------------------------------*/
 UTexture2DFactoryNew::UTexture2DFactoryNew(const FObjectInitializer& ObjectInitializer)
@@ -829,21 +855,19 @@ UObject* ULevelFactory::FactoryCreateText
 			// This actor is old
 		}
 
-		// If this is a newly imported static brush, validate it.  If it's a newly imported dynamic brush, rebuild it.
+		// If this is a newly imported brush, validate it.  If it's a newly imported dynamic brush, rebuild it first.
 		// Previously, this just called bspValidateBrush.  However, that caused the dynamic brushes which require a valid BSP tree
 		// to be built to break after being duplicated.  Calling RebuildBrush will rebuild the BSP tree from the imported polygons.
 		ABrush* Brush = Cast<ABrush>(Actor);
 		if( bActorChanged && Brush && Brush->Brush )
 		{
 			const bool bIsStaticBrush = Brush->IsStaticBrush();
-			if( bIsStaticBrush )
-			{
-				FBSPOps::bspValidateBrush( Brush->Brush, true, false );
-			}
-			else
+			if( !bIsStaticBrush )
 			{
 				FBSPOps::RebuildBrush( Brush->Brush );
 			}
+
+			FBSPOps::bspValidateBrush(Brush->Brush, true, false);
 		}
 
 		// Copy brushes' model pointers over to their BrushComponent, to keep compatibility with old T3Ds.
@@ -2529,9 +2553,47 @@ UPhysicalMaterialFactoryNew::UPhysicalMaterialFactoryNew(const FObjectInitialize
 	bEditAfterNew = true;
 }
 
-UObject* UPhysicalMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
+bool UPhysicalMaterialFactoryNew::ConfigureProperties()
 {
-	return NewObject<UObject>(InParent, Class, Name, Flags);
+	// nullptr the DataAssetClass so we can check for selection
+	PhysicalMaterialClass = nullptr;
+
+	// Load the classviewer module to display a class picker
+	FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
+
+	// Fill in options
+	FClassViewerInitializationOptions Options;
+	Options.Mode = EClassViewerMode::ClassPicker;
+
+	TSharedPtr<FAssetClassParentFilter> Filter = MakeShareable(new FAssetClassParentFilter);
+	Options.ClassFilter = Filter;
+
+	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
+	Filter->AllowedChildrenOfClasses.Add(UPhysicalMaterial::StaticClass());
+
+	const FText TitleText = LOCTEXT("CreatePhysicalMaterial", "Pick Physical Material Class");
+	UClass* ChosenClass = nullptr;
+	const bool bPressedOk = SClassPickerDialog::PickClass(TitleText, Options, ChosenClass, UPhysicalMaterial::StaticClass());
+
+	if (bPressedOk)
+	{
+		PhysicalMaterialClass = ChosenClass;
+	}
+
+	return bPressedOk;
+}
+UObject* UPhysicalMaterialFactoryNew::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	if (PhysicalMaterialClass != nullptr)
+	{
+		return NewObject<UPhysicalMaterial>(InParent, PhysicalMaterialClass, Name, Flags | RF_Transactional);
+	}
+	else
+	{
+		// if we have no data asset class, use the passed-in class instead
+		check(Class->IsChildOf(UPhysicalMaterial::StaticClass()));
+		return NewObject<UPhysicalMaterial>(InParent, Class, Name, Flags);
+	}
 }
 
 /*------------------------------------------------------------------------------
@@ -5577,6 +5639,16 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	ReimportUI->bOverrideFullName = false;
 	ReimportUI->bCombineMeshes = true;
 
+	if (!ImportUI)
+	{
+		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
+	}
+	else
+	{
+		//Set misc options
+		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+	}
+
 	if( ImportData )
 	{
 		// Import data already exists, apply it to the fbx import options
@@ -5636,7 +5708,10 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 			{
 				for (int32 Idx = 0; Idx < UserData->Num(); Idx++)
 				{
-					UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage()));
+					if ((*UserData)[Idx] != nullptr)
+					{
+						UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage()));
+					}
 				}
 			}
 
@@ -5773,11 +5848,6 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	USkeletalMesh* SkeletalMesh = CastChecked<USkeletalMesh>( Obj );
 
-	if( !ImportUI )
-	{
-		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
-	}
-
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
 
@@ -5799,6 +5869,16 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	ReimportUI->bImportAnimations = false;
 	ReimportUI->OverrideAnimationName = TEXT("");
 	ReimportUI->bImportRigidMesh = false;
+
+	if (!ImportUI)
+	{
+		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
+	}
+	else
+	{
+		//Set misc options
+		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+	}
 
 	bool bSuccess = false;
 
@@ -6395,28 +6475,6 @@ UCurveFactory::UCurveFactory(const FObjectInitializer& ObjectInitializer)
 	CurveClass = nullptr;
 }
 
-class FCurveDataAssetParentFilter : public IClassViewerFilter
-{
-public:
-	/** All children of these classes will be included unless filtered out by another setting. */
-	TSet< const UClass* > AllowedChildrenOfClasses;
-
-	/** Disallowed class flags. */
-	uint32 DisallowedClassFlags;
-
-	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
-	{
-		return !InClass->HasAnyClassFlags(DisallowedClassFlags)
-				&& InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed;
-	}
-
-	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
-	{
-		return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags)
-			&& InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed;
-	}
-};
-
 bool UCurveFactory::ConfigureProperties()
 {
 	// Null the CurveClass so we can get a clean class
@@ -6429,7 +6487,7 @@ bool UCurveFactory::ConfigureProperties()
 	FClassViewerInitializationOptions Options;
 	Options.Mode = EClassViewerMode::ClassPicker;
 
-	TSharedPtr<FCurveDataAssetParentFilter> Filter = MakeShareable(new FCurveDataAssetParentFilter);
+	TSharedPtr<FAssetClassParentFilter> Filter = MakeShareable(new FAssetClassParentFilter);
 	Options.ClassFilter = Filter;
 
 	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
@@ -6648,7 +6706,7 @@ bool UDataAssetFactory::ConfigureProperties()
 	FClassViewerInitializationOptions Options;
 	Options.Mode = EClassViewerMode::ClassPicker;
 
-	TSharedPtr<FCurveDataAssetParentFilter> Filter = MakeShareable(new FCurveDataAssetParentFilter);
+	TSharedPtr<FAssetClassParentFilter> Filter = MakeShareable(new FAssetClassParentFilter);
 	Options.ClassFilter = Filter;
 
 	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;

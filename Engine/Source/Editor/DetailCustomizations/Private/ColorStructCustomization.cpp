@@ -287,8 +287,10 @@ void FColorStructCustomization::OnColorPickerCancelled(FLinearColor OriginalColo
 		}
 	}
 
-	StructPropertyHandle->SetPerObjectValues(PerObjectColors);
-	PerObjectColors.Empty();
+	if (PerObjectColors.Num() > 0)
+	{
+		StructPropertyHandle->SetPerObjectValues(PerObjectColors);
+	}
 }
 
 

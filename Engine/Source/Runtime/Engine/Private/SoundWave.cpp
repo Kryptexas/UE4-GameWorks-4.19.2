@@ -454,17 +454,6 @@ void USoundWave::RemoveAudioResource()
 	}
 }
 
-
-bool USoundWave::IsLocalizedResource()
-{
-	FString FullPathName;
-	bool bIsLocalised = false;
-
-	//@todo-packageloc Handle this based on the appropriate localized package name.
-
-	return( Super::IsLocalizedResource() || Subtitles.Num() > 0 || bIsLocalised );
-}
-
 #if WITH_EDITOR
 
 void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

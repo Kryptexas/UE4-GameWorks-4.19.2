@@ -51,6 +51,14 @@ static TAutoConsoleVariable<int32> CVarFlushRHIThreadOnSTreamingTextureLocks(
 	TEXT("If set to 0, we won't do any flushes for streaming textures. This is safe because the texture streamer deals with these hazards explicitly."),
 	ECVF_RenderThreadSafe);
 
+// TODO Only adding this setting to allow backwards compatibility to be forced.  The default
+// behavior is to NOT do this.  This variable should be removed in the future.  #ADDED 4.13
+static TAutoConsoleVariable<int32> CVarForceHighestMipOnUITexturesEnabled(
+	TEXT("r.ForceHighestMipOnUITextures"),
+	0,
+	TEXT("If set to 1, texutres in the UI Group will have their highest mip level forced."),
+	ECVF_RenderThreadSafe);
+
 static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreateFlags)
 {
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
@@ -1412,7 +1420,15 @@ uint32 FTexture2DResource::GetSizeY() const
 int32 FTexture2DResource::GetDefaultMipMapBias() const
 {
 	const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
-	return (Owner->LODGroup == TEXTUREGROUP_UI) ? -OwnerMips.Num() : 0;
+	if ( Owner->LODGroup == TEXTUREGROUP_UI )
+	{
+		if ( CVarForceHighestMipOnUITexturesEnabled.GetValueOnAnyThread() > 0 )
+		{
+			return -OwnerMips.Num();
+		}
+	}
+	
+	return 0;
 }
 
 /**

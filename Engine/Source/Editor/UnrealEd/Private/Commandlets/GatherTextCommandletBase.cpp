@@ -294,7 +294,7 @@ bool FManifestInfo::AddManifestDependencies( const TArray< FString >& InManifest
 }
 
 
-TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntryByContext( const FString& Namespace, const FContext& Context, FString& OutFileName )
+TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntryByContext( const FString& Namespace, const FManifestContext& Context, FString& OutFileName )
 {
 	TSharedPtr<FManifestEntry> DependencyEntry = NULL;
 	OutFileName = TEXT("");
@@ -362,7 +362,7 @@ void FManifestInfo::ApplyManifestDependencies()
 
 						FConflictReportInfo::GetInstance().AddConflict( ManifestEntry->Namespace, ContextIt->Key, ContextIt->KeyMetadataObj, ManifestEntry->Source, *ContextIt->SourceLocation );
 
-						FContext* ConflictingContext = DependencyEntry->FindContext( ContextIt->Key, ContextIt->KeyMetadataObj );
+						FManifestContext* ConflictingContext = DependencyEntry->FindContext( ContextIt->Key, ContextIt->KeyMetadataObj );
 						FString DependencyEntryFullSrcLoc = ( !DependencyFileName.IsEmpty() ) ? DependencyFileName : ConflictingContext->SourceLocation;
 						
 						FConflictReportInfo::GetInstance().AddConflict( ManifestEntry->Namespace, ContextIt->Key, ContextIt->KeyMetadataObj, DependencyEntry->Source, DependencyEntryFullSrcLoc );
@@ -389,7 +389,7 @@ void FManifestInfo::ApplyManifestDependencies()
 	}
 }
 
-bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Namespace, const FLocItem& Source, const FContext& Context )
+bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Namespace, const FLocItem& Source, const FManifestContext& Context )
 {
 	bool bAddSuccessful = false;
 	// Check if the entry already exists in the manifest or one of the manifest dependencies
@@ -409,7 +409,7 @@ bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Na
 		else
 		{
 			// Grab the source location of the conflicting context
-			FContext* ConflictingContext = ExistingEntry->FindContext( Context.Key, Context.KeyMetadataObj );
+			FManifestContext* ConflictingContext = ExistingEntry->FindContext( Context.Key, Context.KeyMetadataObj );
 			FString ExistingEntrySourceLocation = ( !ExistingEntryFileName.IsEmpty() ) ?  ExistingEntryFileName : ConflictingContext->SourceLocation;
 
 			FString Message = UGatherTextCommandletBase::MungeLogOutput( FString::Printf(TEXT("Previously entered localized string: %s [%s] %s %s=\"%s\" %s. It was previously \"%s\" %s in %s." ),
@@ -746,10 +746,16 @@ FGatherTextSCC::~FGatherTextSCC()
 
 bool FGatherTextSCC::CheckOutFile(const FString& InFile, FText& OutError)
 {
-	if ( InFile.IsEmpty() || InFile.StartsWith(TEXT("\\\\")) )
+	if ( InFile.IsEmpty() )
 	{
 		OutError = NSLOCTEXT("GatherTextCmdlet", "InvalidFileSpecified", "Could not checkout file at invalid path.");
 		return false;
+	}
+
+	if ( InFile.StartsWith(TEXT("\\\\")) )
+	{
+		// We can't check out a UNC path, but don't say we failed
+		return true;
 	}
 
 	FText SCCError;

@@ -1418,8 +1418,13 @@ void FMeshSectionSettingsLayout::OnResetMaterialToDefaultClicked(UMaterialInterf
 	}
 	else
 	{
-		// Reset this LOD's section to use the material in the corresponding section of LOD0.
-		StaticMesh.SectionInfoMap.Remove(LODIndex, SlotIndex);
+		//Use the LOD 0 with the pass Slot index to replace the material
+		FMeshSectionInfo Lod0Info = StaticMesh.SectionInfoMap.Get(0, SlotIndex);
+		FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SlotIndex);
+		if (StaticMesh.Materials.IsValidIndex(Info.MaterialIndex) && StaticMesh.Materials.IsValidIndex(Lod0Info.MaterialIndex))
+		{
+			StaticMesh.Materials[Info.MaterialIndex] = StaticMesh.Materials[Lod0Info.MaterialIndex];
+		}
 	}
 	CallPostEditChange();
 }

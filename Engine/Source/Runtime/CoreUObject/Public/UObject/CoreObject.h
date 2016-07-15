@@ -582,8 +582,16 @@ class COREUOBJECT_API UMetaData : public UObject
 	DECLARE_CLASS_INTRINSIC(UMetaData, UObject, 0, TEXT("/Script/CoreUObject"))
 
 public:
-	// Variables.
+	/**
+	 * Mapping between an object, and its key->value meta-data pairs. 
+	 */
 	TMap< FWeakObjectPtr, TMap<FName, FString> > ObjectMetaDataMap;
+
+	/**
+	 * Root-level (not associated with a particular object) key->value meta-data pairs.
+	 * Meta-data associated with the package itself should be stored here.
+	 */
+	TMap< FName, FString > RootMetaDataMap;
 
 public:
 	// MetaData utility functions

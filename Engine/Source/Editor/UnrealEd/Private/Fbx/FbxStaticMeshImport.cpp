@@ -429,18 +429,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	//
 	bool bImportedCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace(Node));
 
-	if (false && !bImportedCollision && StaticMesh)	//if didn't import collision automatically generate one
-	{
-		StaticMesh->CreateBodySetup();
-
-		const int32 NumDirs = 18;
-		TArray<FVector> Dirs;
-		Dirs.AddUninitialized(NumDirs);
-		for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
-		GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
-	}
-
-	bool bEnableCollision = bImportedCollision || (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
+	//If we import a collision or we "generate one and remove the degenerates triangles" we will automatically set the section collision boolean.
+	bool bEnableCollision = bImportedCollision || (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bAutoGenerateCollision);
 	for(int32 SectionIndex=MaterialIndexOffset; SectionIndex<MaterialIndexOffset+MaterialCount; SectionIndex++)
 	{
 		FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
@@ -531,9 +521,12 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 
 	int32 TriangleIndex;
 	TMap<int32,int32> IndexMap;
+	bool bHasNonDegenerateTriangles = false;
+
 	for( TriangleIndex = 0 ; TriangleIndex < TriangleCount ; TriangleIndex++ )
 	{
 		int32 DestTriangleIndex = TriangleOffset + TriangleIndex;
+		FVector CornerPositions[3];
 
 		for ( int32 CornerIndex=0; CornerIndex<3; CornerIndex++)
 		{
@@ -546,6 +539,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 			if (ExistingIndex)
 			{
 				RawMesh.WedgeIndices[WedgeIndex] = *ExistingIndex;
+				CornerPositions[CornerIndex] = RawMesh.VertexPositions[*ExistingIndex];
 			}
 			else
 			{
@@ -553,7 +547,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 				FbxVector4 FinalPosition = TotalMatrix.MultT(FbxPosition);
 				int32 VertexIndex = RawMesh.VertexPositions.Add(Converter.ConvertPos(FinalPosition));
 				RawMesh.WedgeIndices[WedgeIndex] = VertexIndex;
-				IndexMap.Add(ControlPointIndex,VertexIndex);
+				IndexMap.Add(ControlPointIndex, VertexIndex);
+				CornerPositions[CornerIndex] = RawMesh.VertexPositions[VertexIndex];
 			}
 
 			//
@@ -641,6 +636,19 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 			}
 		}
 
+		// Check if the triangle just discovered is non-degenerate if we haven't found one yet
+		if (!bHasNonDegenerateTriangles)
+		{
+			float ComparisonThreshold = ImportOptions->bRemoveDegenerates ? THRESH_POINTS_ARE_SAME : 0.0f;
+
+			if (!(CornerPositions[0].Equals(CornerPositions[1], ComparisonThreshold)
+				  || CornerPositions[0].Equals(CornerPositions[2], ComparisonThreshold)
+				  || CornerPositions[1].Equals(CornerPositions[2], ComparisonThreshold)))
+			{
+				bHasNonDegenerateTriangles = true;
+			}
+		}
+
 		//
 		// smoothing mask
 		//
@@ -724,7 +732,17 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	// needed?
 	FBXUVs.Cleanup();
 
-	return true;
+	if (!bHasNonDegenerateTriangles)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
+		FText ErrorMsg = LOCTEXT("MeshHasNoRenderableTriangles", "{MeshName} could not be created because all of its triangles are degenerate.");
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(ErrorMsg, Arguments)), FFbxErrors::StaticMesh_AllTrianglesDegenerate);
+	}
+
+	bool bIsValidMesh = bHasNonDegenerateTriangles;
+
+	return bIsValidMesh;
 }
 
 UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId, uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
@@ -1110,9 +1128,35 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			LODIndex = StaticMesh->SourceModels.Num() - 1;
 		}
 	}
+	TArray<int32> OldMaterialIndex;
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
 	if( InStaticMesh != NULL && LODIndex > 0 && !SrcModel.RawMeshBulkData->IsEmpty() )
 	{
+		for (const FStaticMeshSection& Section : StaticMesh->RenderData->LODResources[LODIndex].Sections)
+		{
+			//We import a LOD over an existing one or simply do a reimport. Use the old lod material slot in the materials array
+			//But make sure this material index is not use by any other LODs sections
+			bool CanReuseSlotIndex = true;
+			for (int32 LodRessourceIndex = 0; LodRessourceIndex < StaticMesh->RenderData->LODResources.Num(); ++LodRessourceIndex)
+			{
+				if (LodRessourceIndex == LODIndex)
+					continue;
+				for (const FStaticMeshSection& LodSection : StaticMesh->RenderData->LODResources[LodRessourceIndex].Sections)
+				{
+					if (LodSection.MaterialIndex == Section.MaterialIndex)
+					{
+						CanReuseSlotIndex = false;
+						break;
+					}
+				}
+				if (!CanReuseSlotIndex)
+					break;
+			}
+			if (CanReuseSlotIndex)
+			{
+				OldMaterialIndex.Add(Section.MaterialIndex);
+			}
+		}
 		// clear out the old mesh data
 		FRawMesh EmptyRawMesh;
 		SrcModel.RawMeshBulkData->SaveRawMesh( EmptyRawMesh );
@@ -1193,7 +1237,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			AddTokenizedErrorMessage(
 				FTokenizedMessage::Create(
 				EMessageSeverity::Warning,
-				FText::Format(LOCTEXT("Error_TooManyMaterials", "StaticMesh has a large number({1}) of materials and may render inefficently.  Consider breaking up the mesh into multiple Static Mesh Assets"),
+				FText::Format(LOCTEXT("Error_TooManyMaterials", "StaticMesh has a large number({0}) of materials and may render inefficently.  Consider breaking up the mesh into multiple Static Mesh Assets"),
 				FText::AsNumber(UniqueMaterials.Num())
 				)), 
 				FFbxErrors::StaticMesh_TooManyMaterials);
@@ -1316,7 +1360,17 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		{
 			FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, MaterialIndex);
 
-			int32 Index = StaticMesh->Materials.Add(SortedMaterials[MaterialIndex].Material);
+			int32 Index = 0;
+			if (OldMaterialIndex.Num() > 0)
+			{
+				Index = OldMaterialIndex[0];
+				StaticMesh->Materials[Index] = SortedMaterials[MaterialIndex].Material;
+				OldMaterialIndex.RemoveAt(0);
+			}
+			else
+			{
+				Index = StaticMesh->Materials.Add(SortedMaterials[MaterialIndex].Material);
+			}
 
 			Info.MaterialIndex = Index;
 			StaticMesh->SectionInfoMap.Remove(LODIndex, MaterialIndex);
@@ -1412,6 +1466,13 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	}
 	else
 	{
+		// If we couldn't build the static mesh, its package is invalid. We should reject it entirely to prevent issues from arising from trying to use it in the editor.
+		if (!NewPackageName.IsEmpty())
+		{
+			Package->RemoveFromRoot();
+			Package->ConditionalBeginDestroy();
+		}
+
 		StaticMesh = NULL;
 	}
 
@@ -1662,13 +1723,15 @@ void UnFbx::FFbxImporter::ImportStaticMeshSockets( UStaticMesh* StaticMesh )
 
 		if( Socket )
 		{
-			FVector Translation = Converter.ConvertPos( SocketNode.Node->LclTranslation.Get() );
-			FRotator Rotation = Converter.ConvertEuler( SocketNode.Node->LclRotation.Get() );
-			FVector Scale = Converter.ConvertScale( SocketNode.Node->LclScaling.Get() );
+			FbxAMatrix& SocketMatrix = Scene->GetAnimationEvaluator()->GetNodeLocalTransform(SocketNode.Node);
+			FTransform SocketTransform;
+			SocketTransform.SetTranslation(Converter.ConvertPos(SocketMatrix.GetT()));
+			SocketTransform.SetRotation(Converter.ConvertRotToQuat(SocketMatrix.GetQ()));
+			SocketTransform.SetScale3D(Converter.ConvertScale(SocketMatrix.GetS()));
 
-			Socket->RelativeLocation = Translation;
-			Socket->RelativeRotation = Rotation;
-			Socket->RelativeScale = Scale;
+			Socket->RelativeLocation = SocketTransform.GetLocation();
+			Socket->RelativeRotation = SocketTransform.GetRotation().Rotator();
+			Socket->RelativeScale = SocketTransform.GetScale3D();
 		}
 	}
 }

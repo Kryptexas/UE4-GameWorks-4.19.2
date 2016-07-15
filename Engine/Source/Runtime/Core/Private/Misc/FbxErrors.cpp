@@ -8,6 +8,8 @@ FName FFbxErrors::Generic_ImportingNewObjectFailed(TEXT("Generic_ImportingNewObj
 
 FName FFbxErrors::Generic_LoadingSceneFailed(TEXT("Generic_LoadingSceneFailed"));
 
+FName FFbxErrors::Generic_InvalidCharacterInName(TEXT("Generic_InvalidCharacterInName"));
+
 FName FFbxErrors::Generic_SameNameAssetExists(TEXT("Generic_SameNameAssetExists"));
 
 FName FFbxErrors::Generic_SameNameAssetOverriding(TEXT("Generic_SameNameAssetOverriding"));
@@ -52,6 +54,8 @@ FName FFbxErrors::StaticMesh_UVSetLayoutProblem(TEXT("StaticMesh_UVSetLayoutProb
 FName FFbxErrors::StaticMesh_NoTriangles(TEXT("StaticMesh_NoTriangles"));
 
 FName FFbxErrors::StaticMesh_BuildError(TEXT("StaticMesh_BuildError"));
+
+FName FFbxErrors::StaticMesh_AllTrianglesDegenerate(TEXT("StaticMesh_AllTrianglesDegenerate"));
 
 /** SkeletalMesh **/
 FName FFbxErrors::SkeletalMesh_DifferentRoots(TEXT("SkeletalMesh_DifferentRoot"));

@@ -4,6 +4,7 @@
 #include "UObject/UTextProperty.h"
 #include "PropertyHelper.h"
 #include "PropertyTag.h"
+#include "TextPackageNamespaceUtil.h"
 
 bool UTextProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
 {
@@ -113,8 +114,16 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 {
 	FText* TextPtr = GetPropertyValuePtr(Data);
 
+	FString PackageNamespace;
+#if USE_STABLE_LOCALIZATION_KEYS
+	if (GIsEditor && !(PortFlags & PPF_DuplicateForPIE))
+	{
+		PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Parent);
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 	int32 NumCharsRead = 0;
-	if (FTextStringHelper::ReadFromString(Buffer, *TextPtr, nullptr, &NumCharsRead, !!(PortFlags & PPF_Delimited)))
+	if (FTextStringHelper::ReadFromString(Buffer, *TextPtr, nullptr, *PackageNamespace, &NumCharsRead, !!(PortFlags & PPF_Delimited)))
 	{
 		Buffer += NumCharsRead;
 		return Buffer;

@@ -400,7 +400,7 @@ public:
 	/** Add an expression node to the consumer, specifying the FStringToken this node relates to.
 	 *	Adding a node to the consumer will move its stream read position to the end of the added token.
 	 */
-	void Add(const FStringToken& SourceToken, FExpressionNode Node);
+	void Add(const FStringToken& SourceToken, FExpressionNode&& Node);
 
 	/** Get the expression stream */
 	FTokenStream& GetStream() { return Stream; }

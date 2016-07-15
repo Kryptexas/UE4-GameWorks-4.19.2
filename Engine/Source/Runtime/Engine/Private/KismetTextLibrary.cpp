@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Kismet/KismetTextLibrary.h"
+#include "TextFormatter.h"
 
 #define LOCTEXT_NAMESPACE "Kismet"
 
@@ -272,7 +273,7 @@ FText UKismetTextLibrary::AsTimespan_Timespan(const FTimespan& InTimespan)
 
 FText UKismetTextLibrary::Format(FText InPattern, TArray<FFormatArgumentData> InArgs)
 {
-	return FText::Format(MoveTemp(InPattern), MoveTemp(InArgs));
+	return FTextFormatter::Format(MoveTemp(InPattern), MoveTemp(InArgs), false, false);
 }
 
 

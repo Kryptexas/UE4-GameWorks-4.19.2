@@ -116,8 +116,6 @@
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
 
-TArray<FTickableEditorObject*> FTickableEditorObject::TickableObjects;
-
 FSimpleMulticastDelegate								FEditorDelegates::NewCurrentLevel;
 FEditorDelegates::FOnMapChanged							FEditorDelegates::MapChange;
 FSimpleMulticastDelegate								FEditorDelegates::LayerChange;
@@ -224,7 +222,7 @@ void FReimportManager::UpdateReimportPaths( UObject* Obj, const TArray<FString>&
 	}
 }
 
-bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification, FString PreferedReimportFile)
+bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification, FString PreferedReimportFile, FReimportHandler* SpecifiedReimportHandler)
 {
 	// Warn that were about to reimport, so prep for it
 	PreReimport.Broadcast( Obj );
@@ -242,77 +240,85 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, boo
 		bool bValidSourceFilename = false;
 		TArray<FString> SourceFilenames;
 
-		for( int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex )
+		FReimportHandler *CanReimportHandler = SpecifiedReimportHandler;
+		if (CanReimportHandler == nullptr || !CanReimportHandler->CanReimport(Obj, SourceFilenames))
 		{
-			SourceFilenames.Empty();
-			if ( Handlers[ HandlerIndex ]->CanReimport(Obj, SourceFilenames) )
+			for (int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex)
 			{
-				// Check all filenames for missing files
-				bool bMissingFiles = false;
-				if (SourceFilenames.Num() > 0)
+				SourceFilenames.Empty();
+				if (Handlers[HandlerIndex]->CanReimport(Obj, SourceFilenames))
 				{
-					for (int32 FileIndex = 0; FileIndex < SourceFilenames.Num(); ++FileIndex)
+					CanReimportHandler = Handlers[HandlerIndex];
+					break;
+				}
+			}
+		}
+
+		if(CanReimportHandler != nullptr)
+		{
+			// Check all filenames for missing files
+			bool bMissingFiles = false;
+			if (SourceFilenames.Num() > 0)
+			{
+				for (int32 FileIndex = 0; FileIndex < SourceFilenames.Num(); ++FileIndex)
+				{
+					if (SourceFilenames[FileIndex].IsEmpty() || IFileManager::Get().FileSize(*SourceFilenames[FileIndex]) == INDEX_NONE)
 					{
-						if (SourceFilenames[FileIndex].IsEmpty() || IFileManager::Get().FileSize(*SourceFilenames[FileIndex]) == INDEX_NONE)
-						{
-							bMissingFiles = true;
-							break;
-						}
+						bMissingFiles = true;
+						break;
 					}
+				}
+			}
+			else
+			{
+				bMissingFiles = true;
+			}
+
+			bValidSourceFilename = true;
+			if ((bAskForNewFileIfMissing || !PreferedReimportFile.IsEmpty()) && bMissingFiles )
+			{
+				if (!bAskForNewFileIfMissing && !PreferedReimportFile.IsEmpty())
+				{
+					SourceFilenames.Empty();
+					SourceFilenames.Add(PreferedReimportFile);
 				}
 				else
 				{
-					bMissingFiles = true;
+					GetNewReimportPath(Obj, SourceFilenames);
 				}
-
-				bValidSourceFilename = true;
-				if ((bAskForNewFileIfMissing || !PreferedReimportFile.IsEmpty()) && bMissingFiles )
+				if ( SourceFilenames.Num() == 0 )
 				{
-					if (!bAskForNewFileIfMissing && !PreferedReimportFile.IsEmpty())
-					{
-						SourceFilenames.Empty();
-						SourceFilenames.Add(PreferedReimportFile);
-					}
-					else
-					{
-						GetNewReimportPath(Obj, SourceFilenames);
-					}
-					if ( SourceFilenames.Num() == 0 )
-					{
-						// Failed to specify a new filename. Don't show a notification of the failure since the user exited on his own
-						bValidSourceFilename = false;
-						bShowNotification = false;
-					}
-					else
-					{
-						// A new filename was supplied, update the path
-						Handlers[ HandlerIndex ]->SetReimportPaths(Obj, SourceFilenames);
-					}
+					// Failed to specify a new filename. Don't show a notification of the failure since the user exited on his own
+					bValidSourceFilename = false;
+					bShowNotification = false;
 				}
-
-				if ( bValidSourceFilename )
+				else
 				{
-					// Do the reimport
-					EReimportResult::Type Result = Handlers[ HandlerIndex ]->Reimport( Obj );
-					if( Result == EReimportResult::Succeeded )
-					{
-						Obj->PostEditChange();
-						GEditor->BroadcastObjectReimported(Obj);
-						if (FEngineAnalytics::IsAvailable())
-						{
-							TArray<FAnalyticsEventAttribute> Attributes;
-							Attributes.Add( FAnalyticsEventAttribute( TEXT( "ObjectType" ), Obj->GetClass()->GetName() ) );
-							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.AssetReimported"), Attributes);
-						}
-						bSuccess = true;
-					}
-					else if( Result == EReimportResult::Cancelled )
-					{
-						bShowNotification = false;
-					}
+					// A new filename was supplied, update the path
+					CanReimportHandler->SetReimportPaths(Obj, SourceFilenames);
 				}
-				
-				break;
+			}
+
+			if ( bValidSourceFilename )
+			{
+				// Do the reimport
+				EReimportResult::Type Result = CanReimportHandler->Reimport( Obj );
+				if( Result == EReimportResult::Succeeded )
+				{
+					Obj->PostEditChange();
+					GEditor->BroadcastObjectReimported(Obj);
+					if (FEngineAnalytics::IsAvailable())
+					{
+						TArray<FAnalyticsEventAttribute> Attributes;
+						Attributes.Add( FAnalyticsEventAttribute( TEXT( "ObjectType" ), Obj->GetClass()->GetName() ) );
+						FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.AssetReimported"), Attributes);
+					}
+					bSuccess = true;
+				}
+				else if( Result == EReimportResult::Cancelled )
+				{
+					bShowNotification = false;
+				}
 			}
 		}
 

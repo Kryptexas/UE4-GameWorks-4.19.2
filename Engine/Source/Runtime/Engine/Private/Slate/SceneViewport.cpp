@@ -29,7 +29,6 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bUseSeparateRenderTarget( InViewportWidget.IsValid() ? !InViewportWidget->ShouldRenderDirectly() : true )
 	, bForceSeparateRenderTarget( false )
 	, bIsResizing( false )
-	, bPlayInEditorGetsMouseControl( true )
 	, bPlayInEditorIsSimulate( false )
 	, bCursorHiddenDueToCapture( false )
 	, MousePosBeforeHiddenDueToCapture( -1, -1 )
@@ -61,7 +60,7 @@ bool FSceneViewport::HasMouseCapture() const
 
 bool FSceneViewport::HasFocus() const
 {
-	return FSlateApplication::Get().GetKeyboardFocusedWidget() == ViewportWidget.Pin();
+	return FSlateApplication::Get().GetUserFocusedWidget(0) == ViewportWidget.Pin();
 }
 
 void FSceneViewport::CaptureMouse( bool bCapture )
@@ -298,7 +297,7 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 			//check(Window.IsValid());
 			if ( Window->IsViewportSizeDrivenByWindow() )
 			{
-				ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+				ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode());
 			}
 		}
 	}
@@ -527,7 +526,8 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 	bool bCursorVisible = true;
 	bool bReleaseMouse = true;
-	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
+	
+	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
 	{
 		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Released))
 		{
@@ -539,6 +539,7 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton );
 	}
+
 	if (!IsCurrentlyGameViewport() || bReleaseMouse)
 	{
 		// On mouse up outside of the game (editor viewport) or if the cursor is visible in game, we should make sure the mouse is no longer captured
@@ -553,12 +554,14 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 			}
 
 			CurrentReplyState.ReleaseMouseCapture();
-			if (bCursorVisible)
+
+			if (bCursorVisible && !ViewportClient->ShouldAlwaysLockMouse())
 			{
 				CurrentReplyState.ReleaseMouseLock();
 			}
 		}
 	}
+
 	return CurrentReplyState;
 }
 
@@ -932,40 +935,43 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 {
 	CurrentReplyState = FReply::Handled(); 
 
-	if (ViewportClient != nullptr)
+	if ( InFocusEvent.GetUser() == 0 )
 	{
-		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
-		ViewportClient->ReceivedFocus(this);
-	}
-
-	// Update key state mappings so that the the viewport modifier states are valid upon focus.
-	const FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
-	KeyStateMap.Add( EKeys::LeftAlt, KeysState.IsLeftAltDown() );
-	KeyStateMap.Add( EKeys::RightAlt, KeysState.IsRightAltDown() );
-	KeyStateMap.Add( EKeys::LeftControl, KeysState.IsLeftControlDown());
-	KeyStateMap.Add( EKeys::RightControl, KeysState.IsRightControlDown());
-	KeyStateMap.Add( EKeys::LeftShift, KeysState.IsLeftShiftDown());
-	KeyStateMap.Add( EKeys::RightShift, KeysState.IsRightShiftDown());
-	KeyStateMap.Add( EKeys::LeftCommand, KeysState.IsLeftCommandDown());
-	KeyStateMap.Add( EKeys::RightCommand, KeysState.IsRightCommandDown());
-
-
-	if (IsCurrentlyGameViewport())
-	{
-		FSlateApplication& SlateApp = FSlateApplication::Get();
-
-		const bool bPermanentCapture =
-			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently) ||
-			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
-
-		if (SlateApp.IsActive() && !ViewportClient->IgnoreInput() && bPermanentCapture)
+		if ( ViewportClient != nullptr )
 		{
-			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+			FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+			ViewportClient->ReceivedFocus(this);
+		}
 
-			FWidgetPath PathToWidget;
-			SlateApp.GeneratePathToWidgetUnchecked(ViewportWidgetRef, PathToWidget);
+		// Update key state mappings so that the the viewport modifier states are valid upon focus.
+		const FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
+		KeyStateMap.Add(EKeys::LeftAlt, KeysState.IsLeftAltDown());
+		KeyStateMap.Add(EKeys::RightAlt, KeysState.IsRightAltDown());
+		KeyStateMap.Add(EKeys::LeftControl, KeysState.IsLeftControlDown());
+		KeyStateMap.Add(EKeys::RightControl, KeysState.IsRightControlDown());
+		KeyStateMap.Add(EKeys::LeftShift, KeysState.IsLeftShiftDown());
+		KeyStateMap.Add(EKeys::RightShift, KeysState.IsRightShiftDown());
+		KeyStateMap.Add(EKeys::LeftCommand, KeysState.IsLeftCommandDown());
+		KeyStateMap.Add(EKeys::RightCommand, KeysState.IsRightCommandDown());
 
-			return AcquireFocusAndCapture(GetSizeXY() / 2);
+
+		if ( IsCurrentlyGameViewport() )
+		{
+			FSlateApplication& SlateApp = FSlateApplication::Get();
+
+			const bool bPermanentCapture =
+				( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently ) ||
+				( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown );
+
+			if ( SlateApp.IsActive() && !ViewportClient->IgnoreInput() && bPermanentCapture )
+			{
+				TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+
+				FWidgetPath PathToWidget;
+				SlateApp.GeneratePathToWidgetUnchecked(ViewportWidgetRef, PathToWidget);
+
+				return AcquireFocusAndCapture(GetSizeXY() / 2);
+			}
 		}
 	}
 
@@ -974,23 +980,28 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 
 void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
+	// If the focus loss event isn't the for the primary 'keyboard' user, don't worry about it.
+	if ( InFocusEvent.GetUser() != 0 )
+	{
+		return;
+	}
+
 	bCursorHiddenDueToCapture = false;
 	KeyStateMap.Empty();
-	if (ViewportClient != nullptr)
+	if ( ViewportClient != nullptr )
 	{
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-		ViewportClient->LostFocus( this );
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+		ViewportClient->LostFocus(this);
 
 		TSharedPtr<SWidget> ViewportWidgetPin = ViewportWidget.Pin();
-		if( ViewportWidgetPin.IsValid() )
+		if ( ViewportWidgetPin.IsValid() )
 		{
-			for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
-			{
-				if (FSlateApplication::Get().GetUserFocusedWidget(UserIndex) == ViewportWidgetPin)
+			FSlateApplication::Get().ForEachUser([&] (FSlateUser* User) {
+				if ( User->GetFocusedWidget() == ViewportWidgetPin )
 				{
-					FSlateApplication::Get().ClearUserFocus(UserIndex);
+					FSlateApplication::Get().ClearUserFocus(User->GetUserIndex());
 				}
-			}
+			});
 		}
 	}
 }
@@ -1029,6 +1040,7 @@ FReply FSceneViewport::OnViewportActivated(const FWindowActivateEvent& InActivat
 			return AcquireFocusAndCapture(GetSizeXY() / 2);
 		}
 	}
+
 	return FReply::Unhandled();
 }
 void FSceneViewport::OnViewportDeactivated(const FWindowActivateEvent& InActivateEvent)
@@ -1060,7 +1072,7 @@ FSlateShaderResource* FSceneViewport::GetViewportRenderTargetTexture() const
 	return (BufferedSlateHandles.Num() != 0) ? BufferedSlateHandles[CurrentBufferedTargetIndex] : nullptr;
 }
 
-void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
+void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, EWindowMode::Type NewWindowMode)
 {
 	// Resizing the window directly is only supported in the game
 	if( FApp::IsGame() && NewWindowSizeX > 0 && NewWindowSizeY > 0 )
@@ -1122,7 +1134,7 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 
 			if (NewViewportSize != ViewportSize || NewWindowMode != WindowMode)
 			{
-				ResizeViewport(NewViewportSize.X, NewViewportSize.Y, NewWindowMode, 0, 0);
+				ResizeViewport(NewViewportSize.X, NewViewportSize.Y, NewWindowMode);
 			}
 
 			// Resize backbuffer
@@ -1147,7 +1159,7 @@ void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewport
 		Window->SetIndependentViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
 		const FVector2D vp = Window->IsMirrorWindow() ? Window->GetSizeInScreen() : Window->GetViewportSize();
 		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
-		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);
+		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode());
 	}
 }
 
@@ -1171,7 +1183,7 @@ bool FSceneViewport::IsStereoRenderingAllowed() const
 	return false;
 }
 
-void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
+void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode)
 {
 	// Do not resize if the viewport is an invalid size or our UI should be responsive
 	if( NewSizeX > 0 && NewSizeY > 0 )
@@ -1641,4 +1653,3 @@ void FSceneViewport::SetPreCaptureMousePosFromSlateCursor()
 {
 	PreCaptureMousePos = FSlateApplication::Get().GetCursorPos().IntPoint();
 }
-

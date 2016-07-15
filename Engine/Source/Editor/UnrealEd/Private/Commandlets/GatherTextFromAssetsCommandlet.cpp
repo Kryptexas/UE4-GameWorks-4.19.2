@@ -148,7 +148,7 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 
 				static const FLocMetadataObject DefaultMetadataObject;
 
-				FContext Context;
+				FManifestContext Context;
 				Context.Key = TextSourceSiteContext.KeyName;
 				Context.KeyMetadataObj = !(FLocMetadataObject::IsMetadataExactMatch(&TextSourceSiteContext.KeyMetaData, &DefaultMetadataObject)) ? MakeShareable(new FLocMetadataObject(TextSourceSiteContext.KeyMetaData)) : nullptr;
 				Context.InfoMetadataObj = !(FLocMetadataObject::IsMetadataExactMatch(&TextSourceSiteContext.InfoMetaData, &DefaultMetadataObject)) ? MakeShareable(new FLocMetadataObject(TextSourceSiteContext.InfoMetaData)) : nullptr;
@@ -172,7 +172,8 @@ void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >
 		GatherableTextDataArray.Reset();
 
 		// Gathers from the given package
-		FPropertyLocalizationDataGatherer(GatherableTextDataArray, Package);
+		EPropertyLocalizationGathererResultFlags GatherableTextResultFlags = EPropertyLocalizationGathererResultFlags::Empty;
+		FPropertyLocalizationDataGatherer(GatherableTextDataArray, Package, GatherableTextResultFlags);
 
 		ProcessGatherableTextDataArray(Package->FileName.ToString(), GatherableTextDataArray);
 	}
@@ -445,7 +446,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 				MustLoadForGather = true;
 			}
 			// Package not resaved since gatherable text data was added to package headers must be loaded, since their package header won't contain pregathered text data.
-			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES || (EditorVersion && EditorVersion->Version < FEditorObjectVersion::GatheredTextPackageCacheFixes))
+			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES || (!EditorVersion || EditorVersion->Version < FEditorObjectVersion::GatheredTextPackageCacheFixesV2))
 			{
 				// Fallback on the old package flag check.
 				if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)
@@ -466,7 +467,13 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 					}
 				}
 			}
-				 
+			
+			// If this package doesn't have any cached data, then we have to load it for gather
+			if (PackageFileSummary.GetFileVersionUE4() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES && PackageFileSummary.GatherableTextDataOffset == 0 && (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather))
+			{
+				MustLoadForGather = true;
+			}
+
 			// Add package to list of packages to load fully and process.
 			if (MustLoadForGather)
 			{

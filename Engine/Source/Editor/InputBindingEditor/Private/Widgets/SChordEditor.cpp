@@ -104,6 +104,7 @@ FReply SChordEditor::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, co
 
 void SChordEditor::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
+	SEditableText::OnFocusLost(InFocusEvent);
 	// Notify a listener that we lost focus so they can determine if we should still be in edit mode
 	OnEditBoxLostFocus.ExecuteIfBound();
 }

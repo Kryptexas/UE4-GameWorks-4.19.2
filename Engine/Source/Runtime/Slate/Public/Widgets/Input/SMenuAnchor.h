@@ -79,7 +79,7 @@ public:
 	 * @param InIsOpen    If true, open the popup. Otherwise close it.
 	 * @param bFocusMenu  Should we focus the popup as soon as it opens?
 	 */
-	virtual void SetIsOpen( bool InIsOpen, const bool bFocusMenu = true );
+	virtual void SetIsOpen( bool InIsOpen, const bool bFocusMenu = true, const int32 FocusUserIndex = 0 );
 	
 	/** @return true if the popup is open; false otherwise. */
 	bool IsOpen() const;
@@ -128,6 +128,13 @@ protected:
 	 * Pointer is null when a popup is not visible.
 	 */
 	TWeakPtr<SWindow> PopupWindowPtr;
+
+	/**
+	 * A pointer to the window presenting this popup.
+	 * Can be the window created to hold a menu or the window containing this anchor if the menu is drawn as a child of the this anchor.
+	 * Pointer is null when a popup is not visible.
+	 */
+	mutable TWeakPtr<SWindow> DrawnWindowPtr;
 
 	/**
 	 * An interface pointer to the menu object presenting this popup.

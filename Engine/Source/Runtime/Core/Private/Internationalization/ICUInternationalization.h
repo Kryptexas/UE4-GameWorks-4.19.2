@@ -25,6 +25,8 @@ public:
 	bool Initialize();
 	void Terminate();
 
+	void LoadAllCultureData();
+
 	bool IsCultureRemapped(const FString& Name, FString* OutMappedCulture);
 	bool IsCultureDisabled(const FString& Name);
 
@@ -43,7 +45,8 @@ private:
 	void ConditionalInitializeCultureMappings();
 	void ConditionalInitializeDisabledCultures();
 
-	FCulturePtr FindOrMakeCulture(const FString& Name, const bool AllowDefaultFallback = false);
+	enum class EAllowDefaultCultureFallback : uint8 { No, Yes, };
+	FCulturePtr FindOrMakeCulture(const FString& Name, const EAllowDefaultCultureFallback AllowDefaultFallback);
 
 private:
 	struct FICUCultureData

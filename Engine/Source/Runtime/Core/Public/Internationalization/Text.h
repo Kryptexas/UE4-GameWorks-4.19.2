@@ -12,7 +12,9 @@
 struct FTimespan;
 struct FDateTime;
 
+class FText;
 class FTextHistory;
+class FTextFormatData;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 
@@ -44,6 +46,32 @@ namespace ETextComparisonLevel
 	};
 }
 
+enum class ETextPluralType : uint8
+{
+	Cardinal,
+	Ordinal,
+};
+
+enum class ETextPluralForm : uint8
+{
+	Zero = 0,
+	One,	// Singular
+	Two,	// Dual
+	Few,	// Paucal
+	Many,	// Also used for fractions if they have a separate class
+	Other,	// General plural form, also used if the language only has a single form
+	Count,	// Number of entries in this enum
+};
+
+/** Redeclared in KismetTextLibrary for meta-data extraction purposes, be sure to update there as well */
+enum class ETextGender : uint8
+{
+	Masculine,
+	Feminine,
+	Neuter,
+	// Add new enum types at the end only! They are serialized by index.
+};
+
 namespace EDateTimeStyle
 {
 	enum Type
@@ -57,6 +85,7 @@ namespace EDateTimeStyle
 	};
 }
 
+/** Redeclared in KismetTextLibrary for meta-data extraction purposes, be sure to update there as well */
 namespace EFormatArgumentType
 {
 	enum Type
@@ -65,7 +94,8 @@ namespace EFormatArgumentType
 		UInt,
 		Float,
 		Double,
-		Text
+		Text,
+		Gender,
 		// Add new enum types at the end only! They are serialized by index.
 	};
 }
@@ -131,6 +161,82 @@ struct CORE_API FNumberFormattingOptions
 
 	/** Get the default number formatting options with grouping disabled */
 	static const FNumberFormattingOptions& DefaultNoGrouping();
+};
+
+/**
+ * Cached compiled expression used by the text formatter.
+ * The compiled expression will automatically update if the display string is changed.
+ * See TextFormatter.cpp for the definition.
+ */
+class CORE_API FTextFormat
+{
+	friend class FTextFormatter;
+
+public:
+	enum class EExpressionType
+	{
+		/** Invalid expression */
+		Invalid,
+		/** Simple expression, containing no arguments or argument modifiers */
+		Simple,
+		/** Complex expression, containing arguments or argument modifiers */
+		Complex,
+	};
+
+	/**
+	 * Construct an instance using an empty FText.
+	 */
+	FTextFormat();
+
+	/**
+	 * Construct an instance from an FText.
+	 * The text will be immediately compiled. 
+	 */
+	FTextFormat(const FText& InText);
+
+	/**
+	 * Construct an instance from an FString.
+	 * The string will be immediately compiled.
+	 */
+	static FTextFormat FromString(const FString& InString);
+	static FTextFormat FromString(FString&& InString);
+
+	/**
+	 * Test to see whether this instance contains valid compiled data.
+	 */
+	bool IsValid() const;
+
+	/**
+	 * Get the source text that we're holding.
+	 * If we're holding a string then we'll construct a new text.
+	 */
+	FText GetSourceText() const;
+
+	/**
+	 * Get the source string that we're holding.
+	 * If we're holding a text then we'll return its internal string.
+	 */
+	const FString& GetSourceString() const;
+
+	/**
+	 * Get the type of expression currently compiled.
+	 */
+	EExpressionType GetExpressionType() const;
+
+	/**
+	 * Append the names of any arguments to the given array.
+	 */
+	void GetFormatArgumentNames(TArray<FString>& OutArgumentNames) const;
+
+private:
+	/**
+	 * Construct an instance from an FString.
+	 * The string will be immediately compiled.
+	 */
+	FTextFormat(FString&& InString);
+
+	/** Cached compiled expression data */
+	TSharedRef<FTextFormatData, ESPMode::ThreadSafe> TextFormatData;
 };
 
 class FCulture;
@@ -234,12 +340,14 @@ public:
 	/**
 	 * Generate an FText representing the passed in string
 	 */
-	static FText FromString( FString String );
+	static FText FromString( const FString& String );
+	static FText FromString( FString&& String );
 
 	/**
 	 * Generate a culture invariant FText representing the passed in string
 	 */
-	static FText AsCultureInvariant( FString String );
+	static FText AsCultureInvariant( const FString& String );
+	static FText AsCultureInvariant( FString&& String );
 
 	/**
 	 * Generate a culture invariant FText representing the passed in FText
@@ -308,16 +416,18 @@ public:
 	 */
 	static bool IsWhitespace( const TCHAR Char );
 
-	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
+	static void GetFormatPatternParameters(const FTextFormat& Fmt, TArray<FString>& ParameterNames);
 
-	static FText Format(FText Pattern, FFormatNamedArguments Arguments);
-	static FText Format(FText Pattern, FFormatOrderedArguments Arguments);
-	static FText Format(FText Pattern, TArray< struct FFormatArgumentData > InArguments);
+	static FText Format(FTextFormat Fmt, FFormatNamedArguments InArguments);
+	static FText Format(FTextFormat Fmt, FFormatOrderedArguments InArguments);
 
-	static FText Format(FText Fmt, FText v1);
-	static FText Format(FText Fmt, FText v1, FText v2);
-	static FText Format(FText Fmt, FText v1, FText v2, FText v3);
-	static FText Format(FText Fmt, FText v1, FText v2, FText v3, FText v4);
+	DEPRECATED(4.13, "The version of FText::Format taking FFormatArgumentData was internal to Blueprints and has been deprecated for C++ usage. Please use one of the other FText::Format(...) functions.")
+	static FText Format(FTextFormat Fmt, TArray< struct FFormatArgumentData > InArguments);
+
+	static FText Format(FTextFormat Fmt, FFormatArgumentValue v1);
+	static FText Format(FTextFormat Fmt, FFormatArgumentValue v1, FFormatArgumentValue v2);
+	static FText Format(FTextFormat Fmt, FFormatArgumentValue v1, FFormatArgumentValue v2, FFormatArgumentValue v3);
+	static FText Format(FTextFormat Fmt, FFormatArgumentValue v1, FFormatArgumentValue v2, FFormatArgumentValue v3, FFormatArgumentValue v4);
 
 	/**
 	 * FormatNamed allows you to pass name <-> value pairs to the function to format automatically
@@ -329,7 +439,7 @@ public:
 	 * @return a formatted FText
 	 */
 	template < typename... TArguments >
-	static FText FormatNamed( FText Fmt, TArguments&&... Args );
+	static FText FormatNamed( FTextFormat Fmt, TArguments&&... Args );
 
 	/**
 	 * FormatOrdered allows you to pass a variadic list of types to use for formatting in order desired
@@ -339,7 +449,7 @@ public:
 	 * @return a formatted FText
 	 */
 	template < typename... TArguments >
-	static FText FormatOrdered( FText Fmt, TArguments&&... Args );
+	static FText FormatOrdered( FTextFormat Fmt, TArguments&&... Args );
 
 	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
 	static bool GetEnableErrorCheckingResults(){return bEnableErrorCheckingResults;}
@@ -356,7 +466,7 @@ public:
 	/**
 	 * Constructs a new FText with the SourceString of the specified text but with the specified namespace and key
 	 */
-	static FText ChangeKey( FString Namespace, FString Key, const FText& Text );
+	static FText ChangeKey( const FString& Namespace, const FString& Key, const FText& Text );
 #endif
 
 private:
@@ -367,13 +477,13 @@ private:
 
 	explicit FText( TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData );
 
-	explicit FText( FString InSourceString );
+	explicit FText( FString&& InSourceString );
 
-	FText( FString InSourceString, FTextDisplayStringRef InDisplayString );
+	FText( FString&& InSourceString, FTextDisplayStringRef InDisplayString );
 
-	FText( FString InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags=0 );
+	FText( FString&& InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags=0 );
 
-	friend CORE_API FArchive& operator<<( FArchive& Ar, FText& Value );
+	static void SerializeText( FArchive& Ar, FText& Value );
 
 	/**
 	 * Generate an FText for a string formatted numerically.
@@ -391,17 +501,16 @@ private:
 	/** Rebuilds the FText under the current culture if needed */
 	void Rebuild() const;
 
-	static FText FormatInternal(FText Pattern, FFormatNamedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource);
-	static FText FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource);
-	static FText FormatInternal(FText Pattern, TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
+	static FText FormatNamedImpl(FTextFormat&& Fmt, FFormatNamedArguments&& InArguments);
+	static FText FormatOrderedImpl(FTextFormat&& Fmt, FFormatOrderedArguments&& InArguments);
 
 private:
 	template<typename T1, typename T2>
-	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture);
 	template<typename T1, typename T2>
-	static FText AsCurrencyTemplate(T1 Val, const FString& CurrencyCode, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsCurrencyTemplate(T1 Val, const FString& CurrencyCode, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture);
 	template<typename T1, typename T2>
-	static FText AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
+	static FText AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture);
 
 private:
 	/** The internal shared data for this FText */
@@ -414,23 +523,14 @@ private:
 	static bool bSuppressWarnings;
 
 public:
-	//Some error text formats
-	static const FText UnusedArgumentsError;
-	static const FText CommentStartError;
-	static const FText TooFewArgsErrorFormat;
-	static const FText VeryLargeArgumentNumberErrorText;
-	static const FText NoArgIndexError;
-	static const FText NoClosingBraceError;
-	static const FText OpenBraceInBlock;
-	static const FText UnEscapedCloseBraceOutsideOfArgumentBlock;
-	static const FText SerializationFailureError;
-
 	friend class FTextCache;
-	friend class FTextFormatHelper;
+	friend class FTextFormatter;
 	friend class FTextSnapshot;
 	friend class FTextInspector;
+	friend class FArchive;
 	friend class UTextProperty;
 	friend class UGatherTextFromAssetsCommandlet;
+	friend class FFormatArgumentValue;
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
@@ -441,9 +541,9 @@ class CORE_API FFormatArgumentValue
 {
 public:
 	FFormatArgumentValue()
-		: Type(EFormatArgumentType::Int)
+		: Type(EFormatArgumentType::Text)
+		, TextValue(FText::GetEmpty())
 	{
-		IntValue = 0;
 	}
 
 	FFormatArgumentValue(const int32 Value)
@@ -488,7 +588,16 @@ public:
 	{
 	}
 
+	FFormatArgumentValue(ETextGender Value)
+		: Type(EFormatArgumentType::Gender)
+	{
+		UIntValue = (uint64)Value;
+	}
+
 	friend FArchive& operator<<(FArchive& Ar, FFormatArgumentValue& Value);
+
+	FString ToFormattedString(const bool bInRebuildText, const bool bInRebuildAsSource) const;
+	void ToFormattedString(const bool bInRebuildText, const bool bInRebuildAsSource, FString& OutResult) const;
 
 	FORCEINLINE EFormatArgumentType::Type GetType() const
 	{
@@ -525,6 +634,12 @@ public:
 		return TextValue.GetValue();
 	}
 
+	FORCEINLINE ETextGender GetGenderValue() const
+	{
+		check(Type == EFormatArgumentType::Gender);
+		return (ETextGender)UIntValue;
+	}
+
 private:
 	EFormatArgumentType::Type Type;
 	union
@@ -538,37 +653,30 @@ private:
 };
 
 /**
- * Used to pass argument/value pairs into FText::Format.
+ * Used to pass argument/value pairs into FText::Format via UKismetTextLibrary::Format.
+ * @note The primary consumer of this type is Blueprints (via a UHT mirror node). It is *not* expected that this be used in general C++ as FFormatArgumentValue is a much better type.
  * The UHT struct is located here: Engine\Source\Runtime\Engine\Classes\Kismet\KismetTextLibrary.h
  */
-struct FFormatArgumentData
+struct CORE_API FFormatArgumentData
 {
-	FString ArgumentName;
-	FText ArgumentValue;
-
-	friend inline FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
+	FFormatArgumentData()
 	{
-		if (Ar.IsLoading())
-		{
-			// ArgumentName was changed to be FString rather than FText, so we need to convert older data to ensure serialization stays happy outside of UStruct::SerializeTaggedProperties.
-			if (Ar.UE4Ver() >= VER_UE4_K2NODE_VAR_REFERENCEGUIDS) // There was no version bump for this change, but VER_UE4_K2NODE_VAR_REFERENCEGUIDS was made at almost the same time.
-			{
-				Ar << Value.ArgumentName;
-			}
-			else
-			{
-				FText TempValue;
-				Ar << TempValue;
-				Value.ArgumentName = TempValue.ToString();
-			}
-		}
-		if (Ar.IsSaving())
-		{
-			Ar << Value.ArgumentName;
-		}
-		Ar << Value.ArgumentValue;
-		return Ar;
+		ResetValue();
 	}
+
+	void ResetValue();
+
+	friend FArchive& operator<<(FArchive& Ar, FFormatArgumentData& Value);
+
+	FString ArgumentName;
+
+	// This is a non-unioned version of FFormatArgumentValue that only accepts the types needed by Blueprints
+	// It's used as a marshaller to create a real FFormatArgumentValue when performing a format
+	TEnumAsByte<EFormatArgumentType::Type> ArgumentValueType;
+	FText ArgumentValue;
+	int32 ArgumentValueInt;
+	float ArgumentValueFloat;
+	ETextGender ArgumentValueGender;
 };
 
 namespace TextFormatUtil
@@ -603,21 +711,23 @@ namespace TextFormatUtil
 } // namespace TextFormatUtil
 
 template < typename... TArguments >
-FText FText::FormatNamed( FText Fmt, TArguments&&... Args )
+FText FText::FormatNamed( FTextFormat Fmt, TArguments&&... Args )
 {
 	static_assert( sizeof...( TArguments ) % 2 == 0, "FormatNamed requires an even number of Name <-> Value pairs" );
 
 	FFormatNamedArguments FormatArguments;
+	FormatArguments.Reserve( sizeof...( TArguments ) / 2 );
 	TextFormatUtil::FormatNamed( FormatArguments, Forward< TArguments >( Args )... );
-	return FormatInternal( MoveTemp( Fmt ), MoveTemp( FormatArguments ), false, false );
+	return FormatNamedImpl( MoveTemp( Fmt ), MoveTemp( FormatArguments ) );
 }
 
 template < typename... TArguments >
-FText FText::FormatOrdered( FText Fmt, TArguments&&... Args )
+FText FText::FormatOrdered( FTextFormat Fmt, TArguments&&... Args )
 {
 	FFormatOrderedArguments FormatArguments;
+	FormatArguments.Reserve( sizeof...( TArguments ) );
 	TextFormatUtil::FormatOrdered( FormatArguments, Forward< TArguments >( Args )... );
-	return FormatInternal( MoveTemp( Fmt ), MoveTemp( FormatArguments ), false, false );
+	return FormatOrderedImpl( MoveTemp( Fmt ), MoveTemp( FormatArguments ) );
 }
 
 /** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */
@@ -638,8 +748,11 @@ private:
 	/** A pointer to the text data for the FText that we took a snapshot of (used for an efficient pointer compare) */
 	TSharedPtr<ITextData, ESPMode::ThreadSafe> TextDataPtr;
 
-	/** Revision index of the history of the FText we took a snapshot of, or INDEX_NONE if there was no history */
-	int32 HistoryRevision;
+	/** Global revision index of localization manager when we took the snapshot, or 0 if there was no history */
+	uint16 GlobalHistoryRevision;
+
+	/** Local revision index of the display string we took a snapshot of, or 0 if there was no history */
+	uint16 LocalHistoryRevision;
 
 	/** Flags with various information on what sort of FText we took a snapshot of */
 	uint32 Flags;
@@ -669,13 +782,14 @@ public:
 	 *
 	 * @param Buffer			The buffer of text to read from.
 	 * @param OutValue			The text value to fill with the read text.
-	 * @param Namespace			An optional namespace to use when parsing texts that use LOCTEXT (default is an empty namespace).
+	 * @param TextNamespace		An optional namespace to use when parsing texts that use LOCTEXT (default is an empty namespace).
+	 * @param PackageNamespace	The package namespace of the containing object (if loading for a property - see TextNamespaceUtil::GetPackageNamespace).
 	 * @param OutNumCharsRead	An optional output parameter to fill with the number of characters we read from the given buffer.
-	 * @param bRequiresQuotes	True if the read text literal must be surrounded by quotes (eg, when loading from a delimited list)
+	 * @param bRequiresQuotes	True if the read text literal must be surrounded by quotes (eg, when loading from a delimited list).
 	 *
 	 * @return True if we read a valid FText instance into OutValue, false otherwise
 	 */
-	static bool ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace = nullptr, int32* OutNumCharsRead = nullptr, const bool bRequiresQuotes = false);
+	static bool ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace = nullptr, const TCHAR* PackageNamespace = nullptr, int32* OutNumCharsRead = nullptr, const bool bRequiresQuotes = false);
 
 	/**
 	 * Write the given FText instance to a stream of text
@@ -696,7 +810,7 @@ public:
 	static bool IsComplexText(const TCHAR* Buffer);
 
 private:
-	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead);
+	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead);
 
 #define LOC_DEFINE_REGION
 	static const FString InvTextMarker;
@@ -756,37 +870,32 @@ public:
 		Report += Name.ToString();
 	}
 
-	void AppendLineFormat(const FText& Pattern, const FFormatNamedArguments& Arguments)
+	void AppendLineFormat(const FTextFormat& Pattern, const FFormatNamedArguments& Arguments)
 	{
 		AppendLine(FText::Format(Pattern, Arguments));
 	}
 
-	void AppendLineFormat(const FText& Pattern, const FFormatOrderedArguments& Arguments)
+	void AppendLineFormat(const FTextFormat& Pattern, const FFormatOrderedArguments& Arguments)
 	{
 		AppendLine(FText::Format(Pattern, Arguments));
 	}
 
-	void AppendLineFormat(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments)
-	{
-		AppendLine(FText::Format(Pattern, InArguments));
-	}
-
-	void AppendLineFormat(const FText& Fmt, const FText& v1)
+	void AppendLineFormat(const FTextFormat& Fmt, const FFormatArgumentValue& v1)
 	{
 		AppendLine(FText::Format(Fmt, v1));
 	}
 
-	void AppendLineFormat(const FText& Fmt, const FText& v1, const FText& v2)
+	void AppendLineFormat(const FTextFormat& Fmt, const FFormatArgumentValue& v1, const FFormatArgumentValue& v2)
 	{
 		AppendLine(FText::Format(Fmt, v1, v2));
 	}
 
-	void AppendLineFormat(const FText& Fmt, const FText& v1, const FText& v2, const FText& v3)
+	void AppendLineFormat(const FTextFormat& Fmt, const FFormatArgumentValue& v1, const FFormatArgumentValue& v2, const FFormatArgumentValue& v3)
 	{
 		AppendLine(FText::Format(Fmt, v1, v2, v3));
 	}
 
-	void AppendLineFormat(const FText& Fmt, const FText& v1, const FText& v2, const FText& v3, const FText& v4)
+	void AppendLineFormat(const FTextFormat& Fmt, const FFormatArgumentValue& v1, const FFormatArgumentValue& v2, const FFormatArgumentValue& v3, const FFormatArgumentValue& v4)
 	{
 		AppendLine(FText::Format(Fmt, v1, v2, v3, v4));
 	}

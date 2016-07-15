@@ -1402,7 +1402,8 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
  */
 bool FLevelEditorViewportClient::CanApplyMaterialToHitProxy( const HHitProxy* HitProxy ) const
 {
-	return ( HitProxy->IsA(HModel::StaticGetType()) || HitProxy->IsA(HActor::StaticGetType()) );
+	// The check for HWidgetAxis is made to prevent the transform widget from blocking an attempt at applying a material to a mesh.
+	return ( HitProxy->IsA(HModel::StaticGetType()) || HitProxy->IsA(HActor::StaticGetType()) || HitProxy->IsA(HWidgetAxis::StaticGetType()) );
 }
 
 FTrackingTransaction::FTrackingTransaction()
@@ -2755,7 +2756,10 @@ void FLevelEditorViewportClient::AbortTracking()
 	if (TrackingTransaction.IsActive())
 	{
 		// Applying the global undo here will reset the drag operation
-		GUndo->Apply();
+		if (GUndo)
+		{
+			GUndo->Apply();
+		}
 		TrackingTransaction.Cancel();
 		StopTracking();
 	}

@@ -60,6 +60,8 @@
 #include "GameDelegates.h"
 #include "GeneralProjectSettings.h"
 #include "OnlineEngineInterface.h"
+#include "KismetDebugUtilities.h"
+#include "DebuggerCommands.h"
 
 #include "AudioThread.h"
 
@@ -213,6 +215,9 @@ void UEditorEngine::EndPlayMap()
 	// clean up any previous Play From Here sessions
 	if ( GameViewport != NULL && GameViewport->Viewport != NULL )
 	{
+		// Remove on focus handler binding
+		GameViewport->OnFocusReceived().Unbind();
+
 		// Remove close handler binding
 		GameViewport->OnCloseRequested().Unbind();
 
@@ -799,7 +804,7 @@ void UEditorEngine::RequestPlaySession(const FString& DeviceId, const FString& D
 	bPlayOnLocalPcSession = false;
 	bPlayUsingLauncher = true;
 
-	// always use playerstart on remote devices (for now?)
+	// always use player start on remote devices (for now?)
 	bHasPlayWorldPlacement = false;
 
 	// remember the platform name to run on
@@ -821,6 +826,19 @@ void UEditorEngine::CancelRequestPlaySession()
 void UEditorEngine::PlaySessionPaused()
 {
 	FEditorDelegates::PausePIE.Broadcast(bIsSimulatingInEditor);
+}
+
+void UEditorEngine::PlaySessionResumedOnViewportClientFocusReceived()
+{
+	if(GUnrealEd->PlayWorld != NULL && GUnrealEd->PlayWorld->bDebugPauseExecution == true)
+	{
+		GUnrealEd->PlayWorld->bDebugPauseExecution = false;
+
+		// Tell the application to stop ticking in this stack frame
+		FSlateApplication::Get().LeaveDebuggingMode(FKismetDebugUtilities::IsSingleStepping());
+
+		FEditorDelegates::ResumePIE.Broadcast(bIsSimulatingInEditor);
+	}
 }
 
 void UEditorEngine::PlaySessionResumed()
@@ -2557,7 +2575,7 @@ void UEditorEngine::CancelPlayingViaLauncher()
 {
 	if (LauncherWorker.IsValid())
 	{
-		LauncherWorker->Cancel();
+		LauncherWorker->CancelAndWait();
 	}
 }
 
@@ -2986,6 +3004,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 		// Add a handler for viewport close requests
 		ViewportClient->OnCloseRequested().BindUObject(this, &UEditorEngine::OnViewportCloseRequested);
+
+		// Add a handler for viewport on focus received
+		ViewportClient->OnFocusReceived().BindUObject(this, &UEditorEngine::PlaySessionResumedOnViewportClientFocusReceived);
 			
 		FSlatePlayInEditorInfo& SlatePlayInEditorSession = SlatePlayInEditorMap.Add(PieWorldContext->ContextHandle, FSlatePlayInEditorInfo());
 		SlatePlayInEditorSession.DestinationSlateViewport = RequestedDestinationSlateViewport;	// Might be invalid depending how pie was launched. Code below handles this.
@@ -3115,13 +3136,18 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 							GameLayerManagerRef
 						];
 
-				// Create a viewport widget for the game to render in.
-				PieWindow->SetContent( PieViewportWidget.ToSharedRef() );
+				// Create a wrapper widget for PIE viewport to process play world actions
+				TSharedRef<SGlobalPlayWorldActions> GlobalPlayWorldActionsWidgetRef = SNew(SGlobalPlayWorldActions)
+					[
+						PieViewportWidget.ToSharedRef()
+					];
+
+				PieWindow->SetContent(GlobalPlayWorldActionsWidgetRef);
 
 				if (!bHasCustomWindow)
 				{
-				// Ensure the PIE window appears does not appear behind other windows.
-				PieWindow->BringToFront();
+					// Ensure the PIE window appears does not appear behind other windows.
+					PieWindow->BringToFront();
 				}
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
@@ -3192,7 +3218,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				ViewportClient->Viewport->SetPlayInEditorViewport( ViewportClient->bIsPlayInEditorViewport );
 
 				// Ensure the window has a valid size before calling BeginPlay
-				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->ResizeFrame( NewWindowWidth, NewWindowHeight, EWindowMode::Windowed, PieWindow->GetPositionInScreen().X, PieWindow->GetPositionInScreen().Y );
+				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->ResizeFrame( NewWindowWidth, NewWindowHeight, EWindowMode::Windowed );
 
 				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
 				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);

@@ -313,6 +313,8 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	
 	if (ErrorReport.HasFilesToUpload() && FPrimaryCrashProperties::Get() != nullptr)
 	{
+		ErrorReport.SetCrashReportClientVersion(FCrashReportClientConfig::Get().GetVersion());
+
 		FCrashReportAnalytics::Initialize();
 		FQoSReporter::Initialize();
 		FQoSReporter::SetBackendDeploymentName(FPrimaryCrashProperties::Get()->DeploymentName);

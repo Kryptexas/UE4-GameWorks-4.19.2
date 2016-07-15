@@ -1010,6 +1010,10 @@ private:
 	*/
 	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
 
+	/*
+	* Ask the reference skeleton to rebuild the NameToIndexMap array. This is use to load old package before this array was created.
+	*/
+	void RebuildRefSkeletonNameToIndexMap();
 };
 
 

@@ -48,12 +48,17 @@ struct FCrashReportClientConfig
 	/** Initialization constructor. */
 	FCrashReportClientConfig();
 
-	FString GetReceiverAddress() const
+	const FString& GetVersion() const
+	{
+		return CrashReportClientVersion;
+	}
+
+	const FString& GetReceiverAddress() const
 	{
 		return CrashReportReceiverIP;
 	}
 
-	FString GetDataRouterURL() const
+	const FString& GetDataRouterURL() const
 	{
 		return DataRouterUrl;
 	}
@@ -97,6 +102,9 @@ protected:
 
 	/** Reads FFullCrashDumpEntry config entries. */
 	void ReadFullCrashDumpConfigurations();
+
+	/** Client version (two digit licensee built e.g. "1.0" - three digits for Epic builds e.g. "1.0.0") */
+	FString CrashReportClientVersion;
 
 	/** IP address of crash report receiver. */
 	FString CrashReportReceiverIP;

@@ -17,7 +17,7 @@ FSlateTextLayout::FSlateTextLayout(FTextBlockStyle InDefaultTextStyle)
 	: DefaultTextStyle(MoveTemp(InDefaultTextStyle))
 	, Children()
 	, bIsPassword(false)
-	, LocalizedFallbackFontRevision(INDEX_NONE)
+	, LocalizedFallbackFontRevision(0)
 {
 
 }
@@ -137,10 +137,10 @@ void FSlateTextLayout::EndLayout()
 
 void FSlateTextLayout::UpdateIfNeeded()
 {
-	const int32 CurrentLocalizedFallbackFontRevision = FSlateApplication::Get().GetRenderer()->GetFontCache()->GetLocalizedFallbackFontRevision();
+	const uint16 CurrentLocalizedFallbackFontRevision = FSlateApplication::Get().GetRenderer()->GetFontCache()->GetLocalizedFallbackFontRevision();
 	if (CurrentLocalizedFallbackFontRevision != LocalizedFallbackFontRevision)
 	{
-		if (LocalizedFallbackFontRevision != INDEX_NONE)
+		if (LocalizedFallbackFontRevision != 0)
 		{
 			// If the localized fallback font has changed, we need to purge the current layout data as things may need to be re-measured
 			DirtyFlags |= ETextLayoutDirtyState::Layout;

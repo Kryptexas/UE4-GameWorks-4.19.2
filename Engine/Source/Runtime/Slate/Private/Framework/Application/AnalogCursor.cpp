@@ -126,21 +126,25 @@ bool FAnalogCursor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEv
 	}
 
 	// Bottom face button is a click
-	if (Key == EKeys::Gamepad_FaceButton_Bottom && !InKeyEvent.IsRepeat())
+	if (Key == EKeys::Gamepad_FaceButton_Bottom)
 	{
-		FPointerEvent MouseEvent(
-			0,
-			SlateApp.GetCursorPos(),
-			SlateApp.GetLastCursorPos(),
-			SlateApp.PressedMouseButtons,
-			EKeys::LeftMouseButton,
-			0,
-			SlateApp.GetPlatformApplication()->GetModifierKeys()
-			);
+		if ( !InKeyEvent.IsRepeat() )
+		{
+			FPointerEvent MouseEvent(
+				0,
+				SlateApp.GetCursorPos(),
+				SlateApp.GetLastCursorPos(),
+				SlateApp.PressedMouseButtons,
+				EKeys::LeftMouseButton,
+				0,
+				SlateApp.GetPlatformApplication()->GetModifierKeys()
+				);
 
-		TSharedPtr<FGenericWindow> GenWindow;
-		return SlateApp.ProcessMouseButtonDownEvent(GenWindow, MouseEvent);
+			TSharedPtr<FGenericWindow> GenWindow;
+			return SlateApp.ProcessMouseButtonDownEvent(GenWindow, MouseEvent);
+		}
 
+		return true;
 	}
 
 	return false;

@@ -30,11 +30,19 @@ FArchive::FArchive()
 {
 	CustomVersionContainer = new FCustomVersionContainer;
 
+#if USE_STABLE_LOCALIZATION_KEYS
+	LocalizationNamespacePtr = nullptr;
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 	Reset();
 }
 
 FArchive::FArchive(const FArchive& ArchiveToCopy)
 {
+#if USE_STABLE_LOCALIZATION_KEYS
+	LocalizationNamespacePtr = nullptr;
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 	CopyTrivialFArchiveStatusMembers(ArchiveToCopy);
 
 	// Don't know why this is set to false, but this is what the original copying code did
@@ -58,6 +66,10 @@ FArchive& FArchive::operator=(const FArchive& ArchiveToCopy)
 FArchive::~FArchive()
 {
 	delete CustomVersionContainer;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	delete LocalizationNamespacePtr;
+#endif // USE_STABLE_LOCALIZATION_KEYS
 }
 
 // Resets all of the base archive members
@@ -102,6 +114,9 @@ void FArchive::Reset()
 #if WITH_EDITORONLY_DATA
 	EditorOnlyPropertyStack = 0;
 #endif
+#if USE_STABLE_LOCALIZATION_KEYS
+	SetBaseLocalizationNamespace(FString());
+#endif // USE_STABLE_LOCALIZATION_KEYS
 #if WITH_EDITOR
 	ArDebugSerializationFlags			= 0;
 #endif
@@ -150,6 +165,9 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 #if WITH_EDITORONLY_DATA
 	EditorOnlyPropertyStack = ArchiveToCopy.EditorOnlyPropertyStack;
 #endif
+#if USE_STABLE_LOCALIZATION_KEYS
+	SetBaseLocalizationNamespace(ArchiveToCopy.GetBaseLocalizationNamespace());
+#endif // USE_STABLE_LOCALIZATION_KEYS
 }
 
 /**
@@ -163,6 +181,37 @@ FString FArchive::GetArchiveName() const
 	return TEXT("FArchive");
 }
 
+#if USE_STABLE_LOCALIZATION_KEYS
+void FArchive::SetBaseLocalizationNamespace(const FString& InLocalizationNamespace)
+{
+	if (InLocalizationNamespace.IsEmpty())
+	{
+		delete LocalizationNamespacePtr;
+		LocalizationNamespacePtr = nullptr;
+	}
+	else
+	{
+		if (!LocalizationNamespacePtr)
+		{
+			LocalizationNamespacePtr = new FString();
+		}
+		*LocalizationNamespacePtr = InLocalizationNamespace;
+	}
+}
+FString FArchive::GetBaseLocalizationNamespace() const
+{
+	return LocalizationNamespacePtr ? *LocalizationNamespacePtr : FString();
+}
+void FArchive::SetLocalizationNamespace(const FString& InLocalizationNamespace)
+{
+	SetBaseLocalizationNamespace(InLocalizationNamespace);
+}
+FString FArchive::GetLocalizationNamespace() const
+{
+	return GetBaseLocalizationNamespace();
+}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 #if WITH_EDITOR
 FArchive::FScopeAddDebugData::FScopeAddDebugData(FArchive& InAr, const FName& DebugData) : Ar(InAr)
 {
@@ -173,6 +222,12 @@ void FArchive::PushDebugDataString(const FName& DebugData)
 {
 }
 #endif
+
+FArchive& FArchive::operator<<( FText& Value )
+{
+	FText::SerializeText(*this, Value);
+	return *this;
+}
 
 FArchive& FArchive::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 {
@@ -262,6 +317,17 @@ FString FArchiveProxy::GetArchiveName() const
 {
 	return InnerArchive.GetArchiveName();
 }
+
+#if USE_STABLE_LOCALIZATION_KEYS
+void FArchiveProxy::SetLocalizationNamespace(const FString& InLocalizationNamespace)
+{
+	InnerArchive.SetLocalizationNamespace(InLocalizationNamespace);
+}
+FString FArchiveProxy::GetLocalizationNamespace() const
+{
+	return InnerArchive.GetLocalizationNamespace();
+}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 /**
  * Serialize the given FName as an FString

@@ -18,7 +18,6 @@ namespace EWorkingCopyState
 		Copied,
 		Missing,
 		Conflicted,
-		Merged,
 		NotControlled,
 		Ignored,
 	};

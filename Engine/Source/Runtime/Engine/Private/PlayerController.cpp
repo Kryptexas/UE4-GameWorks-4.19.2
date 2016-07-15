@@ -1351,6 +1351,23 @@ void APlayerController::PawnLeavingGame()
 	}
 }
 
+void APlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// If the viewport is currently set to lock mouse always, we need to cache what widget the mouse needs to be locked to even if the
+	// widget does not have mouse capture.
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>( Player );
+
+	if ( LocalPlayer && LocalPlayer->ViewportClient )
+	{
+		if ( LocalPlayer->ViewportClient->ShouldAlwaysLockMouse() )
+		{
+			LocalPlayer->GetSlateOperations().LockMouseToWidget( LocalPlayer->ViewportClient->GetGameViewportWidget().ToSharedRef() );
+		}
+	}
+}
+
 void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
@@ -4523,11 +4540,11 @@ void FInputModeUIOnly::ApplyInputMode(FReply& SlateOperations, class UGameViewpo
 	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
 	if (ViewportWidget.IsValid())
 	{
-		SetFocusAndLocking(SlateOperations, WidgetToFocus, bLockMouseToViewport, ViewportWidget.ToSharedRef());
+		SetFocusAndLocking(SlateOperations, WidgetToFocus, MouseLockMode == EMouseLockMode::LockAlways, ViewportWidget.ToSharedRef());
 
 		SlateOperations.ReleaseMouseCapture();
 
-		GameViewportClient.SetLockDuringCapture(bLockMouseToViewport);
+		GameViewportClient.SetMouseLockMode(MouseLockMode);
 		GameViewportClient.SetIgnoreInput(true);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
 	}
@@ -4538,11 +4555,11 @@ void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, class UGameVie
 	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
 	if (ViewportWidget.IsValid())
 	{
-		SetFocusAndLocking(SlateOperations, WidgetToFocus, bLockMouseToViewport, ViewportWidget.ToSharedRef());
+		SetFocusAndLocking(SlateOperations, WidgetToFocus, MouseLockMode == EMouseLockMode::LockAlways, ViewportWidget.ToSharedRef());
 
 		SlateOperations.ReleaseMouseCapture();
 
-		GameViewportClient.SetLockDuringCapture(bLockMouseToViewport);
+		GameViewportClient.SetMouseLockMode(MouseLockMode);
 		GameViewportClient.SetIgnoreInput(false);
 		GameViewportClient.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
@@ -4558,7 +4575,7 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 		SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		SlateOperations.SetUserFocus(ViewportWidgetRef);
 		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
-		GameViewportClient.SetLockDuringCapture(true);
+		GameViewportClient.SetMouseLockMode(EMouseLockMode::LockOnCapture);
 		GameViewportClient.SetIgnoreInput(false);
 		GameViewportClient.SetCaptureMouseOnClick(bConsumeCaptureMouseDown ? EMouseCaptureMode::CapturePermanently : EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
 	}

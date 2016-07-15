@@ -2425,9 +2425,9 @@ namespace SceneOutliner
 
 		// Deselect actors in the tree that are no longer selected in the world
 		FItemSelection Selection(*OutlinerTreeView);
-		for (auto* ActorItem : Selection.Actors)
+		for (FActorTreeItem* ActorItem : Selection.Actors)
 		{
-			if (!SelectedActors->IsSelected(ActorItem->Actor.Get()))
+			if(!ActorItem->Actor.Get()->IsSelected())
 			{
 				OutlinerTreeView->SetItemSelection(ActorItem->AsShared(), false);
 			}
@@ -2437,7 +2437,7 @@ namespace SceneOutliner
 		for (FSelectionIterator SelectionIt( *SelectedActors ); SelectionIt; ++SelectionIt)
 		{
 			AActor* Actor = CastChecked< AActor >(*SelectionIt);
-			if (auto* ActorItem = TreeItemMap.Find(Actor))
+			if (FTreeItemPtr* ActorItem = TreeItemMap.Find(Actor))
 			{
 				OutlinerTreeView->SetItemSelection(*ActorItem, true);
 			}

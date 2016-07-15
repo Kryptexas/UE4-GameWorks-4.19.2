@@ -73,6 +73,7 @@
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
 #include "AnalyticsEventAttribute.h"
+#include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -5578,6 +5579,15 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		MainFrameModule.RequestCloseEditor();
+		return true;
+	}
+	else if( FParse::Command(&Str,TEXT("WIDGETREFLECTOR")) )
+	{
+		if(!IsRunningCommandlet())
+		{
+			static const FName SlateReflectorModuleName("SlateReflector");
+			FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
+		}
 		return true;
 	}
 	//----------------------------------------------------------------------------------

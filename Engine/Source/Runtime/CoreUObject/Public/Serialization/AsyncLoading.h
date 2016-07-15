@@ -194,6 +194,10 @@ private:
 	TArray<UObject*> DeferredFinalizeObjects;
 	/** List of all request handles */
 	TArray<int32> RequestIDs;
+#if WITH_EDITORONLY_DATA
+	/** Index of the meta-data object within the linkers export table (unset if not yet processed, although may still be INDEX_NONE if there is no meta-data) */
+	TOptional<int32> MetaDataIndex;
+#endif // WITH_EDITORONLY_DATA
 	/** Cached async loading thread object this package was created by */
 	class FAsyncLoadingThread& AsyncLoadingThread;
 public:
@@ -301,6 +305,14 @@ private:
 	 * @return true if all texture allocations have been completed, false otherwise
 	 */
 	EAsyncPackageState::Type FinishTextureAllocations();
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Creates and loads meta-data for the package.
+	 *
+	 * @return true if we finished creating meta-data, false otherwise.
+	 */
+	EAsyncPackageState::Type CreateMetaData();
+#endif // WITH_EDITORONLY_DATA
 	/**
 	 * Create exports till time limit is exceeded.
 	 *

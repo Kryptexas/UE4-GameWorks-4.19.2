@@ -404,6 +404,7 @@ const FSceneViewport* SLevelViewport::GetGameSceneViewport() const
 
 FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
+
 	FReply Reply = FReply::Unhandled();
 
 	if( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
@@ -3428,7 +3429,8 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	// Focus will be set when the game viewport is registered
 	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
 
-	ActiveViewport = MakeShareable( new FSceneViewport( PlayClient, ViewportWidget ) );
+	// Attach global play world actions widget to view port
+	ActiveViewport = MakeShareable( new FSceneViewport( PlayClient, ViewportWidget) );
 	ActiveViewport->SetPlayInEditorViewport( true );
 
 	// Whether to start with the game taking mouse control or leaving it shown in the editor
@@ -3448,7 +3450,7 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	PlayClient->Viewport = ActiveViewport.Get();
 
 	// Register the new viewport widget with Slate for viewport specific message routing.
-	FSlateApplication::Get().RegisterGameViewport( ViewportWidget.ToSharedRef() ); 
+	FSlateApplication::Get().RegisterGameViewport(ViewportWidget.ToSharedRef() );
 
 	// Kick off a quick transition effect (border graphics)
 	ViewTransitionType = EViewTransition::StartingPlayInEditor;
@@ -3511,23 +3513,16 @@ FText SLevelViewport::GetMouseCaptureLabelText() const
 {
 	if(ActiveViewport->HasMouseCapture())
 	{
-		// Only need to fetch the exec binding once since it can't change
-		// but better than hard coding to the current binding.
+		// Default Shift+F1 if a valid chord is not found
 		static FInputChord Chord(EKeys::F1, EModifierKey::Shift);
-		static bool bInitedChord = false;
-		if(!bInitedChord)
+		TSharedPtr<FUICommandInfo> UICommand = FInputBindingManager::Get().FindCommandInContext(TEXT("PlayWorld"), TEXT("GetMouseControl"));
+		if (UICommand.IsValid())
 		{
-			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
-			if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
-			{
-				FKeyBind Binding = TargetPlayer->PlayerController->PlayerInput->GetExecBind(TEXT("ShowMouseCursor"));
-				Chord = FInputChord(Binding.Key, EModifierKey::FromBools(Binding.Control, Binding.Alt, Binding.Shift, Binding.Cmd));
-				bInitedChord = true;
-			}
+			TSharedRef<const FInputChord> ActiveChord = UICommand->GetActiveChord();
+			Chord = ActiveChord.Get();
 		}
-
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("InputText"), Chord.GetInputText() );
+		Args.Add(TEXT("InputText"), Chord.GetInputText());
 		return FText::Format( LOCTEXT("ShowMouseCursorLabel", "{InputText} for Mouse Cursor"), Args );
 	}
 	else

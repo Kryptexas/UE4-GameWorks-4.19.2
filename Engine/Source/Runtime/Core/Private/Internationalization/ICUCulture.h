@@ -15,6 +15,7 @@
 	#include <unicode/numfmt.h>
 	#include <unicode/decimfmt.h>
 	#include <unicode/datefmt.h>
+	#include <unicode/plurrule.h>
 #if defined(_MSC_VER) && USING_CODE_ANALYSIS
 	#pragma warning(pop)
 #endif
@@ -143,6 +144,8 @@ inline ERoundingMode ICUToUE(const icu::DecimalFormat::ERoundingMode RoundingMod
 	}
 	return Value;
 }
+
+ETextPluralForm ICUPluralFormToUE(const icu::UnicodeString& InICUTag);
 
 enum class EBreakIteratorType
 {
@@ -413,6 +416,9 @@ class FCulture::FICUCultureImplementation
 	const FDecimalNumberFormattingRules& GetPercentFormattingRules();
 	const FDecimalNumberFormattingRules& GetCurrencyFormattingRules(const FString& InCurrencyCode);
 
+	ETextPluralForm GetPluralForm(int32 Val, const ETextPluralType PluralType);
+	ETextPluralForm GetPluralForm(double Val, const ETextPluralType PluralType);
+
 	icu::Locale ICULocale;
 	TSharedPtr<const icu::BreakIterator> ICUGraphemeBreakIterator;
 	TSharedPtr<const icu::BreakIterator> ICUWordBreakIterator;
@@ -432,6 +438,9 @@ class FCulture::FICUCultureImplementation
 	TSharedPtr<const icu::DateFormat> ICUDateFormat;
 	TSharedPtr<const icu::DateFormat> ICUTimeFormat;
 	TSharedPtr<const icu::DateFormat> ICUDateTimeFormat;
+
+	const icu::PluralRules* ICUCardinalPluralRules;
+	const icu::PluralRules* ICUOrdianalPluralRules;
 
 	TSharedPtr<const FDecimalNumberFormattingRules, ESPMode::ThreadSafe> UEDecimalNumberFormattingRules;
 	FCriticalSection UEDecimalNumberFormattingRulesCS;

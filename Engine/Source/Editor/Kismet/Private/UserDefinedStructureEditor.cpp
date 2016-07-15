@@ -87,6 +87,7 @@ public:
 	{
 		StructData = MakeShareable(new FStructOnScope(UserDefinedStruct.Get()));
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
+		StructData->SetPackage(UserDefinedStruct->GetOutermost());
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs ViewArgs;

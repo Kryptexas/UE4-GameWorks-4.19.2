@@ -1149,6 +1149,11 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("DeveloperTools.MenuIcon", new IMAGE_BRUSH( "Icons/icon_tab_DevTools_16x", Icon16x16 ) );
 	}
 
+	// Automation Tools Menu
+	{
+		Set("AutomationTools.MenuIcon", new IMAGE_BRUSH("Icons/icon_tab_Tools_16x", Icon16x16));
+	}
+
 	// Session Browser tab
 	{
 		Set("SessionBrowser.SessionLocked", new IMAGE_BRUSH( "Icons/icon_levels_Locked_hi_16px", Icon16x16 ) );
@@ -2645,6 +2650,26 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "UserFeedback.PositiveIcon", new IMAGE_BRUSH( "UserFeedback/Feedback_Positive", Icon16x16) );
 		Set( "UserFeedback.NegativeIcon", new IMAGE_BRUSH( "UserFeedback/Feedback_Negative", Icon16x16) );
 	}
+
+	// Common styles for blueprint/code references that also need to be exposed to external tools
+	{
+		FTextBlockStyle InheritedFromNativeTextStyle = FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10));
+
+		Set("Common.InheritedFromNativeTextStyle", InheritedFromNativeTextStyle);
+
+		// Go to native class hyperlink
+		FButtonStyle EditNativeHyperlinkButton = FButtonStyle()
+			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f)))
+			.SetPressed(FSlateNoResource())
+			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f)));
+		FHyperlinkStyle EditNativeHyperlinkStyle = FHyperlinkStyle()
+			.SetUnderlineStyle(EditNativeHyperlinkButton)
+			.SetTextStyle(InheritedFromNativeTextStyle)
+			.SetPadding(FMargin(0.0f));
+
+		Set("Common.GotoNativeCodeHyperlink", EditNativeHyperlinkStyle);
+	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
 #if WITH_EDITOR
@@ -2693,24 +2718,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPadding(FMargin(0.0f));
 
 		Set("Common.GotoBlueprintHyperlink", EditBPHyperlinkStyle);
-
-
-		FTextBlockStyle InheritedFromNativeTextStyle = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10));
-
-		Set("Common.InheritedFromNativeTextStyle", InheritedFromNativeTextStyle);
-
-		// Go to native class hyperlink
-		FButtonStyle EditNativeHyperlinkButton = FButtonStyle()
-			.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f)))
-			.SetPressed(FSlateNoResource())
-			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f)));
-		FHyperlinkStyle EditNativeHyperlinkStyle = FHyperlinkStyle()
-			.SetUnderlineStyle(EditNativeHyperlinkButton)
-			.SetTextStyle(InheritedFromNativeTextStyle)
-			.SetPadding(FMargin(0.0f));
-
-		Set("Common.GotoNativeCodeHyperlink", EditNativeHyperlinkStyle);
 	}
 #endif
 }

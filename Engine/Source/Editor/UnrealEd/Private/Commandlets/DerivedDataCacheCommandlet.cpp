@@ -48,6 +48,32 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 	double FindProcessedPackagesTime = 0.0;
 	double GCTime = 0.0;
 
+	auto WaitForCurrentShaderCompilationToFinish = []()
+	{
+		int32 NumCompletedShadersSinceLastLog = 0;
+		int32 CachedShaderCount = GShaderCompilingManager->GetNumRemainingJobs();
+		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Waiting for %d shaders to finish."), CachedShaderCount);
+		while (GShaderCompilingManager->IsCompiling())
+		{
+			const int32 CurrentShaderCount = GShaderCompilingManager->GetNumRemainingJobs();
+			NumCompletedShadersSinceLastLog += (CachedShaderCount - CurrentShaderCount);
+			CachedShaderCount = CurrentShaderCount;
+
+			if (NumCompletedShadersSinceLastLog >= 1000)
+			{
+				UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Waiting for %d shaders to finish."), CachedShaderCount);
+				NumCompletedShadersSinceLastLog = 0;
+			}
+
+			// Process any asynchronous shader compile results that are ready, limit execution time
+			GShaderCompilingManager->ProcessAsyncResults(true, false);
+			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
+		}
+		GShaderCompilingManager->FinishAllCompilation(); // Final blocking check as IsCompiling() may be non-deterministic
+		GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();
+		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Done waiting for shaders to finish."));
+	};
+
 	if (!bStartupOnly && bFillCache)
 	{
 		FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded);
@@ -240,14 +266,12 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				GCTime += FPlatformTime::Seconds() - StartGCTime;
 
 				bLastPackageWasMap = false;
+				WaitForCurrentShaderCompilationToFinish();
 			}
 		}
 	}
 
-	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Waiting for shaders to finish."));
-	GShaderCompilingManager->FinishAllCompilation();
-	GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();
-	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Done waiting for shaders to finish."));
+	WaitForCurrentShaderCompilationToFinish();
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%.2lfs spent looking for processed packages, %.2lfs spent on GC."), FindProcessedPackagesTime, GCTime);

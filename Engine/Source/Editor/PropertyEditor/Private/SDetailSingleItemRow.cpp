@@ -430,9 +430,12 @@ bool SDetailSingleItemRow::CanPasteProperty() const
 	if (Customization->PropertyRow.IsValid())
 	{
 		FPropertyEditor* PropertyEditor = Customization->PropertyRow->GetPropertyEditor().Get();
-		if (PropertyEditor && PropertyEditor->HasEditCondition() && !PropertyEditor->IsEditConditionMet())
+		if (PropertyEditor)
 		{
-			return false;
+			if ((PropertyEditor->HasEditCondition() && !PropertyEditor->IsEditConditionMet()) || PropertyEditor->IsEditConst())
+			{
+				return false;
+			}
 		}
 	}
 

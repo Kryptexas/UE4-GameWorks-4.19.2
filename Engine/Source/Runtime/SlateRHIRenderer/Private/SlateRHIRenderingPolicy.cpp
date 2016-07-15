@@ -411,13 +411,12 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				if (DrawFlags & ESlateBatchDrawFlag::Wireframe)
 				{
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Wireframe, CM_None, true>::GetRHI());
+					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Wireframe, CM_None, false>::GetRHI());
 				}
 				else
 				{
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, true>::GetRHI());
+					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, false>::GetRHI());
 				}
-
 
 				FSamplerStateRHIParamRef SamplerState = BilinearClamp;
 				FTextureRHIParamRef TextureRHI = GWhiteTexture->TextureRHI;
@@ -427,7 +426,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 					if (ResourceType == ESlateShaderResource::TextureObject)
 					{
-						FSlateUTextureResource* TextureObjectResource = (FSlateUTextureResource*)ShaderResource;
+						FSlateBaseUTextureResource* TextureObjectResource = (FSlateBaseUTextureResource*)ShaderResource;
+		
 						TextureRHI = TextureObjectResource->AccessRHIResource();
 
 						if ( UTexture* TextureObj = TextureObjectResource->TextureObject )

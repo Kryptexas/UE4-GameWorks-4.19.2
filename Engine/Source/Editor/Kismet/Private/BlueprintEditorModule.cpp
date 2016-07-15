@@ -126,7 +126,7 @@ void FixSubObjectReferencesPostUndoRedo(UObject* InObject)
 
 void FixSubObjectReferencesPostUndoRedo(const FTransaction* Transaction)
 {
-	UBlueprint* Blueprint = nullptr;
+	TArray<UBlueprint*> ModifiedBlueprints;
 
 	// Look at the transaction this function is responding to, see if any object in it has an outermost of the Blueprint
 	if (Transaction != nullptr)
@@ -135,16 +135,23 @@ void FixSubObjectReferencesPostUndoRedo(const FTransaction* Transaction)
 		Transaction->GetTransactionObjects(TransactionObjects);
 		for (UObject* Object : TransactionObjects)
 		{
+			UBlueprint* Blueprint = nullptr;
+
 			while (Object != nullptr && Blueprint == nullptr)
 			{
 				Blueprint = Cast<UBlueprint>(Object);
 				Object = Object->GetOuter();
 			}
+
+			if (Blueprint != nullptr)
+			{
+				ModifiedBlueprints.AddUnique(Blueprint);
+			}
 		}
 	}
 
-	// Transaction affects the Blueprint this editor handles, so react as necessary
-	if (Blueprint)
+	// Transaction affects the Blueprints this editor handles, so react as necessary
+	for (UBlueprint* Blueprint : ModifiedBlueprints)
 	{
 		FixSubObjectReferencesPostUndoRedo(Blueprint->GeneratedClass->GetDefaultObject());
 		// Will cause a call to RefreshEditors()

@@ -278,7 +278,10 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, FName Id, const bool bAllo
 	}
 
 	TWeakPtr<class SBuildProgressWidget> BuildProgressWidget = GWarn->ShowBuildProgressWindow();
-	BuildProgressWidget.Pin()->SetBuildType(BuildType);
+	if ( BuildProgressWidget.IsValid() )
+	{
+		BuildProgressWidget.Pin()->SetBuildType(BuildType);
+	}
 
 	bool bShouldMapCheck = true;
 	if (Id == FBuildOptions::BuildGeometry)

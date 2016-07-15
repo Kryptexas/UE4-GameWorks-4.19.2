@@ -875,7 +875,6 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 	// Remove all references to destroyed actors once at the end, instead of once for each Actor destroyed..
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
-	NoteSelectionChange();
 	// If any brush actors were modified, update the Bsp in the appropriate levels
 	if (LevelsToRebuildBSP.Num())
 	{
@@ -886,6 +885,8 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			GEditor->RebuildLevel(*Level);
 		}
 	}
+
+	NoteSelectionChange();
 
 	if( LevelsToRebuildNavigation.Num() )
 	{

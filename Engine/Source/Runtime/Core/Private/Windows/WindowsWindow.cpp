@@ -757,6 +757,12 @@ void FWindowsWindow::Enable( bool bEnable )
 	::EnableWindow( HWnd, bEnable );
 }
 
+/** @return True if the window is enabled */
+bool FWindowsWindow::IsEnabled()
+{
+	return !!::IsWindowEnabled( HWnd );
+}
+
 /** @return true if native window exists underneath the coordinates */
 bool FWindowsWindow::IsPointInWindow( int32 X, int32 Y ) const
 {

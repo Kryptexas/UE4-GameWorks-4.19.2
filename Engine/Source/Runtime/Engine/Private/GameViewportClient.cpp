@@ -114,8 +114,8 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
-	, bLockDuringCapture(true)
 	, bHideCursorDuringCapture(false)
+	, MouseLockMode(EMouseLockMode::LockOnCapture)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
 {
@@ -173,8 +173,8 @@ UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
-	, bLockDuringCapture(true)
 	, bHideCursorDuringCapture(false)
+	, MouseLockMode(EMouseLockMode::LockOnCapture)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
 {
@@ -277,7 +277,7 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// Set the projects default viewport mouse capture mode
 	MouseCaptureMode = GetDefault<UInputSettings>()->DefaultViewportMouseCaptureMode;
-	bLockDuringCapture = GetDefault<UInputSettings>()->bDefaultViewportMouseLock;
+	MouseLockMode = GetDefault<UInputSettings>()->DefaultViewportMouseLockMode;
 
 	// Create the cursor Widgets
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
@@ -1406,6 +1406,9 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 		GEngine->GetAudioDeviceManager()->SetActiveDevice(AudioDeviceHandle);
 		bHasAudioFocus = true;
 	}
+	
+	// broadcast focus received to anyone that registered an interest
+	FocusReceivedDelegate.ExecuteIfBound();
 }
 
 bool UGameViewportClient::IsFocused(FViewport* InViewport)
@@ -2070,12 +2073,6 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	{
 		return HandlePrevViewModeCommand( Cmd, Ar, InWorld );
 	}
-#if WITH_EDITOR
-	else if( FParse::Command( &Cmd, TEXT("ShowMouseCursor") ) )
-	{
-		return HandleShowMouseCursorCommand( Cmd, Ar );
-	}
-#endif
 	else if( FParse::Command(&Cmd,TEXT("PRECACHE")) )
 	{
 		return HandlePreCacheCommand( Cmd, Ar );
@@ -2604,15 +2601,6 @@ bool UGameViewportClient::HandlePrevViewModeCommand( const TCHAR* Cmd, FOutputDe
 	ApplyViewMode((EViewModeIndex)ViewModeIndex, true, EngineShowFlags);
 	return true;
 }
-
-#if WITH_EDITOR
-bool UGameViewportClient::HandleShowMouseCursorCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
-	FSlateApplication::Get().ResetToDefaultInputSettings();
-	return true;
-}
-#endif // WITH_EDITOR
 
 bool UGameViewportClient::HandlePreCacheCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {

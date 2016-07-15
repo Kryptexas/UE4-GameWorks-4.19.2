@@ -295,8 +295,8 @@ void FWeightedBlendableCustomization::CustomizeHeader( TSharedRef<IPropertyHandl
 		+SHorizontalBox::Slot()
 		[
 			SNew(SBox)
-			.MinDesiredWidth(44.0f)
-			.MaxDesiredWidth(44.0f)		
+			.MinDesiredWidth(60.0f)
+			.MaxDesiredWidth(60.0f)		
 			[
 				SharedWeightProp->CreatePropertyValueWidget()
 			]
@@ -304,6 +304,7 @@ void FWeightedBlendableCustomization::CustomizeHeader( TSharedRef<IPropertyHandl
 	];
 
 	HeaderRow.ValueContent()
+	.MaxDesiredWidth(0.0f)
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

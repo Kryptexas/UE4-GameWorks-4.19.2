@@ -60,6 +60,11 @@ public:
 		return GetReadAddressUncached(InPropertyNode, OutAddresses);
 	}
 
+	UPackage* GetOwnerPackage() const
+	{
+		return IsValid() ? StructData->GetPackage() : nullptr;
+	}
+
 	/** FComplexPropertyNode Interface */
 	virtual const UStruct* GetBaseStructure() const override
 	{ 

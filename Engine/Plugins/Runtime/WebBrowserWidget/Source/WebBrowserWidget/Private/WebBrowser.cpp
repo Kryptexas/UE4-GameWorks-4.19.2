@@ -43,6 +43,16 @@ FText UWebBrowser::GetTitleText() const
 	return FText::GetEmpty();
 }
 
+FString UWebBrowser::GetUrl() const
+{
+	if (WebBrowserWidget.IsValid())
+	{
+		return WebBrowserWidget->GetUrl();
+	}
+
+	return FString();
+}
+
 void UWebBrowser::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
@@ -67,7 +77,8 @@ TSharedRef<SWidget> UWebBrowser::RebuildWidget()
 		WebBrowserWidget = SNew(SWebBrowser)
 			.InitialURL(InitialURL)
 			.ShowControls(false)
-			.SupportsTransparency(bSupportsTransparency);
+			.SupportsTransparency(bSupportsTransparency)
+			.OnUrlChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnUrlChanged));
 
 		return WebBrowserWidget.ToSharedRef();
 	}
@@ -81,6 +92,11 @@ void UWebBrowser::SynchronizeProperties()
 	{
 
 	}
+}
+
+void UWebBrowser::HandleOnUrlChanged(const FText& InText)
+{
+	OnUrlChanged.Broadcast(InText);
 }
 
 #if WITH_EDITOR

@@ -565,7 +565,7 @@ namespace UnrealBuildTool
 			return " rc";
 		}
 
-		public static void CompileOutputReceivedDataEventHandler(Object Sender, DataReceivedEventArgs e)
+		public static void CrossCompileOutputReceivedDataEventHandler(Object Sender, DataReceivedEventArgs e)
 		{
 			Debug.Assert(CrossCompiling());
 
@@ -781,7 +781,7 @@ namespace UnrealBuildTool
 				// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
 				if (CrossCompiling())
 				{
-					CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
+					CompileAction.OutputEventHandler = new DataReceivedEventHandler(CrossCompileOutputReceivedDataEventHandler);
 				}
 			}
 
@@ -847,6 +847,12 @@ namespace UnrealBuildTool
 			// Only execute linking on the local PC.
 			ArchiveAction.bCanExecuteRemotely = false;
 
+			// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
+			if (CrossCompiling())
+			{
+				ArchiveAction.OutputEventHandler = new DataReceivedEventHandler(CrossCompileOutputReceivedDataEventHandler);
+			}
+
 			return OutputFile;
 		}
 
@@ -894,6 +900,12 @@ namespace UnrealBuildTool
 			PostLinkAction.CommandArguments += bUseCmdExe ? "\"" : "'";
 
 			System.Console.WriteLine("{0} {1}", PostLinkAction.CommandPath, PostLinkAction.CommandArguments);
+
+			// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
+			if (CrossCompiling())
+			{
+				PostLinkAction.OutputEventHandler = new DataReceivedEventHandler(CrossCompileOutputReceivedDataEventHandler);
+			}
 
 			PostLinkAction.ProducedItems.Add(OutputFile);
 			return OutputFile;
@@ -1192,6 +1204,12 @@ namespace UnrealBuildTool
 			}
 
 			//LinkAction.CommandArguments += " -v";
+
+			// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
+			if (CrossCompiling())
+			{
+				LinkAction.OutputEventHandler = new DataReceivedEventHandler(CrossCompileOutputReceivedDataEventHandler);
+			}
 
 			return OutputFile;
 		}

@@ -1214,6 +1214,21 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		BuildFbxMatrixForImportTransform(FbxAddedMatrix, TemplateData);
 		FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
 
+		bool bIsRigidMeshAnimation = false;
+		if (ImportOptions->bImportScene && SortedLinks.Num() > 0)
+		{
+			for (int32 BoneIdx = 0; BoneIdx < SortedLinks.Num(); ++BoneIdx)
+			{
+				FbxNode* Link = SortedLinks[BoneIdx];
+				if (Link->GetMesh() && Link->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0)
+				{
+					bIsRigidMeshAnimation = true;
+					break;
+				}
+			}
+		}
+
+
 		const int32 NumSamplingKeys = FMath::FloorToInt(AnimTimeSpan.GetDuration().GetSecondDouble() * ResampleRate);
 		const FbxTime TimeIncrement = AnimTimeSpan.GetDuration() / FMath::Max(NumSamplingKeys, 1);
 		for(int32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.Num(); ++SourceTrackIdx)
@@ -1283,7 +1298,8 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 						//In case we do a scene import we need to add the skeletal mesh root node matrix to the parent link.
 						if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute && BoneTreeIndex == 0 && SkeletalMeshRootNode != nullptr)
 						{
-							FbxAMatrix GlobalSkeletalNodeFbx = SkeletalMeshRootNode->EvaluateGlobalTransform(CurTime);
+							//In the case of a rigidmesh animation we have to use the skeletalMeshRootNode position at zero since the mesh can be animate.
+							FbxAMatrix GlobalSkeletalNodeFbx = bIsRigidMeshAnimation ? SkeletalMeshRootNode->EvaluateGlobalTransform(0) : SkeletalMeshRootNode->EvaluateGlobalTransform(CurTime);
 							FTransform GlobalSkeletalNode = Converter.ConvertTransform(GlobalSkeletalNodeFbx);
 							ParentGlobalTransform = ParentGlobalTransform * GlobalSkeletalNode;
 						}

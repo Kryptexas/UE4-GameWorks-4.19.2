@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Input/NavigationReply.h"
 
 class SWindow;
 struct FPointerEvent;
@@ -225,6 +226,13 @@ public:
 	 * @return The new focus path.
 	 */
 	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType);
+
+	/**
+	 * @param MoveDirection      Direction in which to move the focus.
+	 * 
+	 * @return The new focus path.
+	 */
+	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget);
 	
 	/** Get the last (leaf-most) widget in this path; assumes path is valid */
 	TWeakPtr< SWidget > GetLastWidget() const

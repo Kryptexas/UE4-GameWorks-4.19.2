@@ -2148,6 +2148,7 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 				if (ensure(Widget))
 				{
 					bool bIsChangingParent = Widget->GetParent() != NewParent;
+					UBlueprint* OriginalBP = nullptr;
 
 					check(Widget->GetParent() != nullptr || bIsChangingParent);
 
@@ -2161,6 +2162,15 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 
 							BP->WidgetTree->SetFlags(RF_Transactional);
 							BP->WidgetTree->Modify();
+
+							// If the Widget is changing parents, there's a chance it might be moving to a different WidgetTree as well.
+							UWidgetTree* OriginalWidgetTree = Cast<UWidgetTree>(Widget->GetOuter());
+							
+							if (UWidgetTree::TryMoveWidgetToNewTree(Widget, BP->WidgetTree))
+							{
+								// The Widget likely originated from a different blueprint, so get what blueprint it was originally a part of.
+								OriginalBP = OriginalWidgetTree ? OriginalWidgetTree->GetTypedOuter<UBlueprint>() : nullptr;
+							}
 						}
 
 						Widget->Modify();
@@ -2174,6 +2184,12 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 						}
 
 						Widget->GetParent()->RemoveChild(Widget);
+
+						// The Widget originated from a different blueprint, so mark it as modified.
+						if (OriginalBP && OriginalBP != BP)
+						{
+							FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(OriginalBP);
+						}
 					}
 
 					FVector2D ScreenSpacePosition = DragDropEvent.GetScreenSpacePosition();

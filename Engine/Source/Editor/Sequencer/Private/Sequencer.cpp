@@ -1965,7 +1965,7 @@ void FSequencer::UpdateRuntimeInstances()
 	EMovieSceneUpdateData UpdateData(ScrubPosition, ScrubPosition);
 	SequenceInstanceStack.Top()->Update(UpdateData, *this);
 
-	// Ensure any relevant spawned objects are cleaned up if we're playing back the master sequenceg
+	// Ensure any relevant spawned objects are cleaned up if we're playing back the master sequence
 	if (SequenceInstanceStack.Num() == 1)
 	{
 		if (!GetPlaybackRange().Contains(ScrubPosition))

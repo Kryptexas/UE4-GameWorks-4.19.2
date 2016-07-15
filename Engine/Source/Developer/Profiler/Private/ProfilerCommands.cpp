@@ -186,7 +186,7 @@ void FProfilerActionManager::ProfilerManager_Load_Execute()
 		bOpened = DesktopPlatform->OpenFileDialog
 		(
 			NULL, 
-			LOCTEXT("ProfilerManager_Load_Desc", "Open profiler capture file...").ToString(),
+			LOCTEXT("ProfilerManager_LoadFile_Desc", "Open profiler capture file...").ToString(),
 			ProfilingDirectory, 
 			TEXT(""), 
 			LOCTEXT("ProfilerManager_Load_FileFilter", "Stats files (*.ue4stats)|*.ue4stats|Raw Stats files (*.ue4statsraw)|*.ue4statsraw").ToString(), 

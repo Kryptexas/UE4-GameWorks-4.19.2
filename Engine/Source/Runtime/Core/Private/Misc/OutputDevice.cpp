@@ -150,6 +150,8 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
 }
 
+bool FDebug::bHasAsserted = false;
+
 void FDebug::OutputMultiLineCallstack(const ANSICHAR* File, int32 Line, const FName& LogName, const TCHAR* Heading, TCHAR* Message, ELogVerbosity::Type Verbosity)
 {
 	const bool bWriteUATMarkers = FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")) && FParse::Param(FCommandLine::Get(), TEXT("stdout"));
@@ -404,6 +406,12 @@ void VARARGS FDebug::AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, in
 	{
 		return;
 	}
+
+	// This is not perfect because another thread might crash and be handled before this assert
+	// but this static varible will report the crash as an assert. Given complexity of a thread
+	// aware solution, this should be good enough. If crash reports are obviously wrong we can
+	// look into fixing this.
+	bHasAsserted = true;
 
 	TCHAR DescriptionString[4096];
 	GET_VARARGS(DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString) - 1, Format, Format);

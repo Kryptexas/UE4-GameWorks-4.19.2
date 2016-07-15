@@ -13,19 +13,39 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		FApp::IsUnattended();
 #endif // CRASH_REPORT_UNATTENDED_ONLY
 
+	if (!GConfig->GetString(*SectionName, TEXT("CrashReportClientVersion"), CrashReportClientVersion, GEngineIni))
+	{
+		CrashReportClientVersion = TEXT("0.0.0");
+	}
+	UE_LOG(CrashReportClientLog, Log, TEXT("CrashReportClientVersion=%s"), *CrashReportClientVersion);
+
 	if (!GConfig->GetString( *SectionName, TEXT( "CrashReportReceiverIP" ), CrashReportReceiverIP, GEngineIni ))
 	{
-		// Use the default value.
-		CrashReportReceiverIP = TEXT( "http://crashreporter.epicgames.com:57005" );
+		// Use the default value (blank/disabled)
+		CrashReportReceiverIP = TEXT("");
 	}
-	UE_LOG(CrashReportClientLog, Log, TEXT("CrashReportReceiverIP: %s"), *CrashReportReceiverIP);
+	if (CrashReportReceiverIP.IsEmpty())
+	{
+		UE_LOG(CrashReportClientLog, Log, TEXT("CrashReportReceiver disabled"));
+	}
+	else
+	{
+		UE_LOG(CrashReportClientLog, Log, TEXT("CrashReportReceiverIP: %s"), *CrashReportReceiverIP);
+	}
 
 	if (!GConfig->GetString(*SectionName, TEXT("DataRouterUrl"), DataRouterUrl, GEngineIni))
 	{
 		// Use the default value.
 		DataRouterUrl = TEXT("");
 	}
-	UE_LOG(CrashReportClientLog, Log, TEXT("DataRouterUrl: %s"), *DataRouterUrl);
+	if (DataRouterUrl.IsEmpty())
+	{
+		UE_LOG(CrashReportClientLog, Log, TEXT("DataRouter disabled"));
+	}
+	else
+	{
+		UE_LOG(CrashReportClientLog, Log, TEXT("DataRouterUrl: %s"), *DataRouterUrl);
+	}
 
 	if (!GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni ))
 	{

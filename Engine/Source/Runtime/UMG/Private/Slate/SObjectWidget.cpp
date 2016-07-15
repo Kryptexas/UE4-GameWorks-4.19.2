@@ -127,7 +127,7 @@ void SObjectWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 	}
 }
 
-void SObjectWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
+void SObjectWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
 {
 	// TODO UMG
 }

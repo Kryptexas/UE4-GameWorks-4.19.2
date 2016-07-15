@@ -256,7 +256,7 @@ public:
 
 	// Friend for access to Flags.
 	template<typename TCharType>
-	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext);
+	friend FNameEntry* AllocateNameEntry(const void* Name, NAME_INDEX Index);
 };
 
 /**
@@ -650,51 +650,67 @@ public:
 	}
 
 	/**
-	 * Checks to see that a FName follows the rules that Unreal requires.
+	 * Checks to see that a given name-like string follows the rules that Unreal requires.
 	 *
-	 * @param	InInvalidChars	The set of invalid characters that the name cannot contain
-	 * @param	InReason		If the check fails, this string is filled in with the reason why.
+	 * @param	InName			String containing the name to test.
+	 * @param	InInvalidChars	The set of invalid characters that the name cannot contain.
+	 * @param	OutReason		If the check fails, this string is filled in with the reason why.
+	 * @param	InErrorCtx		Error context information to show in the error message (default is "Name").
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( FString InvalidChars=INVALID_NAME_CHARACTERS, class FText* Reason = nullptr ) const;
+	static bool IsValidXName( const FString& InName, const FString& InInvalidChars, class FText* OutReason = nullptr, const class FText* InErrorCtx = nullptr );
+
+	/**
+	 * Checks to see that a FName follows the rules that Unreal requires.
+	 *
+	 * @param	InInvalidChars	The set of invalid characters that the name cannot contain
+	 * @param	OutReason		If the check fails, this string is filled in with the reason why.
+	 * @param	InErrorCtx		Error context information to show in the error message (default is "Name").
+	 *
+	 * @return	true if the name is valid
+	 */
+	bool IsValidXName( const FString& InInvalidChars = INVALID_NAME_CHARACTERS, class FText* OutReason = nullptr, const class FText* InErrorCtx = nullptr ) const
+	{
+		return IsValidXName(ToString(), InInvalidChars, OutReason, InErrorCtx);
+	}
 
 	/**
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires.
 	 *
-	 * @param	InReason		If the check fails, this string is filled in with the reason why.
+	 * @param	OutReason		If the check fails, this string is filled in with the reason why.
 	 * @param	InInvalidChars	The set of invalid characters that the name cannot contain
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( class FText& InReason, FString InvalidChars=INVALID_NAME_CHARACTERS ) const
+	bool IsValidXName( class FText& OutReason, const FString& InInvalidChars = INVALID_NAME_CHARACTERS ) const
 	{
-		return IsValidXName(InvalidChars,&InReason);
+		return IsValidXName(ToString(), InInvalidChars, &OutReason);
 	}
 
 	/**
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires for object names.
 	 *
-	 * @param	InReason		If the check fails, this string is filled in with the reason why.
+	 * @param	OutReason		If the check fails, this string is filled in with the reason why.
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidObjectName( class FText& InReason ) const
+	bool IsValidObjectName( class FText& OutReason ) const
 	{
-		return IsValidXName( InReason, INVALID_OBJECTNAME_CHARACTERS );
+		return IsValidXName(ToString(), INVALID_OBJECTNAME_CHARACTERS, &OutReason);
 	}
 
 	/**
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires for package or group names.
 	 *
-	 * @param	InReason		If the check fails, this string is filled in with the reason why.
+	 * @param	OutReason		If the check fails, this string is filled in with the reason why.
 	 * @param	bIsGroupName	if true, check legality for a group name, else check legality for a package name
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidGroupName( class FText& InReason, bool bIsGroupName=false ) const
+	bool IsValidGroupName( class FText& OutReason, bool bIsGroupName=false ) const
 	{
-		return IsValidXName( InReason, INVALID_LONGPACKAGE_CHARACTERS );
+		return IsValidXName(ToString(), INVALID_LONGPACKAGE_CHARACTERS, &OutReason);
 	}
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
@@ -896,9 +912,9 @@ public:
 	}
 
 	template <typename TCharType>
-	static int32 GetCasePreservingHash(const TCharType* Source);
+	static uint16 GetCasePreservingHash(const TCharType* Source);
 	template <typename TCharType>
-	static int32 GetNonCasePreservingHash(const TCharType* Source);
+	static uint16 GetNonCasePreservingHash(const TCharType* Source);
 
 	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );
@@ -927,7 +943,7 @@ public:
 	*/
 	static int32 GetNameTableMemorySize()
 	{
-		return GetNameEntryMemorySize() + GetMaxNames() * sizeof(FNameEntry*) + sizeof(NameHash);
+		return GetNameEntryMemorySize() + (GetMaxNames() * sizeof(FNameEntry*)) + sizeof(NameHashHead) + sizeof(NameHashTail);
 	}
 
 	/**
@@ -1004,8 +1020,10 @@ private:
 		#endif
 	};
 
-	/** Name hash.												*/
-	static FNameEntry*						NameHash[ FNameDefs::NameHashBucketCount ];
+	/** Name hash head - used to iterate the single-linked list.		*/
+	static FNameEntry*						NameHashHead[FNameDefs::NameHashBucketCount];
+	/** Name hash tail - insert new entries after this - NON ATOMIC!	*/
+	static FNameEntry*						NameHashTail[FNameDefs::NameHashBucketCount];
 	/** Size of all name entries.								*/
 	static int32							NameEntryMemorySize;	
 	/** Number of ANSI names in name table.						*/
@@ -1025,7 +1043,7 @@ private:
 	friend const TCHAR* DebugFName(int32, int32);
 	friend const TCHAR* DebugFName(FName&);
 	template<typename TCharType>
-	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext);
+	friend FNameEntry* AllocateNameEntry(const void* Name, NAME_INDEX Index);
 	/** Used to increment the correct counter based upon TCharType */
 	template <typename TCharType> friend void IncrementNameCount();
 

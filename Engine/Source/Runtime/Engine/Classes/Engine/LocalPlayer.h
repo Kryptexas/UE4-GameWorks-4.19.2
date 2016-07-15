@@ -206,7 +206,6 @@ public:
 
 	bool HandleDNCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleListMoveBodyCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleListAwakeBodiesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleListSimBodiesCommand( const TCHAR* Cmd, FOutputDevice& Ar );

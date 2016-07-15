@@ -676,6 +676,30 @@ public:
 		, bIsDirectionInvertedFromDevice(false)
 	{ }
 
+	FPointerEvent(
+		uint32 InUserIndex,
+		uint32 InPointerIndex,
+		const FVector2D& InScreenSpacePosition,
+		const FVector2D& InLastScreenSpacePosition,
+		const TSet<FKey>& InPressedButtons,
+		FKey InEffectingButton,
+		float InWheelDelta,
+		const FModifierKeysState& InModifierKeys
+	)
+		: FInputEvent(InModifierKeys, InUserIndex, false)
+		, ScreenSpacePosition(InScreenSpacePosition)
+		, LastScreenSpacePosition(InLastScreenSpacePosition)
+		, CursorDelta(InScreenSpacePosition - InLastScreenSpacePosition)
+		, PressedButtons(InPressedButtons)
+		, EffectingButton(InEffectingButton)
+		, PointerIndex(InPointerIndex)
+		, TouchpadIndex(0)
+		, bIsTouchEvent(false)
+		, GestureType(EGestureEvent::None)
+		, WheelOrGestureDelta(0.0f, InWheelDelta)
+		, bIsDirectionInvertedFromDevice(false)
+	{ }
+
 	/** A constructor for raw mouse events */
 	FPointerEvent(
 		uint32 InPointerIndex,

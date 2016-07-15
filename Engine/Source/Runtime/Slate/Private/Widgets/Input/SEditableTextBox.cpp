@@ -40,6 +40,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 			[
 				SAssignNew(PaddingBox, SBox)
 				.Padding( Padding )
+				.VAlign(VAlign_Center)
 				[
 					SAssignNew( EditableText, SEditableText )
 					.Text( InArgs._Text )

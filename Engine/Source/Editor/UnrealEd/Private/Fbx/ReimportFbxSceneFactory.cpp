@@ -622,7 +622,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	return EReimportResult::Succeeded;
 }
 
-void RemoveChildNodeRecursively(USimpleConstructionScript* SimpleConstructionScript, USCS_Node* ScsNode)
+void UReimportFbxSceneFactory::RemoveChildNodeRecursively(USimpleConstructionScript* SimpleConstructionScript, USCS_Node* ScsNode)
 {
 	TArray<USCS_Node*> ChildNodes = ScsNode->GetChildNodes();
 	for (USCS_Node* ChildNode : ChildNodes)
@@ -630,6 +630,209 @@ void RemoveChildNodeRecursively(USimpleConstructionScript* SimpleConstructionScr
 		RemoveChildNodeRecursively(SimpleConstructionScript, ChildNode);
 	}
 	SimpleConstructionScript->RemoveNode(ScsNode);
+}
+
+void UReimportFbxSceneFactory::StoreImportedSpecializeComponentData(USceneComponent *SceneComponent, FSpecializeComponentData &SpecializeComponentData, UClass *CurrentNodeComponentClass)
+{
+	SpecializeComponentData.NodeTransform = SceneComponent->GetRelativeTransform();
+
+	if (CurrentNodeComponentClass == UPointLightComponent::StaticClass())
+	{
+		UPointLightComponent *LightComponent = Cast<UPointLightComponent>(SceneComponent);
+		SpecializeComponentData.LightColor = LightComponent->LightColor;
+		SpecializeComponentData.LightIntensity = LightComponent->Intensity;
+		SpecializeComponentData.FarAttenuation = LightComponent->AttenuationRadius;
+		SpecializeComponentData.CastShadow = LightComponent->CastShadows;
+	}
+	else if (CurrentNodeComponentClass == UDirectionalLightComponent::StaticClass())
+	{
+		UDirectionalLightComponent *LightComponent = Cast<UDirectionalLightComponent>(SceneComponent);
+		SpecializeComponentData.LightColor = LightComponent->LightColor;
+		SpecializeComponentData.LightIntensity = LightComponent->Intensity;
+		SpecializeComponentData.CastShadow = LightComponent->CastShadows;
+	}
+	else if (CurrentNodeComponentClass == USpotLightComponent::StaticClass())
+	{
+		USpotLightComponent *LightComponent = Cast<USpotLightComponent>(SceneComponent);
+		SpecializeComponentData.LightColor = LightComponent->LightColor;
+		SpecializeComponentData.LightIntensity = LightComponent->Intensity;
+		SpecializeComponentData.InnerAngle = LightComponent->InnerConeAngle;
+		SpecializeComponentData.OuterAngle = LightComponent->OuterConeAngle;
+		SpecializeComponentData.FarAttenuation = LightComponent->AttenuationRadius;
+		SpecializeComponentData.CastShadow = LightComponent->CastShadows;
+	}
+	else if (CurrentNodeComponentClass == UCameraComponent::StaticClass())
+	{
+		UCameraComponent *CameraComponent = Cast<UCameraComponent>(SceneComponent);
+		SpecializeComponentData.ProjectionMode = CameraComponent->ProjectionMode;
+		SpecializeComponentData.AspectRatio = CameraComponent->AspectRatio;
+		SpecializeComponentData.OrthoNearPlane = CameraComponent->OrthoNearClipPlane;
+		SpecializeComponentData.OrthoFarPlane = CameraComponent->OrthoFarClipPlane;
+		SpecializeComponentData.OrthoWidth = CameraComponent->OrthoWidth;
+	}
+}
+
+void UReimportFbxSceneFactory::RestoreImportedSpecializeComponentData(USceneComponent *SceneComponent, const FSpecializeComponentData &SpecializeComponentData, UClass *CurrentNodeComponentClass)
+{
+	SceneComponent->SetRelativeTransform(SpecializeComponentData.NodeTransform);
+
+	if (CurrentNodeComponentClass == UPointLightComponent::StaticClass())
+	{
+		UPointLightComponent *LightComponent = Cast<UPointLightComponent>(SceneComponent);
+		LightComponent->SetLightColor(SpecializeComponentData.LightColor);
+		LightComponent->SetIntensity(SpecializeComponentData.LightIntensity);
+		LightComponent->SetAttenuationRadius(SpecializeComponentData.FarAttenuation);
+		LightComponent->SetCastShadows(SpecializeComponentData.CastShadow);
+	}
+	else if (CurrentNodeComponentClass == UDirectionalLightComponent::StaticClass())
+	{
+		UDirectionalLightComponent *LightComponent = Cast<UDirectionalLightComponent>(SceneComponent);
+		LightComponent->SetLightColor(SpecializeComponentData.LightColor);
+		LightComponent->SetIntensity(SpecializeComponentData.LightIntensity);
+		LightComponent->SetCastShadows(SpecializeComponentData.CastShadow);
+	}
+	else if (CurrentNodeComponentClass == USpotLightComponent::StaticClass())
+	{
+		USpotLightComponent *LightComponent = Cast<USpotLightComponent>(SceneComponent);
+		LightComponent->SetLightColor(SpecializeComponentData.LightColor);
+		LightComponent->SetIntensity(SpecializeComponentData.LightIntensity);
+		LightComponent->SetAttenuationRadius(SpecializeComponentData.FarAttenuation);
+		LightComponent->SetCastShadows(SpecializeComponentData.CastShadow);
+		LightComponent->SetInnerConeAngle(SpecializeComponentData.InnerAngle);
+		LightComponent->SetOuterConeAngle(SpecializeComponentData.OuterAngle);
+	}
+	else if (CurrentNodeComponentClass == UCameraComponent::StaticClass())
+	{
+		UCameraComponent *CameraComponent = Cast<UCameraComponent>(SceneComponent);
+		CameraComponent->SetProjectionMode(SpecializeComponentData.ProjectionMode);
+		CameraComponent->SetAspectRatio(SpecializeComponentData.AspectRatio);
+		CameraComponent->SetOrthoNearClipPlane(SpecializeComponentData.OrthoNearPlane);
+		CameraComponent->SetOrthoFarClipPlane(SpecializeComponentData.OrthoFarPlane);
+		CameraComponent->SetOrthoWidth(SpecializeComponentData.OrthoWidth);
+	}
+}
+
+void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* CurrentNode, const TArray<UActorComponent*>& ActorComponents, TArray<FString> ParentNames, bool IsDefaultSceneNode)
+{
+	UActorComponent *CurrentNodeActorComponent = CurrentNode->ComponentTemplate;
+	if (!CurrentNodeActorComponent) //We need a component
+		return;
+
+	int32 IndexTemplateSuffixe = CurrentNodeActorComponent->GetName().Find(TEXT("_GEN_VARIABLE"));
+	bool NameContainTemplateSuffixe = IndexTemplateSuffixe != INDEX_NONE;
+	FString NodeName = CurrentNodeActorComponent->GetName();
+	FString ReduceNodeName = NodeName;
+	if (NameContainTemplateSuffixe)
+	{
+		ReduceNodeName = ReduceNodeName.Left(IndexTemplateSuffixe);
+	}
+
+	USceneComponent *CurrentNodeSceneComponent = Cast<USceneComponent>(CurrentNodeActorComponent);
+	UClass *CurrentNodeComponentClass = CurrentNodeActorComponent->GetClass();
+	FString DefaultSceneRootVariableName = USceneComponent::GetDefaultSceneRootVariableName().ToString();
+	for (UActorComponent *ActorComponent : ActorComponents)
+	{
+		TArray<FString> ComponentParentNames;
+		FString ComponentName = ActorComponent->GetName();
+		if (IsDefaultSceneNode)
+		{
+			if (!NodeName.StartsWith(ComponentName))
+				continue;
+
+			if (ReduceNodeName.Len() > ComponentName.Len() && (!ReduceNodeName.RightChop(ComponentName.Len()).IsNumeric()))
+				continue;
+		}
+
+		if (NameContainTemplateSuffixe)
+		{
+			ComponentName += TEXT("_GEN_VARIABLE");
+		}
+		USceneComponent *SceneComponent = Cast<USceneComponent>(ActorComponent);
+		if (!SceneComponent) //We support only scene component
+			continue;
+
+		if (CurrentNodeComponentClass != SceneComponent->GetClass())
+			continue;
+		
+		if (!IsDefaultSceneNode && NodeName.Compare(ComponentName) != 0)
+			continue;
+
+		USceneComponent *ParentComponent = SceneComponent->GetAttachParent();
+		while (ParentComponent)
+		{
+			FString ComponentParentName = ParentComponent->GetName();
+			if (NameContainTemplateSuffixe)
+			{
+				ComponentParentName += TEXT("_GEN_VARIABLE");
+			}
+			ComponentParentNames.Insert(ComponentParentName, 0);
+			ParentComponent = ParentComponent->GetAttachParent();
+		}
+		if (ComponentParentNames.Num() != ParentNames.Num())
+		{
+			continue;
+		}
+		bool ParentHierarchyDiffer = false;
+		for (int32 SCSParentNameIndex = 0; SCSParentNameIndex < ParentNames.Num(); ++SCSParentNameIndex)
+		{
+			if (ParentNames[SCSParentNameIndex].Compare(ComponentParentNames[SCSParentNameIndex]) != 0)
+			{
+				ParentHierarchyDiffer = true;
+				break;
+			}
+		}
+		if (ParentHierarchyDiffer)
+			continue;
+
+		NodeName = ComponentName;
+		
+		bool bShouldSerializeProperty = true;
+		//If the staticmesh or the skeletal mesh change, we don't want to keep the component value
+		if (CurrentNodeComponentClass == UStaticMeshComponent::StaticClass())
+		{
+			UStaticMeshComponent *CurrentNodeMeshComponent = Cast<UStaticMeshComponent>(CurrentNodeSceneComponent);
+			UStaticMeshComponent *MeshComponent = Cast<UStaticMeshComponent>(SceneComponent);
+			if (CurrentNodeMeshComponent->StaticMesh != MeshComponent->StaticMesh)
+				bShouldSerializeProperty = false;
+		}
+		else if (CurrentNodeComponentClass == USkeletalMeshComponent::StaticClass())
+		{
+			USkeletalMeshComponent *CurrentNodeMeshComponent = Cast<USkeletalMeshComponent>(CurrentNodeSceneComponent);
+			USkeletalMeshComponent *MeshComponent = Cast<USkeletalMeshComponent>(SceneComponent);
+			if (CurrentNodeMeshComponent->SkeletalMesh != MeshComponent->SkeletalMesh)
+				bShouldSerializeProperty = false;
+		}
+
+		if (bShouldSerializeProperty)
+		{
+			//Store some component data we always re-import, this is some component data user will always loose is modification when re-importing
+			//a blueprint hierarchy.
+			FSpecializeComponentData SpecializeComponentData;
+			StoreImportedSpecializeComponentData(SceneComponent, SpecializeComponentData, CurrentNodeComponentClass);
+
+			//We have a match copy all component property from the scs node to the actor component
+			TArray<uint8> Data;
+			// Serialize the original property
+			FObjectWriter Ar(CurrentNodeSceneComponent, Data);
+			// Deserialize original value in the new component
+			FObjectReader(SceneComponent, Data);
+			
+			//Update the component to world so we can restore the relative value of the transform
+			SceneComponent->UpdateComponentToWorld();
+
+			//Restore the re-import mandatory data
+			RestoreImportedSpecializeComponentData(SceneComponent, SpecializeComponentData, CurrentNodeComponentClass);
+		}
+
+		//We found the node no need to go further
+		break;
+	}
+	ParentNames.Add(NodeName);
+	
+	for (USCS_Node* ChildNode : CurrentNode->GetChildNodes())
+	{
+		RecursivelySetComponentProperties(ChildNode, ActorComponents, ParentNames, false);
+	}
 }
 
 UBlueprint *UReimportFbxSceneFactory::UpdateOriginalBluePrint(FString &BluePrintFullName, void* VoidNodeStatusMapPtr, TSharedPtr<FFbxSceneInfo> SceneInfoPtr, TSharedPtr<FFbxSceneInfo> SceneInfoOriginalPtr, TArray<FAssetData> &AssetDataToDelete)
@@ -721,10 +924,21 @@ UBlueprint *UReimportFbxSceneFactory::UpdateOriginalBluePrint(FString &BluePrint
 		//Modify the current blueprint to reflect the new actor
 		//Clear all nodes by removing all root node
 		TArray<USCS_Node*> BluePrintRootNodes = BluePrint->SimpleConstructionScript->GetRootNodes();
+		//Save the property value of every node
+		TArray<FString> ParentNames;
+		for (USCS_Node* RootNode : BluePrintRootNodes)
+		{
+			RecursivelySetComponentProperties(RootNode, HierarchyActor->GetInstanceComponents(), ParentNames, true);
+		}
+
 		for(USCS_Node* RootNode : BluePrintRootNodes)
 		{
 			RemoveChildNodeRecursively(BluePrint->SimpleConstructionScript, RootNode);
 		}
+		//We want to avoid name reservation so we compile the blueprint after removing all node
+		FKismetEditorUtilities::CompileBlueprint(BluePrint);
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
 		//Create the new nodes from the hierarchy actor
 		FKismetEditorUtilities::AddComponentsToBlueprint(BluePrint, HierarchyActor->GetInstanceComponents());
 		
@@ -783,7 +997,7 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportSkeletalMesh(void* VoidRoo
 	//}
 
 	TArray< TArray<FbxNode*>* > SkelMeshArray;
-	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false);
+	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false, true);
 	UObject* NewObject = nullptr;
 	for (int32 i = 0; i < SkelMeshArray.Num(); i++)
 	{
@@ -908,6 +1122,11 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 	}
 	if (NewObject == nullptr)
 	{
+		if (Pkg != nullptr)
+		{
+			Pkg->RemoveFromRoot();
+			Pkg->ConditionalBeginDestroy();
+		}
 		return EReimportResult::Failed;
 	}
 	AllNewAssets.Add(MeshInfo, NewObject);
@@ -1122,7 +1341,10 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportStaticMesh(void* VoidFbx
 	{
 		for (int32 Idx = 0; Idx < UserData->Num(); Idx++)
 		{
-			UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage()));
+			if ((*UserData)[Idx] != nullptr)
+			{
+				UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage()));
+			}
 		}
 	}
 

@@ -81,22 +81,20 @@ namespace
 			}
 		}
 
-		virtual void PreEdit() override
+#if USE_STABLE_LOCALIZATION_KEYS
+		virtual void GetStableTextId(const int32 InIndex, const ETextPropertyEditAction InEditAction, const FString& InTextSource, const FString& InProposedNamespace, const FString& InProposedKey, FString& OutStableNamespace, FString& OutStableKey) const override
 		{
 			if (PropertyHandle->IsValidHandle())
 			{
-				PropertyHandle->NotifyPreChange();
-			}
-		}
+				TArray<UPackage*> PropertyPackages;
+				PropertyHandle->GetOuterPackages(PropertyPackages);
 
-		virtual void PostEdit() override
-		{
-			if (PropertyHandle->IsValidHandle())
-			{
-				PropertyHandle->NotifyPostChange();
-				PropertyHandle->NotifyFinishedChangingProperties();
+				check(PropertyPackages.IsValidIndex(InIndex));
+
+				StaticStableTextId(PropertyPackages[InIndex], InEditAction, InTextSource, InProposedNamespace, InProposedKey, OutStableNamespace, OutStableKey);
 			}
 		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 		virtual void RequestRefresh() override
 		{

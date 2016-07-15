@@ -32,13 +32,7 @@ UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	static struct FAutomaticRegistrationOfLocalizationGatherer
-	{
-		FAutomaticRegistrationOfLocalizationGatherer()
-		{
-			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDataTable::StaticClass(), &GatherDataTableForLocalization);
-		}
-	} AutomaticRegistrationOfLocalizationGatherer;
+	{ static const FAutoRegisterLocalizationDataGatheringCallback AutomaticRegistrationOfLocalizationGatherer(UDataTable::StaticClass(), &GatherDataTableForLocalization); }
 #endif
 }
 
@@ -336,7 +330,7 @@ void UDataTable::RestoreAfterStructChange()
 	RowsSerializedWithTags.Empty();
 }
 
-FString UDataTable::GetTableAsString() const
+FString UDataTable::GetTableAsString(const EDataTableExportFlags InDTExportFlags) const
 {
 	FString Result;
 
@@ -372,7 +366,7 @@ FString UDataTable::GetTableAsString() const
 			for(int32 PropIdx=0; PropIdx<StructProps.Num(); PropIdx++)
 			{
 				Result += TEXT(",");
-				Result += DataTableUtils::GetPropertyValueAsString(StructProps[PropIdx], RowData);
+				Result += DataTableUtils::GetPropertyValueAsString(StructProps[PropIdx], RowData, InDTExportFlags);
 			}
 			Result += TEXT("\n");			
 		}
@@ -384,34 +378,34 @@ FString UDataTable::GetTableAsString() const
 	return Result;
 }
 
-FString UDataTable::GetTableAsCSV() const
+FString UDataTable::GetTableAsCSV(const EDataTableExportFlags InDTExportFlags) const
 {
 	FString Result;
-	if (!FDataTableExporterCSV(*this, Result).WriteTable())
+	if (!FDataTableExporterCSV(InDTExportFlags, Result).WriteTable(*this))
 	{
 		Result = TEXT("Missing RowStruct!\n");
 	}
 	return Result;
 }
 
-FString UDataTable::GetTableAsJSON() const
+FString UDataTable::GetTableAsJSON(const EDataTableExportFlags InDTExportFlags) const
 {
 	FString Result;
-	if (!FDataTableExporterJSON(*this, Result).WriteTable())
+	if (!FDataTableExporterJSON(InDTExportFlags, Result).WriteTable(*this))
 	{
 		Result = TEXT("Missing RowStruct!\n");
 	}
 	return Result;
 }
 
-bool UDataTable::WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData) const
+bool UDataTable::WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData, const EDataTableExportFlags InDTExportFlags) const
 {
-	return FDataTableExporterJSON(*this, JsonWriter).WriteRow(RowData);
+	return FDataTableExporterJSON(InDTExportFlags, JsonWriter).WriteRow(RowStruct, RowData);
 }
 
-bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const
+bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags) const
 {
-	return FDataTableExporterJSON(*this, JsonWriter).WriteTable();
+	return FDataTableExporterJSON(InDTExportFlags, JsonWriter).WriteTable(*this);
 }
 
 /** Get array of UProperties that corresponds to columns in the table */
@@ -444,8 +438,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const TArray<const TCHAR*>&
 
 				for (TFieldIterator<UProperty> It(InRowStruct); It && !ColumnProp; ++It)
 				{
-					const auto DisplayName = DataTableUtils::GetPropertyDisplayName(*It, FString());
-					ColumnProp = (!DisplayName.IsEmpty() && DisplayName == ColumnValue) ? *It : NULL;
+					ColumnProp = DataTableUtils::GetPropertyImportNames(*It).Contains(ColumnValue) ? *It : NULL;
 				}
 
 				// Didn't find a property with this name, problem..
@@ -551,7 +544,7 @@ TArray<FString> UDataTable::GetUniqueColumnTitles() const
 	return Result;
 }
 
-TArray< TArray<FString> > UDataTable::GetTableData() const
+TArray< TArray<FString> > UDataTable::GetTableData(const EDataTableExportFlags InDTExportFlags) const
 {
 	 TArray< TArray<FString> > Result;
 
@@ -576,7 +569,7 @@ TArray< TArray<FString> > UDataTable::GetTableData() const
 		 uint8* RowData = RowIt.Value();
 		 for(int32 PropIdx=0; PropIdx<StructProps.Num(); PropIdx++)
 		 {
-			 RowResult.Add(DataTableUtils::GetPropertyValueAsString(StructProps[PropIdx], RowData));
+			 RowResult.Add(DataTableUtils::GetPropertyValueAsString(StructProps[PropIdx], RowData, InDTExportFlags));
 		 }
 		 Result.Add(RowResult);
 	 }

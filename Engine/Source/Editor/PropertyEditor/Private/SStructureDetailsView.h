@@ -105,6 +105,7 @@ public:
 	virtual void SetObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
 	virtual void SetObject(UObject* InObject, bool bForceRefresh = false) override{}
 	virtual void RemoveInvalidObjects() override {}
+	virtual void SetObjectPackageOverrides(const TMap<TWeakObjectPtr<UObject>, TWeakObjectPtr<UPackage>>& InMapping) override {}
 
 	virtual TSharedPtr<class FComplexPropertyNode> GetRootNode() override;
 

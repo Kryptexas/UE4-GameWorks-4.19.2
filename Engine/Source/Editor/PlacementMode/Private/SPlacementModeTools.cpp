@@ -286,6 +286,7 @@ SPlacementModeTools::~SPlacementModeTools()
 	if ( IPlacementModeModule::IsAvailable() )
 	{
 		IPlacementModeModule::Get().OnRecentlyPlacedChanged().RemoveAll( this );
+		IPlacementModeModule::Get().OnAllPlaceableAssetsChanged().RemoveAll( this );
 	}
 }
 
@@ -397,6 +398,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 	bNeedsUpdate = true;
 
 	PlacementModeModule.OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
+	PlacementModeModule.OnAllPlaceableAssetsChanged().AddSP( this, &SPlacementModeTools::UpdatePlaceableAssets );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::CreatePlacementGroupTab( const FPlacementCategoryInfo& Info )
@@ -555,6 +557,14 @@ void SPlacementModeTools::UpdateRecentlyPlacedAssets( const TArray< FActorPlacem
 	if (GetActiveTab() == FBuiltInPlacementCategories::RecentlyPlaced())
 	{
 		bRecentlyPlacedRefreshRequested = true;
+	}
+}
+
+void SPlacementModeTools::UpdatePlaceableAssets()
+{
+	if (GetActiveTab() == FBuiltInPlacementCategories::AllClasses())
+	{
+		bPlaceablesFullRefreshRequested = true;
 	}
 }
 

@@ -342,11 +342,20 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	// Rename LightMaps and ShadowMaps to the new location. Keep the old name, since they are not named after the world.
 	TArray<UTexture2D*> LightMapsAndShadowMaps;
 	GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+
+	UPackage* OldPackage = GetOutermost();
+
 	for (auto* Tex : LightMapsAndShadowMaps)
 	{
-		if ( Tex && !Tex->Rename(*Tex->GetName(), NewOuter, Flags) )
+		if ( Tex )
 		{
-			return false;
+			// We don't want to attempt to rename LightMaps and ShadowMaps from a different package.
+			bool bIsFromSamePackage = ensure(OldPackage == Tex->GetOutermost());
+
+			if ( bIsFromSamePackage && !Tex->Rename(*Tex->GetName(), NewOuter, Flags) )
+			{
+				return false;
+			}
 		}
 	}
 
@@ -359,7 +368,6 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	}
 
 	// Rename the world itself
-	UPackage* OldPackage = GetOutermost();
 	if ( !Super::Rename(InName, NewOuter, Flags) )
 	{
 		return false;

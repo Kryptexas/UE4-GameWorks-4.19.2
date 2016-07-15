@@ -898,7 +898,7 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 		UE_LOG(LogFbx, Log, TEXT("FBX Scene Loaded Succesfully"));
 		CurPhase = IMPORTED;
 		
-		// Release importer now as it is unneeded and in the failure case is part of CleanUp()
+		// Release importer now as it is unneeded
 		Importer->Destroy();
 		Importer = NULL;
 	}
@@ -906,7 +906,8 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 	{
 		ErrorMessage = UTF8_TO_TCHAR(Importer->GetStatus().GetErrorString());
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_FileLoadingFailed", "FBX Scene Loading Failed : '{0}'"), FText::FromString(ErrorMessage))), FFbxErrors::Generic_LoadingSceneFailed);
-		CleanUp();
+		// ReleaseScene will also release the importer if it was initialized
+		ReleaseScene();
 		Result = false;
 		CurPhase = NOTSTARTED;
 	}
@@ -1147,18 +1148,28 @@ FbxAMatrix FFbxImporter::ComputeTotalMatrix(FbxNode* Node)
 	//For Single Matrix situation, obtain transfrom matrix from eDESTINATION_SET, which include pivot offsets and pre/post rotations.
 	FbxAMatrix& GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Node);
 	
-	FbxAMatrix PivotGeometry;
-	if (ImportOptions->bBakePivotInVertex)
+	//We can bake the pivot only if we don't transform the vertex to the absolute position
+	if (!ImportOptions->bTransformVertexToAbsolute)
 	{
-		FbxVector4 RotationPivot = Node->GetRotationPivot(FbxNode::eSourcePivot);
-		FbxVector4 FullPivot;
-		FullPivot[0] = -RotationPivot[0];
-		FullPivot[1] = -RotationPivot[1];
-		FullPivot[2] = -RotationPivot[2];
-		PivotGeometry.SetT(FullPivot);
+		if (ImportOptions->bBakePivotInVertex)
+		{
+			FbxAMatrix PivotGeometry;
+			FbxVector4 RotationPivot = Node->GetRotationPivot(FbxNode::eSourcePivot);
+			FbxVector4 FullPivot;
+			FullPivot[0] = -RotationPivot[0];
+			FullPivot[1] = -RotationPivot[1];
+			FullPivot[2] = -RotationPivot[2];
+			PivotGeometry.SetT(FullPivot);
+			Geometry = Geometry * PivotGeometry;
+		}
+		else
+		{
+			//No Vertex transform and no bake pivot, it will be the mesh as-is.
+			Geometry.SetIdentity();
+		}
 	}
 	//We must always add the geometric transform. Only Max use the geometric transform which is an offset to the local transform of the node
-	FbxAMatrix TotalMatrix = ImportOptions->bTransformVertexToAbsolute ? GlobalTransform * Geometry * PivotGeometry : Geometry * PivotGeometry;
+	FbxAMatrix TotalMatrix = ImportOptions->bTransformVertexToAbsolute ? GlobalTransform * Geometry : Geometry;
 
 	return TotalMatrix;
 }
@@ -1820,7 +1831,7 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 * @param Node Root node to find skeletal meshes
 * @param outSkelMeshArray return Fbx meshes they are grouped by skeleton
 */
-void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<FbxNode*>* >& outSkelMeshArray, bool ExpandLOD)
+void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<FbxNode*>* >& outSkelMeshArray, bool ExpandLOD, bool bForceFindRigid /*= false*/)
 {
 	TArray<FbxNode*> SkeletonArray;
 
@@ -1868,14 +1879,75 @@ void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<Fbx
 		}
 	}*/
 
-	SkeletonArray.Empty();
 	// b) find rigid mesh
 	
 	// If we are attempting to import a skeletal mesh but we have no hierarchy attempt to find a rigid mesh.
-	if (outSkelMeshArray.Num() == 0)
+	if (bForceFindRigid || outSkelMeshArray.Num() == 0)
 	{
 		RecursiveFindRigidMesh(Node, outSkelMeshArray, SkeletonArray, ExpandLOD);
+		if (bForceFindRigid)
+		{
+			//Cleanup the rigid mesh, We want to remove any real static mesh from the outSkelMeshArray
+			//Any non skinned mesh that contain no animation should be part of this array.
+			int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
+			TArray<int32> SkeletalMeshArrayToRemove;
+			for (int32 i = 0; i < outSkelMeshArray.Num(); i++)
+			{
+				bool bIsValidSkeletal = false;
+				TArray<FbxNode*> NodeArray = *outSkelMeshArray[i];
+				for (FbxNode *InspectedNode : NodeArray)
+				{
+					FbxMesh* Mesh = InspectedNode->GetMesh();
+					if (Mesh == nullptr)
+					{
+						continue;
+					}
+					if (Mesh->GetDeformerCount(FbxDeformer::eSkin) > 0)
+					{
+						bIsValidSkeletal = true;
+						break;
+					}
+					//If there is some anim object we count this as a valid skeletal mesh imported as rigid mesh
+					for (int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
+					{
+						FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
+						// set current anim stack
+
+						Scene->SetCurrentAnimationStack(CurAnimStack);
+
+						FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+						InspectedNode->GetAnimationInterval(AnimTimeSpan, CurAnimStack);
+
+						if (AnimTimeSpan.GetDuration() > 0)
+						{
+							bIsValidSkeletal = true;
+							break;
+						}
+					}
+					if (bIsValidSkeletal)
+					{
+						break;
+					}
+				}
+				if (!bIsValidSkeletal)
+				{
+					SkeletalMeshArrayToRemove.Add(i);
+				}
+			}
+			for (int32 i = SkeletalMeshArrayToRemove.Num() - 1; i >= 0; --i)
+			{
+				if (!SkeletalMeshArrayToRemove.IsValidIndex(i) || !outSkelMeshArray.IsValidIndex(SkeletalMeshArrayToRemove[i]))
+					continue;
+				int32 IndexToRemove = SkeletalMeshArrayToRemove[i];
+				outSkelMeshArray[IndexToRemove]->Empty();
+				outSkelMeshArray.RemoveAt(IndexToRemove);
+			}
+		}
 	}
+	//Empty the skeleton array
+	SkeletonArray.Empty();
+
+	
 }
 
 FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpandLOD, TArray<FbxNode*>& OutFBXMeshNodeArray)
@@ -1924,7 +1996,7 @@ FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpa
 	// Get Mesh nodes array that bind to the skeleton system
 	// 1, get all skeltal meshes in the FBX file
 	TArray< TArray<FbxNode*>* > SkelMeshArray;
-	FillFbxSkelMeshArrayInScene(Scene->GetRootNode(), SkelMeshArray, false);
+	FillFbxSkelMeshArrayInScene(Scene->GetRootNode(), SkelMeshArray, false, ImportOptions->bImportScene);
 
 	// 2, then get skeletal meshes that bind to this skeleton
 	for (int32 SkelMeshIndex = 0; SkelMeshIndex < SkelMeshArray.Num(); SkelMeshIndex++)
@@ -1949,39 +2021,44 @@ FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpa
 
 		// 3, get the root bone that the mesh bind to
 		FbxSkin* Deformer = (FbxSkin*)MeshNode->GetMesh()->GetDeformer(0, FbxDeformer::eSkin);
+		FbxNode* Link = nullptr;
 		// If there is no deformer this is likely rigid animation
 		if( Deformer )
 		{
-			FbxNode* Link = Deformer->GetCluster(0)->GetLink();
+			Link = Deformer->GetCluster(0)->GetLink();
 			Link = GetRootSkeleton(Link);
-			// 4, fill in the mesh node
-			if (Link == SkeletonRoot)
+		}
+		else
+		{
+			Link = GetRootSkeleton(SkeletonRoot);
+		}
+		// 4, fill in the mesh node
+		if (Link == SkeletonRoot)
+		{
+			// copy meshes
+			if (bExpandLOD)
 			{
-				// copy meshes
-				if (bExpandLOD)
+				TArray<FbxNode*> SkelMeshes = *SkelMeshArray[SkelMeshIndex];
+				for (int32 NodeIndex = 0; NodeIndex < SkelMeshes.Num(); NodeIndex++)
 				{
-					TArray<FbxNode*> SkelMeshes = 	*SkelMeshArray[SkelMeshIndex];
-					for (int32 NodeIndex = 0; NodeIndex < SkelMeshes.Num(); NodeIndex++)
+					FbxNode* Node = SkelMeshes[NodeIndex];
+					if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 					{
-						FbxNode* Node = SkelMeshes[NodeIndex];
-						if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
-						{
-							FbxNode *InnerMeshNode = FindLODGroupNode(Node, 0);
-							if(InnerMeshNode != nullptr)
-								OutFBXMeshNodeArray.Add(InnerMeshNode);
-						}
-						else
-						{
-							OutFBXMeshNodeArray.Add(Node);
-						}
+						FbxNode *InnerMeshNode = FindLODGroupNode(Node, 0);
+						if (InnerMeshNode != nullptr)
+							OutFBXMeshNodeArray.Add(InnerMeshNode);
+					}
+					else
+					{
+						OutFBXMeshNodeArray.Add(Node);
 					}
 				}
-				else
-				{
-					OutFBXMeshNodeArray.Append(*SkelMeshArray[SkelMeshIndex]);
-				}
-				break;
 			}
+			else
+			{
+				OutFBXMeshNodeArray.Append(*SkelMeshArray[SkelMeshIndex]);
+			}
+			break;
 		}
 	}
 

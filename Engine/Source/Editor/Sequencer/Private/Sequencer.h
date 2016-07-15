@@ -598,7 +598,7 @@ protected:
 	/**
 	 * Called when the clamp range is changed by the user
 	 *
-	 * @param	NewClampRange The new clapm range
+	 * @param	NewClampRange The new clamp range
 	 */
 	void OnClampRangeChanged( TRange<float> NewClampRange );
 

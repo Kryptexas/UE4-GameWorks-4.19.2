@@ -61,7 +61,11 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 		if ( (InFiles.Num() > 0) && !FPaths::IsRelative(InFiles[0]) && !InFiles[0].StartsWith(InRepositoryRoot) )
 		{
 			// in this case, find the git repository (if any) of the destination Project
-			FindRootDirectory(FPaths::GetPath(InFiles[0]), RepositoryRoot);
+			FString DestinationRepositoryRoot;
+			if(FindRootDirectory(FPaths::GetPath(InFiles[0]), DestinationRepositoryRoot))
+			{
+				RepositoryRoot = DestinationRepositoryRoot; // if found use it for the "add" command (else not, to avoid producing one more error in logs)
+			}
 		}
 
 		// Specify the working copy (the root) of the git repository (before the command itself)
@@ -633,12 +637,11 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 	if(!InRepositoryRoot.IsEmpty())
 	{
 		// Specify the working copy (the root) of the git repository (before the command itself)
-		FullCommand = TEXT("--work-tree=\"");
+		FullCommand  = TEXT("--work-tree=\"");
 		FullCommand += InRepositoryRoot;
 		// and the ".git" subdirectory in it (before the command itself)
 		FullCommand += TEXT("\" --git-dir=\"");
-		FullCommand += InRepositoryRoot;
-		FullCommand += TEXT(".git\" ");
+		FullCommand += FPaths::Combine(*InRepositoryRoot, TEXT(".git\" "));
 	}
 	// then the git command itself
 	FullCommand += TEXT("show ");

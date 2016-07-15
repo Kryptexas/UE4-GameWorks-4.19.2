@@ -65,6 +65,11 @@ void FPropertyTable::Tick()
 	}
 }
 
+void FPropertyTable::ForceRefresh()
+{
+	RequestRefresh();
+}
+
 void FPropertyTable::RequestRefresh()
 {
 	bRefreshRequested = true;

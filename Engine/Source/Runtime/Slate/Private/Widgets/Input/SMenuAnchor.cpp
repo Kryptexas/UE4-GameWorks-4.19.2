@@ -213,6 +213,8 @@ FChildren* SMenuAnchor::GetChildren()
 
 int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	DrawnWindowPtr = OutDrawElements.GetWindow();
+
 	FArrangedChildren ArrangedChildren( EVisibility::Visible );
 	ArrangeChildren( AllottedGeometry, ArrangedChildren );
 	
@@ -314,7 +316,7 @@ FPopupMethodReply QueryPopupMethod(const FWidgetPath& PathToQuery)
  *
  * @param InIsOpen  If true, open the popup. Otherwise close it.
  */
-void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
+void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 FocusUserIndex )
 {
 	// Prevent redundant opens/closes
 	if ( IsOpen() != InIsOpen )
@@ -396,12 +398,19 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 							// We are re-using the current window instead of creating a new one.
 							// The popup will be presented as a child of this widget.
 							ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
-							TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-							PopupWindowPtr = PopupWindow;
+							//TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
+							if ( DrawnWindowPtr.IsValid() )
+							{
+								PopupWindowPtr = DrawnWindowPtr;
+							}
+							else
+							{
+								PopupWindowPtr = MyWidgetPath.GetWindow();
+							}
 
 							if (bFocusMenu)
 							{
-								FSlateApplication::Get().ReleaseMouseCapture();
+								FSlateApplication::Get().ReleaseMouseCaptureForUser(FocusUserIndex);
 							}
 
 							TSharedRef<SMenuAnchor> SharedThis = StaticCastSharedRef<SMenuAnchor>(AsShared());
@@ -411,7 +420,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 							PopupMenuPtr = NewMenu;
 							check(NewMenu.IsValid());
-							check(NewMenu->GetParentWindow().ToSharedRef() == PopupWindow);
+							//check(NewMenu->GetParentWindow().ToSharedRef() == PopupWindow);
 							check(WrappedContent.IsValid());
 
 							Children[1]
@@ -421,7 +430,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 							if (bFocusMenu)
 							{
-								FSlateApplication::Get().SetKeyboardFocus(MenuContentRef, EFocusCause::SetDirectly);
+								FSlateApplication::Get().SetUserFocus(FocusUserIndex, MenuContentRef, EFocusCause::SetDirectly);
 							}
 						}
 					}
@@ -450,7 +459,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 							// Release the mouse so that context can be properly restored upon closing menus.  See CL 1411833 before changing this.
 							if (bFocusMenu)
 							{
-								FSlateApplication::Get().ReleaseMouseCapture();
+								FSlateApplication::Get().ReleaseMouseCaptureForUser(FocusUserIndex);
 							}
 
 							// Create a new window for the menu
@@ -488,12 +497,19 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 							// We are re-using the current window instead of creating a new one.
 							// The popup will be presented as a child of this widget.
 							ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
-							TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-							PopupWindowPtr = PopupWindow;
+							//TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
+							if ( DrawnWindowPtr.IsValid() )
+							{
+								PopupWindowPtr = DrawnWindowPtr;
+							}
+							else
+							{
+								PopupWindowPtr = MyWidgetPath.GetWindow();
+							}
 
 							if (bFocusMenu)
 							{
-								FSlateApplication::Get().ReleaseMouseCapture();
+								FSlateApplication::Get().ReleaseMouseCaptureForUser(FocusUserIndex);
 							}
 
 							TSharedRef<SMenuAnchor> SharedThis = StaticCastSharedRef<SMenuAnchor>(AsShared());
@@ -501,7 +517,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 							PopupMenuPtr = OwnedMenuPtr = NewMenu;
 							check(NewMenu.IsValid());
-							check(NewMenu->GetParentWindow().ToSharedRef() == PopupWindow);
+							//check(NewMenu->GetParentWindow().ToSharedRef() == PopupWindow);
 
 							Children[1]
 							[
@@ -510,7 +526,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 							if (bFocusMenu)
 							{
-								FSlateApplication::Get().SetKeyboardFocus(MenuContentRef, EFocusCause::SetDirectly);
+								FSlateApplication::Get().SetUserFocus(FocusUserIndex, MenuContentRef, EFocusCause::SetDirectly);
 							}
 
 							OpenApplicationMenus.Add(NewMenu);

@@ -61,6 +61,11 @@ public:
 		return DeveloperToolsMiscCategory.ToSharedRef();
 	}
 
+	virtual TSharedRef<FWorkspaceItem> GetAutomationToolsCategory() const override
+	{
+		return AutomationToolsCategory.ToSharedRef();
+	}
+
 	virtual TSharedRef<FWorkspaceItem> GetEditOptions() const override
 	{
 		return EditOptions.ToSharedRef();
@@ -85,6 +90,8 @@ public:
 		DeveloperToolsDebugCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsDebugCategory", "Debug"), FSlateIcon(), true);
 		DeveloperToolsLogCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsLogCategory", "Log"), FSlateIcon(), true);
 		DeveloperToolsMiscCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsMiscCategory", "Miscellaneous"), FSlateIcon(), true);
+
+		AutomationToolsCategory = ToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_AutomationToolsCategory", "Automation Tools"), FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationTools.MenuIcon"));
 	}
 
 public:
@@ -113,6 +120,7 @@ private:
 	TSharedPtr<FWorkspaceItem> DeveloperToolsDebugCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsLogCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsMiscCategory;
+	TSharedPtr<FWorkspaceItem> AutomationToolsCategory;
 	
 	TSharedPtr<FWorkspaceItem> EditOptions;
 };

@@ -756,7 +756,12 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 
 		const TArray<UFactory*>* FactoriesPtr = ExtensionToFactoriesMap.Find(FileExtension);
 		UFactory* Factory = nullptr;
-		if ( FactoriesPtr )
+		//When doing automationtest we can setup factory option and we need to make sure we use the specified one
+		if (GIsAutomationTesting && SpecifiedFactory && SpecifiedFactory->FactoryCanImport(Filename))
+		{
+			Factory = SpecifiedFactory;
+		}
+		else if ( FactoriesPtr )
 		{
 			const TArray<UFactory*>& Factories = *FactoriesPtr;
 

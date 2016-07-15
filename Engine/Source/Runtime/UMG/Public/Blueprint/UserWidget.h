@@ -702,10 +702,11 @@ public:
 	 * @param InAnimation The animation to play
 	 * @param StartAtTime The time in the animation from which to start playing, relative to the start position. For looped animations, this will only affect the first playback of the animation.
 	 * @param NumLoopsToPlay The number of times to loop this animation (0 to loop indefinitely)
+	 * @param PlaybackSpeed The speed at which the animation should play
 	 * @param PlayMode Specifies the playback mode
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
-	void PlayAnimation(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, int32 NumLoopsToPlay = 1, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward);
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+		void PlayAnimation(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, int32 NumLoopsToPlay = 1, float PlaybackSpeed = 1.0f, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward);
 
 	/**
 	 * Plays an animation in this widget a specified number of times stoping at a specified time
@@ -714,10 +715,11 @@ public:
 	 * @param StartAtTime The time in the animation from which to start playing, relative to the start position. For looped animations, this will only affect the first playback of the animation.
 	 * @param EndAtTime The absolute time in the animation where to stop, this is only considered in the last loop.
 	 * @param NumLoopsToPlay The number of times to loop this animation (0 to loop indefinitely)
+	 * @param PlaybackSpeed The speed at which the animation should play
 	 * @param PlayMode Specifies the playback mode
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
-	void PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, float EndAtTime = 0.0f, int32 NumLoopsToPlay = 1, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward);
+	void PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, float EndAtTime = 0.0f, int32 NumLoopsToPlay = 1, float PlaybackSpeed = 1.0f, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward);
 
 	/**
 	 * Stops an already running animation in this widget
@@ -768,6 +770,15 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
 	void SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 NumLoopsToPlay);
+
+	/**
+	* Changes the playback rate of a playing animation
+	*
+	* @param InAnimation The animation that is already playing
+	* @param PlaybackRate Playback rate multiplier (1 is default)
+	*/
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	void SetPlaybackSpeed(const UWidgetAnimation* InAnimation, float PlaybackSpeed = 1.0f);
 
 	/**
 	* If an animation is playing, this function will reverse the playback.

@@ -87,6 +87,10 @@ public:
 	static const FString NewLineTag;
 	static const int32 CrashGUIDLength = 128;
 
+	static const FString CrashTypeCrash;
+	static const FString CrashTypeAssert;
+	static const FString CrashTypeEnsure;
+
 	/** Initializes crash context related platform specific data that can be impossible to obtain after a crash. */
 	static void Initialize();
 
@@ -145,6 +149,9 @@ public:
 
 	/** Unescapes a specified XML string, naive implementation. */
 	static FString UnescapeXMLString( const FString& Text );
+
+	/** Helper to get the standard string for the crash type based on crash event bool values. */
+	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert);
 
 	/**
 	 * @return whether this crash is a non-crash event

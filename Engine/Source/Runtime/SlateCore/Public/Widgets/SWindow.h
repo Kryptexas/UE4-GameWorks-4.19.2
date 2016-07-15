@@ -76,11 +76,13 @@ struct FWindowTransparency
 class FOverlayPopupLayer : public FPopupLayer
 {
 public:
-	FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay);
+	FOverlayPopupLayer(const TSharedRef<SWindow>& InitHostWindow, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay);
 
 	virtual void Remove() override;
+	virtual FSlateRect GetAbsoluteClientRect() override;
 
 private:
+	TSharedPtr<SWindow> HostWindow;
 	TSharedPtr<SOverlay> Overlay;
 };
 
@@ -658,6 +660,8 @@ public:
 	{
 		bIsMirrorWindow = bSetMirrorWindow;
 	}
+	
+	bool IsVirtualWindow() const { return bVirtualWindow; }
 
 	bool IsMirrorWindow()
 	{

@@ -551,7 +551,7 @@ public:
 	* @param Node Root node to find skeletal meshes
 	* @param outSkelMeshArray return Fbx meshes they are grouped by skeleton
 	*/
-	void FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<FbxNode*>* >& outSkelMeshArray, bool ExpandLOD);
+	void FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<FbxNode*>* >& outSkelMeshArray, bool ExpandLOD, bool bForceFindRigid = false);
 	
 	/**
 	 * Find FBX meshes that match Unreal skeletal mesh according to the bone of mesh

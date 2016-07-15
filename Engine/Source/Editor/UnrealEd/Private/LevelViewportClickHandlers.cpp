@@ -870,7 +870,7 @@ namespace ClickHandlers
 			check( Model );
 
 			bool bNeedViewportRefresh = false;
-			bool bIsActorAlreadySelected = Surf.Actor && Surf.Actor->IsSelected();
+			bool bSelectionChanged = !Surf.Actor || !Surf.Actor->IsSelected();
 			{
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectSurfaces", "Select Surfaces") );
 
@@ -882,6 +882,7 @@ namespace ClickHandlers
 				{
 					GEditor->SelectNone( false, true );
 					bNeedViewportRefresh = true;
+					bSelectionChanged = true;
 				}
 
 				// Select the surface the user clicked on
@@ -891,7 +892,7 @@ namespace ClickHandlers
 				GEditor->SelectActor(Surf.Actor, true, false);
 				SelectedActors->EndBatchSelectOperation(false);
 
-				if (!bIsActorAlreadySelected)
+				if (bSelectionChanged)
 				{
 					GEditor->NoteSelectionChange();
 				}
@@ -928,7 +929,7 @@ namespace ClickHandlers
 		{	
 			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectBrushSurface", "Select Brush Surface") );
 			bool bDeselectAlreadyHandled = false;
-			bool bIsActorAlreadySelected = Surf.Actor && Surf.Actor->IsSelected();
+			bool bSelectionChanged = !Surf.Actor || !Surf.Actor->IsSelected();
 
 			USelection* SelectedActors = GEditor->GetSelectedActors();
 			SelectedActors->BeginBatchSelectOperation();
@@ -963,6 +964,11 @@ namespace ClickHandlers
 
 			// Select or deselect surfaces.
 			{
+				if (Click.IsControlDown() || !(Surf.PolyFlags & PF_Selected))
+				{
+					bSelectionChanged = true;
+				}
+
 				if( !Click.IsControlDown() && !bDeselectAlreadyHandled)
 				{
 					GEditor->SelectNone( false, true );
@@ -974,13 +980,13 @@ namespace ClickHandlers
 				if (!Model->HasSelectedSurfaces())
 				{
 					GEditor->SelectActor(Surf.Actor, false, bNotify);
-					bIsActorAlreadySelected = false;
+					bSelectionChanged = true;
 				}
 			}
 
 			SelectedActors->EndBatchSelectOperation(false);
 
-			if (!bIsActorAlreadySelected)
+			if (bSelectionChanged)
 			{
 				GEditor->NoteSelectionChange();
 			}

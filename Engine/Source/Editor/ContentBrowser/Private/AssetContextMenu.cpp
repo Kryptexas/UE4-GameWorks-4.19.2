@@ -1066,7 +1066,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCSync", "Sync"),
 			LOCTEXT("SCCSyncTooltip", "Updates the item to the latest version in source control."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Syc"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Sync"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCSync ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCSync )
