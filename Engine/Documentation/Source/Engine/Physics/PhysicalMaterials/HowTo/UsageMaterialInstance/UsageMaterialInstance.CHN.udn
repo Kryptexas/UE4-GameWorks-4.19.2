@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Assign a Physical Material to a Material Instance
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:将物理材质分配到材质实例
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
-Version: 4.9
-SkillLevel: Intermediate
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,15 +46,15 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-1. **Open** or **create** a new Material Instance.
+1. **打开** 或 **创建** 一个新的材质实例。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMat_MaterialInst_01.png)
 
-1. **Change** the Physical Material.
+1. **更改** 物理材质。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\StoneMat.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. **单击保存** ![](Shared\Icons\icon_SaveAsset_40x.png)
 
 
 

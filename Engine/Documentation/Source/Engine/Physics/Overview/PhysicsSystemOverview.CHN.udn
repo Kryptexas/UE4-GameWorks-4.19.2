@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics
-Crumbs: %ROOT%, Engine
-Description:Subsystem used to calculate collision and simulate physical actors.
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:物理
+Crumbs:%ROOT%, Engine
+Description:用于计算碰撞和模拟物理反应的子系统。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,19 +49,19 @@ Description:Subsystem used to calculate collision and simulate physical actors.
 [/REGION]
 
 [REGION:quote]
-Physics is the natural science that involves the study of matter and its motion through space and time."
+物理学是研究物质及其在时间和空间中的运动的自然科学。”
 
 -- [Wikipedia](https://en.wikipedia.org/wiki/Physics)
 [/REGION]
 
 [EXCERPT:Intro]
-In Unreal Engine 4, physics are simulated using the PhysX 3.3 physics engine. All physics driven motion (physics bodies that are falling or have a force applied to them) and collisions (physics bodies interacting with each other) are managed by PhysX.Having physics in your game will help improve the immersion value of every scene, as it helps players believe that they are interacting with the scene and that the scene is responding back in some way or another.
+在虚幻引擎 4 中，使用 PhysX 3.3 物理引擎模拟物理。所有物理运动（坠落或受力的物理形体）以及碰撞（物理形体的相互作用）都由 PhysX 管理。在游戏中模拟物理将有助于提高每个场景的沉浸感，因为它能帮助玩家相信自己正在与场景互动，而场景会以这样或那样的方式作出反应。
 [/EXCERPT:Intro]
 
-## Simulation
+## 模拟
 
 
 
-## Collision
+## 碰撞
 
 

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Static Mesh Collision Reference
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:静态网格碰撞参考
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
+Description:用于创建和设置碰撞几何体的内容指南。
 
 [VAR:Topic]
 [OBJECT:Topic]
