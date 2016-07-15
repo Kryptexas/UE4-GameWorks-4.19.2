@@ -19,7 +19,8 @@ namespace UnrealBuildTool.Rules
 					"UMG",
 					"LevelEditor",
 					"HeadMountedDisplay",
-					"Analytics",
+                    "ViewportInteraction",
+					"Analytics"
 				}
 			);
 

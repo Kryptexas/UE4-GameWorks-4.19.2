@@ -20,7 +20,6 @@
 #include "Editor/LevelEditor/Public/SLevelViewport.h"
 #include "MessageLog.h"
 
-
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
 #include "ComponentReregisterContext.h"
@@ -32,6 +31,9 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "MeshPaintAdapterFactory.h"
 #include "Components/SplineMeshComponent.h"
+
+#include "ViewportWorldInteraction.h"
+#include "VREditorInteractor.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -88,6 +90,7 @@ public:
 FEdModeMeshPaint::FEdModeMeshPaint() 
 	: FEdMode(),
 	  bIsPainting( false ),
+	  PaintingWithInteractorInVR( nullptr ),
 	  bIsFloodFill( false ),
 	  bPushInstanceColorsToMesh( false ),
 	  PaintingStartTime( 0.0 ),
@@ -190,18 +193,39 @@ void FEdModeMeshPaint::Enter()
 		SetViewportShowFlags( bAllowColorViewModes, *ViewportClient );
 	} 
 
-	//When painting vertext colors we want to force the lod level of objects being painted to LOD0.
+	//When painting vertex colors we want to force the lod level of objects being painted to LOD0.
 	if( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
 	{
 		ApplyOrRemoveForceBestLOD(/*bApply=*/ true);
 	}
+
+	// Register to find out about editor modes being activated
+	GetModeManager()->OnEditorModeChanged().AddRaw( this, &FEdModeMeshPaint::OnEditorModeChanged );
+
+	// Register to find out about VR input events
+	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+	if( VREditorMode != nullptr )
+	{
+		VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
+		VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().AddRaw( this, &FEdModeMeshPaint::OnVRAction );
+	}
 }
-
-
 
 /** FEdMode: Called when the mode is exited */
 void FEdModeMeshPaint::Exit()
 {
+	// Unregister from event handlers
+	if( IVREditorModule::IsAvailable() )
+	{
+		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+		if( VREditorMode != nullptr )
+		{
+			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
+		}
+	}
+
+	GetModeManager()->OnEditorModeChanged().RemoveAll( this );
+
 	//If we're painting vertex colors then propagate the painting done on LOD0 to all lower LODs. 
 	//Then stop forcing the LOD level of the mesh to LOD0.
 	if( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
@@ -271,6 +295,23 @@ void FEdModeMeshPaint::Exit()
 }
 
 
+void FEdModeMeshPaint::OnEditorModeChanged( FEdMode* EditorMode, bool bEntered )
+{
+	// VR Editor mode may have gone away, so re-register for events in case it's a different object than the one we were originally bound to
+	check( EditorMode != nullptr );
+	if( bEntered && EditorMode->GetID() == IVREditorModule::Get().GetVREditorModeID() )
+	{
+		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( EditorMode );
+		if ( VREditorMode != nullptr )
+		{
+			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
+			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().AddRaw( this, &FEdModeMeshPaint::OnVRAction );
+		}
+
+		PaintingWithInteractorInVR = nullptr;
+	}
+}
+
 
 /** FEdMode: Called when the mouse is moved over the viewport */
 bool FEdModeMeshPaint::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
@@ -299,7 +340,7 @@ bool FEdModeMeshPaint::MouseMove( FEditorViewportClient* ViewportClient, FViewpo
 bool FEdModeMeshPaint::CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY )
 {
 	// We only care about perspective viewports
-	if( InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets )
+	if( InViewportClient->IsPerspective() )
 	{
 		if( bIsPainting )
 		{
@@ -316,12 +357,13 @@ bool FEdModeMeshPaint::CapturedMouseMove( FEditorViewportClient* InViewportClien
 			// Paint!
 			const bool bVisualCueOnly = false;
 			const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
+
 			// Apply stylus pressure
 			const float StrengthScale = InViewport->IsPenActive() ? InViewport->GetTabletPressure() : 1.f;
 
-			bool bAnyPaintAbleActorsUnderCursor = false;
+			bool bAnyPaintableActorsUnderCursor = false;
 
-			DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
+			DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
 
 			return true;
 		}
@@ -361,6 +403,7 @@ void FEdModeMeshPaint::EndPainting()
 	if(bIsPainting)
 	{
 		bIsPainting = false;
+		PaintingWithInteractorInVR = nullptr;
 		FinishPaintingTexture();
 
 		// Rebuild any static meshes that we painted on last stroke
@@ -459,15 +502,16 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 		}
 	}
 
-	// When painting we only care about perspective viewports where we are we are allowed to show mode widgets
-	if( !bIsAltDown && InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets)
+	// When painting we only care about perspective viewports
+	if( !bIsAltDown && InViewportClient->IsPerspective() )
 	{
 		// Does the user want to paint right now?
 		const bool bUserWantsPaint = bIsLeftButtonDown && !bIsRightButtonDown && !bIsAltDown;
-		bool bAnyPaintAbleActorsUnderCursor = false;
+		bool bAnyPaintableActorsUnderCursor = false;
 
 		// Stop current tracking if the user is no longer painting
-		if( bIsPainting && !bUserWantsPaint )
+		if( bIsPainting && !bUserWantsPaint &&
+			( InKey == EKeys::LeftMouseButton || InKey == EKeys::RightMouseButton && InKey == EKeys::LeftAlt || InKey == EKeys::RightAlt ) )
 		{
 			bHandled = true;
 			EndPainting();
@@ -506,7 +550,7 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 						const bool bVisualCueOnly = false;
 						const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
 						const float StrengthScale = 1.0f;
-						DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
+						DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
 					}
 				}
 				else
@@ -518,7 +562,7 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 			}
 		}
 
-		if( !bAnyPaintAbleActorsUnderCursor )
+		if( !bAnyPaintableActorsUnderCursor )
 		{
 			bHandled = false;
 		}
@@ -1007,7 +1051,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 								const EMeshPaintAction::Type InPaintAction,
 								const bool bVisualCueOnly,
 								const float InStrengthScale,
-								OUT bool& bAnyPaintAbleActorsUnderCursor)
+								OUT bool& bAnyPaintableActorsUnderCursor)
 {
 	const float BrushRadius = GetBrushRadiiDefault();
 
@@ -1089,10 +1133,10 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 		}
 	}
 
-	bAnyPaintAbleActorsUnderCursor = (PaintableComponents.Num() > 0);
+	bAnyPaintableActorsUnderCursor = (PaintableComponents.Num() > 0);
 
 	// Are we actually applying paint here?
-	const bool bShouldApplyPaint = bAnyPaintAbleActorsUnderCursor && ( (bIsPainting && !bVisualCueOnly) || 
+	const bool bShouldApplyPaint = bAnyPaintableActorsUnderCursor && ( (bIsPainting && !bVisualCueOnly) || 
 		(InPaintAction == EMeshPaintAction::Fill) || 
 		(InPaintAction == EMeshPaintAction::PushInstanceColorsToMesh) );
 
@@ -2573,12 +2617,8 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 	/** Call parent implementation */
 	FEdMode::Render( View, Viewport, PDI );
 
-	// If this viewport does not support Mode widgets we will not draw it here.
 	FEditorViewportClient* ViewportClient = (FEditorViewportClient*)Viewport->GetClient();
-	if( ViewportClient && !ViewportClient->EngineShowFlags.ModeWidgets)
-	{
-		return;
-	}
+	check( ViewportClient != nullptr );
 
 	// We only care about perspective viewports
 	const bool bIsPerspectiveViewport = ( View->ViewMatrices.ProjMatrix.M[ 3 ][ 3 ] < ( 1.0f - SMALL_NUMBER ) );
@@ -2594,37 +2634,95 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		const bool bAllowColorViewModes = ( FMeshPaintSettings::Get().ResourceType != EMeshPaintResource::Texture );
 		SetViewportShowFlags( bAllowColorViewModes, *ViewportClient );
 
-		// Make sure the cursor is visible OR we're flood filling.  No point drawing a paint cue when there's no cursor.
-		if( Viewport->IsCursorVisible() || IsForceRendered())
+
+		bool bHavePaintRay = false;
+		FVector PaintRayViewOrigin = FVector::ZeroVector;
+		FVector PaintRayStart = FVector::ZeroVector;
+		FVector PaintRayDirection = FVector::ZeroVector;
+
+		// Check to see if VREditorMode is active
+		if ( IVREditorModule::IsAvailable() )
 		{
-
-			if( !PDI->IsHitTesting() )
+			IVREditorMode* VREditorMode = static_cast< IVREditorMode* >( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+			if ( VREditorMode != nullptr && VREditorMode->IsFullyInitialized() )
 			{
-				// Grab the mouse cursor position
-				FIntPoint MousePosition;
-				Viewport->GetMousePos( MousePosition );
-
-				// Is the mouse currently over the viewport? or flood filling
-				if(IsForceRendered() || ( MousePosition.X >= 0 && MousePosition.Y >= 0 && MousePosition.X < (int32)Viewport->GetSizeXY().X && MousePosition.Y < (int32)Viewport->GetSizeXY().Y) )
+				for ( UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors() )
 				{
-					// Compute a world space ray from the screen space mouse coordinates
-					FViewportCursorLocation MouseViewportRay( View, ViewportClient, MousePosition.X, MousePosition.Y );
-
-
-					// Unless "Flow" mode is enabled, we'll only draw a visual cue while rendering and won't
-					// do any actual painting.  When "Flow" is turned on we will paint here, too!
-					const bool bVisualCueOnly = !FMeshPaintSettings::Get().bEnableFlow;
-					float StrengthScale = FMeshPaintSettings::Get().bEnableFlow ? FMeshPaintSettings::Get().FlowAmount : 1.0f;
-
-					// Apply stylus pressure if it's active
-					if( Viewport->IsPenActive() )
+					// Skip other interactors if we are painting with one
+					if ( PaintingWithInteractorInVR && Interactor != PaintingWithInteractorInVR )
 					{
-						StrengthScale *= Viewport->GetTabletPressure();
+						continue;
 					}
 
-					const EMeshPaintAction::Type PaintAction = GetPaintAction(Viewport);
-					bool bAnyPaintAbleActorsUnderCursor = false;
-					DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), PDI, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
+					FVector LaserPointerStart, LaserPointerEnd;
+					if ( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+					{
+						const FVector LaserPointerDirection = ( LaserPointerEnd - LaserPointerStart ).GetSafeNormal();
+
+						bHavePaintRay = true;
+						PaintRayViewOrigin = VREditorMode->GetHeadTransform().GetLocation();
+						PaintRayStart = LaserPointerStart;
+						PaintRayDirection = LaserPointerDirection;
+					}
+
+					if ( !bHavePaintRay )
+					{
+						// Make sure the cursor is visible OR we're flood filling.  No point drawing a paint cue when there's no cursor.
+						if ( Viewport->IsCursorVisible() || IsForceRendered() )
+						{
+							if ( !PDI->IsHitTesting() )
+							{
+								// Grab the mouse cursor position
+								FIntPoint MousePosition;
+								Viewport->GetMousePos( MousePosition );
+
+								// Is the mouse currently over the viewport? or flood filling
+								if ( IsForceRendered() || ( MousePosition.X >= 0 && MousePosition.Y >= 0 && MousePosition.X < ( int32 ) Viewport->GetSizeXY().X && MousePosition.Y < ( int32 ) Viewport->GetSizeXY().Y ) )
+								{
+									// Compute a world space ray from the screen space mouse coordinates
+									FViewportCursorLocation MouseViewportRay( View, ViewportClient, MousePosition.X, MousePosition.Y );
+
+									bHavePaintRay = true;
+									PaintRayViewOrigin = View->ViewMatrices.ViewOrigin;
+									PaintRayStart = MouseViewportRay.GetOrigin();
+									PaintRayDirection = MouseViewportRay.GetDirection();
+								}
+							}
+						}
+					}
+
+					if ( bHavePaintRay )
+					{
+						// Unless "Flow" mode is enabled, we'll only draw a visual cue while rendering and won't
+						// do any actual painting.  When "Flow" is turned on we will paint here, too!
+						const bool bVisualCueOnly = !bIsPainting || ( PaintingWithInteractorInVR == nullptr && !FMeshPaintSettings::Get().bEnableFlow );
+						float StrengthScale = ( PaintingWithInteractorInVR == nullptr && FMeshPaintSettings::Get().bEnableFlow ) ? FMeshPaintSettings::Get().FlowAmount : 1.0f;
+
+						// Apply VR controller trigger pressure if we're painting in VR
+						if ( bIsPainting && PaintingWithInteractorInVR && VREditorMode != nullptr )
+						{
+							UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintingWithInteractorInVR );
+							if ( VRInteractor )
+							{
+								StrengthScale *= VRInteractor->GetSelectAndMoveTriggerValue();
+
+								// Make sure light press locking is enabled in VR for the hand we're painting with.  We don't want
+								// a full press to be converted to a move action, however locking will have been disabled already
+								// by the world interaction code after a light press happened on an object. 
+								VRInteractor->SetAllowTriggerLightPressLocking( true );
+							}
+						}
+
+						// Apply stylus pressure if it's active
+						else if ( Viewport->IsPenActive() )
+						{
+							StrengthScale *= Viewport->GetTabletPressure();
+						}
+
+						const EMeshPaintAction::Type PaintAction = GetPaintAction( Viewport );
+						bool bAnyPaintableActorsUnderCursor = false;
+						DoPaint( PaintRayViewOrigin, PaintRayStart, PaintRayDirection, PDI, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
+					}
 				}
 			}
 		}
@@ -3418,6 +3516,18 @@ EMeshPaintAction::Type FEdModeMeshPaint::GetPaintAction(FViewport* InViewport)
 	else
 	{
 		PaintAction = bShiftDown ? EMeshPaintAction::Erase : EMeshPaintAction::Paint;
+
+		// When painting using VR, allow the modifier button to activate Erase mode
+		if( PaintingWithInteractorInVR )
+		{
+			IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+			UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintingWithInteractorInVR );
+			if( VREditorMode != nullptr && VRInteractor != nullptr )
+			{
+				const bool bIsModifierPressed = VRInteractor->IsModifierPressed();
+				PaintAction = bIsModifierPressed ? EMeshPaintAction::Erase : EMeshPaintAction::Paint;
+			}
+		}
 	}
 	return PaintAction;
 
@@ -4965,5 +5075,67 @@ TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
 	return ActorBeingEdited;
 }
 
+
+void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, 
+	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
+{
+	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
+
+	if( VREditorMode != nullptr && VRInteractor != nullptr )
+	{
+		// Absorb all "full press" events unless the user is clicking on UI to avoid objects getting moved around.
+		// @todo vreditor: We shouldn't have to use this trick.  This input system needs more flexibility in its public interface!
+		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove && bIsPainting && 
+			PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor && 
+			!VRInteractor->IsHoveringOverUI() )
+		{
+			bWasHandled = true;
+			bOutIsInputCaptured = true;
+		}
+
+		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
+		{
+			if( !bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() )
+			{
+				// NOTE: We intentionally don't capture input for "LightlyPressed" because we want to allow objects to still
+				// become selected when clicked on.  We avoid allowing the objects to be moved by calling the 
+				// SetAllowTriggerLightPressLocking() function in the next tick (after VR Editor will have disabled locking.)
+				// @todo vreditor: We shouldn't have to use this trick.  This input system needs more flexibility in its public interface!
+				//bWasHandled = true;
+				//bOutIsInputCaptured = true;
+
+				StartPainting();
+				PaintingWithInteractorInVR = Interactor;
+
+				// Go ahead and paint immediately
+				FVector LaserPointerStart, LaserPointerEnd;
+				if( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+				{
+					const FVector LaserPointerDirection = ( LaserPointerEnd - LaserPointerStart ).GetSafeNormal();
+
+					// Apply VR controller trigger pressure
+					float StrengthScale = VRInteractor->GetSelectAndMoveTriggerValue();
+
+					// Paint!
+					const bool bVisualCueOnly = false;
+					const EMeshPaintAction::Type PaintAction = GetPaintAction( ViewportClient.Viewport );
+					bool bAnyPaintableActorsUnderCursor = false;
+					DoPaint( VREditorMode->GetHeadTransform().GetLocation(), LaserPointerStart, LaserPointerDirection, NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
+				}
+			}
+
+			// Stop current tracking if the user is no longer painting
+			else if( bIsPainting && Action.Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor )
+			{
+				EndPainting();
+
+				// @todo vreditor: We shouldn't have to use this trick.  This input system needs more flexibility in its public interface!
+				//bWasHandled = true;
+				//bOutIsInputCaptured = false;
+			}
+		}
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

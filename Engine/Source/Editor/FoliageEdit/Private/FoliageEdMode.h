@@ -326,8 +326,14 @@ public:
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState);
 
+	/** Start foliage tracing */
+	void StartFoliageBrushTrace(FEditorViewportClient* ViewportClient, class UViewportInteractor* Interactor);
+
+	/* End foliage tracing*/
+	void EndFoliageBrushTrace();
+
 	/** Trace under the mouse cursor and update brush position */
-	void FoliageBrushTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY);
+	void FoliageBrushTrace(FEditorViewportClient* ViewportClient, const FVector& InRayOrigin, const FVector& InRayDirection);
 
 	/** Generate start/end points for a random trace inside the sphere brush.
 	    returns a line segment inside the sphere parallel to the view direction */
@@ -362,6 +368,9 @@ public:
 		
 	/** Whether specified FoliageType can be painted into level */
 	static bool CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel);
+
+	/** Should remove brushes based on user input (shift or modifier button pressed) */
+	bool IsInputForRemovingBrushOn(const FEditorViewportClient* ViewportClient) const;
 
 	/** Add a new asset (FoliageType or StaticMesh) */
 	UFoliageType* AddFoliageAsset(UObject* InAsset);
@@ -401,6 +410,15 @@ public:
 
 	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances, const FFoliagePaintingGeometryFilter& OverrideGeometryFilter);
+
+	/** Called when an editor mode is entered or exited */
+	void OnEditorModeChanged(FEdMode* EditorMode, bool bEntered);
+
+	/** Called when the user presses a button on their motion controller device */
+	void OnVRAction(class FEditorViewportClient& ViewportClient, class UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
+
+	/** Called on VR hovering */
+	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
 
@@ -517,5 +535,12 @@ private:
 	EColumnSortMode::Type			FoliageMeshListSortMode; 
 
 	FDelegateHandle OnActorSpawnedHandle;
+
+	/** Whether we're currently painting */
+	bool bIsPainting;
+
+	/** When painting in VR, this is the hand index that we're painting with.  Otherwise INDEX_NONE. */
+	class UViewportInteractor* FoliageInteractor;
+
 };
 

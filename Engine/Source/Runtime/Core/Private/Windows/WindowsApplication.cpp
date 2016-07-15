@@ -2034,7 +2034,12 @@ void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, cons
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
-		(*DeviceIt)->SetChannelValues(ControllerId, Values);
+		// *N.B 06/20/2016*: Ideally, we would want to use GetHapticDevice instead
+		// but they're not implemented for SteamController and SteamVRController
+		if ((*DeviceIt)->IsGamepadAttached()) 
+		{
+			(*DeviceIt)->SetChannelValues(ControllerId, Values);
+		}
 	}
 }
 

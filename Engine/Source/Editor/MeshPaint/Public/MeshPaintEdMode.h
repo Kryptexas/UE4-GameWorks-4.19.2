@@ -5,6 +5,8 @@
 #include "GenericOctree.h"
 #include "GenericOctreePublic.h"
 #include "Engine/StaticMesh.h"
+#include "IVREditorModule.h"
+
 
 class IMeshPaintGeometryAdapter;
 
@@ -399,6 +401,9 @@ public:
 	// End of FEdMode interface
 
 
+	/** Called when an editor mode is entered or exited */
+	void OnEditorModeChanged( FEdMode* EditorMode, bool bEntered );
+
 	/** Returns true if we need to force a render/update through based fill/copy */
 	bool IsForceRendered (void) const;
 
@@ -709,10 +714,17 @@ private:
 	/** Called when an asset is about to be reimported */
 	void OnPreReimportAsset(UObject* Object);
 
+	/** Called when the user presses a button on their motion controller device */
+	void OnVRAction( class FEditorViewportClient& ViewportClient, class UViewportInteractor* Interactor,
+		const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled );
+
 private:
 
 	/** Whether we're currently painting */
 	bool bIsPainting;
+
+	/** When painting in VR, this is the hand index that we're painting with.  Otherwise INDEX_NONE. */
+	class UViewportInteractor* PaintingWithInteractorInVR;
 
 	/** Whether we are doing a flood fill the next render */
 	bool bIsFloodFill;

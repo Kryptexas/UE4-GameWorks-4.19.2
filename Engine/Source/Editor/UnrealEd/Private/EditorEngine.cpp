@@ -778,6 +778,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 
 		// Load VR Editor support
+		FModuleManager::Get().LoadModuleChecked( TEXT( "ViewportInteraction" ) );
 		FModuleManager::Get().LoadModuleChecked( TEXT( "VREditor" ) );
 	}
 

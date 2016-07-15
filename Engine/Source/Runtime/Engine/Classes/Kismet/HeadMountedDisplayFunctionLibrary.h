@@ -27,6 +27,20 @@ namespace EHMDTrackingOrigin
 	};
 }
 
+/**
+* Stores if the user is wearing the HMD or not. For HMDs without a sensor to detect the user wearing it, the state defaults to Unknown.
+*/
+UENUM()
+namespace EHMDWornState
+{
+	enum Type
+	{
+		Unknown UMETA(DisplayName = "Unknown"),
+		Worn UMETA(DisplayName = "Worn"),
+		NotWorn UMETA(DisplayName = "Not Worn"),
+	};
+}
+
 UCLASS()
 class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionLibrary
 {

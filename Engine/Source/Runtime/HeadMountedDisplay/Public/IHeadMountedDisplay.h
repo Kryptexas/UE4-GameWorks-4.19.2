@@ -28,6 +28,11 @@ public:
 	virtual bool IsHMDEnabled() const = 0;
 
 	/**
+	* Returns EHMDWornState::Worn if we detect that the user is wearing the HMD, EHMDWornState::NotWorn if we detect the user is not wearing the HMD, and EHMDWornState::Unknown if we cannot detect the state.
+	*/
+	virtual EHMDWornState::Type GetHMDWornState() { return EHMDWornState::Unknown; };
+
+	/**
 	 * Enables or disables switching to stereo.
 	 */
 	virtual void EnableHMD(bool bEnable = true) = 0;

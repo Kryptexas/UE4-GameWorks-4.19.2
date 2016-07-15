@@ -7,6 +7,8 @@
 #include "VREditorBaseUserWidget.h"
 #include "WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
+#include "VREditorWorldInteraction.h"
+#include "VREditorInteractor.h"
 
 namespace VREd
 {
@@ -18,10 +20,11 @@ namespace VREd
 	static FAutoConsoleVariable DockUIHoverAnimationDuration( TEXT( "VREd.DockUIHoverAnimationDuration" ), 0.15f, TEXT( "How quick the hover animation should complete in" ) );
 }
 
-AVREditorDockableWindow::AVREditorDockableWindow() 
-	: Super()
-{
 
+AVREditorDockableWindow::AVREditorDockableWindow()
+	: Super(),
+	DockSelectDistance( 0.0f )
+{
 	{
 		UStaticMesh* WindowMesh = nullptr;
 		{
@@ -141,8 +144,24 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 	// their laser toward the UI
 	SelectionBarMeshComponent->SetVisibility( false );
 	CloseButtonMeshComponent->SetVisibility( false );
+
+	// Create the drag operation
+	DragOperationComponent = CreateDefaultSubobject<UViewportDragOperationComponent>( TEXT( "DragOperation" ) );
+	DragOperationComponent->SetDragOperationClass( UDockableWindowDragOperation::StaticClass() );
 }
 
+
+AVREditorDockableWindow::~AVREditorDockableWindow()
+{
+	WindowMeshComponent = nullptr;
+	SelectionBarMeshComponent = nullptr;
+	CloseButtonMeshComponent = nullptr;
+	SelectionBarMID = nullptr;
+	SelectionBarTranslucentMID = nullptr;
+	CloseButtonMID = nullptr;
+	CloseButtonTranslucentMID = nullptr;
+	DragOperationComponent = nullptr;
+}
 
 void AVREditorDockableWindow::SetupWidgetComponent()
 {
@@ -175,9 +194,9 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 			const FVector UIForwardVector = FVector::ForwardVector;
 			const float MinDotForAimingAtOtherHand = -1.1f;	// @todo vreditor tweak
 
-			for( int32 HandIndex = 0; HandIndex < VREditorConstants::NumVirtualHands; ++HandIndex )
+			for( UViewportInteractor* Interactor : GetOwner().GetOwner().GetWorldInteraction().GetInteractors() )
 			{
-				if( GetOwner().GetOwner().IsHandAimingTowardsCapsule( HandIndex, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
+				if( GetOwner().GetOwner().IsHandAimingTowardsCapsule( Interactor, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
 				{
 					bIsLaserAimingTowardUI = true;
 				}
@@ -285,50 +304,144 @@ void AVREditorDockableWindow::UpdateRelativeRoomTransform()
 	const FVector RoomSpaceWindowLocation = WindowToRoomTransform.GetLocation() / GetOwner().GetOwner().GetWorldScaleFactor();;
 	const FQuat RoomSpaceWindowRotation = WindowToRoomTransform.GetRotation();
 
-	RelativeOffset = RoomSpaceWindowLocation;
-	LocalRotation = RoomSpaceWindowRotation.Rotator();
+	SetRelativeOffset( RoomSpaceWindowLocation );
+	SetLocalRotation( RoomSpaceWindowRotation.Rotator() );
 }
 
-void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult, const int32 HandIndex )
+UStaticMeshComponent* AVREditorDockableWindow::GetCloseButtonMeshComponent() const
 {
-	if( SelectionBarMeshComponent == HitResult.GetComponent() )
+	return CloseButtonMeshComponent;
+}
+
+UStaticMeshComponent* AVREditorDockableWindow::GetSelectionBarMeshComponent() const
+{
+	return SelectionBarMeshComponent;
+}
+
+float AVREditorDockableWindow::GetDockSelectDistance() const
+{
+	return DockSelectDistance;
+}
+
+void AVREditorDockableWindow::OnPressed( UViewportInteractor* Interactor, const FHitResult& InHitResult, bool& bOutResultedInDrag )
+{
+	bOutResultedInDrag = false;
+	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
+	if( VRInteractor != nullptr )
+	{
+		if( InHitResult.Component == GetCloseButtonMeshComponent() )
+		{
+			// Close the window
+			const bool bShouldShow = false;
+			const bool bShowOnHand = false;
+			const bool bRefreshQuickMenu = true;
+			GetOwner().ShowEditorUIPanel( this, VRInteractor, bShouldShow, bShowOnHand, bRefreshQuickMenu );
+		}
+		else if( InHitResult.Component == GetSelectionBarMeshComponent() )
+		{
+			bOutResultedInDrag = true;
+
+			FVector LaserPointerStart, LaserPointerEnd;
+			DockSelectDistance = ( InHitResult.TraceStart - InHitResult.Location ).Size();
+			GetOwner().StartDraggingDockUI( this, VRInteractor, DockSelectDistance );
+		}
+	}
+}
+
+void AVREditorDockableWindow::OnHover( UViewportInteractor* Interactor )
+{
+
+}
+
+void AVREditorDockableWindow::OnHoverEnter( UViewportInteractor* Interactor, const FHitResult& InHitResult )
+{
+	if ( SelectionBarMeshComponent == InHitResult.GetComponent() )
 	{
 		bIsHoveringOverSelectionBar = true;
 	}
-	
-	if( CloseButtonMeshComponent == HitResult.GetComponent() )
+
+	if ( CloseButtonMeshComponent == InHitResult.GetComponent() )
 	{
 		bIsHoveringOverCloseButton = true;
 	}
 }
 
-void AVREditorDockableWindow::OnLeaveHover( const int32 HandIndex, const UActorComponent* NewComponent  )
+void AVREditorDockableWindow::OnHoverLeave( UViewportInteractor* Interactor, const UActorComponent* NewComponent )
 {
-	FVirtualHand& OtherHand = GetOwner().GetOwner().GetOtherHand( HandIndex );
+	UActorComponent* OtherInteractorHoveredComponent = nullptr;
+	if( Interactor->GetOtherInteractor() != nullptr )
+	{
+		OtherInteractorHoveredComponent = Interactor->GetOtherInteractor()->GetHoverComponent();
+	}
 
-	if( OtherHand.HoveredActorComponent != SelectionBarMeshComponent && NewComponent != SelectionBarMeshComponent )
+	if ( OtherInteractorHoveredComponent != SelectionBarMeshComponent && NewComponent != SelectionBarMeshComponent )
 	{
 		bIsHoveringOverSelectionBar = false;
 	}
-	
-	if( OtherHand.HoveredActorComponent != CloseButtonMeshComponent && NewComponent != CloseButtonMeshComponent  )
+
+	if ( OtherInteractorHoveredComponent != CloseButtonMeshComponent && NewComponent != CloseButtonMeshComponent )
 	{
 		bIsHoveringOverCloseButton = false;
 	}
 }
 
+void AVREditorDockableWindow::OnDragRelease( UViewportInteractor* Interactor )
+{
+	UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>( Interactor );
+	if( VREditorInteractor != nullptr )
+	{
+		UVREditorUISystem& UISystem = GetOwner();
+		UISystem.StopDraggingDockUI( VREditorInteractor );
+	}
+}
+
+UViewportDragOperationComponent* AVREditorDockableWindow::GetDragOperationComponent()
+{
+	return DragOperationComponent;
+}
 
 void AVREditorDockableWindow::SetSelectionBarColor( const FLinearColor& LinearColor )
-{
+{		
 	static FName StaticColorParameterName( "Color" );
 	SelectionBarMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
 	SelectionBarTranslucentMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
 }
-
 
 void AVREditorDockableWindow::SetCloseButtonColor( const FLinearColor& LinearColor )
 {
 	static FName StaticColorParameterName( "Color" );
 	CloseButtonMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
 	CloseButtonTranslucentMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
+}
+
+/************************************************************************/
+/* Dockable window drag operation                                       */
+/******************	******************************************************/
+void UDockableWindowDragOperation::ExecuteDrag( UViewportInteractor* Interactor, IViewportInteractableInterface* Interactable  )
+{
+	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
+	AVREditorDockableWindow* DockableWindow = Cast<AVREditorDockableWindow>( Interactable );
+	if ( VRInteractor && DockableWindow )
+	{
+		UVREditorUISystem& UISystem = DockableWindow->GetOwner();
+
+		const bool bIsAbsolute = ( UISystem.GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
+		float SlideDeltaY = VRInteractor->GetSlideDelta();
+
+		float NewUIScale = DockableWindow->GetScale() + SlideDeltaY;
+		if ( NewUIScale <= UISystem.GetMinDockWindowSize() )
+		{
+			NewUIScale = UISystem.GetMinDockWindowSize();
+		}
+		else if ( NewUIScale >= UISystem.GetMaxDockWindowSize() )
+		{
+			NewUIScale = UISystem.GetMaxDockWindowSize();
+		}
+
+		DockableWindow->SetScale( NewUIScale );
+
+		const FTransform DockedUIToWorld = UISystem.MakeDockableUITransform( DockableWindow, VRInteractor, DockableWindow->GetDockSelectDistance() );
+		DockableWindow->SetActorTransform( DockedUIToWorld );
+		DockableWindow->UpdateRelativeRoomTransform();
+	}
 }

@@ -607,6 +607,29 @@ bool FOculusRiftHMD::IsHMDConnected()
 	return Settings->Flags.bHMDEnabled && ovr_Detect(0).IsOculusHMDConnected;
 }
 
+EHMDWornState::Type FOculusRiftHMD::GetHMDWornState()
+{
+	FOvrSessionShared::AutoSession OvrSession(Session);
+	// If there is no VR Session, initialize the Oculus HMD
+	if (!OvrSession)
+	{
+		InitDevice();
+	}
+	if (OvrSession && !pCustomPresent->NeedsToKillHmd())
+	{
+		ovrSessionStatus sessionStatus;
+		ovr_GetSessionStatus(OvrSession, &sessionStatus);
+		
+		// Check if the HMD is worn 
+		if (sessionStatus.HmdMounted )
+		{
+			return EHMDWornState::Worn; // already created and worn
+
+		}
+	}
+	return EHMDWornState::NotWorn;
+}
+
 FGameFrame* FOculusRiftHMD::GetFrame()
 {
 	return static_cast<FGameFrame*>(GetCurrentFrame());
