@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2747812
+﻿INTSourceChangelist:2749579
 Availability:Public
-Title:材质 - 在材质中使用菲涅耳效果
+Title: 材质 - 在材质中使用菲涅耳效果
 Crumbs:%ROOT%, Engine, Engine/Rendering/Materials
-Description:有关使用“菲涅耳效果”（Fresnel）材质节点的操作指南。 
+Description: 有关使用“菲涅耳效果”（Fresnel）材质节点的操作指南。 
 Related:Engine/Rendering/Materials/Functions/Reference/VectorOps
 Related:Engine/Rendering/Materials/Editor/Interface
 Related:Engine/Rendering/Materials/ExpressionReference/Utility
@@ -184,9 +184,9 @@ SkillLevel:Advanced
 
 用来创建上述各图的材质就是我们以前创建的材质，但进行了下列修改。 
 
-* 材质的 **混合模式（Blend Mode）**已从**不透明（Opaque）**更改为 **半透明（Translucent）**
-* 连接到 **自发光颜色（Emissive Color）**输入的“菲涅耳效果”（Fresnel）最终输出也连接到 **半透明（Opacity）**输入中。
-* 添加了新的“2D 纹理样本”（2D Texture Sampler），并将其连接到 **法线（Normal）**输入。使用起步内容中的 **Tech_Hex_Tile_N** 作为法线纹理。
+* 材质的 **混合模式（Blend Mode）** 已从 **不透明（Opaque）** 更改为 **半透明（Translucent）**
+* 连接到 **自发光颜色（Emissive Color）** 输入的“菲涅耳效果”（Fresnel）最终输出也连接到 **半透明（Opacity）** 输入中。
+* 添加了新的“2D 纹理样本”（2D Texture Sampler），并将其连接到 **法线（Normal）** 输入。使用起步内容中的 **Tech_Hex_Tile_N** 作为法线纹理。
 * 已添加新的标量参数，此参数与 **纹理坐标** 表达式相乘，以便在法线贴图上实现一些基本的统一平铺。 
 
 ![](FN_Adding_Normal_Map.png)
@@ -196,21 +196,21 @@ SkillLevel:Advanced
 如果您想要使用菲涅耳效果在材质上显示能量护盾等效果，但希望材质在护盾激活前仍正常显示，那么法线贴图特别有用。 
 要使用以上材质来实现此目标，需完成下列操作。
 
-1. 首先，更新 **半透明照明模式（Translucency Lighting Mode）**，将其从 **体积无方向（Volumetric Non Directional）**更改为 **表面半透明体积（Surface Translucency Volume）**。
+1. 首先，更新 **半透明照明模式（Translucency Lighting Mode）**，将其从 **体积无方向（Volumetric Non Directional）** 更改为 **表面半透明体积（Surface Translucency Volume）**。
 
-1. 将 **底色（Base Color）**和 **粗糙度（Roughness）**更改为使用起步内容
+1. 将 **底色（Base Color）**和 **粗糙度（Roughness）** 更改为使用起步内容
 中的 **T_Brick_Clay_New_D** 纹理。 
 
 1. 接着，更改“法线”（Normal）输入，使其使用同样可在起步内容中找到的 T_Brick_Clay_New_N。 
 
-1. 接着，在选用板中搜索 **转换（Transform）**表达式节点，并将其添加到材质图中。确保将其设置为从切面空间转换到世界空间。 
+1. 接着，在选用板中搜索 **转换（Transform）**表 达式节点，并将其添加到材质图中。确保将其设置为从切面空间转换到世界空间。 
 
 1. 将旧的法线贴图纹理节点连接到“转换”（Transform）节点的输入，并将其输出连接到“菲涅耳效果”（Fresnel）节点的“法线”（Normal）输入，完成后，您的材质应该如下所示。 
 
 ![](FN_Fresnel_Normal_Input.png)	
 
 请注意，砖块看起来丝毫没有菲涅耳效果。 
-您甚至可以更进一步，添加 **乘法（Multiply）**和 **常量（Constant）**表达式节点，然后使用这些节点来控制菲涅耳效果的强度。 
+您甚至可以更进一步，添加 **乘法（Multiply）** 和 **常量（Constant）** 表达式节点，然后使用这些节点来控制菲涅耳效果的强度。 
 以下是将这些节点添加到上文所述材质后的情况。 
 
 ![](FN_Controal_Fresnel_Effect.png)
