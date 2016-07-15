@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Level Streaming How-Tos
+﻿INTSourceChangelist:3037940
+Availability:Docs
+Title: レベル ストリーミングの操作ガイド
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:How to dynamically stream in levels using Level Streaming Volumes, Blueprints, and C++ code
+Description:Level Streaming Volumes、ブループリント、C++ コードを使って動的にレベルをストリームする方法
+Version:4.12
 parent:Engine/LevelStreaming
 order:10
 tags:Level Streaming
@@ -10,51 +11,53 @@ tags:Level Streaming
 [TOC]
 
 
-These three how-tos all solve the following scenario, and have a shared set of steps to load in the two Levels you are going to work with. Follow these steps, then select the how-to you want to continue with.
+これらの 3 つの操作ガイドはすべて以下のシナリオを解決し、これから使用する 2 つのレベルにロードする共通のステップを説明します。まずは共通のステップに従って進めてから、 
+次にどうするか選択してください。
 
 [EXCERPT:LevelStreamScenario]
-## Level Streaming Scenario
-Starting with the main level in the **Sun Temple** project, we have split the level up into the interior space and the end patio with pillars overlooking the ocean.
-In the wireframe view below, the teal wireframe shows the persistent interior level, and the yellow wireframe shows the patio level that is going to be streamed in.
-The sky and ocean are in the persistent level, as there are a few windows in the main temple that allow the sky and exterior to be seen.
+## レベル ストリーミングのシナリオ
+**Sun Temple** プロジェクトのメイン レベルから始めます。レベルを室内空間と、海が見える柱つきの中庭に分割します。
+以下のワイヤーフレーム ビューでは、ティール色のワイヤーフレームがパーシスタント室内レベルを示し、黄色のワイヤーフレームがストリーミングされる中庭レベルを示します。
+空と屋外が見えるように寺院の主要部にはいくつか窓があるので、空と海はパーシスタント レベルです。
 
 ![](LevelSplit.png)(w:500)
 
 
-In the interior of the temple, there is a bend in the hallway that hides the patio area from view. 
+寺院の内装には、中庭を視界から隠す廊下を混ぜます。 
 
 ![](StartLoading.png)(w:500)
 
-We want to start streaming in the patio level here, so that by the time the player rounds the corner and begins approaching the patio, the streaming level
-will be loaded and visible.
+プレイヤーが角を曲がって中庭に近づいてくる時にはストリーミング レベルがロードされて表示できるように、
+ここで中庭レベルにストリーミングを開始します。
 
 ![](StreamingLevelVisible.png)(w:500)
 
-As part of the setup, we have two levels, **SunTemple_Persistent** and **SunTemple_Streaming**. Our **Player Start** is in **SunTemple_Persistent**, and our player in the game is represented by a _Character_.
+設定対象は **SunTemple_Persistent** と **SunTemple_Streaming** です。**Player Start** は **SunTemple_Persistent** にあります。 
+そしてゲームのプレイヤーは _Character_ で表現されます。
 
-1. Open **SunTemple_Persistent** in the **Content Browser**.
+1. **コンテンツ ブラウザ** から **SunTemple_Persistent** を開きます。
 
-1. Move the **Player Start** to the very beginning of the temple.
+1. **Player Start** を寺院の一番手前に移動します。
 
 	![](PlayerStart.png)(w:500)
 
-1. Click on **Windows**, then select **Levels**.
+1. **ウィンドウ**上をクリックして、**レベル** を選択します。
 
 	![](Engine/Levels/LevelsWindow/WindowLevels.png)
 
-1.  Click on the **Levels** dropdown menu, then select **Add Existing...** to add a new sublevel.
+1. **[Levels]** のドロップダウン メニューをクリックし、**[Add Existing... (既存の...を追加)]** を選択して新規サブレベルを追加します。
 
 	![](AddExisting.png)
 
-1. Select **SunTemple_Streaming** to add in the **Open Level** dialog, then click on **Open**.
-	
+1. 追加する **SunTemple_Streaming** を **[Open Level]** ダイアログで選択してから、**[Open]** をクリックします。
+
 	![](SunTempleStreaming_Select.png)
-	
-1. **Right-click** on **Persistent Level** and select **Make Current** from the dropdown menu.
+
+1.**パーシスタント レベル** 上で **右クリック** して、ドロップダウン メニューから **[Make Current]** を選択します。
 
 [/EXCERPT]
 
-## How-Tos
+## 操作ガイド
 
 [DIR(output:"listbutton" parent:"Engine/LevelStreaming/HowTo")]
 
