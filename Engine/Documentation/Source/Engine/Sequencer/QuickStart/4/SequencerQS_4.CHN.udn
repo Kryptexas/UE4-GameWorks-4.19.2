@@ -1,91 +1,74 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3038380
 Availability:Public
-Title:4 - Your Second Shot
+Title:4 - 您的第二个镜头
 Crumbs:%ROOT%
-Description:In this step we create a second shot for our example cinematic. 
+Description:在此步骤中，我们将创建示例过场动画的第二个镜头。 
 SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:4
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\3 "%Engine\Sequencer\QuickStart\3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+现在您已经完成了第一个镜头，让我们利用学到的知识再创建一个镜头吧！
 
-Our first shot is complete, now we will take what we have learned and create an additional shot for our scene. 
+这一次我们将把摄像机从角色前方推进到其脸部。 
 
-This time we will push the camera in from the front of our character in on their face. 
+## 步骤
 
-## Steps
-
-1.	In the **Content Browser**, select the **Shot01** Level Sequence then press **Shift+W** to duplicate it. 
+1. 	在 **内容浏览器** 中，选择 **Shot01** 关卡序列，，然后按 **Shift+W** 复制它。 
 
 	![](SequencerQS_4_1.png)
 
-	Our Shot01 already has most of the existing content we will want to also use in our second shot. 
+	Shot01 已经有了我们要在第二个镜头中使用的大部分内容。 
 
-1.	Inside **Shot02**, delete the existing **CineCameraActor** then click the **Add Camera** button. 
+1. 	在 **Shot02** 中，删除原有的 **CineCameraActor**，然后单击 **添加摄像机（Add Camera）**自动将其分配到镜头切换轨道，并使摄像机进入飞行模式。 
 
 	![](SequencerQS_4_2.png)
 
-	This will automatically assign it on the Camera Cuts track and enter the camera in Pilot Mode. 
-
-1.	Move the camera around to the front of the Skeletal Mesh Actor in the level. 
+1. 	将摄像机移动到关卡中的骨骼网格 Actor 前方。 
 
 	![](SequencerQS_4_3.png)
 
-	The name of your CineCameraActor may differ from above which is perfectly fine. 
-	
-1.	Select the **CineCameraActor** track in Sequencer, then press **S** to add a keyframe the Camera's Transform.
+	[REGION:note]
+	您的 CineCameraActor 的名称可以和上图中不同，这没有任何问题。 
+	[/REGION]
+
+1. 	在 Sequencer 中选择 **CineCameraActor** 轨道，按 **S** 添加摄像机的转换的关键帧。
 
 	![](SequencerQS_4_3b.png)
 
-1.	In the **Details** panel for the camera, use the **Eye Dropper** to focus in on the character then add a keyframe. 
+1. 	在摄像机的 **细节（Details）**面板中，使用 **滴管** 图标聚焦到角色身上。添加关键帧。 
 
 	![](SequencerQS_4_4.png)
 
-	Your value you might be different from above based on where you placed the camera. 
+	[REGION:note]
+	您的值可以和上图不同，具体取决于放置摄像机的位置。 
+	[/REGION]
 
-1.	Use the **To End** button in the Cinematic Preview to jump to the end of the Sequence. 
+1. 	在过场动画预览中，单击 **到结尾（To End）** 按钮跳转到序列结尾。 
 
-1.	Move the camera in on the character then add a keyframe (**S**) for the position. 
+1. 	将摄像机移近角色，然后添加该位置的关键帧 (**S**)。 
 
 	![](SequencerQS_4_5.png)
 
-1.	In the **Details** panel for the camera, use the **Eye Dropper** to focus in on the character then add a keyframe. 
+1. 	在摄像机的 **细节（Details）**面板中，使用 **滴管** 图标聚焦到角色身上。添加关键帧。您应该有对应开始时的初始位置、焦点值以及结尾的关键帧。
 
-	![](SequencerQS_4_6.png)
+	![](SequencerQS_4_6.png) 
 
-	You should have keyframes at the start for the initial position and focus value as well as at the end. 
-
-1.	You can use the **Camera Lock** toggle button on the **Camera Cuts** track to enable the Cinematic Preview. 
+1. 	在 **镜头切换** 轨道上单击 **摄像机锁定（Camera Lock）**切换按钮启用过场动画预览。 
 
 	![](SequencerQS_4_7.png)
 
 
-## End Result
+## 最终结果
 
-We have set up our second shot of our sequence where the camera starts from far away and pushes in on the character. 
+我们已经设置了序列的第二个镜头，在该镜头中摄像机从远处推进到角色附近。 
 
-In our next step we will tie our shots together using the **Shot Track** in our Master Level Sequence. 
-We will also create a **Take** (or variation) of one of our shots that we can quickly swap in or out. 
-You will also see how we can arrange the order of shots in our scene as we get a little bit closer to finishing our sample scene. 
+在下一步，我们将在 Master 关卡序列中使用 **镜头轨道** 将镜头连接起来。我们还要为其中一个镜头创建 **副镜头**（即其变体），以便快速切入切出。您将看到我们如何排列场景中的镜头顺序，离完成样本场景又近一步。 
 
-%Steps%
-
-
+[NAV]
