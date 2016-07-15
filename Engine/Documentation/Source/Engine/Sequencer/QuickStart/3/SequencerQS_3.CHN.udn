@@ -1,83 +1,62 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3013123
 Availability:Public
-Title:3 - Your First Shot - Character Animation
+Title:3 - 您的第一个镜头 - 角色动画
 Crumbs:%ROOT%
-Description:In this step we will use the Project Browser to create a New Project. 
+Description:在此步骤中，我们将使用项目浏览器来创建新项目。 
 SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:3
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine\Sequencer\QuickStart\2 "%Engine\Sequencer\QuickStart\2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine\Sequencer\QuickStart\4 "%Engine\Sequencer\QuickStart\4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+在上一步，我们添加了一个摄像机，并提供了摄像机的运动路径。在这一步，我们将把所用的角色蓝图替换为带有 **骨骼网格** Actor 的模板，我们可以对该 Actor 应用动画，从而完成我们的第一个镜头。
 
-In the previous step we added a camera and provided a path for our camera to take. 
-Up next we will replace the Character Blueprint that is used with the template with a **Skeletal Mesh** Actor that we can apply animations to. 
-By the end of this step, our first shot will be complete. 
+## 步骤
 
-## Steps
-
-1. In the **Content Browser**, navigate to the **Content/Mannequin/Character/Mesh** folder and click on **SK_Mannequin**. 
+1. 在 **内容浏览器** 中，导航至 **Content/Mannequin/Character/Mesh** 文件夹并单击 **SK_Mannequin**。 
 	
 	![](SequencerQS_3_1.png)
 
-1. In the left Viewport, **Right-click** on the character in the level then select **Replace Selected Actors with** option. 
+1. 在左侧视口中，**右键单击** 关卡中的角色，然后选择 **将所选 Actor 替换为（Replace Selected Actors with）**。此操作会将用于游戏的默认 **角色蓝图** 替换为一个 **骨骼网格 Actor**。
 
-	![](SequencerQS_3_2.png)
+	![](SequencerQS_3_2.png) 
 
-	This will replace the default **Character Blueprint** used for gameplay with a **Skeletal Mesh Actor**. 
-
-1.	In the left Viewport, press the **End** key to drop the Skeletal Mesh down to the ground, then press **E** and rotate it as shown below. 
+1. 	在左侧视口中，按 **End** 键将骨骼网格放到地面上。按 **E** 并旋转它，如下图所示。 
 
 	![](SequencerQS_3_3.png)
 
-1.	With the Skeletal Mesh still selected, in **Sequencer** click the **Add** button and it to the Level Sequence. 
+1. 	在仍然选中骨骼网格的情况下，在 **Sequencer** 中单击 **添加（Add）**将它添加到关卡序列。 
 
 	![](SequencerQS_3_4.png)
 
-1.	In the Cinematic Viewport, click the **To Front** button to jump to the beginning of the Sequence. 
+1. 	在过场动画视口中，单击 **到开头（To Front）** 按钮跳转到序列开头。 
 
 	![](SequencerQS_3_5a.png)
 
-1.	For the **ThirdPersonCharacter** Track, click the **+ Animation** button and search for and add the **ThirdPersonIdle**.
+1. 	对于 **ThirdPersonCharacter** 轨道，单击 **添加动画（+ Animation）**按钮。搜索 **ThirdPersonIdle** 动画，并将其添加到轨道。关卡中的骨骼网格将摆出闲散的姿势。
 
-	![](SequencerQS_3_5.png)
+	![](SequencerQS_3_5.png) 
 
-	The Skeletal Mesh in the level will assume an Idle pose. 
-
-1.	**Left-click** and drag the end of the **ThirdPersonIdle** so it loops and fills the entire 150 frames. 
+1. 	**左键单击** 并拖动 **ThirdPersonIdle** 动画的结尾，使其循环播放，填满整整 150 帧。 
 
 	![](SequencerQS_3_6.png)
 
-1.	On the **Camera Cuts** track, click the **Unlock/Lock Camera** button. 
+1. 	在 **镜头切换** 轨道上，单击 **解锁/锁定摄像机（Unlock/Lock Camera）**按钮。如果将摄像机锁定在镜头切换轨道上，只会影响过场动画视口。
 
-	![](SequencerQS_3_6b.png)	
+	![](SequencerQS_3_6b.png) 
 
-	Locking the Camera on a Camera Cuts track, will only affect Cinematic Viewports. 
-
-1.	Click the **Preview Play** button in the Cinematic Preview window. 
+1. 	在“过场动画预览”（Cinematic Preview）窗口中单击 **预览播放（Preview Play）**按钮。 
 
 
 
-## End Result
+## 最终结果
 
-The focal point of our cinematic has been added an we have applied and looped an animation for the character to use. 
+我们已经添加了过场动画的焦点，并且应用和循环了供角色使用的动画。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -92,8 +71,6 @@ vx-HlYIbpOI
 [/OBJECT]
 
 
-In the next step we will work on another shot for our scene before we add both shots to our Master track. 
+在下一步，我们将处理场景的另一个镜头，然后将两个镜头都添加到 Master 轨道。 
 
-%Steps%
-
-
+[NAV]

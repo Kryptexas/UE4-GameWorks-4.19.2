@@ -1,113 +1,113 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Shooting from a Camera Rig Rail
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:An example of how to set up and shoot from the Camera Rig Rail. 
-Version: 4.12
-SkillLevel: Intermediate
+﻿INTSourceChangelist:3009005
+Availability:Public
+Title:从摄像机导轨拍摄
+Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:如何设置摄像机导轨并从其拍摄的示例。 
+Version:4.12
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-The **Camera Rig Rail** Actor can be used to produce fly-through, 360 degree, or any other moving shots by attaching a camera to a rail to move along.
-The path for the rail can be defined using a [**Spline Component**](Engine/Components/Shapes/) and in Sequencer, you can keyframe the position along the rail where the camera should be at any given time. 
+**摄像机导轨** Actor 将摄像机连接到用于四处移动的导轨，可用来拍摄出飞越鸟瞰、360 度旋转或其他任何运动镜头。
+可以使用 [**样条组件**](Engine/Components/Shapes/) 定义导轨的路径，在 Sequencer 中您还可以沿导轨为摄像机应该在任何给定时间所处的位置设置关键帧。 
 
-In this how-to we create a 180 degree rail where the attached camera stays focused on our character. 
+在本操作指南中，我们创建一条 180 度导轨，而相连的摄像机始终聚焦于我们的角色。 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+在本操作指南中，我们使用 **Blueprint Third Person Template** 项目，并启用了 **起步内容**。 
 [/REGION]
 
-1.	In your project on the **Modes** panel under **Cinematic**, drag a **Camera Rig Rail** asset into the level. 
+1. 	在您的项目中，在 **模式（Modes）**面板的 **过场动画（Cinematic）**下，将一个 **摄像机导轨（Camera Rig Rail）**资产拖动到关卡中。 
 
 	![](Rails01.png)(w:800)
 
-1.	Also from the **Modes** panel under **Cinematic**, drag in a **Cine Camera Actor**. 
+1. 	还是在 **模式（Modes）**面板的 **过场动画（Cinematic）**下，拖入一个 **电影摄像机 Actor（Cine Camera Actor）**。 
 
 	![](Rails02.png)(w:800)
 
-1.	In the **World Outliner**, drag-and-drop the **CineCameraActor** onto the **CameraRig_Rail** to attach it.
+1. 	在 **全局大纲（World Outliner）**中，将 **CineCameraActor** 拖放到 **CameraRig_Rail** 上以连接它。
 
 	![](Rails03.png)
 
-1.	In the **Details** panel for the **CineCameraActor**, set the **XYZ** for **Location** to **0, 0, 60**. 
+1. 	在 **CineCameraActor** 的 **细节（Details）**面板中，将 **位置（Location）**的 **XYZ** 设置为 **0、0、60**。 
 
 	![](Rails04.png)
 
-	This will push the camera up slightly off the ground for our shot. 
+	这将使摄像机在我们的镜头中从地面升高少许。 
 
-1.	Select the **CameraRigRail** in the level, then select and move the end point so the rail moves to the left of the character. 
+1. 	在关卡中选择 **CameraRigRail**，然后选择并移动端点，使导轨通到角色的左侧。 
 
 	![](Rails05.png)(w:800)
 
-1.	With the end point still selected, hold **Alt** then drag out another point as shown below. 
+1. 	在仍然选中端点的情况下，按住 **Alt** 然后拖出另一个点，如下图所示。 
 
 	![](Rails06.png)(w:800)
 
-1.	Select and move the red tangents to bend the rail to produce a curved shape. 
+1. 	选择并移动红色曲线使导轨弯曲，从而得到曲线形状。 
 
 	![](Rails07.png)(w:800)
 
-1.	Select and move the second point and its tangents to smooth out the curve.
+1. 	选择并移动第二个点及其切线，使导轨变得平滑。
 
 	![](Rails08.png)(w:800)
 
-1.	Select the last point on the rail, then **Alt** drag out another point and adjust to smooth out the curve as desired. 
+1. 	选择导轨上的最后一个点，然后按 **Alt** 再拖出一个点，并根据需要进行调整，使曲线平滑。 
 
 	![](Rails09.png)(w:800)
 
-1.	From the Main Toolbar, click **Cinematics** then select **Add Level Sequence**. 
+1. 	在主工具栏中，单击 **过场动画（Cinematics）**，然后选择 **添加关卡序列（Add Level Sequence）**。 
 
 	![](Rails10.png)
 
-1.	Hold **Ctrl** and select the **Camera Rig Rail** and **Cine Camera Actor** then add both to Sequencer. 
+1. 	按住 **Ctrl** 选择 **摄像机导轨** 和 **电影摄像机 Actor**，然后将两者都添加到 Sequencer。 
 
 	![](Rails11.png)
 
-1.	Click the **Add** button and add a **Camera Cut Track**. 
+1. 	单击 **添加（Add）**按钮，然后添加一条 **镜头切换轨道（Camera Cut Track）**。 
 
 	![](Rails12.png)
 
-1.	Click the **+ Camera** button and add the **Cine Camera Actor** as the camera to shoot from. 
+1. 	单击 **添加摄像机（+ Camera）**按钮并添加 **电影摄像机 Actor** 作为用于拍摄的摄像机。 
 
 	![](Rails13.png)(w:900)
 
-	Our shot is now ready to shoot from the Cine Camera Actor attached to our Camera Rig Rail. 
+	我们的镜头现在已经准备好从连接到摄像机导轨的电影摄像机 Actor 拍摄。 
 
-1.	Add a key for the current **Transform** on the **CineCameraActor**. 
+1. 	在 **CineCameraActor** 上为当前 **转换（Transform）**添加一个键。 
 
 	![](Rails14.png)(w:900)
 
-1.	On the **CameraRig_Rail**, click the **+ Track** button and add the **Current Position on Rail** property. 
+1. 	在 **CameraRig_Rail** 上，单击 **添加轨道（+ Track）**按钮并添加 **当前在导轨上的位置（Current Position on Rail）**属性。 
 
 	![](Rails15.png)
 
-	This value represents the position of the attached camera where **0** is at the start of the rail and **1** is the end of the rail. 
+	此值表示连接的摄像机的位置，**0** 是在导轨起点，**1** 是在导轨终点。 
 
-1.	Move the Timeline marker to the end of the Sequence (**150**). 
+1. 	将时间轴标记移动到序列结尾 (**150**)。 
 
-1.	With the **Camera Rig Rail** selected, in the **Details** panel set the **Current Position on Rail** to **1.0** then add a keyframe. 
+1. 	在选中 **摄像机导轨** 的情况下，在 **细节（Details）**面板中将 **当前在导轨上的位置（Current Position on Rail）**设置为 **1.0**，然后添加一个关键帧。 
 
 	![](Rails16.png)
 
-	You can set this value inside Sequencer on the **Current Position on Rail** track or by clicking the keyframe in the **Details** panel. 
+	可以在 Sequencer 中在 **当前在导轨上的位置（Current Position on Rail）**轨道上设置此值，也可以在 **细节（Details）**面板中单击关键帧来设置。 
 
-1.	Select the **Cine Camera Actor**, then check **Enable Look at Tracking** for the **ThirdPersonCharacter** with a **Z** offset of **45.0**. 
+1. 	选择 **电影摄像机 Actor**，然后为 **ThirdPersonCharacter** 选中 **启用观看跟踪（Enable Look at Tracking）**，并将 **Z** 偏移设置为 **45.0**。 
 
 	![](Rails17.png)
 
-	Here we are setting our camera to always follow the location of the **Actor to Track**, in this case the **ThirdPersonCharacter**. 
+	在这里我们设置了摄像机始终跟踪 **要跟踪的 Actor（Actor to Track）**（即 **ThirdPersonCharacter**）的位置。 
 
-1.	Lock the viewport to the **Camera Cut Track** then click the preview play button. 
+1. 	将视口锁定到 **镜头切换轨道**，然后单击预览播放按钮。 
 
 	
-## End Result
+## 最终结果
 
-You should have something similar where the camera pans 180 degrees around the character. 
+你应该得到类似下面示例的镜头，其中摄像机绕角色平移 180 度。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -121,10 +121,10 @@ tKrJGdwAU_E
 [/PARAMLITERAL]
 [/OBJECT]
 
-You could continue to add key frames and points along the **Camera Rig Rail** for a full 360 degree orbit around the character. You could also use the rail for fly-through paths in game level or to highlight something of importance. 
+您可以继续沿 **摄像机导轨** 添加关键帧，得到环绕角色一周的 360 度镜头。你也可以将导轨用于游戏关卡中的飞越路径，或用于突出表现某些重要对象。 
 
 [REGION:tip]
-There is an advanced method you can use to work with the **Camera Rig Rail** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 
+在 Sequencer 中有一种可以用来处理 **摄像机导轨** 资产的高级方法，可自动执行本操作指南中的多个步骤。请参见 [**工作流程快捷键**](Engine\Sequencer\Workflow\CheatSheet) 一节了解更多信息。 
 [/REGION]
 
 

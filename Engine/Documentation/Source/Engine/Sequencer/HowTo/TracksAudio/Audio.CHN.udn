@@ -1,97 +1,97 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Adding Audio	
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Example of how to add audio to your scenes.
-Version: 4.12
-SkillLevel: Beginner
+﻿INTSourceChangelist:3011129
+Availability:Public
+Title:添加音频	
+Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:如何向场景添加音频的示例。
+Version:4.12
+SkillLevel:Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-Whether your are looking to score your cinematic with a musical track or want to add sound effects such as impact sounds, voice overs, or others, you'll need to do so with an **Audio Track** inside Sequencer. 
+无论是要为过场动画配上音乐，还是要添加撞击声、画外音等音效，您都需要在 Sequencer 中通过 **音频轨道** 来操作。 
 
-In this how-to, we add a music track to a sample scene and show how you can fade in/out an audio track with a **Sound Cue**.
+在本操作指南中，我们将向样本场景添加一段乐曲，并向您展示如何通过 **声音提示** 使音频轨道淡入/淡出。
 
 [REGION:warning]
-Currently **Audio Tracks** have limited editing capabilities. Additional support will come online in future engine updates. 
+目前 **音频轨道** 的编辑功能有限。今后将在引擎更新中在线提供更多支持。 
 [/REGION]
 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+在本操作指南中，我们使用 **Blueprint Third Person Template**，并启用了 **起步内容**。 
 [/REGION]
 
-1.	From the Main Tool Bar click **Cinematics** and **Add Level Sequence**. 
+1. 	在主工具栏中单击 **过场动画（Cinematics）**，再选择 **添加关卡序列（Add Level Sequence）**。 
 
 	![](Audio01.png)
 
-1.	Inside the Level Sequence, click the **Add** button and select the **Audio Track**. 
+1. 	在该关卡序列中，单击 **添加（Add）**按钮并选择 **音频轨道（Audio Track）**。 
 
 	![](Audio02.png)
 
-1.	Click the **+ Audio** button then select the **Starter_Music_Cue** asset. 
+1. 	单击 **添加音频（+ Audio）**按钮，然后选择 **Starter_Music_Cue** 资产。 
 
 	![](Audio03.png)
 
-1.	Click the **+ Audio** button and select additional audio assets and arrange on the timeline as desired. 
+1. 	单击 **添加音频（+ Audio）**按钮，然后选择更多音频资产，根据需要在时间轴上排列。 
 
 	![](Audio04.png)
 
-	You can layer sounds by arranging one audio asset on top of another. 
+	您可以将一个音频资产叠放在另一个音频资产上，使声音重叠。 
 
-1.	**Right-click** on the **Starter_Music_Cue** asset to reveal the **Properties**, then click the magnifying glass icon. 
+1. 	**右键单击** **Starter_Music_Cue** 资产以显示 **属性（Properties）**，然后单击放大镜图标。 
 
 	![](Audio05.png)
 
-	Along with the properties that you can change for the asset, you can browse to and find the asset in the **Content Browser** by clicking the **Browse To** button. 
+	除了可以更改资产的属性外，您还可以在 **内容浏览器** 中单击 **浏览到（Browse To）**按钮，浏览并查找资产。 
 
-1.	**Double-click** and open the **Starter_Music_Cue** Sound Cue asset. 
+1. 	**双击** 打开 **Starter_Music_Cue** 声音提示资产。 
 
-1.	In the **Sound Cue Editor**, drag an **Enveloper** into the graph. 
+1. 	在 **声音提示编辑器** 中，将一个 **包络器（Enveloper）**拖进图中。 
 
 	![](Audio06.png)
 
-	Inside the Sound Cue Editor we can alter and mix sound assets. For this example we want to fade in the sound which we can do with the **Enveloper** node. 
+	在声音提示编辑器中，我们可以更改和混合声音资产。在此示例中，我们希望声音淡入，可以通过 **包络器（Enveloper）**节点做到这一点。 
 
 	[REGION:note]
-	In future engine releases, the ability to edit Audio Tracks within Sequencer will come online and this guide will be updated. 
+	在今后的引擎发行版中，将在线提供在 Sequencer 中编辑音频轨道的功能，本指南也将更新。 
 	[/REGION]
 
-1.	**Left-click** and connect the nodes as shown below. 
+1. 	**左键单击** 并按下图所示连接节点。 
 
 	![](Audio07.png)
 
-	The Starter_Music01 asset will get passed through the Enveloper before outputting the final sound. 
+	Starter_Music01 资产将先经过包络器，然后输出最终声音。 
 
-1.	In the **Details** panel of the **Enveloper**, click the key in the **Volume Curve** and change the **Value** to **0.0**. 
+1. 	在 **包络器** 的 **细节（Details）**面板中，单击 **音量曲线（Volume Curve）**中的键，将 **值（Value）**改为 **0.0**。 
 
 	![](Audio08.png)
 
-	Here we are stating that at time 0.0 (the start), the value of Volume should be 0.0 (or off). 
+	这意味着在时间 0.0（开头），音量的值将是 0.0（即关闭）。 
 
-1.	Hold **Shift** and **Left-click** in the curve window to create a new key. 
+1. 	按住 **Shift**，在曲线窗口中 **左键单击** 以创建一个新键。 
 
-1.	Select the key, then change the **Time** to **4.0** and **Value** to **1.0**. 
+1. 	选择该键，然后将 **时间（Time）**改为 **4.0**，将 **值（Value）**改为 **1.0**。 
 
 	![](Audio09.png)
 
-	Here we are stating that at 4 seconds, the value of the Volume should be 1.0 (or full volume) giving us a fade in. You can also click the two buttons next to the **Time** and **Value** properties to adjust the size of the curve window to display the curve. 
+	此操作意味着在 4 秒时，音量的值应该是 1.0（即最大音量），从而得到淡入效果。你也可以单击 **时间（Time）**和 **值（Value）** 属性旁边的两个按钮来调整曲线窗口的大小以显示曲线。 
 
 	[REGION:tip]
-	If you wanted to fade out for example starting at 10 seconds, you would add a key and set the **Time** to **10.0** with **Value** being **1.0**. If you wanted the fade duration to last 5 seconds, you would add another key with the **Time** being **15.0** and the **Value** being **0.0**. 
+	如果您希望声音淡出，例如在 10 秒时淡出，应该添加一个键，将 **时间（Time）**设置为 **10.0**，**值（Value）**设置为 **1.0**。如果您希望淡出效果持续 5 秒，应该添加另一个键，将 **时间（Time）**设置为 **15.0**，**值（Value）**设置为 **0.0**。 
 	[/REGION]
 
-1.	Return to **Sequencer** and click the **Preview Play** button. 
+1. 	回到 **Sequencer**，单击 **预览播放（Preview Play）**按钮。 
 
 
-## End Result
+## 最终结果
 
-You should now hear all your sounds that you've placed in the **Audio Track** and the music should fade in over time. 
+现在您应该会听到您在 **音频轨道** 中放的所有声音，而且音乐应该会逐渐淡入。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -106,7 +106,7 @@ You should now hear all your sounds that you've placed in the **Audio Track** an
 [/OBJECT]
 
 
-Audio Tracks support either **Sound Cue** or **Sound Wave** assets and can be added by dragging-and-dropping from the **Content Browser** into a Level Sequence or by adding through the **Add** option of an Audio Track. 
+音频轨道支持 **声音提示** 或 **音波** 资产，可以通过从 **内容浏览器** 拖放到关卡序列来添加，也可以通过音频轨道的 **添加（Add）**选项来添加。 
 
 
 
