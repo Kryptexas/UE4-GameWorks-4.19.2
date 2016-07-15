@@ -1,29 +1,67 @@
-﻿INTSourceChangelist:2815917
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:애니메이션 블루프린트 UI
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
-version: 4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\Creation
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\AnimGraph
 
-[TOC(start:2 end:2)]
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 애니메이션 블루프린트 UI 의 각 영역에 대한 설명은 다음과 같습니다:
 
-
 ![](AnimGraphUI.png)
 
-1. 메뉴 바
-1. 툴바
-1. 뷰포트
-1. 그래프
-1. 애님 프리뷰 에디터
-1. 애셋 오버라이드 에디터
-1. 애셋 브라우저 탭
-1. 내 블루프린트 탭
-1. 디테일 패널
-1. 팔레트
+1. [메뉴 바](#메뉴바)
+1. [툴바](#툴바)
+1. [뷰포트](#뷰포트)
+1. [그래프](#그래프)
+1. [애님 프리뷰 에디터](#애님프리뷰에디터)
+1. [애셋 오버라이드 에디터](#애셋오버라이드에디터)
+1. [애셋 브라우저 탭](#애셋브라우저탭)
+1. [내 블루프린트 탭](#내블루프린트탭)
+1. [디테일 패널](#디테일패널)
+1. [팔레트](#팔레트)
 
 ## 메뉴 바
 
@@ -43,6 +81,8 @@ version: 4.9
 | ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | 블루프린트를 컴파일합니다. | 
 | ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
 | ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
+| ![](PoseButtons.png) | 뷰포트에 프리뷰 또는 레퍼런스 포즈를 표시하도록 업데이트합니다. | 
+|  ![](Record.png)| 현재 프리뷰 포즈 애니메이션을 기반으로 새 애니메이션을 녹화할 수 있도록 합니다. |
 | ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
 | ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | 게임을 시뮬레이션 모드에서 시작합니다. |
@@ -50,7 +90,9 @@ version: 4.9
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
 [/EXCERPT:Toolbar]
 
+[REGION:note]
 블루프린트 툴바 관련 상세 정보는 [](Engine/Blueprints\Editor/UIComponents\Toolbar) 문서를 참고해 주시기 바랍니다.
+[/REGION]
 
 이 옵션에 추가로 애니메이션 블루프린트 툴바에는 페르소나의 다양한 모드에 대한 탭도 들어있습니다.
 
@@ -85,11 +127,13 @@ version: 4.9
 
 ![](AnimGraphUI_AnimGraph.png)
 
-스테이트 머신 관련 상세 정보는 [](Engine/Animation\StateMachines) 문서를 참고해 주시기 바랍니다.
+모든 애니메이션 노드를 **애님 그래프** 탭에 직접 넣을 수도 있지만, 유지보수의 편의와 간단명료함을 위해서는 스테이트 머신, 스테이트, 트랜지션 (룰)에 정리해 넣는 편이 더욱 효율적입니다.
 
 [REGION:note]
-모든 애니메이션 노드를 **애님 그래프** 탭에 직접 넣을 수도 있지만, 유지보수의 편의와 간단명료함을 위해서는 스테이트 머신, 스테이트, 트랜지션 (룰)에 정리해 넣는 편이 더욱 효율적입니다.
+스테이트 머신 관련 상세 정보는 [](Engine/Animation\StateMachines) 문서를 참고해 주시기 바랍니다.
 [/REGION]
+
+
 
 ## 애님 프리뷰 에디터
 
@@ -97,7 +141,9 @@ version: 4.9
 
 ![](AnimGraphUI_BPDefaults.png)
 
+[REGION:note]
 보다 자세한 정보는 **[](Engine/Animation/Persona\BlueprintDefaults)** 문서를 참고하세요.
+[/REGION]
 
 
 ## 애셋 오버라이드 에디터

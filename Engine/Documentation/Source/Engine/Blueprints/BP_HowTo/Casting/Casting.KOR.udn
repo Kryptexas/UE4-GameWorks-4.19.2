@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3037940
 Availability: Public
 Title:블루프린트 형변환 예제
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,8 +8,9 @@ Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
 skilllevel: Advanced
 version: 4.9
-Parent:Engine/Blueprints/Scripting
-tags:오브젝트와 액터 처리
+Parent:Engine/Blueprints/HowTo
+type:howto
+tags:Data Types
 order:3
 
 이 글에서는 Blueprint Casting, 블루프린트 형변환을 사용하여 다수의 블루프린트와 통신, 정보를 공유하는 법에 대해 다룹니다. 이 예제에서는 플레이어가 오브젝트에 총을 쏴서 맞을 때마다 작게 만들도록 하겠습니다. 오브젝트가 맞을 때마다 캐릭터 블루프린트에 노티파이를 발송, 플레이어의 이동 속도를 올립니다.

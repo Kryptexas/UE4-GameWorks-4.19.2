@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3037940
 Availability:Public
 Title: 기본 스크립팅
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: 블루프린트 그래프 내에서 사용할 수 있는 블루프린트와 노드 여러 부분에 대한 학습에 있어서 조언을구할 수 있는 소스 안내서입니다.
-version: 4.9
+Description: 블루프린트 비주얼 스크립팅 시스템의 실행 흐름과 변수에 대한 일반적인 개요입니다.
+version: 4.12
 parent:Engine/Blueprints
 
 [VAR:Topic]
@@ -45,13 +45,16 @@ parent:Engine/Blueprints
 [/OBJECT]
 [/VAR]
 
+블루프린트는 비주얼 방식의 스크립팅 언어입니다. 그렇기에, 이 시스템에는 데이터 유형 변수, 배열, 구조체 등 표준 스크립팅 언어의 미묘한 차이점을 다수 공유하는 부분이 있습니다.
+실행 흐름 역시, 블루프린트는 각 노드의 명시적 순차 실행을 요하기는 하지만, 전형적인 스크립트 언어와 마찬가지 방식으로 작동합니다. 아래 각 페이지에서는 
+다양한 변수 유형, 그 변수 작업 방식, 그래프 나에서의 노드 실행에 대해 자세히 다루도록 하겠습니다.
 
-
-## 데이터 유형
+## 변수
 
 변수는 불리언, 인티저, 플로트를 포함한 여러가지 유형으로 생성 가능합니다. 이들은 색을 통해 블루프린트에 쉽게 식별이 가능합니다.
+블루프린트 변수는 오브젝트, 액터, 클래스와 같은 것을 담은 레퍼런스 유형이 될 수도 있습니다.
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Data Types")]
+[DIR(output:"listbutton" parent:"Engine/Blueprints" tags:"Data Types")]
 
 ## 실행 흐름
 
@@ -59,31 +62,18 @@ parent:Engine/Blueprints
 디버깅에 도움이 됩니다. 데이터는 변수 유형에 일치하는 색의 선을 따라 흐르기도 합니다. 입력 핀은 노드 실행시 평가되며,
 오른쪽에서 왼쪽으로 데이터 선을 거슬러 올라가며 최종 결과를 계산한 후 노드에 제공합니다.
 
+실행 핀이 있는 (impure, 비순수) 노드는 실행될 때 출력 핀의 값을 저장하는 반면, 실행 핀이 없는 (pure, 순수) 노드는 그 출력에 연결된 노드가 실행될 때마다 
+출력 값을 다시 구합니다.
+
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Execution Flow")]
 
 ## 배열 & 구조체
 
-블루프린트에서 사용할 수 있는 기본 데이터 유형은 배열과 구조체로 조직화시켜 보다 복잡한 체계를 만들 수 있습니다.
+배열과 구조체는 다수의 데이터 유형 모음입니다. 이를 통해 보다 복잡한 시스템을 만들 수 있고, 유사한 정보를 가까이 묶어두는 데 도움이 되며, 다량의 정보에 대한 효율적인 처리가 가능해집니다.
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
 <!--
 구조체
--->
-
-## 오브젝트와 액터 처리
-
-블루프린트 변수는 오브젝트, 액터, 클래스와 같은 것을 저장하는 레퍼런스 유형이 될 수도 있습니다.
-
-[DIR(output:"listbutton" tags:"Handling Objects and Actors")]
-
-
-<!--
-레퍼런스 (포인터)
-액터 레퍼런스 설정 및 구하기	Engine/Blueprints/BP_HowTo/ActorReference
-유효성
-형변환
-블루프린트 형변환	Engine/Blueprints/BP_HowTo/Casting
-형변환	Engine/Blueprints/UserGuide/CastNodes
 -->
 

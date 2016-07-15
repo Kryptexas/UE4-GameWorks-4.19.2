@@ -1,13 +1,53 @@
-﻿INTSourceChangelist:2659553
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:애님 그래프
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description: _애니메이션 블루프린트_ 를 통해 _스켈레탈 메시_ 에 적용시킬 포즈의 샘플링, 블렌딩, 조작에 사용되는 그래프입니다.
-version: 4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\EventGraph
+related:Engine\Animation\AnimBlueprints\Interface
+related:Engine\Animation\AnimBlueprints\Creation
 
-[REGION:banner]
-![AnimGraph](animgraph_banner.png)(convert:false)
-[/REGION]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\AnimGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\AnimGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\AnimGraph:title%](AnimGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\AnimGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\AnimGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\AnimGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 [TOC(start:2 end:3)]
 
@@ -57,7 +97,9 @@ _데이터 핀_ 에 전해진 값과 같은 외부 입력에 따라 달라집니
 
 ![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
 
+[REGION:note]
 자세한 것은 [](Engine/Animation/Sequences/UserGuide) 문서를 참고해 주시기 바랍니다.
+[/REGION]
 
 ### 블렌드 스페이스
 
@@ -65,13 +107,17 @@ _데이터 핀_ 에 전해진 값과 같은 외부 입력에 따라 달라집니
 
 ![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
 
+[REGION:note]
 자세한 것은 [](Engine/Animation/Blendspaces/UserGuide) 문서를 참고해 주시기 바랍니다.
+[/REGION]
 
 ### 애니메이션 노드
 
 [INCLUDE:Engine/Animation/NodeReference#Intro]
 
+[REGION:note]
 사용가능한 모든 노드에 대한 설명은 [](Engine/Animation/NodeReference) 문서를 확인해 주시기 바랍니다.
+[/REGION]
 
 #### 애니메이션 블렌딩
 
@@ -79,14 +125,17 @@ _데이터 핀_ 에 전해진 값과 같은 외부 입력에 따라 달라집니
 
 ![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
 
+[REGION:note]
 스페이스 변환 노드 관련 상세 정보는 [](Engine/Animation/NodeReference/Blend) 문서를 참고해 주시기 바랍니다.
+[/REGION]
 
 #### 스켈레탈 콘트롤
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
 
-사용가능한 여러 _스켈레탈 콘트롤_ 관련 상세 정보는 [](Engine/Animation/NodeReference/SkeletalControls) 
-문서를 참고해 주시기 바랍니다.
+[REGION:note]
+사용가능한 여러 _스켈레탈 콘트롤_ 관련 상세 정보는 [](Engine/Animation/NodeReference/SkeletalControls) 문서를 참고해 주시기 바랍니다.
+[/REGION]
 
 #### 스페이스 변환
 
@@ -96,7 +145,9 @@ _데이터 핀_ 에 전해진 값과 같은 외부 입력에 따라 달라집니
 ![Usage in graph](Engine/Animation/NodeReference/SpaceConversion/graph_usage.png)
 [/REGION]
 
+[REGION:note]
 스페이스 변환 노드 관련 상세 정보는 [](Engine/Animation/NodeReference/SpaceConversion) 문서를 참고하세요.
+[/REGION]
 
 #### 싱크 그룹
 
@@ -104,4 +155,6 @@ _데이터 핀_ 에 전해진 값과 같은 외부 입력에 따라 달라집니
 
 ![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
 
+[REGION:note]
 싱크 그룹 사용법 및 부가적인 디테일 관련 정보는 [](Engine\Animation\SyncGroups) 문서를 참고하세요.
+[/REGION]

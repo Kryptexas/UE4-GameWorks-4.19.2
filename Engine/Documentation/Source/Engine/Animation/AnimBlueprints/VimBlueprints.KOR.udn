@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2728286
+﻿INTSourceChangelist:3041238
 Availability:Public
 Title: 애니메이션 블루프린트
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,7 +10,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
-version: 4.9
+version: 4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -32,7 +32,9 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
+[REGION:banner]
+![](AnimationBlueprint.png)
+[/REGION]
 
 
 [EXCERPT:Intro]
@@ -48,11 +50,23 @@ _AnimationSequence_ (애니메이션 시퀀스)를 기준으로 스켈레탈 메
 _SkeletalControl_ (스켈레탈 콘트롤)에서 _Skeleton_ (스켈레톤)의 이동을 지시합니다.
 [/EXCERPT:Intro]
 
-[REGION:tip]
-**애니메이션 블루프린트** 의 단순한 예제는 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.2 섹션에서 찾아보실 수 있습니다.
+[REGION:note]
+**애니메이션 블루프린트** 의 예제는 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.2 섹션에서 찾아보실 수 있습니다.
+[/REGION]
+
+## 애니메이션 블루프린트 생성 & 탐색
+
+애니메이션 블루프린트 작업에 뛰어들기 전, 그 생성법을 알아두고 애니메이션 블루프린트 인터페이스에 익숙해 지는 것이 좋습니다.
+자세한 정보는 아래 링크를 참고하세요.
+
+[REGION:topics half]
+%Engine\Animation\AnimBlueprints\Creation:TopicCompact%
+%Engine\Animation\AnimBlueprints\Interface:TopicCompact%
 [/REGION]
 
 ## 애니메이션 블루프린트 작업하기
+
+애니메이션 블루프린트를 생성하고 UI 확인이 가능하면, 먼저 어떤 부분을 작업해야 할 것인지 생각해 볼 차례입니다.
 
 [EXCERPT:Graphs]
 각 프레임의 최종 애니메이션 제작을 위해 함께 사용되는 애니메이션 블루프린트의 주요 컴포넌트는 두 가지입니다.
@@ -61,31 +75,15 @@ _SkeletalControl_ (스켈레탈 콘트롤)에서 _Skeleton_ (스켈레톤)의 �
 다른 시스템에 _Notify_ (노티파이)를 발동시켜 동적인 애니메이션 주도형 이펙트가 일어나도록 할 수 있습니다.
 [/EXCERPT:Graphs]
 
-[OBJECT:IconSection]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints/EventGraph)
-	[/PARAM]
-	[PARAM:icon]
-		[![Event Graph](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/EventGraph)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints/EventGraph#Intro]
-	[/PARAM]
-[/OBJECT]
+각 주제에 대한 상세 정보는 아래 링크를 확인하세요.
 
-[OBJECT:IconSection]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints/AnimGraph)
-	[/PARAM]
-	[PARAM:icon]
-		[![Anim Graph](Engine/Animation/AnimBlueprints/AnimGraph/animgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/AnimGraph)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
-	[/PARAM]
-[/OBJECT]
+[REGION:topics half]
+%Engine\Animation\AnimBlueprints\EventGraph:TopicCompact%
+%Engine\Animation\AnimBlueprints\AnimGraph:TopicCompact%
+[/REGION]
 
-## 자손 블루프린트 작업
+
+## 자손 애니메이션 블루프린트 작업
 
 캐릭터와 애니메이션 블루프린트를 만들어 구성할 때, 캐릭터가 여럿 있는데 기본은 비슷하지만 각기 다른 상태마다 각기 다른 애니메이션이 필요한 경우가 있습니다. 그럴 때 각 캐릭터마다 애니메이션 블루프린트를 만들기 보다는, 기존 애니메이션 블루프린트의 **자손 애니메이션 블루프린트** 를 사용하여 대체하고자 하는 애니메이션을 덮어쓸 수 있으면 좋을 것입니다. 자손 애니메이션 블루프린트는 부모에서 모든 것을 상속받으나, **애셋 오버라이드 에디터** 를 통해 덮어쓸 애니메이션을 지정할 수도 있습니다.
 
@@ -94,6 +92,7 @@ _SkeletalControl_ (스켈레탈 콘트롤)에서 _Skeleton_ (스켈레톤)의 �
 [REGION:note]
 자손이 있는 애니메이션 블루프린트 생성 및 덮어쓰기 관련 예제 안내는 [](Engine/Animation/AnimHowTo/AnimBPOverride) 문서를 참고하세요.
 [/REGION]
+
 
 
 

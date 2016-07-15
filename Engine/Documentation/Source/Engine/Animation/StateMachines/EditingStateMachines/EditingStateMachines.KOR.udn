@@ -1,14 +1,12 @@
-﻿INTSourceChangelist:2671001
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title: 스테이트 머신 편집
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
-Description:애니메이션 스테이트 머신 편집에 대한 안내서입니다.
-version: 4.9
-
-
-[TOC(start:2)]
-
-
+Description:애니메이션 스테이트 머신 편집 안내서입니다.
+version: 4.12
+related:Engine\Animation\StateMachines\CreatingStateMachines
+related:Engine\Animation\StateMachines\TransitionRules
+related:Engine\Animation\AnimBlueprints
 
 스테이트 머신(State Machine) 이란 것이 스켈레탈 메시의 애니메이션 이행 흐름을 편하게 분석해 볼 수 있는 수단이 되기는 하지만, 그 중에서도 가장 중요한 부분은 스테이트 머신의 각 노드 안에서 실제로 어떤 일이 벌어지는가 입니다. 이 점을 염두에 두고서 꼭 기억해야 할 것은, 스테이트 머신의 각 노드 유형의 주목적은 다음과 같습니다:
 
@@ -22,31 +20,40 @@ version: 4.9
 
 ## 스테이트 편집
 
-스테이트의 역할은 최종 애니메이션 또는 포즈를 만드는 것입니다. 이는 하나의 애님 시퀀스처럼 간단한 것이 될 수도, 블렌드 스페이스가 될 수도, 최종 애니메이션 또는 포즈를 만들어 내기만 한다면야 어떤 유형의 네트워크도 가능합니다.
+스테이트의 역할은 최종 애니메이션 또는 포즈를 만드는 것입니다. 이는 하나의 [애님 시퀀스](Engine/Animation/Sequences) 또는 [블렌드 스페이스](Engine/Animation/Blendspaces) 처럼 간단한 것이 될 수도 있고, 복잡한 망의 형태일 수도 있는데, 최종적으로 애니메이션 또는 포즈를 만들어 내는 역할을 합니다.
 
 ![](PlayAnimSequence.png)
 
+[REGION:caption]
+위에서는 하나의 애님 시퀀스가 최종 애니메이션 포즈를 만들어내고 있습니다.
+[/REGION]
+
 ![](PlayBlendSpace.png) 
+
+[REGION:caption]
+위에서는 하나의 블렌드 스페이스를 사용하여 속력 값에 따라 다른 포즈를 블렌딩하고 있습니다.
+[/REGION]
  
 ![](PlayBlendAnimation.png)
+
+[REGION:caption]
+위에서는 Is In Air 불리언 값에 따라 다른 애님 시퀀스를 선택하고 있습니다.
+[/REGION]
 
 
 ### 애니메이션 요소 추가
 
-애님 시퀀스 또는 블렌드 스페이스를 스테이트에 추가하려면, 페르소나 애셋 브라우저에서 드래그 앤 드롭을 하거나, 우클릭한 뒤 맥락 메뉴에서 애니메이션을 선택하면 됩니다.
+애님 시퀀스 또는 블렌드 스페이스를 스테이트에 추가하려면, 페르소나 애셋 브라우저에서 드래그 앤 드롭을 하거나:
 
-드래그 앤 드롭:
+![](DragDropAnimSeqState.png)(w:800)
 
-![](DragDropAnimSeqState.png)(w:505)
-
-맥락 메뉴:
+우클릭한 뒤 맥락 메뉴에서 애니메이션을 선택하면 됩니다:
 
 ![](ContextMenuAnimSeqState.png)
 
 ### 자동 스테이트 생성
 
-시간 절약을 위해 애님 시퀀스나 블렌드 스페이스를 스테이트 머신(주어진 상태 밖)에 드래그할 수도 있는데, 그러면 해당 애셋 이름으로 된 스테이트가 자동으로 생성되며, 자동으로 출력 결과에 물리는 해당 애셋으로 구성됩니다.
-
+스테이트 머신에 스테이트를 자동 생성하려면, 애님 시퀀스 또는 블렌드 스페이스 애셋을 그래프에 끌어 놓으면 됩니다.
 
 ![](AutoStateCreationDrag.png)(w:505)
 
@@ -54,6 +61,6 @@ version: 4.9
 
 ![](AutoStateCreation.png)(w:505)
 
-안에 보면, 애니메이션 애셋이 결과에 자동으로 연결된 것을 확인할 수 있습니다.
+안에 보면, 애니메이션 애셋이 최종 애니메이션 포즈 결과에 자동으로 연결된 것을 확인할 수 있습니다.
 
 ![](AutoStateCreationInside.png)(w:505)

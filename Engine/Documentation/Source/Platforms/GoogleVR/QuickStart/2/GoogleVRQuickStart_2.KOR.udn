@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2983084
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:2. 구글 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:구글 VR 을 사용하는 UE4 프로젝트 구성입니다.
+Description:구글 VR 작업용 UE4 프로젝트 구성법입니다.
 Navigation:platform
 Skilllevel: Intermediate
 Version: 4.12

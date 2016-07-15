@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2670974
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title: 스테이트 머신
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:State Machine, 스테이트 머신으로 스켈레탈 애니메이션을 여러 상태별로 나누어, 상태 전환시 일어나는 블렌딩을 완벽히 제어할 수 있습니다.
-version: 4.9
+version: 4.12
 
 <!--
 [VAR:Topic]
@@ -27,8 +27,11 @@ version: 4.9
 [/VAR]
 -->
 
-[TOC (start:2)]
+[REGION:banner]
+![](StateMachineImage.png)
+[/REGION]
 
+<!--
 [EXCERPT:Intro]
 **State Machine** (스테이트 머신)은 도식적인 방법으로 스켈레탈 메시의 애니메이션을 일련의 _State_ (스테이트, 상태)로 나눠 볼 수 있습니다. 그렇게 나뉜 상태는 한 상태에서 다른 상태로의 블렌딩 방식을 제어하는 _Translation Rule_ (트랜지션 룰, 이행 규칙)에 의해 관장됩니다. 하나의 툴로써, 복잡한 블루프린트 망을 만들 필요 없이 그래프 하나만 만들면 캐릭터가 가질 수 있는 여러 유형 애니메이션 간의 흐름을 쉽게 제어할 수 있다는 점에서, 스켈레탈 메시 애니메이션의 디자인 프로세스를 크게 단순화시켜 줍니다.
 
@@ -37,134 +40,38 @@ version: 4.9
 예를 들어 캐릭터가 움직이지 않을 때는 "Idle" (빈둥) 상태로 있다가, 캐릭터의 속력이 일정 값 이상을 넘어가면 다른 "Movement" (이동) 상태로 블렌딩할 수 있습니다. 그 상태는 낙하, 점프, 숙이기, 질주 등등 여러가지 있을 수 있구요. 애니메이터와 아티스트는 스테이트 머신을 사용해 애니메이션 망의 데이터 흐름을 빠르게 확인해 볼 수 있습니다.
 [/EXCERPT:Intro]
 
+-->
 
-[REGION:topics half]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](StateMachineCreate.png)
+**State Machines** (스테이트 머신)은 스켈레탈 메시의 애니메이션을 일련의 스테이트로 분해하여 그래프로 표시해 줍니다. 그 후 이러한 스테이트는 **Transition Rules** (트랜지션 룰)의 관리 하에 한 스테이트에서 다른 스테이트로의 블렌딩을 처리합니다. 이는 스켈레탈 메시 애니메이션 디자인에 있어, 복잡한 블루프린트 망을 만들지 않고도 캐릭터의 다양한 애니메이션 흐름을 그래프로 표현하여 쉽게 제어할 수 있다는 점에서, 프로세스를 크게 단순화시켜주는 도구입니다.
+
+아래는 언리얼 엔진 4 에서의 스테이트 머신 관련 작업에 필요한 정보와 튜토리얼 링크입니다.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Animation/StateMachines\CreatingStateMachines:title%
+		필독 자료
 	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/StateMachines\CreatingStateMachines:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/StateMachines\CreatingStateMachines]
-	[/PARAM]
-[/OBJECT]
-	
-[OBJECT:Topic]
-	[PARAM:image]
-		![](EditingStateMachines.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/StateMachines\EditingStateMachines:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/StateMachines\EditingStateMachines:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/StateMachines\EditingStateMachines]
+	[PARAM:links]
+		* [](Engine\Animation\StateMachines\Overview "%Engine\Animation\StateMachines\Overview:description%")
+		* [](Engine\Animation\StateMachines\CreatingStateMachines\ "%Engine\Animation\StateMachines\CreatingStateMachines:description%")
+		* [](Engine\Animation\StateMachines\EditingStateMachines\ "%Engine\Animation\StateMachines\EditingStateMachines:description%")		
 	[/PARAM]
 [/OBJECT]
 
-[/REGION]
-
-## 스테이트 머신 작동방식
-
-애니메이션 스테이트 머신을 사용하면, 쓰지 않을 때보다 애니메이션 블루프린트의 모듈 속성을 한층 강화시킬 수 있습니다. 사용자는 그저 캐릭터나 스켈레탈 메시에 가능한 여러가지 스테이트를 정의한 다음, 캐릭터나 메시가 각 스테이트에 들어가고 나가는 상황을 정의해 주기만 하면 됩니다. 이는 순서도와 매우 비슷합니다. 예를 들어 캐릭터의 애니메이션 전 과정을 정의하는 순서도가 있다고 친다면, 이와 같은 모습일 것입니다:
-
-
-![](AnimationFlowChart.png)(w:500)
-
-위의 순서대로 스테이트 머신을 구성한다면, 다음과 같은 모습이 됩니다:
-
-![](StateMachine.png)
-
-
-## 스테이트 머신 해부도
-
-스테이트 머신은 주로 스테이트 망과, 그 안팎으로 드나드는 트랜지션(이행)을 정의하는 룰(규칙으)로 구성됩니다. 각 스테이트는 각각의 룰 세트와 함께 그 자체적으로 압축된 블루프린트 망이 됩니다. 이로써 복잡한 애니메이션 블렌딩을 악몽같이 복잡한 _애님 그래프_ 를 사용할 필요 없이 매우 쉽게 처리할 수 있습니다. 스테이트 머신의 핵심적인 부분은 이렇습니다:
-
-### 스테이트
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		관련 정보
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/HowTo/CharacterMovement/Blueprints "%Gameplay/HowTo/CharacterMovement/Blueprints:description%")
+		* [](Engine/Paper2D/HowTo/Animation/ "%Engine/Paper2D/HowTo/Animation/:description%")		
+	[/PARAM]
+[/OBJECT]
 
 
-개념적으로 스테이트(상태)는 캐릭터나 스켈레탈 메시가 정기적으로 블렌딩해 들어가고 나오는 것으로 알고있는 _애님 그래프_ 의 조직화된 부분 정도로 생각하면 됩니다. 그런 다음 이러한 그래프 부분으로 트랜지션해 들어가거나 나올 수 있습니다. 예를 들어 캐릭터의 애니메이션에 대해 Idle (빈둥) 상태가 있다고 칠때, 그 상태에는 애니메이션이 하나만 있어도 됩니다.
-
-스테이트 머신에서 본 빈둥 상태입니다:
-
-![](State.png)
-
-더블클릭하여 해당 빈둥 상태 안에서 볼 수 있는 간단한 그래프입니다:
-
-![](IdleStateInside.png)
-
-캐릭터가 이동을 시작하면, Movement (이동) 상태로 트랜지션 가능하며, 여기서는 걷기나 달리기처럼 표면을 측면 이동하는 것을 정의하면 됩니다.
-
-![](MoveState.png)
-
-이 상태 안에는 캐릭터의 속력과 이동 방향에 의해 정의되는 [블렌드 스페이스](Engine/Animation\Blendspaces) 가 있을 수 있습니다.
-
-![](MovementInside.png)
-
-상태 자체적으로는 핀이 없는데, 좀 더 자유로운 형태의 배치가 가능하도록 설계되었기 때문입니다. 한 상태와 다른 상태를 연결하려면 그저 그 외곽선에서 선을 끌어 놓으면 됩니다. 같은 방법으로, 마치 블루프린트에서 노드를 새로 만들듯이, 상태를 새로 만들 수도 있습니다.
-
-![](DragWire.png)
-
-
-
-### 트랜지션 룰
-
-상태가 정의된 이후, 스켈레탈 메시의 한 상태에서 다른 상태로 어떻게 이행시킬 것인지를 제어할 수 있어야 합니다. 그 역할은 _트랜지션 룰_ 이 담당합니다. 트랜지션 룰은 스테이트 연결선상에 자동 생성됩니다.
-
-![](TransitionRule.png)
-
-트랜지션 룰은 변수 값에 대한 검사와 테스트를 _True_ / _False_ 값을 출력하기 위한 목적으로 몇 번이든 할 수 있습니다. 이러한 불리언 출력 결과로 애니메이션의 트랜지션 여부를 결정합니다.
-
-![](TransitionRuleInside.png)
-
-이 예제에서는 캐릭터의 Speed (속력) 값을 테스트합니다. 그 값이 10 을 초과하면 이행되도록 합니다. 이 경우 캐릭터는 빈둥 상태에서 이동 상태로 이행되도록 허가되었습니다. 그런 다음 완전히 별개의 룰을 사용하여 빈둥 상태로 역이행합니다. 예를 들어 이동에서 빈둥상태로의 역방향 트랜지션 룰은 이렇습니다:
-
-![](TransitionRuleReturn.png)
-
-이 안에서, 이동 상태로 이행해 들어가는 데 사용한 그 값이 더이상 참이 아닌지 간단히 검사합니다.
-
-[REGION:fullwidth]
-![](TransitionRuleReturnInside.png)
-[/REGION]
-
-
-
-### 컨듀잇
-
-Conduit (도관, 컨듀잇)은 공유가능한 상위 트랜지션 수단 역할을 합니다. _트랜지션 룰_ 이 한 상태에서 다른 상태로의 단순한 일대일 관계라면, _컨듀잇_ 은 일대다, 다대일, 다대다 관계가 가능합니다.
-
-![](ConduitNode.png)
-
-예를 들어 캐릭터가 죽었을 때 재생할 수 있는 애니메이션이 여럿 있는 상황이 있을 수 있습니다. 일단은 캐릭터의 생명력이 0 이하인지 확인하는 단순한 _트랜지션 룰_ 으로 시작하여, Death (사망) 상태로 갈 수 있겠습니다. 그러나 여기서 상태가 아닌 컨듀잇으로 간다면, 플레이어가 어떻게 (총에 맞아, 칼에 찔려, 폭발에 휩쓸려, 차에 치어, 모루에 머리를 찍혀) 죽었는지 여러가지 검사를 한 다음, 그 사인에 따라 여러가지 독립적인 사망 상태로 분기시킬 수 있습니다.
-
-약간 단순화시키긴 했지만 그런 그래프의 모양은 다음과 같습니다:
-
-![](ConduitGraph.png)(w:800)
-
-그 안에서, _컨듀잇_ 그래프는 _트랜지션 룰_ 과 똑같아 보입니다:
-
-![](ConduitInside.png)
-
-컨듀잇을 빠져나오는 실제 트랜지션 룰은 이제 사인이 결정되어 그에 맞는 상태로 블렌딩이 가능합니다.
-
-## 마우스오버 프리뷰
-
-스테이트 머신의 여러가지 기능 중 하나는, 스테이트 머신 자체는 물론 그 컴포넌트 노드에 마우스 커서를 올렸을 때 미리보기가 가능하다는 것입니다. 예를 들어 스테이트 머신 위에 마우스 커서를 올리면 미리보기 창이 떠, 해당 스테이트 머신을 하이 레벨 관점에서 미리볼 수 있습니다. 이는 접힌 블루프린트 망과 비슷합니다.
-
-![](StateMachineHoverPreview.png)
-
-이 미리보기는 스테이트 머신 내 여러가지 _상태_ 와 _트랜지션 룰_ 에 확장되기도 합니다. 그 위에 마우스 커서를 올리면 그 안의 내용물을 미리볼 수 있습니다.
-
-![](IdleStatePreview.png)
-
-_트랜지션 룰_ 의 경우, 노드에 대한 것 뿐만 아니라 룰에 대한 설명도 확인할 수 있습니다.
-
-![](TransitionRulePreview.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3032506
 Title: 모바일 서비스 업적 사용법
 Description:모바일 업적을 활용하여 플레이어 참여도를 높이는 방법입니다.
 Crumbs:
@@ -58,7 +58,7 @@ tags:mobile
 
 ## 환경설정
 
-각 플랫폼별 게임내 광고 환경설정 관련 자세한 내용은 아래 각 문서를 참고하세요:
+각 플랫폼별 업적 환경설정 관련 자세한 내용은 아래 각 문서를 참고하세요:
 
 [REGION:buttonlist]
 * [](Platforms/Android/Achievements)

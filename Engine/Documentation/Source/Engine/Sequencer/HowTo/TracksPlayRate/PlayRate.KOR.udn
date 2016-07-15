@@ -1,19 +1,15 @@
-﻿INTSourceChangelist:2890438
+﻿INTSourceChangelist:3041238
 Availability: Public
 Title:씬 속도 조정
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:레벨 시퀀스의 속도를 올리고 낮추는 방법입니다.
-Version: 4.11
+Version: 4.12
 SkillLevel: Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
-
-[REGION:warning]
-이 기능은 현재 개발중이라 추후 버전에서 예상대로 작동치 않거나 변경될 수 있습니다.
-[/REGION]
 
 **Play Rate Track** (재생 속도 트랙)으로 레벨 시퀀스의 섹션 속도를 올리고 낮출 수 있습니다.
 씬에서 재생 속도를 변환시키려는 아무 지점에나 (, 보통 시간을 늦춰 중요한 순간을 강조하거나, 특정 씬 고조를 위해 재생 속도를 높이거나 하기 위해) 키프레임을 추가할 수 있습니다.
@@ -26,7 +22,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 를 포함시켜 사용합니다.
 [/REGION]
 
-1.	[**시퀀서 활성화**](Engine\Sequencer\HowTo\EnableSequencer) 상태로 메인 툴바의 **시네마틱** 버튼을 클릭한 뒤 **레벨 시퀀스 추가** 를 선택합니다.
+1.	메인 툴바의 **시네마틱** 버튼을 클릭한 뒤 **레벨 시퀀스 추가** 를 선택합니다.
 	![](PlayRate1.png)
 
 	애셋 저장 이름과 위치를 선택하면 레벨과 **콘텐츠 브라우저** 에 자동으로 추가됩니다.
@@ -52,7 +48,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 	위에서는 1 에서 0.25 로 내려가다가 몇 프레임 동안 0.25 에 머물고는 다시 1.0 정상 재생 속도로 돌아갑니다.
 
 	[REGION:tip]
-	키프레임 창에서 **우클릭** 드래그하여 이동, **CTRL + 휠** 로 줌 인/아웃 가능합니다.
+	트랙 영역에서 **우클릭** 드래그하여 이동, **CTRL + 휠** 로 줌 인/아웃 가능합니다.
 	[/REGION]
 
 1.	**콘텐츠 브라우저** 탭에서 **Content/Mannequin/Character/Mesh** 아래 **SK_Mannequin** (마네킹)을 끌어 레벨에 놓습니다.
@@ -89,7 +85,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-s_VAVA6PS6Q
+_smGcAw4VK0
 [/PARAMLITERAL]
 [/OBJECT]
 
