@@ -233,26 +233,27 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	SnapGridMID( nullptr ),
 	DraggedInteractable( nullptr )
 {
+}
+
+void UViewportWorldInteraction::Init( FEditorViewportClient* InEditorViewportClient )
+{
 	InputProcessor = MakeShareable( new FViewportInteractionInputProcessor( *this ) );
 	FSlateApplication::Get().SetInputPreProcessor( true, InputProcessor );
 
 	// Find out about selection changes
 	USelection::SelectionChangedEvent.AddUObject( this, &UViewportWorldInteraction::OnActorSelectionChanged ); //@todo viewportinteraction
 
-	// Setting up colors
-	Colors.SetNumZeroed( ( int32 ) EColors::TotalCount );
+																											   // Setting up colors
+	Colors.SetNumZeroed( (int32)EColors::TotalCount );
 	{
-		Colors[ ( int32 ) EColors::DefaultColor ] = FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f );;
-		Colors[ ( int32 ) EColors::Forward ] = FLinearColor( 0.4f, 0.05f, 0.05f, 1.0f );
-		Colors[ ( int32 ) EColors::Right ] = FLinearColor( 0.05f, 0.4f, 0.05f, 1.0f );
-		Colors[ ( int32 ) EColors::Up ] = FLinearColor( 0.05f, 0.05f, 0.4f, 1.0f );
-		Colors[ ( int32 ) EColors::Hover ] = FLinearColor::Yellow;
-		Colors[ ( int32 ) EColors::Dragging ] = FLinearColor::White;
+		Colors[ (int32)EColors::DefaultColor ] = FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f );;
+		Colors[ (int32)EColors::Forward ] = FLinearColor( 0.4f, 0.05f, 0.05f, 1.0f );
+		Colors[ (int32)EColors::Right ] = FLinearColor( 0.05f, 0.4f, 0.05f, 1.0f );
+		Colors[ (int32)EColors::Up ] = FLinearColor( 0.05f, 0.05f, 0.4f, 1.0f );
+		Colors[ (int32)EColors::Hover ] = FLinearColor::Yellow;
+		Colors[ (int32)EColors::Dragging ] = FLinearColor::White;
 	}
-}
 
-void UViewportWorldInteraction::Init( FEditorViewportClient* InEditorViewportClient )
-{
 	EditorViewportClient = InEditorViewportClient;
 	AppTimeEntered = FTimespan::FromSeconds( FApp::GetCurrentTime() );
 
