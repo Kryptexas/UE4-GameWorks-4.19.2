@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Edit a Physical Material
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:编辑物理材质
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
-Version: 4.9
-SkillLevel: Intermediate
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,19 +45,19 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-The following steps detail how to edit an already existing Physical Material.
+下列步骤详细说明如何编辑现有的物理材质。
 
-1. **Double click** the new Physical Material to edit its properties.
+1. **双击** 新物理材质以编辑其属性。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatProperties.jpg)(w:250)
 
-1. **Adjust Properties**.
+1. **调整属性**。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\AdjustProperties.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. **单击保存** ![](Shared\Icons\icon_SaveAsset_40x.png)
 
-See the **[](Engine/Physics/PhysicalMaterials/Reference)** for information on the properties in the Physical Material.
+请参见 **[](Engine/Physics/PhysicalMaterials/Reference)** 了解物理材质中属性的相关信息。
 
 
 

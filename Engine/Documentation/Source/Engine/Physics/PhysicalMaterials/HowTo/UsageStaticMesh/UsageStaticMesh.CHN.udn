@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Assign a Physical Material in the Static Mesh Editor
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:Physical Materials User Guide: the creation and application of Physical Materials.
-Version: 4.9
-SkillLevel: Intermediate
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:在静态网格编辑器中分配物理材质
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:物理材质用户指南：物理材质的创建和应用。
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,19 +49,19 @@ SkillLevel: Intermediate
 
 
 
-StaticMeshes have both Simple collision (the Physics Bodies that you create in your 3D art package or in the StaticMesh Editor) and Complex collision (per poly collision) which can be composed of a number of different materials each with their own differing Physical Materials. To set the Complex Collision Physical Material see: [](Engine/Physics/PhysicalMaterials/HowTo/UsageMaterial).
+静态网格既有简单碰撞（您在 3D 美术包或静态网格编辑器中创建的物理形体）也有复杂碰撞（按多边形碰撞），它们可以用多种不同材质实现，每种材质都可以有自身不同的物理材质。要设置复杂碰撞物理材质，请参见：[](Engine/Physics/PhysicalMaterials/HowTo/UsageMaterial)。
 
-To set the Simple Collision Physical Material for a StaticMesh:
+要设置静态网格的简单碰撞物理材质：
 
-1. **Double Click** a Static Mesh in the Content Browser to bring up the Static Mesh Editor.
+1. 在内容浏览器中 **双击** 静态网格以调出静态网格编辑器。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMat_StaticMeshEd_01.png)
 
-1. Change the Simple Collision Physical Material property in the **Static Mesh Settings** category to the desired Physical Material.
+1. 在 **静态网格设置（Static Mesh Settings）**类别中将“简单碰撞物理材质”（Simple Collision Physical Material）属性设置为所需的物理材质。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMat_StaticMeshEd_02.png)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png).
+1. **单击保存** ![](Shared\Icons\icon_SaveAsset_40x.png)。
 
 
 
