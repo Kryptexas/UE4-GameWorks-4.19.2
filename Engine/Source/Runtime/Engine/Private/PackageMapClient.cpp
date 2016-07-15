@@ -1066,7 +1066,7 @@ void UPackageMapClient::TrackNetFieldExport( FNetFieldExportGroup* NetFieldExpor
 	const uint64 CmdHandle = ( ( uint64 )NetFieldExportGroup->PathNameIndex ) << 32 | ( uint64 )NetFieldExportHandle;
 
 	// If this cmd hasn't been confirmed as exported, we need to export it for this bunch
-	if ( !AckState.NetFieldExportAcked.Contains( CmdHandle ) )
+	if ( !OverrideAckState->NetFieldExportAcked.Contains( CmdHandle ) )
 	{
 		NetFieldExports.Add( CmdHandle );		// NOTE - This is a set, so it will only add once
 	}
@@ -1173,7 +1173,7 @@ void UPackageMapClient::AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunc
 			ExportBunch->SerializeIntPacked( PathNameIndex );
 
 			// Export the path if we need to
-			if ( !AckState.NetFieldExportGroupPathAcked.Contains( PathNameIndex ) && !ExportedPathInThisBunchAlready.Contains( PathNameIndex ) )
+			if ( !OverrideAckState->NetFieldExportGroupPathAcked.Contains( PathNameIndex ) && !ExportedPathInThisBunchAlready.Contains( PathNameIndex ) )
 			{
 				ExportBunch->WriteBit( 1 );
 				*ExportBunch << PathName;
@@ -1343,6 +1343,11 @@ void UPackageMapClient::RestorePackageMapExportAckStatus( const FPackageMapAckSt
 	AckState = InState;
 }
 
+void UPackageMapClient::OverridePackageMapExportAckStatus( FPackageMapAckState* NewState )
+{
+	OverrideAckState = NewState ? NewState : &AckState;
+}
+
 //--------------------------------------------------------------------
 //
 //	Network - ACKing
@@ -1360,8 +1365,8 @@ void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const FOutBu
 	// For this to work with normal connections, we'll need to do real ack logic here
 	for ( int32 i = 0; i < OutBunch->NetFieldExports.Num(); i++ )
 	{
-		AckState.NetFieldExportGroupPathAcked.Add( OutBunch->NetFieldExports[i] >> 32, true );
-		AckState.NetFieldExportAcked.Add( OutBunch->NetFieldExports[i], true );
+		OverrideAckState->NetFieldExportGroupPathAcked.Add( OutBunch->NetFieldExports[i] >> 32, true );
+		OverrideAckState->NetFieldExportAcked.Add( OutBunch->NetFieldExports[i], true );
 	}
 
 	const TArray< FNetworkGUID >& ExportNetGUIDs = OutBunch->ExportNetGUIDs;
@@ -1375,12 +1380,12 @@ void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const FOutBu
 
 	for ( int32 i = 0; i < ExportNetGUIDs.Num(); i++ )
 	{
-		if ( !AckState.NetGUIDAckStatus.Contains( ExportNetGUIDs[i] ) )
+		if ( !OverrideAckState->NetGUIDAckStatus.Contains( ExportNetGUIDs[i] ) )
 		{
-			AckState.NetGUIDAckStatus.Add( ExportNetGUIDs[i], GUID_PACKET_NOT_ACKED );
+			OverrideAckState->NetGUIDAckStatus.Add( ExportNetGUIDs[i], GUID_PACKET_NOT_ACKED );
 		}
 
-		int32& ExpectedPacketIdRef = AckState.NetGUIDAckStatus.FindChecked( ExportNetGUIDs[i] );
+		int32& ExpectedPacketIdRef = OverrideAckState->NetGUIDAckStatus.FindChecked( ExportNetGUIDs[i] );
 
 		// Only update expected sequence if this guid was previously nak'd
 		// If we always update to the latest packet id, we risk prolonging the ack for no good reason
@@ -1409,7 +1414,7 @@ void UPackageMapClient::ReceivedAck( const int32 AckPacketId )
 {
 	for ( int32 i = PendingAckGUIDs.Num() - 1; i >= 0; i-- )
 	{
-		int32& ExpectedPacketIdRef = AckState.NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
+		int32& ExpectedPacketIdRef = OverrideAckState->NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
 
 		check( ExpectedPacketIdRef > GUID_PACKET_ACKED );		// Make sure we really are pending, since we're on the list
 
@@ -1429,7 +1434,7 @@ void UPackageMapClient::ReceivedNak( const int32 NakPacketId )
 {
 	for ( int32 i = PendingAckGUIDs.Num() - 1; i >= 0; i-- )
 	{
-		int32& ExpectedPacketIdRef = AckState.NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
+		int32& ExpectedPacketIdRef = OverrideAckState->NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
 
 		check( ExpectedPacketIdRef > GUID_PACKET_ACKED );		// Make sure we aren't acked, since we're on the list
 
@@ -1467,12 +1472,12 @@ bool UPackageMapClient::NetGUIDHasBeenAckd(FNetworkGUID NetGUID)
 	}
 
 	// If brand new, add it to map with GUID_PACKET_NOT_ACKED
-	if ( !AckState.NetGUIDAckStatus.Contains( NetGUID ) )
+	if ( !OverrideAckState->NetGUIDAckStatus.Contains( NetGUID ) )
 	{
-		AckState.NetGUIDAckStatus.Add( NetGUID, GUID_PACKET_NOT_ACKED );
+		OverrideAckState->NetGUIDAckStatus.Add( NetGUID, GUID_PACKET_NOT_ACKED );
 	}
 
-	int32& AckPacketId = AckState.NetGUIDAckStatus.FindChecked( NetGUID );
+	int32& AckPacketId = OverrideAckState->NetGUIDAckStatus.FindChecked( NetGUID );
 
 	if ( AckPacketId == GUID_PACKET_ACKED )
 	{
@@ -1556,9 +1561,9 @@ void UPackageMapClient::LogDebugInfo( FOutputDevice & Ar )
 		FNetworkGUID NetGUID = It.Value();
 
 		FString Status = TEXT("Unused");
-		if ( AckState.NetGUIDAckStatus.Contains( NetGUID ) )
+		if ( OverrideAckState->NetGUIDAckStatus.Contains( NetGUID ) )
 		{
-			const int32 PacketId = AckState.NetGUIDAckStatus.FindRef(NetGUID);
+			const int32 PacketId = OverrideAckState->NetGUIDAckStatus.FindRef(NetGUID);
 			if ( PacketId == GUID_PACKET_NOT_ACKED )
 			{
 				Status = TEXT("UnAckd");
@@ -1623,7 +1628,7 @@ bool UPackageMapClient::IsNetGUIDAuthority() const
 void UPackageMapClient::GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount)
 {
 	AckCount = UnAckCount = PendingCount = 0;
-	for ( auto It = AckState.NetGUIDAckStatus.CreateIterator(); It; ++It )
+	for ( auto It = OverrideAckState->NetGUIDAckStatus.CreateIterator(); It; ++It )
 	{
 		// Sanity check that we're in sync
 		check( ( It.Value() > GUID_PACKET_ACKED ) == PendingAckGUIDs.Contains( It.Key() ) );
@@ -2272,6 +2277,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			//	1. We are actually a package
 			//	2. We aren't already pending
 			//	3. We're actually suppose to load (levels don't load here for example)
+			//		(Refer to CanClientLoadObject, which is where we protect clients from trying to load levels)
 			check( !PendingAsyncPackages.Contains( CacheObjectPtr->PathName ) );
 
 			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )

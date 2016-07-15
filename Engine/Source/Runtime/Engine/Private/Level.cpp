@@ -1555,7 +1555,7 @@ void ULevel::InitializeNetworkActors()
 				{
 					if (!Actor->bNetLoadOnClient)
 					{
-						Actor->Destroy();
+						Actor->Destroy(true);
 					}
 					else
 					{

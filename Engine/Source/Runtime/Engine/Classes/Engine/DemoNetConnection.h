@@ -62,6 +62,7 @@ public:
 	}
 
 	TArray<FQueuedDemoPacket> QueuedDemoPackets;
+	TArray<FQueuedDemoPacket> QueuedCheckpointPackets;
 
 private:
 	void TrackSendForProfiler(const void* Data, int32 NumBytes);

@@ -1749,6 +1749,15 @@ void AActor::ForceNetUpdate()
 	SetNetUpdateTime(FMath::Min(NetUpdateTime, GetWorld()->TimeSeconds - 0.01f));
 }
 
+bool AActor::IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer)
+{
+	return false;
+}
+
+void AActor::OnReplicationPausedChanged(bool bIsReplicationPaused)
+{
+}
+
 void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 {
 	if (IsNetMode(NM_Client))

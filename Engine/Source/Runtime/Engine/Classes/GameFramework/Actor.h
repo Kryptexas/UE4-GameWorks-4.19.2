@@ -15,6 +15,7 @@ struct FHitResult;
 class AActor;
 class FTimerManager; 
 class UNetDriver;
+struct FNetViewer;
 
 #include "Actor.generated.h"
 
@@ -295,6 +296,12 @@ public:
 
 	/** Dormancy setting for actor to take itself off of the replication list without being destroyed on clients. */
 	TEnumAsByte<enum ENetDormancy> NetDormancy;
+
+	/** Gives the actor a chance to pause replication to a player represented by the passed in actor - only called on server */
+	virtual bool IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer);
+
+	/** Called on the client when the replication paused value is changed */
+	virtual void OnReplicationPausedChanged(bool bIsReplicationPaused);
 
 	/** Automatically registers this actor to receive input from a player. */
 	UPROPERTY(EditAnywhere, Category=Input)

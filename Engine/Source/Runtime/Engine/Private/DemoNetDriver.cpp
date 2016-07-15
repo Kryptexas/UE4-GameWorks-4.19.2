@@ -45,6 +45,7 @@ static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.
 static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 0, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
 static TAutoConsoleVariable<int32> CVarDemoAsyncLoadWorld( TEXT( "demo.AsyncLoadWorld" ), 0, TEXT( "If 1, we will use seamless server travel to load the replay world asynchronously" ) );
 static TAutoConsoleVariable<float> CVarCheckpointUploadDelayInSeconds( TEXT( "demo.CheckpointUploadDelayInSeconds" ), 30.0f, TEXT( "" ) );
+static TAutoConsoleVariable<float> CVarCheckpointSaveMaxMSPerFrame( TEXT( "demo.CheckpointSaveMaxMSPerFrame" ), 0.0f, TEXT( "Maximum time allowed each frame to spend on saving a checkpoint. If 0, it will save the checkpoint in a single frame, regardless of how long it takes." ) );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -1009,100 +1010,158 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	check( CheckpointArchive->TotalSize() == 0 );
 
+	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
+
+	// Mark all existing actor channels for pending checkpoint save
+	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
+	{
+		AActor* Actor = ObjectInfo.Get()->Actor;
+
+		UActorChannel* ActorChannel = ClientConnections[0]->ActorChannels.FindRef( Actor );
+
+		if ( ActorChannel )
+		{
+			ActorChannel->bPendingCheckpoint = true;
+		}
+	}
+
+	// So we know to tick checkpoints until it's all saved out (we also can't do normal replication while we're in the process of saving a checkpoint)
+	bSavingCheckpoint = true;
+
+	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
+
+	PackageMapClient->SavePackageMapExportAckStatus( CheckpointAckState );
+
+	TotalCheckpointSaveTimeSeconds = 0;
+	TotalCheckpointSaveFrames = 0;
+
+	UE_LOG( LogDemo, Log, TEXT( "Starting checkpoint. Actors: %i" ), GetNetworkObjectList().GetObjects().Num() );
+
+	// Do the first checkpoint tick now
+	TickCheckpoint();
+}
+
+void UDemoNetDriver::TickCheckpoint()
+{
+	if ( !bSavingCheckpoint )
+	{
+		return;
+	}
+
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "SaveCheckpoint time" ), STAT_ReplayCheckpointSaveTime, STATGROUP_Net );
+
+	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
+
+	if ( !ensure( CheckpointArchive != nullptr ) )
+	{
+		return;
+	}
+
 	const double StartCheckpointTime = FPlatformTime::Seconds();
+
+	TotalCheckpointSaveFrames++;
+
+	ClientConnections[0]->FlushNet();
+	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
+
+	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
+
+	// Save package map ack status in case we export stuff during the checkpoint (so we can restore the connection back to what it was before we saved the checkpoint)
+	PackageMapClient->OverridePackageMapExportAckStatus( &CheckpointAckState );
 
 	// Save the replicated server time so we can restore it after the checkpoint has been serialized.
 	// This preserves the existing behavior and prevents clients from receiving updated server time
 	// more often than the normal update rate.
-	float SavedReplicatedServerTimeSeconds = -1.0f;
-
 	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
+
+	const float SavedReplicatedServerTimeSeconds = GameState ? GameState->ReplicatedWorldTimeSeconds : -1.0f;
 
 	// Normally AGameState::ReplicatedWorldTimeSeconds is only updated periodically,
 	// but we want to make sure it's accurate for the checkpoint.
-	if (GameState != nullptr)
+	if ( GameState )
 	{
-		SavedReplicatedServerTimeSeconds = GameState->ReplicatedWorldTimeSeconds;
 		GameState->UpdateServerTimeSeconds();
 	}
-
-	// First, save the current guid cache
-	SerializeGuidCache( GuidCache, CheckpointArchive );
-
-	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
-
-	// Save the compatible rep layout map
-	PackageMapClient->SerializeNetFieldExportGroupMap( *CheckpointArchive );
-
-	const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
-
-	FURL CheckpointURL;
-	CheckpointURL.Map = TEXT( "Checkpoint" );
-
-	const double SerializeCacheTime = FPlatformTime::Seconds();
-
-	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
 	// Re-use the existing connection to record all properties that have changed since channels were first opened
 	// Set bResendAllDataSinceOpen to true to signify that we want to do this
 	ClientConnections[0]->bResendAllDataSinceOpen = true;
-	bSavingCheckpoint = true;
 
-	FPackageMapAckState SavedAckState;
+	bool bCheckpointFinished = true;
 
-	// Save package map ack status in case we export stuff during the checkpoint (so we can restore the connection back to what it was before we saved the checkpoint)
-	PackageMapClient->SavePackageMapExportAckStatus( SavedAckState );
+	const double CheckpointMaxUploadTimePerFrame = ( double )CVarCheckpointSaveMaxMSPerFrame.GetValueOnGameThread() / 1000;
 
 	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
 	{
 		AActor* Actor = ObjectInfo.Get()->Actor;
 
-		if ( ClientConnections[0]->ActorChannels.Contains( Actor ) )
+		UActorChannel* ActorChannel = ClientConnections[0]->ActorChannels.FindRef( Actor );
+
+		if ( ActorChannel && ActorChannel->bPendingCheckpoint )
 		{
 			Actor->CallPreReplication( this );
 			DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, true );
+
+			ActorChannel->bPendingCheckpoint = false;
+
+			const double CheckpointTime = FPlatformTime::Seconds();
+
+			if ( CheckpointMaxUploadTimePerFrame > 0 && CheckpointTime - StartCheckpointTime > CheckpointMaxUploadTimePerFrame )
+			{
+				bCheckpointFinished = false;
+				break;
+			}
 		}
 	}
 
-	const double AfterReplicationTime = FPlatformTime::Seconds();
-
-	ClientConnections[0]->FlushNet();
-	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
-
-	WriteDemoFrameFromQueuedDemoPackets( *CheckpointArchive, CastChecked< UDemoNetConnection>( ClientConnections[0] ) );
-
-	const double AfterWritePacketsTime = FPlatformTime::Seconds();
-
-	// Restore the connection back to what it was before we saved the checkpoint
-	PackageMapClient->RestorePackageMapExportAckStatus( SavedAckState );
-
-	ClientConnections[0]->bResendAllDataSinceOpen = false;
-	bSavingCheckpoint = false;
-
-	const uint32 CheckpointSize = CheckpointArchive->TotalSize() - GuidCacheSize;
-
-	const int32 TotalSize = CheckpointArchive->TotalSize();
-
-	if ( CheckpointArchive->TotalSize() > 0 )
+	if ( GameState )
 	{
-		ReplayStreamer->FlushCheckpoint( GetDemoCurrentTimeInMS() );
-	}
-
-	// Restore the game state's replicated world time
-	if (GameState != nullptr)
-	{
+		// Restore the game state's replicated world time
 		GameState->ReplicatedWorldTimeSeconds = SavedReplicatedServerTimeSeconds;
 	}
 
+	// Make sure to flush the connection (fill up QueuedCheckpointPackets)
+	// This also frees up the connection to be used for normal streaming again
+	ClientConnections[0]->FlushNet();
+	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
+
+	PackageMapClient->OverridePackageMapExportAckStatus( nullptr );
+
+	ClientConnections[0]->bResendAllDataSinceOpen = false;
+
 	const double EndCheckpointTime = FPlatformTime::Seconds();
 
-	const float CheckpointTimeInMS			= ( EndCheckpointTime - StartCheckpointTime ) * 1000.0;
-	const float SerializeCacheTimeMS		= ( SerializeCacheTime - StartCheckpointTime ) * 1000.0;
-	const float AfterReplicationTimeMS		= ( AfterReplicationTime - SerializeCacheTime ) * 1000.0;
-	const float AfterWritePacketsTimeMS		= ( AfterWritePacketsTime - AfterReplicationTime ) * 1000.0;
-	const float MiscTimeMS					= ( EndCheckpointTime - AfterWritePacketsTime ) * 1000.0;
+	TotalCheckpointSaveTimeSeconds += ( EndCheckpointTime - StartCheckpointTime );
 
-	UE_LOG( LogDemo, Log, TEXT( "Checkpoint. Actors: %i, TotalSize: %i, RepSize: %i, PackageMap: %u, TotalTime: %2.2f, SerializeCacheTimeMS: %2.2f, AfterReplicationTimeMS: %2.2f, AfterWritePacketsTimeMS: %2.2f, Misc: %2.2f" ), GetNetworkObjectList().GetObjects().Num(), TotalSize, CheckpointSize, GuidCacheSize, CheckpointTimeInMS, SerializeCacheTimeMS, AfterReplicationTimeMS, AfterWritePacketsTimeMS, MiscTimeMS );
+	if ( bCheckpointFinished )
+	{
+		// We're done saving this checkpoint
+		bSavingCheckpoint = false;
+
+		// First, save the current guid cache
+		SerializeGuidCache( GuidCache, CheckpointArchive );
+
+		// Save the compatible rep layout map
+		PackageMapClient->SerializeNetFieldExportGroupMap( *CheckpointArchive );
+
+		// Get the size of the guid data saved
+		const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
+
+		// Write out all of the queued up packets generated while saving the checkpoint
+		WriteDemoFrameFromQueuedDemoPackets( *CheckpointArchive, CastChecked< UDemoNetConnection>( ClientConnections[0] )->QueuedCheckpointPackets );
+
+		// Get the total checkpoint size
+		const int32 TotalCheckpointSize = CheckpointArchive->TotalSize();
+
+		if ( CheckpointArchive->TotalSize() > 0 )
+		{
+			ReplayStreamer->FlushCheckpoint( GetDemoCurrentTimeInMS() );
+		}
+
+		const float TotalCheckpointTimeInMS = TotalCheckpointSaveTimeSeconds * 1000.0;
+
+		UE_LOG( LogDemo, Log, TEXT( "Finished checkpoint. Actors: %i, GuidCacheSize: %i, TotalSize: %i, TotalCheckpointSaveFrames: %i, TotalCheckpointTimeInMS: %2.2f" ), GetNetworkObjectList().GetObjects().Num(), GuidCacheSize, TotalCheckpointSize, TotalCheckpointSaveFrames, TotalCheckpointTimeInMS );
+	}
 }
 
 void UDemoNetDriver::SaveExternalData( FArchive& Ar )
@@ -1199,6 +1258,13 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 {
 	if ( !IsRecording() || bPauseRecording )
 	{
+		return;
+	}
+
+	if ( bSavingCheckpoint )
+	{
+		// If we're in the middle of saving a checkpoint, then update that now and return
+		TickCheckpoint();
 		return;
 	}
 
@@ -1426,11 +1492,13 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	ClientConnections[0]->FlushNet();
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
-	WriteDemoFrameFromQueuedDemoPackets( *FileAr, CastChecked< UDemoNetConnection >( ClientConnections[0] ) );
+	WriteDemoFrameFromQueuedDemoPackets( *FileAr, CastChecked< UDemoNetConnection >( ClientConnections[0] )->QueuedDemoPackets );
 
 	// Save a checkpoint if it's time
 	if ( CVarEnableCheckpoints.GetValueOnGameThread() == 1 )
 	{
+		check( !bSavingCheckpoint );		// We early out above, so this shouldn't be possible
+
 		const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnGameThread();
 
 		if ( DemoCurrentTime - LastCheckpointTime > CHECKPOINT_DELAY )
@@ -1749,10 +1817,8 @@ bool UDemoNetDriver::ProcessPacket( uint8* Data, int32 Count )
 	return true;
 }
 
-void UDemoNetDriver::WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, UDemoNetConnection* Connection )
+void UDemoNetDriver::WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, TArray<FQueuedDemoPacket>& QueuedPackets )
 {
-	check( Connection->SendBuffer.GetNumBits() == 0 );
-
 	// Save total absolute demo time in seconds
 	Ar << DemoCurrentTime;
 
@@ -1777,12 +1843,12 @@ void UDemoNetDriver::WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, UDemoNet
 	// Save external data
 	SaveExternalData( Ar );
 
-	for ( int32 i = 0; i < Connection->QueuedDemoPackets.Num(); i++ )
+	for ( int32 i = 0; i < QueuedPackets.Num(); i++ )
 	{
-		WritePacket( Ar, Connection->QueuedDemoPackets[i].Data.GetData(), Connection->QueuedDemoPackets[i].Data.Num() );
+		WritePacket( Ar, QueuedPackets[i].Data.GetData(), QueuedPackets[i].Data.Num() );
 	}
 
-	Connection->QueuedDemoPackets.Empty();
+	QueuedPackets.Empty();
 
 	// Write a count of 0 to signal the end of the frame
 	int32 EndCount = 0;
@@ -2523,6 +2589,13 @@ void UDemoNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountB
 	}
 
 	TrackSendForProfiler( Data, CountBytes );
+
+	if ( bResendAllDataSinceOpen )
+	{
+		// This path is only active for a checkpoint saving out, we need to queue in separate list
+		new( QueuedCheckpointPackets )FQueuedDemoPacket( ( uint8* )Data, CountBytes, CountBits );
+		return;
+	}
 
 	new(QueuedDemoPackets)FQueuedDemoPacket((uint8*)Data, CountBytes, CountBits);
 }

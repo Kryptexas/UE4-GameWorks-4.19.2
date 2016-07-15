@@ -309,7 +309,7 @@ TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::SerializeRemotePacket(UWorl
 	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 	if (VoiceInt.IsValid())
 	{
-		VoiceInt->SerializeRemotePacket(Ar);
+		return VoiceInt->SerializeRemotePacket(Ar);
 	}
 	return nullptr;
 }
@@ -346,7 +346,7 @@ bool UOnlineEngineInterfaceImpl::MuteRemoteTalker(UWorld* World, uint8 LocalUser
 	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 	if (VoiceInt.IsValid())
 	{
-		VoiceInt->MuteRemoteTalker(LocalUserNum, PlayerId, bIsSystemWide);
+		return VoiceInt->MuteRemoteTalker(LocalUserNum, PlayerId, bIsSystemWide);
 	}
 	return false;
 }
@@ -356,7 +356,7 @@ bool UOnlineEngineInterfaceImpl::UnmuteRemoteTalker(UWorld* World, uint8 LocalUs
 	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 	if (VoiceInt.IsValid())
 	{
-		VoiceInt->UnmuteRemoteTalker(LocalUserNum, PlayerId, bIsSystemWide);
+		return VoiceInt->UnmuteRemoteTalker(LocalUserNum, PlayerId, bIsSystemWide);
 	}
 	return false;
 }

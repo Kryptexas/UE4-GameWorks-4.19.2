@@ -4,6 +4,8 @@
 
 #include "NetDriver.h"
 #include "NetworkReplayStreaming.h"
+#include "PackageMapClient.h"
+#include "DemoNetConnection.h"
 #include "DemoNetDriver.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
@@ -169,10 +171,15 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 
-	bool		bSavingCheckpoint;
-	double		LastCheckpointTime;
+	/** Checkpoint state */
+	FPackageMapAckState CheckpointAckState;					// Current ack state of packagemap for the current checkpoint being saved
+	bool				bSavingCheckpoint;					// True if we're currently saving a checkpoint
+	double				TotalCheckpointSaveTimeSeconds;		// Total time it took to save checkpoint across all frames
+	int32				TotalCheckpointSaveFrames;			// Total number of frames used to save a checkpoint
+	double				LastCheckpointTime;					// Last time a checkpoint was saved
 
 	void		SaveCheckpoint();
+	void		TickCheckpoint();
 	void		LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 GotoCheckpointSkipExtraTimeInMS );
 
 	void		SaveExternalData( FArchive& Ar );
@@ -314,7 +321,7 @@ public:
 	bool ConditionallyReadDemoFrameIntoPlaybackPackets( FArchive& Ar );
 	bool ProcessPacket( uint8* Data, int32 Count );
 
-	void WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, UDemoNetConnection* Connection );
+	void WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, TArray<FQueuedDemoPacket>& QueuedPackets );
 	void WritePacket( FArchive& Ar, uint8* Data, int32 Count );
 
 	void TickDemoPlayback( float DeltaSeconds );

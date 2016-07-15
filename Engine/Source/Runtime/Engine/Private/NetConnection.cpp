@@ -355,9 +355,20 @@ void UNetConnection::CleanUp()
 		UChannel* OpenChannel = OpenChannels[i];
 		if (OpenChannel != NULL)
 		{
-			OpenChannel->ConditionalCleanUp();
+			OpenChannel->ConditionalCleanUp(true);
 		}
 	}
+
+	// Cleanup any straggler KeepProcessingActorChannelBunchesMap channels
+	for (const TPair<FNetworkGUID, TArray<UActorChannel*>>& MapKeyValuePair : KeepProcessingActorChannelBunchesMap)
+	{
+		for (UActorChannel* CurChannel : MapKeyValuePair.Value)
+		{
+			CurChannel->ConditionalCleanUp(true);
+		}
+	}
+
+	KeepProcessingActorChannelBunchesMap.Empty();
 
 	PackageMap = NULL;
 
@@ -980,6 +991,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			Bunch.bOpen					= bControl ? Reader.ReadBit() : 0;
 			Bunch.bClose				= bControl ? Reader.ReadBit() : 0;
 			Bunch.bDormant				= Bunch.bClose ? Reader.ReadBit() : 0;
+			Bunch.bIsReplicationPaused  = Reader.ReadBit();
 			Bunch.bReliable				= Reader.ReadBit();
 			Bunch.ChIndex				= Reader.ReadInt( MAX_CHANNELS );
 			Bunch.bHasPackageMapExports	= Reader.ReadBit();
@@ -1371,6 +1383,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 			Header.WriteBit( Bunch.bDormant );
 		}
 	}
+	Header.WriteBit( Bunch.bIsReplicationPaused );
 	Header.WriteBit( Bunch.bReliable );
 	Header.WriteIntWrapped(Bunch.ChIndex, MAX_CHANNELS);
 	Header.WriteBit( Bunch.bHasPackageMapExports );

@@ -2,7 +2,7 @@
 #include "IcmpPrivatePCH.h"
 #include "Icmp.h"
 #include "SocketSubsystem.h"
-#include "IpAddress.h"
+#include "IPAddress.h"
 
 #include "Sockets.h"
 

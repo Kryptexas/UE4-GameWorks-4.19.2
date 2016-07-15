@@ -6,7 +6,7 @@
 #if PLATFORM_USES_POSIX_IMCP
 
 #include "SocketSubsystem.h"
-#include "IpAddress.h"
+#include "IPAddress.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

@@ -213,6 +213,13 @@ public:
 	TMap< FNetworkGUID, int32 >	NetGUIDAckStatus;				// Map that represents the ack state of each net guid for this connection
 	TMap< uint32, bool >		NetFieldExportGroupPathAcked;	// Map that represents whether or not a net field export group has been ack'd by the client
 	TMap< uint64, bool >		NetFieldExportAcked;			// Map that represents whether or not a net field export has been ack'd by the client
+
+	void Reset()
+	{
+		NetGUIDAckStatus.Empty();
+		NetFieldExportGroupPathAcked.Empty();
+		NetFieldExportAcked.Empty();
+	}
 };
 
 UCLASS(transient)
@@ -228,6 +235,7 @@ public:
 		Connection = InConnection;
 		GuidCache = InNetGUIDCache;
 		ExportNetGUIDCount = 0;
+		OverrideAckState = &AckState;
 	}
 
 	virtual ~UPackageMapClient()
@@ -281,6 +289,7 @@ public:
 
 	void SavePackageMapExportAckStatus( FPackageMapAckState& OutState );
 	void RestorePackageMapExportAckStatus( const FPackageMapAckState& InState );
+	void OverridePackageMapExportAckStatus( FPackageMapAckState* NewState );
 
 	/** Functions to help with exporting/importing net field info */
 	TSharedPtr< FNetFieldExportGroup >	GetNetFieldExportGroup( const FString& PathName );
@@ -315,7 +324,8 @@ protected:
 
 	TArray< FNetworkGUID >				PendingAckGUIDs;					// Quick access to all GUID's that haven't been acked
 
-	FPackageMapAckState					AckState;
+	FPackageMapAckState					AckState;							// Current ack state of exported data
+	FPackageMapAckState*				OverrideAckState;					// This is a pointer that allows us to override the current ack state, it's never NULL (it will point to AckState by default)
 
 	// Bunches of NetGUID/path tables to send with the current content bunch
 	TArray<FOutBunch* >					ExportBunches;

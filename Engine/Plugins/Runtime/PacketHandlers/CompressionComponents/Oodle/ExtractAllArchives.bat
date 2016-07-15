@@ -1,13 +1,23 @@
 @echo off
 
 echo.
-echo This batch file will unzip all downloaded packet captures from S3.
+echo Downloading packet captures from S3
 echo.
 
+if "%1" == "" goto getdirectory
+set Directory=%1
+goto getoptions
+
+:getdirectory
 set /p Directory=Type the root directory of the zipped captures: 
 echo.
 
-aws s3 sync s3://dedicated-server-ucap %Directory%
+:getoptions
+if "%2" == "" GOTO continue
+set Options= --exclude "*" --include "*%2*.ucap.gz"
+
+:continue
+aws s3 sync s3://dedicated-server-ucap %Directory% %Options%
 
 pushd %CD%
 cd %Directory%
@@ -15,7 +25,7 @@ FOR /D /r %%F in ("*") DO (
 	pushd %CD%
 	cd %%F
 		FOR %%X in (*.gz) DO (
-			"C:\Program Files\7-zip\7z.exe" x "%%X" -y
+			"C:\Program Files\7-zip\7z.exe" x "%%X" -y -aos
 		)
 	popd
 )

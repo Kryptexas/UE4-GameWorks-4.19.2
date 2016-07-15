@@ -23,6 +23,7 @@ public:
 	uint8					bOpen;
 	uint8					bClose;
 	uint8					bDormant;
+	uint8					bIsReplicationPaused;   // Replication on this channel is being paused by the server
 	uint8					bReliable;
 	uint8					bPartial;				// Not a complete bunch
 	uint8					bPartialInitial;		// The first bunch of a partial bunch
@@ -72,6 +73,7 @@ public:
 		Str += FString::Printf(TEXT("bOpen: %d "), bOpen);
 		Str += FString::Printf(TEXT("bClose: %d "), bClose);
 		Str += FString::Printf(TEXT("bDormant: %d "), bDormant);
+		Str += FString::Printf(TEXT("bIsReplicationPaused: %d "), bIsReplicationPaused);
 		Str += FString::Printf(TEXT("bReliable: %d "), bReliable);
 		Str += FString::Printf(TEXT("bPartial: %d//%d//%d "), bPartial, bPartialInitial, bPartialFinal);
 		Str += FString::Printf( TEXT( "bHasPackageMapExports: %d " ), bHasPackageMapExports );
@@ -99,6 +101,7 @@ public:
 	uint8				bOpen;
 	uint8				bClose;
 	uint8				bDormant;				// Close, but go dormant
+	uint8				bIsReplicationPaused;	// Replication on this channel is being paused by the server
 	uint8				bReliable;
 	uint8				bPartial;				// Not a complete bunch
 	uint8				bPartialInitial;		// The first bunch of a partial bunch
@@ -118,6 +121,7 @@ public:
 		Str += FString::Printf(TEXT("bOpen: %d "), bOpen);
 		Str += FString::Printf(TEXT("bClose: %d "), bClose);
 		Str += FString::Printf(TEXT("bDormant: %d "), bDormant);
+		Str += FString::Printf(TEXT("bIsReplicationPaused: %d "), bIsReplicationPaused);
 		Str += FString::Printf(TEXT("bReliable: %d "), bReliable);
 		Str += FString::Printf(TEXT("bPartial: %d//%d//%d "), bPartial, bPartialInitial, bPartialFinal);
 		Str += FString::Printf( TEXT( "bHasPackageMapExports: %d " ), bHasPackageMapExports );
