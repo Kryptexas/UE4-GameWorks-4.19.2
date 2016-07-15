@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2956400
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title: Scalability, 엔진 퀄리티 참고서
 Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
@@ -392,7 +392,7 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 머티리얼은 "Quality Switch" 표현식을 사용하여 최종 모양에는 효과가 미미하면서 비용은 비싼 머티리얼 부분을 끌 수 있습니다. 그 효과를 확인하기 위해서는 낮음 퀄리티 모드로 토글해야 합니다.
 
 [REGION:lightbox]
-[![](SC_SwitchNode.png)(w:900)](SC_SwitchNode.png)
+[![](SC_SwitchNode.png)(w:555 h:391)](SC_SwitchNode.png)
 [/REGION]
 
 **머티리얼 퀄리티 레벨** 이 낮음 또는 높음으로 설정될 때마다, 이 머티리얼에 대해 (낮음 핀 또는 높음 핀) 어느 표현식을 구할지 결정합니다. 입력이 없는 경우 기본 핀은 높음 또는 낮음 (또는 양쪽)으로 채웁니다. 이 머티리얼은 높음으로 설정시 꽤나 비용이 많이 드는 펄린 노이즈 연산이 두 개 있습니다:
@@ -408,9 +408,13 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 **머티리얼 퀄리티 레벨** -> **높음**
 [/REGION]
 
-![](SC_Closeup.png)
+[REGION:lightbox]
+[![](SC_Closeup.png)(w:681 h:164)](SC_Closeup.png)
+[/REGION]
 
-![](SC_MirrorComplexity.png)
+[REGION:lightbox]
+[![](SC_MirrorComplexity.png)(w:450 h:681)](SC_MirrorComplexity.png)
+[/REGION]
 
 _위의 **셰이더 복잡도** 모드에서 녹색이 짙어질 수록 셰이더 비용이 많이 드는 것이므로, 높음 퀄리티 머티리얼이 다른 셰이더보다 비용이 높음을 보여줍니다._
 
@@ -436,4 +440,159 @@ _위의 **셰이더 복잡도** 모드에서 녹색이 짙어질 수록 셰이�
 
 스켈레탈 메시는 정적인 레벨 오브 디테일 (LOD) 모델이 가능합니다. `r.SkeletalMeshLODBias` 콘솔 변수로 LOD 레벨을 글로벌하게 편향(bias)시켜 주는 것이 가능합니다. 첫째 또는 둘째 LOD 의 퀄리티에 따라 엔진 퀄리티 세팅에 이 옵션을 두는 것도 좋은 방법이 될 수 있습니다. 여기서는 거리 의존 LOD 인 경우 상단의 엔진 퀄리티 세팅을 확인할 수 있습니다.
 
+
+## 그래스 및 폴리지 퀄리티 조절
+
+**뷰** -> **엔진 퀄리티 세팅** -> **폴리지** 옵션으로 [UE4_InstallPath]/Engine/Config 폴더에 위치한 BaseScalaiblity.ini 파일에서 찾을 수 있는 세팅에 맞춰 한 번에 렌더링되는 폴리지 메시 갯수를 조절할 수 있습니다. **낮음** 세팅은 FoliageQuality 0 에, **에픽** 세팅은 FoliageQuality 3 에 해당합니다.
+
+[region:note]
+폴리지 스태틱 메시가 엔진 퀄리티 세팅에 연동되도록 하기 위해서는 **Enable Density Scaling** 옵션을 켜줘야 합니다. 이에 대한 상세 정보는 [](Engine\Foliage) 문서를 참고하세요.
+[/region]
+
+[REGION:simpletable]
+|FoliageQuality 0|FoliageQuality 1|
+| --- | --- |
+|[INCLUDE:#FoliageQuality@0]|[INCLUDE:#FoliageQuality@1]|
+
+|FoliageQuality 2|FoliageQuality 3|
+| --- | --- |
+|[INCLUDE:#FoliageQuality@2]|[INCLUDE:#FoliageQuality@3]|
+[/REGION]
+
+[REGION:fullwidth]
+[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
+[/REGION]
+
+## 엔진 퀄리티 세팅 커스터마이징
+UE4 프로젝트에 사용되는 엔진 퀄리티(Scalability) 세팅은 어떤 것이든 커스터마이징 가능합니다. 다음 예제에서는 폴리지에 대한 엔진 퀄리티 세팅을 추가하고 변경해 볼텐데, 그 방법은 다음과 같습니다:
+
+1. 프로젝트 **Config** 폴더로 이동하여 **DefaultScalability.ini** 라는 파일을 새로 만듭니다.
+
+	![](FGC_Config_Location.png)
+
+1. 새로 생성된 **DefaultScalability.ini** 파일을 열고 다음 코드 줄을 추가합니다.
+
+		[FoliageQuality@0]
+		foliage.DensityScale=.25
+		grass.DensityScale=.25
+
+		[FoliageQuality@1]
+		foliage.DensityScale=0.50
+		grass.DensityScale=0.50
+
+		[FoliageQuality@2]
+		foliage.DensityScale=0.75
+		grass.DensityScale=0.75
+
+		[FoliageQuality@3]
+		foliage.DensityScale=1.0
+		grass.DensityScale=1.0
+
+	완료되면 DefaultScalability.ini 파일 안의 정보는 다음 그림과 같을 것입니다.
+	![](FGC_Config_Info.png)
+
+1. 파일을 저장하면 이제 **폴리지** 의 엔진 퀄리티 세팅이 바뀔 때, 스폰되는 폴리지 및 랜드스케이프 그래스 스태틱 메시의 양이 선택된 세팅에 따라 늘거나 줄어듭니다.
+
+	
+
+
+<!-----
+[EXCERPT:FGS]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	FGS
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**슬라이더를 잡아 끌면 폴리지에 대한 엔진 퀄리티 세팅을 낮음, 중간, 높음, 에픽으로 했을 때 렌더링되는 폴리지 양에 어떤 변화가 일어나는지 보여줍니다.**
+	[/PARAM]
+	[PARAM:image_list]
+	![](FGS_1.png)
+	![](FGS_2.png)
+	![](FGS_3.png)
+	![](FGS_4.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:FGS]
+-->
+
+<!--
+
+	[REGION:simpletable]
+	|FoliageQuality 0|FoliageQuality 1|
+	| --- | --- |
+	|[INCLUDE:#FoliageQuality@0]|[INCLUDE:#FoliageQuality@1]|
+
+	|FoliageQuality 2|FoliageQuality 3|
+	| --- | --- |
+	|[INCLUDE:#FoliageQuality@2]|[INCLUDE:#FoliageQuality@3]|
+	[/REGION]
+
+[EXCERPT:FoliageQuality@0]
+	[FoliageQuality@0]
+	foliage.DensityScale=0
+	grass.DensityScale=0
+[/EXCERPT:FoliageQuality@0]
+
+[EXCERPT:FoliageQuality@1]
+	[FoliageQuality@1]
+	foliage.DensityScale=0.4
+	grass.DensityScale=0.4
+[/EXCERPT:FoliageQuality@1]
+
+[EXCERPT:FoliageQuality@2]
+	[FoliageQuality@2]
+	foliage.DensityScale=0.8
+	grass.DensityScale=0.8
+[/EXCERPT:FoliageQuality@2]
+
+[EXCERPT:FoliageQuality@3]
+	[FoliageQuality@3]
+	foliage.DensityScale=1.0
+	grass.DensityScale=1.0
+[/EXCERPT:FoliageQuality@3]
+
+-->
+
+
+<!--
+그래스도 폴리지도 **엔진 퀄리티(scalability) 시스템** 을 사용하여 퍼포먼스에 끼치는 영향을 줄일 수 있습니다. 프로젝트에서 이 기능을 사용하는 방법은 다음과 같습니다:
+
+1. 프로젝트의 COnfig 폴더로 이동하여 **DefaultScalability.ini** 라는 파일을 새로 만듭니다.
+
+	![](FGC_Config_Location.png)
+
+1. 새로 생성된 **DefaultScalability.ini** 파일을 열고 다음 코드 줄을 추가합니다.
+
+		[FoliageQuality@0]
+		foliage.DensityScale=0
+		grass.DensityScale=0
+
+		[FoliageQuality@1]
+		foliage.DensityScale=0.4
+		grass.DensityScale=0.4
+
+		[FoliageQuality@2]
+		foliage.DensityScale=0.8
+		grass.DensityScale=0.8
+
+		[FoliageQuality@3]
+		foliage.DensityScale=1.0
+		grass.DensityScale=1.0
+
+	완성되면 DefaultScalability.ini 파일 안의 정보는 다음 그림과 같을 것입니다.
+
+	![](FGC_Config_Info.png)
+
+1. 이제 **폴리지** 에 대한 엔진 퀄리티 세팅이 변경되면, 스폰되는 폴리지 및 랜드스케이프 그래스 스태틱 메시의 양이 선택된 세팅에 따라 늘거나 줄어듭니다.
+
+	[REGION:fullwidth]
+	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
+	[/REGION]
+-->
 

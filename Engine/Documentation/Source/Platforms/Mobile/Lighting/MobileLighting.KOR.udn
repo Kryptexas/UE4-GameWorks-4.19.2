@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2979491
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:모바일 플랫폼용 라이팅
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -9,7 +9,7 @@ Related: Platforms/Mobile/Textures
 Related: Engine/Rendering/Materials/CustomizedUVs
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/ExpressionReference/Utility
-version: 4.11
+version: 4.12
 parent:Platforms/Mobile
 order:3
 type:overview
@@ -26,7 +26,7 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 * 리니어 HDR 라이팅
 * 디렉셔널 라이트맵 (노멀을 고려합니다.)
 * 디스턴스 필드 섀도 + 태양에 분석적 스페큘러
-* 이미지 기반 스페큘러 라이팅 - 각 오브젝트마다 가장 가까운 리플렉션 캡처가 시차 보정(parallax correction) 없이 적용됩니다. 그래서 오브젝트 사이에 이음새가 보일 수 있습니다.
+* 이미지 기반 스페큘러 라이팅 - 각 오브젝트마다 가장 가까운 [리플렉션 캡처](Engine/Rendering/LightingAndShadows/ReflectionEnvironment/) 가 시차 보정(parallax correction) 없이 적용됩니다. 그래서 오브젝트 사이에 이음새가 보일 수 있습니다.
 * 다이내믹 오브젝트는 라이팅을 올바르게 받지만 그림자를 드리우지 않습니다.
 
 ## 지원되는 라이트 유형
@@ -40,18 +40,22 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 | 스태틱 포인트 라이트 | **Mobility = Static** 인 포인트 라이트입니다. |
 | 스태틱 스포트 라이트 | **Mobility = Static** 인 스포트 라이트입니다. |
 
-
 ## 리플렉션
 리플렉션이 모바일 프로젝트의 생동감과 사실감에 생명력을 불어넣어 주는 것은 사실이지만, 모바일 디바이스에서 사용할 때 유의해야 하는 사항이 몇 가지 있습니다. 아래에서는 타겟 모바일 디바이스에서 리플렉션이 정상 작동되도록 하는 데 필요한 작업을 몇 가지 다뤄보겠습니다.
 
-1. Intensity (강도)를 0 으로 설정하여 포스트 프로세스 볼륨에 있는 앰비언트 큐브맵을 끕니다.
-2. 라이팅을 캡처하고자 하는 곳에 SphereReflectionCaptures (구체 리플렉션 캡처) 액터를 배치합니다. 많이 필요하지는 않으며, 주변 라이팅 상황이 고유한 부분에만 놓으면 됩니다. 첨부된 스크린 샷을 예로 들자면, 협곡을 내려가면서 큰 것 3 개, 구체가 있는 곳 안쪽에 작은 것 3 개 정도입니다.
-3. 머티리얼에 리플렉션 설정이 다음과 같이 제대로 되었는지 확인합니다: 
+* Intensity (강도)를 0 으로 설정하여 포스트 프로세스 볼륨에 있는 앰비언트 큐브맵을 끕니다.
+* 라이팅을 캡처하고자 하는 곳에 [SphereReflectionCaptures](Engine/Rendering/LightingAndShadows/ReflectionEnvironment) 액터를 배치합니다. 많이 필요하지는 않으며, 주변 라이팅 상황이 고유한 부분에만 놓으면 됩니다. 첨부된 스크린 샷을 예로 들자면, 협곡을 내려가면서 큰 것 3 개, 구체가 있는 곳 안쪽에 작은 것 3 개 정도입니다.
+* 머티리얼에 리플렉션 설정이 다음과 같이 제대로 되었는지 확인합니다: 
 	* 유의미한 노멀맵
+		[REGION:lightbox]
+		[![](Interesting_Normal_Map.png)(w:128 h:128)](Interesting_Normal_Map.png)
+		[/REGION]
 	* 다양한 러프니스
+		[REGION:lightbox]
+		[![](Interesting_Roughness_Map.png)(w:128 h:128)](Interesting_Roughness_Map.png)
+		[/REGION]
 	* 스페큘러 입력에는 아무것도 꽂지 않기
 	* 표면 유형에 따라 메탈릭 입력은 1 또는 0.
-
 
 이제 각 메시 컴포넌트가 가장 가까운 리플렉션 캡처에 할당됩니다. 오브젝트 사이의 리플렉션에 이음새가 생겨, 커다란 메시의 경우 리플렉션 캡처가 메시 중앙 가까이 있게 되면 바람직하지 못한 리플렉션이 사용된다는 뜻입니다.
 
@@ -83,9 +87,13 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 
 * **그림자 색 변경:** 모듈레이트 섀도가 드리우는 그림자의 색 변경이 가능합니다. 디렉셔널 라이트의 **Light** 섹션에 있는 **Modulated Shadow Color** 옵션을 조절하면 됩니다.
 
-	[region:lightbox]
-	[![](Change_Mod_Shadow_Color.png)](Change_Mod_Shadow_Color.png)
-	[/region]
+	[REGION:lightbox]
+	[![](Change_Mod_Shadow_Color.png)(w:771 h:252)](Change_Mod_Shadow_Color.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 원래 크기로 봅니다.
+	[/REGION]
 
 * **그림자 블렌딩:** 다이내믹 섀도와는 달리, 모듈레이트 섀도는 구은 것이든 동적인 것이든 프로젝트에 보이는 다른 그림자와의 블렌딩이 불가능합니다. 무슨 뜻이냐면, 그림자가 여럿 있을 때 서로 합쳐진 하나의 그림자가 아닌 모듈레이트 섀도가 다른 그림자 위에 보인다는 뜻입니다.
 
@@ -98,35 +106,14 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 		[/PARAM]
 	[/OBJECT]
 
-### 모듈레이트 섀도 활성화
+## 모듈레이트 및 다이내믹 섀도 작업
 
-UE4 프로젝트에서 모듈레이트 섀도를 활성화시키는 방법은 다음과 같습니다.
-
-1.  먼저 레벨에 **디렉셔널 라이트** 가 배치되어 있는지, 그 **모빌리티** 는 **스테이셔너리** 로 설정되어 있는지 확인합니다. 모듈레이트 섀도는 모빌리티가 스테이셔너리인 디렉셔널 라이트하고만 작동합니다.
-	
-	![](Mod_Setup_01.png)
-
-1. 디렉셔널 라이트가 선택되지 않은 경우 선택한 뒤 **디테일** 패널에서 **Light** 섹션 아래 작은 하양 삼각형을 클릭하여 **고급** 옵션을 펼쳐 모듈레이트 섀도 옵션을 노출시킵니다.
-
-	![](Mod_Setup_02.png)
-
-1. **Cast Modulated Shadows** (모듈레이트 섀도 드리우기) 옆 박스를 클릭하여 모듈레이트 섀도를 켭니다. 모듈레이트 섀도의 색을 변경하려면 **Modulated Shadow Color** 에 클릭한 다음 색 선택기를 사용하여 모듈레이트 섀도 색을 선택합니다.
-
-	![](Mod_Setup_03.png)
-
-1. 모듈레이트 섀도가 어때보일지 확인하기 위해서는 **모바일 프리뷰어** 에서 게임을 실행하거나, 프로젝트를 모바일 디바이스에 디플로이하여 보면 됩니다.
-	이 예제에서 보시듯이 모듈레이트 섀도 색을 기본 회색에서 빨강으로 바꾸어 이펙트가 보다 드러나도록 했습니다.
-
-	![](Mod_Setup_04.png)
-
-### 모듈레이트 섀도 작업
-
-모듈레이트 섀도 작업을 할 때 몇 가지 콘솔 명령과 *.INI 세팅으로 모듈레이트 섀도의 모양과 퍼포먼스를 조절할 수 있습니다.
+모듈레이트 섀도 작업을 할 때 몇 가지 콘솔 명령과 .INI 세팅으로 모듈레이트 섀도의 모양과 퍼포먼스를 조절할 수 있습니다.
 다음 섹션에서는 이러한 세팅이 무엇이고 UE4 프로젝트에서 사용하여 모듈레이트 섀도 렌더링 비용이 너무 많이 들지 않도록 하는 방법에 대해 알아보겠습니다.
 
 [region:note]
-모듈레이트 섀도는 가능한 한 많은 부분을 기존 그림자 기법과 공유합니다.
-즉 다른 섀도잉 메소드에도 사용할 수 있는 여러가지 그림자 cvars & .INI 세팅이 모듈레이트 섀도에도 작동한다는 뜻입니다.
+모듈레이트 섀도는 가급적 많은 부분을 기존 그림자 기법과 공유합니다.
+즉 다른 섀도잉 메소드에도 사용할 수 있는 여러가지 그림자 콘솔 변수와 .INI 세팅이 모듈레이트 섀도에도 작동한다는 뜻입니다.
 [/region]
 
 * **그림자 품질:** 처음 모듈레이트 섀도를 켜고 모바일 디바이스에서 보면 모듈레이트 섀도의 선명도나 품질이 예상보다 약간 낮을 수 있습니다.
@@ -134,9 +121,13 @@ UE4 프로젝트에서 모듈레이트 섀도를 활성화시키는 방법은 �
 입력한 수치가 클 수록 FPS 를 희생시켜 모듈레이트 섀도 품질을 향상시킵니다.
 다음 그림에서 r.shadowquality 값을 1, 2, 3, 4 로 설정하여 모듈레이트 섀도 퀄리티에 이것이 어떠한 영향을 끼치는지 보일 수 있습니다.
 
-	[region:lightbox]
-	[![](Mod_Shadow_Quality.png)](Mod_Shadow_Quality.png)
-	[/region]
+	[REGION:lightbox]
+	[![](Mod_Shadow_Quality.png)(w:800 h:192)](Mod_Shadow_Quality.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 원래 크기로 봅니다.
+	[/REGION]
 
 	[region:note]
 	r.shadowquality 값을 3 이상으로 설정할 때는 극도의 주의를 요합니다.
@@ -160,9 +151,20 @@ UE4 프로젝트에서 모듈레이트 섀도를 활성화시키는 방법은 �
 아래 그림에서 제일 왼쪽은 r.Shadow.CSMDepthBias 가 기본값 0 일 때, 그 오른쪽으로 값이 10, 100, 500, 1000 일때 어떤 일이 벌어지는지 확인할 수 있습니다.
 그림자 깊이 조정은, 드리워지는 그림자가 역시 그림자를 드리워야 하는 다른 그림자에 교차될 때의 그림자 관통같은 문제를 해결하는 데 좋습니다.
 
-	[region:lightbox]
-	[![](Shadow_Depth_Settings.png)](Shadow_Depth_Settings.png)
-	[/region]
+	[REGION:lightbox]
+	[![](Shadow_Depth_Settings.png)(w:1280 h:268)](Shadow_Depth_Settings.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 원래 크기로 봅니다.
+	[/REGION]
+
+
+
+
+
+
+
 
 
 

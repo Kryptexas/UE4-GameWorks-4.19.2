@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2980307
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:가상 현실 실전 사례
 Crumbs:%ROOT%, Platforms, Platforms/VR
@@ -85,7 +85,6 @@ VR 프로젝트를 새로 만들 때, 프로젝트가 블루프린트 기반이�
 	r.LensFlareQuality=0
 	r.SceneColorFringeQuality=0
 	r.FastBlurThreshold=0
-	showflag.decals=0
 	r.SSR.MaxRoughness=0.1
 	r.rhicmdbypass=0
 	r.TiledReflectionEnvironmentMinimumCount=10
@@ -180,7 +179,7 @@ VR 경험 할 확률을 줄이기 위해서는, 아래 나열된 실전 사례�
 | Rift Retail | 90 FPS|
 | Vive | 90 FPS|
 | Gear VR | 60 FPS|
-| PSVR | Variable up to 120 FPS|
+| PSVR | 최대 120 FPS 내 가변 |
 
 * 개발자들은 VR 디바이스 사용에 너무 익숙해져 있어서 **최악의** 테스트 대상입니다. 시뮬레이션 멀미가 생기지 않도록 하기 위해서는 가급적 다양한 사람들에게 게임을 확인시켜 보도록 하십시오.
 * 시네마틱 카메라처럼 플레이어에게서 카메라 이동 제어권을 앗아가는 것은 무엇이든 **_피하도록_** 하세요. 최악의 VR 경험을 남기는 가장 큰 주범입니다.

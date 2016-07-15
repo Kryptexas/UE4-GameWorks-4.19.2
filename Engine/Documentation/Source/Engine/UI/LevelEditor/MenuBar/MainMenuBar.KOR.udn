@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2691917
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title: 메인 메뉴 바
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -89,7 +89,7 @@ Version: 4.9
 [VAR:CommonWindowMenu]
 | [REGION:tablesection]** **[/REGION] ||
 | **콘텐츠 브라우저** | 콘텐츠 애셋 작업용 [콘텐츠 브라우저](Engine/Content/Browser) 를 최대 4 개까지 엽니다. |
-| **개발자 툴** | 엔진 및 에디터 작업을 하는 프로그래머용 다양한 툴에 대한 바로가기가 제공됩니다. |
+| **개발자 툴** | 엔진 및 에디터 작업을 하는 프로그래머용 [다양한 툴](Engine\Tools\DevTools) 에 대한 바로가기가 제공됩니다. |
 | **블루프린트 디버거** | [](Engine/Blueprints/UserGuide/Debugging) 패널을 엽니다. |
 | **클래스 뷰어** | 맵에 **액터** 를 추가하고 **블루프린트** 를 생성하기 위한 [](Engine/UI/ClassViewer) 를 엽니다. |
 | **메시지 로그** | 다양한 특수 정보 로그가 들어있는 **메시지 로그** 창을 엽니다. **메시지 로그** 창은 하나만 열 수 있습니다. |

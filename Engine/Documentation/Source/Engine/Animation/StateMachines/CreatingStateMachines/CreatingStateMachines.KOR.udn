@@ -1,17 +1,19 @@
-﻿INTSourceChangelist:2670989
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title: 스테이트 머신 생성
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
-Description:애니메이션 애셋의 애님 그래프에서 사용되는 스테이트 머신을 새로 만드는 방법 안내서입니다.
-version: 4.9
+Description:Guide to creating new State Machines for use in AnimGraphs of animation assets.
+version: 4.12
+related:Engine\Animation\StateMachines\EditingStateMachines
+related:Engine\Animation\StateMachines\TransitionRules
+related:Engine\Animation\AnimBlueprints
 
-[TOC(start:2)]
 
+실제로 [스테이트 머신](Engine\Animation\StateMachines\Overview) 을 생성하기 전, 시간을 조금 들여서 정확히 어떤 스테이트(상태)가 필요한지, 그리고 각 스테이트 사이의 트랜지션(이행)을 유발시키는 정황에 대해서도 미리 계획을 세우는 것이 좋습니다. 그러면 스테이트 머신 뿐만 아니라 그것을 구동시키는 변수는 물론, 어떤 애니메이션이 각 상태의 부분이 될 것인지에 대해 확고한 공략 계획이 서게 됩니다.
 
+스테이트 머신 생성은 애니메이션 블루프린트의 애님 그래프 안에서 이루어집니다. 
 
-실제로 스테이트 머신을 생성하기 전, 시간을 조금 들여서 정확히 어떤 스테이트(상태)가 필요한지, 그리고 각 스테이트 사이의 트랜지션(이행)을 유발시키는 정황에 대해서도 미리 계획을 세우는 것이 좋습니다. 그러면 스테이트 머신 뿐만 아니라 그것을 구동시키는 변수는 물론, 어떤 애니메이션이 각 상태의 부분이 될 것인지에 대해 확고한 공략 계획이 서게 됩니다.
-
-스테이트 머신 생성은 애니메이션 블루프린트의 애님 그래프 안에서 이루어집니다. 애님 그래프 안에 우클릭한 다음 맥락 메뉴에서 **State Machines > New State Machine** 을 선택하면 됩니다.
+애님 그래프 안에 우클릭한 다음 맥락 메뉴에서 **State Machines > New State Machine** 을 선택하면 됩니다.
 
 ![](CreateNewStateMachine.png)
 
@@ -21,7 +23,8 @@ version: 4.9
 
 ![](LocomotionSMNode.png)
 
-처음 생성하면 스테이트 머신은 비어 있으며, 그에 대한 경고가 나올 것입니다. 더블클릭하면 열어서 그 스테이트와 트랜지션을 정의할 수 있습니다. 그러면 새 그래프 탭이 열리는데, 이 그래프는 본질적으로 애니메이션을 발동시키는 시발점 말고는 없는 상태로 나옵니다.
+처음 생성하면 스테이트 머신은 비어 있으며, 그에 대한 경고가 나올 것입니다. 
+더블클릭하면 열어서 그 스테이트와 트랜지션을 정의할 수 있습니다. 그러면 새 그래프 탭이 열리는데, 이 그래프는 본질적으로 애니메이션을 발동시키는 시발점 말고는 없는 상태로 나옵니다.
 
 
 ![](StateMachineEntryPoint.png)
@@ -48,7 +51,7 @@ version: 4.9
 
 ## 트랜지션 룰 생성
 
-트랜지션 룰(Transition Rules)은 스테이트와 컨듀잇을 연결하는 선을 따라 자동 생성됩니다. 트랜지션 룰은 그래프에서 다음과 같은 작은 원형 방향 아이콘으로 나타납니다:
+[트랜지션 룰](Engine\Animation\StateMachines\TransitionRules)  은 스테이트와 컨듀잇을 연결하는 선을 따라 자동 생성됩니다. 트랜지션 룰은 그래프에서 다음과 같은 작은 원형 방향 아이콘으로 나타납니다:
 
 ![](NewTransitionRule.png)
 

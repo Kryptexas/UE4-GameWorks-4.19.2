@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3037940
 Availability:Public
 Title: 블루프린트 소개
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -50,13 +50,16 @@ order:1
 
 [TOC (start:2)]
 
-[EXCERPT:BlueprintIntro]
-**Blueprint** (블루프린트)란 직관적인 노드 기반 인터페이스를 통해 새로운 액터 유형과 스크립트 레벨 이벤트를 만들 수 있는 
-특수한 애셋으로, 디자이너나 게임플레이 프로그래머도 코드 한 줄 작성할 필요 없이 언리얼 에디터 안에서 빠르게 
-게임플레이를 만들고 반복처리할 수 있는 도구가 됩니다.
-[/EXCERPT:BlueprintIntro]
+[EXCERPT:Intro]
+언리얼 엔진의 비주얼 스크립팅 시스템인 **Blueprint** (블루프린트)는 언리얼 에디터 안에서 노드 기반 인터페이스를 사용하여 
+게임플레이 요소를 만드는 개념을 토대로 한 비주얼 스크립팅 시스템입니다. 일반적인 스크립팅 언어와 마찬가지로, 엔진 내 객체 지향형(OO) 클래스 또는 오브젝트를 정의하는 데 사용됩니다.
+UE4 를 사용하다 보면, 블루프린트를 사용하여 정의된 오브젝트를 그냥 일상적으로 "블루프린트" 라 하는 경우가 많습니다.
 
-블루프린트의 유형, 블루프린트 해부도, 블루프린트와 UE3 의 키즈멧과 언리얼스크립트의 관계 등, 블루프린트 관련 자세한 개요에 대해서는, [](Engine/Blueprints\Overview) 문서를 참고하세요.
+이 시스템은 매우 유연하고 강력해서, 보통은 프로그래머가 없으면 힘들었던 개념 구현이나 툴 작업 거의 전부를 디자이너 스스로 해낼 수 있게 되었습니다. 게다가,
+언리얼 엔진의 C++ 구현에서 가능한 블루프린트 전용 마크업을 통해 프로그래머가 어떤 기반 시스템을 제작하면, 디자이너가 그것을 확장하는 것도 가능합니다.
+[/EXCERPT:Intro]
+
+블루프린트 해부도, UE3 의 키즈멧이나 언리얼 스크립트와의 비교 등 블루프린트 관련 상세 정보는 [](Engine/Blueprints\Overview) 문서를 참고하세요.
 
 
 ## 블루프린트 작동방식
@@ -143,15 +146,6 @@ _레벨 블루프린트_ 와 _블루프린트 클래스_ 에 대한 설명 다�
 	[/PARAM]
 [/OBJECT]
 
-##블루프린트 샘플 & 튜토리얼
-
-블루프린트 시스템에 관해 자세히 배워볼 수 있는 추가 자료입니다.
-
-* [](Resources/Showcases/BlueprintExamples)
-* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
-* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
-
-
 ## 블루프린트 에디터와 그래프
 
 _레벨 블루프린트_ 나 _블루프린트 클래스_ 를 만들 때는 [](Engine/Blueprints/Editor) 에서 [블루프린트 요소](Engine/Blueprints\UserGuide) 들을 조합하게 됩니다.
@@ -163,5 +157,15 @@ _레벨 블루프린트_ 나 _블루프린트 클래스_ 를 만들 때는 [](En
 
 작업중인 블루프린트 유형에 따라 사용할 수 있는 블루프린트 에디터 유형이 달라집니다. **블루프린트 에디터** 의 가장 핵심적인 기능은 **그래프** 모드로, 중앙의 **그래프** 탭은 
 **블루프린트** 망의 레이아웃에 사용됩니다.
+
+##블루프린트 샘플 & 튜토리얼
+
+블루프린트 시스템에 관해 자세히 배워볼 수 있는 추가 자료입니다.
+
+* [](Resources/Showcases/BlueprintExamples)
+* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
+* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+
+
 
 

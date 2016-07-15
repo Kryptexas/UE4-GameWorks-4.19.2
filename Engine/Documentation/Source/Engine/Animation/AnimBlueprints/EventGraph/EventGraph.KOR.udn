@@ -1,41 +1,82 @@
-﻿INTSourceChangelist:2659583
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:이벤트 그래프
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
-Description:_애님 그래프_ 에서 사용할 값을 계산하고 _애니메이션 블루프린트_ 를 업데이트하는 데 사용되는 이벤트 기반 그래프입니다.
-version: 4.9
+Description:애님 그래프에서 사용할 값을 계산하고 애니메이션 블루프린트를 업데이트하는 데 사용되는 이벤트 기반 그래프입니다.
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\AnimGraph
+related:Engine\Animation\AnimBlueprints\Interface
+related:Engine\Animation\AnimBlueprints\Creation
 
-[REGION:banner]
-![EventGraph](eventgraph_banner.png)(convert:false)
-[/REGION]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\EventGraph:title%](EventGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\EventGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\EventGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\EventGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\EventGraph:title%](EventGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\EventGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\EventGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\EventGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
 모든 _애니메이션 블루프린트_ 에는 하나의 **EventGraph** (이벤트 그래프)가 있는데, 이는 노드 시퀀스 초기화용 특수 애니메이션 관련 이벤트 모음을 사용하는 
 표준 [그래프](Engine/Blueprints/Editor/UIComponents/GraphEditor) 입니다. **이벤트 그래프** 가 가장 흔하게 사용되는 곳은 
-**애님 그래프** 안의 애니메이션 구동을 위해 _블렌드 스페이스_ 나 다른 블렌드 노드가 사용하는 값을 업데이트할 때입니다.
+**애님 그래프** 안의 애니메이션 구동을 위해 [블렌드 스페이스](Engine/Animation/Blendspaces) 나 다른 블렌드 노드가 사용하는 값을 업데이트할 때입니다.
 [/EXCERPT:Intro]
 
 ![Event graph](eventgraph.png)(w:720)
 		
-예를 들어 _애니메이션 블루프린트_ 의 **이벤트 그래프** 는 소유중인 폰의 속도를 사용하여 방향과 속력을 결정할 수 있습니다. 그 후 이 두 값을 **애님 그래프** 내 _블렌드 스페이스_ 속으로 가는 입력으로 사용하여 빈둥(idle) 애니메이션과 여러 방향 이동 애니메이션을 블렌딩할 수 있습니다. 비슷하게 소유중인 폰의 핏치와 요를 다른 _블렌드 스페이스_ 로의 입력으로 사용하여, 앞서 언급한 이동 애니메이션을 유지하면서 바라보는 곳을 메시가 조준하게 하기 위해 더하기 식으로 조준 포즈를 블렌딩할 수도 있습니다.
+예를 들어 _애니메이션 블루프린트_ 의 **이벤트 그래프** 는 소유중인 폰의 속도를 사용하여 방향과 속력을 결정할 수 있습니다. 그 후 이 두 값을 **애님 그래프** 내 _블렌드 스페이스_ 속으로 가는 입력으로 사용하여 빈둥(idle) 애니메이션과 여러 방향 이동 애니메이션을 블렌딩할 수 있습니다. 
 
-## 이벤트 그래프 작업하기
-
-노드 그래프 작업 관련 일반 정보에 대해서는, [노드 작업하기](Engine/Blueprints/Editor/UIComponents/GraphEditor) 부분을 참고하시기 바랍니다.
+비슷하게 소유중인 폰의 핏치와 요를 다른 _블렌드 스페이스_ 로의 입력으로 사용하여, 앞서 언급한 이동 애니메이션을 유지하면서 바라보는 곳을 메시가 조준하게 하기 위해 더하기 식으로 조준 포즈를 블렌딩할 수도 있습니다.
 
 ## 애니메이션 이벤트
 
 애니메이션 시스템이 애니메이션 블루프린트 초기화 및 업데이트를 위해 호출하는 다양한 이벤트입니다. 이벤트 그래프에 배치하여 함수성 구현 또는 덮어쓰기 가능합니다.
 
 
-### BlueprintInitializeAnimation
+### Blueprint Initialize Animation
 
 [INCLUDE:Engine/Animation/NodeReference/Events#Initialize]
 
 
-### BlueprintUpdateAnimation
+### Blueprint Update Animation
 
 [INCLUDE:Engine/Animation/NodeReference/Events#Update]
 
+[REGION:note]
+노드 그래프 작업 관련 일반적인 정보는, [](Engine/Blueprints/Editor/UIComponents/GraphEditor) 문서를 참고하세요.
+[/REGION]
