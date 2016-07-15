@@ -307,8 +307,8 @@ namespace UnrealBuildTool
 
 				XDoc.DocumentType.InternalSubset = "";
 				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
-				string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString();
-				File.WriteAllText(PListFile, result);
+                string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString().Replace("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"[]>", "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+                File.WriteAllText(PListFile, result);
 			}
 			else
 			{
