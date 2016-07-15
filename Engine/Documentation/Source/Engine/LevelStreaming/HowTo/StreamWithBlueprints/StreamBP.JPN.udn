@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Stream Sublevels with Blueprints
+﻿INTSourceChangelist:3046164
+Availability:Docs
+Title:ブループリントを使ってレベルをロード / アンロードする
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:How to stream levels with a custom streaming Actor created with Blueprints
+Description:ブループリントで作成したカスタム ストリーミング アクタでレベルをストリームする方法
 parent:Engine/LevelStreaming/HowTo
 type:howto
 order:2
@@ -13,54 +13,54 @@ tags:Level Streaming
 [INCLUDE:Engine/LevelStreaming/HowTo#levelstreamscenario]
 
 
-## Streaming In Levels with Blueprints
+## ブループリントを使ってレベルをストリーミングする
 
-1. Open the **Content Browser** and create a new **Blueprint Class**. This class is going to be based on **Actor**.
+1. **コンテンツ ブラウザ** を開いて、**[Blueprint Class]** を新規作成します。このクラスは **アクタ** に基づきます。
 
-1. Name the new **Blueprint Class** "LevelStreamer", then save it.
+1. 作成された **Blueprint Class** に「LevelStreamer」と名前をつけて保存します。
 
-1. Open **LevelStreamer** in the **Blueprint Editor**. 
+1. **ブループリント エディタ** で **LevelStreamer** を開きます。 
 
-For this scenario, we want to stream the second level in once the **Character** overlaps the Box Component. 
+このシナリオの場合、**Character** がBox コンポーネントをオーバーラップしたら、2 つ目のレベルをストリーミングします。 
 
-1. Add a **Box Collision** Component using the **Add Component** button in the **Components** tab. 
+1. **[Components]** タブの **[Add Component (コンポーネントを追加する)]** ボタンを使って**Box Collision** コンポーネントを追加します。 
 
-1. Open the Blueprint's **Event Graph**. Select the **Box** Component in the **Components** tab, then **right-click** in the graph to summon the context menu.
+1. ブループリントの **イベント グラフ** を開きます。**[Components]** タブで **Box** コンポーネントを選択して、グラフを **右クリックして** コンテキスト メニューを呼び出します。
 
-1. Type "begin overlap" then select **On Component Begin Overlap** to add the event. 
+1. 「begin overlap」と打ち込んで、**[On Component Begin Overlap (コンポーネント上でオーバーラップを開始)]** を選択してイベントを追加します。 
 
-1. Click and drag off of the **Other Actor** pin, then type "=" into the context menu's search. Select the **Equal (Object)** entry to add the node. 
+1. **Other Actor** ピンをクリックして引き出して、コンテキスト メニューで「=」を検索します。**Equal (Object)** エントリを選択してノードを追加します。 
 
-1. Click and drag off of the second Object pin on the **==** node, then type "character" into the context menu's search. Select the **Get Player Character** entry to add the node.  
+1. **==** ノードの 2 つ目の Object ピンをクリックして引き出し、コンテキスト メニューで「character」を検索します。**Get Player Character** エントリを選択してノードを追加します。  
 
-1. Hold down the **B** key and click in the graph to add a **Branch** node, then connect the boolean pin of the **==** node to the input on the **Branch** node. 
+1. **B** キーを押したままグラフ内をクリックして **Branch** ノードを追加して、**==** ノードの boolean ピンを **Branch** ノードの入力に接続します。 
 
-1. Connect the execution output pin of the **OnComponentBeginOverlap** node to the execution input pin of the **Branch** node. 
+1. **OnComponentBeginOverlap** ノードの出力ピンを **Branch** ノードの実行入力ピンに接続します。 
 
-1. **Right-click** in the graph, then type "level" to search in the context menu. Select **Load Stream Level** from the menu. 
+1. グラフ エリアで **右クリック** して、コンテキスト メニュー で「level」を検索します。メニューで **[Load Stream Level (ストリーム レベルをロード)]** を選択します。 
 
-1. **Right-click** on the **Level Name** pin and promote it to a variable, then name the variable "LevelToStream" and make it **Editable** in the **Details** panel.  
-	
+1. **Level Name** ピンを **右クリック** して変数に昇格し、その変数に「LevelToStream」と名前を付け**[Details (詳細)]** パネルで **[Editable (編集可能)]** にします。  
+
 	![](LevelToStreamVar.png)
 
-1. Toggle **Make Visible After Load** and **Should Block on Load** to true on the **Load Stream Level** node.
+1. **[Make Visible After Load (ロード後に表示)]** と **[Should Block on Load (ロード時にブロック)]** を切り替えて **Load Stream Level** ノードを有効にします。
 
-	For this example, we are going to have the same default loading behavior for all levels using this Blueprint, but you could also make those **Editable** variables.
+	この例では、このブループリントを使うとすべてのレベルはデフォルトのロード処理ビヘイビアが同じになりますが、これらを **編集可能な** 変数にすることもできます。
 
-1. Connect the **True** execution output pin of the **Branch** node to the input execution pin on the **Load Stream Level** node. 
+1. **Branch** ノードの **True** の実行出力ピンを **Load Stream Level** ノードの入力実行ピンに接続します。 
 
 	![](FinalLoadBP.png)
 
-1. Place your **LevelStreamer** Blueprint into your level, and adjust the placement and scale until it encompasses the part of the persistent world you want your **Character** to be in to begin streaming, as well 
-as the entire walkable volume where the streaming level will be.
+1. **LevelStreamer** ブループリントをレベル内に配置して、 
+**Character** にストリームを開始させたいパーシスタント ワールドの部分を囲むように配置とスケールを調節します。
 
-1. Enter **SunTemple_Streaming** as the **Level to Stream**. 
+1. **Level to Stream** として **「SunTemple_Streaming」** と入力します。 
 
-1. Use Play In Editor to test out your streaming level.
+1. ストリーミング レベルをテストするには、Play In Editor を使います。
 
-## Unloading Levels with Blueprints
+## ブループリントでレベルをアンロードする
 
-To unload the level as your _Character_ exits the **Box** component, your graph will have very similar logic but will end in an **Unload Stream Level** node.
+_Character_ が **Box** コンポーネントを出る時にレベルをアンロードするには、グラフは以下のロジックと非常によく似ていますが、**Unload Stream Level** ノードで終わります。
 
 ![](UnloadLevel.png)
 
