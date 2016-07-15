@@ -1,11 +1,26 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Collaborate with Sublevels
+﻿INTSourceChangelist:3037940
+Availability:Docs
+Title:サブレベルで連携して作業する
 Crumbs: %ROOT%, Engine
-Description:How to use sublevels to collaborate with other designers working in the same space. 
-Related: Engine/LevelStreaming
-SkillLevel: Beginner
-Version: 4.9
+Description:サブレベルを使って同じ空間で作業する他のデザイナーと連携「して作業することができます。 
+Related:Engine/Levelstreaming
+Version:4.12
 parent:Engine/Levels
 order:5
 
+レベルはバイナリ アセットです。これにより、プロジェクトの同じ領域で作業するチームの仲間と連携して作業する場合にいくつかの問題が生じることがあります。
+
+ただし、**Always Streaming** サブレベルをセットアップすることで複数の人が同じゲーム「空間」で同時に作業することができます。例えば、シーンのすべてのライトを含むサブレベルを作ることができます。 
+また、背景にレイアウトするスタティックメッシュだけを含むサブレベルを作ることができます。各サブレベルで、一度に作業できるのは一名ですが、シーンのアクタを注意深く分けることで、 
+作業領域が重なるのを最小限に抑えることができます。 
+
+[REGION:tip]
+サブレベルの Level ブループリントを互いに通信させて、ひとつのサブレベルでスイッチを使えるようにします。例えば、ライトを別のものに切り替えます。
+[/REGION]
+
+**[Levels]** ウィンドウで、常にロードさせたい任意のレベルを右クリックして、コンテキスト メニューにある **[Change Streaming Method]** にカーソルを乗せます。**[Always Loaded]** をクリックします。 
+**[Levels]** ウィンドウでは、さらにストリーミング レベルを追加したり、レベル間でアクタを移動したり、セットアップを簡単に視覚化できるようにレベルのデバッグ カラーを変更することができます。
+
+[REGION:note]
+レベルを常にゲーム内で見えるようにするには、ライティングやナビゲーションを再ビルドする前に **[Levels]** ウィンドウで切り替えられるようにします。
+[/REGION]
