@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2707641
+﻿INTSourceChangelist:2714483
 Availability:Public
 Title:材质编辑器-如何设置人体皮肤 
 Crumbs:%ROOT%, Engine, Engine/Rendering/Materials
@@ -40,14 +40,14 @@ SkillLevel:Advanced
 在开始制作材质之前，我们应该先收集一些参考资料。 
 这是因为通常最好从多个具有不同光照情况的照片参考资料着手，以便您可以验证材质在不同光照情况下的外观。 
 如果可能，对源数据进行扫描和校准是理想情况，因为这有助于确保您获得可能的最佳结果。 
-在编辑器中查看内容时，请确保禁用 **编辑器眼部适应（Editor Eye Adaptation）**，以获得更可控的环境：_“编辑（Edit）”菜单 > 项目设置（Project Settings） > 渲染（Rendering）> 默认后置处理（Default Post Processing Settings） > 自动曝光（Auto Exposure）_
+在编辑器中查看内容时，请确保禁用 **编辑器的人眼适应** 功能，以获得更可控的环境：_“编辑（Edit）”菜单 > 项目设置（Project Settings） > 渲染（Rendering）> 默认后置处理（Default Post Processing Settings） > 自动曝光（Auto Exposure）_
 
 [region:tip]
- 经过校准的环境有助于您确保颜色正确，但并非必需。
+经过校准的环境有助于您确保颜色正确，但并非必需。
 [/region]
 
-在以下示例中，我们将会使用“皮肤渲染内容”示例。 
-请立即前往应用商城下载“内容示例”（如果您尚未下载），并打开皮肤渲染地图。 
+在以下示例中，我们将会使用可以在商城中下载到的内容示例（Content Example）中的 “皮肤渲染内容” 来示例。
+如果您尚未下载，请前往应用商城下载 Content Example，并打开 皮肤渲染（SkinRendering） 地图。
 您还需要记住，本文档中的图像明显分辨率过低，无法用作源素材。
 
 [region:note]
@@ -60,7 +60,7 @@ SkillLevel:Advanced
 * 请记住，在创建纹理时，理想情况是从分辨率非常高的纹理（例如 2K x 2K 或更高分辨率）着手，因为这会产生最佳结果。 
 * 为了更快迭代，最好创建一个材质实例并显示标量和矢量参数，以更快、更简单地进行微调，因为材质在微调期间无需重新编译。 
 * 请记住，应该在不同光照条件下对资源进行验证，以确保它们正确。 
-  即使在“后期处理体积”（Post Process Volume）中启用了“眼部适应”（Eye Adaptation），也会使最终结果大相径庭。 
+  比如如果在“后处理体积”（Post Process Volume）中启用了“人眼适应”，可能会使最终结果大相径庭。 
 * 为了避免阴影，人工制品需要额外的工作，因为您需要微调阴影偏移之类的项，或者使用聚光效果更好的光锥来获得更好的照明清晰度。
 * 微调时，通过调整编辑器 FOV 来放大可能非常有用，因为这不会导致几何体被裁剪，并且产生的变形较少。 
 * 可以通过以下方法来调整编辑器视野 (FOV)：单击“视角”（Perspective）图标旁的下拉箭头，然后使用鼠标调整 FOC 值。 

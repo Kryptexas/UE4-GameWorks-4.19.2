@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2980307
+﻿INTSourceChangelist:3032506
 Availability:Public
-Title:虚拟现实最佳方法
+Title: 虚拟现实最佳实践
 Crumbs:%ROOT%, Platforms, Platforms/VR
-Description:VR 开发的信息。
+Description: VR 开发的信息
 Navigation:platform
-Version:4.9
+Version: 4.9
 parent:Platforms/VR
 type:overview
 
@@ -130,7 +130,7 @@ UE4 4.11 版本中加入了实例化立体渲染（Instanced Stereo Rendering）
 	
 	![](VR_Disable_PP_Settings.png)
 	[region:note]
-	执行此操作时，无需点击每个部分并将所有属性设为 0。可先行禁用开销较大的功能，如镜头光晕（Lens Flares）、屏幕空间反射（Screen Space reflections）、临时抗锯齿（Temporal AA）、屏幕空间环境遮挡（SSAO）、光晕（Bloom）和其他可能对性能产生影响的功能。
+	执行此操作时，无需点击每个部分并将所有属性设为 0。可先行禁用开销较大的功能，如镜头光晕（Lens Flares）、屏幕空间反射（Screen Space Reflections，SSR）、Temporal AA（TAA）、屏幕空间环境遮挡（SSAO）、光晕（Bloom）和其他可能对性能产生影响的功能。
 	[/region]
 
 ## VR 世界场景比例
