@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3013123
+﻿INTSourceChangelist:3042730
 Availability:Public
 Title:シーケンサー クイック スタート
 Crumbs: %ROOT%, Engine
@@ -6,8 +6,9 @@ Description:UE4 でシーケンサー エディタの作業を開始するため
 Navigation:topic
 parent:Engine/Sequencer
 order:1
-Version: 4.12
-
+Version:4.12
+type:quickstart
+checkpoint:sequencerqs
 
 [VAR:Topic]
 [OBJECT:Topic]
