@@ -922,7 +922,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 		*OutSavedFilename = SaveFilename;
 	}
 
-	if (bStatus)
+	if (bStatus && InWorld == GWorld)
 	{
 		FSelectionStateOfLevel SelectionStateOfLevel;
 		GEditor->GetSelectionStateOfLevel(SelectionStateOfLevel);
