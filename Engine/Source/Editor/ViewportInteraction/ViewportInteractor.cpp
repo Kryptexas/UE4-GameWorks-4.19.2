@@ -101,16 +101,17 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 		{
 			// Selection/Movement
 			if ( ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove ||
-				Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) )
+				   Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) )
 			{
+				const bool bIsDraggingWorld = InteractorData.DraggingMode == EViewportInteractionDraggingMode::World;
+				const bool bIsDraggingWorldWithTwoHands =
+					OtherInteractor != nullptr &&
+					( ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
+					  ( GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) );
+
 				if ( Event == IE_Pressed )
 				{
 					// No clicking while we're dragging the world.  (No laser pointers are visible, anyway.)
-					const bool bIsDraggingWorldWithTwoHands =
-						OtherInteractor != nullptr &&
-						( ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
-						  ( GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) );
-
 					FHitResult HitResult = GetHitResultFromLaserPointer();
 					if ( !bIsDraggingWorldWithTwoHands && !bHandled && HitResult.Actor.IsValid() )
 					{
@@ -290,8 +291,6 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 										// User didn't drag but did select something, so play a haptic effect.
 										PlayHapticEffect( VI::SelectionHapticFeedbackStrength->GetFloat() );
 									}
-
-									bHandled;
 								}
 							}
 						}
@@ -304,12 +303,6 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 						bHandled = true;
 						InteractorData.ClickingOnComponent = nullptr;
 					}
-
-					const bool bIsDraggingWorld = InteractorData.DraggingMode == EViewportInteractionDraggingMode::World;
-					const bool bIsDraggingWorldWithTwoHands =
-						OtherInteractor != nullptr &&
-						( ( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) ||
-						  ( GetOtherInteractor()->InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) );
 
 					// Don't allow the trigger to cancel our drag on release if we're dragging the world. 
 					if ( InteractorData.DraggingMode != EViewportInteractionDraggingMode::Nothing &&
