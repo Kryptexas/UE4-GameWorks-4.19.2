@@ -13,8 +13,8 @@
 	<Property Name="BuildLabel" Default=""/>
 	<Property Name="LabeledBuildDir" Value="$(BuildLabel)"/>
 	<Property Name="LabeledBuildDir" Value="$(LabeledBuildDir)/" If="'$(LabeledBuildDir)' != '' And !HasTrailingSlash('$(LabeledBuildDir)')"/>
-	<Property Name="PublishedInstallDir" Value="$(OutputDir)/$(LabeledBuildDir)Windows"/>
-	<Property Name="PublishedInstallDirMac" Value="$(OutputDirMac)/$(LabeledBuildDir)Mac"/>
+	<Property Name="PublishedInstallDir" Value="$(OutputDir)/Engine/$(LabeledBuildDir)Windows"/>
+	<Property Name="PublishedInstallDirMac" Value="$(OutputDirMac)/Engine/$(LabeledBuildDir)Mac"/>
 
 	<!-- Directory for storing build products like the Compressed DDC, Stripped and Signed files -->
 	<Property Name="SavedOutput" Value="$(RootDir)/Saved"/>
