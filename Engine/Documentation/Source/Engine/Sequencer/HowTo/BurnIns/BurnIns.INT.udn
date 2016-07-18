@@ -8,7 +8,7 @@ parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related: Engine/Sequencer/ReferenceEditor
 
 When creating and rendering out cinematic movies, you may want to include overlays with information about the scene you are viewing such as the name of the shot, the date, time or frame information. 
 These overlays are referred to as **Burn Ins** as they are burned into the movie when it is rendered out. 
@@ -46,7 +46,11 @@ For this how-to we are using the **Blueprint Third Person Template** project and
 
 ## End Result
 
-When the capturing of your movie is complete, upon playing back your movie you will notice similar overlays applied to the cinematic. 
+When the capturing of your movie is complete, upon playing back your movie you will notice similar overlays applied to the cinematic. The Default Burn in applies the name of your Level Sequence across the Top Center followed by the current date. In the Bottom Left, the current Shot Name is applied (or Level Sequence name if no shots are used). The Bottom Center displays the time and frame count for the Master Sequence while the Bottom Right shows the current Shot Frame. 
+
+Each of these options can be changed to display your own text inside the **Settings** section of the **Burn in Options**. Additionally, you can apply Watermarks or make Font changes within the Default Burn In options. 
+If the default information is not enough for you, you can also take a look at [](Engine\Sequencer\HowTo\CustomBurnIns) to include your desired content. 
+
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -63,12 +67,4 @@ DRIykPNZBAs
 [REGION:caption]
 You may want to view the video above in full screen or on YouTube to see the overlays more clearly.
 [/REGION]
-
-The Default Burn in applies the name of your Level Sequence across the Top Center followed by the current date. In the Bottom Left, the current Shot Name is applied (or Level Sequence name if no shots are used). 
-The Bottom Center displays the time and frame count for the Master Sequence while the Bottom Right shows the current Shot Frame. 
-
-Each of these options can be changed to display your own text inside the **Settings** section of the **Burn in Options**. Additionally, you can apply Watermarks or make Font changes within the Default Burn In options. 
-If the default information is not enough for you, you can also take a look at [](Engine\Sequencer\HowTo\CustomBurnIns) to include your desired content. 
-
-
 
