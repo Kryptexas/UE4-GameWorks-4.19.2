@@ -3,9 +3,30 @@ Title:Landscape Materials
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Setting up materials to work with Landscape terrains.
 version: 4.9
+parent:Engine/Landscape
+order:5
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Materials:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Materials:description%
+	[/PARAM]
+	[PARAMLITERAL:path]
+		[RELATIVE:Engine/Landscape/Materials]
+	[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
 	[/PARAM]

@@ -3,9 +3,30 @@ Title:Editing Landscapes
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Guide to using the tools for editing Landscape terrains.
 Version: 4.9
+parent:Engine/Landscape
+order:3
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Editing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
 	[/PARAM]
