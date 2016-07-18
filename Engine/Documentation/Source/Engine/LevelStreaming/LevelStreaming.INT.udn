@@ -2,6 +2,7 @@ Availability: Public
 Title:Level Streaming
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:Asynchronously loading and unloading levels during play to decrease memory usage and create seamless worlds.
+Version: 4.12
 parent:Engine
 order:10
 tags:Level Streaming
@@ -46,15 +47,15 @@ tags:Level Streaming
 [/VAR]
 
 [EXCERPT:Intro]
-The Level Streaming feature makes it possible to load and unload map files into memory as well as toggle their visibility during play. This makes it possible to have worlds broken up into 
-smaller chunks so that only the relevant parts of the world are taking up resources and being rendered at any point. If done properly, this allows for the creation of very large, seamless 
-games that can make the player feel as if they are playing within a world that dwarfs them in size.
+The Level Streaming feature makes it possible to load and unload map files into memory as well as toggle their visibility during play. This makes it possible to have worlds broken up 
+into smaller chunks so that only the relevant parts of the world are taking up resources and being rendered at any point. If done properly, this allows for the creation of very 
+large, seamless games that can make the player feel as if they are playing within a world that dwarfs them in size.
 [/EXCERPT:Intro]
 
-[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy" end:0)]
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy")]
 
 ## World Composition
 
 World Composition is a specific form of level streaming used to create large worlds. Levels are arranged in a planar grid, and streamed in as the player approaches them.
 
-[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition")]
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition" org:"hierarchy")]

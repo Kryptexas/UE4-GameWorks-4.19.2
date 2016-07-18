@@ -5,7 +5,7 @@ Description:System for managing large worlds including origin shifting technolog
 SkillLevel: Intermediate
 Version: 4.9
 Parent:Engine/LevelStreaming
-Label:World Composition
+tags:World Composition
 
 [TOC (start:2 end:3)]
 
