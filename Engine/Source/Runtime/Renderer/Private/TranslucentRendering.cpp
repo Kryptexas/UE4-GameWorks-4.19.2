@@ -809,7 +809,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 					View,
 					FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, TranslucenyPassType),
 					StaticMesh,
-					StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
+					StaticMesh.bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
 					false,
 					PrimitiveSceneInfo->Proxy,
 					StaticMesh.BatchHitProxyId,

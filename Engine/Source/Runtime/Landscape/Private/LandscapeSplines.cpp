@@ -573,6 +573,7 @@ void ULandscapeSplinesComponent::CheckForErrors()
 	Super::CheckForErrors();
 
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
+	check(ThisOuterWorld->WorldType == EWorldType::Editor);
 
 	TSet<UWorld*> OutdatedWorlds;
 	TMap<UWorld*, FForeignWorldSplineData*> ForeignWorldSplineDataMapCache;
@@ -682,7 +683,7 @@ void ULandscapeSplinesComponent::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	if (GIsEditor)
+	if (GIsEditor && GetWorld()->WorldType == EWorldType::Editor)
 	{
 		// Build MeshComponentForeignOwnersMap (Component->Spline) from ForeignWorldSplineDataMap (World->Spline->Component)
 		for (auto& ForeignWorldSplineDataPair : ForeignWorldSplineDataMap)
@@ -714,7 +715,7 @@ void ULandscapeSplinesComponent::PostLoad()
 	CheckSplinesValid();
 
 #if WITH_EDITOR
-	if (GIsEditor)
+	if (GIsEditor && GetWorld()->WorldType == EWorldType::Editor)
 	{
 		CheckForErrors();
 	}
@@ -778,7 +779,10 @@ bool FForeignWorldSplineData::IsEmpty()
 ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesComponentByLocation(const FVector& LocalLocation, bool bCreate /* = true*/)
 {
 	ALandscapeProxy* OuterLandscape = Cast<ALandscapeProxy>(GetOwner());
-	if (OuterLandscape)
+	if (OuterLandscape &&
+		// when copy/pasting this can get called with a null guid on the parent landscape
+		// this is fine, we won't have any cross-level meshes in this case anyway
+		OuterLandscape->GetLandscapeGuid().IsValid())
 	{
 		FVector LandscapeLocalLocation = ComponentToWorld.GetRelativeTransform(OuterLandscape->LandscapeActorToWorld()).TransformPosition(LocalLocation);
 		const int32 ComponentIndexX = (LandscapeLocalLocation.X >= 0.0f) ? FMath::FloorToInt(LandscapeLocalLocation.X / OuterLandscape->ComponentSizeQuads) : FMath::CeilToInt(LandscapeLocalLocation.X / OuterLandscape->ComponentSizeQuads);
@@ -832,28 +836,33 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 TArray<ULandscapeSplinesComponent*> ULandscapeSplinesComponent::GetAllStreamingSplinesComponents()
 {
 	ALandscapeProxy* OuterLandscape = Cast<ALandscapeProxy>(GetOwner());
-	if (OuterLandscape)
+	if (OuterLandscape &&
+		// when copy/pasting this can get called with a null guid on the parent landscape
+		// this is fine, we won't have any cross-level meshes in this case anyway
+		OuterLandscape->GetLandscapeGuid().IsValid())
 	{
 		ULandscapeInfo* LandscapeInfo = OuterLandscape->GetLandscapeInfo();
-		check(LandscapeInfo);
 
-		TArray<ULandscapeSplinesComponent*> SplinesComponents;
-		SplinesComponents.Reserve(LandscapeInfo->Proxies.Num() + 1);
+		if (LandscapeInfo)
+		{
+			TArray<ULandscapeSplinesComponent*> SplinesComponents;
+			SplinesComponents.Reserve(LandscapeInfo->Proxies.Num() + 1);
 
-		ALandscape* RootLandscape = LandscapeInfo->LandscapeActor.Get();
-		if (RootLandscape && RootLandscape->SplineComponent)
-		{
-			SplinesComponents.Add(RootLandscape->SplineComponent);
-		}
-		for (ALandscapeProxy* LandscapeProxy : LandscapeInfo->Proxies)
-		{
-			if (LandscapeProxy && LandscapeProxy->SplineComponent)
+			ALandscape* RootLandscape = LandscapeInfo->LandscapeActor.Get();
+			if (RootLandscape && RootLandscape->SplineComponent)
 			{
-				SplinesComponents.Add(LandscapeProxy->SplineComponent);
+				SplinesComponents.Add(RootLandscape->SplineComponent);
 			}
-		}
+			for (ALandscapeProxy* LandscapeProxy : LandscapeInfo->Proxies)
+			{
+				if (LandscapeProxy && LandscapeProxy->SplineComponent)
+				{
+					SplinesComponents.Add(LandscapeProxy->SplineComponent);
+				}
+			}
 
-		return SplinesComponents;
+			return SplinesComponents;
+		}
 	}
 
 	return {};

@@ -5,6 +5,7 @@
 #include "IntPoint.h"
 #include "Map.h"
 #include "ThreadingBase.h"
+#include "Containers/ArrayView.h"
 
 /**
  * Exec handler that registers itself and is being routed via StaticExec.
@@ -212,7 +213,7 @@ struct CORE_API FFileHelper
 	/**
 	 * Save a binary array to a file.
 	 */
-	static bool SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0 );
+	static bool SaveArrayToFile(TArrayView<const uint8> Array, const TCHAR* Filename, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0);
 
 	/**
 	 * Write the FString to a file.

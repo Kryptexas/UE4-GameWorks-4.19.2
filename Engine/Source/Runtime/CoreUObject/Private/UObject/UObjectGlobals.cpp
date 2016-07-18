@@ -3117,6 +3117,10 @@ UObject* StaticConstructObject_Internal
 	SCOPE_CYCLE_COUNTER(STAT_ConstructObject);
 	UObject* Result = NULL;
 
+#if WITH_EDITORONLY_DATA
+	UE_CLOG(GIsSavingPackage && InOuter != GetTransientPackage(), LogUObjectGlobals, Fatal, TEXT("Illegal call to StaticConstructObject() while serializing object data! (Object will not be saved!)"));
+#endif
+
 	checkf(!InTemplate || InTemplate->IsA(InClass) || (InFlags & RF_ClassDefaultObject), TEXT("StaticConstructObject %s is not an instance of class %s and it is not a CDO."), *GetFullNameSafe(InTemplate), *GetFullNameSafe(InClass)); // template must be an instance of the class we are creating, except CDOs
 
 	// Subobjects are always created in the constructor, no need to re-create them unless their archetype != CDO or they're blueprint generated.
@@ -3126,7 +3130,7 @@ UObject* StaticConstructObject_Internal
 		(
 			!InTemplate || 
 			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, InFlags))
-		);	
+		);
 #if WITH_HOT_RELOAD
 	// Do not recycle subobjects when performing hot-reload as they may contain old property values.
 	const bool bCanRecycleSubobjects = bIsNativeFromCDO && !GIsHotReload;

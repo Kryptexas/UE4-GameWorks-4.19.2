@@ -546,19 +546,21 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnExportLayer(const TShared
 		// Prompt for filename
 		FString SaveDialogTitle;
 		FString DefaultFileName;
-		FString FileTypes;
+		const TCHAR* FileTypes = nullptr;
+
+		ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
 
 		if (Target->TargetType == ELandscapeToolTargetType::Heightmap)
 		{
 			SaveDialogTitle = *LOCTEXT("ExportHeightmap", "Export Landscape Heightmap").ToString();
 			DefaultFileName = TEXT("Heightmap.png");
-			FileTypes = TEXT("Heightmap png files|*.png|Heightmap .raw files|*.raw|Heightmap .r16 files|*.r16|All files|*.*");
+			FileTypes = LandscapeEditorModule.GetHeightmapExportDialogTypeString();
 		}
 		else //if (Target->TargetType == ELandscapeToolTargetType::Weightmap)
 		{
 			SaveDialogTitle = *FText::Format(LOCTEXT("ExportLayer", "Export Landscape Layer: {0}"), FText::FromName(LayerInfoObj->LayerName)).ToString();
 			DefaultFileName = *FString::Printf(TEXT("%s.png"), *(LayerInfoObj->LayerName.ToString()));
-			FileTypes = TEXT("Layer png files|*.png|Layer .raw files|*.raw|Layer .r8 files|*.r8|All files|*.*");
+			FileTypes = LandscapeEditorModule.GetWeightmapExportDialogTypeString();
 		}
 
 		// Prompt the user for the filenames
@@ -568,7 +570,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnExportLayer(const TShared
 			*SaveDialogTitle,
 			*LandscapeEdMode->UISettings->LastImportPath,
 			*DefaultFileName,
-			*FileTypes,
+			FileTypes,
 			EFileDialogFlags::None,
 			SaveFilenames
 			);
@@ -610,19 +612,21 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnImportLayer(const TShared
 		// Prompt for filename
 		FString OpenDialogTitle;
 		FString DefaultFileName;
-		FString FileTypes;
+		const TCHAR* FileTypes = nullptr;
+
+		ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
 
 		if (Target->TargetType == ELandscapeToolTargetType::Heightmap)
 		{
 			OpenDialogTitle = *LOCTEXT("ImportHeightmap", "Import Landscape Heightmap").ToString();
 			DefaultFileName = TEXT("Heightmap.png");
-			FileTypes = TEXT("All Heightmap files|*.png;*.raw;*.r16|Heightmap png files|*.png|Heightmap .raw/.r16 files|*.raw;*.r16|All files|*.*");
+			FileTypes = LandscapeEditorModule.GetHeightmapImportDialogTypeString();
 		}
 		else //if (Target->TargetType == ELandscapeToolTargetType::Weightmap)
 		{
 			OpenDialogTitle = *FText::Format(LOCTEXT("ImportLayer", "Import Landscape Layer: {0}"), FText::FromName(LayerInfoObj->LayerName)).ToString();
 			DefaultFileName = *FString::Printf(TEXT("%s.png"), *(LayerInfoObj->LayerName.ToString()));
-			FileTypes = TEXT("All Layer files|*.png;*.raw;*.r8|Layer png files|*.png|Layer .raw/.r8 files|*.raw;*.r8|All files|*.*");
+			FileTypes = LandscapeEditorModule.GetWeightmapImportDialogTypeString();
 		}
 
 		// Prompt the user for the filenames
@@ -632,7 +636,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnImportLayer(const TShared
 			*OpenDialogTitle,
 			*LandscapeEdMode->UISettings->LastImportPath,
 			*DefaultFileName,
-			*FileTypes,
+			FileTypes,
 			EFileDialogFlags::None,
 			OpenFilenames
 			);

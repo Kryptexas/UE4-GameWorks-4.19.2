@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ModuleInterface.h"
-#include "FixedSizeArrayView.h"
+#include "Containers/ArrayView.h"
 
 DECLARE_DELEGATE_OneParam(FOnRecordingStarted, class UMovieSceneSequence* /*Sequence*/);
 
@@ -38,7 +38,7 @@ public:
 	 * @param	SequenceName		Optional name of a sequence to record to. If none is specified we use the defaults in the settings.
 	 * @return true if recording was successfully started
 	*/
-	virtual bool StartRecording(TFixedSizeArrayView<AActor*> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString()) = 0;
+	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString()) = 0;
 
 	/**
 	 * Start a recording, possibly with some delay (specified by the sequence recording settings).
@@ -51,7 +51,7 @@ public:
 	*/
 	bool StartRecording(AActor* ActorToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString())
 	{
-		return StartRecording(TFixedSizeArrayView<AActor*>(&ActorToRecord, 1), OnRecordingStarted, OnRecordingFinished, PathToRecordTo, SequenceName);
+		return StartRecording(MakeArrayView(&ActorToRecord, 1), OnRecordingStarted, OnRecordingFinished, PathToRecordTo, SequenceName);
 	}
 
 	/**

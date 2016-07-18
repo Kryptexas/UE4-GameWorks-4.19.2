@@ -470,6 +470,10 @@ namespace PropertyEditorHelpers
 		{
 			PropertyHandle = MakeShareable( new FPropertyHandleString( PropertyNode, NotifyHook, PropertyUtilities ) );
 		}
+		else if (FPropertyHandleText::Supports(PropertyNode))
+		{
+			PropertyHandle = MakeShareable(new FPropertyHandleText(PropertyNode, NotifyHook, PropertyUtilities));
+		}
 		else if( FPropertyHandleVector::Supports( PropertyNode ) )
 		{
 			PropertyHandle = MakeShareable( new FPropertyHandleVector( PropertyNode, NotifyHook, PropertyUtilities ) );

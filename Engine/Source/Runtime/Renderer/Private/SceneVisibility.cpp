@@ -1663,8 +1663,8 @@ struct FRelevancePacket
 						MarkMasks[StaticMesh.Id] = MarkMask;
 					}
 
-					// Static meshes with a single element always draw, as if the mask were 0x1.
-					if(bNeedsBatchVisibility && StaticMesh.Elements.Num() > 1)
+					// Static meshes which don't need per-element visibility always draw all elements
+					if (bNeedsBatchVisibility && StaticMesh.bRequiresPerElementVisibility)
 					{
 						WriteView.StaticMeshBatchVisibility[StaticMesh.Id] = StaticMesh.VertexFactory->GetStaticBatchElementVisibility(View, &StaticMesh);
 					}

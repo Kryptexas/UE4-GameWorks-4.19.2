@@ -3,6 +3,7 @@
 #pragma once
 
 #include "LandscapeProxy.h" // for ELandscapeLayerPaintingRestriction
+#include "LandscapeFileFormatInterface.h"
 #include "LandscapeEditorObject.generated.h"
 
 UENUM()
@@ -190,12 +191,16 @@ struct FLandscapeImportLayer : public FLandscapeImportLayerInfo
 	ULandscapeMaterialInstanceConstant* ThumbnailMIC;
 
 	UPROPERTY(Category="Import", VisibleAnywhere)
-	ELandscapeImportLayerError ImportError;
+	ELandscapeImportResult ImportResult;
+
+	UPROPERTY(Category="Import", VisibleAnywhere)
+	FText ErrorMessage;
 
 	FLandscapeImportLayer()
 		: FLandscapeImportLayerInfo()
 		, ThumbnailMIC(nullptr)
-		, ImportError(ELandscapeImportLayerError::None)
+		, ImportResult(ELandscapeImportResult::Success)
+		, ErrorMessage(FText())
 	{
 	}
 };
@@ -464,15 +469,18 @@ class ULandscapeEditorObject : public UObject
 	FVector NewLandscape_Scale;
 
 	UPROPERTY(Category="New Landscape", VisibleAnywhere, NonTransactional, meta=(ShowForTools="NewLandscape"))
-	TEnumAsByte<ELandscapeImportHeightmapError::Type> ImportLandscape_HeightmapError;
+	ELandscapeImportResult ImportLandscape_HeightmapImportResult;
+
+	UPROPERTY(Category="New Landscape", VisibleAnywhere, NonTransactional, meta=(ShowForTools="NewLandscape"))
+	FText ImportLandscape_HeightmapErrorMessage;
 
 	// Specify a height map file in 16-bit RAW or PNG format
 	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, meta=(DisplayName="Heightmap File", ShowForTools="NewLandscape"))
 	FString ImportLandscape_HeightmapFilename;
 	UPROPERTY(NonTransactional)
-	int32 ImportLandscape_Width;
+	uint32 ImportLandscape_Width;
 	UPROPERTY(NonTransactional)
-	int32 ImportLandscape_Height;
+	uint32 ImportLandscape_Height;
 	UPROPERTY(NonTransactional)
 	TArray<uint16> ImportLandscape_Data;
 

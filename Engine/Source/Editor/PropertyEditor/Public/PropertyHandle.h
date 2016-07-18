@@ -195,6 +195,7 @@ public:
 	virtual FPropertyAccess::Result GetValue( uint32& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( uint64& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FString& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( FText& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FName& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FVector& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FVector2D& OutValue ) const = 0;
@@ -223,6 +224,7 @@ public:
 	virtual FPropertyAccess::Result SetValue( const uint32& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const uint64& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FString& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const FText& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FName& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FVector& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FVector2D& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;

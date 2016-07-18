@@ -15,7 +15,7 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "ComponentReregisterContext.h"
-#include "FixedSizeArrayView.h"
+#include "Containers/ArrayView.h"
 
 // Channel remapping
 extern const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
@@ -2369,7 +2369,7 @@ inline bool FLandscapeEditDataInterface::IsWhitelisted(const ULandscapeLayerInfo
 	return true;
 }
 
-inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterface::CountWeightBlendedLayerInfluence(const int32 ComponentIndexX, const int32 ComponentIndexY, TOptional<TFixedSizeArrayView<const uint8* const>> InOptionalLayerDataPtrs)
+inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterface::CountWeightBlendedLayerInfluence(const int32 ComponentIndexX, const int32 ComponentIndexY, TOptional<TArrayView<const uint8* const>> InOptionalLayerDataPtrs)
 {
 	// the counts should easily fit in a uint32, a 255x255 x2x2 Component with weights of all 255 only totals 26 bits
 	checkSlow(FMath::CeilLogTwo(ComponentSizeQuads + 1) * 2 + 8 /*ceillog2(255)*/ <= 32);
@@ -2380,7 +2380,7 @@ inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterfac
 	// used if InOptionalLayerDataPtrs is null
 	TArray<FLandscapeTextureDataInfo*, TInlineAllocator<2>> InternalTexDataInfos;
 	TArray<const uint8*, TInlineAllocator<8>> InternalLayerDataPtrs;
-	TFixedSizeArrayView<const uint8* const> LayerDataPtrs;
+	TArrayView<const uint8* const> LayerDataPtrs;
 	if (InOptionalLayerDataPtrs)
 	{
 		check(InOptionalLayerDataPtrs->Num() == Component->WeightmapLayerAllocations.Num());
@@ -2440,7 +2440,7 @@ inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterfac
 	return LayerInfluenceMap;
 }
 
-const ULandscapeLayerInfoObject* FLandscapeEditDataInterface::ChooseReplacementLayer(const ULandscapeLayerInfoObject* const LayerInfo, const int32 ComponentIndexX, const int32 SubIndexX, const int32 SubX, const int32 ComponentIndexY, const int32 SubIndexY, const int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TFixedSizeArrayView<const uint8* const> LayerDataPtrs)
+const ULandscapeLayerInfoObject* FLandscapeEditDataInterface::ChooseReplacementLayer(const ULandscapeLayerInfoObject* const LayerInfo, const int32 ComponentIndexX, const int32 SubIndexX, const int32 SubX, const int32 ComponentIndexY, const int32 SubIndexY, const int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TArrayView<const uint8* const> LayerDataPtrs)
 {
 	const TMap<const ULandscapeLayerInfoObject*, uint32>* LayerInfluenceMapCacheEntry = LayerInfluenceCache.Find(FIntPoint(ComponentIndexX, ComponentIndexY));
 	if (!LayerInfluenceMapCacheEntry)

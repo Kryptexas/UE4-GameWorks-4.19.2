@@ -2035,26 +2035,12 @@ void ULandscapeMeshCollisionComponent::ImportCustomProperties(const TCHAR* Sourc
 	}
 }
 
-ULandscapeInfo* ULandscapeHeightfieldCollisionComponent::GetLandscapeInfo(bool bSpawnNewActor /*= true*/) const
+ULandscapeInfo* ULandscapeHeightfieldCollisionComponent::GetLandscapeInfo() const
 {
-	if (GetLandscapeProxy())
-	{
-		return GetLandscapeProxy()->GetLandscapeInfo(bSpawnNewActor);
-	}
-	return NULL;
+	return GetLandscapeProxy()->GetLandscapeInfo();
 }
 
 #endif // WITH_EDITOR
-
-ALandscape* ULandscapeHeightfieldCollisionComponent::GetLandscapeActor() const
-{
-	ALandscapeProxy* Landscape = GetLandscapeProxy();
-	if (Landscape)
-	{
-		return Landscape->GetLandscapeActor();
-	}
-	return NULL;
-}
 
 ALandscapeProxy* ULandscapeHeightfieldCollisionComponent::GetLandscapeProxy() const
 {

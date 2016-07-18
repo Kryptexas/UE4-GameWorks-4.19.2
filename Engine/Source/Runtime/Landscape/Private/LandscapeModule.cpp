@@ -30,7 +30,7 @@ void AddPerWorldLandscapeData(UWorld* World)
 {
 	if (!World->PerModuleDataObjects.FindItemByClass<ULandscapeInfoMap>())
 	{
-		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage()));
+		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage(), NAME_None, RF_Transactional));
 	}
 }
 

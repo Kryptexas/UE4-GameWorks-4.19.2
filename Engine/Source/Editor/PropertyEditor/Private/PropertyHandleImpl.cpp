@@ -1496,6 +1496,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( uint32 )
 IMPLEMENT_PROPERTY_ACCESSOR( uint64 )
 IMPLEMENT_PROPERTY_ACCESSOR( float )
 IMPLEMENT_PROPERTY_ACCESSOR( FString )
+IMPLEMENT_PROPERTY_ACCESSOR( FText )
 IMPLEMENT_PROPERTY_ACCESSOR( FName )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector2D )
@@ -2236,6 +2237,7 @@ IMPLEMENT_PROPERTY_VALUE( FPropertyHandleByte )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleString )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleObject )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleArray )
+IMPLEMENT_PROPERTY_VALUE( FPropertyHandleText )
 
 // int32 
 bool FPropertyHandleInt::Supports( TSharedRef<FPropertyNode> PropertyNode )
@@ -3139,4 +3141,35 @@ bool FPropertyHandleArray::IsEditable() const
 {
 	// Property is editable if its a non-const dynamic array
 	return Implementation->HasValidPropertyNode() && !Implementation->IsEditConst() && Implementation->IsPropertyTypeOf(UArrayProperty::StaticClass());
+}
+
+// Localized Text
+bool FPropertyHandleText::Supports(TSharedRef<FPropertyNode> PropertyNode)
+{
+	UProperty* Property = PropertyNode->GetProperty();
+
+	if ( Property == nullptr )
+	{
+		return false;
+	}
+
+	// Supported if the property is a text property only
+	return Property->IsA(UTextProperty::StaticClass());
+}
+
+FPropertyAccess::Result FPropertyHandleText::GetValue(FText& OutValue) const
+{
+	return Implementation->GetValueAsText(OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleText::SetValue(const FText& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FString StringValue;
+	FTextStringHelper::WriteToString(StringValue, NewValue);
+	return Implementation->ImportText(StringValue, Flags);
+}
+
+FPropertyAccess::Result FPropertyHandleText::SetValue(const FString& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	return SetValue(FText::FromString(NewValue), Flags);
 }

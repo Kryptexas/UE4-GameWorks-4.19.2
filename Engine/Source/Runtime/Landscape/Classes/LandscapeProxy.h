@@ -324,12 +324,6 @@ public:
 	UPROPERTY()
 	FIntPoint LandscapeSectionOffset;
 
-#if WITH_EDITORONLY_DATA
-	/** To support legacy landscape section offset modification under world composition mode */
-	UPROPERTY()
-	bool bStaticSectionOffset;
-#endif
-
 	/** Max LOD level to use when rendering, -1 means the max available */
 	UPROPERTY(EditAnywhere, Category=LOD)
 	int32 MaxLODLevel;
@@ -535,8 +529,8 @@ public:
 	// End blueprint functions
 
 	//~ Begin AActor Interface
+	virtual void PostRegisterAllComponents() override;
 	virtual void UnregisterAllComponents() override;
-	virtual void RegisterAllComponents() override;
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return true; }
 
@@ -596,8 +590,6 @@ public:
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PreEditUndo() override;
-	virtual void PostEditUndo() override;
 	virtual void PostEditImport() override;
 	//~ End UObject Interface
 
@@ -606,13 +598,17 @@ public:
 	LANDSCAPE_API static ULandscapeLayerInfoObject* CreateLayerInfo(const TCHAR* LayerName, ULevel* Level);
 	LANDSCAPE_API ULandscapeLayerInfoObject* CreateLayerInfo(const TCHAR* LayerName);
 
-	LANDSCAPE_API ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true);
+	LANDSCAPE_API ULandscapeInfo* CreateLandscapeInfo();
+	LANDSCAPE_API ULandscapeInfo* GetLandscapeInfo() const;
 
 	// Get Landscape Material assigned to this Landscape
 	virtual UMaterialInterface* GetLandscapeMaterial() const;
 
 	// Get Hole Landscape Material assigned to this Landscape
 	virtual UMaterialInterface* GetLandscapeHoleMaterial() const;
+
+	// 
+	void FixupWeightmaps();
 
 	// Remove Invalid weightmaps
 	LANDSCAPE_API void RemoveInvalidWeightmaps();

@@ -12,7 +12,7 @@ LandscapeEdit.h: Classes for the editor to access to Landscape data
 #if WITH_EDITOR
 
 #include "LandscapeProxy.h" // for ELandscapeLayerPaintingRestriction
-#include "FixedSizeArrayView.h"
+#include "Containers/ArrayView.h"
 
 struct FLandscapeTextureDataInfo
 {
@@ -202,10 +202,10 @@ private:
 	                          int32 ComponentIndexY, int32 SubIndexY, int32 SubY);
 
 	// counts the total influence of each weight-blended layer on this component
-	inline TMap<const ULandscapeLayerInfoObject*, uint32> CountWeightBlendedLayerInfluence(int32 ComponentIndexX, int32 ComponentIndexY, TOptional<TFixedSizeArrayView<const uint8* const>> LayerDataPtrs);
+	inline TMap<const ULandscapeLayerInfoObject*, uint32> CountWeightBlendedLayerInfluence(int32 ComponentIndexX, int32 ComponentIndexY, TOptional<TArrayView<const uint8* const>> LayerDataPtrs);
 
 	// chooses a replacement layer to use when erasing from 100% influence on a texel
-	const ULandscapeLayerInfoObject* ChooseReplacementLayer(const ULandscapeLayerInfoObject* LayerInfo, int32 ComponentIndexX, int32 SubIndexX, int32 SubX, int32 ComponentIndexY, int32 SubIndexY, int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TFixedSizeArrayView<const uint8* const> LayerDataPtrs);
+	const ULandscapeLayerInfoObject* ChooseReplacementLayer(const ULandscapeLayerInfoObject* LayerInfo, int32 ComponentIndexX, int32 SubIndexX, int32 SubX, int32 ComponentIndexY, int32 SubIndexY, int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TArrayView<const uint8* const> LayerDataPtrs);
 };
 
 template<typename T>

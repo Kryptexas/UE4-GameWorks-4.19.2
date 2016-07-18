@@ -12,6 +12,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 
 // Forward declarations
+class ULandscapeEditorObject;
 class ULandscapeLayerInfoObject;
 class FLandscapeToolSplines;
 
@@ -218,7 +219,7 @@ class FEdModeLandscape : public FEdMode
 {
 public:
 
-	class ULandscapeEditorObject* UISettings;
+	ULandscapeEditorObject* UISettings;
 
 	FLandscapeToolMode* CurrentToolMode;
 	FLandscapeTool* CurrentTool;

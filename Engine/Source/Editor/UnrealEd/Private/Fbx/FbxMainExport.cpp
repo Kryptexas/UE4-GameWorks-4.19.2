@@ -2909,7 +2909,7 @@ void FFbxExporter::ExportInstancedMeshToFbx(const UInstancedStaticMeshComponent*
  */
 void FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR* MeshName, FbxNode* FbxActor, bool bSelectedOnly)
 {
-	const ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo(false);
+	const ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
 	
 	TSet<ULandscapeComponent*> SelectedComponents;
 	if (bSelectedOnly && LandscapeInfo)

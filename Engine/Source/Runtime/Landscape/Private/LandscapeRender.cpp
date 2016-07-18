@@ -1119,6 +1119,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	MeshBatch.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
 	MeshBatch.DepthPriorityGroup = SDPG_World;
 	MeshBatch.LODIndex = 0;
+	MeshBatch.bRequiresPerElementVisibility = true;
 
 	for (int32 LOD = FirstLOD; LOD <= LastLOD; LOD++)
 	{
@@ -2582,6 +2583,7 @@ public:
 
 		static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
 		static const FName LandscapeVertexFactory = FName(TEXT("FLandscapeVertexFactory"));
+		static const FName LandscapeXYOffsetVertexFactory = FName(TEXT("FLandscapeXYOffsetVertexFactory"));
 		static const FName LandscapeVertexFactoryMobile = FName(TEXT("FLandscapeVertexFactoryMobile"));
 
 		static const FName TBasePassVSFNoLightMapPolicy = FName(TEXT("TBasePassVSFNoLightMapPolicy"));
@@ -2610,7 +2612,9 @@ public:
 			else
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
+				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
 				if (VertexFactoryType->GetFName() == LandscapeVertexFactory ||
+					VertexFactoryType->GetFName() == LandscapeXYOffsetVertexFactory ||
 					VertexFactoryType->GetFName() == LandscapeVertexFactoryMobile)
 				{
 					return true;

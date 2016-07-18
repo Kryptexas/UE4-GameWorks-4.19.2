@@ -19,6 +19,7 @@
 #include "ControlPointMeshComponent.h"
 #include "EditorUndoClient.h"
 #include "EngineUtils.h"
+#include "Algo/Copy.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -85,16 +86,8 @@ public:
 		{
 			TArray<UObject*> Objects;
 			Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
-
-			for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
-			{
-				Objects.Add(ControlPoint);
-			}
-			for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
-			{
-				Objects.Add(Segment);
-			}
-
+			Algo::Copy(SelectedSplineControlPoints, Objects);
+			Algo::Copy(SelectedSplineSegments, Objects);
 
 			FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 			PropertyModule.UpdatePropertyViews(Objects);
@@ -632,7 +625,7 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo();
 					check(ProxyLandscapeInfo);
 					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
@@ -722,7 +715,7 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo();
 					check(ProxyLandscapeInfo);
 					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
@@ -816,15 +809,8 @@ public:
 	{
 		TArray<UObject*> Objects;
 		Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
-
-		for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
-		{
-			Objects.Add(ControlPoint);
-		}
-		for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
-		{
-			Objects.Add(Segment);
-		}
+		Algo::Copy(SelectedSplineControlPoints, Objects);
+		Algo::Copy(SelectedSplineSegments, Objects);
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 		if (!PropertyModule.HasUnlockedDetailViews())

@@ -11,7 +11,6 @@
 #include "MaterialUtilities.h"
 #include "RawMesh.h"
 #include "LandscapeEditorUtils.h"
-#include "ImageWrapper.h"
 
 #include "WorldTileDetails.h"
 #include "WorldTileDetailsCustomization.h"
@@ -28,6 +27,7 @@
 #include "LandscapeMeshProxyComponent.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "LandscapeEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -1430,72 +1430,45 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 	}
 }
 
-template<typename DataType>
-static bool ReadRawFile(TArray<DataType>& Result, const FString& Filename, uint32 Flags = 0)
-{
-	auto Reader = TScopedPointer<FArchive>(IFileManager::Get().CreateFileReader(*Filename, Flags));
-	if (!Reader)
-	{
-		if (!(Flags & FILEREAD_Silent))
-		{
-			UE_LOG(LogStreaming, Warning, TEXT("Failed to read file '%s' error."), *Filename);
-		}
-		return 0;
-	}
-	Result.SetNumUninitialized(Reader->TotalSize()/Result.GetTypeSize());
-	Reader->Serialize(Result.GetData(), Result.Num()*Result.GetTypeSize());
-	return Reader->Close();
-}
-
-static bool ReadHeightmapFile(TArray<uint16>& Result, const FString& Filename, uint32 Flags = 0)
+static bool ReadHeightmapFile(TArray<uint16>& Result, const FString& Filename, int32 ExpectedWidth, int32 ExpectedHeight)
 {
 	bool bResult = true;
-	if (Filename.EndsWith(TEXT(".png")))
+
+	ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
+	const ILandscapeHeightmapFileFormat* HeightmapFormat = LandscapeEditorModule.GetHeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
+
+	FLandscapeHeightmapImportData ImportData = HeightmapFormat->Import(*Filename, {(uint32)ExpectedWidth, (uint32)ExpectedHeight});
+	if (ImportData.ResultCode != ELandscapeImportResult::Error)
 	{
-		TArray<uint8> FileRawData;
-		bResult = ReadRawFile(FileRawData, Filename, Flags);
-		if (bResult)
-		{
-			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-			bResult = ImageWrapper->SetCompressed(FileRawData.GetData(), FileRawData.Num());
-			if (bResult)
-			{
-				const TArray<uint8>* RawData = nullptr;
-				bResult = ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawData);
-				if (bResult)
-				{
-					Result.AddUninitialized(RawData->Num()/2);
-					FMemory::Memcpy(Result.GetData(), RawData->GetData(), RawData->Num());
-				}
-			}
-		}
+		Result = MoveTemp(ImportData.Data);
 	}
 	else
 	{
-		bResult = ReadRawFile(Result, Filename, Flags);
+		UE_LOG(LogStreaming, Warning, TEXT("%s"), *ImportData.ErrorMessage.ToString());
+		Result.Empty();
+		bResult = false;
 	}
 
 	return bResult;
 }
 
-static bool ReadWeightmapFile(TArray<uint8>& Result, const FString& Filename, uint32 Flags = 0)
+static bool ReadWeightmapFile(TArray<uint8>& Result, const FString& Filename, FName LayerName, int32 ExpectedWidth, int32 ExpectedHeight)
 {
-	bool bResult = ReadRawFile(Result, Filename, Flags);
-	if (bResult && Filename.EndsWith(TEXT(".png")))
+	bool bResult = true;
+
+	ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
+	const ILandscapeWeightmapFileFormat* WeightmapFormat = LandscapeEditorModule.GetWeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
+
+	FLandscapeWeightmapImportData ImportData = WeightmapFormat->Import(*Filename, LayerName, {(uint32)ExpectedWidth, (uint32)ExpectedHeight});
+	if (ImportData.ResultCode != ELandscapeImportResult::Error)
 	{
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-		bResult = ImageWrapper->SetCompressed(Result.GetData(), Result.Num());
-		if (bResult)
-		{
-			const TArray<uint8>* RawData = nullptr;
-			bResult = ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData);
-			if (bResult)
-			{
-				Result = *RawData;
-			}
-		}
+		Result = MoveTemp(ImportData.Data);
+	}
+	else
+	{
+		UE_LOG(LogStreaming, Warning, TEXT("%s"), *ImportData.ErrorMessage.ToString());
+		Result.Empty();
+		bResult = false;
 	}
 
 	return bResult;
@@ -1551,7 +1524,7 @@ static void SetupLandscapeImportLayers(const FTiledLandscapeImportSettings& InIm
 			if (WeightmapFile)
 			{
 				LayerImportInfo.SourceFilePath = *WeightmapFile;
-				ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, FILEREAD_Silent);
+				ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, LayerImportInfo.LayerName, InImportSettings.SizeX, InImportSettings.SizeX);
 			}
 		}
 
@@ -1616,7 +1589,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			{
 				Landscape->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(ImportLayerInfo.LayerInfo));
 			}
-			ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), false);
+			Landscape->CreateLandscapeInfo();
 		}
 
 		// Import tiles
@@ -1645,7 +1618,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), TileIndex, TileImportSettings.ImportLayers);
 			TileImportSettings.ImportLayerType = ELandscapeImportAlphamapType::Additive;
 
-			if (ReadHeightmapFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
+			if (ReadHeightmapFile(TileImportSettings.HeightData, Filename, TileImportSettings.SizeX, TileImportSettings.SizeY))
 			{
 				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();
 				// Create a new world - so we can 'borrow' its level
@@ -1738,6 +1711,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 		TileModel->SetVisible(true);
 
 		ALandscapeProxy* Landscape = TileModel->GetLandscape();
+		FIntRect LandscapeSize = Landscape->GetBoundingRect();
 
 		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::VisibilityLayer;
 
@@ -1746,7 +1720,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 			if (!Landscape->ReimportHeightmapFilePath.IsEmpty())
 			{
 				TArray<uint16> RawData;
-				ReadHeightmapFile(RawData, *Landscape->ReimportHeightmapFilePath, FILEREAD_Silent);
+				ReadHeightmapFile(RawData, *Landscape->ReimportHeightmapFilePath, LandscapeSize.Width(), LandscapeSize.Height());
 				LandscapeEditorUtils::SetHeightmapData(Landscape, RawData);
 			}
 		}
@@ -1759,7 +1733,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 					if (!LayerSettings.ReimportLayerFilePath.IsEmpty())
 					{
 						TArray<uint8> RawData;
-						ReadWeightmapFile(RawData, *LayerSettings.ReimportLayerFilePath, FILEREAD_Silent);
+						ReadWeightmapFile(RawData, *LayerSettings.ReimportLayerFilePath, LayerSettings.LayerInfoObj->LayerName, LandscapeSize.Width(), LandscapeSize.Height());
 						LandscapeEditorUtils::SetWeightmapData(Landscape, LayerSettings.LayerInfoObj, RawData);
 
 						if (TargetLayer != NAME_None)

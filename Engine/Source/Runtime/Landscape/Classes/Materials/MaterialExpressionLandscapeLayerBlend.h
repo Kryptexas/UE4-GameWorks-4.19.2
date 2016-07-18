@@ -51,7 +51,7 @@ struct FLayerBlendInput
 };
 
 UCLASS(collapsecategories, hidecategories=Object)
-class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
+class LANDSCAPE_API UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
@@ -83,7 +83,7 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 	virtual UTexture* GetReferencedTexture() override;
 	//~ End UMaterialExpression Interface
 
-	LANDSCAPE_API virtual FGuid& GetParameterExpressionId() override;
+	virtual FGuid& GetParameterExpressionId() override;
 
 	/**
 	 * Get list of parameter names for static parameter sets

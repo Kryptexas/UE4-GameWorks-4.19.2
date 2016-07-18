@@ -372,6 +372,7 @@ public:
 	DECLARE_PROPERTY_ACCESSOR( uint64 )
 	DECLARE_PROPERTY_ACCESSOR( float )
 	DECLARE_PROPERTY_ACCESSOR( FString )
+	DECLARE_PROPERTY_ACCESSOR( FText )
 	DECLARE_PROPERTY_ACCESSOR( FName )
 	DECLARE_PROPERTY_ACCESSOR( FVector )
 	DECLARE_PROPERTY_ACCESSOR( FVector2D )
@@ -592,4 +593,15 @@ private:
 	 * @return Whether or not the array can be modified
 	 */
 	bool IsEditable() const;
+};
+
+class FPropertyHandleText : public FPropertyHandleBase
+{
+public:
+	FPropertyHandleText(TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook,TSharedPtr<IPropertyUtilities> PropertyUtilities);
+	static bool Supports(TSharedRef<FPropertyNode> PropertyNode);
+	virtual FPropertyAccess::Result GetValue(FText& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const FText& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
+
+	virtual FPropertyAccess::Result SetValue(const FString& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
 };

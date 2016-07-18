@@ -1274,7 +1274,7 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 		}
 	}
 
-	TFixedSizeArrayView<FCompactPose> ChildrenPosesView(ChildrenPoses);
+	TArrayView<FCompactPose> ChildrenPosesView(ChildrenPoses);
 
 	if (PerBoneBlend.Num() > 0)
 	{

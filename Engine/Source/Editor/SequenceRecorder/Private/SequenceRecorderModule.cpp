@@ -481,7 +481,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return CurrentSequence.IsValid() ? CurrentSequence->GetMovieScene()->GetPlaybackRange().Size<float>() : 0.0f;
 	}
 
-	virtual bool StartRecording(TFixedSizeArrayView<AActor*> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo, const FString& SequenceName) override
+	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo, const FString& SequenceName) override
 	{
 		if(ActorsToRecord.Num() != 0)
 		{

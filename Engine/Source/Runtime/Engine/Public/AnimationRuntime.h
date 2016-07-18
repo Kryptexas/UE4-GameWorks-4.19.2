@@ -10,7 +10,7 @@
 #include "BonePose.h"
 #include "AnimTypes.h"
 #include "AnimCurveTypes.h"
-#include "FixedSizeArrayView.h"
+#include "Containers/ArrayView.h"
 
 struct FInputBlendPose;
 struct FA2CSPose;
@@ -53,7 +53,7 @@ FORCEINLINE void BlendTransform<ETransformBlendMode::Accumulate>(const FTransfor
 	Dest.AccumulateWithShortestRotation(Source, VBlendWeight);
 }
 
-FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve)
+FORCEINLINE void BlendCurves(const TArrayView<const FBlendedCurve> SourceCurves, const TArrayView<const float> SourceWeights, FBlendedCurve& OutCurve)
 {
 	if (SourceCurves.Num() > 0)
 	{
@@ -99,9 +99,9 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogether(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const TFixedSizeArrayView<float>& SourceWeights,
+		TArrayView<const FCompactPose> SourcePoses,
+		TArrayView<const FBlendedCurve> SourceCurves,
+		TArrayView<const float> SourceWeights,
 		/*out*/ FCompactPose& ResultPose, 
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -117,10 +117,10 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogether(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const TFixedSizeArrayView<float>& SourceWeights,
-		const TFixedSizeArrayView<int32>& SourceWeightsIndices,
+		TArrayView<const FCompactPose> SourcePoses,
+		TArrayView<const FBlendedCurve> SourceCurves,
+		TArrayView<const float> SourceWeights,
+		TArrayView<const int32> SourceWeightsIndices,
 		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -134,10 +134,10 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogetherIndirect(
-		const TFixedSizeArrayView<const FCompactPose*>& SourcePoses,
-		const TFixedSizeArrayView<const FBlendedCurve*>& SourceCurves,
-		const TFixedSizeArrayView<float>& SourceWeights,
-		/*out*/ FCompactPose& ResultPose, 
+		TArrayView<const FCompactPose* const> SourcePoses,
+		TArrayView<const FBlendedCurve* const> SourceCurves,
+		TArrayView<const float> SourceWeights,
+		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
 	/**
@@ -184,11 +184,11 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogetherPerBone(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const IInterpolationIndexProvider* IndexProvider,
-		const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache,
-		/*out*/ FCompactPose& ResultPose, 
+		TArrayView<const FCompactPose> SourcePoses,
+		TArrayView<const FBlendedCurve> SourceCurves,
+		const IInterpolationIndexProvider* InterpolationIndexProvider,
+		TArrayView<const FBlendSampleData> BlendSampleDataCache,
+		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
 	/**
@@ -200,11 +200,11 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogetherPerBone(
-		const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-		const IInterpolationIndexProvider* IndexProvider,
-		const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache,
-		const TFixedSizeArrayView<int32>& BlendSampleDataCacheIndices,
+		TArrayView<const FCompactPose> SourcePoses,
+		TArrayView<const FBlendedCurve> SourceCurves,
+		const IInterpolationIndexProvider* InterpolationIndexProvider,
+		TArrayView<const FBlendSampleData> BlendSampleDataCache,
+		TArrayView<const int32> BlendSampleDataCacheIndices,
 		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -217,10 +217,10 @@ public:
 	* @param	ResultPose		Output pose of relative bone transforms.
 	*/
 	static void BlendPosesTogetherPerBoneInMeshSpace(
-		TFixedSizeArrayView<FCompactPose>& SourcePoses,
-		const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
+		TArrayView<FCompactPose> SourcePoses,
+		TArrayView<const FBlendedCurve> SourceCurves,
 		const UBlendSpaceBase* BlendSpace,
-		const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache,
+		TArrayView<const FBlendSampleData> BlendSampleDataCache,
 		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 

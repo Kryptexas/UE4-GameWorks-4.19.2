@@ -78,7 +78,7 @@ FORCEINLINE void BlendPose(const FCompactPose& SourcePose, FCompactPose& ResultP
 	}
 }
 
-FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, const TFixedSizeArrayView<int32>& SourceWeightsIndices, FBlendedCurve& OutCurve)
+FORCEINLINE void BlendCurves(const TArrayView<const FBlendedCurve> SourceCurves, const TArrayView<const float> SourceWeights, const TArrayView<const int32> SourceWeightsIndices, FBlendedCurve& OutCurve)
 {
 	if (SourceCurves.Num() > 0)
 	{
@@ -91,7 +91,7 @@ FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCur
 	}
 }
 
-FORCEINLINE void BlendCurves(const TFixedSizeArrayView<const FBlendedCurve*>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve)
+FORCEINLINE void BlendCurves(const TArrayView<const FBlendedCurve* const> SourceCurves, const TArrayView<const float> SourceWeights, FBlendedCurve& OutCurve)
 {
 	if(SourceCurves.Num() > 0)
 	{
@@ -104,7 +104,7 @@ FORCEINLINE void BlendCurves(const TFixedSizeArrayView<const FBlendedCurve*>& So
 	}
 }
 
-FORCEINLINE void BlendCurves(const TFixedSizeArrayView<const FBlendedCurve*>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve, ECurveBlendOption::Type BlendOption)
+FORCEINLINE void BlendCurves(const TArrayView<const FBlendedCurve* const> SourceCurves, const TArrayView<const float> SourceWeights, FBlendedCurve& OutCurve, ECurveBlendOption::Type BlendOption)
 {
 	if(SourceCurves.Num() > 0)
 	{
@@ -149,9 +149,9 @@ FORCEINLINE void BlendCurves(const TFixedSizeArrayView<const FBlendedCurve*>& So
 }
 
 void FAnimationRuntime::BlendPosesTogether(
-	const TFixedSizeArrayView<FCompactPose>& SourcePoses,
-	const TFixedSizeArrayView<FBlendedCurve>& SourceCurves,
-	const TFixedSizeArrayView<float>& SourceWeights,
+	const TArrayView<const FCompactPose> SourcePoses,
+	const TArrayView<const FBlendedCurve> SourceCurves,
+	const TArrayView<const float> SourceWeights,
 	/*out*/ FCompactPose& ResultPose, 
 	/*out*/ FBlendedCurve& ResultCurve)
 {
@@ -177,7 +177,13 @@ void FAnimationRuntime::BlendPosesTogether(
 	}
 }
 
-void FAnimationRuntime::BlendPosesTogether(const TFixedSizeArrayView<FCompactPose>& SourcePoses, const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, const TFixedSizeArrayView<int32>& SourceWeightsIndices, /*out*/ FCompactPose& ResultPose, /*out*/ FBlendedCurve& ResultCurve)
+void FAnimationRuntime::BlendPosesTogether(
+	const TArrayView<const FCompactPose> SourcePoses,
+	const TArrayView<const FBlendedCurve> SourceCurves,
+	const TArrayView<const float> SourceWeights,
+	const TArrayView<const int32> SourceWeightsIndices,
+	/*out*/ FCompactPose& ResultPose,
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
 
@@ -202,10 +208,10 @@ void FAnimationRuntime::BlendPosesTogether(const TFixedSizeArrayView<FCompactPos
 }
 
 void FAnimationRuntime::BlendPosesTogetherIndirect(
-	const TFixedSizeArrayView<const FCompactPose*>& SourcePoses,
-	const TFixedSizeArrayView<const FBlendedCurve*>& SourceCurves,
-	const TFixedSizeArrayView<float>& SourceWeights,
-	/*out*/ FCompactPose& ResultPose, 
+	const TArrayView<const FCompactPose* const> SourcePoses,
+	const TArrayView<const FBlendedCurve* const> SourceCurves,
+	const TArrayView<const float> SourceWeights,
+	/*out*/ FCompactPose& ResultPose,
 	/*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
@@ -318,7 +324,13 @@ void BlendPosePerBone(const TArray<int32>& PerBoneIndices, const FBlendSampleDat
 	}
 }
 
-void FAnimationRuntime::BlendPosesTogetherPerBone(const TFixedSizeArrayView<FCompactPose>& SourcePoses, const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const IInterpolationIndexProvider* InterpolationIndexProvider, const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& ResultPose, /*out*/ FBlendedCurve& ResultCurve)
+void FAnimationRuntime::BlendPosesTogetherPerBone(
+	const TArrayView<const FCompactPose> SourcePoses,
+	const TArrayView<const FBlendedCurve> SourceCurves,
+	const IInterpolationIndexProvider* InterpolationIndexProvider,
+	const TArrayView<const FBlendSampleData> BlendSampleDataCache,
+	/*out*/ FCompactPose& ResultPose,
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
 
@@ -354,7 +366,14 @@ void FAnimationRuntime::BlendPosesTogetherPerBone(const TFixedSizeArrayView<FCom
 	}
 }
 
-void FAnimationRuntime::BlendPosesTogetherPerBone(const TFixedSizeArrayView<FCompactPose>& SourcePoses, const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const IInterpolationIndexProvider* InterpolationIndexProvider, const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache, const TFixedSizeArrayView<int32>& BlendSampleDataCacheIndices, /*out*/ FCompactPose& ResultPose, /*out*/ FBlendedCurve& ResultCurve)
+void FAnimationRuntime::BlendPosesTogetherPerBone(
+	const TArrayView<const FCompactPose> SourcePoses,
+	const TArrayView<const FBlendedCurve> SourceCurves,
+	const IInterpolationIndexProvider* InterpolationIndexProvider,
+	const TArrayView<const FBlendSampleData> BlendSampleDataCache,
+	const TArrayView<const int32> BlendSampleDataCacheIndices,
+	/*out*/ FCompactPose& ResultPose,
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
 
@@ -390,7 +409,13 @@ void FAnimationRuntime::BlendPosesTogetherPerBone(const TFixedSizeArrayView<FCom
 	}
 }
 
-void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(TFixedSizeArrayView<FCompactPose>& SourcePoses, const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const UBlendSpaceBase* BlendSpace, const TFixedSizeArrayView<FBlendSampleData>& BlendSampleDataCache, FCompactPose& ResultPose, FBlendedCurve& ResultCurve)
+void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(
+	const TArrayView<FCompactPose> SourcePoses,
+	const TArrayView<const FBlendedCurve> SourceCurves,
+	const UBlendSpaceBase* BlendSpace,
+	const TArrayView<const FBlendSampleData> BlendSampleDataCache,
+	/*out*/ FCompactPose& ResultPose,
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	FQuat NewRotation;
 	USkeleton* Skeleton = BlendSpace->GetSkeleton();

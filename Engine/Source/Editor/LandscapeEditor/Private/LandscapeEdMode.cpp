@@ -312,7 +312,7 @@ void FEdModeLandscape::Enter()
 	ALandscapeProxy* SelectedLandscape = GEditor->GetSelectedActors()->GetTop<ALandscapeProxy>();
 	if (SelectedLandscape)
 	{
-		CurrentToolTarget.LandscapeInfo = SelectedLandscape->GetLandscapeInfo(false);
+		CurrentToolTarget.LandscapeInfo = SelectedLandscape->GetLandscapeInfo();
 		GEditor->SelectNone(false, true);
 		GEditor->SelectActor(SelectedLandscape, true, false);
 	}
@@ -2389,169 +2389,234 @@ void FEdModeLandscape::ReimportData(const FLandscapeTargetListInfo& TargetInfo)
 void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, const FString& Filename)
 {
 	ULandscapeInfo* LandscapeInfo = TargetInfo.LandscapeInfo.Get();
-	if (LandscapeInfo != NULL)
+	int32 MinX, MinY, MaxX, MaxY;
+	if (LandscapeInfo && LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
 	{
-		TArray<uint8> Data;
-		int32 MinX, MinY, MaxX, MaxY;
-		if (FFileHelper::LoadFileToArray(Data, *Filename) &&
-			LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
+		const FLandscapeFileResolution LandscapeResolution = {(uint32)(1 + MaxX - MinX), (uint32)(1 + MaxY - MinY)};
+
+		ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
+
+		if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
 		{
-			const int32 SizeX = (1 + MaxX - MinX);
-			const int32 SizeY = (1 + MaxY - MinY);
+			const ILandscapeHeightmapFileFormat* HeightmapFormat = LandscapeEditorModule.GetHeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
 
-			IImageWrapperPtr ImageWrapper = nullptr;
-			const TArray<uint8>* RawData = nullptr; // Pointer to actual used data, actual store could be in Data or ImageWrapper
-
-			if (Filename.EndsWith(".png"))
+			if (!HeightmapFormat)
 			{
-				IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-				ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+				FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_UnknownFileType", "File type not recognised"));
 
-				if (ImageWrapper->SetCompressed(Data.GetData(), Data.Num()))
+				return;
+			}
+
+			FLandscapeFileResolution ImportResolution = {0, 0};
+
+			const FLandscapeHeightmapInfo HeightmapInfo = HeightmapFormat->Validate(*Filename);
+
+			// display error message if there is one, and abort the import
+			if (HeightmapInfo.ResultCode == ELandscapeImportResult::Error)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, HeightmapInfo.ErrorMessage);
+
+				return;
+			}
+
+			// if the file is a raw format with multiple possibly resolutions, only attempt import if one matches the current landscape
+			if (HeightmapInfo.PossibleResolutions.Num() > 1)
+			{
+				if (!HeightmapInfo.PossibleResolutions.Contains(LandscapeResolution))
 				{
-					const int32 ImportSizeX = ImageWrapper->GetWidth();
-					const int32 ImportSizeY = ImageWrapper->GetHeight();
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("LandscapeSizeX"), LandscapeResolution.Width);
+					Args.Add(TEXT("LandscapeSizeY"), LandscapeResolution.Height);
 
-					if (ImportSizeX != SizeX || ImportSizeY != SizeY)
-					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("FileSizeX"), ImportSizeX);
-						Args.Add(TEXT("FileSizeY"), ImportSizeY);
-						Args.Add(TEXT("LandscapeSizeX"), SizeX);
-						Args.Add(TEXT("LandscapeSizeY"), SizeY);
+					FMessageDialog::Open(EAppMsgType::Ok,
+						FText::Format(NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_HeightmapSizeMismatchRaw", "The heightmap file does not match the current Landscape extent ({LandscapeSizeX}\u00D7{LandscapeSizeY}), and its exact resolution could not be determined"), Args));
 
-						auto Result = FMessageDialog::Open(EAppMsgType::OkCancel,
-							FText::Format(NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_SizeMismatch", "File's size ({FileSizeX}\u00D7{FileSizeY}) does not match with current Landscape extent ({LandscapeSizeX}\u00D7{LandscapeSizeY}), if you continue it will be padded/clipped to fit"), Args));
-
-						if (Result != EAppReturnType::Ok)
-						{
-							return;
-						}
-					}
-
-					if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
-					{
-						if (ImageWrapper->GetFormat() != ERGBFormat::Gray)
-						{
-							EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_HeightmapFileColorPng", "The Heightmap file appears to be a color png, grayscale is expected. The import *can* continue, but the result may not be what you expect..."));
-							if (Result != EAppReturnType::Ok)
-							{
-								return;
-							}
-						}
-						else if (ImageWrapper->GetBitDepth() != 16)
-						{
-							EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_HeightmapFileLowBitDepth", "The Heightmap file appears to be an 8-bit png, 16-bit is preferred. The import *can* continue, but the result may be lower quality than desired."));
-							if (Result != EAppReturnType::Ok)
-							{
-								return;
-							}
-						}
-
-						if (ImageWrapper->GetBitDepth() <= 8)
-						{
-							ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData);
-							Data.Reset();
-							Data.SetNumUninitialized(RawData->Num() * sizeof(uint16));
-							uint16* DataPtr = (uint16*)Data.GetData();
-							for (int32 i = 0; i < RawData->Num(); i++)
-							{
-								DataPtr[i] = (*RawData)[i] * 0x101; // Expand to 16-bit
-							}
-							RawData = &Data;
-						}
-						else
-						{
-							ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawData);
-						}
-					}
-					else
-					{
-						if (ImageWrapper->GetFormat() != ERGBFormat::Gray)
-						{
-							EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_LayerColorPng", "The Layer file appears to be a color png, grayscale is expected. The import *can* continue, but the result may not be what you expect..."));
-							if (Result != EAppReturnType::Ok)
-							{
-								return;
-							}
-						}
-
-						ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData);
-					}
-
-					if (ImportSizeX != SizeX || ImportSizeY != SizeY)
-					{
-						// Cloned from FLandscapeEditorDetailCustomization_NewLandscape.OnCreateButtonClicked
-						// so that reimports behave the same as the initial import :)
-
-						const int32 OffsetX = (SizeX - ImportSizeX) / 2;
-						const int32 OffsetY = (SizeY - ImportSizeY) / 2;
-
-						if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
-						{
-							// have to use a TempData because RawData could be pointing to Data
-							TArray<uint8> TempData;
-							TempData.SetNumUninitialized(SizeX * SizeY * sizeof(uint16));
-
-							LandscapeEditorUtils::ExpandData<uint16>((uint16*)TempData.GetData(), (const uint16*)RawData->GetData(),
-								0, 0, ImportSizeX - 1, ImportSizeY - 1,
-								-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
-
-							Data = MoveTemp(TempData);
-							RawData = &Data;
-						}
-						else
-						{
-							Data = LandscapeEditorUtils::ExpandData<uint8>(*RawData,
-								0, 0, ImportSizeX - 1, ImportSizeY - 1,
-								-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
-							RawData = &Data;
-						}
-					}
+					return;
 				}
 				else
 				{
-					FMessageDialog::Open(EAppMsgType::Ok,
-						FText::Format(LOCTEXT("ImportData_CorruptPngFile", "Import of {0} failed (corrupt png?)"), FText::FromString(Filename)));
+					ImportResolution = LandscapeResolution;
+				}
+			}
+
+			// display warning message if there is one and allow user to cancel
+			if (HeightmapInfo.ResultCode == ELandscapeImportResult::Warning)
+			{
+				auto Result = FMessageDialog::Open(EAppMsgType::OkCancel, HeightmapInfo.ErrorMessage);
+
+				if (Result != EAppReturnType::Ok)
+				{
 					return;
 				}
 			}
-			else
+
+			// if the file is a format with resolution information, warn the user if the resolution doesn't match the current landscape
+			// unlike for raw this is only a warning as we can pad/clip the data if we know what resolution it is
+			if (HeightmapInfo.PossibleResolutions.Num() == 1)
 			{
-				// I would love to deprecate the raw/r8/r16 support for landscape, r16 doesn't even handle endianness issues...
-				RawData = &Data;
+				ImportResolution = HeightmapInfo.PossibleResolutions[0];
+				if (ImportResolution != LandscapeResolution)
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("FileSizeX"), ImportResolution.Width);
+					Args.Add(TEXT("FileSizeY"), ImportResolution.Height);
+					Args.Add(TEXT("LandscapeSizeX"), LandscapeResolution.Width);
+					Args.Add(TEXT("LandscapeSizeY"), LandscapeResolution.Height);
+
+					auto Result = FMessageDialog::Open(EAppMsgType::OkCancel,
+						FText::Format(NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_HeightmapSizeMismatch", "The heightmap file's size ({FileSizeX}\u00D7{FileSizeY}) does not match the current Landscape extent ({LandscapeSizeX}\u00D7{LandscapeSizeY}), if you continue it will be padded/clipped to fit"), Args));
+
+					if (Result != EAppReturnType::Ok)
+					{
+						return;
+					}
+				}
 			}
 
-			if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
-			{
-				if (RawData->Num() == SizeX * SizeY * sizeof(uint16))
-				{
-					FScopedTransaction Transaction(LOCTEXT("Undo_ImportHeightmap", "Importing Landscape Heightmap"));
+			FLandscapeHeightmapImportData ImportData = HeightmapFormat->Import(*Filename, ImportResolution);
 
-					FHeightmapAccessor<false> HeightmapAccessor(LandscapeInfo);
-					HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, (const uint16*)RawData->GetData());
+			if (ImportData.ResultCode == ELandscapeImportResult::Error)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, ImportData.ErrorMessage);
+
+				return;
+			}
+
+			TArray<uint16> Data;
+			if (ImportResolution != LandscapeResolution)
+			{
+				// Cloned from FLandscapeEditorDetailCustomization_NewLandscape.OnCreateButtonClicked
+				// so that reimports behave the same as the initial import :)
+
+				const int32 OffsetX = (int32)(LandscapeResolution.Width - ImportResolution.Width) / 2;
+				const int32 OffsetY = (int32)(LandscapeResolution.Height - ImportResolution.Height) / 2;
+
+				Data.SetNumUninitialized(LandscapeResolution.Width * LandscapeResolution.Height * sizeof(uint16));
+
+				LandscapeEditorUtils::ExpandData<uint16>(Data.GetData(), ImportData.Data.GetData(),
+					0, 0, ImportResolution.Width - 1, ImportResolution.Height - 1,
+					-OffsetX, -OffsetY, LandscapeResolution.Width - OffsetX - 1, LandscapeResolution.Height - OffsetY - 1);
+			}
+			else
+			{
+				Data = MoveTemp(ImportData.Data);
+			}
+
+			FScopedTransaction Transaction(LOCTEXT("Undo_ImportHeightmap", "Importing Landscape Heightmap"));
+
+			FHeightmapAccessor<false> HeightmapAccessor(LandscapeInfo);
+			HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, Data.GetData());
+		}
+		else
+		{
+			const ILandscapeWeightmapFileFormat* WeightmapFormat = LandscapeEditorModule.GetWeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
+
+			if (!WeightmapFormat)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_UnknownFileType", "File type not recognised"));
+
+				return;
+			}
+
+			FLandscapeFileResolution ImportResolution = {0, 0};
+
+			const FLandscapeWeightmapInfo WeightmapInfo = WeightmapFormat->Validate(*Filename, TargetInfo.LayerName);
+
+			// display error message if there is one, and abort the import
+			if (WeightmapInfo.ResultCode == ELandscapeImportResult::Error)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, WeightmapInfo.ErrorMessage);
+
+				return;
+			}
+
+			// if the file is a raw format with multiple possibly resolutions, only attempt import if one matches the current landscape
+			if (WeightmapInfo.PossibleResolutions.Num() > 1)
+			{
+				if (!WeightmapInfo.PossibleResolutions.Contains(LandscapeResolution))
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("LandscapeSizeX"), LandscapeResolution.Width);
+					Args.Add(TEXT("LandscapeSizeY"), LandscapeResolution.Height);
+
+					FMessageDialog::Open(EAppMsgType::Ok,
+						FText::Format(NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_LayerSizeMismatchRaw", "The layer file does not match the current Landscape extent ({LandscapeSizeX}\u00D7{LandscapeSizeY}), and its exact resolution could not be determined"), Args));
+
+					return;
 				}
 				else
 				{
-					FMessageDialog::Open(EAppMsgType::Ok,
-						FText::Format(NSLOCTEXT("UnrealEd", "LandscapeReImport_BadFileSize", "{0}'s filesize does not match with current Landscape extent"), FText::FromString(Filename)));
+					ImportResolution = LandscapeResolution;
 				}
+			}
+
+			// display warning message if there is one and allow user to cancel
+			if (WeightmapInfo.ResultCode == ELandscapeImportResult::Warning)
+			{
+				auto Result = FMessageDialog::Open(EAppMsgType::OkCancel, WeightmapInfo.ErrorMessage);
+
+				if (Result != EAppReturnType::Ok)
+				{
+					return;
+				}
+			}
+
+			// if the file is a format with resolution information, warn the user if the resolution doesn't match the current landscape
+			// unlike for raw this is only a warning as we can pad/clip the data if we know what resolution it is
+			if (WeightmapInfo.PossibleResolutions.Num() == 1)
+			{
+				ImportResolution = WeightmapInfo.PossibleResolutions[0];
+				if (ImportResolution != LandscapeResolution)
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("FileSizeX"), ImportResolution.Width);
+					Args.Add(TEXT("FileSizeY"), ImportResolution.Height);
+					Args.Add(TEXT("LandscapeSizeX"), LandscapeResolution.Width);
+					Args.Add(TEXT("LandscapeSizeY"), LandscapeResolution.Height);
+
+					auto Result = FMessageDialog::Open(EAppMsgType::OkCancel,
+						FText::Format(NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_LayerSizeMismatch", "The layer file's size ({FileSizeX}\u00D7{FileSizeY}) does not match the current Landscape extent ({LandscapeSizeX}\u00D7{LandscapeSizeY}), if you continue it will be padded/clipped to fit"), Args));
+
+					if (Result != EAppReturnType::Ok)
+					{
+						return;
+					}
+				}
+			}
+
+			FLandscapeWeightmapImportData ImportData = WeightmapFormat->Import(*Filename, TargetInfo.LayerName, ImportResolution);
+
+			if (ImportData.ResultCode == ELandscapeImportResult::Error)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, ImportData.ErrorMessage);
+
+				return;
+			}
+
+			TArray<uint8> Data;
+			if (ImportResolution != LandscapeResolution)
+			{
+				// Cloned from FLandscapeEditorDetailCustomization_NewLandscape.OnCreateButtonClicked
+				// so that reimports behave the same as the initial import :)
+
+				const int32 OffsetX = (int32)(LandscapeResolution.Width - ImportResolution.Width) / 2;
+				const int32 OffsetY = (int32)(LandscapeResolution.Height - ImportResolution.Height) / 2;
+
+				Data.SetNumUninitialized(LandscapeResolution.Width * LandscapeResolution.Height * sizeof(uint8));
+
+				LandscapeEditorUtils::ExpandData<uint8>(Data.GetData(), ImportData.Data.GetData(),
+					0, 0, ImportResolution.Width - 1, ImportResolution.Height - 1,
+					-OffsetX, -OffsetY, LandscapeResolution.Width - OffsetX - 1, LandscapeResolution.Height - OffsetY - 1);
 			}
 			else
 			{
-				if (RawData->Num() == SizeX * SizeY)
-				{
-					FScopedTransaction Transaction(LOCTEXT("Undo_ImportWeightmap", "Importing Landscape Layer"));
-
-					FAlphamapAccessor<false, false> AlphamapAccessor(LandscapeInfo, TargetInfo.LayerInfoObj.Get());
-					AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, RawData->GetData(), ELandscapeLayerPaintingRestriction::None);
-				}
-				else
-				{
-					FMessageDialog::Open(EAppMsgType::Ok,
-						FText::Format(NSLOCTEXT("UnrealEd", "LandscapeReImport_BadFileSize", "{0}'s filesize does not match with current Landscape extent"), FText::FromString(Filename)));
-				}
+				Data = MoveTemp(ImportData.Data);
 			}
+
+			FScopedTransaction Transaction(LOCTEXT("Undo_ImportWeightmap", "Importing Landscape Layer"));
+
+			FAlphamapAccessor<false, false> AlphamapAccessor(LandscapeInfo, TargetInfo.LayerInfoObj.Get());
+			AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, Data.GetData(), ELandscapeLayerPaintingRestriction::None);
 		}
 	}
 }
@@ -2706,6 +2771,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->EditorLayerSettings = OldLandscapeProxy->EditorLayerSettings;
 			Landscape->bUsedForNavigation = OldLandscapeProxy->bUsedForNavigation;
 			Landscape->MaxPaintedLayersPerComponent = OldLandscapeProxy->MaxPaintedLayersPerComponent;
+
+			Landscape->CreateLandscapeInfo();
 
 			// Clone landscape splines
 			TLazyObjectPtr<ALandscape> OldLandscapeActor = LandscapeInfo->LandscapeActor;
