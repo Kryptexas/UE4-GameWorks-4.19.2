@@ -500,7 +500,6 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 
 	int32 NumIndices, IndexStride;
 	GetIndexAllocInfo(NumIndices, IndexStride);
-	check((uint32)NumIndices <= 65535);
 	check(IndexStride > 0);
 
 	DynamicIndexAllocation = FGlobalDynamicIndexBuffer::Get().Allocate( NumIndices, IndexStride );
@@ -1060,7 +1059,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
 
 					if (Material && 
-						(Material->GetBlendMode() == BLEND_Translucent ||
+						(Material->GetBlendMode() == BLEND_Translucent || Material->GetBlendMode() == BLEND_AlphaComposite ||
 						((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
 						)
 					{
@@ -3194,6 +3193,11 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 	TIndexType	VertexIndex = 0;
 	TIndexType	StartVertexIndex = 0;
 
+	TIndexType *BaseIndex = OutIndex;
+
+	// Signed as we are comparing against pointer arithmetic
+	const int32 MaxIndexCount = 65535;
+
 	for (int32 Beam = 0; Beam < Source.ActiveParticleCount; Beam++)
 	{
 		DECLARE_PARTICLE_PTR(Particle, Source.DataContainer.ParticleData + Source.ParticleStride * Beam);
@@ -3209,17 +3213,22 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 
 		if (VertexIndex == 0)//First Beam
 		{
-			*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
-			*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+			if ((OutIndex - BaseIndex <= MaxIndexCount - 2))
+			{
+				*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
+				*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+			}
 		}
 		else//Degenerate tris between beams
 		{
-			*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
-			*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
-
-			TrianglesToRender += 4;
+			if ((OutIndex - BaseIndex <= MaxIndexCount - 4))
+			{
+				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
+				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
+				TrianglesToRender += 4;
+			}
 		}
 
 		for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
@@ -3231,10 +3240,16 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 			for (int32 i = 0; i < BeamPayloadData->TriangleCount; i++)
 			{
 				*(OutIndex++) = VertexIndex++;
+
+				if (OutIndex - BaseIndex > MaxIndexCount)
+				{
+					break;
+				}
 			}
 
 			// Degenerate tris
-			if ((SheetIndex + 1) < Source.Sheets)
+			if ((SheetIndex + 1) < Source.Sheets
+				&& (OutIndex - BaseIndex <= MaxIndexCount-4))
 			{
 				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
 				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
@@ -3243,6 +3258,12 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 
 				TrianglesToRender += 4;
 			}
+
+			if (OutIndex - BaseIndex > MaxIndexCount)
+			{
+				break;
+			}
+
 		}
 	}
 

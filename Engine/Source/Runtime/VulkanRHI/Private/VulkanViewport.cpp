@@ -369,6 +369,21 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 
 	//#todo-rco: Might need to NOT be undefined...
 	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED/*VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+	{
+		FVulkanTimestampQueryPool* TimestampPool = Device->GetTimestampQueryPool(PresentCount % FVulkanDevice::NumTimestampPools);
+		if (TimestampPool)
+		{
+			TimestampPool->WriteEndFrame(CmdBuffer);
+		}
+
+		if (PresentCount >= FVulkanDevice::NumTimestampPools)
+		{
+			FVulkanTimestampQueryPool* PrevTimestampPool = Device->GetTimestampQueryPool((PresentCount + FVulkanDevice::NumTimestampPools - 1) % FVulkanDevice::NumTimestampPools);
+			PrevTimestampPool->CalculateFrameTime();
+		}
+	}
+
 	CmdBuffer->End();
 	Queue->Submit(CmdBuffer, nullptr, 0, RenderingDoneSemaphores[AcquiredImageIndex]);
 
@@ -420,7 +435,8 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	//#todo-rco: This needs to go on RHIEndFrame but the CmdBuffer index is not the correct one to read the stats out!
 	VulkanRHI::GManager.GPUProfilingData.EndFrame();
 
-	Device->GetImmediateContext().GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
+	FVulkanCommandBufferManager* ImmediateCmdBufMgr = Device->GetImmediateContext().GetCommandBufferManager();
+	ImmediateCmdBufMgr->PrepareForNewActiveCommandBuffer();
 
 	//#todo-rco: Consolidate 'end of frame'
 	Device->GetImmediateContext().GetTempFrameAllocationBuffer().Reset();
@@ -444,6 +460,15 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 #endif
 	++PresentCount;
+	{
+		FVulkanTimestampQueryPool* TimestampPool = Device->GetTimestampQueryPool(PresentCount % FVulkanDevice::NumTimestampPools);
+		if (TimestampPool)
+		{
+			FVulkanCmdBuffer* ActiveCmdBuffer = ImmediateCmdBufMgr->GetActiveCmdBuffer();
+			TimestampPool->WriteStartFrame(ActiveCmdBuffer->GetHandle());
+		}
+	}
+
 	return bResult;
 }
 
@@ -476,11 +501,12 @@ void FVulkanDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI, uint
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 }
 
-void FVulkanDynamicRHI::RHITick( float DeltaTime )
+void FVulkanDynamicRHI::RHITick(float DeltaTime)
 {
-	check( IsInGameThread() );
+	check(IsInGameThread());
 }
 
+/*
 void FVulkanDynamicRHI::WriteEndFrameTimestamp(void* Data)
 {
 	FVulkanDynamicRHI* This = (FVulkanDynamicRHI*)Data;
@@ -496,6 +522,7 @@ void FVulkanDynamicRHI::WriteEndFrameTimestamp(void* Data)
 
 	VulkanRHI::GManager.GPUProfilingData.EndFrameBeforeSubmit();
 }
+*/
 
 #if 0
 void FVulkanDynamicRHI::Present()

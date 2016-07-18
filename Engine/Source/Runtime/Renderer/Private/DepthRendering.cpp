@@ -45,6 +45,8 @@ const TCHAR* GetDepthDrawingModeString(EDepthDrawingMode Mode)
 	return TEXT("");
 }
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Prepass"), Stat_GPU_Prepass, STATGROUP_GPU);
+
 /**
  * A vertex shader for rendering the depth of a mesh.
  */
@@ -196,19 +198,33 @@ public:
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FMeshMaterialShader(Initializer)
-	{}
+	{
+		ApplyDepthOffsetParameter.Bind(Initializer.ParameterMap, TEXT("bApplyDepthOffset"));
+	}
 
 	FDepthOnlyPS() {}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView* View)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,ESceneRenderTargetsMode::DontSet);
+
+		// For debug view shaders, don't apply the depth offset as their base pass PS are using global shaders with depth equal.
+		SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View || !View->Family->UseDebugViewPS());
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
+		Ar << ApplyDepthOffsetParameter;
+		return bShaderHasOutdatedParameters;
+	}
+
+	FShaderParameter ApplyDepthOffsetParameter;
 };
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDepthOnlyPS,TEXT("DepthOnlyPixelShader"),TEXT("Main"),SF_Pixel);
@@ -1071,6 +1087,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	SCOPED_DRAW_EVENTF(RHICmdList, PrePass, TEXT("PrePass %s %s"), GetDepthDrawingModeString(EarlyZPassMode), GetDepthPassReason(bDitheredLODTransitionsUseStencil, FeatureLevel));
 
 	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Prepass);
 
 	bool bDirty = false;
 	bool bDidPrePre = false;

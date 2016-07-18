@@ -167,6 +167,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 
 	GPixelFormats[ PF_BC6H			].PlatformFormat	= DXGI_FORMAT_BC6H_UF16;
 	GPixelFormats[ PF_BC7			].PlatformFormat	= DXGI_FORMAT_BC7_TYPELESS;
+	GPixelFormats[ PF_R8_UINT		].PlatformFormat	= DXGI_FORMAT_R8_UINT;
 
 	if (FeatureLevel >= D3D_FEATURE_LEVEL_11_0)
 	{
@@ -469,6 +470,14 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		{
 			Direct3DDeviceIMContext->ClearState();
 			Direct3DDeviceIMContext->Flush();
+
+			// Perform a detailed live object report (with resource types)
+			ID3D11Debug* D3D11Debug;
+			Direct3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)(&D3D11Debug));
+			if (D3D11Debug)
+			{
+				D3D11Debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+			}
 		}
 
 		Direct3DDeviceIMContext = nullptr;

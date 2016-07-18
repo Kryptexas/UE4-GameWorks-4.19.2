@@ -314,6 +314,13 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 					Desc.NumSamples
 					);
 
+				if (GSupportsRenderTargetWriteMask && Desc.bCreateRenderTargetWriteMask)
+				{
+					Found->RenderTargetItem.RTWriteMaskDataBufferRHI = RHICreateRTWriteMaskBuffer((FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture);
+					Found->RenderTargetItem.RTWriteMaskBufferRHI_SRV = RHICreateShaderResourceView(Found->RenderTargetItem.RTWriteMaskDataBufferRHI);
+				}
+
+
 				if( Desc.NumMips > 1 )
 				{
 					Found->RenderTargetItem.MipSRVs.SetNum( Desc.NumMips );

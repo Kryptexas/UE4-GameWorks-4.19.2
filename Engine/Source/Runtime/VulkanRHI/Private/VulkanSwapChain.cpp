@@ -221,7 +221,10 @@ bool FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBuffer
 	Info.pSwapchains = &SwapChain;
 	Info.pImageIndices = (uint32*)&CurrentImageIndex;
 
-	VERIFYVULKANRESULT(VulkanRHI::vkQueuePresentKHR(Queue->GetHandle(), &Info));
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanQueuePresent);
+		VERIFYVULKANRESULT(VulkanRHI::vkQueuePresentKHR(Queue->GetHandle(), &Info));
+	}
 
 	return true;
 }

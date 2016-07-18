@@ -283,6 +283,7 @@ bool GRHISupportsRHIThread = false;
 bool GRHISupportsParallelRHIExecute = false;
 bool GSupportsHDR32bppEncodeModeIntrinsic = false;
 bool GSupportsParallelOcclusionQueries = false;
+bool GSupportsRenderTargetWriteMask = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
 

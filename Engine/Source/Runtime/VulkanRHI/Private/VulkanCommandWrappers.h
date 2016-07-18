@@ -21,10 +21,10 @@ namespace VulkanRHI
 	void DumpPhysicalDeviceProperties(VkPhysicalDeviceMemoryProperties* Properties);
 	void DumpAllocateMemory(VkDevice Device, const VkMemoryAllocateInfo* AllocateInfo, VkDeviceMemory* Memory);
 	void DumpMemoryRequirements(VkMemoryRequirements* MemoryRequirements);
-	void DumpBufferCreate(VkDevice Device, const VkBufferCreateInfo* CreateInfo, VkBuffer* Buffer);
-	void DumpBufferViewCreate(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, VkBufferView* BufferView);
-	void DumpImageCreate(VkDevice Device, const VkImageCreateInfo* CreateInfo, VkImage* Image);
-	void DumpImageViewCreate(VkDevice Device, const VkImageViewCreateInfo* CreateInfo, VkImageView* ImageView);
+	void DumpCreateBuffer(VkDevice Device, const VkBufferCreateInfo* CreateInfo, VkBuffer* Buffer);
+	void DumpCreateBufferView(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, VkBufferView* BufferView);
+	void DumpCreateImage(VkDevice Device, const VkImageCreateInfo* CreateInfo, VkImage* Image);
+	void DumpCreateImageView(VkDevice Device, const VkImageViewCreateInfo* CreateInfo, VkImageView* ImageView);
 	void DumpFenceCreate(VkDevice Device, const VkFenceCreateInfo* CreateInfo, VkFence* Fence);
 	void DumpFenceList(uint32 FenceCount, const VkFence* Fences);
 	void DumpSemaphoreCreate(VkDevice Device, const VkSemaphoreCreateInfo* CreateInfo, VkSemaphore* Semaphore);
@@ -73,10 +73,10 @@ namespace VulkanRHI
 	#define DumpPhysicalDeviceProperties(x)
 	#define DumpAllocateMemory(d, i, m)
 	#define DumpMemoryRequirements(x)
-	#define DumpBufferCreate(d, i, b)
-	#define DumpBufferViewCreate(d, i, v)
-	#define DumpImageCreate(d, x, i)
-	#define DumpImageViewCreate(d, i, v)
+	#define DumpCreateBuffer(d, i, b)
+	#define DumpCreateBufferView(d, i, v)
+	#define DumpCreateImage(d, x, i)
+	#define DumpCreateImageView(d, i, v)
 	#define DumpFenceCreate(d, x, f)
 	#define DumpFenceList(c, p)
 	#define DumpSemaphoreCreate(d, i, s)
@@ -542,7 +542,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateBuffer(VkDevice Device, const VkBufferCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkBuffer* Buffer)
 	{
-		DumpBufferCreate(Device, CreateInfo, Buffer);
+		DumpCreateBuffer(Device, CreateInfo, Buffer);
 
 		VkResult Result = ::vkCreateBuffer(Device, CreateInfo, Allocator, Buffer);
 
@@ -559,7 +559,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateBufferView(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkBufferView* View)
 	{
-		DumpBufferViewCreate(Device, CreateInfo, View);
+		DumpCreateBufferView(Device, CreateInfo, View);
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateBufferView(Info=%p, OutView=%p)"), CreateInfo, View));
 
 		VkResult Result = ::vkCreateBufferView(Device, CreateInfo, Allocator, View);
@@ -577,7 +577,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateImage(VkDevice Device, const VkImageCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkImage* Image)
 	{
-		DumpImageCreate(Device, CreateInfo, Image);
+		DumpCreateImage(Device, CreateInfo, Image);
 
 		VkResult Result = ::vkCreateImage(Device, CreateInfo, Allocator, Image);
 
@@ -603,7 +603,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateImageView(VkDevice Device, const VkImageViewCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkImageView* View)
 	{
-		DumpImageViewCreate(Device, CreateInfo, View);
+		DumpCreateImageView(Device, CreateInfo, View);
 
 		VkResult Result = ::vkCreateImageView(Device, CreateInfo, Allocator, View);
 

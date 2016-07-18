@@ -65,7 +65,10 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 		SubmitInfo.pWaitSemaphores = &Semaphores[1];
 		SubmitInfo.pWaitDstStageMask = &WaitStageFlags;
 	}
-	VERIFYVULKANRESULT(VulkanRHI::vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanQueueSubmit)
+		VERIFYVULKANRESULT(VulkanRHI::vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
+	}
 
 	if (GWaitForIdleOnSubmit != 0)
 	{

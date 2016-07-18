@@ -91,8 +91,8 @@ void FNiagaraEmitterPropertiesDetails::BuildScriptProperties(TSharedRef<IPropert
 
 void FNiagaraEmitterPropertiesDetails::OnGenerateScalarConstantEntry(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_Float, Value));
-	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_Float, Name));
+	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstant_Float, Value));
+	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstant_Float, Name));
 
 	FName DisplayName;
 	NameProperty->GetValue(DisplayName);
@@ -105,8 +105,8 @@ void FNiagaraEmitterPropertiesDetails::OnGenerateScalarConstantEntry(TSharedRef<
 
 void FNiagaraEmitterPropertiesDetails::OnGenerateVectorConstantEntry(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_Vector, Value));
-	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_Vector, Name));
+	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstant_Vector, Value));
+	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstant_Vector, Name));
 
 	FName DisplayName;
 	NameProperty->GetValue(DisplayName);
@@ -119,8 +119,8 @@ void FNiagaraEmitterPropertiesDetails::OnGenerateVectorConstantEntry(TSharedRef<
 
 void FNiagaraEmitterPropertiesDetails::OnGenerateMatrixConstantEntry(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_Matrix, Value));
-	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstants_Matrix, Name));
+	TSharedPtr<IPropertyHandle> ValueProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstant_Matrix, Value));
+	TSharedPtr<IPropertyHandle> NameProperty = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNiagaraConstant_Matrix, Name));
 
 	FName DisplayName;
 	NameProperty->GetValue(DisplayName);

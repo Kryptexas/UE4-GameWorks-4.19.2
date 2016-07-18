@@ -370,7 +370,17 @@ bool FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
 	if (RTInfo.DepthStencilRenderTarget.Texture)
 	{
 		VkClearValue& DstColor = ClearValues[Index];
-		RTInfo.DepthStencilRenderTarget.Texture->GetClearBinding().GetDepthStencil(DstColor.depthStencil.depth, DstColor.depthStencil.stencil);
+		const FClearValueBinding& ClearBinding = RTInfo.DepthStencilRenderTarget.Texture->GetClearBinding();
+		if (ClearBinding.ColorBinding == EClearBinding::EDepthStencilBound)
+		{
+			ClearBinding.GetDepthStencil(DstColor.depthStencil.depth, DstColor.depthStencil.stencil);
+		}
+		else
+		{
+			ensure(!RTInfo.bClearDepth && !RTInfo.bClearStencil);
+			DstColor.depthStencil.depth = 1.0f;
+			DstColor.depthStencil.stencil = 0;
+		}
 		// @todo vulkan - we don't track the format of the depth buffer in the key, only if depth is enabled (write/test) - should be enough, but worth checking that
 		// if either bit is set that we have a depth buffer attached
 	}

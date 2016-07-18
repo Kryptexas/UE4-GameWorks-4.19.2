@@ -26,6 +26,8 @@ public:
 	// todo: memory optimize
 	const ERenderQueryType Type;
 
+	class FD3D12CommandContext* OwningContext;
+
 	// When the query result is ready on the GPU.
 	FD3D12CLSyncPoint CLSyncPoint;
 
@@ -43,6 +45,7 @@ public:
 	{
 		HeapIndex = -1;
 		bResultIsCached = false;
+		OwningContext = nullptr;
 	}
 };
 

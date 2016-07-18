@@ -36,6 +36,7 @@
 #include "hlslcc_private.h"
 #include "VulkanBackend.h"
 #include "compiler.h"
+#include "ShaderCompilerCommon.h"
 
 #include "VulkanConfiguration.h"
 
@@ -49,6 +50,7 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #include "IRDump.h"
 //@todo-rco: Remove STL!
 #include <sstream>
+#include <vector>
 //#define OPTIMIZE_ANON_STRUCTURES_OUT
 // We can't optimize them out presently, because apparently Windows Radeon
 // OpenGL driver chokes on valid GLSL code then.
@@ -57,7 +59,7 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #define _strdup strdup
 #endif
 
-static inline std::string FixHlslName(const glsl_type* Type)
+static inline std::string FixHlslName(const glsl_type* Type, bool bUseTextureInsteadOfSampler = false)
 {
 	check(Type->is_image() || Type->is_vector() || Type->is_numeric() || Type->is_void() || Type->is_sampler() || Type->is_scalar());
 	std::string Name = Type->name;
@@ -112,6 +114,25 @@ static inline std::string FixHlslName(const glsl_type* Type)
 	else if (Type == glsl_type::half4x4_type)
 	{
 		return "mat4";
+	}
+	else if (Type->is_sampler() && !Type->sampler_buffer && bUseTextureInsteadOfSampler)
+	{
+		if (!strcmp(Type->HlslName, "texturecube"))
+		{
+			return "textureCube";
+		}
+		else if (!strcmp(Type->HlslName, "texture2d"))
+		{
+			return "texture2D";
+		}
+		else if (!strcmp(Type->HlslName, "texture3d"))
+		{
+			return "texture3D";
+		}
+		else
+		{
+			return Type->HlslName;
+		}
 	}
 
 	return Name;
@@ -497,7 +518,7 @@ static inline EDescriptorSetStage GetDescriptorSetForStage(_mesa_glsl_parser_tar
 /**
 * IR visitor used to generate GLSL. Based on ir_print_visitor.
 */
-class vulkan_ir_gen_glsl_visitor : public ir_visitor
+class FGenerateVulkanVisitor : public ir_visitor
 {
 	/** Track which multi-dimensional arrays are used. */
 	struct md_array_entry : public exec_node
@@ -552,7 +573,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 	bool bIsES31;
 	EHlslCompileTarget Target;
 	_mesa_glsl_parser_targets ShaderTarget;
-
+	FVulkanLanguageSpec* LanguageSpec;
 	bool bGenerateLayoutLocations;
 	bool bDefaultPrecisionIsHalf;
 
@@ -586,6 +607,8 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 
 	// Found dFdx or dFdy
 	bool bUsesDXDY;
+
+	std::vector<std::string> SamplerStateNames;
 
 	/**
 	* Return true if the type is a multi-dimensional array. Also, track the
@@ -714,7 +737,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 		}
 		else
 		{
-			std::string Name = FixHlslName(t);
+			std::string Name = FixHlslName(t, LanguageSpec->AllowsSharingSamplers());
 			ralloc_asprintf_append(buffer, "%s", Name.c_str());
 		}
 	}
@@ -819,18 +842,18 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 		return GLSL_PRECISION_DEFAULT;
 	}
 
-	void AppendPrecisionModifier(char** inBuffer, EPrecisionModifier PrecisionModifier)
+	const char* GetPrecisionModifierName(EPrecisionModifier PrecisionModifier)
 	{
 		switch (PrecisionModifier)
 		{
 		case GLSL_PRECISION_LOWP:
-			ralloc_asprintf_append(inBuffer, "lowp ");
+			return "lowp";
 			break;
 		case GLSL_PRECISION_MEDIUMP:
-			ralloc_asprintf_append(inBuffer, "mediump ");
+			return "mediump";
 			break;
 		case GLSL_PRECISION_HIGHP:
-			ralloc_asprintf_append(inBuffer, "highp ");
+			return "highp";
 			break;
 		case GLSL_PRECISION_DEFAULT:
 			break;
@@ -838,6 +861,12 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 			// we missed a type
 			check(false);
 		}
+		return "";
+	}
+
+	inline void AppendPrecisionModifier(char** inBuffer, EPrecisionModifier PrecisionModifier)
+	{
+		ralloc_asprintf_append(inBuffer, "%s ", GetPrecisionModifierName(PrecisionModifier));
 	}
 
 	/**
@@ -1057,21 +1086,25 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 			}
 			else
 			{
-
 				char* layout = nullptr;
 
+				uint32 Interpolation = var->interpolation;
 				if (var->type->is_sampler())
 				{
 					layout = ralloc_asprintf(nullptr,
 						"layout(set=%d, binding=%d) ",
 						GetDescriptorSetForStage(ShaderTarget),
-						BindingTable.RegisterBinding(var->name, "s", var->type->sampler_buffer ? FVulkanBindingTable::TYPE_SAMPLER_BUFFER : FVulkanBindingTable::TYPE_SAMPLER));
+						BindingTable.RegisterBinding(var->name, "s", var->type->sampler_buffer ? FVulkanBindingTable::TYPE_SAMPLER_BUFFER : FVulkanBindingTable::TYPE_COMBINED_IMAGE_SAMPLER));
 				}
-
-				if (bGenerateLayoutLocations && var->explicit_location)
+				else if (bGenerateLayoutLocations && var->explicit_location)
 				{
 					check(layout_bits == 0);
 					layout = ralloc_asprintf(nullptr, "layout(location=%d) ", var->location);
+					if (ShaderTarget == fragment_shader && var->type->is_integer() && var->mode == ir_var_in)
+					{
+						// Flat
+						Interpolation = 2;
+					}
 				}
 
 				ralloc_asprintf_append(
@@ -1082,7 +1115,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 					invariant_str[var->invariant],
 					patch_constant_str[var->is_patch_constant],
 					mode_str[var->mode],
-					interp_str[var->interpolation]
+					interp_str[Interpolation]
 					);
 
 				if (bEmitPrecision)
@@ -1120,7 +1153,6 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 		// this is for the case of a variable that is declared, but not later dereferenced (which can happen
 		// when debugging HLSLCC and running without optimization
 		AddTypeToUsedStructs(var->type);
-
 	}
 
 	virtual void visit(ir_function_signature *sig)
@@ -1324,7 +1356,36 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 			offset_str[tex->offset != 0],
 			EXT_str[(int)bEmitEXT]
 			);
-		tex->sampler->accept(this);
+
+		if (LanguageSpec->AllowsSharingSamplers() && !tex->sampler->type->sampler_buffer && tex->op != ir_txf)
+		{
+			uint32 SSIndex = AddUniqueSamplerState(tex->SamplerStateName);
+			char PackedName[256];
+			sprintf_s(PackedName, "%sz%d", glsl_variable_tag_from_parser_target(ShaderTarget), SSIndex);
+			BindingTable.RegisterBinding(PackedName, "z", FVulkanBindingTable::TYPE_SAMPLER);
+
+			auto GetSamplerSuffix = [](int32 Dim)
+			{
+				switch (Dim)
+				{
+				case GLSL_SAMPLER_DIM_1D: return "1D";
+				case GLSL_SAMPLER_DIM_2D: return "2D";
+				case GLSL_SAMPLER_DIM_3D: return "3D";
+				case GLSL_SAMPLER_DIM_CUBE: return "Cube";
+				//case GLSL_SAMPLER_DIM_RECT: return "Rect";
+				//case GLSL_SAMPLER_DIM_BUF: return "Buf";
+				default: return "INVALID";
+				}
+			};
+
+			ralloc_asprintf_append(buffer, "sampler%s(", GetSamplerSuffix(tex->sampler->type->sampler_dimensionality));
+			tex->sampler->accept(this);
+			ralloc_asprintf_append(buffer, ", %s)", PackedName);
+		}
+		else
+		{
+			tex->sampler->accept(this);
+		}
 
 		// Emit coordinates.
 		if ((op == ir_txs && tex->lod_info.lod) || op == ir_txm)
@@ -2309,7 +2370,7 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 				int32 Binding = BindingTable.RegisterBinding(block_name, var_name, Type);
 				ralloc_asprintf_append(
 					buffer,
-					"layout(set=%d, binding = %d, std140) uniform %s\n{\n",
+					"layout(set=%d, binding=%d, std140) uniform %s\n{\n",
 					GetDescriptorSetForStage(ShaderTarget),
 					Binding,
 					block_name);
@@ -2797,6 +2858,16 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 				ralloc_asprintf_append(buffer, "\n");
 			}
 		}
+
+		if (!SamplerStateNames.empty())
+		{
+			ralloc_asprintf_append(buffer, "// @SamplerStates: ");
+			for (uint32 Index = 0; Index < SamplerStateNames.size(); ++Index)
+			{
+				ralloc_asprintf_append(buffer, "%s%d:%s", Index > 0 ? "," : "", Index, SamplerStateNames[Index].c_str());
+			}
+			ralloc_asprintf_append(buffer, "\n");
+		}
 	}
 
 	/**
@@ -2939,9 +3010,10 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 public:
 
 	/** Constructor. */
-	vulkan_ir_gen_glsl_visitor(EHlslCompileTarget InTarget,
+	FGenerateVulkanVisitor(EHlslCompileTarget InTarget,
 							FVulkanBindingTable& InBindingTable,
 							_mesa_glsl_parser_targets InShaderTarget,
+							FVulkanLanguageSpec* InLanguageSpec,
 							bool bInGenerateLayoutLocations,
 							bool bInDefaultPrecisionIsHalf)
 		: early_depth_stencil(false)
@@ -2950,6 +3022,7 @@ public:
 		, wg_size_z(0)
 		, Target(InTarget)
 		, ShaderTarget(InShaderTarget)
+		, LanguageSpec(InLanguageSpec)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)
 		, bDefaultPrecisionIsHalf(bInDefaultPrecisionIsHalf)
 		, BindingTable(InBindingTable)
@@ -2974,12 +3047,26 @@ public:
 	}
 
 	/** Destructor. */
-	virtual ~vulkan_ir_gen_glsl_visitor()
+	virtual ~FGenerateVulkanVisitor()
 	{
 		hash_table_dtor(printable_names);
 		hash_table_dtor(used_structures);
 		hash_table_dtor(used_uniform_blocks);
 	}
+
+	int32 AddUniqueSamplerState(const std::string& Name)
+	{
+		for (uint32 Index = 0; Index < SamplerStateNames.size(); ++Index)
+		{
+			if (SamplerStateNames[Index] == Name)
+			{
+				return (int32)Index;
+			}
+		}
+
+		SamplerStateNames.push_back(Name);
+		return SamplerStateNames.size() - 1;
+	};
 
 	/**
 	* Executes the visitor on the provided ir.
@@ -3000,10 +3087,12 @@ public:
 			ralloc_asprintf_append(buffer, "precision %s float;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s int;\n", DefaultPrecision);
 			//ralloc_asprintf_append(buffer, "\n#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n");
+			ralloc_asprintf_append(buffer, "precision %s sampler;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s sampler2D;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n", DefaultPrecision);
 			//ralloc_asprintf_append(buffer, "#endif\n");
 		}
+
 		// FramebufferFetchES2 'intrinsic'
 		bool bUsesFramebufferFetchES2 = false;//UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
 		/*
@@ -3126,6 +3215,55 @@ public:
 				break;
 			}
 		}
+
+		// Here since the code_buffer must have been populated beforehand
+		if (LanguageSpec->AllowsSharingSamplers())
+		{
+			auto FindPrecision = [&](int32 Index)
+			{
+				for (auto& Pair : state->TextureToSamplerMap)
+				{
+					for (auto& Entry : Pair.second)
+					{
+						if (Entry == SamplerStateNames[Index])
+						{
+							for (auto& PackedEntry : state->GlobalPackedArraysMap['s'])
+							{
+								if (!strcmp(Pair.first.c_str(), PackedEntry.Name.c_str()))
+								{
+									foreach_iter(exec_list_iterator, iter, sampler_variables)
+									{
+										ir_variable* var = ((extern_var*)iter.get())->var;
+										if (!strcmp(var->name, PackedEntry.CB_PackedSampler.c_str()))
+										{
+											return GetPrecisionModifierName(GetPrecisionModifier(var->type));
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				return "";
+			};
+
+			const auto& Bindings = BindingTable.GetBindings();
+			for (int32 Index = 0; Index < Bindings.Num(); ++Index)
+			{
+				if (Bindings[Index].Type == FVulkanBindingTable::TYPE_SAMPLER)
+				{
+					int32 Binding = atoi(Bindings[Index].Name + 2);
+					const char* Precision = FindPrecision(Binding);
+
+					ralloc_asprintf_append(buffer, "layout(set=%d, binding=%d) uniform %s sampler %sz%d;\n",
+						GetDescriptorSetForStage(ShaderTarget), Index,
+						Precision,
+						glsl_variable_tag_from_parser_target(ShaderTarget), Binding);
+				}
+			}
+		}
+
 		buffer = 0;
 
 		static const char* vulkan_required_extensions =
@@ -3230,7 +3368,7 @@ struct FBreakPrecisionChangesVisitor : public ir_rvalue_visitor
 	}
 };
 
-void vulkan_ir_gen_glsl_visitor::AddTypeToUsedStructs(const glsl_type* type)
+void FGenerateVulkanVisitor::AddTypeToUsedStructs(const glsl_type* type)
 {
 	if (type->base_type == GLSL_TYPE_STRUCT)
 	{
@@ -3274,7 +3412,7 @@ char* FVulkanCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* st
 	const bool bCanHaveUBs = true;//(HlslCompileFlags & HLSLCC_FlattenUniformBuffers) != HLSLCC_FlattenUniformBuffers;
 
 	// Setup root visitor
-	vulkan_ir_gen_glsl_visitor visitor(Target, BindingTable, state->target, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
+	FGenerateVulkanVisitor visitor(Target, BindingTable, state->target, (FVulkanLanguageSpec*)state->LanguageSpec, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
 
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs, bCanHaveUBs);
 
@@ -5269,14 +5407,15 @@ void FVulkanCodeBackend::GenShaderPatchConstantFunctionInputs(_mesa_glsl_parse_s
 
 void FVulkanLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)
 {
+/*
 	if (bIsES2)
 	{
 		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
 		make_intrinsic_genType(ir, State, DEPTHBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 3, 1, 1);
 		make_intrinsic_genType(ir, State, GET_HDR_32BPP_HDR_ENCODE_MODE_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 0);
 	}
-
-	if (State->language_version >= 310)
+*/
+	//if (State->language_version >= 310)
 	{
 		/**
 		* Create GLSL functions that are left out of the symbol table
@@ -5368,7 +5507,7 @@ FVulkanBindingTable::FBinding::FBinding(const char* InName, int32 InIndex, EBind
 	FMemory::Memcpy(Name, InName, NewNameLength);
 
 	// Validate Sampler type, s == PACKED_TYPENAME_SAMPLER
-	check((Type == TYPE_SAMPLER || Type == TYPE_SAMPLER_BUFFER) ? SubType == 's' : true);
+	check((Type == TYPE_COMBINED_IMAGE_SAMPLER || Type == TYPE_SAMPLER_BUFFER) ? SubType == 's' : true);
 
 	check(Type == TYPE_PACKED_UNIFORM_BUFFER ?
 		( SubType == 'h' || SubType == 'm' || SubType == 'l' || SubType == 'i' || SubType == 'u' ) : true);

@@ -38,10 +38,6 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 	checkf(NumUAVs == 0, TEXT("Calling SetRenderTargets with UAVs is not supported in Vulkan yet"));
 }
 
-void FVulkanDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)
-{
-}
-
 void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
 	//FRCLog::Printf(FString::Printf(TEXT("RHISetRenderTargetsAndClear\n")));
@@ -203,7 +199,14 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 				}
 				else
 				{
-					ensure(0);
+					FRHITexture3D* RHITexture3D = RHITexture->GetTexture3D();
+					if (RHITexture3D)
+					{
+					}
+					else
+					{
+						ensure(0);
+					}
 				}
 			}
 		}

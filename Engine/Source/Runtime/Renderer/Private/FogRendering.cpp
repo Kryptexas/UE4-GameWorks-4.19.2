@@ -8,6 +8,8 @@
 #include "ScenePrivate.h"
 #include "SceneUtils.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Fog"), Stat_GPU_Fog, STATGROUP_GPU);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarFogStartDistance(
 	TEXT("r.FogStartDistance"),
@@ -320,6 +322,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 			const FViewInfo& View = Views[ViewIndex];
 
 			SCOPED_DRAW_EVENTF(RHICmdList, Fog, TEXT("ExponentialHeightFog %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Fog);
 
 			if (View.IsPerspectiveProjection() == false)
 			{

@@ -48,9 +48,6 @@ public:
 	//End UObject Interface
 private:
 	UPROPERTY()
-	TArray<FDeprecatedNiagaraEmitterProperties>EmitterPropsSerialized_DEPRECATED;
-
-	UPROPERTY()
 	TArray<UNiagaraEmitterProperties*> EmitterProps;
 };
 
@@ -122,17 +119,17 @@ public:
 
 	void SetConstant(FNiagaraVariableInfo ID, const float Value)
 	{
-		Constants.SetOrAdd(ID, Value);
+		InstanceConstants.SetOrAdd(ID.Name, Value);
 	}
 
 	void SetConstant(FNiagaraVariableInfo ID, const FVector4& Value)
 	{
-		Constants.SetOrAdd(ID, Value);
+		InstanceConstants.SetOrAdd(ID.Name, Value);
 	}
 
 	void SetConstant(FNiagaraVariableInfo ID, const FMatrix& Value)
 	{
-		Constants.SetOrAdd(ID, Value);
+		InstanceConstants.SetOrAdd(ID.Name, Value);
 	}
 	
 	void Tick(float DeltaSeconds);
@@ -162,7 +159,7 @@ private:
 	float Age;
 
 	/** Local constant table. */
-	FNiagaraConstantMap Constants;
+	FNiagaraConstants InstanceConstants;
 	
 	TMap<FNiagaraDataSetID, FNiagaraDataSet> ExternalEvents;
 

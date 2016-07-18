@@ -1023,6 +1023,9 @@ public:
 	 */
 	virtual void ApplyWorldOffset(FVector InOffset);
 
+	virtual float GetMaxDrawDistance() const { return 0.0f; }
+	virtual float GetFadeRange() const { return 0.0f; }
+
 protected:
 
 	friend class FScene;

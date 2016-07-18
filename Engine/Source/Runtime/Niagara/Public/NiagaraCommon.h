@@ -15,6 +15,19 @@ enum class ENiagaraDataType : uint8
 };
 
 
+enum class ENiagaraType : uint8
+{
+	Byte,
+	Word,
+	DWord,
+	Float 
+};
+
+enum ENiagaraSimTarget
+{
+	CPUSim,
+	GPUComputeSim
+};
 
 
 enum ENiagaraTickState
@@ -24,6 +37,11 @@ enum ENiagaraTickState
 	NTS_Dieing,
 	NTS_Dead
 };
+
+
+uint32 GetNiagaraDataElementCount(ENiagaraDataType Type);
+uint32 GetNiagaraBytesPerElement(ENiagaraDataType DataType, ENiagaraType Type);
+
 
 
 USTRUCT()

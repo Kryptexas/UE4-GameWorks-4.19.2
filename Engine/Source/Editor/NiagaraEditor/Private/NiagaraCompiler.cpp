@@ -172,8 +172,16 @@ bool FNiagaraCompiler::CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outpu
 
 void FNiagaraCompiler::Error(FText ErrorText, UNiagaraNode* Node, UEdGraphPin* Pin)
 {
-	FString ErrorString = FString::Printf(TEXT("Node: @@ - Pin: @@ - %s"), *ErrorText.ToString());
-	MessageLog.Error(*ErrorString, Node, Pin);
+	if (Pin)
+	{
+		FString ErrorString = FString::Printf(TEXT("Node: @@ - Pin: @@ - %s"), *ErrorText.ToString());
+		MessageLog.Error(*ErrorString, Node, Pin);
+	}
+	else
+	{
+		FString ErrorString = FString::Printf(TEXT("Node: @@ - %s"), *ErrorText.ToString());
+		MessageLog.Error(*ErrorString, Node);
+	}
 }
 
 void FNiagaraCompiler::Warning(FText WarningText, UNiagaraNode* Node, UEdGraphPin* Pin)

@@ -128,6 +128,10 @@ DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer RenderFinish"), STAT_FDefe
 DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Dispatch"), STAT_OcclusionSubmittedFence_Dispatch, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("OcclusionSubmittedFence Wait"), STAT_OcclusionSubmittedFence_Wait, STATGROUP_SceneRendering);
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Postprocessing"), Stat_GPU_Postprocessing, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("HZB"), Stat_GPU_HZB, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("[unaccounted]"), Stat_GPU_Unaccounted, STATGROUP_GPU);
+
 bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
 {
 	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
@@ -431,6 +435,8 @@ void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RH
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_HZB);
+
 		{
 			// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
 			// This needs to happen before occlusion tests, which makes use of the small depth buffer.
@@ -543,6 +549,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		return;
 	}
 	SCOPED_DRAW_EVENT(RHICmdList, Scene);
+
+	// Anything rendered inside Render() which isn't accounted for will fall into this stat
+	// This works because child stat events do not contribute to their parents' times (see GPU_STATS_CHILD_TIMES_INCLUDED)
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Unaccounted);
 	
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Render_Init);
@@ -1186,6 +1196,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (ViewFamily.bResolveScene)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
+   		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Postprocessing);
+
 		SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PostProcessing));

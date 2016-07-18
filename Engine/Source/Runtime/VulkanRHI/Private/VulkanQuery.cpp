@@ -53,7 +53,9 @@ FVulkanTimestampQueryPool::FVulkanTimestampQueryPool(FVulkanDevice* InDevice) :
 	TimeStampsPerSeconds(0),
 	SecondsPerTimestamp(0),
 	UsedUserQueries(0),
-	bFirst(true)
+	bFirst(true),
+	LastEndCmdBuffer(nullptr),
+	LastFenceSignaledCounter(0)
 {
 	// The number of nanoseconds it takes for a timestamp value to be incremented by 1 can be obtained from VkPhysicalDeviceLimits::timestampPeriod after a call to vkGetPhysicalDeviceProperties.
 	double NanoSecondsPerTimestamp = Device->GetDeviceProperties().limits.timestampPeriod;
@@ -76,12 +78,14 @@ void FVulkanTimestampQueryPool::WriteStartFrame(VkCommandBuffer CmdBuffer)
 	VulkanRHI::vkCmdWriteTimestamp(CmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, StartFrame);
 }
 
-void FVulkanTimestampQueryPool::WriteEndFrame(VkCommandBuffer CmdBuffer)
+void FVulkanTimestampQueryPool::WriteEndFrame(FVulkanCmdBuffer* CmdBuffer)
 {
 	if (!bFirst)
 	{
 		// End Frame Timestamp
-		VulkanRHI::vkCmdWriteTimestamp(CmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, EndFrame);
+		VulkanRHI::vkCmdWriteTimestamp(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, QueryPool, EndFrame);
+		LastEndCmdBuffer = CmdBuffer;
+		LastFenceSignaledCounter = CmdBuffer->GetFenceSignaledCounter();
 	}
 }
 
@@ -90,17 +94,25 @@ void FVulkanTimestampQueryPool::CalculateFrameTime()
 	uint64_t Results[2] = { 0, 0 };
 	if (!bFirst)
 	{
-		VkDevice DeviceHandle = Device->GetInstanceHandle();
-		VkResult Result;
-		Result = VulkanRHI::vkGetQueryPoolResults(DeviceHandle, QueryPool, StartFrame, 2, sizeof(Results), Results, sizeof(uint64), /*VK_QUERY_RESULT_WAIT_BIT | */VK_QUERY_RESULT_64_BIT);
-		if (Result != VK_SUCCESS)
+		if (LastEndCmdBuffer && LastFenceSignaledCounter < LastEndCmdBuffer->GetFenceSignaledCounter())
 		{
-			GGPUFrameTime = 0;
+			VkDevice DeviceHandle = Device->GetInstanceHandle();
+			VkResult Result;
+			Result = VulkanRHI::vkGetQueryPoolResults(DeviceHandle, QueryPool, StartFrame, 2, sizeof(Results), Results, sizeof(uint64), /*VK_QUERY_RESULT_PARTIAL_BIT |*/ VK_QUERY_RESULT_64_BIT);
+			if (Result != VK_SUCCESS)
+			{
+				GGPUFrameTime = 0;
+				return;
+			}
+		}
+		else
+		{
 			return;
 		}
 	}
 
-	double ValueInSeconds = (double)(Results[1] - Results[0]) * SecondsPerTimestamp;
+	const uint64 Delta = Results[1] - Results[0];
+	double ValueInSeconds = (double)Delta * SecondsPerTimestamp;
 	GGPUFrameTime = (uint32)(ValueInSeconds / FPlatformTime::GetSecondsPerCycle());
 }
 

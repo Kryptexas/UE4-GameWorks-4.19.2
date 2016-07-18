@@ -201,6 +201,9 @@ static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
 #if WITH_ENGINE
 static void RHIExitAndStopRHIThread()
 {
+#if HAS_GPU_STATS
+	FRealtimeGPUProfiler::Get()->Release();
+#endif
 	RHIExit();
 
 	// Stop the RHI Thread

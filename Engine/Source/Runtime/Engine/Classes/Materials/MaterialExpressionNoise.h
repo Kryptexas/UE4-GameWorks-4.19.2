@@ -29,8 +29,8 @@ enum ENoiseFunction
 	NOISEFUNCTION_GradientTex3D UMETA(DisplayName = "Fast Gradient - 3D Texture"),
 
 	/** High quality for direct use and bumps
-	 * Non-tiled: ~103 instructions per level, no textures
-	 * Tiling: ~174 instructions per level, no textures
+	 * Non-tiled: ~80 instructions per level, no textures
+	 * Tiling: ~143 instructions per level, no textures
 	 */
 	NOISEFUNCTION_GradientALU UMETA(DisplayName = "Gradient - Computational"),
 
@@ -40,6 +40,13 @@ enum ENoiseFunction
 	 * Formerly mis-labeled as Gradient noise
 	 */
 	NOISEFUNCTION_ValueALU UMETA(DisplayName="Value - Computational"),
+
+	/** Also known as Worley or Cellular noise
+	  * Quality=1 searches 8 cells, Quality=2 searches 16 cells
+	  * Quality=3 searches 27 cells, Quality=4 searches 32 cells
+	  * All are about 20 instructions per cell searched
+	  */
+	NOISEFUNCTION_VoronoiALU UMETA(DisplayName = "Voronoi"),
 
 	NOISEFUNCTION_MAX,
 };
@@ -61,8 +68,8 @@ class UMaterialExpressionNoise : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionNoise)
 	float Scale;
 
-	/** 0 = fast, allows to pick a different implementation, can affect performance and look */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionNoise, meta=(UIMin = "1", UIMax = "10"))
+	/** Lower numbers are faster and lower quality, higher numbers are slower and higher quality */
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionNoise, meta=(UIMin = "1", UIMax = "4"))
 	int32 Quality;
 
 	/** Noise function, affects performance and look */

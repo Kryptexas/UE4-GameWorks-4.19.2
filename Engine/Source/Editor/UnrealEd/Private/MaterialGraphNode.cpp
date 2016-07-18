@@ -457,15 +457,15 @@ void UMaterialGraphNode::CreateInputPins()
 		}
 		else if ( !FCString::Stricmp( *InputName, TEXT("AGreaterThanB") ) )
 		{
-			InputName = TEXT("A>=B");
+			InputName = TEXT("A > B");
 		}
 		else if ( !FCString::Stricmp( *InputName, TEXT("AEqualsB") ) )
 		{
-			InputName = TEXT("A==B");
+			InputName = TEXT("A == B");
 		}
 		else if ( !FCString::Stricmp( *InputName, TEXT("ALessThanB") ) )
 		{
-			InputName = TEXT("A<B");
+			InputName = TEXT("A < B");
 		}
 		else if ( !FCString::Stricmp( *InputName, TEXT("MipLevel") ) )
 		{

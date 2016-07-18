@@ -376,7 +376,7 @@ public:
 						return Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true));
 					}
 				}
-				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive))
+				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive || (BlendMode == BLEND_AlphaComposite)))
 				{
 					int32 ColoredOpacity = -1;
 					if (ShadingModel == MSM_Unlit)
@@ -599,7 +599,8 @@ public:
 			else
 			if ((BlendMode == BLEND_Modulate) ||
 				(BlendMode == BLEND_Translucent) || 
-				(BlendMode == BLEND_Additive))
+				(BlendMode == BLEND_Additive) ||
+				(BlendMode == BLEND_AlphaComposite))
 			{
 				bool bColorInputIsNULL = false;
 				if (ShadingModel == MSM_Unlit)
@@ -611,7 +612,8 @@ public:
 					bColorInputIsNULL = !IsMaterialInputConnected(Material, MP_DiffuseColor);
 				}
 				if (BlendMode == BLEND_Translucent
-					|| BlendMode == BLEND_Additive)
+					|| BlendMode == BLEND_Additive
+					|| BlendMode == BLEND_AlphaComposite)
 				{
 					bExpressionIsNULL = bColorInputIsNULL && !IsMaterialInputConnected(Material, PropertyToCompile);
 				}
@@ -721,6 +723,7 @@ public:
 			break;
 		case BLEND_Translucent:
 		case BLEND_Additive:
+		case BLEND_AlphaComposite:
 			{
 				switch (InMaterialProperty)
 				{

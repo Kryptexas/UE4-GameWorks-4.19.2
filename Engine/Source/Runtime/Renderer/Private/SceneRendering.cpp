@@ -29,6 +29,8 @@
 extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
 extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Custom Depth"), Stat_GPU_CustomDepth, STATGROUP_GPU);
+
 /**
  * Console variable controlling whether or not occlusion queries are allowed.
  */
@@ -1688,6 +1690,7 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 	if (SceneContext.BeginRenderingCustomDepth(RHICmdList, bPrimitives))
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CustomDepth);
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
@@ -1870,6 +1873,8 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
 		
+		GPU_STATS_UPDATE(RHICmdList);
+		
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
 			// Render the scene's hit proxies.
@@ -2025,6 +2030,9 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 
 		if (!SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
+			USceneCaptureComponent2D::UpdateDeferredCaptures(Scene);
+			USceneCaptureComponentCube::UpdateDeferredCaptures(Scene);
+
 			for (int32 ReflectionIndex = 0; ReflectionIndex < SceneRenderer->Scene->PlanarReflections_GameThread.Num(); ReflectionIndex++)
 			{
 				UPlanarReflectionComponent* ReflectionComponent = SceneRenderer->Scene->PlanarReflections_GameThread[ReflectionIndex];

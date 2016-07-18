@@ -2395,8 +2395,8 @@ void GlobalBeginCompileShader(
 		// List mostly comes from set of characters not allowed by windows in a path.  Just try to rename a file and type one of these for the list.
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("<"), TEXT("("));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT(">"), TEXT(")"));
-		Input.DumpDebugInfoPath.ReplaceInline(TEXT("::"), TEXT("=="));		
-		Input.DumpDebugInfoPath.ReplaceInline(TEXT("|"), TEXT("_"));		
+		Input.DumpDebugInfoPath.ReplaceInline(TEXT("::"), TEXT("=="));
+		Input.DumpDebugInfoPath.ReplaceInline(TEXT("|"), TEXT("_"));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("*"), TEXT("-"));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("?"), TEXT("!"));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("\""), TEXT("\'"));
@@ -2409,12 +2409,12 @@ void GlobalBeginCompileShader(
 
 	// Add the appropriate definitions for the shader frequency.
 	{
-		Input.Environment.SetDefine(TEXT("PIXELSHADER"),	Target.Frequency == SF_Pixel);
-		Input.Environment.SetDefine(TEXT("DOMAINSHADER"),	Target.Frequency == SF_Domain);
-		Input.Environment.SetDefine(TEXT("HULLSHADER"),		Target.Frequency == SF_Hull);
-		Input.Environment.SetDefine(TEXT("VERTEXSHADER"),	Target.Frequency == SF_Vertex);
-		Input.Environment.SetDefine(TEXT("GEOMETRYSHADER"),	Target.Frequency == SF_Geometry);
-		Input.Environment.SetDefine(TEXT("COMPUTESHADER"),	Target.Frequency == SF_Compute);
+		Input.Environment.SetDefine(TEXT("PIXELSHADER"), Target.Frequency == SF_Pixel);
+		Input.Environment.SetDefine(TEXT("DOMAINSHADER"), Target.Frequency == SF_Domain);
+		Input.Environment.SetDefine(TEXT("HULLSHADER"), Target.Frequency == SF_Hull);
+		Input.Environment.SetDefine(TEXT("VERTEXSHADER"), Target.Frequency == SF_Vertex);
+		Input.Environment.SetDefine(TEXT("GEOMETRYSHADER"), Target.Frequency == SF_Geometry);
+		Input.Environment.SetDefine(TEXT("COMPUTESHADER"), Target.Frequency == SF_Compute);
 	}
 
 	// Set instanced stereo define
@@ -2454,7 +2454,7 @@ void GlobalBeginCompileShader(
 			Input.Environment.CompilerFlags.Add(CFLAG_Debug);
 		}
 	}
-	
+
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.KeepDebugInfo"));
 
@@ -2487,7 +2487,7 @@ void GlobalBeginCompileShader(
 	{
 		FString ShaderPDBRoot;
 		GConfig->GetString(TEXT("DevOptions.Shaders"), TEXT("ShaderPDBRoot"), ShaderPDBRoot, GEngineIni);
-		if ( !ShaderPDBRoot.IsEmpty() )
+		if (!ShaderPDBRoot.IsEmpty())
 		{
 			Input.Environment.SetDefine(TEXT("SHADER_PDB_ROOT"), *ShaderPDBRoot);
 		}
@@ -2503,7 +2503,7 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("DXT5_NORMALMAPS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
-	if(bAllowDevelopmentShaderCompile)
+	if (bAllowDevelopmentShaderCompile)
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
 		Input.Environment.SetDefine(TEXT("COMPILE_SHADERS_FOR_DEVELOPMENT"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
@@ -2537,6 +2537,15 @@ void GlobalBeginCompileShader(
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
 		Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
+	if (GSupportsRenderTargetWriteMask)
+	{
+		Input.Environment.SetDefine(TEXT("PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK"), 1);
+	}
+	else
+	{
+		Input.Environment.SetDefine(TEXT("PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK"), 0);
 	}
 
 	NewJobs.Add(NewJob);

@@ -45,7 +45,7 @@ static TAutoConsoleVariable<int32> GLSLCvar(
 
 static TAutoConsoleVariable<int32> GRHIThreadCvar(
 	TEXT("r.Vulkan.RHIThread"),
-	0,
+	1,
 	TEXT("1 to use RHI Thread")
 	);
 

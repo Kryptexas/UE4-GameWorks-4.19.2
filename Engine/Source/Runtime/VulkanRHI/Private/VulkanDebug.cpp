@@ -198,12 +198,210 @@ namespace VulkanRHI
 		TEXT("1 to enable dump layer, 0 to disable (default)")
 		);
 
+	static FString GetVkFormatString(VkFormat Format)
+	{
+		switch (Format)
+		{
+			// + 10 to skip "VK_FORMAT"
+#define VKSWITCHCASE(x)	case x: return TEXT(#x) + 10;
+			VKSWITCHCASE(VK_FORMAT_UNDEFINED)
+			VKSWITCHCASE(VK_FORMAT_R4G4_UNORM_PACK8)
+			VKSWITCHCASE(VK_FORMAT_R4G4B4A4_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_B4G4R4A4_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_R5G6B5_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_B5G6R5_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_R5G5B5A1_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_B5G5R5A1_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_A1R5G5B5_UNORM_PACK16)
+			VKSWITCHCASE(VK_FORMAT_R8_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R8_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R8_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R8_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R8_UINT)
+			VKSWITCHCASE(VK_FORMAT_R8_SINT)
+			VKSWITCHCASE(VK_FORMAT_R8_SRGB)
+			VKSWITCHCASE(VK_FORMAT_R8G8_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R8G8_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R8G8_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R8G8_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R8G8_UINT)
+			VKSWITCHCASE(VK_FORMAT_R8G8_SINT)
+			VKSWITCHCASE(VK_FORMAT_R8G8_SRGB)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_UINT)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_SINT)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8_SRGB)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_UNORM)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_SNORM)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_USCALED)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_UINT)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_SINT)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8_SRGB)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_UINT)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_SINT)
+			VKSWITCHCASE(VK_FORMAT_R8G8B8A8_SRGB)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_UNORM)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_SNORM)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_USCALED)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_UINT)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_SINT)
+			VKSWITCHCASE(VK_FORMAT_B8G8R8A8_SRGB)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_UNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_SNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_USCALED_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_SSCALED_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_UINT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_SINT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A8B8G8R8_SRGB_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2R10G10B10_UNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2R10G10B10_SNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2R10G10B10_USCALED_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2R10G10B10_SSCALED_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2R10G10B10_UINT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2R10G10B10_SINT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2B10G10R10_UNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2B10G10R10_SNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2B10G10R10_USCALED_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2B10G10R10_SSCALED_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2B10G10R10_UINT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_A2B10G10R10_SINT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_R16_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R16_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R16_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R16_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R16_UINT)
+			VKSWITCHCASE(VK_FORMAT_R16_SINT)
+			VKSWITCHCASE(VK_FORMAT_R16_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R16G16_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R16G16_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R16G16_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R16G16_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R16G16_UINT)
+			VKSWITCHCASE(VK_FORMAT_R16G16_SINT)
+			VKSWITCHCASE(VK_FORMAT_R16G16_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_UINT)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_SINT)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_UNORM)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_SNORM)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_USCALED)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_SSCALED)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_UINT)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_SINT)
+			VKSWITCHCASE(VK_FORMAT_R16G16B16A16_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R32_UINT)
+			VKSWITCHCASE(VK_FORMAT_R32_SINT)
+			VKSWITCHCASE(VK_FORMAT_R32_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R32G32_UINT)
+			VKSWITCHCASE(VK_FORMAT_R32G32_SINT)
+			VKSWITCHCASE(VK_FORMAT_R32G32_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R32G32B32_UINT)
+			VKSWITCHCASE(VK_FORMAT_R32G32B32_SINT)
+			VKSWITCHCASE(VK_FORMAT_R32G32B32_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R32G32B32A32_UINT)
+			VKSWITCHCASE(VK_FORMAT_R32G32B32A32_SINT)
+			VKSWITCHCASE(VK_FORMAT_R32G32B32A32_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R64_UINT)
+			VKSWITCHCASE(VK_FORMAT_R64_SINT)
+			VKSWITCHCASE(VK_FORMAT_R64_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R64G64_UINT)
+			VKSWITCHCASE(VK_FORMAT_R64G64_SINT)
+			VKSWITCHCASE(VK_FORMAT_R64G64_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R64G64B64_UINT)
+			VKSWITCHCASE(VK_FORMAT_R64G64B64_SINT)
+			VKSWITCHCASE(VK_FORMAT_R64G64B64_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_R64G64B64A64_UINT)
+			VKSWITCHCASE(VK_FORMAT_R64G64B64A64_SINT)
+			VKSWITCHCASE(VK_FORMAT_R64G64B64A64_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_B10G11R11_UFLOAT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_E5B9G9R9_UFLOAT_PACK32)
+			VKSWITCHCASE(VK_FORMAT_D16_UNORM)
+			VKSWITCHCASE(VK_FORMAT_X8_D24_UNORM_PACK32)
+			VKSWITCHCASE(VK_FORMAT_D32_SFLOAT)
+			VKSWITCHCASE(VK_FORMAT_S8_UINT)
+			VKSWITCHCASE(VK_FORMAT_D16_UNORM_S8_UINT)
+			VKSWITCHCASE(VK_FORMAT_D24_UNORM_S8_UINT)
+			VKSWITCHCASE(VK_FORMAT_D32_SFLOAT_S8_UINT)
+			VKSWITCHCASE(VK_FORMAT_BC1_RGB_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC1_RGB_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC1_RGBA_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC1_RGBA_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC2_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC2_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC3_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC3_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC4_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC4_SNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC5_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC5_SNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC6H_UFLOAT_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC6H_SFLOAT_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC7_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_BC7_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_EAC_R11_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_EAC_R11_SNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_EAC_R11G11_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_EAC_R11G11_SNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_4x4_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_4x4_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_5x4_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_5x4_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_5x5_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_5x5_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_6x5_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_6x5_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_6x6_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_6x6_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_8x5_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_8x5_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_8x6_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_8x6_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_8x8_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_8x8_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x5_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x5_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x6_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x6_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x8_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x8_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x10_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_10x10_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_12x10_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_12x10_SRGB_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_12x12_UNORM_BLOCK)
+			VKSWITCHCASE(VK_FORMAT_ASTC_12x12_SRGB_BLOCK)
+#undef VKSWITCHCASE
+		default:
+			break;
+		}
+		return FString::Printf(TEXT("Unknown VkFormat %d"), (int32)Format);
+	}
+
 	static FString GetVkResultErrorString(VkResult Result)
 	{
-		FString ErrorString;
 		switch (Result)
 		{
-#define VKSWITCHCASE(x)	case x: ErrorString = TEXT(#x); break;
+			// + 3 to skip "VK_"
+#define VKSWITCHCASE(x)	case x: return TEXT(#x) + 3;
 			VKSWITCHCASE(VK_SUCCESS)
 			VKSWITCHCASE(VK_NOT_READY)
 			VKSWITCHCASE(VK_TIMEOUT)
@@ -230,19 +428,34 @@ namespace VulkanRHI
 			VKSWITCHCASE(VK_ERROR_INVALID_SHADER_NV)
 #undef VKSWITCHCASE
 		default:
-			ErrorString = FString::Printf(TEXT("Unknown VkResult %d"), (int32)Result);
 			break;
 		}
 
-		return ErrorString;
+		return FString::Printf(TEXT("Unknown VkResult %d"), (int32)Result);
+	}
+
+	FString GetImageTilingString(VkImageTiling Tiling)
+	{
+		switch (Tiling)
+		{
+			// + 16 to skip "VK_IMAGE_TILING_"
+#define VKSWITCHCASE(x)	case x: return TEXT(#x) + 16;
+			VKSWITCHCASE(VK_IMAGE_TILING_OPTIMAL)
+			VKSWITCHCASE(VK_IMAGE_TILING_LINEAR)
+#undef VKSWITCHCASE
+		default:
+			break;
+		}
+
+		return FString::Printf(TEXT("Unknown VkImageTiling %d"), (int32)Tiling);
 	}
 
 	static FString GetImageLayoutString(VkImageLayout Layout)
 	{
-		FString String;
 		switch (Layout)
 		{
-#define VKSWITCHCASE(x)	case x: String = TEXT(#x); break;
+			// + 16 to skip "VK_IMAGE_LAYOUT"
+#define VKSWITCHCASE(x)	case x: return TEXT(#x) + 16;
 			VKSWITCHCASE(VK_IMAGE_LAYOUT_UNDEFINED)
 			VKSWITCHCASE(VK_IMAGE_LAYOUT_GENERAL)
 			VKSWITCHCASE(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
@@ -255,11 +468,31 @@ namespace VulkanRHI
 			VKSWITCHCASE(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
 #undef VKSWITCHCASE
 		default:
-			String = FString::Printf(TEXT("Unknown VkImageLayout %d"), (int32)Layout);
 			break;
 		}
 
-		return String;
+		return FString::Printf(TEXT("Unknown VkImageLayout %d"), (int32)Layout);
+	}
+
+	static FString GetImageViewTypeString(VkImageViewType Type)
+	{
+		switch (Type)
+		{
+			// + 19 to skip "VK_IMAGE_VIEW_TYPE_"
+#define VKSWITCHCASE(x)	case x: return TEXT(#x) + 16;
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_1D)
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_2D)
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_3D)
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_CUBE)
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_1D_ARRAY)
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_2D_ARRAY)
+		VKSWITCHCASE(VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+#undef VKSWITCHCASE
+		default:
+			break;
+		}
+
+		return FString::Printf(TEXT("Unknown VkImageViewType %d"), (int32)Type);
 	}
 
 	static FString GetComponentMappingString(const VkComponentMapping& Mapping)
@@ -288,18 +521,11 @@ namespace VulkanRHI
 	if ((Flags & BitField) == BitField)\
 	{\
 		Flags &= ~BitField;\
+		if (String.Len() > 0)\
+		{\
+			String += TEXT("|");\
+		}\
 		String += Name;\
-		if (bFirst)\
-		{\
-			bFirst = false;\
-		}\
-		else\
-		{\
-			if (Flags !=0)\
-			{\
-				String += TEXT("|");\
-			}\
-		}\
 	}
 
 	static FString GetAspectMaskString(VkImageAspectFlags Flags)
@@ -308,7 +534,6 @@ namespace VulkanRHI
 		{
 			return TEXT("0");
 		}
-		bool bFirst = true;
 		FString String;
 		AppendBitFieldName(VK_IMAGE_ASPECT_COLOR_BIT, TEXT("COLOR"));
 		AppendBitFieldName(VK_IMAGE_ASPECT_DEPTH_BIT, TEXT("DEPTH"));
@@ -328,7 +553,6 @@ namespace VulkanRHI
 		{
 			return TEXT("0");
 		}
-		bool bFirst = true;
 		FString String;
 		AppendBitFieldName(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, TEXT("INDIRECT_COMMAND"));
 		AppendBitFieldName(VK_ACCESS_INDEX_READ_BIT, TEXT("INDEX_READ"));
@@ -355,7 +579,61 @@ namespace VulkanRHI
 		return String;
 	}
 
+	FString GetSampleCountString(VkSampleCountFlags Flags)
+	{
+		if (Flags == 0)
+		{
+			return TEXT("0");
+		}
+		FString String;
+		AppendBitFieldName(VK_SAMPLE_COUNT_1_BIT, TEXT("1"));
+		AppendBitFieldName(VK_SAMPLE_COUNT_2_BIT, TEXT("2"));
+		AppendBitFieldName(VK_SAMPLE_COUNT_4_BIT, TEXT("4"));
+		AppendBitFieldName(VK_SAMPLE_COUNT_8_BIT, TEXT("8"));
+		AppendBitFieldName(VK_SAMPLE_COUNT_16_BIT, TEXT("16"));
+		AppendBitFieldName(VK_SAMPLE_COUNT_32_BIT, TEXT("32"));
+		AppendBitFieldName(VK_SAMPLE_COUNT_64_BIT, TEXT("64"));
+		if (Flags != 0)
+		{
+			FString Unknown = FString::Printf(TEXT("%d"), Flags);
+			AppendBitFieldName(Flags, Unknown);
+		}
+		return String;
+	}
+
+	FString GetImageUsageString(VkImageUsageFlags Flags)
+	{
+		if (Flags == 0)
+		{
+			return TEXT("0");
+		}
+		FString String;
+		AppendBitFieldName(VK_IMAGE_USAGE_TRANSFER_SRC_BIT, TEXT("XFER_SRC"));
+		AppendBitFieldName(VK_IMAGE_USAGE_TRANSFER_DST_BIT, TEXT("XFER_DST"));
+		AppendBitFieldName(VK_IMAGE_USAGE_SAMPLED_BIT, TEXT("SAMPLED"));
+		AppendBitFieldName(VK_IMAGE_USAGE_STORAGE_BIT, TEXT("STORAGE"));
+		AppendBitFieldName(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, TEXT("COLOR_ATT"));
+		AppendBitFieldName(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, TEXT("DS_ATT"));
+		AppendBitFieldName(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT, TEXT("TRANS_ATT"));
+		AppendBitFieldName(VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, TEXT("IN_ATT"));
+		if (Flags != 0)
+		{
+			FString Unknown = FString::Printf(TEXT("%d"), Flags);
+			AppendBitFieldName(Flags, Unknown);
+		}
+		return String;
+	}
 #undef  AppendBitFieldName
+
+	FString GetExtentString(const VkExtent3D& Extent)
+	{
+		return FString::Printf(TEXT("w:%d h:%d d:%d"), Extent.width, Extent.height, Extent.depth);
+	}
+
+	FString GetExtentString(const VkExtent2D& Extent)
+	{
+		return FString::Printf(TEXT("w:%d h:%d"), Extent.width, Extent.height);
+	}
 
 	static FString GetSubResourceRangeString(const VkImageSubresourceRange& Range)
 	{
@@ -463,9 +741,7 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkAllocateMemory(OutMem=%p)\n"), AllocateInfo, Memory));
-			DebugLog += Tabs;
-			DebugLog += FString::Printf(TEXT("VkMemoryAllocateInfo %p: Size=%d, MemoryTypeIndex=%d"), AllocateInfo, (uint32)AllocateInfo->allocationSize, AllocateInfo->memoryTypeIndex);
+			DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkAllocateMemory(OutMem=%p): Size=%d, MemTypeIndex=%d"), AllocateInfo, Memory, (uint32)AllocateInfo->allocationSize, AllocateInfo->memoryTypeIndex));
 		}
 	}
 
@@ -473,34 +749,41 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DebugLog += FString::Printf(TEXT(" -> Size=%d Align=%d MemoryTypeBits=0x%x\n"), (uint32)MemoryRequirements->size, (uint32)MemoryRequirements->alignment, MemoryRequirements->memoryTypeBits);
+			DebugLog += FString::Printf(TEXT(" -> Size=%d Align=%d MemTypeBits=0x%x\n"), (uint32)MemoryRequirements->size, (uint32)MemoryRequirements->alignment, MemoryRequirements->memoryTypeBits);
 		}
 	}
 
-	void DumpBufferCreate(VkDevice Device, const VkBufferCreateInfo* CreateInfo, VkBuffer* Buffer)
+	void DumpCreateBuffer(VkDevice Device, const VkBufferCreateInfo* CreateInfo, VkBuffer* Buffer)
 	{
 		FlushDebugWrapperLog();
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateBuffer(Info=%p, OutBuffer=%p)[...]"), CreateInfo, Buffer));
 	}
 
-	void DumpBufferViewCreate(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, VkBufferView* BufferView)
+	void DumpCreateBufferView(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, VkBufferView* BufferView)
 	{
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("VkBufferViewCreateInfo(Info=%p, OutBufferView=%p)[...]"), CreateInfo, BufferView));
 	}
 
-	void DumpImageCreate(VkDevice Device, const VkImageCreateInfo* CreateInfo, VkImage* Image)
+	void DumpCreateImage(VkDevice Device, const VkImageCreateInfo* CreateInfo, VkImage* Image)
 	{
-		FlushDebugWrapperLog();
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateImage(Info=%p, OutImage=%p)[...]"), CreateInfo, Image));
-	}
-
-	void DumpImageViewCreate(VkDevice Device, const VkImageViewCreateInfo* CreateInfo, VkImageView* ImageView)
-	{
-		DevicePrintfBegin(Device, FString::Printf(TEXT("VkImageViewCreateInfo(Info=%p, OutImageView=%p)"), CreateInfo, ImageView));
-
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DebugLog += FString::Printf(TEXT("%sVkImageViewCreateInfo: Flags=%d, Image=%p, ViewType=%d, Format=%p, Components=%s\n"), Tabs, CreateInfo->flags, CreateInfo->image, (int32)CreateInfo->viewType, (void*)CreateInfo->format, *GetComponentMappingString(CreateInfo->components));
+			FlushDebugWrapperLog();
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateImage(Info=%p, OutImage=%p)"), CreateInfo, Image));
+			DebugLog += FString::Printf(TEXT("%sVkImageCreateInfo: Flags=%d, ImageType=%d, Format=%s, MipLevels=%d, ArrayLayers=%d, Samples=%s\n"), Tabs, CreateInfo->flags, (uint32)CreateInfo->imageType,
+				*GetVkFormatString(CreateInfo->format), CreateInfo->mipLevels, CreateInfo->arrayLayers, *GetSampleCountString(CreateInfo->samples));
+			DebugLog += FString::Printf(TEXT("%s\tExtent=(%s) Tiling=%s, Usage=%s, Initial=%s\n"), Tabs, *GetExtentString(CreateInfo->extent), 
+				*GetImageTilingString(CreateInfo->tiling), *GetImageUsageString(CreateInfo->usage), *GetImageLayoutString(CreateInfo->initialLayout));
+		}
+	}
+
+	void DumpCreateImageView(VkDevice Device, const VkImageViewCreateInfo* CreateInfo, VkImageView* ImageView)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateImageView(Info=%p, OutImageView=%p)"), CreateInfo, ImageView));
+			DebugLog += FString::Printf(TEXT("%sVkImageViewCreateInfo: Flags=%d, Image=%p, ViewType=%s, Format=%s, Components=%s\n"), Tabs, CreateInfo->flags, CreateInfo->image, 
+				*GetImageViewTypeString(CreateInfo->viewType), *GetVkFormatString(CreateInfo->format), *GetComponentMappingString(CreateInfo->components));
 			DebugLog += FString::Printf(TEXT("%s\tSubresourceRange=(%s)"), Tabs, *GetSubResourceRangeString(CreateInfo->subresourceRange));
 		}
 	}
@@ -663,7 +946,98 @@ namespace VulkanRHI
 
 	void DumpCreateRenderPass(VkDevice Device, const VkRenderPassCreateInfo* CreateInfo, VkRenderPass* RenderPass)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateRenderPass(Info=%p, OutRenderPass=%p)[...]"), CreateInfo, RenderPass));
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateRenderPass(Info=%p, OutRenderPass=%p)[...]"), CreateInfo, RenderPass));
+			DebugLog += FString::Printf(TEXT("%s\tVkRenderPassCreateInfo: NumAttachments=%d, Attachments=%p, NumSubPasses=%d, SubPasses=%p\n"), Tabs, CreateInfo->attachmentCount, CreateInfo->pAttachments, CreateInfo->subpassCount, CreateInfo->pSubpasses);
+			for (uint32 Index = 0; Index < CreateInfo->attachmentCount; ++Index)
+			{
+				auto GetLoadOpString = [](VkAttachmentLoadOp Op) -> FString
+					{
+						switch (Op)
+						{
+						case VK_ATTACHMENT_LOAD_OP_LOAD: return TEXT("LOAD");
+						case VK_ATTACHMENT_LOAD_OP_CLEAR: return TEXT("CLEAR");
+						case VK_ATTACHMENT_LOAD_OP_DONT_CARE: return TEXT("DONT_CARE");
+						default: return FString::Printf(TEXT("Invalid(%d)"), (uint32)Op);
+						}
+					};
+				auto GetStoreOpString = [](VkAttachmentStoreOp Op) -> FString
+					{
+						switch(Op)
+						{
+						case VK_ATTACHMENT_STORE_OP_STORE: return TEXT("STORE");
+						case VK_ATTACHMENT_STORE_OP_DONT_CARE: return TEXT("DONT_CARE");
+						default: return FString::Printf(TEXT("Invalid(%d)"), (uint32)Op);
+						}
+					};
+				/*
+				typedef struct VkAttachmentDescription {
+					VkAttachmentDescriptionFlags    flags;
+					VkFormat                        format;
+					VkSampleCountFlagBits           samples;
+					VkAttachmentLoadOp              loadOp;
+					VkAttachmentStoreOp             storeOp;
+					VkAttachmentLoadOp              stencilLoadOp;
+					VkAttachmentStoreOp             stencilStoreOp;
+					VkImageLayout                   initialLayout;
+					VkImageLayout                   finalLayout;
+				} VkAttachmentDescription;
+*/
+				const VkAttachmentDescription& Desc = CreateInfo->pAttachments[Index];
+				DebugLog += FString::Printf(TEXT("%s\t\tAttachment[%d]: Flags=%s, Format=%s, Samples=%s, Load=%s, Store=%s\n"), Tabs, Index,
+					(Desc.flags == VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT ? TEXT("MAY_ALIAS") : TEXT("0")),
+					*GetVkFormatString(Desc.format), *GetSampleCountString(Desc.samples), *GetLoadOpString(Desc.loadOp), *GetStoreOpString(Desc.storeOp));
+				DebugLog += FString::Printf(TEXT("%s\t\t\tLoadStencil=%s, StoreStencil=%s, Initial=%s, Final=%s\n"), Tabs, 
+					*GetLoadOpString(Desc.stencilLoadOp), *GetStoreOpString(Desc.stencilStoreOp), *VulkanRHI::GetImageLayoutString(Desc.initialLayout), *VulkanRHI::GetImageLayoutString(Desc.finalLayout));
+			}
+
+			for (uint32 Index = 0; Index < CreateInfo->subpassCount; ++Index)
+			{
+				const VkSubpassDescription& Desc = CreateInfo->pSubpasses[Index];
+				DebugLog += FString::Printf(TEXT("%s\t\tSubpass[%d]: Flags=%d, Bind=%s, NumInputAttach=%d, InputAttach=%p, NumColorAttach=%d, ColorAttach=%p, DSAttch=%p\n"), Tabs, Index,
+					Desc.flags,
+					Desc.pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE ? TEXT("Compute") : TEXT("Gfx"),
+					Desc.inputAttachmentCount, Desc.pInputAttachments, Desc.colorAttachmentCount, Desc.pColorAttachments, Desc.pDepthStencilAttachment);
+				for (uint32 SubIndex = 0; SubIndex < Desc.inputAttachmentCount; ++SubIndex)
+				{
+					DebugLog += FString::Printf(TEXT("%s\t\t\tInputAttach[%d]: Attach=%d, Layout=%s\n"), Tabs, Index,
+						Desc.pInputAttachments[SubIndex].attachment, *GetImageLayoutString(Desc.pInputAttachments[SubIndex].layout));
+				}
+				for (uint32 SubIndex = 0; SubIndex < Desc.inputAttachmentCount; ++SubIndex)
+				{
+					DebugLog += FString::Printf(TEXT("%s\t\t\tColorAttach[%d]: Attach=%d, Layout=%s\n"), Tabs, Index,
+						Desc.pColorAttachments[SubIndex].attachment, *GetImageLayoutString(Desc.pColorAttachments[SubIndex].layout));
+				}
+				if (Desc.pDepthStencilAttachment)
+				{
+					DebugLog += FString::Printf(TEXT("%s\t\t\tDSAttach: Attach=%d, Layout=%s\n"), Tabs, Desc.pDepthStencilAttachment->attachment, *GetImageLayoutString(Desc.pDepthStencilAttachment->layout));
+				}
+				/*
+				typedef struct VkAttachmentReference {
+					uint32_t         attachment;
+					VkImageLayout    layout;
+				} VkAttachmentReference;
+
+				typedef struct VkSubpassDescription {
+					const VkAttachmentReference*    pResolveAttachments;
+					uint32_t                        preserveAttachmentCount;
+					const uint32_t*                 pPreserveAttachments;
+				} VkSubpassDescription;*/
+			}
+
+/*
+			typedef struct VkRenderPassCreateInfo {
+				uint32_t                          attachmentCount;
+				const VkAttachmentDescription*    pAttachments;
+				uint32_t                          subpassCount;
+				const VkSubpassDescription*       pSubpasses;
+				uint32_t                          dependencyCount;
+				const VkSubpassDependency*        pDependencies;
+			} VkRenderPassCreateInfo;
+*/
+
+		}
 	}
 
 	void DumpQueueSubmit(VkQueue Queue, uint32 SubmitCount, const VkSubmitInfo* Submits, VkFence Fence)
@@ -716,6 +1090,7 @@ namespace VulkanRHI
 
 	void DumpCreateCommandPool(VkDevice Device, const VkCommandPoolCreateInfo* CreateInfo, VkCommandPool* CommandPool)
 	{
+		FlushDebugWrapperLog();
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateCommandPool(CreateInfo=%p, OutCommandPool=%p)[...]"), CreateInfo, CommandPool));
 	}
 
@@ -741,6 +1116,7 @@ namespace VulkanRHI
 
 	void DumpCreateDevice(VkPhysicalDevice PhysicalDevice, const VkDeviceCreateInfo* CreateInfo, VkDevice* Device)
 	{
+		FlushDebugWrapperLog();
 		PrintfBeginResult(FString::Printf(TEXT("vkCreateDevice(PhysicalDevice=%p, CreateInfo=%p, OutDevice=%p)[...]"), PhysicalDevice, CreateInfo, Device));
 	}
 
@@ -778,10 +1154,10 @@ namespace VulkanRHI
 					}					
 				};
 			CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBeginRenderPass(BeginInfo=%p, Contents=%s)"), RenderPassBegin, *GetSubpassContents(Contents)));
-			DebugLog += FString::Printf(TEXT("%sBeginInfo: RenderPass=%p, Framebuffer=%p, renderArea=(x:%d, y:%d, w:%d, h:%d), clearValues=%d\n"),
+			DebugLog += FString::Printf(TEXT("%sBeginInfo: RenderPass=%p, Framebuffer=%p, renderArea=(x:%d, y:%d, %s), clearValues=%d\n"),
 				Tabs, RenderPassBegin->renderPass, RenderPassBegin->framebuffer, 
 				RenderPassBegin->renderArea.offset.x, RenderPassBegin->renderArea.offset.y, 
-				RenderPassBegin->renderArea.extent.width, RenderPassBegin->renderArea.extent.height,
+				*GetExtentString(RenderPassBegin->renderArea.extent),
 				RenderPassBegin->clearValueCount);
 			for (uint32 Index = 0; Index < RenderPassBegin->clearValueCount; ++Index)
 			{

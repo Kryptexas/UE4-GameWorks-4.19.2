@@ -210,6 +210,7 @@ enum EBlendMode
 	BLEND_Translucent UMETA(DisplayName="Translucent"),
 	BLEND_Additive UMETA(DisplayName="Additive"),
 	BLEND_Modulate UMETA(DisplayName="Modulate"),
+	BLEND_AlphaComposite UMETA(DisplayName ="AlphaComposite (Premultiplied Alpha)"),
 	BLEND_MAX,
 };
 

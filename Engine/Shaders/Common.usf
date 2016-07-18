@@ -954,6 +954,24 @@ MaterialFloat3 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncode
 	}
 }
 
+
+/** Get render target write mask value
+  * This gets a bit from a write mask texture created with FRTWriteMaskDecodeCS. Only supprted on some platforms.
+  */
+#if PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK
+uint DecodeRTWriteMaskTexture(in float2 ScreenPosition, in Texture2D<uint> RTWriteMaskTexture)
+{
+	int2 IntPosition = int2(ScreenPosition.xy);
+	uint RTWriteMaskValue = RTWriteMaskTexture.Load( int3(IntPosition.x/8, IntPosition.y/8, 0) );
+
+	int2 BitCoord = ((IntPosition / int2(4, 4)) % int2(2, 2));
+	uint BitIdx = BitCoord.x + (BitCoord.y*2);
+	uint RTWriteMaskBit = RTWriteMaskValue & (1<<BitIdx);
+
+	return RTWriteMaskBit;
+}
+#endif
+
 /** Calculates the ScreenUV given the screen position and an offset fraction. */
 float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFraction)
 {
@@ -1278,7 +1296,7 @@ float AntialiasedTextureMask( Texture2D Tex, SamplerState Sampler, float2 UV, fl
 	return Result;
 }
 
-float Noise3D_Multiplexer(int Function, float3 Position, bool bTiling, uint RepeatSize)
+float Noise3D_Multiplexer(int Function, float3 Position, int Quality, bool bTiling, uint RepeatSize)
 {
 	// verified, HLSL compiled out the switch if Function is a constant
 	switch(Function)
@@ -1291,8 +1309,10 @@ float Noise3D_Multiplexer(int Function, float3 Position, bool bTiling, uint Repe
 			return FastGradientPerlinNoise3D_TEX(Position);
 		case 3:
 			return GradientNoise3D_ALU(Position, bTiling, RepeatSize);
-		default:
+		case 4:
 			return ValueNoise3D_ALU(Position, bTiling, RepeatSize);
+		default:
+			return VoronoiNoise3D_ALU(Position, Quality, bTiling, RepeatSize);
 	}
 	return 0;
 }
@@ -1315,11 +1335,11 @@ float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Fun
 
 		if(bTurbulence)
 		{
-			Out += abs(Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize)) * OutScale;
+			Out += abs(Noise3D_Multiplexer(Function, Position, Quality, bTiling, RepeatSize)) * OutScale;
 		}
 		else
 		{
-			Out += Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize) * OutScale;
+			Out += Noise3D_Multiplexer(Function, Position, Quality, bTiling, RepeatSize) * OutScale;
 		}
 
 		Position *= LevelScale;

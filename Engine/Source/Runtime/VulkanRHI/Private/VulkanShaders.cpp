@@ -235,7 +235,7 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	FMemory::Memzero(VertexInputBindings);
 	FMemory::Memzero(Attributes);
 	FMemory::Memzero(VertexInputStateInfo);
-	FMemory::Memzero(DescriptorImageInfoForStage);
+	FMemory::Memzero(DescriptorSamplerImageInfoForStage);
 
 	static_assert(CrossCompiler::PACKED_TYPEINDEX_MAX <= sizeof(DirtyPackedUniformBufferStagingMask[0]) * 8, "Won't fit!");
 	FMemory::Memzero(DescriptorBufferInfoForPackedUBForStage);
@@ -306,13 +306,13 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 
 	GenerateLayoutBindings();
 
-	uint32 UniformSamplerCount = 0;
+	uint32 UniformCombinedSamplerCount = 0;
 	uint32 UniformSamplerBufferCount = 0;
 	uint32 UniformBufferCount = 0;
-	GetDescriptorInfoCounts(UniformSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
+	GetDescriptorInfoCounts(UniformCombinedSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
 
 	// Setup Write information
-	CreateDescriptorWriteInfo(UniformSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
+	CreateDescriptorWriteInfo(UniformCombinedSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
 }
 
 FVulkanBoundShaderState::~FVulkanBoundShaderState()
@@ -533,20 +533,20 @@ void FVulkanBoundShaderState::GenerateLayoutBindings(EShaderFrequency Stage, con
 			}
 		};
 
-	LoopPerType(FVulkanShaderSerializedBindings::TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	LoopPerType(FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	LoopPerType(FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER);
 	LoopPerType(FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	LoopPerType(FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
 
-void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformSamplerCount, uint32 InUniformSamplerBufferCount, uint32 InUniformBufferCount)
+void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformCombinedSamplerCount, uint32 InUniformSamplerBufferCount, uint32 InUniformBufferCount)
 {
 	check(DescriptorWrites.Num() == 0);
-	DescriptorWrites.AddZeroed(InUniformSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount);
-	DescriptorImageInfo.AddZeroed(InUniformSamplerCount);
+	DescriptorWrites.AddZeroed(InUniformCombinedSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount);
+	DescriptorImageInfo.AddZeroed(InUniformCombinedSamplerCount);
 	DescriptorBufferInfo.AddZeroed(InUniformBufferCount);
 
-	for (uint32 Index = 0; Index < InUniformSamplerCount; ++Index)
+	for (uint32 Index = 0; Index < InUniformCombinedSamplerCount; ++Index)
 	{
 		VkDescriptorImageInfo& Sampler = DescriptorImageInfo[Index];
 		// Texture.Load() still requires a default sampler...
@@ -574,13 +574,13 @@ void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformSamplerC
 		//#todo-rco: Use BindingTable instead...
 		auto& Bindings = StageShader->CodeHeader.SerializedBindings.Bindings;
 
-		if (InUniformSamplerCount)
+		if (InUniformCombinedSamplerCount)
 		{
-			DescriptorImageInfoForStage[Stage] = DescriptorImageInfo.GetData() + ImageIndex;
+			DescriptorSamplerImageInfoForStage[Stage] = DescriptorImageInfo.GetData() + ImageIndex;
 
-			for (int32 Index = 0; Index < Bindings[FVulkanShaderSerializedBindings::TYPE_SAMPLER].Num(); ++Index)
+			for (int32 Index = 0; Index < Bindings[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num(); ++Index)
 			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[FVulkanShaderSerializedBindings::TYPE_SAMPLER][Index];
+				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER][Index];
 				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
 				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
@@ -635,7 +635,7 @@ void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformSamplerC
 		}
 	}
 
-	check(InUniformSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount == DescriptorWrites.Num());
+	check(InUniformCombinedSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount == DescriptorWrites.Num());
 }
 
 void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, const void* InVertexStreams)
@@ -919,8 +919,8 @@ void FVulkanBoundShaderState::SetTexture(EShaderFrequency Stage, uint32 BindPoin
 	check(VulkanTextureBase);
 
 	FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-	uint32 VulkanBindingPoint = StageShader->GetBindingTable().SamplerBindingIndices[BindPoint];
-	DescriptorImageInfoForStage[Stage][VulkanBindingPoint].imageView = VulkanTextureBase ? VulkanTextureBase->View.View : VK_NULL_HANDLE;
+	uint32 VulkanBindingPoint = StageShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
+	DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].imageView = VulkanTextureBase ? VulkanTextureBase->View.View : VK_NULL_HANDLE;
 
 	DirtyTextures[Stage] = true;
 #if VULKAN_ENABLE_RHI_DEBUGGING
@@ -937,8 +937,8 @@ void FVulkanBoundShaderState::SetSamplerState(EShaderFrequency Stage, uint32 Bin
 	#endif
 
 	FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-	uint32 VulkanBindingPoint = StageShader->GetBindingTable().SamplerBindingIndices[BindPoint];
-	DescriptorImageInfoForStage[Stage][VulkanBindingPoint].sampler = Sampler ? Sampler->Sampler : VK_NULL_HANDLE;
+	uint32 VulkanBindingPoint = StageShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
+	DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].sampler = Sampler ? Sampler->Sampler : VK_NULL_HANDLE;
 
 	DirtySamplerStates[Stage] = true;
 #if VULKAN_ENABLE_RHI_DEBUGGING
@@ -1018,9 +1018,9 @@ void FVulkanBoundShaderState::SetUniformBuffer(FVulkanPendingState& PendingState
 #endif
 }
 
-void FVulkanBoundShaderState::GetDescriptorInfoCounts(uint32& OutSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount)
+void FVulkanBoundShaderState::GetDescriptorInfoCounts(uint32& OutCombinedSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount)
 {
-	OutSamplerCount = 0;
+	OutCombinedSamplerCount = 0;
 	OutSamplerBufferCount = 0;
 	OutUniformBufferCount = 0;
 
@@ -1033,7 +1033,7 @@ void FVulkanBoundShaderState::GetDescriptorInfoCounts(uint32& OutSamplerCount, u
 			{
 				auto& Layouts = StageShader->CodeHeader.SerializedBindings.Bindings;
 
-				OutSamplerCount += Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER].Num();
+				OutCombinedSamplerCount += Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num();
 				OutSamplerBufferCount += Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
 				OutUniformBufferCount += Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num();
 

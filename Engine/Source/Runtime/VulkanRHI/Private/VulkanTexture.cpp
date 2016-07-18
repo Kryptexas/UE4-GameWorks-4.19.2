@@ -1223,7 +1223,17 @@ void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, co
 			FVulkanTexture2D* VTex2d = (FVulkanTexture2D*)Tex2d;
 			VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)"), VTex2d->Surface.Image, Name));
 		}
-	}
+		else if (FRHITextureCube* TexCube = TextureRHI->GetTextureCube())
+		{
+			FVulkanTextureCube* VTexCube = (FVulkanTextureCube*)TexCube;
+			VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)"), VTexCube->Surface.Image, Name));
+		}
+		else if (FRHITexture3D* Tex3d = TextureRHI->GetTexture3D())
+		{
+			FVulkanTexture3D* VTex3d = (FVulkanTexture3D*)Tex3d;
+			VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)"), VTex3d->Surface.Image, Name));
+		}
+}
 #endif
 
 #if VULKAN_ENABLE_DRAW_MARKERS

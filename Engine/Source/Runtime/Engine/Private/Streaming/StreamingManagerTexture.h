@@ -218,6 +218,9 @@ protected:
 		/** All streaming UTexture2D objects. */
 		TArray<FStreamingTexture> StreamingTextures;
 
+		/** All the textures referenced in StreamingTextures. Used to handled deleted textures.  */
+		TSet<const UTexture2D*> ReferencedTextures;
+
 		/** Index of the StreamingTexture that will be updated next by UpdateStreamingTextures(). */
 		int32 CurrentUpdateStreamingTextureIndex;
 //END: Thread-safe functions and data

@@ -12,15 +12,15 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogVulkanShaderCompiler, Log, All); 
 
-static int32 GUseExternalShaderCompiler = 0;
-static FAutoConsoleVariableRef CVarVulkanUseExternalShaderCompiler(
-	TEXT("r.Vulkan.UseExternalShaderCompiler"),
-	GUseExternalShaderCompiler,
-	TEXT("Whether to use the internal shader compiling library or the external glslang tool.\n")
-	TEXT(" 0: Internal compiler\n")
-	TEXT(" 1: External compiler)"),
-	ECVF_Default
-	);
+//static int32 GUseExternalShaderCompiler = 0;
+//static FAutoConsoleVariableRef CVarVulkanUseExternalShaderCompiler(
+//	TEXT("r.Vulkan.UseExternalShaderCompiler"),
+//	GUseExternalShaderCompiler,
+//	TEXT("Whether to use the internal shader compiling library or the external glslang tool.\n")
+//	TEXT(" 0: Internal compiler\n")
+//	TEXT(" 1: External compiler)"),
+//	ECVF_Default
+//	);
 
 extern bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString& OutErrors, const FString& DumpDebugInfoPath, TArray<uint8>& OutSpirv);
 
@@ -206,7 +206,7 @@ static inline FString GetExtension(EHlslShaderFrequency Frequency, bool bAddDot 
 	case HSF_DomainShader:		Name = TEXT(".tese"); break;
 	}
 
-	if (bAddDot)
+	if (!bAddDot)
 	{
 		++Name;
 	}
@@ -239,15 +239,15 @@ static uint32 GetTypeComponents(const FString& Type)
 
 static void GenerateBindingTable(const FVulkanShaderSerializedBindings& SerializedBindings, FVulkanShaderBindingTable& OutBindingTable)
 {
-	int32 NumSamplers = 0;
+	int32 NumCombinedSamplers = 0;
 	int32 NumSamplerBuffers = 0;
 	int32 NumUniformBuffers = 0;
 
 	auto& Layouts = SerializedBindings.Bindings;
 
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	NumSamplers = Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
-	NumSamplerBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
+	NumCombinedSamplers = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
+	NumSamplerBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
 	NumUniformBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num();
 
 	for (int32 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
@@ -255,15 +255,15 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 		OutBindingTable.PackedGlobalUBsIndices[Index] = -1;
 	}
 
-	OutBindingTable.SamplerBindingIndices.AddUninitialized(NumSamplers);
+	OutBindingTable.CombinedSamplerBindingIndices.AddUninitialized(NumCombinedSamplers);
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
 	OutBindingTable.SamplerBufferBindingIndices.AddUninitialized(NumSamplerBuffers);
 	OutBindingTable.UniformBufferBindingIndices.AddUninitialized(NumUniformBuffers);
 
-	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER].Num(); ++Index)
+	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num(); ++Index)
 	{
-		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER][Index];
-		OutBindingTable.SamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER][Index];
+		OutBindingTable.CombinedSamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
 		OutBindingTable.SamplerBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
@@ -271,7 +271,7 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num(); ++Index)
 	{
 		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER][Index];
-		OutBindingTable.SamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+		OutBindingTable.CombinedSamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
 		OutBindingTable.SamplerBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
@@ -292,7 +292,7 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 	}
 
 	// Do not share numbers here
-	OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num();
+	OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num();
 	OutBindingTable.NumDescriptors = OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers + Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER].Num();
 }
 
@@ -415,8 +415,11 @@ static void BuildShaderOutput(
 		auto Type = FVulkanShaderSerializedBindings::TYPE_MAX;
 		switch (CurrBinding.Type)
 		{
-		case FVulkanBindingTable::TYPE_SAMPLER:
-			Type = FVulkanShaderSerializedBindings::TYPE_SAMPLER;
+		//case FVulkanBindingTable::TYPE_SAMPLER:
+		//	Type = FVulkanShaderSerializedBindings::TYPE_SAMPLER;
+		//	break;
+		case FVulkanBindingTable::TYPE_COMBINED_IMAGE_SAMPLER:
+			Type = FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER;
 			break;
 		case FVulkanBindingTable::TYPE_SAMPLER_BUFFER:
 			Type = FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER;
@@ -909,7 +912,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 
 /**
  * Compile a shader using the external shader compiler
- */
+ *
 static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output, const class FString& WorkingDirectory, EVulkanShaderVersion Version)
 {
 	FString PreprocessedShader;
@@ -1033,7 +1036,7 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 		FVulkanBindingTable BindingTableES(Frequency);
 
 		FVulkanCodeBackend VulkanBackendES(CCFlagsES, BindingTableES, HlslCompilerTargetES);
-		FVulkanLanguageSpec VulkanLanguageSpec(false);
+		FVulkanLanguageSpec VulkanLanguageSpec(false, true);
 
 		int32 Result = 0;
 		if (!bIsSM5)
@@ -1271,8 +1274,8 @@ static bool CallHlslcc(const FString& PreprocessedShader, FVulkanBindingTable& B
 		// Call hlslcc
 		FVulkanCodeBackend VulkanBackend(CompilerInfo.CCFlags, BindingTable, HlslCompilerTarget);
 		FHlslCrossCompilerContext CrossCompilerContext(CompilerInfo.CCFlags, CompilerInfo.Frequency, HlslCompilerTarget);
-		//#todo-rco: Always false?
-		FVulkanLanguageSpec VulkanLanguageSpec(false);
+		const bool bShareSamplers = false;
+		FVulkanLanguageSpec VulkanLanguageSpec(bShareSamplers);
 		int32 Result = 0;
 		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*CompilerInfo.Input.SourceFilename), &VulkanLanguageSpec))
 		{
@@ -1343,12 +1346,12 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 {
 	check(IsVulkanPlatform((EShaderPlatform)Input.Target.Platform));
 
-	if (GUseExternalShaderCompiler)
-	{
-		// Old path...
-		CompileUsingExternal(Input, Output, WorkingDirectory, Version);
-		return;
-	}
+	//if (GUseExternalShaderCompiler)
+	//{
+	//	// Old path...
+	//	CompileUsingExternal(Input, Output, WorkingDirectory, Version);
+	//	return;
+	//}
 
 	const bool bIsSM5 = (Version == EVulkanShaderVersion::SM5);
 	const bool bIsSM4 = (Version == EVulkanShaderVersion::SM4);
@@ -1505,8 +1508,9 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 		//}
 		//else
 		{
-			// For debugging...
-			auto* Code = GeneratedGlslSource.GetData();
+			// For debugging; if you hit an error from Glslang/Spirv, use the SourceNoHeader for line numbers
+			auto* SourceWithHeader = GeneratedGlslSource.GetData();
+			char* SourceNoHeader = strstr(SourceWithHeader, "#version");
 			CompileUsingInternal(CompilerInfo, BindingTable, GeneratedGlslSource, EntryPointName, Output);
 		}
 	}

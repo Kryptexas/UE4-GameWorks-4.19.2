@@ -554,6 +554,7 @@ public:
 	TRefCountPtr<IPooledRenderTarget> DBufferA;
 	TRefCountPtr<IPooledRenderTarget> DBufferB;
 	TRefCountPtr<IPooledRenderTarget> DBufferC;
+	TRefCountPtr<IPooledRenderTarget> DBufferMask;
 
 	// for AmbientOcclusion, only valid for a short time during the frame to allow reuse
 	TRefCountPtr<IPooledRenderTarget> ScreenSpaceAO;

@@ -108,6 +108,10 @@ void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FS
 		// Modulate with the existing scene color
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
 		break;
+	case BLEND_AlphaComposite:
+		// Blend with existing scene color. New color is already pre-multiplied by alpha.
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
+		break;
 	};
 
 	SetShaderValue( RHICmdList, ShaderRHI, ShaderParams, InShaderParams );

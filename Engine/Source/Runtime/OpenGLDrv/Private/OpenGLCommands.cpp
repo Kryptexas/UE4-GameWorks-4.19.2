@@ -1837,10 +1837,15 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 
 void FOpenGLDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)
 {
-	if(FOpenGL::SupportsDiscardFrameBuffer())
+	if (FOpenGL::SupportsDiscardFrameBuffer())
 	{
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_DiscardRenderTargets_Flush);
+			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+		}
+
 		// 8 Color + Depth + Stencil = 10
-		GLenum Attachments[10];
+		GLenum Attachments[MaxSimultaneousRenderTargets + 2];
 		uint32 I=0;
 		if(Depth) 
 		{
@@ -1853,7 +1858,7 @@ void FOpenGLDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32
 			I++;
 		}
 
-		ColorBitMask &= (1 << 8) - 1;
+		ColorBitMask &= (1 << MaxSimultaneousRenderTargets) - 1;
 		uint32 J = 0;
 		while (ColorBitMask)
 		{

@@ -1068,6 +1068,9 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithT
 		FScopedSlowTask SlowTask((float)TexCoordScales.Num(), (LOCTEXT("TextureStreamingBuild_ExportingMaterialScales", "Exporting Material TexCoord Scales")));
 
 		const double StartTime = FPlatformTime::Seconds();
+
+		FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
+
 		for (FTexCoordScaleMap::TIterator It(TexCoordScales); It; ++It)
 		{
 			SlowTask.EnterProgressFrame();
@@ -1078,9 +1081,11 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithT
 			TArray<FMaterialTexCoordBuildInfo>& Scales = It.Value();
 
 
-			FMaterialUtilities::ExportMaterialTexCoordScales(MaterialInterface, QualityLevel, FeatureLevel, Scales);
+			FMaterialUtilities::ExportMaterialTexCoordScales(MaterialInterface, QualityLevel, FeatureLevel, Scales, ExportErrors);
 		}
 		UE_LOG(LogLevel, Display, TEXT("Export Material TexCoord Scales took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+
+		ExportErrors.OutputToLog();
 	}
 
 	if (bDebugDataOnly)

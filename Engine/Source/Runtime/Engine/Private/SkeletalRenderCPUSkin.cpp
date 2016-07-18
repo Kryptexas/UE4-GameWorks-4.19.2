@@ -23,6 +23,7 @@
 #include "EnginePrivate.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "Animation/MorphTarget.h"
+#include "GPUSkinVertexFactory.h"
 
 struct FMorphTargetDelta;
 
@@ -807,11 +808,11 @@ static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal
 	TArray<FMorphTargetInfo> MorphEvalInfos;
 	uint32 NumValidMorphs = InitEvalInfos(ActiveMorphTargets, MorphTargetWeights, LODIndex, MorphEvalInfos);
 
-	static const auto MaxBonesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.MAX_GPUSKIN_BONES"));
-	const int32 MaxGPUSkinBones = MaxBonesVar->GetValueOnAnyThread();
+	const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
+	check(MaxGPUSkinBones <= FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones);
 
 	// Prefetch all matrices
-	for ( int32 MatrixIndex=0; MatrixIndex < MaxGPUSkinBones; MatrixIndex+=2 )
+	for ( uint32 MatrixIndex=0; MatrixIndex < MaxGPUSkinBones; MatrixIndex+=2 )
 	{
 		FPlatformMisc::Prefetch( ReferenceToLocal + MatrixIndex );
 	}

@@ -1575,6 +1575,13 @@ void UParticleModuleBeamNoise::PostEditChangeProperty(FPropertyChangedEvent& Pro
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	if (PartSys && PropertyThatChanged)
 	{
+		// Make sure that the interpolation count is > 0.
+		if (PropertyThatChanged->GetFName() == FName(TEXT("NoiseTessellation")))
+		{
+			// Clamp the tessellation
+			NoiseTessellation = FMath::Clamp<int32>(NoiseTessellation, 0, UParticleModuleBeamNoise::MaxNoiseTessellation);
+		}
+
 		PartSys->PostEditChangeProperty(PropertyChangedEvent);
 	}
 

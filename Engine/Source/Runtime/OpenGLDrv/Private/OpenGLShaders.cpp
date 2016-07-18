@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "GlobalShader.h"
 #include "ShaderCache.h"
+#include "CrossCompilerCommon.h"
 
 #define CHECK_FOR_GL_SHADERS_TO_REPLACE 0
 
@@ -1204,9 +1205,8 @@ void FOpenGLLinkedProgram::VerifyUniformBlockBindings( int Stage, uint32 FirstUn
 {
 	if ( FOpenGL::SupportsSeparateShaderObjects() && FOpenGL::SupportsUniformBuffers() )
 	{
-		static const ANSICHAR StagePrefix[CrossCompiler::NUM_SHADER_STAGES] = { 'v', 'p', 'g', 'h', 'd', 'c'};
 		FOpenGLUniformName Name;
-		Name.Buffer[0] = StagePrefix[Stage];
+		Name.Buffer[0] = CrossCompiler::ShaderStageIndexToTypeName(Stage);
 		Name.Buffer[1] = 'b';
 		
 		GLuint StageProgram = Config.Shaders[Stage].Resource;
@@ -1225,7 +1225,6 @@ void FOpenGLLinkedProgram::VerifyUniformBlockBindings( int Stage, uint32 FirstUn
 
 void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformBuffer )
 {
-	static const ANSICHAR StagePrefix[CrossCompiler::NUM_SHADER_STAGES] = { 'v', 'p', 'g', 'h', 'd', 'c'};
 	static const GLint FirstTextureUnit[CrossCompiler::NUM_SHADER_STAGES] =
 	{
 		FOpenGL::GetFirstVertexTextureUnit(),
@@ -1252,7 +1251,7 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 	VERIFY_GL_SCOPE();
 
 	FOpenGLUniformName Name;
-	Name.Buffer[0] = StagePrefix[Stage];
+	Name.Buffer[0] = CrossCompiler::ShaderStageIndexToTypeName(Stage);
 
 	GLuint StageProgram = FOpenGL::SupportsSeparateShaderObjects() ? Config.Shaders[Stage].Resource : Program;
 	

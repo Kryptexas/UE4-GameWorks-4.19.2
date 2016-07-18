@@ -17,6 +17,8 @@ class FMaterial;
 
 /** Whether to allow rendering translucency shadow depths. */
 bool GUseTranslucencyShadowDepths = true;
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucent Lighting"), Stat_GPU_TranslucentLighting, STATGROUP_GPU);
  
 int32 GUseTranslucentLightingVolumes = 1;
 FAutoConsoleVariableRef CVarUseTranslucentLightingVolumes(
@@ -1075,6 +1077,8 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting(FRHICommandLi
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ClearTranslucentVolumeLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
+
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 		// to track down Jira UE-22073
@@ -1292,6 +1296,7 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 		ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
 
 		SCOPED_DRAW_EVENT(RHICmdList, InjectAmbientCubemapTranslucentVolumeLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 		const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
 
@@ -1351,6 +1356,7 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumePerObjectShadowing(FRH
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		SCOPED_DRAW_EVENT(RHICmdList, ClearTranslucentVolumePerLightShadowing);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 		static_assert(TVC_MAX == 2, "Only expecting two translucency lighting cascades.");
 		FTextureRHIParamRef RenderTargets[2];
@@ -1406,6 +1412,7 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(F
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, AccumulateTranslucentVolumeShadowing);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
@@ -1951,6 +1958,8 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 
 			SCOPED_DRAW_EVENTF(RHICmdList, FilterTranslucentVolume, TEXT("FilterTranslucentVolume %dx%dx%d Cascades:%d"),
 				GTranslucencyLightingVolumeDim, GTranslucencyLightingVolumeDim, GTranslucencyLightingVolumeDim, TVC_MAX);
+
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 			// Filter each cascade
 			for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)

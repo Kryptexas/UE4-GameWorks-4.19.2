@@ -687,6 +687,15 @@ public:
 	virtual FTexture2DRHIRef RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo) = 0;
 
 	/**
+	* Creates an FStructuredBuffer for the RT write mask of a render target 
+	* @param RenderTarget - the RT to create the buffer for
+	*/
+	virtual FStructuredBufferRHIRef RHICreateRTWriteMaskBuffer(FTexture2DRHIParamRef RenderTarget)
+	{
+		return nullptr;
+	}
+
+	/**
 	 * Thread-safe function that can be used to create a texture outside of the
 	 * rendering thread. This function can ONLY be called if GRHISupportsAsyncTextureCreation
 	 * is true.  Cannot create rendertargets with this method.
@@ -1022,7 +1031,7 @@ public:
 	// FlushType: Flush Immediate (seems wrong)
 	virtual void RHISetStreamOutTargets(uint32 NumTargets, const FVertexBufferRHIParamRef* VertexBuffers, const uint32* Offsets) = 0;
 
-	// FlushType: Flush Immediate (seems wrong)
+	// Each RHI should flush if it needs to when implementing this method.
 	virtual void RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask) = 0;
 
 	// Blocks the CPU until the GPU catches up and goes idle.

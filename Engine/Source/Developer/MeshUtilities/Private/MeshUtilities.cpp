@@ -5080,8 +5080,8 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const F
 	SkeletalMeshTools::BuildSkeletalMeshChunks(Faces, RawVertices, VertIndexAndZ, bKeepOverlappingVertices, Chunks, bTooManyVerts);
 
 	// Chunk vertices to satisfy the requested limit.
-	static const auto MaxBonesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.MAX_GPUSKIN_BONES"));
-	const int32 MaxGPUSkinBones = MaxBonesVar->GetValueOnAnyThread();
+	const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
+	check(MaxGPUSkinBones <= FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones);
 	SkeletalMeshTools::ChunkSkinnedVertices(Chunks, MaxGPUSkinBones);
 
 	// Build the skeletal model from chunks.

@@ -102,6 +102,9 @@ void FBatchedElements::AddTriangle(int32 V0,int32 V1,int32 V2,const FTexture* Te
 	case BLEND_Modulate:
 		SimpleElementBlendMode = SE_BLEND_Modulate; 
 		break;
+	case BLEND_AlphaComposite:
+		SimpleElementBlendMode = SE_BLEND_AlphaComposite;
+		break;
 	};	
 	AddTriangle(V0,V1,V2,Texture,SimpleElementBlendMode);
 }

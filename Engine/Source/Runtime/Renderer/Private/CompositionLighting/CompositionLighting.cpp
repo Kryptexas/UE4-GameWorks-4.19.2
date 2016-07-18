@@ -26,6 +26,11 @@
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition BeforeBasePass"), Stat_GPU_CompositionBeforeBasePass, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition PreLighting"), Stat_GPU_CompositionPreLighting, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition LpvIndirect"), Stat_GPU_CompositionLpvIndirect, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition PostLighting"), Stat_GPU_CompositionPostLighting, STATGROUP_GPU);
+
 // -------------------------------------------------------
 
 static TAutoConsoleVariable<float> CVarSSSScale(
@@ -120,6 +125,7 @@ uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
 	if (!IsLpvIndirectPassRequired(View))
 	{
 		bEnabled = View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0
+			&& View.Family->EngineShowFlags.Lighting
 			&& View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f
 			&& !View.Family->UseDebugViewPS()
 			&& (FSSAOHelper::IsBasePassAmbientOcclusionRequired(View) || IsAmbientCubemapPassRequired(View) || IsReflectionEnvironmentActive(View) || IsSkylightActive(View) || View.Family->EngineShowFlags.VisualizeBuffer)
@@ -281,6 +287,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionBeforeBasePass);
 
 		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("Composition_BeforeBasePass"));
 	}
@@ -360,6 +367,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionPreLighting);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = SceneContext.GetSceneColor();
 
@@ -394,6 +402,7 @@ void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdLi
 	// The graph setup should be finished before this line ----------------------------------------
 
 	SCOPED_DRAW_EVENT(RHICmdList, CompositionLpvIndirect);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionLpvIndirect);
 
 	// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
@@ -457,6 +466,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionAfterLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionPostLighting);
 
 		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 

@@ -511,7 +511,7 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
-	NumInstances = FMath::Min(1U, NumInstances);
+	NumInstances = FMath::Max(1U, NumInstances);
 	VulkanRHI::vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
 
 	//if (IsImmediate())
@@ -556,10 +556,10 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 	VulkanRHI::vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
 
 	uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
-	NumInstances = FMath::Min(1U, NumInstances);
+	NumInstances = FMath::Max(1U, NumInstances);
 	VulkanRHI::vkCmdDrawIndexed(CmdBuffer, NumIndices, NumInstances, StartIndex, BaseVertexIndex, FirstInstance);
 
-	//if (IsImmediate())
+	if (IsImmediate())
 	{
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumVertices * NumInstances);
 	}
@@ -583,7 +583,7 @@ void FVulkanCommandListContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef I
 #endif
 	VULKAN_SIGNAL_UNIMPLEMENTED();
 
-	//if (IsImmediate())
+	if (IsImmediate())
 	{
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(0);
 	}
@@ -606,7 +606,7 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitiveIndirect(uint32 Primitive
 #endif
 	VULKAN_SIGNAL_UNIMPLEMENTED();
 
-	//if (IsImmediate())
+	if (IsImmediate())
 	{
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(0);
 	}
@@ -643,7 +643,7 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 	PendingState->PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 	VulkanRHI::vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
 
-	//if (IsImmediate())
+	if (IsImmediate())
 	{
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(PendingNumPrimitives, PendingNumVertices);
 	}
@@ -688,7 +688,7 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 	VulkanRHI::vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.GetHandle(), PendingDrawPrimUPIndexAllocInfo.GetBindOffset(), PendingPrimitiveIndexType);
 	VulkanRHI::vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
 
-	//if (IsImmediate())
+	if (IsImmediate())
 	{
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(PendingNumPrimitives, PendingNumVertices);
 	}
@@ -721,7 +721,7 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 	PendingState->UpdateRenderPass(CmdBuffer);
 
 	const uint32 NumColorAttachments = PendingState->GetFrameBuffer()->GetNumColorAttachments();
-	check((uint32)NumClearColors <= NumColorAttachments);
+	check(!bClearColor || (uint32)NumClearColors <= NumColorAttachments);
 	InternalClearMRT(CmdBuffer, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 

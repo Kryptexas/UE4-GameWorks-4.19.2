@@ -1009,7 +1009,11 @@ namespace UnrealBuildTool
 			{
 				String InstalledSDKVersionString = GetRequiredSDKString();
 				String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
-				if (Directory.Exists(PlatformSDKRoot))
+                if (!Directory.Exists(PlatformSDKRoot))
+                {
+                    Directory.CreateDirectory(PlatformSDKRoot);
+                }
+
 				{
 					string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
 					if (File.Exists(VersionFilename))

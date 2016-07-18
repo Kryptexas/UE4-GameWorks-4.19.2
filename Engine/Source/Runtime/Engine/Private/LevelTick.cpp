@@ -1369,9 +1369,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		// Update SpeedTree wind objects.
 		Scene->UpdateSpeedTreeWind(TimeSeconds);
-
-		USceneCaptureComponent2D::UpdateDeferredCaptures( Scene );
-		USceneCaptureComponentCube::UpdateDeferredCaptures( Scene );
 	}
 
 	// Tick the FX system.

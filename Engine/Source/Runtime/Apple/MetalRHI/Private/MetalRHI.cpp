@@ -415,7 +415,8 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_R8G8				].PlatformFormat	= MTLPixelFormatRG8Unorm;
 	GPixelFormats[PF_R16_SINT			].PlatformFormat	= MTLPixelFormatR16Sint;
 	GPixelFormats[PF_R16_UINT			].PlatformFormat	= MTLPixelFormatR16Uint;
-	
+	GPixelFormats[PF_R8_UINT			].PlatformFormat	= MTLPixelFormatR8Uint;
+
 	// get driver version (todo: share with other RHIs)
 	{
 		FGPUDriverInfo GPUDriverInfo = FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName);

@@ -13,6 +13,89 @@
 #include "SceneUtils.h"
 #include "DecalRenderingShared.h"
 
+
+
+
+static TAutoConsoleVariable<int32> CVarGenerateDecalRTWriteMaskTexture(
+	TEXT("r.Decal.GenerateRTWriteMaskTexture"),
+	1,
+	TEXT("Turn on or off generation of the RT write mask texture for decals\n"),
+	ECVF_Default);
+
+
+
+
+class FRTWriteMaskDecodeCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FRTWriteMaskDecodeCS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+	}
+
+	FRTWriteMaskDecodeCS() {}
+
+public:
+	FShaderParameter OutCombinedRTWriteMask;		// UAV
+	FShaderResourceParameter RTWriteMaskInput0;				// SRV 
+	FShaderResourceParameter RTWriteMaskInput1;				// SRV 
+	FShaderResourceParameter RTWriteMaskInput2;				// SRV 
+	FShaderParameter UtilizeMask;				// SRV 
+
+	FRTWriteMaskDecodeCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		RTWriteMaskDimensions.Bind(Initializer.ParameterMap, TEXT("RTWriteMaskDimensions"));
+		OutCombinedRTWriteMask.Bind(Initializer.ParameterMap, TEXT("OutCombinedRTWriteMask"));
+		RTWriteMaskInput0.Bind(Initializer.ParameterMap, TEXT("RTWriteMaskInput0"));
+		RTWriteMaskInput1.Bind(Initializer.ParameterMap, TEXT("RTWriteMaskInput1"));
+		RTWriteMaskInput2.Bind(Initializer.ParameterMap, TEXT("RTWriteMaskInput2"));
+		UtilizeMask.Bind(Initializer.ParameterMap, TEXT("UtilizeMask"));
+	}
+
+	void SetCS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FSceneView& View)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		//PostprocessParameter.SetCS(ShaderRHI, Context, Context.RHICmdList, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		FTextureRHIRef DBufferTex = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;
+		FIntPoint Dims(FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeX() / 8.0f), FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeY() / 8.0f));
+
+		SetShaderValue(Context.RHICmdList, ShaderRHI, RTWriteMaskDimensions, Dims);
+		SetSRVParameter(Context.RHICmdList, ShaderRHI, RTWriteMaskInput0, SceneContext.DBufferA->GetRenderTargetItem().RTWriteMaskBufferRHI_SRV);
+		SetSRVParameter(Context.RHICmdList, ShaderRHI, RTWriteMaskInput1, SceneContext.DBufferB->GetRenderTargetItem().RTWriteMaskBufferRHI_SRV);
+		SetSRVParameter(Context.RHICmdList, ShaderRHI, RTWriteMaskInput2, SceneContext.DBufferC->GetRenderTargetItem().RTWriteMaskBufferRHI_SRV);
+		int32 UseMask = CVarGenerateDecalRTWriteMaskTexture.GetValueOnRenderThread();
+		SetShaderValue(Context.RHICmdList, ShaderRHI, UtilizeMask, UseMask);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << RTWriteMaskDimensions;
+		Ar << OutCombinedRTWriteMask;
+		Ar << RTWriteMaskInput0;
+		Ar << RTWriteMaskInput1;
+		Ar << RTWriteMaskInput2;
+		Ar << UtilizeMask;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+	FShaderParameter			RTWriteMaskDimensions;
+};
+
+IMPLEMENT_SHADER_TYPE(, FRTWriteMaskDecodeCS, TEXT("RTWriteMaskDecode"), TEXT("RTWriteMaskCombineMain"), SF_Compute);
+
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("r.Decal.StencilSizeThreshold"),
 	0.1f,
@@ -477,6 +560,52 @@ const TCHAR* GetStageName(EDecalRenderStage Stage)
 	return TEXT("<UNKNOWN>");
 }
 
+
+void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePassContext& Context)
+{
+	if (GSupportsRenderTargetWriteMask)
+	{
+		FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		FTextureRHIRef DBufferTex = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;
+		int32 W = FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeX() / 16.0f);
+		int32 H = FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeY() / 8.0f);
+		FIntPoint RTWriteMaskDims(W, H);
+
+		FIntRect ViewRect(0, 0, DBufferTex->GetTexture2D()->GetSizeX(), DBufferTex->GetTexture2D()->GetSizeY());
+
+		TShaderMapRef< FRTWriteMaskDecodeCS > ComputeShader(Context.GetShaderMap());
+
+		SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
+		Context.SetViewportAndCallRHI(ViewRect);
+		Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+
+		// set destination
+		Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), SceneContext.DBufferMask->GetRenderTargetItem().UAV);
+		ComputeShader->SetCS(Context.RHICmdList, Context, Context.View);
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, SceneContext.DBufferMask->GetRenderTargetItem().UAV);
+		{
+			SCOPED_DRAW_EVENTF(Context.RHICmdList, DeferredDecals, TEXT("Combine DBuffer RTWriteMasks"));
+			FIntPoint ThreadGroupCountValue(FPlatformMath::CeilToInt(RTWriteMaskDims.X / 8.0f), FPlatformMath::CeilToInt(RTWriteMaskDims.Y / 16.0f));
+			DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
+		}
+
+		//	void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
+		Context.RHICmdList.FlushComputeShaderCache();
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, SceneContext.DBufferMask->GetRenderTargetItem().UAV);
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture);
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture);
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture);
+
+		// un-set destination
+		Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), NULL);
+	}
+}
+
+
 void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& Context)
 {
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
@@ -488,27 +617,45 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 	SCOPED_DRAW_EVENTF(RHICmdList, DeferredDecals, TEXT("DeferredDecals %s"), GetStageName(CurrentStage));
 
-	if(CurrentStage == DRS_BeforeBasePass)
+	if (CurrentStage == DRS_BeforeBasePass)
 	{
 		// before BasePass, only if DBuffer is enabled
 
 		check(bDBuffer);
 
 		// DBuffer: Decal buffer
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GBufferA->GetDesc().Extent, 
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GBufferA->GetDesc().Extent,
 			PF_B8G8R8A8,
 			FClearValueBinding::None,
-			TexCreate_None, 
+			TexCreate_None,
 			TexCreate_ShaderResource | TexCreate_RenderTargetable,
-			false));
+			false,
+			1, 
+			true, 
+			true));
 
-		if(!SceneContext.DBufferA)
+		if (GSupportsRenderTargetWriteMask)
+		{
+			int32 W = FPlatformMath::CeilToInt(SceneContext.GBufferA->GetDesc().Extent.X / 8.0f);
+			int32 H = FPlatformMath::CeilToInt(SceneContext.GBufferA->GetDesc().Extent.Y / 8.0f);
+			FIntPoint RTWriteMaskDims(W, H);
+			FPooledRenderTargetDesc MaskDesc(FPooledRenderTargetDesc::Create2DDesc(RTWriteMaskDims,
+				PF_R8_UINT,
+				FClearValueBinding::White,
+				TexCreate_None,
+				TexCreate_UAV | TexCreate_RenderTargetable,
+				false));
+
+			GRenderTargetPool.FindFreeElement(Context.RHICmdList, MaskDesc, SceneContext.DBufferMask, TEXT("DBufferMask"));
+		}
+
+		if (!SceneContext.DBufferA)
 		{
 			Desc.ClearValue = FClearValueBinding::Black;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferA, TEXT("DBufferA"));
 		}
 
-		if(!SceneContext.DBufferB)
+		if (!SceneContext.DBufferB)
 		{
 			Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
@@ -516,7 +663,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		Desc.Format = PF_R8G8;
 
-		if(!SceneContext.DBufferC)
+		if (!SceneContext.DBufferC)
 		{
 			Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
@@ -526,7 +673,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// and don't get FastClear any more.
 		bool bFirstView = Context.View.Family->Views[0] == &Context.View;
 
-		if(bFirstView)
+		if (bFirstView)
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
 
@@ -680,7 +827,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					FDecalRendering::SetShader(RHICmdList, View, DecalData, FrustumComponentToClip);
 
 					RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
-		
 					RenderTargetManager.bGufferADirty |= (RenderTargetManager.TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] != nullptr);
 				}
 
@@ -688,6 +834,15 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				// Clear stencil to 0, which is the assumed default by other passes
 				RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
 			}
+
+			if (CurrentStage == DRS_BeforeBasePass)
+			{
+				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
+				RenderTargetManager.FlushMetaData();
+				DecodeRTWriteMask(Context);
+			}
+
+			RenderTargetManager.ResolveTargets();
 		}
 
 		if (CurrentStage == DRS_BeforeBasePass)

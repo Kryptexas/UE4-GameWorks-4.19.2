@@ -493,7 +493,10 @@ void FStreamingManagerTexture::AddStreamingTexture( UTexture2D* Texture )
 {
 	// Adds the new texture to the Pending list, to avoid reallocation of the thread-safe StreamingTextures array.
 	check(Texture->StreamingIndex == INDEX_NONE);
-	Texture->StreamingIndex = PendingStreamingTextures.Add(Texture);;
+	Texture->StreamingIndex = PendingStreamingTextures.Add(Texture);
+
+	// Notify that this texture ptr is valid.
+	ReferencedTextures.Add(Texture);
 }
 
 /**
@@ -515,6 +518,9 @@ void FStreamingManagerTexture::RemoveStreamingTexture( UTexture2D* Texture )
 	}
 
 	Texture->StreamingIndex = INDEX_NONE;
+
+	// Remove reference to this texture.
+	ReferencedTextures.Remove(Texture);
 }
 
 /** Called when an actor is spawned. */
@@ -603,7 +609,12 @@ void FStreamingManagerTexture::SetTexturesRemovedTimestamp(const FRemovedTexture
 	const double CurrentTime = FApp::GetCurrentTime();
 	for ( int32 TextureIndex=0; TextureIndex < RemovedTextures.Num(); ++TextureIndex )
 	{
-		FStreamingTexture* StreamingTexture = GetStreamingTexture( RemovedTextures[TextureIndex] );
+		// When clearing references to textures, those textures could be already deleted.
+		// This happens because we don't clear texture references in RemoveStreamingTexture.
+		const UTexture2D* Texture = RemovedTextures[TextureIndex];
+		if (!ReferencedTextures.Contains(Texture)) continue;
+
+		FStreamingTexture* StreamingTexture = GetStreamingTexture(Texture);
 		if ( StreamingTexture )
 		{
 			StreamingTexture->InstanceRemovedTimestamp = CurrentTime;

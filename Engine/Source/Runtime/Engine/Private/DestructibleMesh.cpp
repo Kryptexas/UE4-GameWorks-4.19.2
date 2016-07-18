@@ -11,6 +11,7 @@
 #include "Engine/DestructibleFractureSettings.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "EditorFramework/AssetImportData.h"
+#include "GPUSkinVertexFactory.h"
 
 #if WITH_APEX && WITH_EDITOR
 #include "ApexDestructibleAssetImport.h"
@@ -39,8 +40,8 @@ void UDestructibleMesh::PostLoad()
 	// you'll have to save re-chunked asset here, but I don't have a good way to let user
 	// know here since PostLoad invalidate any dirty package mark. 
 	FSkeletalMeshResource* ImportedMeshResource = GetImportedResource();
-	static IConsoleVariable* MaxBonesVar = IConsoleManager::Get().FindConsoleVariable(TEXT("Compat.MAX_GPUSKIN_BONES"));
-	const int32 MaxGPUSkinBones = MaxBonesVar->GetInt();
+	const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
+	check(MaxGPUSkinBones <= FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones);
 	// if this doesn't have the right MAX GPU Bone count, recreate it. 
 	for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
 	{
@@ -56,7 +57,7 @@ void UDestructibleMesh::PostLoad()
 
 		for (int32 SectionIndex = 0; SectionIndex < ThisLODModel.Sections.Num(); ++SectionIndex)
 		{
-			if (ThisLODModel.Sections[SectionIndex].BoneMap.Num() > MaxGPUSkinBones)
+			if (ThisLODModel.Sections[SectionIndex].BoneMap.Num() > (int)MaxGPUSkinBones)
 			{
 #if WITH_EDITOR
 				// re create destructible asset if it exceeds

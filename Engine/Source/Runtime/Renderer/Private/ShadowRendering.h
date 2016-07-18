@@ -108,15 +108,22 @@ void SetDeferredLightParameters(
 
 	const ELightComponentType LightType = (ELightComponentType)LightSceneInfo->Proxy->GetLightType();
 
+
 	if (LightType == LightType_Point || LightType == LightType_Spot)
 	{
 		// Distance fade
 		FSphere Bounds = LightSceneInfo->Proxy->GetBoundingSphere();
 
-		const float DistanceSquared = ( Bounds.Center - View.ViewMatrices.ViewOrigin ).SizeSquared();
-		float Fade = FMath::Square( FMath::Min( 0.0002f, GMinScreenRadiusForLights / Bounds.W ) * View.LODDistanceFactor ) * DistanceSquared;
-		Fade = FMath::Clamp( 6.0f - 6.0f * Fade, 0.0f, 1.0f );
-		DeferredLightUniformsValue.LightColor *= Fade;
+		const float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
+		float SizeFade = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared;
+		SizeFade = FMath::Clamp(6.0f - 6.0f * SizeFade, 0.0f, 1.0f);
+
+		float MaxDist = LightSceneInfo->Proxy->GetMaxDrawDistance();
+		float Range = LightSceneInfo->Proxy->GetFadeRange();
+		float DistanceFade = MaxDist ? (MaxDist - FMath::Sqrt(DistanceSquared)) / Range : 1.0f;
+		DistanceFade = FMath::Clamp(DistanceFade, 0.0f, 1.0f);
+
+		DeferredLightUniformsValue.LightColor *= SizeFade * DistanceFade;
 	}
 
 	DeferredLightUniformsValue.LightingChannelMask = LightSceneInfo->Proxy->GetLightingChannelMask();

@@ -20,6 +20,8 @@
 #include "SceneUtils.h"
 #include "LightPropagationVolumeBlendable.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);
+
 /** Tile size for the reflection environment compute shader, tweaked for 680 GTX. */
 const int32 GReflectionEnvironmentTileSizeX = 16;
 const int32 GReflectionEnvironmentTileSizeY = 16;
@@ -936,6 +938,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
 		}
 
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
 		RenderDeferredPlanarReflections(RHICmdList, false, SSROutput);
 
 		// ReflectionEnv is assumed to be on when going into this method
@@ -1100,6 +1103,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
 		}
 
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
 		bool bApplyFromSSRTexture = bSSR;
 
 		if (RenderDeferredPlanarReflections(RHICmdList, true, SSROutput))
@@ -1188,6 +1192,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			// Apply reflections to screen
 			SCOPED_DRAW_EVENT(RHICmdList, ReflectionApply);
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment);
 
 			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 

@@ -8,8 +8,9 @@ public class NiagaraEditor : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Engine", 
-				"Core", 
+				"Engine",
+                "RHI",
+                "Core", 
 				"CoreUObject", 
                 "InputCore",
 				"RenderCore",

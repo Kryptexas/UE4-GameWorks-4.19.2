@@ -1221,6 +1221,7 @@ void FD3D12CommandContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	{
 		Query->bResultIsCached = false;
 		Query->HeapIndex = GetParentDevice()->GetQueryHeap()->BeginQuery(*this, D3D12_QUERY_TYPE_OCCLUSION);
+		Query->OwningContext = this;
 	}
 	else
 	{
@@ -1251,6 +1252,7 @@ void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 		Query->CLSyncPoint = CommandListHandle;
 
 		CommandListHandle.UpdateResidency(pQueryHeap->GetResultBuffer());
+		check(Query->OwningContext == this);
 		break;
 	}
 
@@ -1258,6 +1260,7 @@ void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	{
 		Query->bResultIsCached = false;
 		Query->CLSyncPoint = CommandListHandle;
+		Query->OwningContext = this;
 		this->otherWorkCounter += 2;	// +2 For the EndQuery and the ResolveQueryData
 		CommandListHandle->EndQuery(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex);
 		CommandListHandle->ResolveQueryData(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex, 1, Query->ResultBuffer, sizeof(uint64) * Query->HeapIndex);

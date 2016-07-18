@@ -523,7 +523,7 @@ public:
 	virtual ~FVulkanTimestampQueryPool(){}
 
 	void WriteStartFrame(VkCommandBuffer CmdBuffer);
-	void WriteEndFrame(VkCommandBuffer CmdBuffer);
+	void WriteEndFrame(FVulkanCmdBuffer* CmdBuffer);
 
 	void CalculateFrameTime();
 
@@ -551,6 +551,9 @@ protected:
 	double SecondsPerTimestamp;
 	int32 UsedUserQueries;
 	bool bFirst;
+
+	FVulkanCmdBuffer* LastEndCmdBuffer;
+	uint64 LastFenceSignaledCounter;
 };
 
 /** Vulkan occlusion query */
@@ -981,7 +984,7 @@ private:
 
 	void GenerateVertexInputStateInfo();
 
-	void GetDescriptorInfoCounts(uint32& OutSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount);
+	void GetDescriptorInfoCounts(uint32& OutCombinedSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount);
 
 	void InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, const void* VertexStreams);
 
@@ -1030,7 +1033,7 @@ private:
 	// At this moment unused, the samplers are mapped together with texture/image
 	// we are using "VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER"
 	bool DirtySamplerStates[SF_Compute];
-	VkDescriptorImageInfo* DescriptorImageInfoForStage[SF_Compute];
+	VkDescriptorImageInfo* DescriptorSamplerImageInfoForStage[SF_Compute];
 
 	TArray< VkWriteDescriptorSet* > SRVWriteInfoForStage[SF_Compute];
 	bool DirtySRVs[SF_Compute];
@@ -1051,7 +1054,7 @@ private:
 	// InOutMask is used from VertexShader-Header to filter out active attributs
 	void ProcessVertexElementForBinding(const FVertexElement& Element);
 
-	void CreateDescriptorWriteInfo(uint32 UniformSamplerCount, uint32 UniformSamplerBufferCount, uint32 UniformBufferCount);
+	void CreateDescriptorWriteInfo(uint32 UniformCombinedSamplerCount, uint32 UniformSamplerBufferCount, uint32 UniformBufferCount);
 
 	uint32 BindingsNum;
 	uint32 BindingsMask;

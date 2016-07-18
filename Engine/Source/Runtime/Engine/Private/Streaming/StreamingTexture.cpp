@@ -89,7 +89,7 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 			LODBias = FMath::Max<int32>(Texture->GetCachedLODBias() - NumCinematicMipLevels, 0);
 
 			// Reduce the max allowed resolution according to LODBias if the texture group allows it.
-			if (LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture)
+			if (IsMaxResolutionAffectedByGlobalBias())
 			{
 				LODBias += Settings.GlobalMipBiasAsInt();
 			}
@@ -166,8 +166,7 @@ void FStreamingTexture::UpdateStreamingStatus()
 float FStreamingTexture::GetExtraBoost(TextureGroup	LODGroup, const FTextureStreamingSettings& Settings)
 {
 	// When accurate distance computation, we need to relax the distance otherwhise it get's too conservative. (ex 513 goes to 1024)
-	const bool bUseApproxDistance = CVarStreamingUseNewMetrics.GetValueOnAnyThread() == 0;
-	const float DistanceScale = bUseApproxDistance ? 1.f : .71f;
+	const float DistanceScale = Settings.bUseNewMetrics ? .71f : 1.f;
 
 	if (LODGroup == TEXTUREGROUP_Terrain_Heightmap || LODGroup == TEXTUREGROUP_Terrain_Weightmap) 
 	{
@@ -203,18 +202,17 @@ void FStreamingTexture::SetPerfectWantedMips_Async(float MaxSize, float MaxSize_
 	VisibleWantedMips = GetWantedMipsFromSize(MaxSize_VisibleOnly);
 	bLooksLowRes = InLooksLowRes; // Things like lightmaps, HLOD and close instances.
 
-	// Here BudgetMipBias is added to NumMissingMips to prevent the same texture from dropping resolution too early (as it is already included in MaxMip)
-
 	// Terrain, Forced Fully Load and Things that already look bad are not affected by hidden scale.
 	if (bIsTerrainTexture || bForceFullyLoadHeuristic || bLooksLowRes)
 	{
 		HiddenWantedMips = GetWantedMipsFromSize(MaxSize);
-		NumMissingMips = BudgetMipBias; // No impact for terrains as there are not allowed to drop mips.
+		NumMissingMips = 0; // No impact for terrains as there are not allowed to drop mips.
 	}
 	else
 	{
 		HiddenWantedMips = GetWantedMipsFromSize(MaxSize * Settings.HiddenPrimitiveScale);
-		NumMissingMips = BudgetMipBias + FMath::Max<int32>(GetWantedMipsFromSize(MaxSize) - FMath::Max<int32>(VisibleWantedMips, HiddenWantedMips), 0);
+		// NumMissingMips contains the number of mips not loaded because of HiddenPrimitiveScale. When out of budget, those texture will be considered as already sacrificed.
+		NumMissingMips = FMath::Max<int32>(GetWantedMipsFromSize(MaxSize) - FMath::Max<int32>(VisibleWantedMips, HiddenWantedMips), 0);
 	}
 }
 
@@ -250,22 +248,38 @@ int64 FStreamingTexture::UpdateRetentionPriority_Async()
 	}
 }
 
+int64 FStreamingTexture::DropMaxResolution_Async(int32 NumDroppedMips)
+{
+	if (Texture)
+	{
+		// Don't drop bellow min allowed mips.
+		NumDroppedMips = FMath::Min<int32>(MaxAllowedMips - MinAllowedMips, NumDroppedMips);
+
+		if (NumDroppedMips > 0)
+		{
+			// Decrease MaxAllowedMips and increase BudgetMipBias (as it should include it)
+			MaxAllowedMips -= NumDroppedMips;
+			BudgetMipBias += NumDroppedMips;
+
+			if (BudgetedMips > MaxAllowedMips)
+			{
+				const int64 FreedMemory = GetSize(BudgetedMips) - GetSize(MaxAllowedMips);
+
+				BudgetedMips = MaxAllowedMips;
+				VisibleWantedMips = FMath::Min<int32>(VisibleWantedMips, MaxAllowedMips);
+				HiddenWantedMips = FMath::Min<int32>(HiddenWantedMips, MaxAllowedMips);
+
+				return FreedMemory;
+			}
+		}
+	}
+	return 0;
+}
+
 int64 FStreamingTexture::DropOneMip_Async(int32 MaxPerTextureMipBias)
 {
 	if (Texture && BudgetedMips > MinAllowedMips)
 	{
-		// Every time we are required to DropOneMip from max resolution, this increase the BudgetMipBias.
-		if (BudgetedMips == MaxAllowedMips && VisibleWantedMips == MaxAllowedMips && BudgetMipBias < MaxPerTextureMipBias)
-		{
-			// Decrease MaxAllowedMips and increase BudgetMipBias (as it should include it)
-			--MaxAllowedMips;
-			++BudgetMipBias;
-
-			// Update the wanted mips as if they were computed with the new MaxAllowedMips. (for stats)
-			VisibleWantedMips = FMath::Min<int32>(VisibleWantedMips, MaxAllowedMips);
-			HiddenWantedMips = FMath::Min<int32>(HiddenWantedMips, MaxAllowedMips);
-		}
-
 		--BudgetedMips;
 		return GetSize(BudgetedMips + 1) - GetSize(BudgetedMips);
 	}

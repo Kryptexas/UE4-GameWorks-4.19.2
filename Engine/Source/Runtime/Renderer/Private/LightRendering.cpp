@@ -13,6 +13,7 @@
 #include "LightPropagationVolume.h"
 #include "SceneUtils.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Lights"), Stat_GPU_Lights, STATGROUP_GPU);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,TEXT("DeferredLightUniforms"));
 
@@ -323,6 +324,8 @@ uint32 GetShadowQuality();
 void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Lights);
+
 
 	bool bStencilBufferDirty = false;	// The stencil buffer should've been cleared to 0 already
 

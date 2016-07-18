@@ -1751,7 +1751,98 @@ static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
 	return false;
 }
 
-bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales)
+uint32 GetTypeHash(const FMaterialUtilities::FExportErrorManager::FError& Error)
+{
+	return GetTypeHash(Error.Material);
+}
+
+bool FMaterialUtilities::FExportErrorManager::FError::operator==(const FError& Rhs) const
+{
+	return Material == Rhs.Material && RegisterIndex == Rhs.RegisterIndex && ErrorType == Rhs.ErrorType;
+}
+
+
+void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType)
+{
+	if (!Material || !Texture) return;
+
+	FError Error;
+	Error.Material = Material->GetMaterialResource(FeatureLevel);
+	if (!Error.Material) return;
+	Error.RegisterIndex = RegisterIndex;
+	Error.ErrorType = ErrorType;
+
+	FInstance Instance;
+	Instance.Material = Material;
+	Instance.Texture = Texture;
+
+	ErrorInstances.FindOrAdd(Error).Push(Instance);
+}
+
+void FMaterialUtilities::FExportErrorManager::OutputToLog()
+{
+	const UMaterialInterface* CurrentMaterial = nullptr;
+	int32 MaxInstanceCount = 0;
+	FString TextureErrors;
+
+	for (TMap<FError, TArray<FInstance> >::TIterator It(ErrorInstances);; ++It)
+	{
+		if (It && !It->Value.Num()) continue;
+
+		// Here we pack texture list per material.
+		if (!It || CurrentMaterial != It->Value[0].Material)
+		{
+			// Flush
+			if (CurrentMaterial)
+			{
+				FString SimilarCount(TEXT(""));
+				if (MaxInstanceCount > 1)
+				{
+					SimilarCount = FString::Printf(TEXT(", %d similar"), MaxInstanceCount - 1);
+				}
+
+				if (CurrentMaterial == CurrentMaterial->GetMaterial())
+				{
+					UE_LOG(LogMaterialUtilities, Warning, TEXT("Error generating scales for %s%s: %s"), *CurrentMaterial->GetName(), *SimilarCount, *TextureErrors);
+				}
+				else
+				{
+					UE_LOG(LogMaterialUtilities, Warning, TEXT("Error generating scales for %s, UMaterial=%s%s: %s"), *CurrentMaterial->GetName(), *CurrentMaterial->GetMaterial()->GetName(), *SimilarCount, *TextureErrors);
+				}
+			}
+
+			// Exit
+			if (!It)
+			{
+				break;
+			}
+
+			// Start new
+			CurrentMaterial = It->Value[0].Material;
+			MaxInstanceCount = It->Value.Num();
+			TextureErrors.Empty();
+		}
+		else
+		{
+			// Append
+			MaxInstanceCount = FMath::Max<int32>(MaxInstanceCount, It->Value.Num());
+		}
+
+		const TCHAR* ErrorMsg = TEXT("Unkown Error");
+		if (It->Key.ErrorType == EET_IncohorentValues)
+		{
+			ErrorMsg = TEXT("Incoherent");
+		}
+		else if (It->Key.ErrorType == EET_NoValues)
+		{
+			ErrorMsg = TEXT("NoValues");
+		}
+
+		TextureErrors.Append(FString::Printf(TEXT("(%s:%d,%s) "), ErrorMsg, It->Key.RegisterIndex, *It->Value[0].Texture->GetName()));
+	}
+}
+
+bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors)
 {
 	TArray<FFloat16Color> RenderedVectors;
 
@@ -1905,21 +1996,7 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 				}
 			}
 
-			if (FailedTexture)
-			{
-				if (TextureIndexScales.Num())
-				{
-					// Cause 1 : the output does not map to an actual uniform scale.
-					// Cause 2 : the alogrithm fails to find the scale value (even though it is somewhat there).
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to find constant scale for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
-				}
-				else
-				{
-					// Cause 1: the shader did not use this texture at all, resulting in value being the default value (could be because of some branching)
-					// Cause 2: the shader outputs the scale, but the scale was 0. That means the coordinate did not change between the pixels. For instance, if the mapping was based on the world position.
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to generate scales for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
-				}
-			}
+			OutErrors.Register(InMaterial, FailedTexture, RegisterIndex, TextureIndexScales.Num() ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
 		}
 	}
 

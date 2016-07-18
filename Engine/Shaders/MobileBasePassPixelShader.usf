@@ -272,6 +272,10 @@ half3 FrameBufferBlendOp(half4 Source)
 	return Source.rgb;
 #elif MATERIALBLENDING_MASKED
 	return Source.rgb;
+// AlphaComposite will set both MATERIALBLENDING_TRANSLUCENT and MATERIALBLENDING_ALPHACOMPOSITE defines
+// so ensure  MATERIALBLENDING_ALPHACOMPOSITE gets first in line
+#elif MATERIALBLENDING_ALPHACOMPOSITE
+	return Source.rgb + (Dest.rgb*(1.0 - Source.a));
 #elif MATERIALBLENDING_TRANSLUCENT
 	return (Source.rgb*Source.a) + (Dest.rgb*(1.0 - Source.a));
 #elif MATERIALBLENDING_ADDITIVE

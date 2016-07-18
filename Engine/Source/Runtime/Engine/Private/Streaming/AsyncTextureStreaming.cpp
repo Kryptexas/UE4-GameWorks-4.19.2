@@ -210,12 +210,50 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 		// Sort texture, having those that should be dropped first.
 		PrioritizedTextures.Sort(FCompareTextureByRetentionPriority(StreamingTextures));
 
-		bool bBudgetIsChanging = true;
-		int32 NumDroppedMips = 0;
-		while (MemoryBudgeted > MemoryBudget && bBudgetIsChanging && !IsAborted())
+		// When using mip bias per texture, we first reduce the maximum resolutions (if used) in order to fit.
+		for (int32 NumDroppedMips = 0; NumDroppedMips < MaxPerTextureMipBias && MemoryBudgeted > MemoryBudget && !IsAborted(); ++NumDroppedMips)
 		{
-			bBudgetIsChanging = false;
-			++NumDroppedMips;
+			bool bBudgetCanChange = false;
+
+			for (int32 PriorityIndex = PrioritizedTextures.Num() - 1; PriorityIndex >= 0 && MemoryBudgeted > MemoryBudget && !IsAborted(); --PriorityIndex)
+			{
+				int32 TextureIndex = PrioritizedTextures[PriorityIndex];
+				if (TextureIndex == INDEX_NONE) continue;
+
+				FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
+
+				if (StreamingTexture.BudgetedMips <= StreamingTexture.MinAllowedMips)
+				{
+					// Don't try this one again.
+					PrioritizedTextures[PriorityIndex] = INDEX_NONE;
+					continue;
+				}
+				else
+				{
+					bBudgetCanChange = true;
+				}
+
+				if (!StreamingTexture.IsMaxResolutionAffectedByGlobalBias()) continue;
+
+				// If the texture requires a high resolution mip, consider dropping it. 
+				// When considering dropping the first mip, only textures using the first mip will drop their resolution, 
+				// But when considering dropping the second mip, textures using their first and second mips will loose it.
+				if (StreamingTexture.MaxAllowedMips + StreamingTexture.BudgetMipBias - NumDroppedMips <= StreamingTexture.BudgetedMips)
+				{
+					MemoryBudgeted -= StreamingTexture.DropMaxResolution_Async(NumDroppedMips + 1 - StreamingTexture.BudgetMipBias);
+				}
+			}
+
+			if (!bBudgetCanChange)
+			{
+				break;
+			}
+		}
+
+		// Then reduce all resolution.
+		while (MemoryBudgeted > MemoryBudget && !IsAborted())
+		{
+			bool bBudgetCanChange = false;
 
 			// Drop from the lowest priority first (starting with last elements)
 			for (int32 PriorityIndex = PrioritizedTextures.Num() - 1; PriorityIndex >= 0 && MemoryBudgeted > MemoryBudget && !IsAborted(); --PriorityIndex)
@@ -225,24 +263,30 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 
 				FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
 
-				// If this texture has already missing mips for its normal quality, don't drop more than required..
-				if (StreamingTexture.NumMissingMips >= NumDroppedMips)
+				if (StreamingTexture.BudgetedMips <= StreamingTexture.MinAllowedMips)
 				{
-					bBudgetIsChanging = true; // Needed to prevent aborting loop.
+					// Don't try this one again.
+					PrioritizedTextures[PriorityIndex] = INDEX_NONE;
+					continue;
+				}
+				else
+				{
+					bBudgetCanChange = true;
+				}
+
+				// If this texture has already missing mips for its normal quality, don't drop more than required..
+				if (StreamingTexture.NumMissingMips > 0)
+				{
+					--StreamingTexture.NumMissingMips;
 					continue;
 				}
 
-				int64 GivenMemory = StreamingTexture.DropOneMip_Async(MaxPerTextureMipBias);
+				MemoryBudgeted -= StreamingTexture.DropOneMip_Async(MaxPerTextureMipBias);
+			}
 
-				if (GivenMemory > 0)
-				{
-					MemoryBudgeted -= GivenMemory;
-					bBudgetIsChanging = true;
-				}
-				else // Nothing to drop
-				{
-					PrioritizedTextures[PriorityIndex] = INDEX_NONE; // Don't try this one again.
-				}
+			if (!bBudgetCanChange)
+			{
+				break;
 			}
 		}
 	}
@@ -432,6 +476,7 @@ void FAsyncTextureStreamingTask::UpdateStats_Async()
 #if STATS
 	FTextureStreamingStats& Stats = StreamingManager.GatheredStats;
 	FTextureStreamingStats& PrevStats = StreamingManager.DisplayedStats;
+	FTextureStreamingSettings& Settings = StreamingManager.Settings;
 	TArray<FStreamingTexture>& StreamingTextures = StreamingManager.StreamingTextures;
 
 	Stats.TexturePool = PoolSize;

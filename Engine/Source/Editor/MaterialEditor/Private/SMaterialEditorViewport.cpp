@@ -124,7 +124,7 @@ FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 			{
 				BackgroundColor = FLinearColor::White;
 			}
-			else if(PreviewBlendMode == BLEND_Translucent)
+			else if(PreviewBlendMode == BLEND_Translucent || PreviewBlendMode == BLEND_AlphaComposite)
 			{
 				BackgroundColor = FColor(64, 64, 64);
 			}

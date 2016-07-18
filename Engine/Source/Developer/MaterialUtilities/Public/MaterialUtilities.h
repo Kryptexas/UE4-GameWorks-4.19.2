@@ -378,6 +378,61 @@ public:
 	*/
 	static void ResizeFlattenMaterial(FFlattenMaterial& InFlattenMaterial, const struct FMeshProxySettings& InMeshProxySettings);
 
+
+	/**
+	* Contains errors generated when exporting material texcoord scales. 
+	* Used to prevent displaying duplicates, as instances using the same shaders get the same issues.
+	*/
+	class MATERIALUTILITIES_API FExportErrorManager
+	{
+	public:
+
+		FExportErrorManager(ERHIFeatureLevel::Type InFeatureLevel) : FeatureLevel(InFeatureLevel) {}
+
+		enum EErrorType
+		{
+			EET_IncohorentValues,
+			EET_NoValues
+		};
+
+		/**
+		* Register a new error.
+		*
+		* @param Material			The material having this error.
+		* @param Texture			The texture for which the scale could not be generated.
+		* @param RegisterIndex		The register index bound to this texture.
+		* @param ErrorType			The issue encountered.
+		*/
+		void Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType);
+
+		/**
+		* Output all errors registered.
+		*/
+		void OutputToLog();
+
+	private:
+
+		struct FError
+		{
+			const FMaterial* Material;
+			int32 RegisterIndex;
+			EErrorType ErrorType;
+
+			bool operator==(const FError& Rhs) const;
+		};
+
+		struct FInstance
+		{
+			const UMaterialInterface* Material;
+			const UTexture* Texture;
+		};
+
+		friend uint32 GetTypeHash(const FError& Error);
+
+		ERHIFeatureLevel::Type FeatureLevel;
+		TMap<FError, TArray<FInstance> > ErrorInstances;
+	};
+
 	/**
 	* Get the material texcoord scales applied on each textures
 	*
@@ -387,7 +442,7 @@ public:
 	* @param OutScales			TheOutput array of rendered samples	
 	* @return					Whether operation was successful
 	*/
-	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales);
+	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors);
 
 private:
 	

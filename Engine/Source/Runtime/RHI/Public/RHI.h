@@ -138,6 +138,9 @@ extern RHI_API bool GSupportsWideMRT;
 /** True if the RHI and current hardware supports supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
 
+/** True if the RHI and current hardware support a render target write mask */
+extern RHI_API bool GSupportsRenderTargetWriteMask;
+
 /** True if the RHI and current hardware supports efficient AsyncCompute (by default we assume false and later we can enable this for more hardware) */
 extern RHI_API bool GSupportsEfficientAsyncCompute;
 
@@ -1006,6 +1009,7 @@ enum class EResourceTransitionAccess
 	ERWBarrier, // Mostly for UAVs.  Transition to read/write state and always insert a resource barrier.
 	ERWNoBarrier, //Mostly UAVs.  Indicates we want R/W access and do not require synchronization for the duration of the RW state.  The initial transition from writable->RWNoBarrier and readable->RWNoBarrier still requires a sync
 	ERWSubResBarrier, //For special cases where read/write happens to different subresources of the same resource in the same call.  Inserts a barrier, but read validation will pass.  Temporary until we pass full subresource info to all transition calls.
+	EMetaData,		  // For transitioning texture meta data, for example for making readable in shaders
 	EMaxAccess,
 };
 

@@ -12,6 +12,8 @@
 #include "SceneFilterRendering.h"
 #include "ScreenRendering.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Shadow Depths"), Stat_GPU_ShadowDepths, STATGROUP_GPU);
+
 /**
  * A vertex shader for rendering the depth of a mesh.
  */
@@ -2143,6 +2145,7 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowDepths);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ShadowDepths);
 
 	FSceneRenderer::RenderShadowDepthMapAtlases(RHICmdList);
 

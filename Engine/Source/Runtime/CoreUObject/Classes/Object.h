@@ -162,6 +162,7 @@ enum EPixelFormat
 	PF_ASTC_12x12,
 	PF_BC6H,
 	PF_BC7,
+	PF_R8_UINT,
 	PF_MAX,
 };
 

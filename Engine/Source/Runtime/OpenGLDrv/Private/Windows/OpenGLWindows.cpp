@@ -82,6 +82,11 @@ public:
 		}
 	}
 
+	bool ContextWasAlreadyActive() const
+	{
+		return bSameDCAndContext;
+	}
+
 private:
 	HDC					PrevDC;
 	HGLRC				PrevContext;
@@ -182,8 +187,13 @@ static void PlatformCreateDummyGLWindow(FPlatformOpenGLContext* OutContext)
 static bool PlatformOpenGL3()
 {
 	// OpenGL3 is our default platform for Windows XP
-	return FWindowsPlatformMisc::VerifyWindowsVersion(6, 0) == false || FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+#if (WINVER < 0x0600)
+	return true;
+#else
+	return FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+#endif
 }
+
 static bool PlatformOpenGL4()
 {
 	return FParse::Param(FCommandLine::Get(),TEXT("opengl4"));
@@ -382,10 +392,14 @@ void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 	Device->ViewportContexts.RemoveSingle(Context);
 	Device->TargetDirty = true;
 
+	bool bActiveContextWillBeReleased = false;
+
 	{
 		FScopeLock ScopeLock(Device->ContextUsageGuard);
 		{
 			FScopeContext ScopeContext(Context);
+
+			bActiveContextWillBeReleased = ScopeContext.ContextWasAlreadyActive();
 
 			DeleteQueriesForCurrentContext(Context->OpenGLContext);
 			glBindVertexArray(0);
@@ -404,7 +418,7 @@ void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 
 	check(Context->DeviceContext);
 
-	if (wglGetCurrentDC() == Context->DeviceContext)
+	if (bActiveContextWillBeReleased)
 	{
 		wglMakeCurrent( NULL, NULL );
 	}

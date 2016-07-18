@@ -8807,7 +8807,7 @@ UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& Obj
 
 	Scale = 1.0f;
 	Levels = 6;
-	Quality = 0;
+	Quality = 1;
 	OutputMin = -1.0f;
 	OutputMax = 1.0f;
 	LevelScale = 2.0f;
@@ -8829,7 +8829,9 @@ bool UMaterialExpressionNoise::CanEditChange(const UProperty* InProperty) const
 		FName PropertyFName = InProperty->GetFName();
 
 		bool bTilableNoiseType = NoiseFunction == NOISEFUNCTION_GradientALU || NoiseFunction == NOISEFUNCTION_ValueALU 
-			|| NoiseFunction == NOISEFUNCTION_GradientTex;
+			|| NoiseFunction == NOISEFUNCTION_GradientTex || NoiseFunction == NOISEFUNCTION_VoronoiALU;
+
+		bool bSupportsQuality = (NoiseFunction == NOISEFUNCTION_VoronoiALU);
 
 		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, bTiling))
 		{
@@ -8838,6 +8840,11 @@ bool UMaterialExpressionNoise::CanEditChange(const UProperty* InProperty) const
 		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, RepeatSize))
 		{
 			bIsEditable = bTilableNoiseType && bTiling;
+		}
+
+		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, Quality))
+		{
+			bIsEditable = bSupportsQuality;
 		}
 	}
 

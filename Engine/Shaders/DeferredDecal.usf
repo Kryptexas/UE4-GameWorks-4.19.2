@@ -149,6 +149,8 @@ float4 SvPositionToScreenPosition2(float4 SvPosition)
 // is called in MainPS() from PixelShaderOutputCommon.usf
 void FPixelShaderInOut_MainPS(inout FPixelShaderIn In, inout FPixelShaderOut Out)
 {
+	ResolvedView = ResolveView();
+
 	float2 ScreenUV = SvPositionToBufferUV(In.SvPosition);
 
 	// make SvPosition appear to be rasterized with the depth from the depth buffer

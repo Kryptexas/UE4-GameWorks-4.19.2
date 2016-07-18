@@ -46,6 +46,10 @@ SamplerState	HZBSampler;
 Texture2D		PrevSceneColor;
 SamplerState	PrevSceneColorSampler;
 
+#if PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK && USE_DBUFFER && MATERIALDECALRESPONSEMASK && !MATERIALBLENDING_ANY_TRANSLUCENT
+	Texture2D<uint> DBufferMask;
+#endif
+
 #ifndef COMPILER_GLSL
 	#define COMPILER_GLSL 0
 #endif
@@ -789,18 +793,26 @@ void FPixelShaderInOut_MainPS(
 #endif
 	if(Primitive.DecalReceiverMask > 0 && View.ShowDecalsMask > 0)
 	{
-		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-		
-		float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-		
-		FDBufferData DBufferData = GetDBufferData(ScreenUV);
 
-		// the material can disable the DBuffer effects for better performance or control
-		if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.PreMulColor = 0; DBufferData.ColorOpacity = 1; }
-		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.PreMulWorldNormal = 0; DBufferData.NormalOpacity = 1; }
-		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.PreMulRoughness = 0; DBufferData.RoughnessOpacity = 1; }
+	#if PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK
+		uint RTWriteMaskBit = DecodeRTWriteMaskTexture(In.SvPosition.xy, DBufferMask);
+		if(RTWriteMaskBit)
+	#endif
+		{
+			float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
 
-		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, BaseColor, Metallic, Specular);
+			// Note: We are using View and not ResolvedView here.
+			// It has the correct ScreenPositionScaleBias values for screen space compositing.
+			float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+
+			FDBufferData DBufferData = GetDBufferData(ScreenUV);
+
+			// the material can disable the DBuffer effects for better performance or control
+			if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.PreMulColor = 0; DBufferData.ColorOpacity = 1; }
+			if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.PreMulWorldNormal = 0; DBufferData.NormalOpacity = 1; }
+			if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.PreMulRoughness = 0; DBufferData.RoughnessOpacity = 1; }
+			ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, BaseColor, Metallic, Specular);
+		}
 	}
 #endif
 

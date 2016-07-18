@@ -25,6 +25,7 @@ public:
 private:
 	// see EDecalRenderStage
 	EDecalRenderStage CurrentStage;
+	void DecodeRTWriteMask(FRenderingCompositePassContext& Context);
 };
 
 bool IsDBufferEnabled();
@@ -89,6 +90,11 @@ struct FDecalRenderTargetManager
 	// destructor
 	~FDecalRenderTargetManager()
 	{
+
+	}
+
+	void ResolveTargets()
+	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 		// If GBuffer A is dirty, mark it as needing resolve since the content of TargetsToResolve[GBufferAIndex] could have been nullified by modes like RTM_SceneColorAndGBufferNoNormal
@@ -105,8 +111,12 @@ struct FDecalRenderTargetManager
 			{
 				RHICmdList.CopyToResolveTarget(TargetsToResolve[i], TargetsToResolve[i], true, ResolveParams);
 			}
-		}		
+		}
+	}
 
+	void FlushMetaData()
+	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, nullptr);
 	}
 
 	void SetRenderTargetMode(FDecalRenderingCommon::ERenderTargetMode CurrentRenderTargetMode, bool bHasNormal)
