@@ -3,9 +3,38 @@ Title:Landscape Collision Guide
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Collision settings for Landscape.
 version: 4.12
+parent:Engine/Landscape
+order:7
 
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Collision:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:3)]
 

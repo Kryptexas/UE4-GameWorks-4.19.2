@@ -3,8 +3,29 @@ Title:Landscape UI Reference
 Crumbs:%ROOT%, Engine, Engine/Landscape
 Description:Description of the Landscape tool's user interface.
 version: 4.9
+parent:Engine/Landscape
+order:4
 
 [VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Landscape_UI_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/UI:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/UI:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/UI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topiccompact]
 [OBJECT:Topiccompact]
 	[PARAM:image]
 		![](Landscape_UI_topic.png)
