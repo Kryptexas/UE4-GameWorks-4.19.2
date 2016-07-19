@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3025593
-Availability:Docs
+﻿INTSourceChangelist:3054319
+Availability:Public
 Title:デフォルトのレベルを変更する
 Crumbs: %ROOT%, Engine
 Description:プロジェクト用にデフォルトのエディタとゲームのレベルを設定する方法を説明します。
-SkillLevel: Beginner
-Version: 4.9
+SkillLevel:Beginner
+Version:4.12
 parent:Engine/Levels
 order:4
 type:howto
@@ -23,16 +23,16 @@ type:howto
 	![](Level_Project_Settings.jpg)
 
 1. **[Project Settings]** オプションを選択すると、プロジェクトの設定が開きます。   
+
 	![](Level_Project_Settings_Menu.png)
 
-
 1. 左側のパネルの **[Maps & Modes]** をクリックして、**[Project Settings]** のサブセクションを開きます。 
+
 	![](Level_Maps_&_Modes.jpg)
 
-
 1. **[Game Default Map]** 欄の右にあるドロップダウン矢印をクリックします。そのリストから必要なレベルを選択します。
-	![](Level_Change_Default_Map.jpg)
 
+	![](Level_Change_Default_Map.jpg)
 
 1. **[Editor Default Map]** も変更したい場合は、さらにステップ 5 を繰り返します。 
 
