@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3025593
-Availability:Docs
+﻿INTSourceChangelist:3054319
+Availability:Public
 Title:Level アセットで作業する
 Crumbs: %ROOT%, Engine
 Description:UE4 で Level アセットを作成、保存し、開きます。
-SkillLevel: Beginner
-Version: 4.12
+SkillLevel:Beginner
+Version:4.12
 parent:Engine/Levels
 type:howto
 order:1
@@ -55,8 +55,8 @@ UE4 のレベルはほとんど **コンテンツ ブラウザ** の他のアセ
 
 ## レベルを作成する
 
-Blueprint クラス、マテリアル、パーティクル システムのような [他のアセットを作成する](Engine/Content/Browser/UserGuide/BrowserAssetCreation#addingassets) のと同じように、**コンテンツ ブラウザ** で、新規レベルを作成することができます。しかし、 
-レベルはプロジェクトをどのようにレイアウトし整理するかということにも関連するので、**[File]** メニューから作成することもできます。 
+Blueprint クラス、マテリアル、パーティクル システムのような [他のアセットを作成する](Engine/Content/Browser/UserGuide/BrowserAssetCreation#アセットを追加する) のと同じように、**コンテンツ ブラウザ** で、 
+新規レベルを作成することができます。レベルはプロジェクトをどのようにレイアウトし整理するかということにも関連するので、**[File]** メニューから作成することもできます。 
 
 1. **[File]** メニューを開きます 
 
@@ -124,8 +124,8 @@ Blueprint クラス、マテリアル、パーティクル システムのよう
 1. **[Open Level]** を選択します。
 
 	![](Level_Open_New_Level.jpg)
-
 	[Region:tip]
+
 	キーボードのショートカット、**Ctrl + O** キーを使用してレベルを開くこともできます。 
 	[/region]
 
