@@ -1495,18 +1495,8 @@ void UConsole::FakeGotoState(FName NextStateName)
 
 		if (WidgetToFocus.IsValid())
 		{
-			bool bViewportGotFocus = false;
-			FSceneViewport* Viewport = GetOuterUGameViewportClient()->GetGameViewport();
-			if (Viewport && WidgetToFocus == GetOuterUGameViewportClient()->GetGameViewportWidget())
-			{
-				bViewportGotFocus = Viewport->RestoreCaptureState(FSlateApplication::Get().GetUserIndexForKeyboard());
-			}
-			
-			if (!bViewportGotFocus)
-			{
-				FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
-				FSlateApplication::Get().SetKeyboardFocus(WidgetToFocus);
-			}
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(WidgetToFocus);
 		}
 	}
 
