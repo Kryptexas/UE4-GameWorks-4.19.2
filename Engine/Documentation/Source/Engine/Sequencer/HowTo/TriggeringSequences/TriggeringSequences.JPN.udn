@@ -1,65 +1,65 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Triggering Sequences from Gameplay
+﻿INTSourceChangelist:3051723
+Availability:Public
+Title:ゲームプレイからシーケンスをトリガーする
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Illustrates how to trigger a Sequence from an in-game event. 
-Version: 4.12
-SkillLevel: Intermediate
+Description:インゲームのイベントからシーケンスをトリガーする方法を説明します。 
+Version:4.12
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
-Once you have created your cinematic sequence, you may want to have it called and played during gameplay as part of a cutscene. 
-Perhaps a character walks into a room and you initiate a cutscene or maybe there is an ending cinematic you want to play when a character kills an enemy. 
+シネマティック シーケンスを作成したらカットシーンの一部としてゲームプレイ中にそれを呼び出しプレイすることができます。 
+例えば、キャラクターが部屋に入ると、カットシーンが始まったり、キャラクターが敵をキルしたらプレイするエンディング シネマティックスがあるかもしれません。 
 
-In this How-to we use [](Engine/Blueprints) to tell a Level Sequence to play based on an in-game event. 
-We also explore the **Sequence Player** options and how we can use them let our game know that the Level Sequence has ended, at which point we can fire of additional Blueprint script. 
+この操作ガイドでは、[](Engine/Blueprints) を使ってレベル シーケンスに対して、インゲームのイベントに応じてプレイするように指示します。 
+**[Sequence Player]** オプションを使って、レベル シーケンスが終了したときを知らせ、この時点で新たなブループリント スクリプトをアクティベートできます。 
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with a sample Sequence already created. 
+ここではサンプルのシーケンスが既に作成された状態で **Blueprint Third Person Template** プロジェクトを使います。 
 [/REGION]
 
-1.	If the Level Sequence you want to play is not inside your level, **Drag-and-drop** it from the **Content Browser** into the level. 
+1.	プレイするレベル シーケンスがレベル内にない場合は、**コンテンツ ブラウザ** からレベルに **ドラッグ＆ドロップ** します。 
 
 	![](Trigger01.png)(w:720)
 
-1.	From the **Modes** panel, drag a **Trigger** into the level and adjust it based on your needs (we used a **Box Trigger** below). 
+1.	**[Modes (モード)]** パネルから **Trigger** をレベルにドラッグして、ニーズに応じて調整します (以下では **Box Trigger** を使用しました)。 
 
 	![](Trigger02.png)
 
-	When your player enters this trigger, we will tell our Level Sequence to start playing. 
+	プレイヤーがこのトリガーに入ると、レベル シーケンスにプレイを開始するように指示します。 
 
-1.	With the **Trigger** still selected, click the **Blueprints** button from the Main Toolbar then select **Open Level Blueprint**. 
+1.	**トリガー** を選択したままの状態で、メインツールバーの **[Blueprints]** ボタンをクリックして **[Open Level Blueprint]** を選びます。 
 
 	![](Trigger03.png)
 
-1.	**Right-click** in the graph and under **Collision**, select **Add On Actor Begin Overlap**. 
+1.	グラフを **右クリック** して、**[Collision]** で、**[Add On Actor Begin Overlap]** を選択します。 
 
 	![](Trigger04.png)
 
-1.	Return to the level and select your **Level Sequence**.
+1.	レベルに戻り **[Level Sequence]** を選択します。
 
-1.  Click the **Blueprints** button from the Main Toolbar and **Open Level Blueprint** again.
+1. メイン ツールバーで **[Blueprints]** ボタンをクリックして、**[Open Level Blueprint]** を再度選択します。
 
-1.	**Right-click** and select **Create a Reference to...** your Level Sequence. 
+1.	**右クリック** し、レベル シーケンスに **[Create a Reference to...]** オプションを選択します。 
 
 	![](Trigger05.png)
 
-	Above the Level Sequence we want to play is called **CameraFlyBy**. 
+	プレイするレベル シーケンス上にあるものは、**CameraFlyBy** と呼ばれます。 
 
-1.	**Left-click** and drag off the new node and add the **Get Sequence Player** node. 
+1.	**左クリック** して新しいノードをドラッグし、 **Get Sequence Player** ノードを追加します。 
 
 	![](Trigger06.png)
 
-1.	Off the **Sequence Player** node, add the **Play** node and connect as shown below. 
+1.	**Sequence Player** ノードから、 **Play** ノードを追加し、以下のように接続します。 
 
 	![](Trigger07.png)
 
-	If we were to play our game now, the sequence we created will play when the character enters the trigger. 
+	ゲームをプレイする場合、作成したシーケンスはキャラクターがトリガーに入ったときにプレイします。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -73,63 +73,62 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	With our current setup, our character can still freely move while our cinematic is playing. 
-	While we have managed to successfully playback our cinematic, there may be times where we want to lock our players in place while the cinematic is playing or to **Set Hidden in Game** so they do not appear. 
-	
-1.	**Right-click** in the **Level Blueprint** and add a **Disable Input** node. 
+	現在のセットアップでは、キャラクターはシネマティックスのプレイ中にまだ自由に動き回ることができます。 
+	シネマティックスの再生には何とか成功しましたが、シネマティックスのプレイ中にプレイヤーをロックしたり、または表示されないように **Set Hidden in Game (インゲームで非表示に設定)** したりすることができます。 
 
+1.	**Level ブループリント** 内を **右クリック** して、 **Disable Input** ノードを追加します。 
 	![](Trigger08.png)
 
-	If you have your Level Sequence still selected in the level, you may see two options (choose the one that is under **Input** by itself. 
+	レベルでレベル シーケンスをまだ選択した状態であれば、2 つのオプションが表示されます (それ自体による **入力** の下にあるものを選択します)。 
 
-1.	Connect the node following **Play** then drag off **Player Controller** and add a **Get Player Controller** node. 
+1.	**Play** の後のノードを接続し、**Player Controller** からドラッグして **Get Player Controller** ノードを追加します。 
 
 	![](Trigger09.png)
 
-	This will tell the Player Controller associated with your player to stop receiving input. 
+	これでプレイヤーに関連するプレイヤー コントローラーに対して、入力を受け取るのを停止するように指示します。 
 
-1.	Drag off the **Target** pin of the **Disable Input** node and add a **Get Player Character** node. 
+1.	**Disable Input** ノードの **Target** ピンをドラッグして、**Get Player Character** ノードを追加します。 
 
 	![](Trigger10.png)
 
-	We have disabled input when the sequence starts however we need to enable input once it is over. 
+	シーケンス開始時に入力を無効にしましたが、それが終了したら入力を有効にする必要があります。 
 
-1.	Drag off the **Sequencer Player** node and add a **Get Length** node. 
+1.	**Sequencer Player** ノードをドラッグして、**Get Length** ノードを追加します。 
 
 	![](Trigger11.png)
 
-1.	**Right-click** in the graph and add a **Set Timer by Event** node. 
+1.	グラフ内を **右クリック** して、 **Set Timer by Event** ノードを追加します。 
 
 	![](Trigger12.png)
 
-1.	Connect the **Set Timer by Event** node following **Disable Input** and feed the **Length** into the **Time** pin. 
+1.	**Disable Input** の後に **Set Timer by Event** ノードを接続します。**Length** を **Time** ピンに入力します。 
 
 	![](Trigger13.png)
 
-	This will allow us to call an event at the end of our Level Sequence. 
+	これでレベル シーケンスの最後にイベントを呼び出すことができます。 
 
-1.	**Right-click** in the graph and create a **Custom Event** called **Sequence End**.  
+1.	グラフ内を **右クリック** して、 **Sequence End** と呼ばれる **カスタム イベント** を作成します。  
 
 	![](Trigger14.png)
 
-1.	Connect the bind pin to the **Event** pin on the **Set Timer by Event** node. 
+1.	バインド ピンを **Set Timer by Event** ノード上の **Event** ピンに接続します。 
 
 	![](Trigger15.png)
 
-	Whatever is connected to the **Sequence End** event will now get fired when the Level Sequence completes. 
+	**Sequence End** event に接続されているものが何であれ、レベル シーケンスが完了すると発行されるようになります。 
 
-1.	Add an **Enable Input** node and connect a **Get Player Character** and **Get Player Controller** node. 
-	
+1.	**Enable Input** ノードを追加し、**Get Player Character** と **Get Player Controller** ノードを接続します。 
+
 	[REGION:lightbox]
 	[![](Trigger16.png)](Trigger16.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full view. 
+	クリックしてフルサイズで表示 
 	[/REGION]
 
-	If we play now, our playable character will stop and not receive input while the Level Sequence is active. 
-	Once the sequence completes, the player is able to provide input to the character again. 
+	プレイすると、レベル シーケンスがアクティブな間は、プレイ可能なキャラクターは停止し、入力を受け取りません。 
+	シーケンスが完了すると、プレイヤーは再度キャラクターに入力を与えることができます。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -143,24 +142,24 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	With our current setup, our cinematic is not re-triggerable. If we want to re-trigger the sequence, we need to add one more node to our existing setup. 
+	現在のセットアップでは、シネマティックスは再トリガーできません。シーケンスを再トリガーするには、既存のセットアップにノードをもうひとつ追加する必要があります。 
 
-1.	In the **Level Blueprint**, drag off the **Sequence Player** node and add a **Set Playback Position** node before the **Play** node. 
+1.	**Level ブループリント** で、**Sequence Player** ノードをドラッグして、**Play** ノードの前に **Set Playback Position** ノードを 追加します。 
 
 	[REGION:lightbox]
 	[![](Trigger17.png)](Trigger17.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full view. 
+	クリックしてフルサイズで表示 
 	[/REGION]
 
-	With the **Playback Position** defaulting to start **0.0**, the sequence will start from the beginning each time it is played. 
+	**Playback Position** をデフォルトで **0.0** で開始するようにすると、シーケンスはプレイされる度に最初から開始します。 
 
-1.	Click the **Play** button to play in the editor. 	
-			
+1.	**[Play (プレイ)]** ボタンをクリックして、エディタでプレイします。 	
 
-## End Result
+
+## 最終結果
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -174,9 +173,9 @@ dWCbJb5YJhI
 [/PARAMLITERAL]
 [/OBJECT]
 
-We now have a cinematic sequence that is triggered from gameplay and locks the player in place. Our sequence can also be triggered multiple times and input is granted back to the player after the cinematic plays. 
+ここまでで、ゲームプレイからトリガーされ、プレイヤーを固定するシネマティック シーケンスを作成しました。シーケンスは複数回トリガーすることもできます。シネマティックスのプレイ後に入力はプレイヤーに戻ります。 
 
-You can access other information or functions from the **Sequencer Player** node under the **Cinematic** section. 
+**Cinematic** セクションの **Sequencer Player** ノードから他の情報や関数にアクセスできます。 
 
 ![](Trigger18.png)
 
