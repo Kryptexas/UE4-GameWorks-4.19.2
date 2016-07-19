@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3025593
-Availability:Docs
+﻿INTSourceChangelist:3054319
+Availability:Public
 Title:複数のレベルを管理する
 Description:レベル ウィンドウでパーシスタント レベルとサブレベルを管理します。
-Version: 4.12
+Version:4.12
 parent:Engine/Levels
 type:reference
 order:2
@@ -83,7 +83,6 @@ order:2
 	![](AddExisting.png)
 
 1. 追加するレベルを **[Open Level] ** ダイアログで選択してから、**[Open]** をクリックします。
-
 	![](SunTempleStreaming_Select.png)
 
 
@@ -146,7 +145,7 @@ Level Streaming Volume を設定するには、ストリーミング レベル�
 ![](LevelDetails_Persistent.png)(w:500)
 
 サブレベルについては、レベルのオフセットの **Position** と **Rotation**、使用する **Streaming Volumes**、およびデバッグの **Level Color** を設定することができます。例えば、 
-パフォーマンスを向上させるための [アンロード リクエスト間の最短時間](Engine/LevelStreaming/Overview#addinghysteresistounloadingrequests) のような詳細設定もここからアクセスできます。
+パフォーマンスを向上させるための [アンロード リクエスト間の最短時間](Engine/LevelStreaming/Overview#ヒステリシスをロードリクエストに追加する) のような詳細設定もここからアクセスできます。
 
 ![](LevelDetails_Streaming.png)
 
