@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:Twist Corrective
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how the Twist Corrective control can be used to drive curve values based on the twist of one bone relative to another. 
-version: 4.12
+Description:Twist Corrective 制御を使って、あるボーンの他のボーンに対するツイストに基づいてカーブ値を操作します。 
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -40,28 +40,28 @@ version: 4.12
 [/VAR]
 
 
-The **Twist Corrective** node is a node that can drive curve values, such as **Morph Targets**, based on the twist of one bone relative to another. As an example, when the neck is twisted too far to the right or left you can apply a Morph Target to the neck in order to create a more natural look. 
+**Twist Corrective** ノードは、あるボーンの他のボーンに対するツイストに基づいて **モーフ ターゲット** などのカーブ値を操作します。例えば、首を右または左にひねりすぎた場合は、モーフターゲットを首に適用することで見た目が自然になります。 
 
 ![](ExampleImage.png)
 
-You can specify the **Base Frame** and **Twist Frame** using bone name and local axis, and a **Twist Normal** as the axis of the twist. 
+ボーン名とローカル軸を使用して、**Base Frame** と **Twist Frame** を指定して、**Twist Normal** をツイストの軸に指定することができます。 
 
-For example, if you'd like to check the twist to the right side along the Y axis, the normal would be (0, 1, 0). Or, if you'd like to check the twist to the left side along the Y axis, the normal would be (0, -1, 0). If you'd like to twist up/center along the Z axis, the normal would be (0, 0, 1). The Angle will be calculated between the plane and the twist frame.
+例えば、Y 軸に沿って右側へのツイストをチェックしたい場合は、法線は (0, 1, 0) になります。または、Y 軸に沿って左側へのツイストをチェックしたい場合は、法線は (0, -1, 0) になります。例えば、Z 軸に沿って上/中央へのツイストをチェックしたい場合は、法線は (0, 0, 1) になります。この角度は、その平面とツイスト フレームとの間で計算されます。
 
-Angle Delta of the range **Max Angle in Degree** will be mapped to **Mapped Range Min** and **Mapped Range Max** using a named curve. 
+範囲 **[Max Angle in Degree (最大角度)]** の Angle Delta は、名前を付けたカーブを使用して **[Mapped Range Min]** と **[Mapped Range Max]** にマッピングされます。 
 
 ![](TwistDetails.png)
 
-You can add the Twist Corrective node in the **AnimGraph** of your **Animation Blueprint**. 
+**Animation ブループリント** の **AnimGraph** に Twist Corrective ノードを追加することができます。 
 
 ![](TwistCorrective.png)
 
-| Pin | Description |
+| ピン | 説明 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Component Pose** | The input pose to be transformed. |
-| **Alpha** | A float value in the range [0.0, 1.0] to use as the alpha value to determine the weighting of the Transform applied by the SkeletalControl. A value of 0.0 gives full weighting to the input pose, while a value of 1.0 gives full weighting to the control's computed Transform. |
-| [REGION:tablesection]**Output Pins**[/REGION] ||
-| Pose (Blank) | The final pose after the Transform has been applied. |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| **Component Pose** | トランスフォームさせる入力ポーズです。 |
+| **Alpha** | スケルタル制御で適用されるトランスフォームの重み付けを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をしたトランスフォームに対し最大限の重み付けをします。|
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose (Blank) | トランスフォーム適用後の最終ポーズ |
 
 
