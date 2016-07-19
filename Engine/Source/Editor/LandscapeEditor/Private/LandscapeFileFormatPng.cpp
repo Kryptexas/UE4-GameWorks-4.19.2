@@ -248,3 +248,5 @@ void FLandscapeWeightmapFileFormat_Png::Export(const TCHAR* WeightmapFilename, F
 		FFileHelper::SaveArrayToFile(TempData, WeightmapFilename);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

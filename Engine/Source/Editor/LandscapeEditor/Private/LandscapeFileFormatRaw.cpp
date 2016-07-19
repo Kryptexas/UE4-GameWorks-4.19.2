@@ -171,3 +171,5 @@ void FLandscapeWeightmapFileFormat_Raw::Export(const TCHAR* WeightmapFilename, F
 {
 	FFileHelper::SaveArrayToFile(Data, WeightmapFilename);
 }
+
+#undef LOCTEXT_NAMESPACE
