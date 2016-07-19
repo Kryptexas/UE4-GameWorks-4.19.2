@@ -41,7 +41,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 	}
 
 	// Ensure that at least one GPU architecture is supported
-	if (!bBuildForES2 && !bBuildForES31 && !bSupportsVulkan)
+	if (!bBuildForES2 && !bBuildForESDeferred && !bSupportsVulkan && !bBuildForES3)
 	{
 		bBuildForES2 = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2)), GetDefaultConfigFilename());

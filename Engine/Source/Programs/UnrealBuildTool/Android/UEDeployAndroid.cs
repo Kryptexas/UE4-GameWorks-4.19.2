@@ -627,7 +627,7 @@ namespace UnrealBuildTool
 			*/
 		}
 
-		private static int RunCommandLineProgramAndReturnError(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
+		private static int RunCommandLineProgramAndReturnResult(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
 		{
 			if (OverrideDesc == null)
 			{
@@ -654,7 +654,7 @@ namespace UnrealBuildTool
 			return Proc.ExitCode;
 		}
 
-		private static void RunCommandLineProgramAndThrowOnError(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
+		private static void RunCommandLineProgramWithException(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
 		{
 			if (OverrideDesc == null)
 			{
@@ -824,9 +824,9 @@ namespace UnrealBuildTool
 				// and later code needs each lib to have a build.xml
 				if (!File.Exists(Path.Combine(Lib, "build.xml")))
 				{
-					RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(ToolChain), "");
+					RunCommandLineProgramWithException(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(ToolChain), "");
 				}
-				RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, LocalUpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
+				RunCommandLineProgramWithException(UE4BuildPath, AndroidCommandPath, LocalUpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
 			}
 
 		}
@@ -1004,7 +1004,114 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private void PickSplashScreenOrientation(string UE4BuildPath)
+		private void DetermineScreenOrientationRequirements(out bool bNeedPortrait, out bool bNeedLandscape)
+		{
+			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			string Orientation;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "Orientation", out Orientation);
+
+			bNeedLandscape = false;
+			bNeedPortrait = false;
+
+			switch (Orientation.ToLower())
+			{
+				case "portrait":
+					bNeedPortrait = true;
+					break;
+				case "reverseportrait":
+					bNeedPortrait = true;
+					break;
+				case "sensorportrait":
+					bNeedPortrait = true;
+					break;
+
+				case "landscape":
+					bNeedLandscape = true;
+					break;
+				case "reverselandscape":
+					bNeedLandscape = true;
+					break;
+				case "sensorlandscape":
+					bNeedLandscape = true;
+					break;
+
+				case "sensor":
+					bNeedPortrait = true;
+					bNeedLandscape = true;
+					break;
+				case "fullsensor":
+					bNeedPortrait = true;
+					bNeedLandscape = true;
+					break;
+
+				default:
+					bNeedPortrait = true;
+					bNeedLandscape = true;
+					break;
+			}
+		}
+
+		private void PickDownloaderScreenOrientation(string UE4BuildPath, bool bNeedPortrait, bool bNeedLandscape)
+		{
+			// Remove unused downloader_progress.xml to prevent missing resource
+			if (!bNeedPortrait)
+			{
+				string LayoutPath = UE4BuildPath + "/res/layout-port/downloader_progress.xml";
+				if (File.Exists(LayoutPath))
+				{
+					File.Delete(LayoutPath);
+				}
+			}
+			if (!bNeedLandscape)
+			{
+				string LayoutPath = UE4BuildPath + "/res/layout-land/downloader_progress.xml";
+				if (File.Exists(LayoutPath))
+				{
+					File.Delete(LayoutPath);
+				}
+			}
+
+			// Loop through each of the resolutions (only /res/drawable/ is required, others are optional)
+			string[] Resolutions = new string[] { "/res/drawable/", "/res/drawable-ldpi/", "/res/drawable-mdpi/", "/res/drawable-hdpi/", "/res/drawable-xhdpi/" };
+			foreach (string ResolutionPath in Resolutions)
+			{
+				string PortraitFilename = UE4BuildPath + ResolutionPath + "downloadimagev.png";
+				if (bNeedPortrait)
+				{
+					if (!File.Exists(PortraitFilename) && (ResolutionPath == "/res/drawable/"))
+					{
+						Log.TraceWarning("Warning: Downloader screen source image {0} not available, downloader screen will not function properly!", PortraitFilename);
+					}
+				}
+				else
+				{
+					// Remove unused image
+					if (File.Exists(PortraitFilename))
+					{
+						File.Delete(PortraitFilename);
+					}
+				}
+
+				string LandscapeFilename = UE4BuildPath + ResolutionPath + "downloadimageh.png";
+				if (bNeedLandscape)
+				{
+					if (!File.Exists(LandscapeFilename) && (ResolutionPath == "/res/drawable/"))
+					{
+						Log.TraceWarning("Warning: Downloader screen source image {0} not available, downloader screen will not function properly!", LandscapeFilename);
+					}
+				}
+				else
+				{
+					// Remove unused image
+					if (File.Exists(LandscapeFilename))
+					{
+						File.Delete(LandscapeFilename);
+					}
+				}
+			}
+		}
+
+		private void PickSplashScreenOrientation(string UE4BuildPath, bool bNeedPortrait, bool bNeedLandscape)
 		{
 			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
 			bool bShowLaunchImage = false;
@@ -1012,55 +1119,10 @@ namespace UnrealBuildTool
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
 
-			if (bPackageForGearVR)
+			//override the parameters if we are not showing a launch image or are packaging for GearVR
+			if (bPackageForGearVR || !bShowLaunchImage)
 			{
-				bShowLaunchImage = false;
-			}
-
-			// Decide which splash screen orientation(s) are needed based on orientation setting if enabled
-			bool bNeedPortrait = false;
-			bool bNeedLandscape = false;
-			if (bShowLaunchImage)
-			{
-				string Orientation;
-				Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "Orientation", out Orientation);
-
-				switch (Orientation.ToLower())
-				{
-					case "portrait":
-						bNeedPortrait = true;
-						break;
-					case "reverseportrait":
-						bNeedPortrait = true;
-						break;
-					case "sensorportrait":
-						bNeedPortrait = true;
-						break;
-
-					case "landscape":
-						bNeedLandscape = true;
-						break;
-					case "reverselandscape":
-						bNeedLandscape = true;
-						break;
-					case "sensorlandscape":
-						bNeedLandscape = true;
-						break;
-
-					case "sensor":
-						bNeedPortrait = true;
-						bNeedLandscape = true;
-						break;
-					case "fullsensor":
-						bNeedPortrait = true;
-						bNeedLandscape = true;
-						break;
-
-					default:
-						bNeedPortrait = true;
-						bNeedLandscape = true;
-						break;
-				}
+				bNeedPortrait = bNeedLandscape = false;
 			}
 
 			// Remove unused styles.xml to prevent missing resource
@@ -1489,13 +1551,28 @@ namespace UnrealBuildTool
 				return;
 			}
 
-			bool bInvalid = true;
+			string IniAppId;
+			bool bInvalidIniAppId = false;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GamesAppID", out IniAppId);
+
+			//validate the value found in the AndroidRuntimeSettings
+			Int64 Value;
+			if (IniAppId.Length == 0 || !Int64.TryParse(IniAppId, out Value))
+			{
+				bInvalidIniAppId = true;
+			}
+
+			bool bInvalid = false;
+			string ReplacementId = "";
 			String Filename = Path.Combine(UE4BuildPath, "res", "values", "GooglePlayAppID.xml");
 			if (File.Exists(Filename))
 			{
 				string[] FileContent = File.ReadAllLines(Filename);
+				int LineIndex = -1;
 				foreach (string Line in FileContent)
 				{
+					++LineIndex;
+
 					int StartIndex = Line.IndexOf("\"app_id\">");
 					if (StartIndex < 0)
 						continue;
@@ -1505,30 +1582,58 @@ namespace UnrealBuildTool
 					if (EndIndex < 0)
 						continue;
 
-					string AppID = Line.Substring(StartIndex, EndIndex - StartIndex);
-					Int64 Value;
-					if (AppID.Length > 0 && Int64.TryParse(AppID, out Value))
+					string XmlAppId = Line.Substring(StartIndex, EndIndex - StartIndex);
+
+					//validate that the AppId matches the .ini value for the GooglePlay AppId, assuming it's valid
+					if (!bInvalidIniAppId &&  IniAppId.CompareTo(XmlAppId) != 0)
 					{
-						bInvalid = false;
+						Log.TraceInformation("Replacing Google Play AppID in GooglePlayAppID.xml with AndroidRuntimeSettings .ini value");
+
+						bInvalid = true;
+						ReplacementId = IniAppId;
+						
+					}					
+					else if(XmlAppId.Length == 0 || !Int64.TryParse(XmlAppId, out Value))
+					{
+						Log.TraceWarning("\nWARNING: GooglePlay Games App ID is invalid! Replacing it with \"1\"");
+
+						//write file with something which will fail but not cause an exception if executed
+						bInvalid = true;
+						ReplacementId = "1";
+					}	
+
+					if(bInvalid)
+					{
+						// remove any read only flags if invalid so it can be replaced
+						FileInfo DestFileInfo = new FileInfo(Filename);
+						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+
+						//preserve the rest of the file, just fix up this line
+						string NewLine = Line.Replace("\"app_id\">" + XmlAppId + "</string>", "\"app_id\">" + ReplacementId + "</string>");
+						FileContent[LineIndex] = NewLine;
+
+						File.WriteAllLines(Filename, FileContent);
 					}
 
 					break;
 				}
-
-				// remove any read only flags if invalid so it can be replaced
-				if (bInvalid)
-				{
-					FileInfo DestFileInfo = new FileInfo(Filename);
-					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-				}
 			}
-
-			if (bInvalid)
+			else
 			{
-				Log.TraceWarning("\nWARNING: GooglePlay Games App ID is invalid!");
+				string NewAppId;
+				// if we don't have an appID to use from the config, write file with something which will fail but not cause an exception if executed
+				if (bInvalidIniAppId)
+				{
+					Log.TraceWarning("\nWARNING: Creating GooglePlayAppID.xml using a Google Play AppID of \"1\" because there was no valid AppID in AndroidRuntimeSettings!");
+					NewAppId = "1";
+				}
+				else
+				{
+					Log.TraceInformation("Creating GooglePlayAppID.xml with AndroidRuntimeSettings .ini value");
+					NewAppId = IniAppId;
+				}
 
-				// write file with something which will fail but not cause an exception if executed
-				File.WriteAllText(Filename, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n\t<string name=\"app_id\">1</string>\n</resources>\n");
+				File.WriteAllText(Filename, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n\t<string name=\"app_id\">" + NewAppId + "</string>\n</resources>\n");
 			}
 		}
 
@@ -1841,8 +1946,19 @@ namespace UnrealBuildTool
 			//Now validate GooglePlay app_id if enabled
 			ValidateGooglePlay(UE4BuildPath);
 
+			//determine which orientation requirements this app has
+			bool bNeedLandscape = false;
+			bool bNeedPortrait = false;
+			DetermineScreenOrientationRequirements(out bNeedPortrait, out bNeedLandscape);
+
 			//Now keep the splash screen images matching orientation requested
-			PickSplashScreenOrientation(UE4BuildPath);
+			PickSplashScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
+
+			//Similarly, keep only the downloader screen image matching the orientation requested
+			PickDownloaderScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
+
+			// at this point, we can write out the cached build settings to compare for a next build
+			File.WriteAllText(BuildSettingsCacheFile, CurrentBuildSettings);
 
 			// at this point, we can write out the cached build settings to compare for a next build
 			File.WriteAllText(BuildSettingsCacheFile, CurrentBuildSettings);
@@ -1955,7 +2071,7 @@ namespace UnrealBuildTool
 						{
 							CommandLine += " NDK_DEBUG=1";
 						}
-						RunCommandLineProgramAndThrowOnError(UE4BuildPath, NDKBuildPath, CommandLine, "Preparing native code for debugging...", true);
+						RunCommandLineProgramWithException(UE4BuildPath, NDKBuildPath, CommandLine, "Preparing native code for debugging...", true);
 
 						File.SetLastWriteTimeUtc(LibSOName, File.GetLastWriteTimeUtc(FinalSOName));
 					}
@@ -1998,18 +2114,18 @@ namespace UnrealBuildTool
 				{
 					default:
 					case "quiet":
-						if (RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
+						if (RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
 						{
-							RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+							RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
 						}
 						break;
 
 					case "normal":
-						RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
 						break;
 
 					case "verbose":
-						RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -verbose " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -verbose " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
 						break;
 				}
 

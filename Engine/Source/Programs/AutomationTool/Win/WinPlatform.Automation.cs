@@ -132,7 +132,7 @@ public abstract class BaseWinPlatform : Platform
 		}
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		const string NoEditorCookPlatform = "WindowsNoEditor";
 		const string ServerCookPlatform = "WindowsServer";

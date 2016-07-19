@@ -30,7 +30,7 @@
 #define FORCE_FLOATS 0
 #endif
 
-#if (!COMPILER_GLSL_ES2 && !METAL_PROFILE) || FORCE_FLOATS
+#if (!(COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && !METAL_PROFILE) || FORCE_FLOATS
 	// Always use floats when not using the ES2 compiler, because low precision modifiers are currently only tweaked for ES2, 
 	// And we don't want potential side effects on other platforms
 	#define half float
@@ -172,7 +172,7 @@
 		#define FEATURE_LEVEL FEATURE_LEVEL_ES2
 	#endif
 
-	#if COMPILER_GLSL_ES2 
+	#if COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1
 		// Swizzle as we only support GL_BGRA on non-ES2 platforms that have that extension
 		#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 	#else 
@@ -192,11 +192,11 @@
 #endif
 
 // non-editor platforms generally never want development/editor features.
-#define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ES31_AEP_PROFILE)
+#define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE)
 #define USE_DEVELOPMENT_SHADERS (COMPILE_SHADERS_FOR_DEVELOPMENT && PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS)
 
 #ifndef MOBILE_EMULATION
-#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE))
+#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!(COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES2) && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE))
 #endif
 
 // If we didn't request color component swizzling, just make it empty
@@ -331,7 +331,7 @@ MaterialFloat4 TextureCubeSampleGrad(TextureCube Tex, SamplerState Sampler, floa
 	#define TANGENTTOWORLD2					TEXCOORD11
 
 	// TangentToWorld0 is float4 only to match D3D11
-#if METAL_PROFILE
+#if METAL_PROFILE || COMPILER_GLSL_ES3_1
 		//@todo-rco: FIXME!
 		#define TANGENTTOWORLD_INTERPOLATOR_BLOCK	float4 TangentToWorld0 : TANGENTTOWORLD0; float4	TangentToWorld2	: TANGENTTOWORLD2;
 #else
@@ -812,7 +812,7 @@ MaterialFloat3 HdrDemosaic(MaterialFloat3 Pixel, MaterialFloat3 OtherPixel, Mate
 	B = B * DEMOSAIC_MUL + DEMOSAIC_ADD;
 
 	// On ES2 devices we demosaic during the tonemapping pass which renders upside down, account for that here.
-	#if COMPILER_GLSL_ES2
+	#if COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1
 		return max((Pixel * B), (OtherPixel * A)); 
 	#else
 		return max((Pixel * A), (OtherPixel * B)); 
@@ -937,20 +937,20 @@ MaterialFloat4 Encode32BPPHDR(MaterialFloat4 Color, MaterialFloat2 SvPosition)
 	}
 }
 
-MaterialFloat3 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncoded = MaterialFloat3(0, 0, 0), MaterialFloat2 SvPosition = MaterialFloat2(0, 0))
+MaterialFloat4 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncoded = MaterialFloat3(0, 0, 0), MaterialFloat2 SvPosition = MaterialFloat2(0, 0))
 {
 	float Mode = GetHDR32bppEncodeMode();
 	if (Mode == HDR_ENCODE_MOSAIC)
 	{
-		return HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition);
+		return MaterialFloat4(HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition), 0.0f);
 	}
 	if (Mode == HDR_ENCODE_RGBA)
 	{ 
-		return RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE);
+		return MaterialFloat4(RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE), 0.0f);
 	}
 	else 
 	{
-		return Encoded.rgb; 
+		return Encoded; 
 	}
 }
 
@@ -1493,7 +1493,12 @@ void GenerateCoordinateSystem(float3 ZAxis, out float3 XAxis, out float3 YAxis)
 /** Output of the screen vertex shader. */
 struct FScreenVertexOutput
 {
+#if METAL_PROFILE || COMPILER_GLSL_ES3_1
+	//@todo-rco: FIXME!
+	noperspective float2 UV : TEXCOORD0;
+#else
 	noperspective MaterialFloat2 UV : TEXCOORD0;
+#endif
 	float4 Position : SV_POSITION;
 };
 

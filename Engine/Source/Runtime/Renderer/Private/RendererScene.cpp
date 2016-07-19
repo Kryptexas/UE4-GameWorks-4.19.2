@@ -542,6 +542,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {
+	FMemory::Memzero(MobileDirectionalLights);
+
 	check(World);
 	World->Scene = this;
 
@@ -990,23 +992,31 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	LightSceneInfo->Id = Lights.Add(FLightSceneInfoCompact(LightSceneInfo));
 	const FLightSceneInfoCompact& LightSceneInfoCompact = Lights[LightSceneInfo->Id];
 
-	if (!SimpleDirectionalLight && 
-		LightSceneInfo->Proxy->GetLightType() == LightType_Directional &&
+	if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional &&
 		// Only use a stationary or movable light
 		!LightSceneInfo->Proxy->HasStaticLighting())
 	{
-		SimpleDirectionalLight = LightSceneInfo;
+		// Set SimpleDirectionalLight
+		if(!SimpleDirectionalLight)
+		{
+			SimpleDirectionalLight = LightSceneInfo;
+		}
 
-		// if we are mobile rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
-		bool bMobileRendererRequiresLightPolicyChange = GetShadingPath() == EShadingPath::Mobile &&
-			(
-			// this light is a dynamic shadowcast 
-			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
-			// this light casts both static and dynamic shadows.
-			SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
-			);
-
-		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bMobileRendererRequiresLightPolicyChange);
+		if(GetShadingPath() == EShadingPath::Mobile)
+		{
+		    // Set MobileDirectionalLights entry
+		    int32 FirstLightingChannel = GetFirstLightingChannelFromMask(LightSceneInfo->Proxy->GetLightingChannelMask());
+		    if (FirstLightingChannel >= 0 && MobileDirectionalLights[FirstLightingChannel] == nullptr)
+		    {
+			    MobileDirectionalLights[FirstLightingChannel] = LightSceneInfo;
+    
+			    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
+			    if (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+				{
+		    		bScenesPrimitivesNeedStaticMeshElementUpdate = true;
+				}
+		    }
+		}
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1598,11 +1608,28 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 
 	if (LightSceneInfo->bVisible)
 	{
+		// check SimpleDirectionalLight
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
-			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (GetShadingPath() == EShadingPath::Mobile && (!SimpleDirectionalLight->Proxy->HasStaticShadowing() || SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()));
-			SimpleDirectionalLight = NULL;
+			SimpleDirectionalLight = nullptr;
+		}
+
+		if(GetShadingPath() == EShadingPath::Mobile)
+		{
+		    // check MobileDirectionalLights
+		    for (int32 LightChannelIdx = 0; LightChannelIdx < ARRAY_COUNT(MobileDirectionalLights); LightChannelIdx++)
+		    {
+			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
+			    {
+				    MobileDirectionalLights[LightChannelIdx] = nullptr;
+				    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+					if (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+					{
+						bScenesPrimitivesNeedStaticMeshElementUpdate = true;
+					}
+				    break;
+			    }
+		    }
 		}
 
 		if (LightSceneInfo == SunLight)
@@ -2120,6 +2147,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
 			MobileBasePassUniformLightMapPolicyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
 
@@ -2354,6 +2382,8 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(BasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default]);
+	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked]);
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
 	DUMP_DRAW_LIST(VelocityDrawList);
@@ -2511,6 +2541,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(VelocityDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(WholeSceneShadowDepthDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawListWithCSM, InOffset);
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);
@@ -2742,6 +2773,12 @@ template<>
 TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> >& FScene::GetMobileBasePassDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
 {
 	return MobileBasePassUniformLightMapPolicyDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> >& FScene::GetMobileBasePassCSMDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
+{
+	return MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawType];
 }
 
 /*-----------------------------------------------------------------------------

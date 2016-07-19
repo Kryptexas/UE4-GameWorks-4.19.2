@@ -175,6 +175,7 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// Http Chunk Installer options & functions
 	FReply HandleHtppChunkInstallBrowseButtonClicked();
+	FText HandleHtppChunkInstallDirectoryText() const;
 	void HandleHtppChunkInstallDirectoryTextChanged(const FText& InText);
 	void HandleHtppChunkInstallDirectoryTextCommitted(const FText& InText, ETextCommit::Type CommitInfo);
 	void HandleHttpChunkInstallCheckBoxCheckStateChanged(ECheckBoxState NewState);

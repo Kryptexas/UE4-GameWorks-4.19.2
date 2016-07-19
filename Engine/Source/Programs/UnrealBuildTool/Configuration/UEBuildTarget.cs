@@ -250,11 +250,35 @@ namespace UnrealBuildTool
 		public UEBuildPlatformContext PlatformContext;
 	}
 
+    /// <summary>
+    /// Holds information for targeting specific platform (platform type + cook flavor)
+    /// </summary>
+    public struct TargetPlatformDescriptor
+    {
+        public UnrealTargetPlatform Type;
+        public string CookFlavor;
 
-	/// <summary>
-	/// A target that can be built
-	/// </summary>
-	[Serializable]
+        public TargetPlatformDescriptor(UnrealTargetPlatform InType)
+        {
+            Type = InType;
+            CookFlavor = "";
+        }
+        public TargetPlatformDescriptor(UnrealTargetPlatform InType, string InCookFlavor)
+        {
+            Type = InType;
+            CookFlavor = InCookFlavor;
+        }
+
+        public override string ToString()
+        {
+            return Type.ToString();
+        }
+    }
+
+    /// <summary>
+    /// A target that can be built
+    /// </summary>
+    [Serializable]
 	public class UEBuildTarget : ISerializable
 	{
 		public string GetAppName()

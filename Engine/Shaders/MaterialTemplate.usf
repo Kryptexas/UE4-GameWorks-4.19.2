@@ -48,7 +48,7 @@
 #endif
 
 //Platforms that don't run the editor shouldn't need editor features in the shaders.
-#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ES31_AEP_PROFILE)
+#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE)
 
 //Tie Editor features to platform support and the COMPILE_SHADERS_FOR_DEVELOPMENT which is set via CVAR.
 #define USE_EDITOR_SHADERS (PLATFORM_SUPPORTS_EDITOR_SHADERS && USE_DEVELOPMENT_SHADERS)
@@ -204,6 +204,11 @@ struct FMaterialPixelParameters
 	/** Parameters used by the MaterialTexCoordScales shader. */
 	FTexCoordScalesParams TexCoordScalesParams;
 #endif
+
+#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	/** Used in mobile custom pp material to preserve original SceneColor Alpha */
+	half BackupSceneColorAlpha;
+#endif
 };
 
 // @todo compat hack
@@ -255,6 +260,9 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	MPP.PerInstanceParams = 0;
 	#endif
 	MPP.SvPosition = 0;
+	#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	MPP.BackupSceneColorAlpha = 0;
+	#endif
 #endif
 	MPP.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
 	return MPP;
@@ -749,7 +757,7 @@ MaterialFloat2 GetParticleMacroUV(FMaterialPixelParameters Parameters)
 }
 
 #ifndef MOBILE_EMULATION
-#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && (COMPILER_METAL && MAC)))
+#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!(COMPILER_GLSL_ES2||COMPILER_GLSL_ES3_1) && USE_DEVELOPMENT_SHADERS && (COMPILER_METAL && MAC)))
 #endif
 
 MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
@@ -1113,6 +1121,21 @@ float4 GetPostProcessInputMinMax(uint Index)
 	return 1.0f;
 }
 
+MaterialFloat4 MobileLookupPostProcessInput0(inout FMaterialPixelParameters Parameters, float2 UV)
+{
+#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+	#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
+		Input0 = Decode32BPPHDR(Input0);
+	#endif
+	// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
+	Parameters.BackupSceneColorAlpha = Input0.a;
+	return Input0;
+#else
+	return MaterialFloat4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
+}
+
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 {
@@ -1242,7 +1265,7 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters, FPixelMaterialInput
 
 	RetNormal = GetMaterialNormalRaw(PixelMaterialInputs);
 		
-	#if (USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)) || MOBILE_EMULATION
+	#if (USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ESDEFERRED_PROFILE)) || MOBILE_EMULATION
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		half3 OverrideNormal = View.NormalOverrideParameter.xyz;
@@ -1340,7 +1363,7 @@ half GetMaterialRoughness(FPixelMaterialInputs PixelMaterialInputs)
 #else
 	half Roughness = saturate(GetMaterialRoughnessRaw(PixelMaterialInputs));
 	
-	#if (USE_EDITOR_SHADERS && !ES31_AEP_PROFILE)
+	#if (USE_EDITOR_SHADERS && !ESDEFERRED_PROFILE)
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;
@@ -1684,7 +1707,7 @@ void CalcMaterialParametersEx(
 	Parameters.SvPosition = SvPosition;
 	Parameters.ScreenPosition = ScreenPosition;
 
-#if COMPILER_GLSL_ES2
+#if COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1
 	// ES2 normalize isn't done accurately. This seems to fix it.
 	// Originally this was normalize(normalize(TranslatedWorldPosition.xyz)) but tegra4 appears to optimize that out.
 	Parameters.CameraVector = normalize(-0.01 * Parameters.WorldPosition_CamRelative.xyz);

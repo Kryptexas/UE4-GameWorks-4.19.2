@@ -452,6 +452,25 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	return LODToRender;
 }
 
+FMobileDirectionalLightShaderParameters::FMobileDirectionalLightShaderParameters()
+{
+	FMemory::Memzero(*this);
+
+	// light, default to black
+	DirectionalLightColor = FLinearColor::Black;
+	DirectionalLightDirection = FVector::ZeroVector;
+
+	// white texture should act like a shadowmap cleared to the farplane.
+	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
+	DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	DirectionalLightShadowTransition = 0.0f;
+	DirectionalLightShadowSize = FVector::ZeroVector;
+	for (int32 i = 0; i < MAX_MOBILE_SHADOWCASCADES; ++i)
+	{
+		DirectionalLightScreenToShadow[i].SetIdentity();
+		DirectionalLightShadowDistances[i] = 0.0f;
+	}
+}
 
 FViewUniformShaderParameters::FViewUniformShaderParameters()
 {
@@ -459,8 +478,6 @@ FViewUniformShaderParameters::FViewUniformShaderParameters()
 
 	FTextureRHIParamRef BlackVolume = (GBlackVolumeTexture &&  GBlackVolumeTexture->TextureRHI) ? GBlackVolumeTexture->TextureRHI : GBlackTexture->TextureRHI; // for es2, this might need to be 2d
 	check(GBlackVolumeTexture);
-	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
-	DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 
 	AtmosphereTransmittanceTexture_UB = GWhiteTexture->TextureRHI;
 	AtmosphereTransmittanceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();

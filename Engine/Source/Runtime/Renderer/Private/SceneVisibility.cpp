@@ -2833,7 +2833,7 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 			View.bAllowStencilDither = bDitheredLODTransitionsUseStencil;
 
 			// Initialize the view's RHI resources.
-			View.InitRHIResources(nullptr);
+			View.InitRHIResources();
 		}
 	}
 

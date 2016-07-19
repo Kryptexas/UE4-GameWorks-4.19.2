@@ -210,6 +210,38 @@ TArray<FVanillaPlatformEntry> BuildPlatformHierarchy(const EPlatformFilter InFil
 	return VanillaPlatforms;
 }
 
+FVanillaPlatformEntry BuildPlatformHierarchy(const FName& InPlatformName, const EPlatformFilter InFilter)
+{
+	FVanillaPlatformEntry VanillaPlatformEntry;
+	const FPlatformInfo* VanillaPlatformInfo = FindVanillaPlatformInfo(InPlatformName);
+	
+	if (VanillaPlatformInfo)
+	{
+		VanillaPlatformEntry.PlatformInfo = VanillaPlatformInfo;
+		
+		for (const FPlatformInfo& PlatformInfo : PlatformInfoArray)
+		{
+			if (!PlatformInfo.IsVanilla() && PlatformInfo.VanillaPlatformName == VanillaPlatformInfo->PlatformInfoName)
+			{
+				const bool bHasBuildFlavor = !!(PlatformInfo.PlatformFlags & EPlatformFlags::BuildFlavor);
+				const bool bHasCookFlavor = !!(PlatformInfo.PlatformFlags & EPlatformFlags::CookFlavor);
+
+				const bool bValidFlavor =
+					InFilter == EPlatformFilter::All ||
+					(InFilter == EPlatformFilter::BuildFlavor && bHasBuildFlavor) ||
+					(InFilter == EPlatformFilter::CookFlavor && bHasCookFlavor);
+
+				if (bValidFlavor)
+				{
+					VanillaPlatformEntry.PlatformFlavors.Add(&PlatformInfo);
+				}
+			}
+		}
+	}
+	
+	return VanillaPlatformEntry;
+}
+
 EPlatformType EPlatformTypeFromString(const FString& PlatformTypeName)
 {
 	if (FCString::Strcmp(*PlatformTypeName, TEXT("Game")) == 0)

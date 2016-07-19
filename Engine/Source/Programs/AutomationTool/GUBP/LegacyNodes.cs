@@ -1810,7 +1810,7 @@ partial class GUBP
                 }
 
                 // If the base cook platform fails, don't bother trying other ones
-                string BaseCookedPlatform = Platform.Platforms[HostPlatform].GetCookPlatform(false, false, "");
+                string BaseCookedPlatform = Platform.GetPlatform(HostPlatform).GetCookPlatform(false, false);
                 if (InGameProj.GameName == BranchConfig.Branch.BaseEngineProject.GameName && CookPlatform != BaseCookedPlatform &&
                     BranchConfig.HasNode(CookNode.StaticGetFullName(HostPlatform, BranchConfig.Branch.BaseEngineProject, BaseCookedPlatform)))
                 {
@@ -1945,7 +1945,7 @@ partial class GUBP
                         if (Platforms.Contains(TargetPlatform) && Target.Rules.SupportsPlatform(TargetPlatform))
                         {
                             //@todo how do we get the client target platform?
-                            string CookedPlatform = Platform.Platforms[TargetPlatform].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
+                            string CookedPlatform = Platform.GetPlatform(TargetPlatform).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);
 							if (Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform) != "")
 							{
 								CookedPlatform = Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform);
@@ -1970,7 +1970,7 @@ partial class GUBP
                             if (Platforms.Contains(TargetPlatform) && Target.Rules.SupportsPlatform(TargetPlatform))
                             {
                                 //@todo how do we get the client target platform?
-                                string CookedPlatform = Platform.Platforms[TargetPlatform].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
+                                string CookedPlatform = Platform.GetPlatform(TargetPlatform).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);
                                 AddDependency(CookNode.StaticGetFullName(HostPlatform, GameProj, CookedPlatform));
                                 AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, BranchConfig.Branch.BaseEngineProject, TargetPlatform));
                             }

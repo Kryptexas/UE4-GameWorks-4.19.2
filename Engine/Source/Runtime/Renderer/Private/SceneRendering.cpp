@@ -561,7 +561,6 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 void FViewInfo::CreateUniformBuffer(
 	TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer,
 	FRHICommandList& RHICmdList,
-	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,	
 	const FMatrix& EffectiveTranslatedViewMatrix, 
 	const FMatrix& EffectiveViewToTranslatedWorld, 
 	FBox* OutTranslucentCascadeBoundsArray, 
@@ -570,7 +569,6 @@ void FViewInfo::CreateUniformBuffer(
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	check(Family);
-	check(!DirectionalLightShadowInfo || DirectionalLightShadowInfo->Num() > 0);
 	checkfSlow(ViewRect.Area() > 0, TEXT("Invalid-size ViewRect passed to CreateUniformBuffer [%d * %d]."), ViewRect.Width(), ViewRect.Height());
 
 	// Calculate the vector used by shaders to convert clip space coordinates to texture space.
@@ -734,10 +732,6 @@ void FViewInfo::CreateUniformBuffer(
 		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * ViewMatrices.ProjMatrix.M[1][1] * float(ViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
 	}
 
-	//white texture should act like a shadowmap cleared to the farplane.
-	ViewUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
-	ViewUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-	
 	FScene* Scene = nullptr;
 
 	if (Family->Scene)
@@ -750,45 +744,7 @@ void FViewInfo::CreateUniformBuffer(
 		if (Scene->SimpleDirectionalLight)
 		{			
 			ViewUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight->Proxy->GetColor() / PI;
-			ViewUniformShaderParameters.DirectionalLightDirection = -Scene->SimpleDirectionalLight->Proxy->GetDirection();
-
-			static_assert(MAX_MOBILE_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
-			if (DirectionalLightShadowInfo)
-			{
-				{
-					FProjectedShadowInfo& ShadowInfo = *((*DirectionalLightShadowInfo)[0]);
-					FIntPoint ShadowBufferResolution = ShadowInfo.GetShadowBufferResolution();
-					FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
-
-					ViewUniformShaderParameters.DirectionalLightShadowTexture = ShadowInfo.RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
-					ViewUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
-					ViewUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
-				}
-
-				int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfo->Num(), MAX_MOBILE_SHADOWCASCADES);				
-				for (int32 i = 0; i < NumShadowsToCopy; ++i)
-				{
-					const FProjectedShadowInfo& ShadowInfo = *(*DirectionalLightShadowInfo)[i];
-					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i] = ShadowInfo.GetScreenToShadowMatrix(*this);
-					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
-				}
-
-				for (int32 i = NumShadowsToCopy; i < MAX_MOBILE_SHADOWCASCADES; ++i)
-				{
-					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
-					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
-				}
-			}
-			else
-			{
-				ViewUniformShaderParameters.DirectionalLightShadowTransition = 0.0f;
-				ViewUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
-				for (int32 i = 0; i < MAX_MOBILE_SHADOWCASCADES; ++i)
-				{
-					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
-					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
-				}			
-			}			 
+			ViewUniformShaderParameters.DirectionalLightDirection = -Scene->SimpleDirectionalLight->Proxy->GetDirection(); 
 		}
 		else
 		{
@@ -836,9 +792,6 @@ void FViewInfo::CreateUniformBuffer(
 	}
 	else
 	{
-		ViewUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
-		ViewUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
-
 		// Atmospheric fog parameters
 		ViewUniformShaderParameters.AtmosphericFogSunPower = 0.f;
 		ViewUniformShaderParameters.AtmosphericFogPower = 0.f;
@@ -1065,7 +1018,7 @@ void FViewInfo::CreateUniformBuffer(
 	OutViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
-void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo)
+void FViewInfo::InitRHIResources()
 {
 	FBox VolumeBounds[TVC_MAX];
 
@@ -1076,7 +1029,6 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 	CreateUniformBuffer(
 		ViewUniformBuffer, 
 		FRHICommandListExecutor::GetImmediateCommandList(),
-		DirectionalLightShadowInfo,
 		TranslatedViewMatrix,
 		InvViewMatrix * FTranslationMatrix(ViewMatrices.PreViewTranslation),
 		VolumeBounds,
@@ -1972,7 +1924,7 @@ void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdLi
 	ViewFamily->Views.Add(NewView);
 	SetRenderTarget(RHICmdList, ViewFamily->RenderTarget->GetRenderTargetTexture(), nullptr, ESimpleRenderTargetMode::EClearColorExistingDepth);
 	FViewInfo* View = (FViewInfo*)ViewFamily->Views[0];
-	View->InitRHIResources(nullptr);
+	View->InitRHIResources();
 }
 
 void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily* ViewFamily)

@@ -83,6 +83,16 @@
 #endif
 }
 
+-(void)executejavascript:(NSString*)InJavaScript
+{
+#if !PLATFORM_TVOS
+	dispatch_async(dispatch_get_main_queue(), ^
+	{
+		[self.WebView stringByEvaluatingJavaScriptFromString:InJavaScript];
+	});
+#endif
+}
+
 -(void)loadurl:(NSURL*)InURL;
 {
 	NextURL = InURL;
@@ -153,6 +163,14 @@ class SIOSWebBrowserWidget : public SLeafWidget
 		if( WebViewWrapper != nil)
 		{
 			[WebViewWrapper loadstring:[NSString stringWithUTF8String:TCHAR_TO_UTF8(*InContents)] dummyurl:[NSURL URLWithString:[NSString stringWithUTF8String:TCHAR_TO_UTF8(*InDummyURL)]]];
+		}
+	}
+	
+	void ExecuteJavascript(const FString& Script)
+	{
+		if (WebViewWrapper != nil)
+		{
+			[WebViewWrapper executejavascript:[NSString stringWithUTF8String:TCHAR_TO_UTF8(*Script)]];
 		}
 	}
 
@@ -341,6 +359,7 @@ void FWebBrowserWindow::SetIsDisabled(bool bValue)
 
 void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 {
+	BrowserWidget->ExecuteJavascript(Script);
 }
 
 void FWebBrowserWindow::CloseBrowser(bool bForce)

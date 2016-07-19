@@ -118,24 +118,26 @@ public:
 		return true;
 	}
 
-	const FLightSceneInfo* GetSimpleDirectionalLight() const 
+	bool CanReceiveStaticAndCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const { return false; }
+
+	const FScene* GetScene() const
 	{ 
-		return ((FScene*)View.Family->Scene)->SimpleDirectionalLight;
+		return ((FScene*)View.Family->Scene);
 	}
 
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
-	template<typename LightMapPolicyType, int32 NumDynamicPointLights>
+	template<int32 NumDynamicPointLights>
 	void Process(
 		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
-		const LightMapPolicyType& LightMapPolicy,
-		const typename LightMapPolicyType::ElementDataType& LightMapElementData
+		const FUniformLightMapPolicy& LightMapPolicy,
+		const typename FUniformLightMapPolicy::ElementDataType& LightMapElementData
 		) const
 	{
 		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
-		TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights> DrawingPolicy(
+		TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
 			Parameters.Mesh.MaterialRenderProxy,
 			*Parameters.Material,
@@ -148,7 +150,7 @@ public:
 			);
 
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType());
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType());
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
@@ -163,8 +165,8 @@ public:
 				BatchElementIndex,
 				bBackFace,
 				DrawRenderState,
-				typename TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ElementDataType(LightMapElementData),
-				typename TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType()
+				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ElementDataType(LightMapElementData),
+				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType()
 				);
 			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}

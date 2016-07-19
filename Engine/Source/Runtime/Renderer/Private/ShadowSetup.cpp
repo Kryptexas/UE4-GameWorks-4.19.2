@@ -165,6 +165,12 @@ static TAutoConsoleVariable<int32> CVarUseConservativeShadowBounds(
 	TEXT("Whether to use safe and conservative shadow frustum creation that wastes some shadowmap space"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarEnableCsmShaderCulling(
+	TEXT("r.Mobile.Shadow.CSMShaderCulling"),
+	1,
+	TEXT(""),
+	ECVF_RenderThreadSafe);
+
 #if !UE_BUILD_SHIPPING
 // read and written on the render thread
 bool GDumpShadowSetup = false;
@@ -710,7 +716,7 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 	UpdateShaderDepthBias();
 }
 
-void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray)
+void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray, bool bRecordShadowSubjectsForMobileShading)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_AddSubjectPrimitive);
 
@@ -946,11 +952,20 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 						}
 					}
 				}
+				else if (bRecordShadowSubjectsForMobileShading)
+				{
+					DependentView->VisibleLightInfos[GetLightSceneInfo().Id].MobileCSMSubjectPrimitives.AddSubjectPrimitive(PrimitiveSceneInfo, PrimitiveId);
+				}
 			}
 			else
 			{
 				// Add the primitive to the subject primitive list.
 				DynamicSubjectPrimitives.Add(PrimitiveSceneInfo);
+
+				if (bRecordShadowSubjectsForMobileShading)
+				{
+					DependentView->VisibleLightInfos[GetLightSceneInfo().Id].MobileCSMSubjectPrimitives.AddSubjectPrimitive(PrimitiveSceneInfo, PrimitiveId);
+				}
 			}
 		}
 
@@ -1607,7 +1622,7 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 						for (int32 ChildIndex = 0, ChildCount = ShadowGroupPrimitives.Num(); ChildIndex < ChildCount; ChildIndex++)
 						{
 							FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-							ProjectedShadowInfo->AddSubjectPrimitive(ShadowChild, &Views);
+							ProjectedShadowInfo->AddSubjectPrimitive(ShadowChild, &Views, false);
 						}
 					}
 					else if (bShadowIsPotentiallyVisibleNextFrame)
@@ -1647,7 +1662,7 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 						for (int32 ChildIndex = 0, ChildCount = ShadowGroupPrimitives.Num(); ChildIndex < ChildCount; ChildIndex++)
 						{
 							FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-							ProjectedShadowInfo->AddSubjectPrimitive(ShadowChild, &Views);
+							ProjectedShadowInfo->AddSubjectPrimitive(ShadowChild, &Views, false);
 						}
 					}
 					else if (bShadowIsPotentiallyVisibleNextFrame)
@@ -2013,7 +2028,7 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 									&& !Interaction->CastsSelfShadowOnly()
 									&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
 								{
-									ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views);
+									ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views, false);
 								}
 							}
 						}
@@ -2030,7 +2045,7 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 									&& !Interaction->CastsSelfShadowOnly()
 									&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
 								{
-									ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views);
+									ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views, false);
 								}
 							}
 						}
@@ -2295,7 +2310,7 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 				if( bInFrustum && ProjectedShadowInfo->GetLightSceneInfoCompact().AffectsPrimitive(PrimitiveSceneInfoCompact) )
 				{
 					// Add this primitive to the shadow.
-					ProjectedShadowInfo->AddSubjectPrimitive(PrimitiveSceneInfo, &Views);
+					ProjectedShadowInfo->AddSubjectPrimitive(PrimitiveSceneInfo, &Views, false);
 				}
 			}
 		}
@@ -2368,8 +2383,18 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 							&& (!LightProxy->UseCSMForDynamicObjects() || !PrimitiveProxy->HasStaticLighting())
 							&& !bScreenSpaceSizeCulled )
 						{
+							bool bRecordShadowSubjectsForMobile = false;
+							
+							if (Scene->GetShadingPath() == EShadingPath::Mobile)
+							{
+								static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+								bRecordShadowSubjectsForMobile = CVarEnableCsmShaderCulling.GetValueOnRenderThread() 
+									&& CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread()
+									&& LightProxy->UseCSMForDynamicObjects();
+							}
+
 							// Add this primitive to the shadow.
-							ProjectedShadowInfo->AddSubjectPrimitive(PrimitiveSceneInfo, NULL);
+							ProjectedShadowInfo->AddSubjectPrimitive(PrimitiveSceneInfo, NULL, bRecordShadowSubjectsForMobile);
 						}
 					}
 				}
@@ -3275,10 +3300,11 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 					// Allow movable and stationary lights to create CSM, or static lights that are unbuilt
 					if ((!LightSceneInfo->Proxy->HasStaticLighting() && LightSceneInfoCompact.bCastDynamicShadow) || bCreateShadowToPreviewStaticLight)
 					{
+						static_assert(ARRAY_COUNT(Scene->MobileDirectionalLights) == 3, "All array entries for MobileDirectionalLights must be checked");
 						if( !bMobile ||
 							((LightSceneInfo->Proxy->UseCSMForDynamicObjects() || LightSceneInfo->Proxy->IsMovable()) 
-								// Mobile uses the scene's SimpleDirectionalLight only for whole scene shadows.
-								&& LightSceneInfo == Scene->SimpleDirectionalLight))
+								// Mobile uses the scene's MobileDirectionalLights only for whole scene shadows.
+								&& (LightSceneInfo == Scene->MobileDirectionalLights[0] || LightSceneInfo == Scene->MobileDirectionalLights[1] || LightSceneInfo == Scene->MobileDirectionalLights[2])))
 						{
 							AddViewDependentWholeSceneShadowsForView(ViewDependentWholeSceneShadows, ViewDependentWholeSceneShadowsThatNeedCulling, VisibleLightInfo, *LightSceneInfo);
 						}

@@ -20,6 +20,7 @@ enum ELauncherVersion
 	LAUNCHERSERVICES_FIXCOMPRESSIONSERIALIZE=20,
 	LAUNCHERSERVICES_SHAREABLEPROJECTPATHS = 21,
 	LAUNCHERSERVICES_FILEFORMATCHANGE = 22,
+	LAUNCHERSERVICES_ADDARCHIVE = 23,
 
 	//ADD NEW STUFF HERE
 
@@ -563,6 +564,16 @@ public:
 		return PackageDir;
 	}
 
+	virtual bool IsArchiving( ) const override
+	{
+		return bArchive;
+	}
+
+	virtual FString GetArchiveDirectory( ) const override
+	{
+		return ArchiveDir;
+	}
+
 	virtual bool HasProjectSpecified() const override
 	{
 		return ProjectSpecified;
@@ -840,6 +851,11 @@ public:
 			Archive << HttpChunkDataDirectory;
 			Archive << HttpChunkDataReleaseName;
 		}
+		if (Version >= LAUNCHERSERVICES_ADDARCHIVE)
+		{
+			Archive << bArchive;
+			Archive << ArchiveDir;
+		}
 		
 		DefaultLaunchRole->Serialize(Archive);
 
@@ -968,6 +984,8 @@ public:
 		Writer.WriteValue("GenerateHttpChunkData", bGenerateHttpChunkData);
 		Writer.WriteValue("HttpChunkDataDirectory", HttpChunkDataDirectory);
 		Writer.WriteValue("HttpChunkDataReleaseName", HttpChunkDataReleaseName);
+		Writer.WriteValue("Archive", bArchive);
+		Writer.WriteValue("ArchiveDirectory", ArchiveDir);
 
 		// serialize the default launch role
 		DefaultLaunchRole->Save(Writer, TEXT("DefaultRole"));
@@ -1184,6 +1202,12 @@ public:
 					Writer.WriteValue("createchunkinstall", true);
 					Writer.WriteValue("chunkinstalldirectory", GetHttpChunkDataDirectory());
 					Writer.WriteValue("chunkinstallversion", GetHttpChunkDataReleaseName());
+				}
+
+				if (IsArchiving())
+				{
+					Writer.WriteValue("archive", true);
+					Writer.WriteValue("archivedirectory", GetArchiveDirectory());
 				}
 
 				if (GetNumCookersToSpawn() > 0)
@@ -1566,6 +1590,17 @@ public:
 		HttpChunkDataDirectory = Object.GetStringField("HttpChunkDataDirectory");
 		HttpChunkDataReleaseName = Object.GetStringField("HttpChunkDataReleaseName");
 
+		if (Version >= LAUNCHERSERVICES_ADDARCHIVE)
+		{
+			bArchive = Object.GetBoolField("Archive");
+			ArchiveDir = Object.GetStringField("ArchiveDirectory");
+		}
+		else
+		{
+			bArchive = false;
+			ArchiveDir = TEXT("");
+		}
+
 		// load the default launch role
 		TSharedPtr<FJsonObject> Role = Object.GetObjectField("DefaultRole");
 		DefaultLaunchRole->Load(*(Role.Get()));
@@ -1647,6 +1682,9 @@ public:
 		{
 			CookedPlatforms.Add(GetTargetPlatformManager()->GetRunningTargetPlatform()->PlatformName());
 		}*/	
+		
+		bArchive = false;
+		ArchiveDir = TEXT("");
 
 		// default deploy settings
 		DeployedDeviceGroup.Reset();
@@ -1981,6 +2019,26 @@ public:
 		}
 	}
 
+	virtual void SetArchive( bool bInArchive ) override
+	{
+		if (bInArchive != bArchive)
+		{
+			bArchive = bInArchive;
+
+			Validate();
+		}
+	}
+
+	virtual void SetArchiveDirectory( const FString& Dir ) override
+	{
+		if (ArchiveDir != Dir)
+		{
+			ArchiveDir = Dir;
+
+			Validate();
+		}
+	}
+
 	virtual void SetProjectSpecified(bool Specified) override
 	{
 		if (ProjectSpecified != Specified)
@@ -2189,7 +2247,7 @@ protected:
 			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingChunksRequiresUnrealPak);
 		}
 
-		if (IsGenerateHttpChunkData() && !IsGeneratingChunks())
+		if (IsGenerateHttpChunkData() && !IsGeneratingChunks() && !IsCreatingDLC())
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingHttpChunkDataRequiresGeneratingChunks);
 		}
@@ -2231,6 +2289,10 @@ protected:
 
 		}
 
+		if (bArchive && ArchiveDir.IsEmpty())
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::NoArchiveDirectorySpecified);
+		}
 
 		ValidatePlatformSDKs();
 	}
@@ -2446,6 +2508,12 @@ private:
 
 	// Holds the package directory
 	FString PackageDir;
+
+	// Whether to run archive step	
+	bool bArchive;
+
+	// Holds the archive directory
+	FString ArchiveDir;
 
 	// Holds a flag indicating whether the project is specified by this profile.
 	bool ProjectSpecified;

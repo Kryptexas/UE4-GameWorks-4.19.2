@@ -573,7 +573,8 @@ bool FMaterial::NeedsGBuffer() const
 {
 	check(IsInParallelRenderingThread());
 
-	if (IsOpenGLPlatform(GMaxRHIShaderPlatform)) // @todo: TTP #341211
+	if (IsOpenGLPlatform(GMaxRHIShaderPlatform) // @todo: TTP #341211
+		&& !IsMobilePlatform(GMaxRHIShaderPlatform)) 
 	{
 		return true;
 	}
@@ -1051,6 +1052,11 @@ bool FMaterialResource::IsDefaultMaterial() const
 int32 FMaterialResource::GetNumCustomizedUVs() const
 {
 	return Material->NumCustomizedUVs;
+}
+
+int32 FMaterialResource::GetBlendableLocation() const
+{
+	return Material->BlendableLocation;
 }
 
 void FMaterialResource::NotifyCompilationFinished()

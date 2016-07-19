@@ -83,7 +83,7 @@ void Main(
 	VertexFactoryPackInterpolants(Output.FactoryInterpolants, PackedInterps);
 #endif // PACK_INTERPOLANTS
 
-#if OUTPUT_GAMMA_SPACE && COMPILER_GLSL_ES2
+#if OUTPUT_GAMMA_SPACE && (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1)
 	Output.Position.y *= -1;
 #endif
 }

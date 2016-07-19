@@ -720,21 +720,30 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 		GLubyte* RGBAData = (GLubyte*)FMemory::Malloc(RGBADataSize);
 
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_UNSIGNED_BYTE, RGBAData);
-		
-		GLubyte* DataPtr = RGBAData;
+
+		//OpenGL ES reads the pixels "upside down" from what we're expecting (flipped vertically), so we need to transfer the data from the bottom up.
 		uint8* TargetPtr = TargetBuffer;
-		for (int32 PixelIndex = 0; PixelIndex < PixelComponentCount / 4; ++PixelIndex)
+		int32 Stride = SizeX * 4;
+		int32 FlipHeight = SizeY;
+		GLubyte* LinePtr = RGBAData + (SizeY - 1) * Stride;
+
+		while (FlipHeight--)
 		{
-			TargetPtr[0] = DataPtr[2];
-			TargetPtr[1] = DataPtr[1];
-			TargetPtr[2] = DataPtr[0];
-			TargetPtr[3] = DataPtr[3];
-			DataPtr += 4;
-			TargetPtr += 4;
+			GLubyte* DataPtr = LinePtr;
+			int32 Pixels = SizeX;
+			while (Pixels--)
+			{
+				TargetPtr[0] = DataPtr[2];
+				TargetPtr[1] = DataPtr[1];
+				TargetPtr[2] = DataPtr[0];
+				TargetPtr[3] = DataPtr[3];
+				DataPtr += 4;
+				TargetPtr += 4;
+			}
+			LinePtr -= Stride;
 		}
 
 		FMemory::Free(RGBAData);
-
 	}
 #else
 	else

@@ -250,7 +250,7 @@ namespace AutomationTool
 		void XGEFinishBuildWithUBT(XGEItem Item)
 		{
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.Platforms[Item.Platform].PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
+			Platform.GetPlatform(Item.Platform).PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
 
 			foreach (string ManifestItem in Item.Manifest.BuildProducts)
 			{
@@ -342,7 +342,7 @@ namespace AutomationTool
 			PrepareUBT();
 
 			// let the platform determine when to use the manifest
-            bool UseManifest = Platform.Platforms[TargetPlatform].ShouldUseManifestForUBTBuilds(AddArgs);
+            bool UseManifest = Platform.GetPlatform(TargetPlatform).ShouldUseManifestForUBTBuilds(AddArgs);
 
 			BuildManifest Manifest = null;
 			if (UseManifest)
@@ -362,7 +362,7 @@ namespace AutomationTool
 				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
 			}
             // allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.Platforms[TargetPlatform].PostBuildTarget(this, UprojectPath, TargetName, Config);
+            Platform.GetPlatform(TargetPlatform).PostBuildTarget(this, UprojectPath, TargetName, Config);
 
 			if (UseManifest)
 			{
@@ -684,7 +684,7 @@ namespace AutomationTool
 			public void AddTarget(string TargetName, UnrealBuildTool.UnrealTargetPlatform InPlatform, UnrealBuildTool.UnrealTargetConfiguration InConfiguration, FileReference InUprojectPath = null, string InAddArgs = "")
 			{
 				// Is this platform a compilable target?
-				if (!Platform.Platforms[InPlatform].CanBeCompiled())
+				if (!Platform.GetPlatform(InPlatform).CanBeCompiled())
 				{
 					return;
 				}
@@ -710,7 +710,7 @@ namespace AutomationTool
 			public void AddTargets(string[] TargetNames, UnrealBuildTool.UnrealTargetPlatform InPlatform, UnrealBuildTool.UnrealTargetConfiguration InConfiguration, FileReference InUprojectPath = null, string InAddArgs = "")
 			{
 				// Is this platform a compilable target?
-				if (!Platform.Platforms[InPlatform].CanBeCompiled())
+				if (!Platform.GetPlatform(InPlatform).CanBeCompiled())
 				{
 					return;
 				}
@@ -1279,7 +1279,7 @@ namespace AutomationTool
 			// allow all involved platforms to hook into the agenda
 			foreach (var TargetPlatform in UniquePlatforms)
 			{
-				Platform.Platforms[TargetPlatform].PreBuildAgenda(this, Agenda);
+				Platform.GetPlatform(TargetPlatform).PreBuildAgenda(this, Agenda);
 			}
 
 

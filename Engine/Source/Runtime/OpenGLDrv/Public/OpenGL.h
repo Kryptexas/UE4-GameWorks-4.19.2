@@ -24,8 +24,8 @@ struct FPlatformOpenGLContext;
 #ifndef OPENGL_ES2
 #define OPENGL_ES2	0
 #endif
-#ifndef OPENGL_ES31
-#define OPENGL_ES31	0
+#ifndef OPENGL_ESDEFERRED
+#define OPENGL_ESDEFERRED	0
 #endif
 #ifndef OPENGL_GL3
 #define OPENGL_GL3	0

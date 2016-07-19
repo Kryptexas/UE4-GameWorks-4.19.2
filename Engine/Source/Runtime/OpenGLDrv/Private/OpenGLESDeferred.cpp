@@ -6,7 +6,7 @@
 
 #include "OpenGLDrvPrivate.h"
 
-#if OPENGL_ES31
+#if OPENGL_ESDEFERRED
 
 static TAutoConsoleVariable<int32> CVarDisjointTimerQueries(
 	TEXT("r.DisjointTimerQueries"),
@@ -14,159 +14,159 @@ static TAutoConsoleVariable<int32> CVarDisjointTimerQueries(
 	TEXT("If set to 1, allows GPU time to be measured (e.g. STAT UNIT). It defaults to 0 because some devices supports it but very slowly."),
 	ECVF_RenderThreadSafe);
 
-GLsizei FOpenGLES31::NextTextureName = OPENGL_NAME_CACHE_SIZE;
-GLuint FOpenGLES31::TextureNamesCache[OPENGL_NAME_CACHE_SIZE];
-GLsizei FOpenGLES31::NextBufferName= OPENGL_NAME_CACHE_SIZE;
-GLuint FOpenGLES31::BufferNamesCache[OPENGL_NAME_CACHE_SIZE];
+GLsizei FOpenGLESDeferred::NextTextureName = OPENGL_NAME_CACHE_SIZE;
+GLuint FOpenGLESDeferred::TextureNamesCache[OPENGL_NAME_CACHE_SIZE];
+GLsizei FOpenGLESDeferred::NextBufferName= OPENGL_NAME_CACHE_SIZE;
+GLuint FOpenGLESDeferred::BufferNamesCache[OPENGL_NAME_CACHE_SIZE];
 
-GLint FOpenGLES31::MaxComputeTextureImageUnits = -1;
-GLint FOpenGLES31::MaxComputeUniformComponents = -1;
+GLint FOpenGLESDeferred::MaxComputeTextureImageUnits = -1;
+GLint FOpenGLESDeferred::MaxComputeUniformComponents = -1;
 
-GLint FOpenGLES31::TimestampQueryBits = 0;
-bool FOpenGLES31::bDebugContext = false;
+GLint FOpenGLESDeferred::TimestampQueryBits = 0;
+bool FOpenGLESDeferred::bDebugContext = false;
 
-bool FOpenGLES31::bSupportsTessellation = false;
-bool FOpenGLES31::bSupportsTextureView = false;
-bool FOpenGLES31::bSupportsSeparateAlphaBlend = false;
+bool FOpenGLESDeferred::bSupportsTessellation = false;
+bool FOpenGLESDeferred::bSupportsTextureView = false;
+bool FOpenGLESDeferred::bSupportsSeparateAlphaBlend = false;
 
-bool FOpenGLES31::bES2Fallback = true;
+bool FOpenGLESDeferred::bES2Fallback = true;
 
 /** GL_OES_vertex_array_object */
-bool FOpenGLES31::bSupportsVertexArrayObjects = false;
+bool FOpenGLESDeferred::bSupportsVertexArrayObjects = false;
 
 /** GL_OES_mapbuffer */
-bool FOpenGLES31::bSupportsMapBuffer = false;
+bool FOpenGLESDeferred::bSupportsMapBuffer = false;
 
 /** GL_OES_depth_texture */
-bool FOpenGLES31::bSupportsDepthTexture = false;
+bool FOpenGLESDeferred::bSupportsDepthTexture = false;
 
 /** GL_ARB_occlusion_query2, GL_EXT_occlusion_query_boolean */
-bool FOpenGLES31::bSupportsOcclusionQueries = false;
+bool FOpenGLESDeferred::bSupportsOcclusionQueries = false;
 
 /** GL_OES_rgb8_rgba8 */
-bool FOpenGLES31::bSupportsRGBA8 = false;
+bool FOpenGLESDeferred::bSupportsRGBA8 = false;
 
 /** GL_APPLE_texture_format_BGRA8888 */
-bool FOpenGLES31::bSupportsBGRA8888 = false;
+bool FOpenGLESDeferred::bSupportsBGRA8888 = false;
 
 /** Whether BGRA supported as color attachment */
-bool FOpenGLES31::bSupportsBGRA8888RenderTarget = false;
+bool FOpenGLESDeferred::bSupportsBGRA8888RenderTarget = false;
 
 /** GL_EXT_discard_framebuffer */
-bool FOpenGLES31::bSupportsDiscardFrameBuffer = false;
+bool FOpenGLESDeferred::bSupportsDiscardFrameBuffer = false;
 
 /** GL_OES_vertex_half_float */
-bool FOpenGLES31::bSupportsVertexHalfFloat = false;
+bool FOpenGLESDeferred::bSupportsVertexHalfFloat = false;
 
 /** GL_OES_texture_float */
-bool FOpenGLES31::bSupportsTextureFloat = false;
+bool FOpenGLESDeferred::bSupportsTextureFloat = false;
 
 /** GL_OES_texture_half_float */
-bool FOpenGLES31::bSupportsTextureHalfFloat = false;
+bool FOpenGLESDeferred::bSupportsTextureHalfFloat = false;
 
 /** GL_EXT_color_buffer_float */
-bool FOpenGLES31::bSupportsColorBufferFloat = false;
+bool FOpenGLESDeferred::bSupportsColorBufferFloat = false;
 
 /** GL_EXT_color_buffer_half_float */
-bool FOpenGLES31::bSupportsColorBufferHalfFloat = false;
+bool FOpenGLESDeferred::bSupportsColorBufferHalfFloat = false;
 
 /** GL_NV_image_formats */
-bool FOpenGLES31::bSupportsNvImageFormats = false;
+bool FOpenGLESDeferred::bSupportsNvImageFormats = false;
 
 /** GL_EXT_shader_framebuffer_fetch */
-bool FOpenGLES31::bSupportsShaderFramebufferFetch = false;
+bool FOpenGLESDeferred::bSupportsShaderFramebufferFetch = false;
 
 /** GL_ARM_shader_framebuffer_fetch_depth_stencil */
-bool FOpenGLES31::bSupportsShaderDepthStencilFetch = false;
+bool FOpenGLESDeferred::bSupportsShaderDepthStencilFetch = false;
 
 /** GL_EXT_multisampled_render_to_texture */
-bool FOpenGLES31::bSupportsMultisampledRenderToTexture = false;
+bool FOpenGLESDeferred::bSupportsMultisampledRenderToTexture = false;
 
 /** GL_EXT_sRGB */
-bool FOpenGLES31::bSupportsSGRB = false;
+bool FOpenGLESDeferred::bSupportsSGRB = false;
 
 /** GL_NV_texture_compression_s3tc, GL_EXT_texture_compression_s3tc */
-bool FOpenGLES31::bSupportsDXT = false;
+bool FOpenGLESDeferred::bSupportsDXT = false;
 
 /** GL_IMG_texture_compression_pvrtc */
-bool FOpenGLES31::bSupportsPVRTC = false;
+bool FOpenGLESDeferred::bSupportsPVRTC = false;
 
 /** GL_ATI_texture_compression_atitc, GL_AMD_compressed_ATC_texture */
-bool FOpenGLES31::bSupportsATITC = false;
+bool FOpenGLESDeferred::bSupportsATITC = false;
 
 /** GL_OES_compressed_ETC1_RGB8_texture */
-bool FOpenGLES31::bSupportsETC1 = false;
+bool FOpenGLESDeferred::bSupportsETC1 = false;
 
 /** OpenGL ES 3.0 profile */
-bool FOpenGLES31::bSupportsETC2 = false;
+bool FOpenGLESDeferred::bSupportsETC2 = false;
 
 /** GL_FRAGMENT_SHADER, GL_LOW_FLOAT */
-int FOpenGLES31::ShaderLowPrecision = 0;
+int FOpenGLESDeferred::ShaderLowPrecision = 0;
 
 /** GL_FRAGMENT_SHADER, GL_MEDIUM_FLOAT */
-int FOpenGLES31::ShaderMediumPrecision = 0;
+int FOpenGLESDeferred::ShaderMediumPrecision = 0;
 
 /** GL_FRAGMENT_SHADER, GL_HIGH_FLOAT */
-int FOpenGLES31::ShaderHighPrecision = 0;
+int FOpenGLESDeferred::ShaderHighPrecision = 0;
 
 /** GL_NV_framebuffer_blit */
-bool FOpenGLES31::bSupportsNVFrameBufferBlit = false;
+bool FOpenGLESDeferred::bSupportsNVFrameBufferBlit = false;
 
 /** GL_OES_packed_depth_stencil */
-bool FOpenGLES31::bSupportsPackedDepthStencil = false;
+bool FOpenGLESDeferred::bSupportsPackedDepthStencil = false;
 
 /** textureCubeLodEXT */
-bool FOpenGLES31::bSupportsTextureCubeLodEXT = true;
+bool FOpenGLESDeferred::bSupportsTextureCubeLodEXT = true;
 
 /** GL_EXT_shader_texture_lod */
-bool FOpenGLES31::bSupportsShaderTextureLod = false;
+bool FOpenGLESDeferred::bSupportsShaderTextureLod = false;
 
 /** textureCubeLod */
-bool FOpenGLES31::bSupportsShaderTextureCubeLod = true;
+bool FOpenGLESDeferred::bSupportsShaderTextureCubeLod = true;
 
 /** GL_APPLE_copy_texture_levels */
-bool FOpenGLES31::bSupportsCopyTextureLevels = false;
+bool FOpenGLESDeferred::bSupportsCopyTextureLevels = false;
 
 /** GL_EXT_texture_storage */
-bool FOpenGLES31::bSupportsTextureStorageEXT = false;
+bool FOpenGLESDeferred::bSupportsTextureStorageEXT = false;
 
 /* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */
-bool FOpenGLES31::bRequiresDontEmitPrecisionForTextureSamplers = false;
+bool FOpenGLESDeferred::bRequiresDontEmitPrecisionForTextureSamplers = false;
 
 /* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
-bool FOpenGLES31::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+bool FOpenGLESDeferred::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
 
 /* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
-bool FOpenGLES31::bRequiresGLFragCoordVaryingLimitHack = false;
+bool FOpenGLESDeferred::bRequiresGLFragCoordVaryingLimitHack = false;
 
 /* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
-bool FOpenGLES31::bRequiresTexture2DPrecisionHack = false;
+bool FOpenGLESDeferred::bRequiresTexture2DPrecisionHack = false;
 
 /* This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension  */
-bool FOpenGLES31::bRequiresShaderFramebufferFetchUndef = false;
+bool FOpenGLESDeferred::bRequiresShaderFramebufferFetchUndef = false;
 
 /* This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension  */
-bool FOpenGLES31::bRequiresARMShaderFramebufferFetchDepthStencilUndef = false;
+bool FOpenGLESDeferred::bRequiresARMShaderFramebufferFetchDepthStencilUndef = false;
 
 /* Indicates shader compiler hack checks are being tested */
-bool FOpenGLES31::bIsCheckingShaderCompilerHacks = false;
+bool FOpenGLESDeferred::bIsCheckingShaderCompilerHacks = false;
 
 /** GL_EXT_disjoint_timer_query or GL_NV_timer_query*/
-bool FOpenGLES31::bSupportsDisjointTimeQueries = false;
+bool FOpenGLESDeferred::bSupportsDisjointTimeQueries = false;
 
 /** Some timer query implementations are never disjoint */
-bool FOpenGLES31::bTimerQueryCanBeDisjoint = true;
+bool FOpenGLESDeferred::bTimerQueryCanBeDisjoint = true;
 
 /** GL_NV_timer_query for timestamp queries */
-bool FOpenGLES31::bSupportsNvTimerQuery = false;
+bool FOpenGLESDeferred::bSupportsNvTimerQuery = false;
 
 /** GL_OES_vertex_type_10_10_10_2 */
-bool FOpenGLES31::bSupportsRGB10A2 = false;
+bool FOpenGLESDeferred::bSupportsRGB10A2 = false;
 
-GLint FOpenGLES31::MajorVersion = 0;
-GLint FOpenGLES31::MinorVersion = 0;
+GLint FOpenGLESDeferred::MajorVersion = 0;
+GLint FOpenGLESDeferred::MinorVersion = 0;
 
-bool FOpenGLES31::SupportsAdvancedFeatures()
+bool FOpenGLESDeferred::SupportsAdvancedFeatures()
 {
 	bool bResult = true;
 	GLint LocalMajorVersion = 0;
@@ -193,14 +193,14 @@ bool FOpenGLES31::SupportsAdvancedFeatures()
 	return bResult;
 }
 
-bool FOpenGLES31::SupportsDisjointTimeQueries()
+bool FOpenGLESDeferred::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;
 	bAllowDisjointTimerQueries = (CVarDisjointTimerQueries.GetValueOnRenderThread() == 1);
 	return bSupportsDisjointTimeQueries && bAllowDisjointTimerQueries;
 }
 
-void FOpenGLES31::ProcessQueryGLInt()
+void FOpenGLESDeferred::ProcessQueryGLInt()
 {
 	if(bES2Fallback)
 	{
@@ -248,7 +248,7 @@ void FOpenGLES31::ProcessQueryGLInt()
 	//LOG_AND_GET_GL_QUERY_INT(GL_TIMESTAMP, 0, TimestampQueryBits);
 }
 
-void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
+void FOpenGLESDeferred::ProcessExtensions( const FString& ExtensionsString )
 {
 	// Version setup first, need to check string for 3 or higher, then can use integer queries
 	if (SupportsAdvancedFeatures())

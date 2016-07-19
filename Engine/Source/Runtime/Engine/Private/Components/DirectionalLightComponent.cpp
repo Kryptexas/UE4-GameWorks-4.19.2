@@ -209,7 +209,7 @@ public:
 			&& bUseInsetShadowsForMovableObjects;
 	}
 
-	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+	/** Whether this light should create CSM for dynamic objects only (mobile renderer) */
 	virtual bool UseCSMForDynamicObjects() const override
 	{
 		return	FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()

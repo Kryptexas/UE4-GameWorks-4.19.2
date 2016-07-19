@@ -2858,7 +2858,8 @@ protected:
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		if (InSceneTextureId != PPI_PostProcessInput0 // fetching PostProcessInput0 supported on all platforms
+			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2878,14 +2879,28 @@ protected:
 
 		UseSceneTextureId(SceneTextureId, true);
 
-		FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
-		FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
-
-		return AddCodeChunk(
-			MCT_Float4,
-			TEXT("SceneTextureLookup(%s, %d, %s)"),
-			*TexCoordCode, (int)SceneTextureId, bFiltered ? TEXT("true") : TEXT("false")
-			);
+		if (FeatureLevel > ERHIFeatureLevel::SM4)
+		{
+			FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+			FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
+			
+			return AddCodeChunk(
+				MCT_Float4,
+				TEXT("SceneTextureLookup(%s, %d, %s)"),
+				*TexCoordCode, (int)SceneTextureId, bFiltered ? TEXT("true") : TEXT("false")
+				);
+		}
+		else
+		{
+			if (UV == INDEX_NONE)
+			{
+				// Avoid UV computation in a pixel shader
+				UV = TextureCoordinate(0, false, false);
+			}
+			FString TexCoordCode = CoerceParameter(UV, MCT_Float2);
+			// Only PPI_PostProcessInput0, which holds scene color 
+			return AddCodeChunk(MCT_Float4,	TEXT("MobileLookupPostProcessInput0(Parameters, %s)"), *TexCoordCode);
+		}
 	}
 
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor

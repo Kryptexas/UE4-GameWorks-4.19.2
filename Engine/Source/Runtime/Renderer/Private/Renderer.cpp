@@ -42,7 +42,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 	// Create an FViewInfo so we can initialize its RHI resources
 	//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 	FViewInfo View(&SceneView);
-	View.InitRHIResources(nullptr);
+	View.InitRHIResources();
 
 	const auto FeatureLevel = View.GetFeatureLevel();
 	
@@ -55,7 +55,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 	{
 		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
-		// handle translucent material blend modes, not relevant in MaterialTexCoordScalesAnalysis since it outputs the scales.é
+		// handle translucent material blend modes, not relevant in MaterialTexCoordScalesAnalysis since it outputs the scales.
 		if (IsTranslucentBlendMode(MaterialBlendMode) && View.Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM4)

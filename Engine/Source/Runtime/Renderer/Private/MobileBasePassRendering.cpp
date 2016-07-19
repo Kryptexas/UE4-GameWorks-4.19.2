@@ -55,6 +55,10 @@ IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy
 IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP>, FMovableDirectionalLightWithLightmapLightingPolicy);
 IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP>, FMovableDirectionalLightCSMWithLightmapLightingPolicy);
 
+const FLightSceneInfo* GetSceneMobileDirectionalLights(FScene const* Scene, uint32 LightChannel)
+{
+	return Scene->MobileDirectionalLights[LightChannel];
+}
 
 template<typename PixelParametersType, int32 NumDynamicPointLights>
 bool TMobileBasePassPSPolicyParamType<PixelParametersType, NumDynamicPointLights>::ModifyCompilationEnvironmentForQualityLevel(EShaderPlatform Platform, EMaterialQualityLevel::Type QualityLevel, FShaderCompilerEnvironment& OutEnvironment)
@@ -73,10 +77,10 @@ bool TMobileBasePassPSPolicyParamType<PixelParametersType, NumDynamicPointLights
 
 static TAutoConsoleVariable<int32> CVarAllReceiveDynamicCSM(
 	TEXT("r.AllReceiveDynamicCSM"),
-	0,
-	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects (default). 1: All primitives"));
+	1,
+	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects. 1: All primitives (default)"));
 
-FBasePassFowardDynamicPointLightInfo::FBasePassFowardDynamicPointLightInfo(const FPrimitiveSceneProxy* InSceneProxy)
+FMobileBasePassDynamicPointLightInfo::FMobileBasePassDynamicPointLightInfo(const FPrimitiveSceneProxy* InSceneProxy)
 : NumDynamicPointLights(0)
 {
 	static auto* MobileNumDynamicPointLightsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileNumDynamicPointLights"));
@@ -87,7 +91,7 @@ FBasePassFowardDynamicPointLightInfo::FBasePassFowardDynamicPointLightInfo(const
 		for (FLightPrimitiveInteraction* LPI = InSceneProxy->GetPrimitiveSceneInfo()->LightList; LPI && NumDynamicPointLights < MobileNumDynamicPointLights; LPI = LPI->GetNextLight())
 		{
 			FLightSceneProxy* LightProxy = LPI->GetLight()->Proxy;
-			if (LightProxy->GetLightType() == LightType_Point && LightProxy->IsMovable())
+			if (LightProxy->GetLightType() == LightType_Point && LightProxy->IsMovable() && (LightProxy->GetLightingChannelMask() & InSceneProxy->GetLightingChannelMask()) != 0)
 			{
 				FVector NormalizedLightDirection;
 				FVector2D SpotAngles;
@@ -139,18 +143,32 @@ public:
 		return false;
 	}
 
-	const FLightSceneInfo* GetSimpleDirectionalLight() const 
+	bool CanUseDrawlistToToggleCombinedStaticAndCSM(const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
+	{
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+		// Ideally we would also check for 'r.AllReceiveDynamicCSM' || PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights().
+		// It's being omitted here to avoid requiring a drawlist rebuild whenever the cvar is toggled.
+		return CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() != 0;
+	}
+
+	bool CanReceiveStaticAndCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
+	{
+		// CSM use for static meshes is determined during InitDynamicShadows.
+		return false; 
+	}
+
+	const FScene* GetScene() const 
 	{ 
-		return Scene->SimpleDirectionalLight;
+		return Scene;
 	}
 
 	/** Draws the mesh with a specific light-map type */
-	template<typename LightMapPolicyType, int32 NumDynamicPointLights>
+	template<int32 NumDynamicPointLights>
 	void Process(
 		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
-		const LightMapPolicyType& LightMapPolicy,
-		const typename LightMapPolicyType::ElementDataType& LightMapElementData
+		const FUniformLightMapPolicy& LightMapPolicy,
+		const FUniformLightMapPolicy::ElementDataType& LightMapElementData
 		) const
 	{
 		EBasePassDrawListType DrawType = EBasePass_Default;
@@ -162,16 +180,65 @@ public:
 
 		if ( Scene )
 		{
-			// Find the appropriate draw list for the static mesh based on the light-map policy type.
-			TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType, 0> >& DrawList =
-				Scene->GetMobileBasePassDrawList<LightMapPolicyType>(DrawType);
+			// Determine if this primitive has the possibility of using combined static and CSM.
+			if (CanUseDrawlistToToggleCombinedStaticAndCSM(Parameters.PrimitiveSceneProxy))
+			{
+				// if applicable, returns the corresponding CSM or non-CSM lightmap policy of LightMapPolicyType
+				auto GetAlternativeLightMapPolicy = [](ELightMapPolicyType LightMapPolicyType)
+				{
+					switch (LightMapPolicyType)
+					{
+						case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+							return LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP;
+						case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+							return LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT;
+						case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
+							return LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM;
+						case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+							return LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT;
+					}
+					return LightMapPolicyType;
+				};
 
-			ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
-			// Add the static mesh to the draw list.
-			DrawList.AddMesh(
-				StaticMesh,
-				typename TMobileBasePassDrawingPolicy<LightMapPolicyType, 0>::ElementDataType(LightMapElementData),
-				TMobileBasePassDrawingPolicy<LightMapPolicyType, 0>(
+				const ELightMapPolicyType AlternativeLightMapPolicy = GetAlternativeLightMapPolicy(LightMapPolicy.GetIndirectPolicy());
+				const bool bHasCSMCounterpart = AlternativeLightMapPolicy != LightMapPolicy.GetIndirectPolicy();
+				if (bHasCSMCounterpart)
+				{
+					// Is the passed in lightmap policy CSM capable or not
+					const bool bIsCSMCapableLightPolicy = LightMapPolicy.GetIndirectPolicy() == LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM
+					|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT;
+
+					if (bIsCSMCapableLightPolicy)
+					{
+						// Alternative policy is the non-CSM version.
+						AddMeshToStaticDrawList(Scene->GetMobileBasePassCSMDrawList<FUniformLightMapPolicy>(DrawType), Parameters, LightMapPolicy, LightMapElementData);
+						AddMeshToStaticDrawList(Scene->GetMobileBasePassDrawList<FUniformLightMapPolicy>(DrawType), Parameters, FUniformLightMapPolicy(AlternativeLightMapPolicy), LightMapElementData);
+					}
+					else
+					{
+						// Alternative policy is the CSM version.
+						AddMeshToStaticDrawList(Scene->GetMobileBasePassCSMDrawList<FUniformLightMapPolicy>(DrawType), Parameters, FUniformLightMapPolicy(AlternativeLightMapPolicy), LightMapElementData);
+						AddMeshToStaticDrawList(Scene->GetMobileBasePassDrawList<FUniformLightMapPolicy>(DrawType), Parameters, LightMapPolicy, LightMapElementData);
+					}
+
+					return; // avoid adding to draw list twice.
+				}
+			}
+
+			AddMeshToStaticDrawList(Scene->GetMobileBasePassDrawList<FUniformLightMapPolicy>(DrawType), Parameters, LightMapPolicy, LightMapElementData);
+		}
+	}
+
+	template<typename LightMapPolicyType>
+	void AddMeshToStaticDrawList(TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType, 0>> &DrawList, 
+		const FProcessBasePassMeshParameters &Parameters, const LightMapPolicyType& LightMapPolicy, const typename LightMapPolicyType::ElementDataType& LightMapElementData) const
+	{
+		ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
+		// Add the static mesh to the draw list.
+		DrawList.AddMesh(
+			StaticMesh,
+			typename TMobileBasePassDrawingPolicy<LightMapPolicyType, 0>::ElementDataType(LightMapElementData),
+			TMobileBasePassDrawingPolicy<LightMapPolicyType, 0>(
 				StaticMesh->VertexFactory,
 				StaticMesh->MaterialRenderProxy,
 				*Parameters.Material,
@@ -184,9 +251,8 @@ public:
 				Parameters.bEditorCompositeDepthTest,
 				IsMobileHDR() // bEnableReceiveDecalOutput
 				),
-				FeatureLevel
-				);
-		}
+			FeatureLevel
+		);
 	}
 };
 
@@ -237,10 +303,24 @@ public:
 		return false;
 	}
 
-	const FLightSceneInfo* GetSimpleDirectionalLight() const 
+	bool CanReceiveStaticAndCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
+	{
+		if (PrimitiveSceneProxy == nullptr || LightSceneInfo == nullptr)
+		{
+			return false;
+		}
+
+		// Check that this primitive is eligible for CSM.
+ 		const FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightSceneInfo->Id];
+		static auto* ConsoleVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
+		const bool bShouldReceiveCombinedCSMAndStaticShadows = PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() || ConsoleVarAllReceiveDynamicCSM->GetValueOnRenderThread();
+		return View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse && bShouldReceiveCombinedCSMAndStaticShadows;
+	}
+
+	const FScene* GetScene() const
 	{
 		auto* Scene = (FScene*)View.Family->Scene;
-		return Scene ? Scene->SimpleDirectionalLight : nullptr;
+		return Scene;
 	}
 
 	/** Initialization constructor. */
@@ -257,12 +337,12 @@ public:
 	{}
 
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
-	template<typename LightMapPolicyType, int32 NumDynamicPointLights>
+	template<int32 NumDynamicPointLights>
 	void Process(
 		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
-		const LightMapPolicyType& LightMapPolicy,
-		const typename LightMapPolicyType::ElementDataType& LightMapElementData
+		const FUniformLightMapPolicy& LightMapPolicy,
+		const typename FUniformLightMapPolicy::ElementDataType& LightMapElementData
 		) const
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -276,7 +356,7 @@ public:
 		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
-		TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights> DrawingPolicy(
+		TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
 			Parameters.Mesh.MaterialRenderProxy,
 			*Parameters.Material,
@@ -290,7 +370,7 @@ public:
 			IsMobileHDR() // bEnableReceiveDecalOutput
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType());
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType());
 
 		for( int32 BatchElementIndex=0;BatchElementIndex<Parameters.Mesh.Elements.Num();BatchElementIndex++ )
 		{
@@ -305,8 +385,8 @@ public:
 				BatchElementIndex,
 				bBackFace,
 				DrawRenderState,
-				typename TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ElementDataType(LightMapElementData),
-				typename TMobileBasePassDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType()
+				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ElementDataType(LightMapElementData),
+				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType()
 				);
 			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
@@ -484,6 +564,7 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
 			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawType].SortFrontToBack(Views[0].ViewLocation);
+			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawType].SortFrontToBack(Views[0].ViewLocation);
 		}
 	}
 
@@ -492,6 +573,7 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 	{
 		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 		FViewInfo& View = Views[ViewIndex];
+		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfo = View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse ? &View.MobileCSMVisibilityInfo : nullptr;
 
 		// Opaque blending
 		if (View.bIsPlanarReflection)
@@ -511,12 +593,29 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 			if (SortMode == EBasePassSort::SortPerMesh)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
+				if(MobileCSMVisibilityInfo)
+				{
+					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
+					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
+				}
+				else
+				{
+					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
+				}
 			}
 			else
 			{
 				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+				if (MobileCSMVisibilityInfo)
+				{
+					Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
+					Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
+				}
+				else
+				{
+					Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+				}
+
 			}
 		}
 
@@ -559,12 +658,28 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			if (MobileCSMVisibilityInfo)
+			{
+				MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
+				MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
+			}
+			else
+			{
+				MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			}
 		}
 		else
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			if (MobileCSMVisibilityInfo)
+			{
+				Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
+				Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
+			}
+			else
+			{
+				Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			}
 		}
 	}
 }

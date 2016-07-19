@@ -599,8 +599,14 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 	if (MediaState == EMediaState::Initialized)
 	{
 		MediaUrl = Url;
-		JavaMediaPlayer->Prepare();
-		MediaState = EMediaState::Prepared;
+		if (JavaMediaPlayer->Prepare())
+		{
+			MediaState = EMediaState::Prepared;
+		}
+		else
+		{
+			MediaState = EMediaState::Idle;
+		}
 	}
 
 	if (MediaState == EMediaState::Prepared)

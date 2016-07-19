@@ -1906,7 +1906,6 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	FoundView->CreateUniformBuffer(
 		FoundView->ViewUniformBuffer, 
 		RHICmdList,
-		nullptr,
 		ShadowViewMatrix, 
 		ShadowViewMatrix.Inverse(),
 		VolumeBounds,

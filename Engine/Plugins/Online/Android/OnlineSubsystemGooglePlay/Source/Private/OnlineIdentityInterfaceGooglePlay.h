@@ -16,6 +16,7 @@ private:
 	bool bPrevLoggedIn;
 	bool bLoggedIn;
 	FString PlayerAlias;
+	FString AuthToken;
 	int32 CurrentLoginUserNum;
 	class FOnlineSubsystemGooglePlay* MainSubsystem;
 
@@ -48,6 +49,9 @@ PACKAGE_SCOPE:
 
 	/** Called from ExternalUIInterface to set UniqueId and PlayerAlias after authentication */
 	void SetPlayerDataFromFetchSelfResponse(const gpg::Player& PlayerData);
+
+	/** Called from ExternalUIInterface to set AuthToken after authentication */
+	void SetAuthTokenFromGoogleConnectResponse(const FString& NewAuthToken);
 
 public:
 

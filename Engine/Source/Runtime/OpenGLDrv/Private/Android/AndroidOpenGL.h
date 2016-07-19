@@ -7,7 +7,7 @@
 
 
 #if PLATFORM_ANDROID
-#if !PLATFORM_ANDROIDGL4
+
 #include "AndroidEGL.h"
 
 #include <EGL/eglext.h>
@@ -132,6 +132,11 @@ extern PFNGLCOPYTEXSUBIMAGE3DPROC		glCopyTexSubImage3D;
 extern PFNGLGETPROGRAMBINARYOESPROC     glGetProgramBinary;
 extern PFNGLPROGRAMBINARYOESPROC        glProgramBinary;
 
+extern PFNGLBINDBUFFERRANGEPROC			glBindBufferRange;
+extern PFNGLBINDBUFFERBASEPROC			glBindBufferBase;
+extern PFNGLGETUNIFORMBLOCKINDEXPROC	glGetUniformBlockIndex;
+extern PFNGLUNIFORMBLOCKBINDINGPROC		glUniformBlockBinding;
+
 #include "OpenGLES2.h"
 
 
@@ -145,10 +150,24 @@ extern "C"
 
 struct FAndroidOpenGL : public FOpenGLES2
 {
+	static FORCEINLINE bool HasES31Package()
+	{
+		// AJB HACK: figure out alternative method:
+		bool bBuildForES3 = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES3"), bBuildForES3, GEngineIni);
+		return bBuildForES3;
+	}
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{
-		return SP_OPENGL_ES2_ANDROID;
+
+		return bES31Support && HasES31Package() ? SP_OPENGL_ES3_1_ANDROID : SP_OPENGL_ES2_ANDROID;
 	}
+
+	static FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel()
+	{
+		return bES31Support && HasES31Package() ? ERHIFeatureLevel::ES3_1 : ERHIFeatureLevel::ES2;
+	}
+	static FORCEINLINE bool SupportsUniformBuffers() { return bES31Support && HasES31Package(); }
 
 	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval() { return bHasHardwareHiddenSurfaceRemoval; };
 
@@ -365,6 +384,36 @@ struct FAndroidOpenGL : public FOpenGLES2
 		glProgramBinary(Program, BinaryFormat, Binary, Length);
 	}
 
+	static FORCEINLINE void BindBufferBase(GLenum Target, GLuint Index, GLuint Buffer)
+	{
+		check(HasES31Package() && bES31Support);
+		glBindBufferBase(Target, Index, Buffer);
+	}
+
+	static FORCEINLINE void BindBufferRange(GLenum Target, GLuint Index, GLuint Buffer, GLintptr Offset, GLsizeiptr Size)
+	{
+		check(HasES31Package() && bES31Support);
+		glBindBufferRange(Target, Index, Buffer, Offset, Size);
+	}
+	
+	static FORCEINLINE GLuint GetUniformBlockIndex(GLuint Program, const GLchar *UniformBlockName)
+	{
+		check(HasES31Package() && bES31Support);
+		return glGetUniformBlockIndex(Program, UniformBlockName);
+	}
+
+	static FORCEINLINE void UniformBlockBinding(GLuint Program, GLuint UniformBlockIndex, GLuint UniformBlockBinding)
+	{
+		check(HasES31Package() && bES31Support);
+		glUniformBlockBinding(Program, UniformBlockIndex, UniformBlockBinding);
+	}
+
+	static FORCEINLINE void BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data)
+	{
+		check(Target == GL_ARRAY_BUFFER || Target == GL_ELEMENT_ARRAY_BUFFER || (Target == GL_UNIFORM_BUFFER && HasES31Package() && bES31Support) );
+		glBufferSubData(Target, Offset, Size, Data);
+	}
+
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 
@@ -416,11 +465,5 @@ typedef FAndroidOpenGL FOpenGL;
 #define UGL_DRAW_FRAMEBUFFER	GL_DRAW_FRAMEBUFFER_NV
 #undef UGL_READ_FRAMEBUFFER
 #define UGL_READ_FRAMEBUFFER	GL_READ_FRAMEBUFFER_NV
-
-#else // !PLATFORM_ANDROIDGL4
-
-#include "../AndroidGL4/AndroidGL4OpenGL.h"
-
-#endif
 
 #endif // PLATFORM_ANDROID

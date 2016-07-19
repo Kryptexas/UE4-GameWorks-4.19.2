@@ -83,7 +83,7 @@ public abstract class BaseLinuxPlatform : Platform
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		const string NoEditorCookPlatform = "LinuxNoEditor";
 		const string ServerCookPlatform = "LinuxServer";
@@ -126,14 +126,14 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		if (!String.IsNullOrEmpty(Params.ServerDeviceAddress))
 		{
-			string sourcePath = CombinePaths(Params.BaseStageDirectory, GetCookPlatform(Params.DedicatedServer, false, ""));
+			string sourcePath = CombinePaths(Params.BaseStageDirectory, GetCookPlatform(Params.DedicatedServer, false));
 			string destPath = Params.DeviceUsername + "@" + Params.ServerDeviceAddress + ":.";
 			RunAndLog(CmdEnv, pscpPath, String.Format("-batch -i {0} -r {1} {2}", Params.DevicePassword, sourcePath, destPath));
 
 			List<string> Exes = GetExecutableNames(SC);
 
-			string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exes[0])).Replace("\\", "/");
-			string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, SC.ShortProjectName + ".png").Replace("\\", "/");
+			string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false), SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exes[0])).Replace("\\", "/");
+			string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false), SC.RelativeProjectRootForStage, SC.ShortProjectName + ".png").Replace("\\", "/");
 
 			string DesiredGLVersion = "4.3";
 

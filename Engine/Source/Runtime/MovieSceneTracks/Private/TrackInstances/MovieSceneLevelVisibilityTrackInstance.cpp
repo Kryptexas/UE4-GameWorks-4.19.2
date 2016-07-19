@@ -34,6 +34,12 @@ ULevelStreaming* GetStreamingLevel( FName LevelName )
 	if ( LevelName != NAME_None )
 	{
 		FString SafeLevelName = MakeSafeLevelName( LevelName );
+		if (FPackageName::IsShortPackageName(SafeLevelName))
+		{
+			// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+			SafeLevelName = TEXT("/") + SafeLevelName;
+		}
+
 		for ( ULevelStreaming* LevelStreaming : GWorld->StreamingLevels )
 		{
 			if ( LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith( SafeLevelName, ESearchCase::IgnoreCase ) )

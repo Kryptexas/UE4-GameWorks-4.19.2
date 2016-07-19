@@ -14,7 +14,7 @@ public class MacPlatform : Platform
 	{
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		const string NoEditorCookPlatform = "MacNoEditor";
 		const string ServerCookPlatform = "MacServer";

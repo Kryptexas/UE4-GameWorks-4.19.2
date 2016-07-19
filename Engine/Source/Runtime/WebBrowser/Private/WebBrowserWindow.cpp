@@ -938,7 +938,7 @@ void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 	if (IsValid())
 	{
 		CefRefPtr<CefFrame> frame = InternalCefBrowser->GetMainFrame();
-		frame->ExecuteJavaScript(TCHAR_TO_ANSI(*Script), frame->GetURL(), 0);
+		frame->ExecuteJavaScript(TCHAR_TO_UTF8(*Script), frame->GetURL(), 0);
 	}
 }
 

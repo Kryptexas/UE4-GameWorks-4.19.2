@@ -866,9 +866,6 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
         case RLM_ReadOnly:
         {
 			SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
-			const uint32 MipSizeX = SizeX >> MipIndex;
-			const uint32 MipSizeY = SizeY >> MipIndex;
-			const uint32 MipSizeZ = FMath::Max(SizeZ >> MipIndex, 1u);
 
 			MTLRegion Region;
 			if (SizeZ <= 1 || bIsCubemap)
@@ -1329,11 +1326,13 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 	// create a blitter object
 	id<MTLBlitCommandEncoder> Blitter = [CommandBuffer blitCommandEncoder];
 
-
 	// figure out what mips to schedule
 	const uint32 NumSharedMips = FMath::Min(OldTexture->GetNumMips(), NewTexture->GetNumMips());
 	const uint32 SourceMipOffset = OldTexture->GetNumMips() - NumSharedMips;
 	const uint32 DestMipOffset = NewTexture->GetNumMips() - NumSharedMips;
+	
+	const uint32 BlockSizeX = GPixelFormats[OldTexture->GetFormat()].BlockSizeX;
+	const uint32 BlockSizeY = GPixelFormats[OldTexture->GetFormat()].BlockSizeY;
 
 	// only handling straight 2D textures here
 	uint32 SliceIndex = 0;
@@ -1346,8 +1345,8 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 
 	for (uint32 MipIndex = 0; MipIndex < NumSharedMips; ++MipIndex)
 	{
-		const uint32 MipSizeX = FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset));
-		const uint32 MipSizeY = FMath::Max<uint32>(1, NewSizeY >> (MipIndex + DestMipOffset));
+		const uint32 MipSizeX = AlignArbitrary(FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset)), BlockSizeX);
+		const uint32 MipSizeY = AlignArbitrary(FMath::Max<uint32>(1, NewSizeY >> (MipIndex + DestMipOffset)), BlockSizeY);
 
 		// set up the copy
 		[Blitter copyFromTexture:OldTexture->Surface.Texture 

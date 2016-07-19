@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#if !PLATFORM_ANDROIDGL4 && !PLATFORM_ANDROIDES31
+#if !PLATFORM_ANDROIDESDEFERRED
 
 #include "OpenGLDrvPrivate.h"
 #include "OpenGLES2.h"
@@ -73,6 +73,11 @@ PFNGLTEXBUFFEREXTPROC					glTexBufferEXT = NULL;
 
 PFNGLGETPROGRAMBINARYOESPROC            glGetProgramBinary = NULL;
 PFNGLPROGRAMBINARYOESPROC               glProgramBinary = NULL;
+
+PFNGLBINDBUFFERRANGEPROC				glBindBufferRange = NULL;
+PFNGLBINDBUFFERBASEPROC					glBindBufferBase = NULL;
+PFNGLGETUNIFORMBLOCKINDEXPROC			glGetUniformBlockIndex = NULL;
+PFNGLUNIFORMBLOCKBINDINGPROC			glUniformBlockBinding = NULL;
 
 struct FPlatformOpenGLDevice
 {
@@ -189,6 +194,38 @@ void PlatformRestoreDesktopDisplayMode()
 
 bool PlatformInitOpenGL()
 {
+	check(!FAndroidMisc::ShouldUseVulkan());
+
+	{
+		// determine ES version. PlatformInitOpenGL happens before ProcessExtensions and therefore FAndroidOpenGL::bES31Support.
+		FString VersionString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION)));
+		bool bES31Supported = VersionString.Contains(TEXT("OpenGL ES 3.1"));
+		// AJB HACK: figure out alternative method:
+		bool bBuildForES3 = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES3"), bBuildForES3, GEngineIni);
+
+		if (bES31Supported && bBuildForES3)
+		{
+			// shut down pre-existing EGL (PlatformInit's ES2 EGL), so we can recreate the correct version.
+			if (AndroidEGL::GetInstance()->IsInitialized())
+			{
+				AndroidEGL::GetInstance()->DestroyBackBuffer();
+				AndroidEGL::GetInstance()->Terminate();
+			}
+			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, false);
+		}
+		else
+		{
+			bool bBuildForES2 = false;
+			GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES2"), bBuildForES2, GEngineIni);
+
+			// If we're here and there's no ES2 data then we're in trouble.
+			check(bBuildForES2);
+			// no need to recreate PlatformInit's (ES2) EGL.
+			check(AndroidEGL::GetInstance()->IsInitialized());
+			//AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+		}
+	}
 	return true;
 }
 
@@ -444,6 +481,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glClearBufferuiv = (PFNGLCLEARBUFFERUIVPROC)((void*)eglGetProcAddress("glClearBufferuiv"));
 		glDrawBuffers = (PFNGLDRAWBUFFERSPROC)((void*)eglGetProcAddress("glDrawBuffers"));
 
+
+		glBindBufferRange = (PFNGLBINDBUFFERRANGEPROC)((void*)eglGetProcAddress("glBindBufferRange"));
+		glBindBufferBase = (PFNGLBINDBUFFERBASEPROC)((void*)eglGetProcAddress("glBindBufferBase"));
+		glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)((void*)eglGetProcAddress("glGetUniformBlockIndex"));
+		glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)((void*)eglGetProcAddress("glUniformBlockBinding"));
+
+
 		// Required by the ES3 spec
 		bSupportsInstancing = true;
 		bSupportsTextureFloat = true;
@@ -551,6 +595,7 @@ void FAndroidAppEntry::PlatformInit()
 	// @todo Ronin vulkan: Yet another bit of FAndroidApp stuff that's in GL - and should be cleaned up if possible
 	if (!FAndroidMisc::ShouldUseVulkan())
 	{
+		// create an ES2 EGL here for gpu queries.
 		AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
 	}
 }

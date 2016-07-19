@@ -686,6 +686,7 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 									[
 										// repository path text box
 										SAssignNew(HttpChunkInstallDirectoryTextBox, SEditableTextBox)
+										.Text(this, &SProjectLauncherCookByTheBookSettings::HandleHtppChunkInstallDirectoryText)
 										.OnTextCommitted(this, &SProjectLauncherCookByTheBookSettings::HandleHtppChunkInstallDirectoryTextCommitted)
 										.OnTextChanged(this, &SProjectLauncherCookByTheBookSettings::HandleHtppChunkInstallDirectoryTextChanged)
 									]
@@ -1680,6 +1681,17 @@ FReply SProjectLauncherCookByTheBookSettings::HandleHtppChunkInstallBrowseButton
 	return FReply::Handled();
 }
 
+FText SProjectLauncherCookByTheBookSettings::HandleHtppChunkInstallDirectoryText() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		return FText::FromString(SelectedProfile->GetHttpChunkDataDirectory());
+	}
+
+	return FText::GetEmpty();
+}
 
 void SProjectLauncherCookByTheBookSettings::HandleHtppChunkInstallDirectoryTextChanged(const FText& InText)
 {

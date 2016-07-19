@@ -80,14 +80,14 @@ half2 SunConstDepthMaskScaleBias()
 }
 
 // Note: alpha is preserved when no encoding is active.
-float4 HDREncode(float4 color)
+half4 HDREncode(half4 color)
 {
-	return Encode32BPPHDR(color, float2(0, 0));
+	return Encode32BPPHDR(color, half2(0, 0));
 }
 
-float3 HDRDecode(float4 encodedhdr)
+half3 HDRDecode(half4 encodedhdr)
 {
-	return Decode32BPPHDR(encodedhdr);
+	return Decode32BPPHDR(encodedhdr).rgb;
 }
 
 //

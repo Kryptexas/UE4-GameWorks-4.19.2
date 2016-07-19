@@ -2274,11 +2274,17 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 					}
 				}
 			}
-		}
 
+			if (!bUseMosaic && IsMobileHDR())
+			{
+				AddPostProcessMaterial(Context, BL_BeforeTranslucency, nullptr);
+				AddPostProcessMaterial(Context, BL_BeforeTonemapping, nullptr);
+			}
+		}
+		
 		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
 		const bool bUseTonemapperFilm = IsMobileHDR() && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
-		if ( bUseTonemapperFilm)
+		if (bUseTonemapperFilm)
 		{
 			//@todo Ronin Set to EAutoExposureMethod::AEM_Basic for PC vk crash.
 			AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false, false);
@@ -2292,30 +2298,38 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
 			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
 		}
-
+			
 		// if Context.FinalOutput was the clipped result of sunmask stage then this stage also restores Context.FinalOutput back original target size.
 		FinalOutputViewRect = View.UnscaledViewRect;
 
-		if(bUseAa && View.Family->EngineShowFlags.PostProcessing)
+		if (View.Family->EngineShowFlags.PostProcessing)
 		{
-			// Double buffer post output.
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-			FRenderingCompositeOutputRef PostProcessPrior = Context.FinalOutput;
-			if(ViewState && ViewState->MobileAaColor1)
+			if (bUseAa)
 			{
-				FRenderingCompositePass* History;
-				History = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(ViewState->MobileAaColor1));
-				PostProcessPrior = FRenderingCompositeOutputRef(History);
+				// Double buffer post output.
+				FSceneViewState* ViewState = (FSceneViewState*)View.State;
+
+				FRenderingCompositeOutputRef PostProcessPrior = Context.FinalOutput;
+				if(ViewState && ViewState->MobileAaColor1)
+				{
+					FRenderingCompositePass* History;
+					History = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(ViewState->MobileAaColor1));
+					PostProcessPrior = FRenderingCompositeOutputRef(History);
+				}
+
+				// Mobile temporal AA is done after tonemapping.
+				FRenderingCompositePass* PostProcessAa = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAaES2());
+				PostProcessAa->SetInput(ePId_Input0, Context.FinalOutput);
+				PostProcessAa->SetInput(ePId_Input1, PostProcessPrior);
+				Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessAa);
 			}
 
-			// Mobile temporal AA is done after tonemapping.
-			FRenderingCompositePass* PostProcessAa = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAaES2());
-			PostProcessAa->SetInput(ePId_Input0, Context.FinalOutput);
-			PostProcessAa->SetInput(ePId_Input1, PostProcessPrior);
-			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessAa);
+			if (IsMobileHDR() && !IsMobileHDRMosaic())
+			{
+				AddPostProcessMaterial(Context, BL_AfterTonemapping, nullptr);
+			}
 		}
-
+				
 #if WITH_EDITOR
 		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View) )
 		{

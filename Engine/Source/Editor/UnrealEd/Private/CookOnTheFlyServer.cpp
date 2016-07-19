@@ -18,6 +18,7 @@
 #include "IPlatformFileSandboxWrapper.h"
 #include "Messaging.h"
 #include "NetworkFileSystem.h"
+#include "Developer/DesktopPlatform/Public/PlatformInfo.h"
 
 #include "AssetRegistryModule.h"
 #include "AssetData.h"
@@ -4594,11 +4595,27 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 		for ( const auto& PlatformName : TargetPlatformNames )
 		{
-			const FString OriginalSandboxRegistryFilename = GetReleaseVersionAssetRegistryPath(BasedOnReleaseVersion, PlatformName ) / GetAssetRegistryFilename();
+			FString OriginalSandboxRegistryFilename = GetReleaseVersionAssetRegistryPath(BasedOnReleaseVersion, PlatformName ) / GetAssetRegistryFilename();
 
 			TArray<FName> PackageList;
 			// if this check fails probably because the asset registry can't be found or read
 			bool bSucceeded = GetAllPackagesFromAssetRegistry(OriginalSandboxRegistryFilename, PackageList);
+			if (!bSucceeded)
+			{
+				using namespace PlatformInfo;
+				// Check all possible flavors 
+				// For example release version could be cooked as Android_ETC1 flavor, but DLC can be made as Android_ETC2
+				FVanillaPlatformEntry VanillaPlatfromEntry = BuildPlatformHierarchy(PlatformName, EPlatformFilter::CookFlavor);
+				for (const FPlatformInfo* PlatformFlaworInfo : VanillaPlatfromEntry.PlatformFlavors)
+				{
+					OriginalSandboxRegistryFilename = GetReleaseVersionAssetRegistryPath(BasedOnReleaseVersion, PlatformFlaworInfo->PlatformInfoName) / GetAssetRegistryFilename();
+					bSucceeded = GetAllPackagesFromAssetRegistry(OriginalSandboxRegistryFilename, PackageList);
+					if (bSucceeded)
+					{
+						break;
+					}
+				}
+			}
 			check( bSucceeded );
 
 			if ( bSucceeded )

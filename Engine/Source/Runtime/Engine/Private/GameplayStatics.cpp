@@ -507,7 +507,12 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 	{
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
 		{
-			const FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+			FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+			if (FPackageName::IsShortPackageName(SearchPackageName))
+			{
+				// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+				SearchPackageName = TEXT("/") + SearchPackageName;
+			}
 
 			for (ULevelStreaming* LevelStreaming : World->StreamingLevels)
 			{

@@ -287,9 +287,12 @@ bool FExecWorldStringLatentCommand::Update()
 */
 bool FWaitForShadersToFinishCompilingInGame::Update()
 {
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
-	GShaderCompilingManager->FinishAllCompilation();
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
+	if (GShaderCompilingManager)
+	{
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
+		GShaderCompilingManager->FinishAllCompilation();
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
+	}
 	return true;
 }
 #endif //WITH_DEV_AUTOMATION_TESTS

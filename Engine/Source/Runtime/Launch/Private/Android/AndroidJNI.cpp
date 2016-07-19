@@ -84,6 +84,8 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_ShowAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V", bIsOptional);
 	AndroidThunkJava_HideAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_HideAdBanner", "()V", bIsOptional);
 	AndroidThunkJava_CloseAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_CloseAdBanner", "()V", bIsOptional);
+	AndroidThunkJava_GoogleClientConnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientConnect", "()V", bIsOptional);
+	AndroidThunkJava_GoogleClientDisconnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientDisconnect", "()V", bIsOptional);
 
 	// In app purchase functionality
 	jclass localStringClass = Env->FindClass("java/lang/String");
@@ -222,6 +224,8 @@ jmethodID FJavaWrapper::AndroidThunkJava_ResetAchievements;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowAdBanner;
 jmethodID FJavaWrapper::AndroidThunkJava_HideAdBanner;
 jmethodID FJavaWrapper::AndroidThunkJava_CloseAdBanner;
+jmethodID FJavaWrapper::AndroidThunkJava_GoogleClientConnect;
+jmethodID FJavaWrapper::AndroidThunkJava_GoogleClientDisconnect;
 
 jclass FJavaWrapper::JavaStringClass;
 jmethodID FJavaWrapper::AndroidThunkJava_IapSetupService;
@@ -488,6 +492,27 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 	VirtualKeyboardWidget = NULL;
 }
 
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardChanged(String contents);"
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardChanged(JNIEnv* jenv, jobject thiz, jstring contents)
+{
+	if (VirtualKeyboardWidget != NULL)
+	{
+		const char* javaChars = jenv->GetStringUTFChars(contents, 0);
+
+		// call to set the widget text on game thread
+		if (FTaskGraphInterface::IsRunning())
+		{
+			FGraphEventRef SetWidgetText = FFunctionGraphTask::CreateAndDispatchWhenReady([&]()
+			{
+				VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))), ESetTextType::Changed, ETextCommit::OnUserMovedFocus);
+			}, TStatId(), NULL, ENamedThreads::GameThread);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(SetWidgetText);
+		}
+		// release string
+		jenv->ReleaseStringUTFChars(contents, javaChars);
+	}
+}
+
 void AndroidThunkCpp_LaunchURL(const FString& URL)
 {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
@@ -530,6 +555,22 @@ void AndroidThunkCpp_CloseAdBanner()
  	{
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_CloseAdBanner);
  	}
+}
+
+void AndroidThunkCpp_GoogleClientConnect()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_GoogleClientConnect);
+	}
+}
+
+void AndroidThunkCpp_GoogleClientDisconnect()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_GoogleClientDisconnect);
+	}
 }
 
 namespace
@@ -739,7 +780,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	// hook signals
 	if (!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash)
 	{
-		FPlatformMisc::SetCrashHandler(EngineCrashHandler);
+		// disable crash handler.. getting better stack traces from system for now
+		//FPlatformMisc::SetCrashHandler(EngineCrashHandler);
 	}
 
 	// Cache path to external storage

@@ -77,9 +77,18 @@ bool FJavaAndroidMediaPlayer::SetDataSource(jobject AssetMgr, const FString& Ass
 	return CallMethod<bool>(SetDataSourceAssetMethod, AssetMgr, GetJString(AssetPath), offset, size);
 }
 
-void FJavaAndroidMediaPlayer::Prepare()
+bool FJavaAndroidMediaPlayer::Prepare()
 {
-	CallMethod<void>(PrepareMethod);
+	// This can return an exception in some cases (URL without internet, for example)
+	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JEnv->CallVoidMethod(Object, PrepareMethod.Method);
+	if (JEnv->ExceptionCheck())
+	{
+		JEnv->ExceptionDescribe();
+		JEnv->ExceptionClear();
+		return false;
+	}
+	return true;
 }
 
 void FJavaAndroidMediaPlayer::SeekTo(int32 Milliseconds)
@@ -146,7 +155,16 @@ void FJavaAndroidMediaPlayer::Pause()
 
 bool FJavaAndroidMediaPlayer::GetVideoLastFrame(int32 destTexture)
 {
-	return CallMethod<bool>(GetVideoLastFrameMethod, destTexture);
+	// This can return an exception in some cases
+	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	bool Result = JEnv->CallBooleanMethod(Object, GetVideoLastFrameMethod.Method, destTexture);
+	if (JEnv->ExceptionCheck())
+	{
+		JEnv->ExceptionDescribe();
+		JEnv->ExceptionClear();
+		return false;
+	}
+	return Result;
 }
 
 FName FJavaAndroidMediaPlayer::GetClassName()

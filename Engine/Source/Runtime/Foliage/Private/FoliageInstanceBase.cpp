@@ -69,7 +69,7 @@ FArchive& operator << (FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCach
 	{
 		Ar << InstanceBaseCache.InstanceBaseInvMap;
 	}
-	else if (!Ar.IsSaving())
+	else if (Ar.IsLoading()) // Regenerate inverse map whenever we load cache
 	{
 		InstanceBaseCache.InstanceBaseInvMap.Empty();
 		for (const auto& Pair : InstanceBaseCache.InstanceBaseMap)
@@ -77,6 +77,17 @@ FArchive& operator << (FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCach
 			const FFoliageInstanceBaseInfo& BaseInfo = Pair.Value;
 			InstanceBaseCache.InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
 		}
+	}
+
+	// more info for UE-30878
+	if (InstanceBaseCache.InstanceBaseMap.Num() != InstanceBaseCache.InstanceBaseInvMap.Num())
+	{
+		int32 LoadingFlag = Ar.IsLoading() ? 1 : 0;
+		int32 SavingFlag = Ar.IsSaving() ? 1 : 0;
+		int32 TransactingFlag = Ar.IsTransacting() ? 1 : 0;
+		UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(3): Counter: %d Size: %d, InvSize: %d (L:%d S:%d T:%d)"), 
+			(int32)InstanceBaseCache.NextBaseId, InstanceBaseCache.InstanceBaseMap.Num(), InstanceBaseCache.InstanceBaseInvMap.Num(), 
+			LoadingFlag, SavingFlag, TransactingFlag);
 	}
 
 	return Ar;
@@ -95,7 +106,8 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 			// more info for UE-30878
 			if (InstanceBaseMap.Num() != InstanceBaseInvMap.Num())
 			{
-				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(1): Counter: %d Size: %d, InvSize: %d"), (int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num());
+				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(1): Counter: %d Size: %d, InvSize: %d"), 
+					(int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num());
 			}
 
 			FFoliageInstanceBaseInfo BaseInfo(InComponent);
@@ -107,7 +119,8 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 			if (InstanceBaseMap.Num() != InstanceBaseInvMap.Num())
 			{
 				FUniqueObjectGuid BaseUID = BaseInfo.BasePtr.GetUniqueID();
-				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(2): Counter: %d Size: %d, InvSize: %d, BaseUID: %s, BaseName: %s"), (int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num(), *BaseUID.ToString(), *InComponent->GetFullName());
+				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(2): Counter: %d Size: %d, InvSize: %d, BaseUID: %s, BaseName: %s"), 
+					(int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num(), *BaseUID.ToString(), *InComponent->GetFullName());
 			}
 
 			ULevel* ComponentLevel = InComponent->GetComponentLevel();
@@ -276,6 +289,13 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 
 		Cache.InstanceBaseMap.Compact();
 		Cache.InstanceBaseLevelMap.Compact();
+	}
+
+	// more info for UE-30878
+	if (Cache.InstanceBaseMap.Num() != Cache.InstanceBaseInvMap.Num())
+	{
+		UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(4): Counter: %d Size: %d, InvSize: %d"), 
+			(int32)Cache.NextBaseId, Cache.InstanceBaseMap.Num(), Cache.InstanceBaseInvMap.Num());
 	}
 }
 

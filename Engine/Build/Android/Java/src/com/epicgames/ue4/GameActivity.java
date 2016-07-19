@@ -18,7 +18,10 @@ import android.os.Vibrator;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.widget.EditText;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
+import android.view.inputmethod.EditorInfo;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -53,6 +56,8 @@ import android.media.AudioManager;
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.games.Games;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
@@ -89,7 +94,9 @@ import com.epicgames.ue4.DownloadShim;
 //  Java libraries at the startup of the program and store references 
 //  to them in this class.
 
-public class GameActivity extends NativeActivity implements SurfaceHolder.Callback2
+public class GameActivity extends NativeActivity implements SurfaceHolder.Callback2,
+															GoogleApiClient.ConnectionCallbacks,
+															GoogleApiClient.OnConnectionFailedListener
 {
 	public static Logger Log = new Logger("UE4");
 	
@@ -120,6 +127,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	// Virtual keyboard
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
+	String virtualKeyboardPreviousContents;
 
 	// Console commands receiver
 	ConsoleCmdReceiver consoleCmdReceiver;
@@ -624,6 +632,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		consoleAlert = builder.create();
 
 		virtualKeyboardInputBox = new EditText(this);
+		if (ANDROID_BUILD_VERSION < 11)
+		{
+			virtualKeyboardInputBox.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+		}
+		else
+		{
+			virtualKeyboardInputBox.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		}
+		virtualKeyboardInputBox.addTextChangedListener(new TextWatcher() {
+			@Override
+			public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
+			}
+
+			@Override
+			public void afterTextChanged(Editable s) {
+				String message = virtualKeyboardInputBox.getText().toString();
+				nativeVirtualKeyboardChanged(message);
+			}
+
+			@Override
+			public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
+			}
+		});
 
 		builder = new AlertDialog.Builder(this);
 		builder.setTitle("")
@@ -638,6 +669,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		})
 		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
+				nativeVirtualKeyboardChanged(virtualKeyboardPreviousContents);
 				nativeVirtualKeyboardResult(false, " ");
 				virtualKeyboardInputBox.setText(" ");
 				dialog.dismiss();
@@ -647,7 +679,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		GooglePlayLicensing.GoogleLicensing = new GooglePlayLicensing();
 		GooglePlayLicensing.GoogleLicensing.Init(this, Log);
-	
+
+		// Build Google Play API Client
+		googleClient = new GoogleApiClient.Builder(this)
+			.addConnectionCallbacks(this)
+			.addOnConnectionFailedListener(this)
+			.addApi(Games.API).addScope(Games.SCOPE_GAMES)
+			.addApi(Plus.API).addScope(Plus.SCOPE_PLUS_LOGIN)
+			.build();
+
 		// Now okay for event handler to be set up on native side
 		//	nativeResumeMainInit();
 				
@@ -935,6 +975,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		virtualKeyboardAlert.setTitle(Label);
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
+		virtualKeyboardPreviousContents = Contents;
 
 		// configure for type of input
 		virtualKeyboardInputBox.setInputType(InputType);
@@ -1129,6 +1170,70 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				updateAdVisibility(true);
 			}
 		});
+	}
+
+	public void AndroidThunkJava_GoogleClientConnect()
+	{
+		if (googleClient != null)
+		{
+			googleClient.connect();
+		}
+	}
+
+	public void AndroidThunkJava_GoogleClientDisconnect()
+	{
+		if (googleClient != null)
+		{
+			googleClient.disconnect();
+		}
+	}
+
+	// Google Client connected successfully
+	@Override
+	public void onConnected(Bundle connectionHint)
+	{
+		if (googleClient != null && googleClient.isConnected())
+		{
+			new Thread(new Runnable()
+			{
+				public void run()
+				{
+					try
+					{
+						String email = Plus.AccountApi.getAccountName(googleClient);
+						Log.debug("Google Client Connect using email " + email);
+
+						String accesstoken = GoogleAuthUtil.getToken(GameActivity.Get(), email, "oauth2:https://www.googleapis.com/auth/games");
+						Log.debug("Google Client Connect using Access Token " + accesstoken);
+
+						nativeGoogleClientConnectCompleted(true, accesstoken);
+					}
+					catch (Exception e)
+					{
+						Log.debug("Google Client Connect failed: " + e.getMessage());
+
+						nativeGoogleClientConnectCompleted(false, "");
+					}
+				}
+			}).start();
+		}
+		else
+		{
+			nativeGoogleClientConnectCompleted(false, "");
+		}
+	}
+
+	// Google Client connection failed
+	@Override
+	public void onConnectionFailed(ConnectionResult connectionResult)
+	{
+		nativeGoogleClientConnectCompleted(false, "");
+	}
+
+	// Google Client connection suspended
+	@Override
+	public void onConnectionSuspended(int cause)
+	{
 	}
 
 	public AssetManager AndroidThunkJava_GetAssetManager()
@@ -1574,6 +1679,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeSetSurfaceViewInfo(int width, int height);
 
 	public native void nativeConsoleCommand(String commandString);
+	public native void nativeVirtualKeyboardChanged(String contents);
 	public native void nativeVirtualKeyboardResult(boolean update, String contents);
 
 	public native void nativeInitHMDs();
@@ -1581,6 +1687,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeResumeMainInit();
 
 	public native void nativeOnActivityResult(GameActivity activity, int requestCode, int resultCode, Intent data);
+
+	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 		
 	static
 	{

@@ -57,7 +57,7 @@ public class VulkanRHI : ModuleRules
 			{
 				// Note: header is the same for all architectures so just use arch-arm
 				string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-				string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
+				string NDKVulkanIncludePath = NDKPath + "/platforms/android-24/arch-arm/usr/include/vulkan";
 
 				// Use NDK Vulkan header if discovered, or VulkanSDK if available
 				if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))

@@ -96,3 +96,6 @@ Ocean\Binaries\Win64\*-LootTables*
 Ocean\Binaries\Win32\*-LootTables*
 Ocean\Binaries\Mac\Ocean.app\Contents\MacOS\*-LootTables.dylib
 Engine\Intermediate\Build\Win64\UE4Editor\Inc\SimplygonUtilities\*
+Engine\Binaries\Win64\*-OnlineBlueprintSupport*.*
+Engine\Binaries\Win32\*-OnlineBlueprintSupport*.*
+

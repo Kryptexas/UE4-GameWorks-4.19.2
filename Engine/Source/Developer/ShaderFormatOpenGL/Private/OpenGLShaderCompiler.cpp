@@ -871,6 +871,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 		case GLSL_ES2_IOS:
 		case GLSL_ES2_WEBGL: 
 		case GLSL_ES2:
+		case GLSL_ES3_1_ANDROID:
 			OutMajorVersion = 0;
 			OutMinorVersion = 0;
 			break;
@@ -1144,6 +1145,9 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			VersionSwitch = TEXT(" -gl3 -mac");
 			break;
 
+		case GLSL_ES3_1_ANDROID:
+			VersionSwitch = TEXT(" -es31");
+			break;
 		case GLSL_310_ES_EXT:
 			VersionSwitch = TEXT(" -es31ext");
 			break;
@@ -1186,9 +1190,15 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
 	switch (Version)
 	{
+		case GLSL_ES3_1_ANDROID:
+			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL_ES3_1"), 1);
+			AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
+			HlslCompilerTarget = HCT_FeatureLevelES3_1;
+			break;
+
 		case GLSL_310_ES_EXT:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
-			AdditionalDefines.SetDefine(TEXT("ES31_AEP_PROFILE"), 1);
+			AdditionalDefines.SetDefine(TEXT("ESDEFERRED_PROFILE"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 			break;

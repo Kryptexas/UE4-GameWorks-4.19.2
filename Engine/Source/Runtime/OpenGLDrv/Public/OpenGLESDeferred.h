@@ -7,7 +7,7 @@
 #pragma once
 
 
-#define OPENGL_ES31		1
+#define OPENGL_ESDEFERRED		1
 
 #include "OpenGL.h"
 
@@ -27,7 +27,7 @@
 #define OPENGL_NAME_CACHE_SIZE 1024
 
 
-struct FOpenGLES31 : public FOpenGLBase
+struct FOpenGLESDeferred : public FOpenGLBase
 {
 	static FORCEINLINE bool SupportsVertexArrayObjects()				{ return bSupportsVertexArrayObjects || !bES2Fallback; }
 	static FORCEINLINE bool SupportsMapBuffer()							{ return bSupportsMapBuffer || !bES2Fallback; }

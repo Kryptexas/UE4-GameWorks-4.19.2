@@ -22,10 +22,8 @@
 #include "Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
-#elif PLATFORM_ANDROIDES31
-#include "Android/AndroidES31OpenGL.h"
-#elif PLATFORM_ANDROIDGL4
-#include "Android/AndroidGL4OpenGL.h"
+#elif PLATFORM_ANDROIDESDEFERRED
+#include "Android/AndroidESDeferredOpenGL.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidOpenGL.h"
 #elif PLATFORM_HTML5
@@ -290,7 +288,7 @@ class OPENGLDRV_API FOpenGLDynamicRHI : public FDynamicRHI, public IRHICommandCo
 public:
 
 	friend class FOpenGLViewport;
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 	friend class FOpenGLTextureBase;
 #endif
 

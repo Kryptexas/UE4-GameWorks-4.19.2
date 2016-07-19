@@ -317,6 +317,7 @@ FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBuf
 {
 	switch(Platform)
 	{
+		case SP_OPENGL_ES3_1_ANDROID:
 		case SP_OPENGL_ES31_EXT:
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_SM4_MAC:

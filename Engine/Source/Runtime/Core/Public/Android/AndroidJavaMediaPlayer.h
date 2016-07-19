@@ -19,7 +19,7 @@ public:
 	void SetDataSource(const FString & Url);
 	bool SetDataSource(const FString& MoviePathOnDevice, int64 offset, int64 size);
 	bool SetDataSource(jobject AssetMgr, const FString& AssetPath, int64 offset, int64 size);
-	void Prepare();
+	bool Prepare();
 	void SeekTo(int32 Milliseconds);
 	void SetLooping(bool Looping);
 	void Release();

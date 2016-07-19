@@ -79,7 +79,7 @@ public partial class Project : CommandUtils
 
 				var ServerLogFile = CombinePaths(LogFolderOutsideOfSandbox, "Server.log");
 				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
-				string TargetCook = ClientPlatformInst.GetCookPlatform(false, false, Params.CookFlavor); // cook ont he fly doesn't support server cook platform... 
+				string TargetCook = ClientPlatformInst.GetCookPlatform(false, false); // cook on he fly doesn't support server cook platform... 
 				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, COTFCommandLine);
 
 				if (ServerProcess != null)
@@ -101,10 +101,10 @@ public partial class Project : CommandUtils
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
 				{
 					// Use the data platform, sometimes we will copy another platform's data
-					var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
-                    string PlatformToCook = Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.Client, Params.CookFlavor);
+					var DataPlatformDesc = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
+                    string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(false, Params.Client);
                     PlatformsToCook.Add(PlatformToCook);
-                    AddBlueprintPluginPathArgument(Params, true, DataPlatform, PlatformToCook);
+                    AddBlueprintPluginPathArgument(Params, true, DataPlatformDesc.Type, PlatformToCook);
                 }
 			}
 			if (Params.DedicatedServer)
@@ -112,10 +112,10 @@ public partial class Project : CommandUtils
 				foreach (var ServerPlatform in Params.ServerTargetPlatforms)
 				{
 					// Use the data platform, sometimes we will copy another platform's data
-					var DataPlatform = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
-                    string PlatformToCook = Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(true, false, Params.CookFlavor);
+					var DataPlatformDesc = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
+                    string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(true, false);
                     PlatformsToCook.Add(PlatformToCook);
-                    AddBlueprintPluginPathArgument(Params, false, DataPlatform, PlatformToCook);
+                    AddBlueprintPluginPathArgument(Params, false, DataPlatformDesc.Type, PlatformToCook);
                 }
 			}
 
@@ -248,9 +248,9 @@ public partial class Project : CommandUtils
                     var MapsList = Maps == null ? new List<string>() :  Maps.ToList(); 
                     foreach (var ClientPlatform in Params.ClientTargetPlatforms)
                     {
-                        var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
-                        CommandletParams += (Params.GetTargetPlatformInstance(DataPlatform).GetCookExtraCommandLine(Params));
-                        MapsList.AddRange((Params.GetTargetPlatformInstance(ClientPlatform).GetCookExtraMaps()));
+                        var DataPlatformDesc = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
+                        CommandletParams += (Platform.Platforms[DataPlatformDesc].GetCookExtraCommandLine(Params));
+                        MapsList.AddRange((Platform.Platforms[ClientPlatform].GetCookExtraMaps()));
                     }
                     Maps = MapsList.ToArray();
                 }
@@ -320,7 +320,7 @@ public partial class Project : CommandUtils
 
     private static void DiffCookedContent( ProjectParams Params)
     {
-        List<UnrealTargetPlatform> PlatformsToCook = Params.ClientTargetPlatforms;
+        List<TargetPlatformDescriptor> PlatformsToCook = Params.ClientTargetPlatforms;
         string ProjectPath = Params.RawProjectPath.FullName;
 
         var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Cooked");
@@ -363,13 +363,13 @@ public partial class Project : CommandUtils
                 Directory.CreateDirectory(TemporaryPakPath);
                 Directory.CreateDirectory(TemporaryFilesPath);
 
-                Platform CurrentPlatform = Params.GetTargetPlatformInstance(PlatformsToCook[CookPlatformIndex]);
+                Platform CurrentPlatform = Platform.Platforms[PlatformsToCook[CookPlatformIndex]];
 
                 string SourceCookedContentPath = Params.DiffCookedContentPath;
 
                 List<string> PakFiles = new List<string>();
 
-                string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.Client, Params.CookFlavor);
+                string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.Client);
 
                 if (Path.HasExtension(SourceCookedContentPath) && (!SourceCookedContentPath.EndsWith(".pak")))
                 {

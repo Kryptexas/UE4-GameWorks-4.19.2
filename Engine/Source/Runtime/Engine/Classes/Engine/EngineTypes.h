@@ -321,6 +321,8 @@ enum ESceneCaptureSource
 	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
 };
 
+#define NUM_LIGHTING_CHANNELS 3
+
 USTRUCT()
 struct FLightingChannels
 {
@@ -352,6 +354,12 @@ inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)
 inline uint8 GetDefaultLightingChannelMask()
 {
 	return 1;
+}
+
+// Returns the index of the first lighting channel set, or -1 if no channels are set.
+inline int32 GetFirstLightingChannelFromMask(uint8 Mask)
+{
+	return Mask ? FPlatformMath::CountTrailingZeros(Mask) : -1;
 }
 
 /*

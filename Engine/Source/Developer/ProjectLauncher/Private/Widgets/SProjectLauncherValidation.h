@@ -63,6 +63,13 @@ public:
 
 			// packaging settings
 
+			// archive step
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("NoArchiveDirectorySpecifiedError", "The archive step requires a valid directory.").ToString(), ELauncherProfileValidationErrors::NoArchiveDirectorySpecified)
+				]
+
 			// deployment settings
 			+ SVerticalBox::Slot()
 				.AutoHeight()

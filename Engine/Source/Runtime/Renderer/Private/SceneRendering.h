@@ -16,6 +16,62 @@
 class FPostprocessContext;
 struct FILCUpdatePrimTaskData;
 
+/** Mobile only. Information used to determine whether static meshes will be rendered with CSM shaders or not. */
+class FMobileCSMVisibilityInfo
+{
+public:
+	/** true if there are any primitives affected by CSM subjects */
+	uint32 bMobileDynamicCSMInUse : 1;
+
+	/** Visibility lists for static meshes that will use expensive CSM shaders. */
+	FSceneBitArray MobilePrimitiveCSMReceiverVisibilityMap;
+	FSceneBitArray MobileCSMStaticMeshVisibilityMap;
+	TArray<uint64, SceneRenderingAllocator> MobileCSMStaticBatchVisibility;
+
+	/** Visibility lists for static meshes that will use the non CSM shaders. */
+	FSceneBitArray MobileNonCSMStaticMeshVisibilityMap;
+	TArray<uint64, SceneRenderingAllocator> MobileNonCSMStaticBatchVisibility;
+
+	/** Initialization constructor. */
+	FMobileCSMVisibilityInfo() : bMobileDynamicCSMInUse(false)
+	{}
+};
+
+/** Stores a list of CSM shadow casters. Used by mobile renderer for culling primitives receiving static + CSM shadows. */
+class FMobileCSMSubjectPrimitives
+{
+public:
+	/** Adds a subject primitive */
+	void AddSubjectPrimitive(const FPrimitiveSceneInfo* PrimitiveSceneInfo, int32 PrimitiveId)
+	{
+		checkSlow(PrimitiveSceneInfo->GetIndex() == PrimitiveId);
+		const int32 PrimitiveIndex = PrimitiveSceneInfo->GetIndex();
+		if (!ShadowSubjectPrimitivesEncountered[PrimitiveId])
+		{
+			ShadowSubjectPrimitives.Add(PrimitiveSceneInfo);
+			ShadowSubjectPrimitivesEncountered[PrimitiveId] = true;
+		}
+	}
+
+	/** Returns the list of subject primitives */
+	const TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator>& GetShadowSubjectPrimitives() const
+	{
+		return ShadowSubjectPrimitives;
+	}
+
+	/** Used to initialize the ShadowSubjectPrimitivesEncountered bit array
+	  * to prevent shadow primitives being added more than once. */
+	void InitShadowSubjectPrimitives(int32 PrimitiveCount)
+	{
+		ShadowSubjectPrimitivesEncountered.Init(false, PrimitiveCount);
+	}
+
+protected:
+	/** List of this light's shadow subject primitives. */
+	FSceneBitArray ShadowSubjectPrimitivesEncountered;
+	TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowSubjectPrimitives;
+};
+
 /** Information about a visible light which is specific to the view it's visible in. */
 class FVisibleLightViewInfo
 {
@@ -32,6 +88,9 @@ public:
 
 	/** true if this light in the view frustum (dir/sky lights always are). */
 	uint32 bInViewFrustum : 1;
+
+	/** List of CSM shadow casters. Used by mobile renderer for culling primitives receiving static + CSM shadows */
+	FMobileCSMSubjectPrimitives MobileCSMSubjectPrimitives;
 
 	/** Initialization constructor. */
 	FVisibleLightViewInfo()
@@ -652,6 +711,9 @@ public:
 
 	FSimpleElementCollector EditorSimpleElementCollector;
 
+	// Used by mobile renderer to determine whether static meshes will be rendered with CSM shaders or not.
+	FMobileCSMVisibilityInfo MobileCSMVisibilityInfo;
+
 	/** Parameters for exponential height fog. */
 	FVector4 ExponentialFogParameters;
 	FVector ExponentialFogColor;
@@ -765,14 +827,13 @@ public:
 	void CreateUniformBuffer(
 		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
 		FRHICommandList& RHICmdList,
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
 		const FMatrix& EffectiveViewToTranslatedWorld, 
 		FBox* OutTranslucentCascadeBoundsArray, 
 		int32 NumTranslucentCascades) const;
 
 	/** Initializes the RHI resources used by this view. */
-	void InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo);
+	void InitRHIResources();
 
 	/** Determines distance culling and fades if the state changes */
 	bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
@@ -1267,6 +1328,11 @@ public:
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
 protected:
+	/** Finds the visible dynamic shadows for each view. */
+	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
+
+	/** Build visibility lists on CSM receivers and non-csm receivers. */
+	void BuildCombinedStaticAndCSMVisibilityState(FLightSceneInfo* LightSceneInfo);
 
 	void InitViews(FRHICommandListImmediate& RHICmdList);
 
@@ -1291,9 +1357,11 @@ protected:
 	/** Perform upscaling when post process is not used. */
 	void BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives);
 
+	/** Creates uniform buffers with the mobile directional light parameters, for each lighting channel. Called by InitViews */
+	void CreateDirectionalLightUniformBuffers(FSceneView& SceneView);
+
 private:
 	bool bModulatedShadowsInUse;
-	bool bCSMShadowsInUse;
 };
 
 // The noise textures need to be set in Slate too.

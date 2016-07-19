@@ -205,15 +205,10 @@ namespace UnrealBuildTool
 			{
 				GPUArchitectures.Add("-es2");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild
-				|| UEBuildConfiguration.GPUArchitectures.Contains("es31", StringComparer.OrdinalIgnoreCase))
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForESDeferred", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("esdeferred", StringComparer.OrdinalIgnoreCase))
 			{
-				GPUArchitectures.Add("-es31");
-			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild
-				|| UEBuildConfiguration.GPUArchitectures.Contains("gl4", StringComparer.OrdinalIgnoreCase))
-			{
-				GPUArchitectures.Add("-gl4");
+				GPUArchitectures.Add("-esdeferred");
 			}
 			if (GPUArchitectures.Count == 0)
 			{
@@ -234,7 +229,7 @@ namespace UnrealBuildTool
 				case "es2":
 					GLESversion = "0x00020000";
 					break;
-				case "es31":
+				case "esdeferred":
 					GLESversion = "0x00030001";
 					break;
 				default:
@@ -925,13 +920,9 @@ namespace UnrealBuildTool
 						default: Arguments += " -DPLATFORM_64BITS=0 -DPLATFORM_ANDROID_ARM=1"; break;
 					}
 
-					if (GPUArchitecture == "-gl4")
+                    if (GPUArchitecture == "-esdeferred")
 					{
-						Arguments += " -DPLATFORM_ANDROIDGL4=1";
-					}
-					else if (GPUArchitecture == "-es31")
-					{
-						Arguments += " -DPLATFORM_ANDROIDES31=1";
+						Arguments += " -DPLATFORM_ANDROIDESDEFERRED=1";
 					}
 
 					// which PCH file to include

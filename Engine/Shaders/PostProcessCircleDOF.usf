@@ -186,7 +186,7 @@ void CircleDilatePS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_T
     //   d g
 	//   j M  (M={0,0} point)
 
-	#if COMPILER_GLSL || COMPILER_GLSL_ES2 || FEATURE_LEVEL < FEATURE_LEVEL_SM5
+	#if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || FEATURE_LEVEL < FEATURE_LEVEL_SM5
 		float2 UV = UVAndScreenPos.xy + 0.5*PostprocessInput0Size.zw;
 		// This leverages nearest sampling (bilinear won't work).
 		// Probably not the best way to do this.

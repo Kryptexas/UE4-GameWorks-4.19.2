@@ -208,6 +208,10 @@ void FAndroidMisc::PlatformInit()
 			}
 		}
 	}
+
+	// Setup user specified thread affinity if any
+	extern void AndroidSetupDefaultThreadAffinity();
+	AndroidSetupDefaultThreadAffinity();
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
@@ -668,7 +672,22 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 
 bool FAndroidMisc::GetUseVirtualJoysticks()
 {
-	return !FParse::Param(FCommandLine::Get(),TEXT("joystick"));
+	// joystick on commandline means don't require virtual joysticks
+	if (FParse::Param(FCommandLine::Get(), TEXT("joystick")))
+	{
+		return false;
+	}
+
+	// Amazon Fire TV doesn't require virtual joysticks
+	if (FAndroidMisc::GetDeviceMake() == FString("Amazon"))
+	{
+		if (FAndroidMisc::GetDeviceModel().StartsWith(TEXT("AFT")))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 TArray<uint8> FAndroidMisc::GetSystemFontBytes()

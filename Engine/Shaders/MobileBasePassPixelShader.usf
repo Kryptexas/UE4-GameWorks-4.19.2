@@ -263,7 +263,7 @@ half3 FrameBufferBlendOp(half4 Source)
 {
 #if (COMPILER_GLSL_ES2)
 	half4 Dest = FramebufferFetchES2();
-	Dest.rgb = Decode32BPPHDR(Dest);
+	Dest.rgb = Decode32BPPHDR(Dest).rgb;
 #else
 	half4 Dest = half4 (0,0,0,0);
 #endif
@@ -421,10 +421,10 @@ void Main(
 		// Cascaded Shadow Map
 		{
 			FPCFSamplerSettings Settings;
-			Settings.ShadowDepthTexture = View.DirectionalLightShadowTexture;
-			Settings.ShadowDepthTextureSampler = View.DirectionalLightShadowSampler;
-			Settings.TransitionScale = View.DirectionalLightShadowTransition;
-			Settings.ShadowBufferSize = View.DirectionalLightShadowSize;
+			Settings.ShadowDepthTexture = MobileDirectionalLight.DirectionalLightShadowTexture;
+			Settings.ShadowDepthTextureSampler = MobileDirectionalLight.DirectionalLightShadowSampler;
+			Settings.TransitionScale = MobileDirectionalLight.DirectionalLightShadowTransition;
+			Settings.ShadowBufferSize = MobileDirectionalLight.DirectionalLightShadowSize;
 			Settings.bSubsurface = false;
 			Settings.DensityMulConstant = 0;
 			Settings.ProjectionDepthBiasParameters = 0;
@@ -433,9 +433,9 @@ void Main(
 			for (int i = 0; i < MAX_MOBILE_SHADOWCASCADES; i++)
 			{
 				if (i == (MAX_MOBILE_SHADOWCASCADES - 1) // ignore test for last shadow map.
-					|| MaterialParameters.ScreenPosition.w < View.DirectionalLightShadowDistances[i])
+					|| MaterialParameters.ScreenPosition.w < MobileDirectionalLight.DirectionalLightShadowDistances[i])
 				{
-					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[i]);
+					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), MobileDirectionalLight.DirectionalLightScreenToShadow[i]);
 					break; // position found.
 				}
 			}
@@ -459,13 +459,13 @@ void Main(
 		}
 		#endif /* DIRECTIONAL_LIGHT_CSM */
 
-		float NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
-		float RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
+		float NoL = max(0, dot(MaterialParameters.WorldNormal, MobileDirectionalLight.DirectionalLightDirection));
+		float RoL = max(0, dot(MaterialParameters.ReflectionVector, MobileDirectionalLight.DirectionalLightDirection));
 
 		#if FULLY_ROUGH
-			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * DiffuseColor;
+			Color += (Shadow * NoL) * MobileDirectionalLight.DirectionalLightColor.rgb * DiffuseColor;
 		#else
-			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
+			Color += (Shadow * NoL) * MobileDirectionalLight.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
 			// Environment map has been prenormalized, scale by lightmap luminance
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness) * IndirectIrradiance;
 			#if MATERIAL_PLANAR_FORWARD_REFLECTIONS

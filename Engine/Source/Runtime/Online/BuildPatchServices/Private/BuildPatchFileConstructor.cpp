@@ -557,7 +557,7 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 	}
 #endif
 	
-#if PLATFORM_ANDROID || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+#if PLATFORM_ANDROID || PLATFORM_ANDROIDESDEFERRED
 	if (bSuccess)
 	{
 		IFileManager::Get().SetTimeStamp(*NewFilename, FDateTime::UtcNow());

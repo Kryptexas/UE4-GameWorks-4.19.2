@@ -169,7 +169,7 @@ namespace ELauncherProfileValidationErrors
 		/** Generating Chunks requires UnrealPak */
 		GeneratingChunksRequiresUnrealPak,
 
-		/** Generating http chunk install data requires generating chunks */
+		/** Generating http chunk install data requires generating chunks or DLC*/
 		GeneratingHttpChunkDataRequiresGeneratingChunks,
 
 		/** Generating http chunk install data requires valid install directorys and release name */
@@ -180,6 +180,9 @@ namespace ELauncherProfileValidationErrors
 
 		/** Cook on the fly doesn't support server target platforms */
 		CookOnTheFlyDoesntSupportServer,
+
+		/** The archive step requires a directory to be specified */
+		NoArchiveDirectorySpecified,
 	};
 }
 
@@ -618,6 +621,21 @@ public:
 	 * @see SetPackageDirectory
 	 */
 	virtual FString GetPackageDirectory( ) const = 0;
+
+	/**
+	 * Whether to archive build
+	 *
+	 * @see SetArchive
+	 */
+	virtual bool IsArchiving( ) const = 0;
+
+	/**
+	 * Gets the archive directory.
+	 *
+	 * @return The archive directory.
+	 * @see SetArchiveDirectory
+	 */
+	virtual FString GetArchiveDirectory( ) const = 0;
 
 	/**
 	 * Checks whether the profile specifies a project.
@@ -1074,6 +1092,21 @@ public:
 	 * @see GetPackageDirectory
 	 */
 	virtual void SetPackageDirectory( const FString& Dir ) = 0;
+
+	/**
+	 * Sets whether to archive build
+	 *
+	 * @see GetArchiveMode
+	 */
+	virtual void SetArchive( bool bArchive ) = 0;
+
+	/**
+	 * Sets the archive directory.
+	 *
+	 * @param Dir The archive directory to set.
+	 * @see GetArchiveDirectory
+	 */
+	virtual void SetArchiveDirectory( const FString& Dir ) = 0;
 
 	/**
 	 * Sets whether this profile specifies the a project.

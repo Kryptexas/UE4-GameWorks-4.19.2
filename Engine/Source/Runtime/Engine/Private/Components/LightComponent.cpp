@@ -286,7 +286,7 @@ bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
 	return HasStaticShadowing() && !HasStaticLighting();
 }
 
-/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+/** Whether this light should create CSM for dynamic objects only (mobile renderer) */
 bool FLightSceneProxy::UseCSMForDynamicObjects() const
 {
 	return false;

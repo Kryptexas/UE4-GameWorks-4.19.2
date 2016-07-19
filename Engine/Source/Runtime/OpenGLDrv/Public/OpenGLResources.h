@@ -31,7 +31,7 @@ namespace OpenGLConsoleVariables
 	extern int32 bBindlessTexture;
 };
 
-#if PLATFORM_WINDOWS || PLATFORM_ANDROIDES31
+#if PLATFORM_WINDOWS || PLATFORM_ANDROIDESDEFERRED
 #define RESTRICT_SUBDATA_SIZE 1
 #else 
 #define RESTRICT_SUBDATA_SIZE 0
@@ -820,7 +820,7 @@ public:
 		return bIsPowerOfTwo != 0;
 	}
 
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 	GLuint GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels);
 #endif
 

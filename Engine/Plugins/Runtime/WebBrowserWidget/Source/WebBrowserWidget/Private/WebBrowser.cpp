@@ -33,6 +33,14 @@ void UWebBrowser::LoadString(FString Contents, FString DummyURL)
 	}
 }
 
+void UWebBrowser::ExecuteJavascript(const FString& ScriptText)
+{
+	if (WebBrowserWidget.IsValid())
+	{
+		return WebBrowserWidget->ExecuteJavascript(ScriptText);
+	}
+}
+
 FText UWebBrowser::GetTitleText() const
 {
 	if ( WebBrowserWidget.IsValid() )

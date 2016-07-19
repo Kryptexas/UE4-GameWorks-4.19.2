@@ -13,6 +13,10 @@ SSessionBrowser::~SSessionBrowser()
 {
 	if (SessionManager.IsValid())
 	{
+		for (auto& SessionInfo : AvailableSessions)
+		{
+			SessionInfo->OnInstanceDiscovered().RemoveAll(this);
+		}
 		SessionManager->OnInstanceSelectionChanged().RemoveAll(this);
 		SessionManager->OnSelectedSessionChanged().RemoveAll(this);
 		SessionManager->OnSessionsUpdated().RemoveAll(this);
@@ -223,19 +227,9 @@ void SSessionBrowser::FilterSessions()
 				InstanceItem = MakeShareable(new FSessionBrowserInstanceTreeItem(InstanceInfo.ToSharedRef()));
 			}
 
-			NewItemMap.Add(InstanceInfo->GetInstanceId(), InstanceItem);
+			AddInstanceItemToTree(SessionItem, InstanceItem, InstanceInfo);
 
-			// add instance to group or session
-			if (FApp::IsThisInstance(InstanceInfo->GetInstanceId()))
-			{
-				AppGroupItem->AddChild(InstanceItem.ToSharedRef());
-				InstanceItem->SetParent(AppGroupItem);
-			}
-			else
-			{
-				InstanceItem->SetParent(SessionItem);
-				SessionItem->AddChild(InstanceItem.ToSharedRef());
-			}
+			NewItemMap.Add(InstanceInfo->GetInstanceId(), InstanceItem);
 		}
 	}
 
@@ -245,10 +239,35 @@ void SSessionBrowser::FilterSessions()
 	SessionTreeView->RequestTreeRefresh();
 }
 
+ void SSessionBrowser::AddInstanceItemToTree(TSharedPtr<FSessionBrowserTreeItem>& SessionItem, const TSharedPtr<FSessionBrowserTreeItem>& InstanceItem, const TSharedPtr<ISessionInstanceInfo>& InstanceInfo)
+{
+	// add instance to group or session
+	if (FApp::IsThisInstance(InstanceInfo->GetInstanceId()))
+	{
+		AppGroupItem->AddChild(InstanceItem.ToSharedRef());
+		InstanceItem->SetParent(AppGroupItem);
+	}
+	else
+	{
+		InstanceItem->SetParent(SessionItem);
+		SessionItem->AddChild(InstanceItem.ToSharedRef());
+	}
+}
 
 void SSessionBrowser::ReloadSessions()
 {
+	for (auto& SessionInfo : AvailableSessions)
+	{
+		SessionInfo->OnInstanceDiscovered().RemoveAll(this);
+	}
+
 	SessionManager->GetSessions(AvailableSessions);
+
+	for (auto& SessionInfo : AvailableSessions)
+	{
+		SessionInfo->OnInstanceDiscovered().AddSP(this, &SSessionBrowser::HandleSessionManagerInstanceDiscovered);
+	}
+
 	FilterSessions();
 }
 
@@ -293,12 +312,30 @@ void SSessionBrowser::HandleSessionManagerSelectedSessionChanged(const ISessionI
 	IgnoreSessionTreeEvents = false;
 }
 
+void SSessionBrowser::HandleSessionManagerInstanceDiscovered(const TSharedRef<ISessionInfo>& OwnerSession, const TSharedRef<ISessionInstanceInfo>& DiscoveredInstance)
+{
+	TSharedPtr<FSessionBrowserTreeItem> SessionItem = ItemMap.FindRef(OwnerSession->GetSessionId());
+	if (SessionItem.IsValid())
+	{
+		// add the item if it's not already there
+		TSharedPtr<FSessionBrowserTreeItem> InstanceItem = ItemMap.FindRef(DiscoveredInstance->GetInstanceId());
+		if (!InstanceItem.IsValid())
+		{
+			InstanceItem = MakeShareable(new FSessionBrowserInstanceTreeItem(DiscoveredInstance));
+
+			AddInstanceItemToTree(SessionItem, InstanceItem, DiscoveredInstance);
+			ItemMap.Add(DiscoveredInstance->GetInstanceId(), InstanceItem);
+
+			// refresh tree view
+			SessionTreeView->RequestTreeRefresh();
+		}
+	}
+}
 
 void SSessionBrowser::HandleSessionManagerSessionsUpdated()
 {
 	ReloadSessions();
 }
-
 
 FText SSessionBrowser::HandleSessionTreeRowGetToolTipText(TSharedPtr<FSessionBrowserTreeItem> Item) const
 {
@@ -426,9 +463,9 @@ void SSessionBrowser::HandleSessionTreeViewSelectionChanged(const TSharedPtr<FSe
 				}
 			}
 		}
-		else
+
 		{
-			// an instance got deselected
+			// check if any instances are no longer selected
 			TArray<ISessionInstanceInfoPtr> UnselectedSessions;
 			for (const auto& InstanceInfo : SessionManager->GetSelectedInstances())
 			{

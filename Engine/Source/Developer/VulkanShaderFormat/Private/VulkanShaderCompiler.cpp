@@ -870,7 +870,7 @@ static FString CreateShaderCompileCommandLine(FCompilerInfo& CompilerInfo, EHlsl
 	FString SPVDisasmFile = CompilerInfo.Input.DumpDebugInfoPath / TEXT("Output.spvasm");
 
 	FString DumpedUSFFile = CompilerInfo.Input.DumpDebugInfoPath / (CompilerInfo.BaseSourceFilename + TEXT(".usf"));
-	const TCHAR* VersionSwitch = TEXT("-es31");
+	const TCHAR* VersionSwitch = TEXT("-esdeferred");
 	switch (Target)
 	{
 	case HCT_FeatureLevelES3_1Ext:

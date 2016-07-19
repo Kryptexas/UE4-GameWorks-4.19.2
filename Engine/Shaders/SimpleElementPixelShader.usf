@@ -64,7 +64,7 @@ float3 SimpleElementFrameBufferBlendOp(float4 Source)
 {
 #if (COMPILER_GLSL_ES2)
 	half4 Dest = FramebufferFetchES2();
-	Dest.rgb = Decode32BPPHDR(Dest);
+	Dest.rgb = Decode32BPPHDR(Dest).rgb;
 #else
 	half4 Dest = half4(0, 0, 0, 0);
 #endif

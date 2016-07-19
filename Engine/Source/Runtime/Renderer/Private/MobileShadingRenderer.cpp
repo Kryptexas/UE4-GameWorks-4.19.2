@@ -24,7 +24,6 @@ FMobileSceneRenderer::FMobileSceneRenderer(const FSceneViewFamily* InViewFamily,
 	:	FSceneRenderer(InViewFamily, HitProxyConsumer)
 {
 	bModulatedShadowsInUse = false;
-	bCSMShadowsInUse = false;
 }
 
 /**
@@ -42,7 +41,7 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup(ILCTaskData);
 
-	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
+	const bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
 
 	if (bDynamicShadows && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
@@ -59,25 +58,11 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 	// initialize per-view uniform buffer.  Pass in shadow info as necessary.
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo = nullptr;
-
-		FViewInfo& ViewInfo = Views[ViewIndex];
-		FScene* ViewScene = (FScene*)ViewInfo.Family->Scene;
-		if (bDynamicShadows && ViewScene->SimpleDirectionalLight)
-		{
-			int32 LightId = ViewScene->SimpleDirectionalLight->Id;
-			if (VisibleLightInfos.IsValidIndex(LightId))
-			{
-				const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightId];
-				if (VisibleLightInfo.AllProjectedShadows.Num() > 0)
-				{
-					DirectionalLightShadowInfo = &VisibleLightInfo.AllProjectedShadows;
-				}
-			}
-		}
-
 		// Initialize the view's RHI resources.
-		Views[ViewIndex].InitRHIResources(DirectionalLightShadowInfo);
+		Views[ViewIndex].InitRHIResources();
+
+		// Create the directional light uniform buffers
+		CreateDirectionalLightUniformBuffers(Views[ViewIndex]);
 	}
 
 	// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
@@ -356,4 +341,51 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 		}
 	}
 #endif //!PLATFORM_HTML5
+}
+
+void FMobileSceneRenderer::CreateDirectionalLightUniformBuffers(FSceneView& SceneView)
+{
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows;
+
+	// First array entry is used for primitives with no lighting channel set
+	SceneView.MobileDirectionalLightUniformBuffers[0] = TUniformBufferRef<FMobileDirectionalLightShaderParameters>::CreateUniformBufferImmediate(FMobileDirectionalLightShaderParameters(), UniformBuffer_SingleFrame);
+
+	// Fill in the other entries based on the lights
+	for (int32 ChannelIdx = 0; ChannelIdx < ARRAY_COUNT(Scene->MobileDirectionalLights); ChannelIdx++)
+	{
+		FMobileDirectionalLightShaderParameters Params;
+
+		FLightSceneInfo* Light = Scene->MobileDirectionalLights[ChannelIdx];
+		if (Light)
+		{
+			Params.DirectionalLightColor = Light->Proxy->GetColor() / PI;
+			Params.DirectionalLightDirection = -Light->Proxy->GetDirection();
+
+			if (bDynamicShadows && VisibleLightInfos.IsValidIndex(Light->Id) && VisibleLightInfos[Light->Id].AllProjectedShadows.Num() > 0)
+			{
+				const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& DirectionalLightShadowInfos = VisibleLightInfos[Light->Id].AllProjectedShadows;
+
+				static_assert(MAX_MOBILE_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
+				{
+					const FProjectedShadowInfo* ShadowInfo = DirectionalLightShadowInfos[0];
+					const FIntPoint ShadowBufferResolution = ShadowInfo->GetShadowBufferResolution();
+					const FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
+
+					Params.DirectionalLightShadowTexture = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+					Params.DirectionalLightShadowTransition = 1.0f / ShadowInfo->ComputeTransitionSize();
+					Params.DirectionalLightShadowSize = ShadowBufferSizeValue;
+				}
+
+				const int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfos.Num(), MAX_MOBILE_SHADOWCASCADES);
+				for (int32 i = 0; i < NumShadowsToCopy; ++i)
+				{
+					const FProjectedShadowInfo* ShadowInfo = DirectionalLightShadowInfos[i];
+					Params.DirectionalLightScreenToShadow[i] = ShadowInfo->GetScreenToShadowMatrix(SceneView);
+					Params.DirectionalLightShadowDistances[i] = ShadowInfo->CascadeSettings.SplitFar;
+				}
+			}
+		}
+
+		SceneView.MobileDirectionalLightUniformBuffers[ChannelIdx + 1] = TUniformBufferRef<FMobileDirectionalLightShaderParameters>::CreateUniformBufferImmediate(Params, UniformBuffer_SingleFrame);
+	}
 }

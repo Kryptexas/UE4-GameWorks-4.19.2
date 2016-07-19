@@ -2,7 +2,7 @@
 
 
 /*=============================================================================
-	AndroidGL4OpenGL.h: Public OpenGL ES definitions for Android-specific functionality
+	AndroidESDeferredOpenGL.h: Public OpenGL ES definitions for Android-specific functionality
 =============================================================================*/
 
 // We support SM5 feature level on Android.
@@ -250,9 +250,9 @@ GL_APICALL void GL_APIENTRY glGetVertexAttribLui64vNV(GLuint index, GLenum pname
 #define DECLARE_GL_ENTRYPOINTS(Type,Func) extern Type Func;
 ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
 
-#include "OpenGLES31.h"
+#include "OpenGLESDeferred.h"
 
-struct FAndroidES31OpenGL : public FOpenGLES31
+struct FAndroidESDeferredOpenGL : public FOpenGLESDeferred
 {
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{
@@ -541,4 +541,4 @@ struct FAndroidES31OpenGL : public FOpenGLES31
 	static bool bSupportsBindlessTexture;
 };
 
-typedef FAndroidES31OpenGL FOpenGL;
+typedef FAndroidESDeferredOpenGL FOpenGL;

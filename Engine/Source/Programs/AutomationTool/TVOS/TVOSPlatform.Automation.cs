@@ -22,7 +22,7 @@ public class TVOSPlatform : IOSPlatform
 		return new UnrealBuildTool.UEDeployTVOS(InProject);
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		return "TVOS";
 	}
@@ -60,7 +60,7 @@ public class TVOSPlatform : IOSPlatform
                 //				if (!File.Exists(TargetPListFile))
                 {
                     // ensure the plist, entitlements, and provision files are properly copied
-                    Console.WriteLine("CookPlat {0}, this {1}", GetCookPlatform(false, false, ""), ToString());
+                    Console.WriteLine("CookPlat {0}, this {1}", GetCookPlatform(false, false), ToString());
                     if (!SC.IsCodeBasedProject)
                     {
                         UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);

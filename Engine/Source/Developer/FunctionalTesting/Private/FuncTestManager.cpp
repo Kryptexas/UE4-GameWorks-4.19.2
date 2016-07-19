@@ -40,12 +40,14 @@ void FFuncTestManager::RunAllTestsOnMap(bool bClearLog, bool bRunLooped)
 			TestWorld = Context.World();
 		}
 	}
-
 #endif
 	if (!TestWorld)
 	{
 		TestWorld = GWorld;
-		UE_LOG(LogFunctionalTest, Warning, TEXT("Functional Test using GWorld.  Not correct for PIE"));
+		if (GIsEditor)
+		{
+			UE_LOG(LogFunctionalTest, Warning, TEXT("Functional Test using GWorld.  Not correct for PIE"));
+		}
 	}
 
 	if (TestWorld)

@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#if PLATFORM_ANDROIDES31
+#if PLATFORM_ANDROIDESDEFERRED
 /*=============================================================================
-	AndroidGL4OpenGL.cpp: Manual loading of OpenGL functions from DLL.
+	AndroidESDeferredOpenGL.cpp: Manual loading of OpenGL functions from DLL.
 =============================================================================*/
 
 #include "OpenGLDrvPrivate.h"
@@ -30,11 +30,11 @@ ENUM_GL_ENTRYPOINTS_OPTIONAL(DEFINE_GL_ENTRYPOINTS)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool FAndroidES31OpenGL::bSupportsBindlessTexture = false;
+bool FAndroidESDeferredOpenGL::bSupportsBindlessTexture = false;
 
-void FAndroidES31OpenGL::ProcessExtensions(const FString& ExtensionsString)
+void FAndroidESDeferredOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
-	FOpenGLES31::ProcessExtensions(ExtensionsString);
+	FOpenGLESDeferred::ProcessExtensions(ExtensionsString);
 
 	bSupportsBindlessTexture = ExtensionsString.Contains(TEXT("GL_NV_bindless_texture"));
 

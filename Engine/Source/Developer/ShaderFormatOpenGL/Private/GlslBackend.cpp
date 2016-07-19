@@ -75,7 +75,42 @@ static inline FCustomStdString FixHlslName(const glsl_type* Type)
 	{
 		return "vec4";
 	}
-
+	else if (Type == glsl_type::half2x2_type)
+	{
+		return "mat2";
+	}
+	else if (Type == glsl_type::half2x3_type)
+	{
+		return "mat2x3";
+	}
+	else if (Type == glsl_type::half2x4_type)
+	{
+		return "mat2x4";
+	}
+	else if (Type == glsl_type::half3x2_type)
+	{
+		return "mat3x2";
+	}
+	else if (Type == glsl_type::half3x3_type)
+	{
+		return "mat3";
+	}
+	else if (Type == glsl_type::half3x4_type)
+	{
+		return "mat3x4";
+	}
+	else if (Type == glsl_type::half4x2_type)
+	{
+		return "mat4x2";
+	}
+	else if (Type == glsl_type::half4x3_type)
+	{
+		return "mat4x3";
+	}
+	else if (Type == glsl_type::half4x4_type)
+	{
+		return "mat4";
+	}
 	return Name;
 }
 
@@ -416,7 +451,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 }
 
 // Returns true if the passed 'intrinsic' is used
-static bool UsesUEIntrinsic(exec_list* Instructions, const char * UEIntrinsic)
+static bool UsesUEIntrinsic(exec_list* Instructions, const char* UEIntrinsic)
 {
 	struct SFindUEIntrinsic : public ir_hierarchical_visitor
 	{
@@ -2869,10 +2904,21 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 		if (bUsesES31Extensions)
 		{
+			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_gpu_shader5\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_gpu_shader5 : enable\n");
+			ralloc_asprintf_append(buffer, "\n#endif\n");
+			
+			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_texture_buffer\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_texture_buffer : enable\n");
+			ralloc_asprintf_append(buffer, "\n#endif\n");
+
+			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_texture_cube_map_array\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_texture_cube_map_array : enable\n");
+			ralloc_asprintf_append(buffer, "\n#endif\n");
+
+			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_io_blocks\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_io_blocks : enable\n");
+			ralloc_asprintf_append(buffer, "\n#endif\n");
 
 			if (ShaderTarget == geometry_shader)
 			{
@@ -3219,7 +3265,7 @@ char* FGlslCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* stat
 	const bool bGroupFlattenedUBs = ((HlslCompileFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
 	const bool bGenerateLayoutLocations = state->bGenerateLayoutLocations;
 	const bool bEmitPrecision = (Target == HCT_FeatureLevelES2 || Target == HCT_FeatureLevelES3_1 || Target == HCT_FeatureLevelES3_1Ext);
-	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, (Target == HCT_FeatureLevelES3_1Ext), state->target, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
+	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, (Target == HCT_FeatureLevelES3_1Ext || Target == HCT_FeatureLevelES3_1), state->target, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs);
 	return _strdup(code);
 }
@@ -3230,9 +3276,12 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
 	const bool bIsVertexShader;
-	SPromoteSampleLevelES2(_mesa_glsl_parse_state* InParseState, bool bInIsVertexShader) :
+	bool bIsES2;
+
+	SPromoteSampleLevelES2(_mesa_glsl_parse_state* InParseState, bool bInIsVertexShader, bool bInIsES2) :
 		ParseState(InParseState),
-		bIsVertexShader(bInIsVertexShader)
+		bIsVertexShader(bInIsVertexShader),
+		bIsES2(bInIsES2)
 	{
 	}
 
@@ -3240,7 +3289,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 	{
 		if (IR->op == ir_txl)
 		{
-			if (bIsVertexShader)
+			if (bIsVertexShader && bIsES2)
 			{
 				YYLTYPE loc;
 				loc.first_column = IR->SourceLocation.Column;
@@ -3354,7 +3403,7 @@ bool FGlslCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instruction
 
 		// Handle SampleLevel
 		{
-			SPromoteSampleLevelES2 Visitor(ParseState, bIsVertexShader);
+			SPromoteSampleLevelES2 Visitor(ParseState, bIsVertexShader, Target == HCT_FeatureLevelES2);
 			Visitor.run(Instructions);
 		}
 

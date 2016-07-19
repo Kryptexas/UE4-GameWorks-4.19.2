@@ -220,6 +220,18 @@ static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxy
 	}
 }
 
+static FString Join(const TSet<FString>& Tokens, const FString& Delimeter)
+{
+	FString Result;
+	for (const FString& Token : Tokens)
+	{
+		Result+= Delimeter;
+		Result+= Token;
+	}
+
+	return Result.RightChop(Delimeter.Len());
+}
+
 FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile, const TArray<FString>& InPlatforms, TArray<FCommandDesc>& OutCommands, FString& CommandStart )
 {
 	CommandStart = TEXT("");
@@ -245,7 +257,9 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	FString Platforms = TEXT("");
 	FString PlatformCommand = TEXT("");
 	FString OptionalParams = TEXT("");
-
+	TSet<FString> OptionalTargetPlatforms;
+	TSet<FString> OptionalCookFlavors;
+	
 	bool bUATClosesAfterLaunch = false;
 	for (int32 PlatformIndex = 0; PlatformIndex < InPlatforms.Num(); ++PlatformIndex)
 	{
@@ -286,8 +300,24 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		// Append any extra UAT flags specified for this platform flavor
 		if (!PlatformInfo->UATCommandLine.IsEmpty())
 		{
+			FString OptionalUATCommandLine = PlatformInfo->UATCommandLine;
+			
+			FString OptionalTargetPlatform;
+			if (FParse::Value(*OptionalUATCommandLine, TEXT("-targetplatform="), OptionalTargetPlatform))
+			{
+				OptionalTargetPlatforms.Add(OptionalTargetPlatform);
+				OptionalUATCommandLine.ReplaceInline(*(TEXT("-targetplatform=") + OptionalTargetPlatform), TEXT(""));
+			}
+
+			FString OptionalCookFlavor;
+			if (FParse::Value(*OptionalUATCommandLine, TEXT("-cookflavor="), OptionalCookFlavor))
+			{
+				OptionalCookFlavors.Add(OptionalCookFlavor);
+				OptionalUATCommandLine.ReplaceInline(*(TEXT("-cookflavor=") + OptionalCookFlavor), TEXT(""));
+			}
+			
 			OptionalParams += TEXT(" ");
-			OptionalParams += PlatformInfo->UATCommandLine;
+			OptionalParams += OptionalUATCommandLine;
 		}
 
 		bUATClosesAfterLaunch |= PlatformInfo->bUATClosesAfterLaunch;
@@ -305,10 +335,20 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	{
 		PlatformCommand = TEXT(" -platform=") + Platforms.RightChop(1);
 	}
-
+	
 	UATCommand += PlatformCommand;
 	UATCommand += ServerCommand;
 	UATCommand += OptionalParams;
+
+	if (OptionalTargetPlatforms.Num() > 0)
+	{
+		UATCommand += (TEXT(" -targetplatform=") + Join(OptionalTargetPlatforms, TEXT("+")));
+	}
+	
+	if (OptionalCookFlavors.Num() > 0)
+	{
+		UATCommand += (TEXT(" -cookflavor=") + Join(OptionalCookFlavors, TEXT("+")));
+	}
 
 	// device list
 	FString DeviceNames = TEXT("");
@@ -451,6 +491,12 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			{
 				auto Cmd = FString::Printf(TEXT(" -createchunkinstall -chunkinstalldirectory=\"%s\" -chunkinstallversion=\"%s\""), *InProfile->GetHttpChunkDataDirectory(), *InProfile->GetHttpChunkDataReleaseName());
 				UATCommand += Cmd;
+			}
+			
+			// Creating a packed DLC requires staging
+			if (InProfile->GetPackagingMode() == ELauncherProfilePackagingModes::DoNotPackage && InProfile->IsCreatingDLC() && InProfile->IsPackingWithUnrealPak())
+			{
+				UATCommand += TEXT(" -stage");
 			}
 
 			if (InProfile->GetNumCookersToSpawn() > 0)
@@ -613,6 +659,24 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			if (CommandStart.Len() == 0)
 			{
 				CommandStart = TEXT("********** STAGE COMMAND STARTED **********");
+			}
+		}
+
+		if (InProfile->IsArchiving())
+		{
+			UATCommand += TEXT(" -archive");
+			UATCommand += TEXT(" -archivedirectory=");
+			UATCommand += Profile->GetArchiveDirectory();
+
+			FCommandDesc Desc;
+			FText Command = FText::Format(LOCTEXT("LauncherArchiveDesc", "Archiving content for {0}"), FText::FromString(Platforms.RightChop(1)));
+			Desc.Name = "Archive Task";
+			Desc.Desc = Command.ToString();
+			Desc.EndText = TEXT("********** ARCHIVE COMMAND COMPLETED **********");
+			OutCommands.Add(Desc);
+			if (CommandStart.Len() == 0)
+			{
+				CommandStart = TEXT("********** ARCHIVE COMMAND STARTED **********");
 			}
 		}
 	}

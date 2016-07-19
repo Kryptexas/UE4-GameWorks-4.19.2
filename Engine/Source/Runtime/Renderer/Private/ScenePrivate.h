@@ -1796,11 +1796,16 @@ public:
 	TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& GetBasePassDrawList(EBasePassDrawListType DrawType);
 
 	/** Mobile base pass draw lists */
-	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy,0> > MobileBasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> > MobileBasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> > MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_MAX];
+
 
 	/** Maps a light-map type to the appropriate base pass draw list. */
 	template<typename LightMapPolicyType>
 	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType,0> >& GetMobileBasePassDrawList(EBasePassDrawListType DrawType);
+
+	template<typename LightMapPolicyType>
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType, 0> >& GetMobileBasePassCSMDrawList(EBasePassDrawListType DrawType);
 
 	/**
 	 * The following arrays are densely packed primitive data needed by various
@@ -1854,6 +1859,9 @@ public:
 
 	/** The directional light to use for simple dynamic lighting, if any. */
 	FLightSceneInfo* SimpleDirectionalLight;
+
+	/** For the mobile renderer, the first directional light in each lighting channel. */
+	FLightSceneInfo* MobileDirectionalLights[NUM_LIGHTING_CHANNELS];
 
 	/** The sun light for atmospheric effect, if any. */
 	FLightSceneInfo* SunLight;

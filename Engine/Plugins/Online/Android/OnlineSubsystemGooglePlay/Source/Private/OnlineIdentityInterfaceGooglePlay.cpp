@@ -8,6 +8,7 @@ FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay*
 	: bPrevLoggedIn(false)
 	, bLoggedIn(false)
 	, PlayerAlias("NONE")
+	, AuthToken("NONE")
 	, MainSubsystem(InSubsystem)
 	, bRegisteringUser(false)
 	, bLoggingInUser(false)
@@ -101,6 +102,11 @@ ELoginStatus::Type FOnlineIdentityGooglePlay::GetLoginStatus(const FUniqueNetId&
 
 TSharedPtr<const FUniqueNetId> FOnlineIdentityGooglePlay::GetUniquePlayerId(int32 LocalUserNum) const
 {
+	if (UniqueNetId.IsValid())
+	{
+		return UniqueNetId;
+	}
+
 	TSharedPtr<const FUniqueNetId> NewID = MakeShareable(new FUniqueNetIdString(""));
 	return NewID;
 }
@@ -141,9 +147,8 @@ FString FOnlineIdentityGooglePlay::GetPlayerNickname(const FUniqueNetId& UserId)
 
 FString FOnlineIdentityGooglePlay::GetAuthToken(int32 LocalUserNum) const
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetAuthToken not implemented"));
-	FString ResultToken;
-	return ResultToken;
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetAuthToken"));
+	return AuthToken;
 }
 
 void FOnlineIdentityGooglePlay::Tick(float DeltaTime)
@@ -192,4 +197,9 @@ void FOnlineIdentityGooglePlay::SetPlayerDataFromFetchSelfResponse(const gpg::Pl
 	FString PlayerId(PlayerData.Id().c_str());
 	UniqueNetId = MakeShareable(new FUniqueNetIdString(PlayerId));
 	PlayerAlias = PlayerData.Name().c_str();
+}
+
+void FOnlineIdentityGooglePlay::SetAuthTokenFromGoogleConnectResponse(const FString& NewAuthToken)
+{
+	AuthToken = NewAuthToken;
 }

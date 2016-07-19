@@ -757,23 +757,38 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 {
 	// populate tree structure of the root folder
 	StaticTileList.Empty();
-
-	UWorldComposition* WorldComposition = CurrentWorld->WorldComposition;
+	UWorld* ThisWorld = CurrentWorld.Get();
+	UWorldComposition* WorldComposition = ThisWorld ? ThisWorld->WorldComposition : nullptr;
 	if (WorldComposition)
 	{
 		// Force rescanning world composition tiles
 		WorldComposition->Rescan();
 		
 		// Initialize root level
-		TSharedPtr<FWorldTileModel> Item = AddLevelFromTile(INDEX_NONE);
-		Item->SetLevelExpansionFlag(true);
-		RootLevelsList.Add(Item);
-		
+		TSharedPtr<FWorldTileModel> RootLevelModel = MakeShareable(new FWorldTileModel(*this, INDEX_NONE));
+		RootLevelModel->SetLevelExpansionFlag(true);
+
+		AllLevelsList.Add(RootLevelModel);
+		AllLevelsMap.Add(RootLevelModel->TileDetails->PackageName, RootLevelModel);
+		RootLevelsList.Add(RootLevelModel);
+				
 		// Initialize child tiles
 		auto TileList = WorldComposition->GetTilesList();
 		for (int32 TileIdx = 0; TileIdx < TileList.Num(); ++TileIdx)
 		{
-			auto LevelModel = AddLevelFromTile(TileIdx);
+			TSharedPtr<FWorldTileModel> TileLevelModel = MakeShareable(new FWorldTileModel(*this, TileIdx));
+			
+			// Make sure all sub-levels belong to our world
+			ULevel* TileLevelObject = TileLevelModel->GetLevelObject();
+			if (TileLevelObject && TileLevelObject->OwningWorld && 
+				TileLevelObject->OwningWorld != ThisWorld)
+			{
+				ThisWorld->RemoveFromWorld(TileLevelObject);
+				TileLevelObject->OwningWorld = ThisWorld;
+			}
+			
+			AllLevelsList.Add(TileLevelModel);
+			AllLevelsMap.Add(TileLevelModel->TileDetails->PackageName, TileLevelModel);
 		}
 		
 		SetupParentChildLinks();
@@ -787,15 +802,6 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 
 	// Sync levels selection to world
 	SetSelectedLevelsFromWorld();
-}
-
-TSharedPtr<FWorldTileModel> FWorldTileCollectionModel::AddLevelFromTile(int32 TileIdx)
-{
-	TSharedPtr<FWorldTileModel> LevelModel = MakeShareable(new FWorldTileModel(*this, TileIdx));
-	AllLevelsList.Add(LevelModel);
-	AllLevelsMap.Add(LevelModel->TileDetails->PackageName, LevelModel);
-	
-	return LevelModel;
 }
 
 void FWorldTileCollectionModel::PopulateLayersList()

@@ -29,6 +29,9 @@ public:
 	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
+	/** Callback from JNI when Google Client is connected */
+	void ProcessGoogleClientConnectResult(bool bInSuccessful, FString AccessToken);
+
 private:
 	/** The subsystem is the only class that should be calling OnAuthActionFinished */
 	friend class FOnlineSubsystemGooglePlay;
