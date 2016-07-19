@@ -89,3 +89,6 @@ You may need to enlarge the video to see the debug line or try it out in the edi
 | **Component Pose** | The incoming pose. |
 | **Alpha** | The current strength of the control. |
 
+**Look At** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Look At** node.
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
