@@ -36,7 +36,7 @@ Version: 4.9
 
 | 工具| 描述 | 快捷键 |
 | ---- | ----------- | ---- |
-| ![](LE_Tools_Placement.png) | 激活 [**放置** 模式](Engine/UI/LevelEditor/Modes/PlaceMode) 来在您的场景中放置 Actor。| **Shift + 1**|
+| ![](LE_Tools_Placement.png) | 激活 [**摆放** 模式](Engine/UI/LevelEditor/Modes/PlaceMode) 来在您的场景中放置或调整 Actor。| **Shift + 1**|
 | ![](LE_Tools_MeshPaint.png) | 切换 [**描画** 模式](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor) 来在视口中直接在静态网格物体Actor上描画顶点颜色和贴图。| **Shift + 2**|
 | ![](LE_Tools_Landscape.png) | 切换 [**地形** 模式](Engine/Landscape) 来编辑地貌地形。| **Shift + 3**|
 | ![](LE_Tools_Foliage.png) | 切换 [**植被** 模式](Engine/Foliage) 来描画实例化的植被。| **Shift + 4**|
