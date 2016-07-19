@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:Trail Controller
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how the Trail Controller node can be used affect a chain of bones.  
-version: 4.12
+Description:Trail Controller ノードを使ってボーンのチェーンに影響を与える方法を説明します。  
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,32 +39,32 @@ version: 4.12
 [/OBJECT]
 [/VAR]
 
-The **Trail Controller** can be used to affect a series of bones in a hierarchy.
+**Trail Controller** を使って階層内の一連のボーンに影響を与えることができます。
 
 ![](TrailController.png)
 
 
-| Property | Description |
+| プロパティ | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]**Trail**[/REGION] ||
-| **Trail Bone** | Reference to the active bone in the hierarchy to modify. |
-| **Chain Length** | Number of bones above the active one in the hierarcy to modify. **Chain Length** should be at least 2. |
-| **Chain Bone Axis** | Axis of the Bones to point along trail. |
-| **Invert Chain Bone Axis** | Whether or not to invert the direction specified in **Chain Bone Axis**. |
-| **Trail Relaxation Speed** | How quickly we "relax" the bones to their animated positions. Time 0 will map to top root joint, time 1 will map to the bottom joint.|
+| **Trail Bone** | 階層内で変更するアクティブなボーンへの参照です。 |
+| **Chain Length** | 階層内でアクティブなボーンよりも上に位置する変更すべきボーンの数です。**Chain Length** は、少なくとも 2 になります。 |
+| **Chain Bone Axis** | トレイルに沿ってポイントするボーンの軸です。 |
+| **Invert Chain Bone Axis** | **Chain Bone Axis** で指定された方向の反転を設定します。 |
+| **Trail Relaxation Speed** | アニメートされた位置にどれくらい速くボーンを落ち着かせるかを設定します。Time 0 は、一番上のルートジョイントにマッピングし、Time 1 は一番下のジョイントにマッピングします。|
 | [REGION:tablesection]**Limit**[/REGION] ||
-| **Limit Stretch** | Limit the amount that a bone can stretch from its ref-pose length. |
-| **Stretch Limit** | If **Limit Stretch** is true, this indicates how long a bone can stretch beyond its length in the ref-pose.|
+| **Limit Stretch** | ref-pose の長さからボーンをストレッチできる量を制限します。 |
+| **Stretch Limit** | **Limit Stretch** が true の場合、 ref-pose の長さを超えてボーンがどれくらいストレッチできるかを示します。|
 | [REGION:tablesection]**Velocity**[/REGION] ||
-| **Fake Velocity** | The "fake" velocity applied to bones. |
-| **Actor Space Fake Vel** | If "fake" velocity should be applied in Actor or World Space. |
-| **Base Joint** | Base Joint to calculate velocity from. If none, it will use Component's World Transform. |
+| **Fake Velocity** |ボーンに適用するフェイクのベロシティです。 |
+| **Actor Space Fake Vel** | フェイクのベロシティをアクタに適用するのか、またはワールド空間に適用するかを指定します。 |
+| **Base Joint** | そこからベロシティを計算するベース ジョイント。何もなければ、コンポーネントのワールド トランスフォームを使用します。 |
 
-| Pin | Description |
+| ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Component Pose** | The incoming pose. |
-| **Alpha** | The current strength of the control. |
+| **Component Pose** | 入力されるポーズです。 |
+| **Alpha** | 現在の制御の強さです。 |
 
 
 
