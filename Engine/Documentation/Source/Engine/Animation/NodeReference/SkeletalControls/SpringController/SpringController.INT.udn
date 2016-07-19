@@ -71,4 +71,8 @@ We then connect the nodes to include the Spring Controller that is targeting the
 | **Error Reset Thresh** | A threshold displacement - if the spring stretches more than this amount, it resets in order to avoid errors introduced by sudden, large displacements such as those caused by teleporting Actors. |
 | **No ZSpring** | If enabled, the displacement in the Z axis is ignored by the spring and is always correct. |
 
+**Spring Controller** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Spring Controller** node.
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
+
 

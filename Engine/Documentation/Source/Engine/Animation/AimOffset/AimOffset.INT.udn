@@ -97,8 +97,10 @@ This is solved with Mesh space rotation. Since rotation is based on the Skeletal
 
 Mesh space is set as a property of an Animation Sequence. Under the **Additive Settings** category, you will see the **Additive Anim Type** property. Setting this to Mesh Space will utilize the Mesh coordinate space as described. This is a fairly expensive blending operation, and should generally only be used by certain types of Blend Spaces where you know you need the animation to move in a constant direction, such as in the case of an Aim Offset.
 
+## Performance
 
+![](animOffsetNode.png)
 
+When an Aim Offset node is placed in the **Anim Graph** you can adjust their performance using the **LOD Threshold** property, introduced in 4.11, you can find the setting for this in the Details Panel for the **Aim Offset** node.
 
-
-
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]

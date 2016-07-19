@@ -30,6 +30,15 @@ Some pins and properties are common to all SkeletalControls. These are described
 | [REGION:tablesection]**Output Pins**[/REGION] ||
 | **Pose (Blank)** | The final pose after the Transform has been applied |
 
+[EXCERPT:LODThresh]
+![](perf.png)
+
+| Property | Description |
+| --- | --- |
+| **LOD Threshold** | This is the max Level of Detail (**LOD**) that this node is permitted to run on. For example: if you have LOD Threshold set to **2**, it will run until **LOD 2**, but disable itself once the component's LOD becomes **3**. |
+[/EXCERPT]
+
+
 ## Component Space
 
 [INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]

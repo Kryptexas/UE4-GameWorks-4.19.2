@@ -75,6 +75,9 @@ CDG4WcQ7cIY
 | **(As Pin) Alpha** | Enable/Disable the display of the Alpha pin on the node. |
 | **Alpha Scale Bias** | Set the minimal and maximal input scaling values. |
 
+**Bone Driven Controller** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Bone Driven Controller** node.
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 <!--
 [EXCERPT:LocationSpace]
