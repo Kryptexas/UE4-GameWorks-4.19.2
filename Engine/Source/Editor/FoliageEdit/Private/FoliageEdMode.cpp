@@ -3092,7 +3092,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 			{
 				if (!bToolActive)
 				{
-					StartFoliageBrushTrace(ViewportClient, nullptr);
+					StartFoliageBrushTrace(ViewportClient);
 
 					bHandled = true;
 				}

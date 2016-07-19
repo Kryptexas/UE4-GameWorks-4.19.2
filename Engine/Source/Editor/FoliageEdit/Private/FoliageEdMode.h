@@ -327,7 +327,7 @@ public:
 	void ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState);
 
 	/** Start foliage tracing */
-	void StartFoliageBrushTrace(FEditorViewportClient* ViewportClient, class UViewportInteractor* Interactor);
+	void StartFoliageBrushTrace(FEditorViewportClient* ViewportClient, class UViewportInteractor* Interactor = nullptr);
 
 	/* End foliage tracing*/
 	void EndFoliageBrushTrace();
