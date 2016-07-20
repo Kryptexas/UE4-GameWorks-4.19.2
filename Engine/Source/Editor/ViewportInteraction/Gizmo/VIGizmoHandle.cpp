@@ -356,8 +356,8 @@ void UAxisGizmoHandleGroup::UpdateHandlesRelativeTransformOnAxis( const FTransfo
 			for ( int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex )
 			{		
 				if ( AxisIndex != FacingAxisIndex &&
-					( GizmoSpaceFacingAxisOffset[ AxisIndex ] > 0 && GizmoSpaceViewLocation[ AxisIndex ] < 0 ) ||
-					( GizmoSpaceFacingAxisOffset[ AxisIndex ] < 0 && GizmoSpaceViewLocation[ AxisIndex ] > 0 ) )
+					( ( GizmoSpaceFacingAxisOffset[ AxisIndex ] > 0 && GizmoSpaceViewLocation[ AxisIndex ] < 0 ) ||
+					  ( GizmoSpaceFacingAxisOffset[ AxisIndex ] < 0 && GizmoSpaceViewLocation[ AxisIndex ] > 0 ) ) )
 				{
 					GizmoSpaceFacingAxisOffset[ AxisIndex ] *= -1.0f;
 				}	

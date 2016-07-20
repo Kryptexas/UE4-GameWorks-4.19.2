@@ -511,7 +511,7 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 
 		// Stop current tracking if the user is no longer painting
 		if( bIsPainting && !bUserWantsPaint &&
-			( InKey == EKeys::LeftMouseButton || InKey == EKeys::RightMouseButton && InKey == EKeys::LeftAlt || InKey == EKeys::RightAlt ) )
+			( InKey == EKeys::LeftMouseButton || InKey == EKeys::RightMouseButton || InKey == EKeys::LeftAlt || InKey == EKeys::RightAlt ) )
 		{
 			bHandled = true;
 			EndPainting();
