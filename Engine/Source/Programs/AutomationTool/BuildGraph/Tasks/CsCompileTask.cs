@@ -250,10 +250,10 @@ namespace AutomationTool.Tasks
 						FileReference OutputFile = FileReference.Combine(OutputDir, OtherAssembly.GetFileName());
 						BuildProducts.Add(OutputFile);
 
-						FileReference SymbolFile = OtherAssembly.ChangeExtension(".pdb");
-						if(SymbolFile.Exists())
+						FileReference OutputSymbolFile = OutputFile.ChangeExtension(".pdb");
+						if(OutputSymbolFile.Exists())
 						{
-							BuildProducts.Add(OutputFile.ChangeExtension(".pdb"));
+							BuildProducts.Add(OutputSymbolFile);
 						}
 					}
 					else

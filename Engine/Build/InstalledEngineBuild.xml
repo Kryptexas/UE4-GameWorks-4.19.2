@@ -507,7 +507,7 @@
 			<Tag Files="#UAT Win64;#UnrealHeaderTool Win64;#Build Tools Win64" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions);$(CopyInstalledExceptions)" With="#Strip Tools for Installed Win64"/>
 
 			<!-- Tag files that need to be signed -->
-			<Tag Files="#UAT Win64;#UnrealHeaderTool Win64;#Build Tools Win64" Filter="$(WindowsSignFilter)" Except="$(CopyInstalledExceptions)" With="#Sign Tools for Installed Win64"/>
+			<Tag Files="#UAT Win64;#UnrealHeaderTool Win64;#Build Tools Win64" Filter="$(WindowsSignFilter)" Except="$(CopyInstalledExceptions);.../ThirdParty/..." With="#Sign Tools for Installed Win64"/>
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Win64" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Win64;#Sign Tools for Installed Win64" With="#Copy for Installed Win64"/>
@@ -692,7 +692,7 @@
 			<Tag Files="#UnrealHeaderTool Mac;#Build Tools Mac" Filter="$(MacStripFilter)" Except="$(CopyInstalledExceptions)" With="#Strip Tools for Installed Mac"/>
 
 			<!-- Tag files that need to be signed -->
-			<Tag Files="#UnrealHeaderTool Mac;#Build Tools Mac" Filter="$(MacSignFilter)" Except="$(CopyInstalledExceptions)" With="#Sign Tools for Installed Mac"/>
+			<Tag Files="#UnrealHeaderTool Mac;#Build Tools Mac" Filter="$(MacSignFilter)" Except="$(CopyInstalledExceptions);.../ThirdParty/..." With="#Sign Tools for Installed Mac"/>
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Mac" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Mac;#Sign Tools for Installed Mac" With="#Copy for Installed Mac"/>
