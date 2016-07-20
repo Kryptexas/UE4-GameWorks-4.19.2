@@ -462,14 +462,26 @@ void UPhysicsAsset::PostEditChangeProperty(struct FPropertyChangedEvent& Propert
 {
 	if(UProperty* Property = PropertyChangedEvent.Property)
 	{
-		if(Profiles.Find(CurrentPhysicalAnimationProfileName) == INDEX_NONE)
+		//physical animation
+		if(PhysicalAnimationProfiles.Find(CurrentPhysicalAnimationProfileName) == INDEX_NONE)
 		{
 			CurrentPhysicalAnimationProfileName = NAME_None;
 		}
 
 		for(USkeletalBodySetup* BS : SkeletalBodySetups)
 		{
-			BS->UpdatePhysicalAnimationProfiles(Profiles);
+			BS->UpdatePhysicalAnimationProfiles(PhysicalAnimationProfiles);
+		}
+
+		//constraints
+		if (ConstraintProfiles.Find(CurrentConstraintProfileName) == INDEX_NONE)
+		{
+			CurrentConstraintProfileName = NAME_None;
+		}
+
+		for (UPhysicsConstraintTemplate* CS : ConstraintSetup)
+		{
+			CS->UpdateConstraintProfiles(ConstraintProfiles);
 		}
 	}
 

@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "Components/BoxComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 
 UBoxComponent::UBoxComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

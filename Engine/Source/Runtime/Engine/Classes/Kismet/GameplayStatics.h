@@ -672,9 +672,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param HitComponent	PrimitiveComponent hit by the trace.
 	 * @param HitBoneName	Name of the bone hit (valid only if we hit a skeletal mesh).
 	 * @param HitItem		Primitive-specific data recording which item in the primitive was hit
+	 * @param FaceIndex		If colliding with trimesh or landscape, index of face that was hit.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Collision", meta=(NativeBreakFunc))
-	static void BreakHitResult(const struct FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, class UPhysicalMaterial*& PhysMat, class AActor*& HitActor, class UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, FVector& TraceStart, FVector& TraceEnd);
+	static void BreakHitResult(const struct FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, class UPhysicalMaterial*& PhysMat, class AActor*& HitActor, class UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, int32& FaceIndex, FVector& TraceStart, FVector& TraceEnd);
 
 	/** 
 	 *	Create a HitResult struct
@@ -691,9 +692,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param HitComponent	PrimitiveComponent hit by the trace.
 	 * @param HitBoneName	Name of the bone hit (valid only if we hit a skeletal mesh).
 	 * @param HitItem		Primitive-specific data recording which item in the primitive was hit
+	 * @param FaceIndex		If colliding with trimesh or landscape, index of face that was hit.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Collision", meta = (NativeMakeFunc, Normal="0,0,1", ImpactNormal="0,0,1"))
-	static FHitResult MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, FVector TraceStart, FVector TraceEnd);
+	static FHitResult MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, int32 FaceIndex, FVector TraceStart, FVector TraceEnd);
 
 
 	/** Returns the EPhysicalSurface type of the given Hit. 
@@ -701,6 +703,12 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category="Collision")
 	static EPhysicalSurface GetSurfaceType(const struct FHitResult& Hit);
+
+	/** 
+	 *	Try and find the UV for a collision impact. Note this ONLY works if 'Support UV From Hit Results' is enabled in Physics Settings.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Collision")
+	static bool FindCollisionUV(const struct FHitResult& Hit, int32 UVChannel, FVector2D& UV);
 
 	// --- Save Game functions ------------------------------
 
@@ -837,9 +845,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	* @param StartPos					Start position of the simulation
 	* @param EndPos						Desired end location for the simulation
 	* @param OverrideGravityZ			Optional override of WorldGravityZ
+	* @param ArcParam					Change height of arc between 0.0-1.0 where 0.5 is the default medium arc
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Game", DisplayName = "SuggestProjectileVelocity MediumArc", meta = (WorldContext = "WorldContextObject", AdvancedDisplay = "OverrideGravityZ"))
-	static bool SuggestProjectileVelocity_MediumArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ = 0);
+	UFUNCTION(BlueprintCallable, Category = "Game", DisplayName = "SuggestProjectileVelocity Custom Arc", meta = (WorldContext = "WorldContextObject", AdvancedDisplay = "OverrideGravityZ, ArcParam"))
+	static bool SuggestProjectileVelocity_CustomArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ = 0, float ArcParam = 0.5f);
 
 	/** Returns world origin current location. */
 	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject") )

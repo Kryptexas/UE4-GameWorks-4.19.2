@@ -1209,7 +1209,7 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 		return;
 	}
 
-	const bool bAlreadyAtGoal = PFollowComp->HasReached(*Goal);
+	const bool bAlreadyAtGoal = PFollowComp->HasReached(*Goal, EPathFollowingReachMode::OverlapAgentAndGoal);
 
 	// script source, keep only one move request at time
 	if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
@@ -1273,7 +1273,7 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 		return;
 	}
 
-	const bool bAlreadyAtGoal = PFollowComp->HasReached(GoalLocation);
+	const bool bAlreadyAtGoal = PFollowComp->HasReached(GoalLocation, EPathFollowingReachMode::OverlapAgent);
 
 	// script source, keep only one move request at time
 	if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
@@ -1282,7 +1282,7 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 			, FAIRequestID::AnyRequest, bAlreadyAtGoal ? EPathFollowingVelocityMode::Reset : EPathFollowingVelocityMode::Keep);
 	}
 
-	if (PFollowComp->HasReached(GoalLocation))
+	if (bAlreadyAtGoal)
 	{
 		PFollowComp->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
 	}

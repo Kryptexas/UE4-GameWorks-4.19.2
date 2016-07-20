@@ -114,6 +114,15 @@ void FActiveSound::AddReferencedObjects( FReferenceCollector& Collector)
 
 	Collector.AddReferencedObject(Sound);
 	Collector.AddReferencedObject(SoundClassOverride);
+	Collector.AddReferencedObject(ConcurrencySettings);
+
+	for (FAudioComponentParam& Param : InstanceParameters)
+	{
+		if (Param.SoundWaveParam)
+		{
+			Collector.AddReferencedObject(Param.SoundWaveParam);
+		}
+	}
 }
 
 void FActiveSound::SetWorld(UWorld* InWorld)
@@ -469,22 +478,30 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 		{
 			ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
 
-			// Check if we've not already bound our trace delegate
-			if (!bIsTraceDelegateBound)
+			// If the audio thread is running, then only do a sync trace
+			if (FAudioThread::IsAudioThreadRunning())
 			{
-				bIsTraceDelegateBound = true;
-
-				// Bind our async occlusion trace delegate (so next update we'll have it bound)
-				OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
-
-				// Only do async occlusion trace if we've already made one. The first trace must be synchronous to avoid issues with sounds starting playing as occluded
 				bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);
 			}
-			// don't need to do another async trace if we've already got one pending
-			else if (!bAsyncOcclusionPending)
+			else
 			{
-				bAsyncOcclusionPending = true;
-				WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
+				// Check if we've not already bound our trace delegate
+				if (!bIsTraceDelegateBound)
+				{
+					bIsTraceDelegateBound = true;
+
+					// Bind our async occlusion trace delegate (so next update we'll have it bound)
+					OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
+
+					// Only do async occlusion trace if we've already made one. The first trace must be synchronous to avoid issues with sounds starting playing as occluded
+					bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);
+				}
+				// don't need to do another async trace if we've already got one pending
+				else if (!bAsyncOcclusionPending)
+				{
+					bAsyncOcclusionPending = true;
+					WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
+				}
 			}
 		}
 	}
@@ -594,9 +611,8 @@ bool FActiveSound::GetFloatParameter( const FName InName, float& OutFloat ) cons
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutFloat = P.FloatParam;
@@ -613,9 +629,8 @@ void FActiveSound::SetFloatParameter( const FName InName, const float InFloat )
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.FloatParam = InFloat;
@@ -624,7 +639,7 @@ void FActiveSound::SetFloatParameter( const FName InName, const float InFloat )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].FloatParam = InFloat;
 	}
@@ -635,9 +650,8 @@ bool FActiveSound::GetWaveParameter( const FName InName, USoundWave*& OutWave ) 
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutWave = P.SoundWaveParam;
@@ -649,14 +663,13 @@ bool FActiveSound::GetWaveParameter( const FName InName, USoundWave*& OutWave ) 
 	return false;
 }
 
-void FActiveSound::SetWaveParameter( FName InName, USoundWave* InWave )
+void FActiveSound::SetWaveParameter( const FName InName, USoundWave* InWave )
 {
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.SoundWaveParam = InWave;
@@ -665,7 +678,7 @@ void FActiveSound::SetWaveParameter( FName InName, USoundWave* InWave )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].SoundWaveParam = InWave;
 	}
@@ -676,9 +689,8 @@ bool FActiveSound::GetBoolParameter( const FName InName, bool& OutBool ) const
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutBool = P.BoolParam;
@@ -690,14 +702,13 @@ bool FActiveSound::GetBoolParameter( const FName InName, bool& OutBool ) const
 	return false;
 }
 
-void FActiveSound::SetBoolParameter( FName InName, const bool InBool )
+void FActiveSound::SetBoolParameter( const FName InName, const bool InBool )
 {
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.BoolParam = InBool;
@@ -706,7 +717,7 @@ void FActiveSound::SetBoolParameter( FName InName, const bool InBool )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].BoolParam = InBool;
 	}
@@ -717,9 +728,8 @@ int32 FActiveSound::GetIntParameter( const FName InName, int32& OutInt ) const
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutInt = P.IntParam;
@@ -731,14 +741,13 @@ int32 FActiveSound::GetIntParameter( const FName InName, int32& OutInt ) const
 	return false;
 }
 
-void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
+void FActiveSound::SetIntParameter( const FName InName, const int32 InInt )
 {
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.IntParam = InInt;
@@ -747,7 +756,7 @@ void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].IntParam = InInt;
 	}
@@ -758,9 +767,8 @@ void FActiveSound::SetSoundParameter(const FAudioComponentParam& Param)
 	if (Param.ParamName != NAME_None)
 	{
 		// First see if an entry for this name already exists
-		for (int32 Index = 0; Index < InstanceParameters.Num(); ++Index)
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if (P.ParamName == Param.ParamName)
 			{
 				P = Param;
@@ -769,8 +777,7 @@ void FActiveSound::SetSoundParameter(const FAudioComponentParam& Param)
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
-		InstanceParameters[NewParamIndex] = Param;
+		const int32 NewParamIndex = InstanceParameters.Add(Param);
 	}
 }
 

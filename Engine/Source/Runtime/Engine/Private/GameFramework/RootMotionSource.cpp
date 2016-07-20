@@ -1516,10 +1516,10 @@ void FRootMotionSourceGroup::AccumulateRootMotionVelocityFromSource
 	// Transform RootMotion if needed (world vs local space)
 	if (RootMotionSource.bInLocalSpace && MoveComponent.UpdatedComponent)
 	{
-		RootMotionParams.Set( RootMotionParams.RootMotionTransform * MoveComponent.UpdatedComponent->GetComponentToWorld().GetRotation() );
+		RootMotionParams.Set( RootMotionParams.GetRootMotionTransform() * MoveComponent.UpdatedComponent->GetComponentToWorld().GetRotation() );
 	}
 
-	const FVector RootMotionVelocity = RootMotionParams.RootMotionTransform.GetTranslation();
+	const FVector RootMotionVelocity = RootMotionParams.GetRootMotionTransform().GetTranslation();
 
 	if (RootMotionSource.AccumulateMode == ERootMotionAccumulateMode::Override)
 	{

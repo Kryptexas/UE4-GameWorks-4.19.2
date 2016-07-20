@@ -281,7 +281,7 @@ FPrimitiveSceneProxy* UPhATEdSkeletalMeshComponent::CreateSceneProxy()
 
 void UPhATEdSkeletalMeshComponent::DrawHierarchy(FPrimitiveDrawInterface* PDI, bool bAnimSkel)
 {
-	for (int32 i=1; i<GetNumSpaceBases(); ++i)
+	for (int32 i = 1; i < GetNumComponentSpaceTransforms(); ++i)
 	{
 		int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(i);
 
@@ -293,8 +293,8 @@ void UPhATEdSkeletalMeshComponent::DrawHierarchy(FPrimitiveDrawInterface* PDI, b
 		}
 		else
 		{
-			ParentPos = ComponentToWorld.TransformPosition(GetSpaceBases()[ParentIndex].GetLocation());
-			ChildPos = ComponentToWorld.TransformPosition(GetSpaceBases()[i].GetLocation());
+			ParentPos = ComponentToWorld.TransformPosition(GetComponentSpaceTransforms()[ParentIndex].GetLocation());
+			ChildPos = ComponentToWorld.TransformPosition(GetComponentSpaceTransforms()[i].GetLocation());
 		}
 
 		FColor DrawColor = bAnimSkel ? AnimSkelDrawColor : HierarchyDrawColor;

@@ -44,7 +44,7 @@ struct FFlattenMaterial
 	}
 	
 	/** Set all alpha channel values with InAlphaValue */
-	void FillAlphaValues(const int InAlphaValue)
+	void FillAlphaValues(const uint8 InAlphaValue)
 	{
 		for (FColor& Sample : DiffuseSamples) 
 		{ 
@@ -188,6 +188,7 @@ class UWorld;
 class ALandscapeProxy;
 class ULandscapeComponent;
 class FPrimitiveComponentId;
+class UMaterialInstanceConstant;
 struct FMaterialMergeData;
 
 /**
@@ -322,7 +323,17 @@ public:
 	 * @return						Returns a pointer to the constructed UMaterial object.
 	 */
 	static UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets, const TextureGroup& InTextureGroup = TEXTUREGROUP_World);
-	
+
+	/** 
+	* Creates an instanced material based of BaseMaterial
+	* @param Outer					Outer for the material and texture objects, if NULL new packages will be created for each asset
+	* @param BaseName				BaseName for the material and texture objects, should be a long package name in case Outer is not specified
+	* @param Flags					Object flags for the material and texture objects.
+	* @return						Returns a pointer to the constructed UMaterialInstanceConstant object.
+	*/
+
+	static UMaterialInstanceConstant* CreateInstancedMaterial(UMaterial* BaseMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags);
+
 	/**
 	* Creates bakes textures for a ULandscapeComponent
 	*

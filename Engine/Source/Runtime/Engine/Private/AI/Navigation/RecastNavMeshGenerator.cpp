@@ -25,6 +25,7 @@
 #include "RecastHelpers.h"
 #include "NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1
 

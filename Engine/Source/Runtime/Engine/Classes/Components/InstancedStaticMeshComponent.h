@@ -115,10 +115,11 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	* @param NewInstanceTransform	The new transform
 	* @param bWorldSpace			If true, the new transform interpreted as a World Space transform, otherwise it is interpreted as Local Space
 	* @param bMarkRenderStateDirty	If true, the change should be visible immediately. If you are updating many instances you should only set this to true for the last instance.
+	* @param bTeleport				Whether or not the instance's physics should be moved normally, or teleported (moved instantly, ignoring velocity).
 	* @return						True on success.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
-	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace=false, bool bMarkRenderStateDirty = false);
+	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace=false, bool bMarkRenderStateDirty=false, bool bTeleport=false);
 
 	/** Remove the instance specified. Returns True on success. Note that this will leave the array in order, but may shrink it. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")

@@ -508,8 +508,9 @@ public:
 	 *  @param TwistAxis The axis to regard as the twist axis
 	 *  @param JointLimitMin Minimum limits along each axis (twist axis ignored)
 	 *  @param JointLimitMax Maximum limits along each axis (twist axis ignored)
+	 *  @param InJointBias Bias towards second body's forces (1.0f = 100%)
 	 */
-	static void ConstrainAngularRange(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame, AnimPhysTwistAxis TwistAxis, const FVector& JointLimitMin, const FVector& JointLimitMax);
+	static void ConstrainAngularRange(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame, AnimPhysTwistAxis TwistAxis, const FVector& JointLimitMin, const FVector& JointLimitMax, float InJointBias);
 
 	/** Constraints the rotation between two bodies into a cone
 	 *  @param LimitContainer Container to add limits to
@@ -518,8 +519,9 @@ public:
 	 *  @param SecondBody Second body in the constraint
 	 *  @param Normal1 Normal for the second side of the constraint
 	 *  @param LimitAngle Angle to limit the cone to
+	 *  @param InJointBias Bias towards second body's forces (1.0f = 100%)
 	 */
-	static void ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody* FirstBody, const FVector& Normal0, FAnimPhysRigidBody* SecondBody, const FVector& Normal1, float LimitAngle);  // a hinge is a cone with 0 limitangle
+	static void ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody* FirstBody, const FVector& Normal0, FAnimPhysRigidBody* SecondBody, const FVector& Normal1, float LimitAngle, float InJointBias);  // a hinge is a cone with 0 limitangle
 
 	/** Constrains the position of a body to one side of a plane placed at PlaneTransform (plane normal is Z axis)
 	*  @param LimitContainer Container to add limits to
@@ -580,5 +582,5 @@ private:
 	 *  @param InJointLimitMin Minimum limits for the joint (twist axis ignored, always locked)
 	 *  @param InJointLimitMax Maximum limits for the joint (twist axis ignored, always locked)
 	 */
-	static void ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, const FQuat& JointFrame0, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame1, AnimPhysTwistAxis TwistAxis, const FVector& InJointLimitMin, const FVector& InJointLimitMax);
+	static void ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, const FQuat& JointFrame0, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame1, AnimPhysTwistAxis TwistAxis, const FVector& InJointLimitMin, const FVector& InJointLimitMax, float InJointBias);
 };

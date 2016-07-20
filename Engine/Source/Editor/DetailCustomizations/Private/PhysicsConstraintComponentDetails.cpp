@@ -810,21 +810,6 @@ void FPhysicsConstraintComponentDetails::AddAngularDrive(IDetailLayoutBuilder& D
 	
 }
 
-void FPhysicsConstraintComponentDetails::AddProfiles(IDetailLayoutBuilder& DetailBuilder)
-{
-	IDetailCategoryBuilder& ConstraintBehavCat = DetailBuilder.EditCategory("Constraint Behavior");	//Create this category first so it's at the top
-
-	TSharedPtr<IPropertyHandle> DefaultInstance = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, DefaultInstance));
-	TSharedPtr<IPropertyHandle> DefaultProfileName = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, DefaultProfileName));
-	TSharedPtr<IPropertyHandle> ProfileHandles = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, ProfileHandles));
-
-	ConstraintBehavCat.AddProperty(DefaultProfileName);
-	ConstraintBehavCat.AddProperty(ProfileHandles);
-
-	DefaultInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, ProfileInstance))->MarkHiddenByCustomization();
-	
-}
-
 void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	TArray<TWeakObjectPtr<UObject>> Objects;
@@ -865,11 +850,6 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 	AddAngularDrive(DetailBuilder, ConstraintInstance, ProfileInstance);
 	
 	AddConstraintBehaviorProperties(DetailBuilder, ConstraintInstance, ProfileInstance);	//Now we've added all the complex UI, just dump the rest into Constraint category
-
-	if (bInPhat)
-	{
-		AddProfiles(DetailBuilder);
-	}
 }
 
 
@@ -917,17 +897,4 @@ void FPhysicsConstraintComponentDetails::OnLimitRadioChanged( ECheckBoxState Che
 	}
 }
 
-TSharedRef<IPropertyTypeCustomization> FPhysicsConstraintProfileHandleCustomization::MakeInstance()
-{
-	return MakeShareable(new FPhysicsConstraintProfileHandleCustomization());
-}
-
-void FPhysicsConstraintProfileHandleCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
-{
-	ChildBuilder.AddChildProperty(PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FPhysicsConstraintProfileHandle, ProfileName)).ToSharedRef());
-}
-
-void FPhysicsConstraintProfileHandleCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
-{
-}
 #undef LOCTEXT_NAMESPACE

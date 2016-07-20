@@ -38,6 +38,10 @@ class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_AssetPlayerBase
 	// End of UK2Node interface
 
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+
+private:
+	FText GetNodeTitleForPoseAsset(ENodeTitleType::Type TitleType, UPoseAsset* InPoseAsset) const;
+
 private:
 	static FText GetTitleGivenAssetInfo(const FText& AssetName);
 

@@ -77,15 +77,17 @@ void UPaperGroupedSpriteComponent::OnUpdateTransform(EUpdateTransformFlags Updat
 	// Always send new transform to physics
 	if (bPhysicsStateCreated && !(EUpdateTransformFlags::SkipPhysicsUpdate & UpdateTransformFlags))
 	{
-		for (int i = 0; i < PerInstanceSpriteData.Num(); i++)
+		const bool bTeleport = TeleportEnumToFlag(Teleport);
+
+		for (int32 i = 0; i < PerInstanceSpriteData.Num(); i++)
 		{
 			const FTransform InstanceTransform(PerInstanceSpriteData[i].Transform);
-			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, true);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
 		}
 	}
 }
 
-bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
+bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
 	if (!PerInstanceSpriteData.IsValidIndex(InstanceIndex))
 	{
@@ -108,7 +110,7 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 		if (FBodyInstance* InstanceBodyInstance = InstanceBodies[InstanceIndex])
 		{
 			// Update transform.
-			InstanceBodyInstance->SetBodyTransform(WorldTransform, ETeleportType::None);
+			InstanceBodyInstance->SetBodyTransform(WorldTransform, TeleportFlagToEnum(bTeleport));
 			InstanceBodyInstance->UpdateBodyScale(WorldTransform.GetScale3D());
 		}
 	}

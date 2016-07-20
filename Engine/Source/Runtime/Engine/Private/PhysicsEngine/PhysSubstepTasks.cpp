@@ -267,7 +267,7 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 	PxScene * PScene = PAScene;
 	SCOPED_SCENE_WRITE_LOCK(PScene);
 #endif
-	
+
 	/** Note: We lock the entire scene before iterating. The assumption is that removing an FBodyInstance from the map will also be wrapped by this lock */
 	
 	
@@ -289,14 +289,14 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 
 		if (!IsKinematicHelper(PRigidBody))
 		{
-			ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
-			ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
-			ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
-			ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
+		ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
+		ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
+		ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
+		ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
 		}else
 		{
-			InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
-		}
+		InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
+	}
 	}
 
 	/** Final substep */
@@ -393,10 +393,10 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	SubstepInterpolation(Interpolation, DeltaTime);
 
 #if WITH_APEX
-	PAScene->simulate(DeltaTime, bLastSubstep, SubstepTask);
+	PAScene->simulate(DeltaTime, bLastSubstep, SubstepTask, FullSimulationTask->GetScratchBufferData(), FullSimulationTask->GetScratchBufferSize());
 #else
 	PAScene->lockWrite();
-	PAScene->simulate(DeltaTime, SubstepTask);
+	PAScene->simulate(DeltaTime, SubstepTask, FullSimulationTask->GetScratchBufferData(), FullSimulationTask->GetScratchBufferSize());
 	PAScene->unlockWrite();
 #endif
 	SubstepTask->removeReference();

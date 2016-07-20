@@ -6,6 +6,7 @@
 #include "Animation/AnimationAsset.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimNotifyQueue.h"
+#include "Engine/PoseWatch.h"
 #include "AnimInstanceProxy.generated.h"
 
 struct FAnimNode_Base;
@@ -82,6 +83,10 @@ public:
 		UClass* ActualAnimClass = IAnimClassInterface::GetActualAnimClass(AnimClassInterface);
 		return ActualAnimClass ? Cast<UAnimBlueprint>(ActualAnimClass->ClassGeneratedBy) : nullptr;
 	}
+
+	// Record pose for node of ID LinkID if it is currently being watched
+	void RegisterWatchedPose(const FCompactPose& Pose, int32 LinkID);
+	void RegisterWatchedPose(const FCSPose<FCompactPose>& Pose, int32 LinkID);
 #endif
 
 	// flip sync group read/write indices
@@ -322,8 +327,11 @@ protected:
 	/** Calls Update(), updates the anim graph, ticks asset players */
 	void UpdateAnimation();
 
-	/** Evaluates the anim graph */
+	/** Evaluates the anim graph if Evaluate() returns false */
 	void EvaluateAnimation(FPoseContext& Output);
+
+	/** Evaluates the anim graph */
+	void EvaluateAnimationNode(FPoseContext& Output);
 
 	// @todo document
 	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
@@ -507,6 +515,9 @@ private:
 
 	/** Array of visited nodes this frame */
 	TArray<FAnimBlueprintDebugData::FNodeVisit> UpdatedNodesThisFrame;
+
+	/** Array of nodes to watch this frame */
+	TArray<FAnimNodePoseWatch> PoseWatchEntriesForThisFrame;
 #endif
 
 #if !NO_LOGGING

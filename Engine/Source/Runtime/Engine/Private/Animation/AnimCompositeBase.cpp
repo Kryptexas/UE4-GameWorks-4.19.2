@@ -319,7 +319,7 @@ bool FAnimTrack::IsAdditive() const
 	for ( int32 I=0; I<AnimSegments.Num(); ++I )
 	{
 		const struct FAnimSegment & Segment = AnimSegments[I];
-		return ( Segment.AnimReference && Segment.AnimReference->IsValidAdditive() ); //-V612
+		return ( Segment.AnimReference && Segment.bValid && Segment.AnimReference->IsValidAdditive() ); //-V612
 	}
 
 	return false;

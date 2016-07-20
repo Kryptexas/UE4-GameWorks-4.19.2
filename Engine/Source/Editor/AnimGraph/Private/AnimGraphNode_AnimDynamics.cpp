@@ -106,7 +106,7 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 
 					if(LimitDrivingBoneIdx != INDEX_NONE)
 					{
-						LimitPlaneTransform *= PreviewSkelMeshComp->GetSpaceBases()[LimitDrivingBoneIdx];
+						LimitPlaneTransform *= PreviewSkelMeshComp->GetComponentSpaceTransforms()[LimitDrivingBoneIdx];
 					}
 
 					DrawPlane10x10(PDI, LimitPlaneTransform.ToMatrixNoScale(), 200.0f, FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f), GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
@@ -125,7 +125,7 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 
 					if(DrivingBoneIdx != INDEX_NONE)
 					{
-						SphereTransform *= PreviewSkelMeshComp->GetSpaceBases()[DrivingBoneIdx];
+						SphereTransform *= PreviewSkelMeshComp->GetComponentSpaceTransforms()[DrivingBoneIdx];
 					}
 
 					DrawSphere(PDI, SphereTransform.GetLocation(), FVector(SphericalLimit.LimitRadius), 24, 6, GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);

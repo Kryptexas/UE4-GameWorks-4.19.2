@@ -11,6 +11,16 @@ struct FFlattenMaterial;
 struct FReferenceSkeleton;
 struct FStaticMeshLODResources;
 
+namespace ETangentOptions
+{
+	enum Type
+	{
+		None = 0,
+		BlendOverlappingNormals = 0x1,
+		IgnoreDegenerateTriangles = 0x2,
+	};
+};
+
 /**
  * Mesh reduction interface.
  */
@@ -339,16 +349,6 @@ public:
 	virtual	void FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& InMaterials, TArray<struct FRawMeshExt>& InSourceMeshes, TMap<FMeshIdAndLOD, TArray<int32>>& InMaterialIndexMap, TArray<bool>& InMeshShouldBakeVertexData, const FMaterialProxySettings &InMaterialProxySettings, TArray<FFlattenMaterial> &OutFlattenedMaterials) const = 0;
 
 	/**
-	* ExtractMeshDataForGeometryCache
-	*
-	* @param RawMesh - raw Mesh for calculating tangents
-	* @param BuildSettings - Buildsettings for calculating tangents
-	* @param OutVertices - Vertex buffer data for geometry cache
-	* @param OutPerSectionIndices - Index buffer data for geometry cache
-	*/
-	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices) = 0;
-
-	/**
 	* Propagates vertex painted colors from the StaticMeshComponent instance to RawMesh
 	*
 	* @param StaticMeshComponent - Instance of the StaticMesh
@@ -404,4 +404,18 @@ public:
 	 * @return true if success
 	 */
 	virtual bool RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const = 0;
+
+	/** 
+	 * Calculates Tangents and Normals for a given set of vertex data
+	 * 
+	 * @param InVertices Vertices that make up the mesh
+	 * @param InIndices Indices for the Vertex array
+	 * @param InUVs Texture coordinates (per-index based)
+	 * @param InSmoothingGroupIndices Smoothing group index (per-face based)
+	 * @param InTangentOptions Flags for Tangent calculation
+	 * @param OutTangentX Array to hold calculated Tangents
+	 * @param OutTangentX Array to hold calculated Tangents
+	 * @param OutNormals Array to hold calculated normals (if already contains normals will use those instead for the tangent calculation	
+	*/
+	virtual void CalculateTangents(const TArray<FVector> InVertices, const TArray<uint32> InIndices, const TArray<FVector2D> InUVs, const TArray<uint32> InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const = 0;
 };

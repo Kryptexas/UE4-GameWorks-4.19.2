@@ -32,9 +32,11 @@ bool FIndexedCurve::IsKeyHandleValid(FKeyHandle KeyHandle) const
 
 void FIndexedCurve::EnsureAllIndicesHaveHandles() const
 {
-	if (KeyHandlesToIndices.Num() != GetNumKeys())
+	const int32 NumKeys = GetNumKeys();
+	if (KeyHandlesToIndices.Num() != NumKeys)
 	{
-		for (int32 i = 0; i < GetNumKeys(); ++i)
+		KeyHandlesToIndices.Empty();
+		for (int32 i = 0; i < NumKeys; ++i)
 		{
 			EnsureIndexHasAHandle(i);
 		}

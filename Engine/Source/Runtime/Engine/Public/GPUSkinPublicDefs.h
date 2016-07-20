@@ -15,8 +15,8 @@
 
 /** max number of clothing vertices for uniform buffer which is up to 64kb */
 #define MAX_APEXCLOTH_VERTICES_FOR_UB 2048 
-/** but maxinumber will be 16,384 when using vertex buffer */
-#define MAX_APEXCLOTH_VERTICES_FOR_VB 16384
+/** but maximum number will be 65536 when using vertex buffer */
+#define MAX_APEXCLOTH_VERTICES_FOR_VB 65536
 
 namespace SkinningTools
 {

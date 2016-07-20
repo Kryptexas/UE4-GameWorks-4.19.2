@@ -81,6 +81,8 @@
 #include "SAdvancedPreviewDetailsTab.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
+#include "Editor/AnimGraph/Public/AnimGraphCommands.h"
+
 #define LOCTEXT_NAMESPACE "FPersona"
 
 const FName FPersona::PreviewSceneSettingsTabId(TEXT("Persona_PreviewScene"));
@@ -1427,6 +1429,12 @@ void FPersona::CreateDefaultCommands()
 		);
 }
 
+void FPersona::OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList)
+{
+	GraphEditorCommandsList->MapAction(FAnimGraphCommands::Get().TogglePoseWatch,
+		FExecuteAction::CreateSP(this, &FPersona::OnTogglePoseWatch));
+}
+
 bool FPersona::CanSelectBone() const
 {
 	return true;
@@ -1875,6 +1883,28 @@ void FPersona::OnConvertToPoseByName()
 		FocusedGraphEd->ClearSelectionSet();
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnTogglePoseWatch()
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	UAnimBlueprint* AnimBP = GetAnimBlueprint();
+
+	for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+	{
+		if (UAnimGraphNode_Base* SelectedNode = Cast<UAnimGraphNode_Base>(*NodeIt))
+		{
+			UPoseWatch* PoseWatch = AnimationEditorUtils::FindPoseWatchForNode(SelectedNode, AnimBP);
+			if (PoseWatch)
+			{
+				AnimationEditorUtils::RemovePoseWatch(PoseWatch, AnimBP);
+			}
+			else
+			{
+				AnimationEditorUtils::MakePoseWatchForNode(AnimBP, SelectedNode, FColor::Red);
+			}
+		}
 	}
 }
 

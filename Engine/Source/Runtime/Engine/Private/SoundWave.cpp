@@ -13,6 +13,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "EditorFramework/AssetImportData.h"
 #include "CookStats.h"
+#include "FrameworkObjectVersion.h"
 
 #if ENABLE_COOK_STATS
 namespace SoundWaveCookStats
@@ -187,14 +188,12 @@ void USoundWave::Serialize( FArchive& Ar )
 		UE_LOG(LogAudio, Fatal, TEXT("This platform requires cooked packages, and audio data was not cooked into %s."), *GetFullName());
 	}
 
-	if (Ar.IsCooking())
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.IsLoading() && (Ar.UE4Ver() >= VER_UE4_SOUND_COMPRESSION_TYPE_ADDED) && (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::RemoveSoundWaveCompressionName))
 	{
-		CompressionName = Ar.CookingTarget()->GetWaveFormat(this);
-	}
-	
-	if (Ar.UE4Ver() >= VER_UE4_SOUND_COMPRESSION_TYPE_ADDED)
-	{
-		Ar << CompressionName;
+		FName DummyCompressionName;
+		Ar << DummyCompressionName;
 	}
 
 	bool bSupportsStreaming = false;
@@ -311,11 +310,21 @@ void USoundWave::PostInitProperties()
 #endif
 }
 
+bool USoundWave::HasCompressedData(FName Format) const
+{
+	if (IsTemplate() || IsRunningDedicatedServer())
+	{
+		return false;
+	}
+
+	return CompressedFormatData.Contains(Format);
+}
+
 FByteBulkData* USoundWave::GetCompressedData(FName Format)
 {
 	if (IsTemplate() || IsRunningDedicatedServer())
 	{
-		return NULL;
+		return nullptr;
 	}
 	bool bContainedData = CompressedFormatData.Contains(Format);
 	FByteBulkData* Result = &CompressedFormatData.GetFormat(Format);

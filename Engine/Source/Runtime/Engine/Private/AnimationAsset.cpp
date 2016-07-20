@@ -8,6 +8,9 @@
 
 #define LEADERSCORE_ALWAYSLEADER  	2.f
 #define LEADERSCORE_MONTAGE			3.f
+
+FVector FRootMotionMovementParams::RootMotionScale(1.0f, 1.0f, 1.0f);
+
 //////////////////////////////////////////////////////////////////////////
 // FAnimGroupInstance
 

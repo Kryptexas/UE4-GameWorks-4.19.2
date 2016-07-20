@@ -2893,7 +2893,7 @@ T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFl
 template< class T > 
 inline const T* GetDefault(UClass *Class)
 {
-	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
+	check(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (const T*)Class->GetDefaultObject();
 }
 
@@ -2909,7 +2909,7 @@ inline const T* GetDefault(UClass *Class)
 template< class T > 
 inline T* GetMutableDefault(UClass *Class)
 {
-	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
+	check(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (T*)Class->GetDefaultObject();
 }
 

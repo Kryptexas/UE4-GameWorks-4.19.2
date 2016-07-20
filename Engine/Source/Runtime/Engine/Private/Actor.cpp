@@ -97,6 +97,7 @@ void AActor::InitializeDefaults()
 	bFindCameraComponentWhenViewTarget = true;
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	bRelevantForNetworkReplays = true;
+	bGenerateOverlapEventsDuringLevelStreaming = false;
 #if WITH_EDITORONLY_DATA
 	PivotOffset = FVector::ZeroVector;
 #endif
@@ -2851,10 +2852,13 @@ void AActor::PostActorConstruction()
 				}
 
 				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
-				if (bRunBeginPlay && IsChildActor())
+				if (bRunBeginPlay)
 				{
-					// Child Actors cannot run begin play until their parent has run
-					bRunBeginPlay = GetParentComponent()->GetOwner()->HasActorBegunPlay();
+					if (AActor* ParentActor = GetParentActor())
+					{
+						// Child Actors cannot run begin play until their parent has run
+						bRunBeginPlay = ParentActor->HasActorBegunPlay();
+					}
 				}
 
 				if (bRunBeginPlay)
@@ -3527,20 +3531,20 @@ UNetDriver* GetNetDriver_Internal(UWorld* World, FName NetDriverName)
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
 }
 
+// Note: this is a private implementation that should not be called directly except by the public wrappers (GetNetMode()) where some optimizations are inlined.
 ENetMode AActor::InternalGetNetMode() const
 {
-	const bool bIsClientOnly = IsRunningClientOnly();
-
 	UWorld* World = GetWorld();
 	UNetDriver* NetDriver = GetNetDriver_Internal(World, NetDriverName);
 	if (NetDriver != nullptr)
 	{
+		const bool bIsClientOnly = IsRunningClientOnly();
 		return bIsClientOnly ? NM_Client : NetDriver->GetNetMode();
 	}
 
 	if (World != nullptr && World->DemoNetDriver != nullptr)
 	{
-		return bIsClientOnly ? NM_Client : World->DemoNetDriver->GetNetMode();
+		return World->DemoNetDriver->GetNetMode();
 	}
 
 	return NM_Standalone;
@@ -3845,6 +3849,17 @@ bool AActor::IsChildActor() const
 UChildActorComponent* AActor::GetParentComponent() const
 {
 	return ParentComponent.Get();
+}
+
+AActor* AActor::GetParentActor() const
+{
+	AActor* ParentActor = nullptr;
+	if (UChildActorComponent* ParentComponentPtr = GetParentComponent())
+	{
+		ParentActor = ParentComponentPtr->GetOwner();
+	}
+
+	return ParentActor;
 }
 
 void AActor::GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescendants) const

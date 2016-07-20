@@ -1126,7 +1126,7 @@ void UActorComponent::ExecuteUnregisterEvents()
 	if(bPhysicsStateCreated)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ComponentDestroyPhysicsState);
-		check(bRegistered); // should not have physics state unless we are registered
+		ensureMsgf(bRegistered, TEXT("Component has physics state when not registered (%s)"), *GetFullName()); // should not have physics state unless we are registered
 		DestroyPhysicsState();
 		checkf(!bPhysicsStateCreated, TEXT("Failed to route DestroyPhysicsState (%s)"), *GetFullName());
 		checkf(!HasValidPhysicsState(), TEXT("Failed to destroy physics state (%s)"), *GetFullName());
@@ -1135,7 +1135,7 @@ void UActorComponent::ExecuteUnregisterEvents()
 	if(bRenderStateCreated)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ComponentDestroyRenderState);
-		check(bRegistered);
+		checkf(bRegistered, TEXT("Component has render state when not registered (%s)"), *GetFullName());
 		DestroyRenderState_Concurrent();
 		checkf(!bRenderStateCreated, TEXT("Failed to route DestroyRenderState_Concurrent (%s)"), *GetFullName());
 	}
@@ -1355,6 +1355,8 @@ void UActorComponent::Activate(bool bReset)
 	{
 		SetComponentTickEnabled(true);
 		bIsActive = true;
+
+		OnComponentActivated.Broadcast(bReset);
 	}
 }
 
@@ -1364,6 +1366,8 @@ void UActorComponent::Deactivate()
 	{
 		SetComponentTickEnabled(false);
 		bIsActive = false;
+
+		OnComponentDeactivated.Broadcast();
 	}
 }
 

@@ -81,7 +81,7 @@ public:
 	 *	Get the array of component-space bone transforms. 
 	 *	Not safe to hold this point between frames, because it exists in dynamic data passed from main thread.
 	 */
-	virtual TArray<FTransform>* GetSpaceBases() const = 0;
+	virtual TArray<FTransform>* GetComponentSpaceTransforms() const = 0;
 
 	/** 
 	 *	Get the array of refpose->local matrices

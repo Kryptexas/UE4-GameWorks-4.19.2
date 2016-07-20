@@ -453,11 +453,18 @@ void UAnimInstance::PostUpdateAnimation()
 		ExtractedRootMotion.MakeUpToFullWeight();
 	}
 
-	// now trigger Notifies
-	TriggerAnimNotifies(Proxy.GetDeltaSeconds());
+	/////////////////////////////////////////////////////////////////////////////
+	// Notify / Event Handling!
+	// This can do anything to our component (including destroy it) 
+	// Any code added after this point needs to take that into account
+	/////////////////////////////////////////////////////////////////////////////
+	{
+		// now trigger Notifies
+		TriggerAnimNotifies(Proxy.GetDeltaSeconds());
 
-	// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
-	TriggerQueuedMontageEvents();
+		// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
+		TriggerQueuedMontageEvents();
+	}
 
 #if WITH_EDITOR && 0
 	{
@@ -523,7 +530,7 @@ bool UAnimInstance::ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) con
 	return Proxy.GetRequiredBones().IsValid() && (Proxy.GetRequiredBones().GetAsset() == InSkeletalMesh);
 }
 
-void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, FBlendedHeapCurve& OutCurve)
+void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve)
 {
 	FMemMark Mark(FMemStack::Get());
 	FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();
@@ -547,17 +554,17 @@ void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeleta
 			for (const FCompactPoseBoneIndex BoneIndex : EvaluationContext.Pose.ForEachBoneIndex())
 			{
 				FMeshPoseBoneIndex MeshPoseBoneIndex = EvaluationContext.Pose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-				OutLocalAtoms[MeshPoseBoneIndex.GetInt()] = EvaluationContext.Pose[BoneIndex];
+				OutBoneSpaceTransforms[MeshPoseBoneIndex.GetInt()] = EvaluationContext.Pose[BoneIndex];
 			}
 		}
 		else
 		{
-			FAnimationRuntime::FillWithRefPose(OutLocalAtoms, Proxy.GetRequiredBones());
+			FAnimationRuntime::FillWithRefPose(OutBoneSpaceTransforms, Proxy.GetRequiredBones());
 		}
 	}
 	else
 	{
-		FAnimationRuntime::FillWithRefPose(OutLocalAtoms, Proxy.GetRequiredBones());
+		FAnimationRuntime::FillWithRefPose(OutBoneSpaceTransforms, Proxy.GetRequiredBones());
 	}
 }
 

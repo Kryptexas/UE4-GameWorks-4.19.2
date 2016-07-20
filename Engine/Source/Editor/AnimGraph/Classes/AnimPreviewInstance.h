@@ -195,9 +195,9 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	void MontagePreview_JumpToEnd();
 	void MontagePreview_JumpToPreviewStart();
 	void MontagePreview_Restart();
-	void MontagePreview_PreviewNormal(int32 FromSectionIdx = INDEX_NONE);
+	void MontagePreview_PreviewNormal(int32 FromSectionIdx = INDEX_NONE, bool bPlay = true);
 	void MontagePreview_SetLoopNormal(bool bIsLooping, int32 PreferSectionIdx = INDEX_NONE);
-	void MontagePreview_PreviewAllSections();
+	void MontagePreview_PreviewAllSections(bool bPlay = true);
 	void MontagePreview_SetLoopAllSections(bool bIsLooping);
 	void MontagePreview_SetLoopAllSetupSections(bool bIsLooping);
 	void MontagePreview_ResetSectionsOrder();

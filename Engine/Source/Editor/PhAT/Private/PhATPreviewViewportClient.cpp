@@ -172,9 +172,9 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 	if ((SharedData->bShowHierarchy && SharedData->EditorSimOptions->bShowNamesInHierarchy))
 	{
 		// Iterate over each graphics bone.
-		for(int32 i = 0; i <SharedData->EditorSkelComp->GetNumSpaceBases(); ++i)
+		for (int32 i = 0; i < SharedData->EditorSkelComp->GetNumComponentSpaceTransforms(); ++i)
 		{
-			FVector BonePos = SharedData->EditorSkelComp->ComponentToWorld.TransformPosition(SharedData->EditorSkelComp->GetSpaceBases()[i].GetLocation());
+			FVector BonePos = SharedData->EditorSkelComp->ComponentToWorld.TransformPosition(SharedData->EditorSkelComp->GetComponentSpaceTransforms()[i].GetLocation());
 
 			FPlane proj = View.Project(BonePos);
 			if (proj.W > 0.f) // This avoids drawing bone names that are behind us.
@@ -679,9 +679,11 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		Setting->bWorldGravitySet = true;
 
 		// We back up the transforms array now
-		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetSpaceBases();
+		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetComponentSpaceTransforms();
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
 		SharedData->EditorSkelComp->bUpdateJointsFromAnimation = SharedData->EditorSimOptions->bUpdateJointsFromAnimation;
+		SharedData->EditorSkelComp->PhysicsTransformUpdateMode = SharedData->EditorSimOptions->PhysicsUpdateMode;
+
 
 		static FPhysicalAnimationData EmptyProfile;
 

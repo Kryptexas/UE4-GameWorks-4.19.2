@@ -1875,9 +1875,9 @@ protected:
 	float StreamingTexelFactor;
 #endif
 
-	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
-		const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, 
-		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const;
+	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
+								   const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, bool bSectionSelected,
+								   const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector) const;
 
 	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
 };

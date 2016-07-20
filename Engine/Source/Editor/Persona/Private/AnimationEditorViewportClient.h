@@ -6,6 +6,7 @@
 #include "Engine/WindDirectionalSource.h"
 
 class FAdvancedPreviewScene;
+struct FCompactHeapPose;
 
 //////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
@@ -317,6 +318,8 @@ private:
 	void DrawMeshBones(USkeletalMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draws the given array of transforms as bones */
 	void DrawBonesFromTransforms(TArray<FTransform>& Transforms, UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI, FLinearColor BoneColour, FLinearColor RootBoneColour) const;
+	/** Draws Bones for a compact pose */
+	void DrawBonesFromCompactPose(const FCompactHeapPose& Pose, UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI, const FLinearColor& DrawColour) const;
 	/** Draws Bones for uncompressed animation **/
 	void DrawMeshBonesUncompressedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draw Bones for non retargeted animation. */
@@ -328,13 +331,15 @@ private:
 	/** Draw Bones for non retargeted animation. */
 	void DrawMeshBonesBakedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Bones for RequiredBones with WorldTransform **/
-	void DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor>& BoneColours, float LineThickness=0.f) const;
+	void DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor>& BoneColours, float LineThickness = 0.f, bool bForceDraw = false) const;
 	/** Draw Sub set of Bones **/
 	void DrawMeshSubsetBones(const USkeletalMeshComponent* MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Gizmo for the Transform in foreground **/
 	void RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Mesh Sockets in foreground - bUseSkeletonSocketColor = true for grey (skeleton), false for red (mesh) **/
 	void DrawSockets( TArray<class USkeletalMeshSocket*>& Sockets, FPrimitiveDrawInterface* PDI, bool bUseSkeletonSocketColor ) const;
+	/** Draws bones from watched poses*/
+	void DrawWatchedPoses(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI);
 
 	TWeakObjectPtr<AWindDirectionalSource> FindSelectedWindActor() const;
 

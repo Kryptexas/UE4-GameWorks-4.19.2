@@ -7,6 +7,7 @@
 #include "NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
 #include "HierarchicalLODUtilities.h"

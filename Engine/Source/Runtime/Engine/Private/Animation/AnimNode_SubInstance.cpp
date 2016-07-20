@@ -136,7 +136,7 @@ void FAnimNode_SubInstance::PreUpdate(const UAnimInstance* InAnimInstance)
 	{
 		USkeletalMesh* SkelMesh = SkelComp->SkeletalMesh;
 
-		const int32 NumTransforms = SkelComp->GetSpaceBases().Num();
+		const int32 NumTransforms = SkelComp->GetComponentSpaceTransforms().Num();
 		BoneTransforms.Empty(NumTransforms);
 		BoneTransforms.AddZeroed(NumTransforms);
 	}

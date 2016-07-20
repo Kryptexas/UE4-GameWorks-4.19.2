@@ -61,6 +61,9 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	bClientCheckEncroachmentOnNetUpdate = true;
 	JumpKeyHoldTime = 0.0f;
 	JumpMaxHoldTime = 0.0f;
+    JumpMaxCount = 1;
+    JumpCurrentCount = 0;
+    bJumpMaxCountExceeded = false;
 
 	AnimRootMotionTranslationScale = 1.0f;
 
@@ -252,9 +255,23 @@ bool ACharacter::CanJump() const
 
 bool ACharacter::CanJumpInternal_Implementation() const
 {
-	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumpProvidingForce();
+    const bool bIsHoldTimeValid = (GetJumpMaxHoldTime() <= 0.0f) || IsJumpProvidingForce();
 
-	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->IsJumpAllowed() && !CharacterMovement->bWantsToCrouch;
+	const bool bIsCharacterMovementStateValid = (CharacterMovement &&
+													CharacterMovement->IsJumpAllowed() &&
+													!CharacterMovement->bWantsToCrouch &&
+													// We can only jump from the ground, or multi-jump if we're already falling.
+													(CharacterMovement->IsMovingOnGround() || CharacterMovement->IsFalling()));
+
+	return !bIsCrouched && !bJumpMaxCountExceeded && bIsHoldTimeValid && bIsCharacterMovementStateValid;
+}
+
+void ACharacter::CheckResetJumpCount()
+{
+	if (CharacterMovement && !CharacterMovement->IsFalling())
+	{
+		JumpCurrentCount = 0;
+	}
 }
 
 void ACharacter::OnJumped_Implementation()
@@ -730,6 +747,9 @@ void ACharacter::Restart()
 {
 	Super::Restart();
 
+    JumpCurrentCount = 0;
+    bJumpMaxCountExceeded = false;
+
 	bPressedJump = false;
 	JumpKeyHoldTime = 0.0f;
 	ClearJumpInput();
@@ -874,6 +894,11 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 
 void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
 {
+	if (!bPressedJump)
+	{
+		CheckResetJumpCount();
+	}
+
 	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode, PrevCustomMode, CharacterMovement->CustomMovementMode);
 	MovementModeChangedDelegate.Broadcast(this, PrevMovementMode, PrevCustomMode);
 }
@@ -904,19 +929,44 @@ void ACharacter::StopJumping()
 {
 	bPressedJump = false;
 	JumpKeyHoldTime = 0.0f;
+
+	CheckResetJumpCount();
 }
 
 void ACharacter::CheckJumpInput(float DeltaTime)
 {
-	const bool bWasJumping = bPressedJump && JumpKeyHoldTime > 0.0f;
-	if (bPressedJump)
+	if (CharacterMovement)
 	{
-		// Increment our timer first so calls to IsJumpProvidingForce() will return true
-		JumpKeyHoldTime += DeltaTime;
-		const bool bDidJump = CanJump() && CharacterMovement && CharacterMovement->DoJump(bClientUpdating);
-		if (!bWasJumping && bDidJump)
+		const bool bWasJumping = JumpKeyHoldTime > 0.0f;
+		if (bPressedJump)
 		{
-			OnJumped();
+			// Increment our timer first so calls to IsJumpProvidingForce() will return true
+			JumpKeyHoldTime += DeltaTime;
+
+			if (CharacterMovement->IsFalling() && JumpCurrentCount == 0)
+			{
+				JumpCurrentCount++;
+			}
+
+			if (!bWasJumping)
+			{
+				JumpCurrentCount++;
+				bJumpMaxCountExceeded = JumpCurrentCount > JumpMaxCount;
+			}
+
+			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
+			if (!bWasJumping && bDidJump)
+			{
+				OnJumped();
+			}
+		}
+
+		// If the jump key is no longer pressed and the character is no longer falling,
+		// but it still "looks" like the character was jumping, reset the counters.
+		else if (bWasJumping && !CharacterMovement->IsFalling())
+		{
+			JumpKeyHoldTime = 0.0f;
+			JumpCurrentCount = 0;
 		}
 	}
 }

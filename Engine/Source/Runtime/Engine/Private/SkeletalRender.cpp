@@ -208,7 +208,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 
 	const TArray<FBoneIndexType>* RequiredBoneSets[3] = { &LOD.ActiveBoneIndices, ExtraRequiredBoneIndices, NULL };
 
-	const bool bBoneVisibilityStatesValid = InMeshComponent->BoneVisibilityStates.Num() == InMeshComponent->GetNumSpaceBases();
+	const bool bBoneVisibilityStatesValid = InMeshComponent->BoneVisibilityStates.Num() == InMeshComponent->GetNumComponentSpaceTransforms();
 
 	// Handle case of using ParentAnimComponent for SpaceBases.
 	for( int32 RequiredBoneSetIndex = 0; RequiredBoneSets[RequiredBoneSetIndex]!=NULL; RequiredBoneSetIndex++ )
@@ -229,7 +229,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 				{
 					// If valid, use matrix from parent component.
 					const int32 MasterBoneIndex = MasterBoneMap[ThisBoneIndex];
-					if ( MasterComp->GetSpaceBases().IsValidIndex(MasterBoneIndex) )
+					if (MasterComp->GetComponentSpaceTransforms().IsValidIndex(MasterBoneIndex))
 					{
 						const int32 ParentIndex = MasterCompMesh->RefSkeleton.GetParentIndex(MasterBoneIndex);
 						bool bNeedToHideBone = MasterComp->BoneVisibilityStates[MasterBoneIndex] != BVS_Visible;
@@ -239,14 +239,14 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 						}
 						else
 						{
-							checkSlow(MasterComp->GetSpaceBases()[MasterBoneIndex].IsRotationNormalized());
-							ReferenceToLocal[ThisBoneIndex] = MasterComp->GetSpaceBases()[MasterBoneIndex].ToMatrixWithScale();
+							checkSlow(MasterComp->GetComponentSpaceTransforms()[MasterBoneIndex].IsRotationNormalized());
+							ReferenceToLocal[ThisBoneIndex] = MasterComp->GetComponentSpaceTransforms()[MasterBoneIndex].ToMatrixWithScale();
 						}
 					}
 				}
 				else
 				{
-					if (InMeshComponent->GetSpaceBases().IsValidIndex(ThisBoneIndex))
+					if (InMeshComponent->GetComponentSpaceTransforms().IsValidIndex(ThisBoneIndex))
 					{
 						// If we can't find this bone in the parent, we just use the reference pose.
 						if (bBoneVisibilityStatesValid)
@@ -259,14 +259,14 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 							}
 							else
 							{
-								checkSlow(InMeshComponent->GetSpaceBases()[ThisBoneIndex].IsRotationNormalized());
-								ReferenceToLocal[ThisBoneIndex] = InMeshComponent->GetSpaceBases()[ThisBoneIndex].ToMatrixWithScale();
+								checkSlow(InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].IsRotationNormalized());
+								ReferenceToLocal[ThisBoneIndex] = InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].ToMatrixWithScale();
 							}
 						}
 						else
 						{
-							checkSlow(InMeshComponent->GetSpaceBases()[ThisBoneIndex].IsRotationNormalized());
-							ReferenceToLocal[ThisBoneIndex] = InMeshComponent->GetSpaceBases()[ThisBoneIndex].ToMatrixWithScale();
+							checkSlow(InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].IsRotationNormalized());
+							ReferenceToLocal[ThisBoneIndex] = InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].ToMatrixWithScale();
 						}
 					}
 				}
@@ -320,14 +320,14 @@ void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinn
 			else
 			{
 				int32 SpaceBasesBoneIndex = ThisMesh->RefSkeleton.FindBoneIndex(CustomLeftRightBoneName);
-				const TArray<FTransform>* SpaceBases = &InMeshComponent->GetSpaceBases();
+				const TArray<FTransform>* SpaceBases = &InMeshComponent->GetComponentSpaceTransforms();
 				
 				// Handle case of using MasterPoseComponent for SpaceBases.
 				if( MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum() && SpaceBasesBoneIndex != INDEX_NONE )
 				{
 					// If valid, use matrix from parent component.
 					SpaceBasesBoneIndex = MasterBoneMap[SpaceBasesBoneIndex];
-					SpaceBases = &MasterComp->GetSpaceBases();
+					SpaceBases = &MasterComp->GetComponentSpaceTransforms();
 				}
 
 				if (SpaceBases->IsValidIndex(SpaceBasesBoneIndex))

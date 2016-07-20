@@ -35,11 +35,17 @@ class UPhysicsAsset : public UObject
 	UPROPERTY()
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
-	UPROPERTY(EditAnywhere, Category = PhysicalAnimation)
-	TArray<FName> Profiles;
+	UPROPERTY(EditAnywhere, Category = Profiles)
+	TArray<FName> PhysicalAnimationProfiles;
+
+	UPROPERTY(EditAnywhere, Category = Profiles)
+	TArray<FName> ConstraintProfiles;
 
 	UPROPERTY(transient)
 	FName CurrentPhysicalAnimationProfileName;
+
+	UPROPERTY(transient)
+	FName CurrentConstraintProfileName;
 
 #endif // WITH_EDITORONLY_DATA
 
@@ -80,9 +86,14 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 
-	ENGINE_API const TArray<FName>& GetPhysicalAnimationProfileNames(TArray<FName>& OutProfileNames) const
+	ENGINE_API const TArray<FName>& GetPhysicalAnimationProfileNames() const
 	{
-		return Profiles;
+		return PhysicalAnimationProfiles;
+	}
+
+	ENGINE_API const TArray<FName>& GetConstraintProfileNames() const
+	{
+		return ConstraintProfiles;
 	}
 
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

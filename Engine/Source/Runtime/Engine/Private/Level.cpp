@@ -19,6 +19,7 @@ Level.cpp: Level-related functions
 #include "DynamicMeshBuilder.h"
 #include "Engine/LevelBounds.h"
 #include "RenderingObjectVersion.h"
+#include "PhysicsEngine/BodySetup.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -1626,7 +1627,7 @@ void ULevel::RouteActorInitialize()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
 				}
 
-				if (bCallBeginPlay)
+				if (bCallBeginPlay && !Actor->IsChildActor())
 				{
 					ActorsToBeginPlay.Add(Actor);
 				}
@@ -1635,7 +1636,7 @@ void ULevel::RouteActorInitialize()
 			// Components are all set up, init touching state.
 			// Note: Not doing notifies here since loading or streaming in isn't actually conceptually beginning a touch.
 			//	     Rather, it was always touching and the mechanics of loading is just an implementation detail.
-			Actor->UpdateOverlaps(false);
+			Actor->UpdateOverlaps(Actor->bGenerateOverlapEventsDuringLevelStreaming);
 		}
 	}
 

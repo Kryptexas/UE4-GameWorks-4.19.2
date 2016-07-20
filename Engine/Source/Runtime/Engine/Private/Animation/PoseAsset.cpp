@@ -351,6 +351,20 @@ UPoseAsset::UPoseAsset(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+/**
+ * Local utility struct that keeps skeleton bone index and compact bone index together for retargeting
+ */
+struct FBoneIndices
+{
+	int32 SkeletonBoneIndex;
+	FCompactPoseBoneIndex CompactBoneIndex;
+
+	FBoneIndices(int32 InSkeletonBoneIndex, FCompactPoseBoneIndex InCompactBoneIndex)
+		: SkeletonBoneIndex(InSkeletonBoneIndex)
+		, CompactBoneIndex(InCompactBoneIndex)
+	{}
+};
+
 void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	if (bAdditivePose && PoseContainer.Poses.IsValidIndex(BasePoseIndex))
@@ -361,7 +375,7 @@ void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurv
 		OutPose.ResetToRefPose();
 
 		// this contains compact bone pose list that this pose cares
-		TArray<FCompactPoseBoneIndex> CompactBonePoseList;
+		TArray<FBoneIndices> BoneIndices;
 
 		const int32 TrackNum = PoseContainer.TrackMap.Num();
 
@@ -370,16 +384,20 @@ void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurv
 			const int32 SkeletonBoneIndex = TrackPair.Value;
 			const FCompactPoseBoneIndex PoseBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
 			// we add even if it's invalid because we want it to match with track index
-			CompactBonePoseList.Add(PoseBoneIndex);
+			BoneIndices.Add(FBoneIndices(SkeletonBoneIndex, PoseBoneIndex));
 		}
 
 		const TArray<FTransform>& PoseTransform = PoseContainer.Poses[BasePoseIndex].LocalSpacePose;
 
 		for (int32 TrackIndex = 0; TrackIndex < TrackNum; ++TrackIndex)
 		{
-			if (CompactBonePoseList[TrackIndex] != INDEX_NONE)
+			const FBoneIndices& LocalBoneIndices = BoneIndices[TrackIndex];
+
+			if (LocalBoneIndices.CompactBoneIndex != INDEX_NONE)
 			{
-				OutPose[CompactBonePoseList[TrackIndex]] = PoseTransform[TrackIndex];
+				FTransform& OutTransform = OutPose[LocalBoneIndices.CompactBoneIndex];
+				OutTransform = PoseTransform[TrackIndex];
+				FAnimationRuntime::RetargetBoneTransform(MySkeleton, RetargetSource, OutTransform, LocalBoneIndices.SkeletonBoneIndex, LocalBoneIndices.CompactBoneIndex, RequiredBones, false);
 			}
 		}
 
@@ -397,7 +415,7 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 	USkeleton* MySkeleton = GetSkeleton();
 
 	// this contains compact bone pose list that this pose cares
-	TArray<FCompactPoseBoneIndex> CompactBonePoseList;
+	TArray<FBoneIndices> BoneIndices;
 
 	const int32 TrackNum = PoseContainer.TrackMap.Num();
 
@@ -406,7 +424,7 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 		const int32 SkeletonBoneIndex = TrackPair.Value;
 		const FCompactPoseBoneIndex PoseBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
 		// we add even if it's invalid because we want it to match with track index
-		CompactBonePoseList.Add(PoseBoneIndex);
+		BoneIndices.Add(FBoneIndices(SkeletonBoneIndex, PoseBoneIndex));
 	}
 
 	check(PoseContainer.IsValid());
@@ -483,9 +501,9 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 				if (BlendingTransform.Num() == 0)
 				{
 					// copy from out default pose
-					if (CompactBonePoseList[TrackIndex] != INDEX_NONE)
+					if (BoneIndices[TrackIndex].CompactBoneIndex != INDEX_NONE)
 					{
-						BlendedBoneTransform[TrackIndex] = OutPose[CompactBonePoseList[TrackIndex]];
+						BlendedBoneTransform[TrackIndex] = OutPose[BoneIndices[TrackIndex].CompactBoneIndex];
 					}
 				}
 				else 
@@ -527,9 +545,11 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 
 			for (int32 TrackIndex = 0; TrackIndex < TrackNum; ++TrackIndex)
 			{
-				if (CompactBonePoseList[TrackIndex] != INDEX_NONE)
+				const FBoneIndices& LocalBoneIndices = BoneIndices[TrackIndex];
+				if (LocalBoneIndices.CompactBoneIndex != INDEX_NONE)
 				{
-					OutPose[CompactBonePoseList[TrackIndex]] = BlendedBoneTransform[TrackIndex];
+					FAnimationRuntime::RetargetBoneTransform(MySkeleton, RetargetSource, BlendedBoneTransform[TrackIndex], LocalBoneIndices.SkeletonBoneIndex, LocalBoneIndices.CompactBoneIndex, RequiredBones, false);
+					OutPose[LocalBoneIndices.CompactBoneIndex] = BlendedBoneTransform[TrackIndex];
 					OutPose.NormalizeRotations();
 				}
 			}
@@ -707,7 +727,7 @@ void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, USkeletalMeshCompon
 	{
 		TArray<FName> TrackNames;
 		// note this ignores root motion
-		TArray<FTransform> BoneTransform = MeshComponent->GetSpaceBases();
+		TArray<FTransform> BoneTransform = MeshComponent->GetComponentSpaceTransforms();
 		const FReferenceSkeleton& RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
 		for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetNum(); ++BoneIndex)
 		{

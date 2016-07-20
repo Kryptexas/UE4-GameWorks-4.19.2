@@ -4956,8 +4956,19 @@ public:
 	FORCEINLINE bool NotValidPreviewSection()
 	{
 #if WITH_EDITORONLY_DATA
+
+		int32 ActualPreviewSectionIdx = SectionIndexPreview;
+		if(ActualPreviewSectionIdx != INDEX_NONE && Sections.IsValidIndex(ActualPreviewSectionIdx))
+		{
+			const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
+			if(PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+			{
+				ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
+			}
+		}
+
 		return	(SectionIndex < Sections.Num()) && 
-				((SectionIndexPreview >= 0) && (SectionIndexPreview != SectionIndex));
+				((ActualPreviewSectionIdx >= 0) && (ActualPreviewSectionIdx != SectionIndex));
 #else
 		return false;
 #endif
@@ -5052,14 +5063,16 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
 		{
-			FSkelMeshSection Section = Iter.GetSection();
+			const FSkelMeshSection& Section = Iter.GetSection();
 			const int32 SectionIndex = Iter.GetSectionElementIndex();
 			const FSectionElementInfo& SectionElementInfo = Iter.GetSectionElementInfo();
 			const FTwoVectors& CustomLeftRightVectors = Iter.GetCustomLeftRightVectors();
 
+			bool bSectionSelected = false;
+
 #if WITH_EDITORONLY_DATA
 			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
-			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
+			bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
 #endif
 			// If hidden skip the draw
 			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
@@ -5073,7 +5086,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 				continue;
 			}
 
-			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, SectionIndex, SectionElementInfo, CustomLeftRightVectors, bInSelectable, Collector);
+			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, SectionIndex, bSectionSelected, SectionElementInfo, CustomLeftRightVectors, bInSelectable, Collector);
 		}
 	}
 
@@ -5097,7 +5110,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 }
 
 void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
-	const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, 
+	const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, bool bSectionSelected,
 	const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const
 {
 	const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -5114,7 +5127,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	bool bIsSelected = IsSelected();
 
 	// if the mesh isn't selected but the mesh section is selected in the AnimSetViewer, find the mesh component and make sure that it can be highlighted (ie. are we rendering for the AnimSetViewer or not?)
-	if( !bIsSelected && Section.bSelected && bCanHighlightSelectedSections )
+	if( !bIsSelected && bSectionSelected && bCanHighlightSelectedSections )
 	{
 		bIsSelected = true;
 	}
@@ -5172,7 +5185,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 			Mesh.BatchHitProxyId = SectionElementInfo.HitProxy ? SectionElementInfo.HitProxy->Id : FHitProxyId();
 
-			if (Section.bSelected)
+			if (bSectionSelected)
 			{
 				auto SelectionOverrideProxy = new FOverrideSelectionColorMaterialRenderProxy(
 					SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
@@ -5366,7 +5379,7 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 	{
 		FTransform LocalToWorldTransform(ProxyLocalToWorld);
 
-		TArray<FTransform>* BoneSpaceBases = MeshObject->GetSpaceBases();
+		TArray<FTransform>* BoneSpaceBases = MeshObject->GetComponentSpaceTransforms();
 		if(BoneSpaceBases)
 		{
 			//TODO: These data structures are not double buffered. This is not thread safe!
@@ -5483,9 +5496,9 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bCastCapsuleDirectShadow = false;
 	bCastCapsuleIndirectShadow = false;
 
-	bDoubleBufferedBlendSpaces = true;
-	CurrentEditableSpaceBases = 0;
-	CurrentReadSpaceBases = 1;
+	bDoubleBufferedComponentSpaceTransforms = true;
+	CurrentEditableComponentTransforms = 0;
+	CurrentReadComponentTransforms = 1;
 	bNeedToFlipSpaceBaseBuffers = false;
 
 	bCanEverAffectNavigation = false;
@@ -5512,8 +5525,8 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
 	if(Ar.IsCountingMemory())
 	{
 		// add all native variables - mostly bigger chunks 
-		SpaceBasesArray[0].CountBytes(Ar);
-		SpaceBasesArray[1].CountBytes(Ar);
+		ComponentSpaceTransformsArray[0].CountBytes(Ar);
+		ComponentSpaceTransformsArray[1].CountBytes(Ar);
 		MasterBoneMap.CountBytes(Ar);
 	}
 }
@@ -5536,7 +5549,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	// to count memory : TODO: REMOVE?
 	if(Ar.IsCountingMemory())
 	{
-		LocalAtoms.CountBytes(Ar);
+		BoneSpaceTransforms.CountBytes(Ar);
 		RequiredBones.CountBytes(Ar);
 	}
 

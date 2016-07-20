@@ -174,6 +174,7 @@ FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelati
 					break;
 
 				case RTS_Component:
+				case RTS_ParentBoneSpace:
 					return SocketLocalTransform;
 
 				default:

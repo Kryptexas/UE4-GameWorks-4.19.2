@@ -58,6 +58,8 @@ enum ERelativeTransformSpace
 	RTS_Actor,
 	/** Component space transform. */
 	RTS_Component,
+	/** Parent bone space transform */
+	RTS_ParentBoneSpace,
 };
 
 //
@@ -147,7 +149,7 @@ public:
 	uint32 bVisible:1;
 
 	/** Whether to hide the primitive in game, if the primitive is Visible. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering)
 	uint32 bHiddenInGame:1;
 
 	/**
@@ -224,7 +226,7 @@ public:
 	UPROPERTY()
 	FVector RelativeTranslation_DEPRECATED;
 
-	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */
+	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor. */
 	UPROPERTY(Category = Mobility, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<EComponentMobility::Type> Mobility;
 

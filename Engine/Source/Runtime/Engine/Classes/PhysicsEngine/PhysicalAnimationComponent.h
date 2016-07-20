@@ -79,6 +79,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation)
 	void ApplyPhysicalAnimationSettingsBelow(FName BodyName, const FPhysicalAnimationData& PhysicalAnimationData, bool bIncludeSelf = true);
 
+	/** Updates strength multiplyer and any active motors */
+	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation)
+	void SetStrengthMultiplyer(float InStrengthMultiplyer);
+	
+	/** Muliplies the strength of any active motors. (can blend from 0-1 for example)*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicalAnimation, meta = (ClampMin = "0"))
+	float StrengthMultiplyer;
+
 	/**
 	*  Applies the physical animation profile to the body given and all bodies below.
 	*  @param  BodyName			The body from which we'd like to start applying the physical animation profile. Finds all bodies below in the skeleton hierarchy. None implies all bodies

@@ -14,6 +14,7 @@
 #include "ObjectEditorUtils.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "Engine/DestructibleMesh.h"
 #include "Components/DestructibleComponent.h"
 #include "AI/Navigation/NavigationSystem.h"
@@ -44,7 +45,7 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 
 	LargeChunkThreshold = 25.f;
 
-	SetSpaceBaseDoubleBuffering(false);
+	SetComponentSpaceTransformsDoubleBuffering(false);
 }
 
 #if WITH_EDITORONLY_DATA
@@ -262,9 +263,6 @@ void UDestructibleComponent::CreatePhysicsState()
 	// Set the (initially) dynamic flag in the actor descriptor
 	// See if we are 'static'
 	verify( NxParameterized::setParamBool(*ActorParams,"dynamic", BodyInstance.bSimulatePhysics != false) );
-
-	// Set the sleep velocity frame decay constant (was sleepVelocitySmoothingFactor) - a new feature that should help sleeping in large piles
-	verify( NxParameterized::setParamF32(*ActorParams,"sleepVelocityFrameDecayConstant", 20.0f) );
 
 	// Set up the shape desc template
 
@@ -1001,7 +999,7 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 		const FQuat BoneRotation = InvRotation*WorldRotation;
 		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - ComponentToWorld.GetTranslation()) / ComponentToWorld.GetScale3D();
 
-		GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+		GetEditableComponentSpaceTransforms()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 	}
 
 	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
@@ -1034,7 +1032,7 @@ void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& Wor
 	// More optimal form of the above
 	const FQuat BoneRotation = ComponentToWorld.GetRotation().Inverse()*WorldRotation;
 	const FVector BoneTranslation = ComponentToWorld.GetRotation().Inverse().RotateVector(WorldTranslation - ComponentToWorld.GetTranslation())/ComponentToWorld.GetScale3D();
-	GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+	GetEditableComponentSpaceTransforms()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 #endif
 }
 

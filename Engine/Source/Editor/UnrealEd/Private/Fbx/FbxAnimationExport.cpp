@@ -410,7 +410,7 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeleta
 				Curves[i]->KeyModifyBegin();
 			}
 
-			FTransform BoneTransform = SkeletalMeshComponent->LocalAtoms[BoneIndex];
+			FTransform BoneTransform = SkeletalMeshComponent->BoneSpaceTransforms[BoneIndex];
 			FbxVector4 Translation = Converter.ConvertToFbxPos(BoneTransform.GetLocation());
 			FbxVector4 Rotation = Converter.ConvertToFbxRot(BoneTransform.GetRotation().Euler());
 

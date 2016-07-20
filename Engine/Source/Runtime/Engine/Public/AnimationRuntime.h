@@ -364,9 +364,9 @@ public:
 	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform& NewTransform);
 	// space bases
 #if WITH_EDITOR
-	static void FillUpSpaceBases(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &LocalAtoms, TArray<FTransform> &SpaceBases);
-	static void FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose);
-	static void FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBases);
+	static void FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms);
+	static void FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);
+	static void FillUpComponentSpaceTransformsRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);
 #endif
 
 	/* Weight utility functions */
@@ -378,6 +378,17 @@ public:
 	*/
  	static void AppendActiveMorphTargets(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& InMorphCurveAnims, TArray<FActiveMorphTarget>& InOutActiveMorphTargets, TArray<float>& InOutMorphTargetWeights);
 
+	/**
+	* Retarget a single bone transform, to apply right after extraction.
+	*
+	* @param	MySkeleton			Skeleton this is retargeting
+	* @param	RetargetSource		Retarget Source for the retargeting
+	* @param	BoneTransform		BoneTransform to read/write from.
+	* @param	SkeletonBoneIndex	Bone Index in USkeleton.
+	* @param	BoneIndex			Bone Index in Bone Transform array.
+	* @param	RequiredBones		BoneContainer
+	*/
+	static void RetargetBoneTransform(const USkeleton* MySkeleton, const FName& RetargetSource, FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive);
 private:
 	/** 
 	* Blend Poses per bone weights : The BasePose + BlendPoses(SourceIndex) * Blend Weights(BoneIndex)

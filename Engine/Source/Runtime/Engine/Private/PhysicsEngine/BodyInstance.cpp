@@ -4,6 +4,7 @@
 #include "PhysicsPublic.h"
 #include "Collision.h"
 #include "PhysicsEngine/ConstraintInstance.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #include "MessageLog.h"
 
@@ -1918,7 +1919,13 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, 
 		const FBodyInstance* SubBody0 = Body0->GetOriginalBodyInstance(Shape0);
 		const FBodyInstance* SubBody1 = Body1->GetOriginalBodyInstance(Shape1);
 		
-		if (SubBody0->bNotifyRigidBodyCollision || SubBody1->bNotifyRigidBodyCollision)
+		PxU32 FilterFlags0 = Shape0->getSimulationFilterData().word3 & 0xFFFFFF;
+		PxU32 FilterFlags1 = Shape1->getSimulationFilterData().word3 & 0xFFFFFF;
+
+		const bool bBody0Notify = (FilterFlags0&EPDF_ContactNotify) != 0;
+		const bool bBody1Notify = (FilterFlags1&EPDF_ContactNotify) != 0;
+		
+		if (bBody0Notify || bBody1Notify)
 		{
 			TMap<const FBodyInstance *, int32> & SubBodyNotifyMap = BodyPairNotifyMap.FindOrAdd(SubBody0);
 			int32* NotifyInfoIndex = SubBodyNotifyMap.Find(SubBody1);
@@ -1926,9 +1933,9 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, 
 			if (NotifyInfoIndex == NULL)
 			{
 				FCollisionNotifyInfo * NotifyInfo = new (PendingNotifyInfos) FCollisionNotifyInfo;
-				NotifyInfo->bCallEvent0 = (SubBody0->bNotifyRigidBodyCollision);
+				NotifyInfo->bCallEvent0 = (bBody0Notify);
 				NotifyInfo->Info0.SetFrom(SubBody0);
-				NotifyInfo->bCallEvent1 = (SubBody1->bNotifyRigidBodyCollision);
+				NotifyInfo->bCallEvent1 = (bBody1Notify);
 				NotifyInfo->Info1.SetFrom(SubBody1);
 
 				NotifyInfoIndex = &SubBodyNotifyMap.Add(SubBody0, PendingNotifyInfos.Num() - 1);
@@ -2595,9 +2602,18 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
             PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
 			
 			//if wake when level starts is true, calling this function automatically wakes body up
-			if (bSimulatePhysics && bStartAwake)
+			if (bSimulatePhysics)
 			{
-				PRigidDynamic->wakeUp();
+				if(bStartAwake)
+				{
+					PRigidDynamic->wakeUp();
+				}
+
+				//Make sure to refresh filtering and generate contact points if we're already overlapping with an object
+				if(PxScene* PScene = PRigidDynamic->getScene())
+				{
+					PScene->resetFiltering(*PRigidDynamic);
+				}
 			}
 		}
 		
@@ -2654,6 +2670,34 @@ bool FBodyInstance::IsDynamic() const
 	return bIsDynamic;
 }
 
+void FBodyInstance::ApplyWeldOnChildren()
+{
+	if(UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
+	{
+		TArray<FBodyInstance*> ChildrenBodies;
+		TArray<FName> ChildrenLabels;
+		OwnerComponentInst->GetWeldedBodies(ChildrenBodies, ChildrenLabels, /*bIncludingAutoWeld=*/true);
+
+		for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
+		{
+			FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
+			checkSlow(ChildBI);
+			if (ChildBI != this)
+			{
+				const ECollisionEnabled::Type ChildCollision = ChildBI->GetCollisionEnabled();
+				if(ChildCollision == ECollisionEnabled::PhysicsOnly || ChildCollision == ECollisionEnabled::QueryAndPhysics)
+				{
+					if(UPrimitiveComponent* PrimOwnerComponent = ChildBI->OwnerComponent.Get())
+					{
+						Weld(ChildBI, PrimOwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
+					}
+				}
+			}
+		}
+	}
+	
+}
+
 void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending)
 {
 	if (bSimulate)
@@ -2690,20 +2734,7 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 			
 			if (bSimulatePhysics == false)	//if we're switching from kinematic to simulated
 			{
-				//we must make sure to update children that are welded
-				TArray<FBodyInstance*> ChildrenBodies;
-				TArray<FName> ChildrenLabels;
-				OwnerComponentInst->GetWeldedBodies(ChildrenBodies, ChildrenLabels);
-
-				for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
-				{
-					FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
-					checkSlow(ChildBI);
-					if (ChildBI != this)
-					{
-						Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
-					}
-				}
+				ApplyWeldOnChildren();
 			}
 		}
 	}
@@ -5156,11 +5187,21 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 		}
 
 		// enable swept bounds for CCD for this shape
-		if(bSimCollision && !bPhysicsStatic && bUseCCD )
+		if(bSimCollision && !bPhysicsStatic)
 		{
 			if(GetPxRigidActor_AssumesLocked()->is<PxRigidBody>())
 			{
-				ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+				if (bUseCCD)
+				{
+					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+				}
+				
+				if (!ShouldInstanceSimulatingPhysics())
+				{
+					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
+					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
+				}
 			}
 		}
 	}

@@ -66,6 +66,10 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 			const int32 NumNewVerts = Record.RenderVerts.Num();
 			Section.NumVertices += NumNewVerts;
 
+			const FPackedNormal TangentX = InstanceData.Transform.GetUnitAxis(EAxis::X);
+			FPackedNormal TangentZ = InstanceData.Transform.GetUnitAxis(EAxis::Y);
+			TangentZ.Vector.W = (InstanceData.Transform.Determinant() < 0.0f) ? 0 : 255;
+
 			const FColor VertColor(InstanceData.VertexColor);
 			for (const FVector4& SourceVert : Record.RenderVerts)
 			{
@@ -73,7 +77,7 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 				const FVector ComponentSpacePos = InstanceData.Transform.TransformPosition(LocalPos);
 				const FVector2D UV(SourceVert.Z, SourceVert.W);
 
-				new (VertexBuffer.Vertices) FPaperSpriteVertex(ComponentSpacePos, UV, VertColor);
+				new (VertexBuffer.Vertices) FPaperSpriteVertex(ComponentSpacePos, UV, VertColor, TangentX, TangentZ);
 			}
 
 			if (InComponent->InstanceBodies.IsValidIndex(InstanceIndex))

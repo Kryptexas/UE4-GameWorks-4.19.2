@@ -225,16 +225,39 @@ namespace SleepEvent
 
 }
 
-/** Builder to allow overriding the sim event callback. */
-typedef class FPhysXSimEventCallback* (CreateSimEventCallbackFn)(class FPhysScene* PhysScene, int32 SceneType);
+/** Buffers used as scratch space for PhysX to avoid allocations during simulation */
+struct FSimulationScratchBuffer
+{
+	FSimulationScratchBuffer()
+		: Buffer(nullptr)
+		, BufferSize(0)
+	{}
+
+	// The scratch buffer
+	uint8* Buffer;
+
+	// Allocated size of the buffer
+	int32 BufferSize;
+};
+
+/** Interface for the creation of customized simulation event callbacks. */
+
+class ISimEventCallbackFactory
+{
+public:
+	virtual physx::PxSimulationEventCallback* Create(class FPhysScene* PhysScene, int32 SceneType) = 0;
+	virtual void Destroy(physx::PxSimulationEventCallback* Callback) = 0;
+};
+
 
 /** Container object for a physics engine 'scene'. */
 
 class FPhysScene
 {
 public:
-	/** If the function is set it will be used to create the sim event callback. Otherwise FPhysXSimEventCallback will be used. */
-	ENGINE_API static CreateSimEventCallbackFn* CreateSimEventCallback;
+	/** Static factory used to override the simulation event callback from other modules.
+		If not set it defaults to using FPhysXSimEventCallback. */
+	ENGINE_API static TSharedPtr<ISimEventCallbackFactory> SimEventCallbackFactory;
 
 	/** Indicates whether the async scene is enabled or not. */
 	bool							bAsyncSceneEnabled;
@@ -327,6 +350,10 @@ private:
 	/** Completion events (task) for the physics scenes	(both apex and non-apex). This is a "join" of the above. */
 	FGraphEventRef PhysicsSceneCompletion;
 
+	// Data for scene scratch buffers, these will be allocated once on FPhysScene construction and used
+	// for the calls to PxScene::simulate to save it calling into the OS to allocate during simulation
+	FSimulationScratchBuffer SimScratchBuffers[PST_MAX];
+
 #if WITH_PHYSX
 
 	struct FDeferredSceneData
@@ -356,7 +383,7 @@ private:
 	/** Dispatcher for CPU tasks */
 	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
-	class FPhysXSimEventCallback*			SimEventCallback[PST_MAX];
+	physx::PxSimulationEventCallback*			SimEventCallback[PST_MAX];
 #if WITH_VEHICLE
 	/** Vehicle scene */
 	class FPhysXVehicleManager*			VehicleManager;

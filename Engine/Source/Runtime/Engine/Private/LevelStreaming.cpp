@@ -14,6 +14,7 @@
 #include "Engine/LevelStreamingKismet.h"
 #include "Components/BrushComponent.h"
 #include "Engine/CoreSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 

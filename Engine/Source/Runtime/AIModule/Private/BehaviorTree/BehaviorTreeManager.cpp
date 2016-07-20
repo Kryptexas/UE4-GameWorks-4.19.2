@@ -73,17 +73,62 @@ struct FNodeInitializationData
 	};
 };
 
+static void MergeDecoratorOpsHelper(TArray<FBTDecoratorLogic>& LinkOps, const TArray<FBTDecoratorLogic>& InjectedOps, const int32 NumOriginalDecorators, const int32 NumInjectedDecorators)
+{
+	if (LinkOps.Num() == 0 && InjectedOps.Num() == 0)
+	{
+		return;
+	}
+
+	const int32 NumOriginalOps = LinkOps.Num();
+	if (NumOriginalDecorators > 0)
+	{
+		// and operator for two groups of composites: original and new one
+		FBTDecoratorLogic MasterAndOp(EBTDecoratorLogic::And, LinkOps.Num() ? 2 : (NumOriginalDecorators + 1));
+		LinkOps.Insert(MasterAndOp, 0);
+
+		if (NumOriginalOps == 0)
+		{
+			// add Test operations, original link didn't have composite operators
+			for (int32 Idx = 0; Idx < NumOriginalDecorators; Idx++)
+			{
+				FBTDecoratorLogic TestOp(EBTDecoratorLogic::Test, Idx);
+				LinkOps.Add(TestOp);
+			}
+		}
+	}
+
+	// add injected operators
+	if (InjectedOps.Num() == 0)
+	{
+		FBTDecoratorLogic InjectedAndOp(EBTDecoratorLogic::And, NumInjectedDecorators);
+		LinkOps.Add(InjectedAndOp);
+
+		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
+		{
+			FBTDecoratorLogic TestOp(EBTDecoratorLogic::Test, NumOriginalDecorators + Idx);
+			LinkOps.Add(TestOp);
+		}
+	}
+	else
+	{
+		for (int32 Idx = 0; Idx < InjectedOps.Num(); Idx++)
+		{
+			FBTDecoratorLogic InjectedOpCopy = InjectedOps[Idx];
+			if (InjectedOpCopy.Operation == EBTDecoratorLogic::Test)
+			{
+				InjectedOpCopy.Number += NumOriginalDecorators;
+			}
+
+			LinkOps.Add(InjectedOpCopy);
+		}
+	}
+}
+
 static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 	uint8 TreeDepth, uint16& ExecutionIndex, TArray<FNodeInitializationData>& InitList,
 	UBehaviorTree& TreeAsset, UObject* NodeOuter)
 {
-	// special case: subtrees
-	UBTTask_RunBehavior* SubtreeTask = Cast<UBTTask_RunBehavior>(NodeOb);
-	if (SubtreeTask)
-	{
-		ExecutionIndex += SubtreeTask->GetInjectedNodesCount();
-	}
-
 	InitList.Add(FNodeInitializationData(NodeOb, ParentNode, ExecutionIndex, TreeDepth, NodeOb->GetInstanceMemorySize(), NodeOb->GetSpecialMemorySize()));
 	NodeOb->InitializeFromAsset(TreeAsset);
 	ExecutionIndex++;
@@ -138,6 +183,40 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 				Decorator->InitializeFromAsset(TreeAsset);
 				Decorator->InitializeParentLink(ChildIndex);
 				ExecutionIndex++;
+			}
+
+			// inject root level decorators from subtree task
+			UBTTask_RunBehavior* SubtreeTask = Cast<UBTTask_RunBehavior>(ChildInfo.ChildTask);
+			if (SubtreeTask && SubtreeTask->GetSubtreeAsset() && SubtreeTask->GetSubtreeAsset()->RootDecorators.Num())
+			{
+				UBehaviorTree& SubtreeAsset = *SubtreeTask->GetSubtreeAsset();
+				const int32 NumOrgDecorators = ChildInfo.Decorators.Num();
+
+				for (int32 DecoratorIndex = 0; DecoratorIndex < SubtreeAsset.RootDecorators.Num(); DecoratorIndex++)
+				{
+					if (SubtreeAsset.RootDecorators[DecoratorIndex] == NULL)
+					{
+						UE_LOG(LogBehaviorTree, Warning, TEXT("%s can't inject decorator from %s! (parent: %s, branch: %d)"),
+							*TreeAsset.GetName(), *SubtreeAsset.GetName(),
+							*UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb), ChildIndex);
+						continue;
+					}
+
+					UBTDecorator* Decorator = Cast<UBTDecorator>(StaticDuplicateObject(SubtreeAsset.RootDecorators[DecoratorIndex], NodeOuter));
+					ChildInfo.Decorators.Add(Decorator);
+
+					InitList.Add(FNodeInitializationData(Decorator, CompositeOb, ExecutionIndex, TreeDepth,
+						Decorator->GetInstanceMemorySize(), Decorator->GetSpecialMemorySize()));
+
+					// initialize with parent tree
+					Decorator->MarkInjectedNode();
+					Decorator->InitializeFromAsset(TreeAsset);
+					Decorator->InitializeParentLink(ChildIndex);
+					ExecutionIndex++;
+				}
+
+				const int32 NumInjectedDecorators = ChildInfo.Decorators.Num() - NumOrgDecorators;
+				MergeDecoratorOpsHelper(ChildInfo.DecoratorOps, SubtreeAsset.RootDecoratorOps, NumOrgDecorators, NumInjectedDecorators);
 			}
 
 			UBTNode* ChildNode = NULL;

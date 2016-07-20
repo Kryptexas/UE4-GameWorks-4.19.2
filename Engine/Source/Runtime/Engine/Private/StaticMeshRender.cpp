@@ -17,8 +17,8 @@
 #include "Components/BrushComponent.h"
 #include "AI/Navigation/NavCollision.h"
 #include "ComponentRecreateRenderStateContext.h"
-
-#include "Classes/Engine/LODActor.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "Engine/LODActor.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;
@@ -93,7 +93,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, RenderData(InComponent->StaticMesh->RenderData)
 	, ForcedLodModel(InComponent->ForcedLodModel)
 	, bCastShadow(InComponent->CastShadow)
-	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseDefault)
+	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseSimpleAndComplex)
 	, MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
@@ -773,7 +773,7 @@ bool FStaticMeshSceneProxy::IsCollisionView(const FEngineShowFlags& EngineShowFl
 
 		if(bHasResponse)
 		{
-			const ECollisionTraceFlag TraceFlag = BodySetup ? BodySetup->GetCollisionTraceFlag().GetValue() : ECollisionTraceFlag::CTF_UseDefault;
+			const ECollisionTraceFlag TraceFlag = BodySetup ? BodySetup->GetCollisionTraceFlag().GetValue() : ECollisionTraceFlag::CTF_UseSimpleAndComplex;
 			
 			//Visiblity uses complex and pawn uses simple. However, if UseSimpleAsComplex or UseComplexAsSimple is used we need to adjust accordingly
 			bDrawComplexCollision = (EngineShowFlags.CollisionVisibility && TraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex) || (EngineShowFlags.CollisionPawn && TraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);

@@ -53,13 +53,13 @@ private:
 struct FMorphTargetDelta
 {
 	/** change in position */
-	FVector PositionDelta;
+	FVector			PositionDelta;
 
 	/** Tangent basis normal */
-	FVector TangentZDelta;
+	FVector			TangentZDelta;
 
 	/** index of source vertex to apply deltas to */
-	uint32 SourceIdx;
+	uint32			SourceIdx;
 
 	/** pipe operator */
 	friend FArchive& operator<<(FArchive& Ar, FMorphTargetDelta& V)
@@ -67,7 +67,7 @@ struct FMorphTargetDelta
 		if (Ar.UE4Ver() < VER_UE4_MORPHTARGET_CPU_TANGENTZDELTA_FORMATCHANGE)
 		{
 			/** old format of change in tangent basis normal */
-			FPackedNormal TangentZDelta_DEPRECATED;
+			FPackedNormal	TangentZDelta_DEPRECATED;
 
 			if (Ar.IsSaving())
 			{
@@ -130,7 +130,7 @@ public:
 	class USkeletalMesh* BaseSkelMesh;
 
 	/** morph mesh vertex data for each LOD */
-	TArray<FMorphTargetLODModel> MorphLODModels;
+	TArray<FMorphTargetLODModel>	MorphLODModels;
 
 public:
 
@@ -142,6 +142,9 @@ public:
 
 	FMorphTargetDelta* GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas);
 	bool HasDataForLOD(int32 LODIndex);
+
+	/** Populates the given morph target LOD model with the provided deltas */
+	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex);
 
 public:
 

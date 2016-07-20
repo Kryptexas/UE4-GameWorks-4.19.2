@@ -1064,9 +1064,9 @@ bool UPrimitiveComponent::ShouldRenderSelected() const
 			{
 				return true;
 			}
-			else if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+			else if (AActor* ParentActor = Owner->GetParentActor())
 			{
-				return ParentComponent->GetOwner()->IsSelected();
+				return ParentActor->IsSelected();
 			}
 		}
 	}
@@ -2383,15 +2383,18 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 void UPrimitiveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (BodyInstance.bSimulatePhysics && !BodyInstance.WeldParent)
+	if(FBodyInstance* BI = GetBodyInstance(NAME_None, /*bGetWelded=*/ false))
 	{
-		//Since the object is physically simulated it can't be attached
-		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
-		bDisableDetachmentUpdateOverlaps = true;
-		DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+		if (BI->bSimulatePhysics && !BI->WeldParent)
+		{
+			//Since the object is physically simulated it can't be attached
+			const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
+			bDisableDetachmentUpdateOverlaps = true;
+			DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+		}
 	}
+	
 }
 
 void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore)

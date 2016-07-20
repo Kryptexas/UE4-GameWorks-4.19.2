@@ -44,6 +44,9 @@ struct CORE_API FFrameworkObjectVersion
 		// Physics Assets now use SkeletalBodySetup instead of BodySetup
 		PhysAssetUseSkeletalBodySetup,
 
+		// Remove SoundWave CompressionName
+		RemoveSoundWaveCompressionName,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

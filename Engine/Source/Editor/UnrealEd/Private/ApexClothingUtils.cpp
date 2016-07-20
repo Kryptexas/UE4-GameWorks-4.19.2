@@ -866,11 +866,12 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	SkelMesh->PreEditChange(NULL);
 
+	// Add first so the Origin section doesn't get realloced away
+	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
 	// Get original section
 	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
 
 	// Add new section for clothing
-	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
 	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
 
 	// Copy 'chunk' properties from TempSection

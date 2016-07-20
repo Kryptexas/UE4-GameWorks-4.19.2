@@ -56,6 +56,10 @@ CONSTEXPR inline EUpdateTransformFlags operator ~(EUpdateTransformFlags Value)
 
 FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return bSkipPhysics ? EUpdateTransformFlags::SkipPhysicsUpdate : EUpdateTransformFlags::None; }
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentActivatedSignature, bool, bReset);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorComponentDeactivateSignature);
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -251,6 +255,12 @@ public:
 	bool ComponentHasTag(FName Tag) const;
 
 	//~ Begin Trigger/Activation Interface
+
+	UPROPERTY(BlueprintAssignable, Category = "Components|Activation")
+	FActorComponentActivatedSignature OnComponentActivated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Components|Activation")
+	FActorComponentDeactivateSignature OnComponentDeactivated;
 
 	/**
 	 * Activates the SceneComponent

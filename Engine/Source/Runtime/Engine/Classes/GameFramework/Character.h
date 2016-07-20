@@ -394,8 +394,35 @@ public:
 	 * then the character will carry on receiving vertical velocity. Therefore it is usually 
 	 * best to call StopJumping() when jump input has ceased (such as a button up event).
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category=Character)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category=Character, Meta=(ClampMin=0.0, UIMin=0.0))
 	float JumpMaxHoldTime;
+
+    /**
+     * The max number of jumps the character can perform.
+     * Note that if JumpMaxHoldTime is non zero and StopJumping is not called, the player
+     * may be able to perform and unlimited number of jumps. Therefore it is usually
+     * best to call StopJumping() when jump input has ceased (such as a button up event).
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category=Character)
+    int32 JumpMaxCount;
+
+    /**
+     * Tracks the current number of jumps performed.
+     * This is incremented in CheckJumpInput, used in CanJump_Implementation, and reset in OnMovementModeChanged.
+     * When providing overrides for these methods, it's recommended to either manually
+     * increment / reset this value, or call the Super:: method.
+     */
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Character")
+    int32 JumpCurrentCount;
+
+    /**
+     * Whether or not the JumpMaxCount value has been exceeded.
+     * This is set in CheckJumpInput, used in CanJump_Implementation, and reset in OnMovementModeChanged.
+     * When providing overrides for these methods, it's recommended to either manually
+     * set / reset this value, or call the Super:: method.
+     */
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Character")
+    uint32 bJumpMaxCountExceeded:1;
 
 	//~ Begin AActor Interface.
 	virtual void ClearCrossLevelReferences() override;
@@ -481,6 +508,8 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character", meta=(DisplayName="CanJump"))
 	bool CanJumpInternal() const;
 	virtual bool CanJumpInternal_Implementation() const;
+
+	void CheckResetJumpCount();
 
 public:
 

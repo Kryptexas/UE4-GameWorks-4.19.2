@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "Components/CapsuleComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 
 
 UCapsuleComponent::UCapsuleComponent(const FObjectInitializer& ObjectInitializer)

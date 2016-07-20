@@ -70,6 +70,11 @@ void USoundWaveProcedural::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTa
 	check(false);
 }
 
+bool USoundWaveProcedural::HasCompressedData(FName Format) const
+{
+	return false;
+}
+
 FByteBulkData* USoundWaveProcedural::GetCompressedData(FName Format)
 {
 	// SoundWaveProcedural does not have compressed data and should generally not be asked about it

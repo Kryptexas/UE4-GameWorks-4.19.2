@@ -774,7 +774,7 @@ void UWheeledVehicleMovementComponent::UpdateDrag(float DeltaTime)
 		{
 			FVector GlobalForwardVector = UpdatedComponent->GetForwardVector();
 			FVector DragVector = -GlobalForwardVector;
-			float SpeedSquared = ForwardSpeed * ForwardSpeed;
+			float SpeedSquared = ForwardSpeed > 0.f ? ForwardSpeed * ForwardSpeed : -ForwardSpeed * ForwardSpeed;
 			float ChassisDragArea = ChassisHeight * ChassisWidth;
 			float AirDensity = 1.25 / (100 * 100 * 100); //kg/cm^3
 			float DragMag = 0.5f * AirDensity * SpeedSquared * DragCoefficient * ChassisDragArea;

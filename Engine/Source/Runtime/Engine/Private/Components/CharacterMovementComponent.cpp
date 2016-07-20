@@ -1271,7 +1271,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 		{
 			const FQuat OldRotationQuat = UpdatedComponent->GetComponentQuat();
 			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
-			SimulateRootMotion(DeltaSeconds, RootMotionParams.RootMotionTransform);
+			SimulateRootMotion(DeltaSeconds, RootMotionParams.GetRootMotionTransform());
 
 #if !(UE_BUILD_SHIPPING)
 			// debug
@@ -1931,18 +1931,18 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 				if( SkelMeshComp )
 				{
 					// Convert Local Space Root Motion to world space. Do it right before used by physics to make sure we use up to date transforms, as translation is relative to rotation.
-					RootMotionParams.Set( SkelMeshComp->ConvertLocalRootMotionToWorld(RootMotionParams.RootMotionTransform) );
+					RootMotionParams.Set( SkelMeshComp->ConvertLocalRootMotionToWorld(RootMotionParams.GetRootMotionTransform()) );
 				}
 
 				// Then turn root motion to velocity to be used by various physics modes.
 				if( DeltaSeconds > 0.f )
 				{
-					Velocity = CalcRootMotionVelocity(RootMotionParams.RootMotionTransform.GetTranslation(), DeltaSeconds, Velocity);
+					Velocity = CalcRootMotionVelocity(RootMotionParams.GetRootMotionTransform().GetTranslation(), DeltaSeconds, Velocity);
 				}
 				
 				UE_LOG(LogRootMotion, Log,  TEXT("PerformMovement WorldSpaceRootMotion Translation: %s, Rotation: %s, Actor Facing: %s, Velocity: %s")
-					, *RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString()
-					, *RootMotionParams.RootMotionTransform.GetRotation().Rotator().ToCompactString()
+					, *RootMotionParams.GetRootMotionTransform().GetTranslation().ToCompactString()
+					, *RootMotionParams.GetRootMotionTransform().GetRotation().Rotator().ToCompactString()
 					, *CharacterOwner->GetActorForwardVector().ToCompactString()
 					, *Velocity.ToCompactString()
 					);
@@ -1989,7 +1989,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		if( HasAnimRootMotion() )
 		{
 			const FQuat OldActorRotationQuat = UpdatedComponent->GetComponentQuat();
-			const FQuat RootMotionRotationQuat = RootMotionParams.RootMotionTransform.GetRotation();
+			const FQuat RootMotionRotationQuat = RootMotionParams.GetRootMotionTransform().GetRotation();
 			if( !RootMotionRotationQuat.IsIdentity() )
 			{
 				const FQuat NewActorRotationQuat = RootMotionRotationQuat * OldActorRotationQuat;
@@ -2014,8 +2014,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 				UE_LOG(LogRootMotion, Warning,  TEXT("PerformMovement Resulting DeltaMove Translation: %s, Rotation: %s, MovementBase: %s"),
 					*(ResultingLocation - OldLocation).ToCompactString(), *(ResultingRotation - OldActorRotation).GetNormalized().ToCompactString(), *GetNameSafe(CharacterOwner->GetMovementBase()) );
 
-				const FVector RMTranslation = RootMotionParams.RootMotionTransform.GetTranslation();
-				const FRotator RMRotation = RootMotionParams.RootMotionTransform.GetRotation().Rotator();
+				const FVector RMTranslation = RootMotionParams.GetRootMotionTransform().GetTranslation();
+				const FRotator RMRotation = RootMotionParams.GetRootMotionTransform().GetRotation().Rotator();
 				UE_LOG(LogRootMotion, Warning,  TEXT("PerformMovement Resulting DeltaError Translation: %s, Rotation: %s"),
 					*(ResultingLocation - OldLocation - RMTranslation).ToCompactString(), *(ResultingRotation - OldActorRotation - RMRotation).GetNormalized().ToCompactString() );
 			}
@@ -3276,7 +3276,7 @@ void UCharacterMovementComponent::ApplyRootMotionToVelocity(float deltaTime)
 	// Animation root motion is distinct from root motion sources right now and takes precedence
 	if( HasAnimRootMotion() && deltaTime > 0.f )
 	{
-		Velocity = CalcRootMotionVelocity(RootMotionParams.RootMotionTransform.GetTranslation(), deltaTime, Velocity);
+		Velocity = CalcRootMotionVelocity(RootMotionParams.GetRootMotionTransform().GetTranslation(), deltaTime, Velocity);
 		return;
 	}
 
@@ -6519,7 +6519,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 
 			if ( ClientData->LastServerLocation != FVector::ZeroVector )
 			{
-				// Arror showing simulated line
+				// Arrow showing simulated line
 				DrawDebugDirectionalArrow( GetWorld(), ClientData->LastServerLocation, SimulatedLocation, ArrowSize, FColor( 255, 0, 0, 255 ), bPersist, Lifetime );
 				
 				// Arrow showing server line
@@ -8800,7 +8800,7 @@ void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 		FRootMotionMovementParams RootMotion = CharacterOwner->GetMesh()->ConsumeRootMotion();
 		if (RootMotion.bHasRootMotion)
 		{
-			RootMotion.RootMotionTransform.ScaleTranslation(CharacterOwner->GetAnimRootMotionTranslationScale());
+			RootMotion.ScaleRootMotionTranslation(CharacterOwner->GetAnimRootMotionTranslationScale());
 			RootMotionParams.Accumulate(RootMotion);
 		}
 
@@ -8813,8 +8813,8 @@ void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 				, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)
 				, RootMotionMontageInstance ? RootMotionMontageInstance->GetPosition() : -1.f
 				, DeltaTime
-				, *RootMotion.RootMotionTransform.GetTranslation().ToCompactString()
-				, *RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString()
+				, *RootMotion.GetRootMotionTransform().GetTranslation().ToCompactString()
+				, *RootMotionParams.GetRootMotionTransform().GetTranslation().ToCompactString()
 				);
 		}
 #endif // !(UE_BUILD_SHIPPING)
@@ -9283,6 +9283,8 @@ void FSavedMove_Character::Clear()
 	DeltaTime = 0.f;
 	CustomTimeDilation = 1.0f;
 	JumpKeyHoldTime = 0.0f;
+	JumpCurrentCount = 0.0f;
+	JumpMaxCount = 1;
 	MovementMode = 0;
 
 	StartLocation = FVector::ZeroVector;
@@ -9328,6 +9330,12 @@ void FSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaTime, 
 
 	bPressedJump = Character->bPressedJump;
 	JumpKeyHoldTime = Character->JumpKeyHoldTime;
+	JumpMaxCount = Character->JumpMaxCount;
+	
+	// CheckJumpInput will increment JumpCurrentCount.
+	// Therefore, for replicated moves we want it to set it at 1 less to properly
+	// handle the change.
+	JumpCurrentCount = Character->JumpCurrentCount > 0 ? Character->JumpCurrentCount - 1 : 0;
 	bWantsToCrouch = Character->GetCharacterMovement()->bWantsToCrouch;
 	bForceMaxAccel = Character->GetCharacterMovement()->bForceMaxAccel;
 	MovementMode = Character->GetCharacterMovement()->PackNetworkMovementMode();
@@ -9488,33 +9496,75 @@ bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharact
 
 	if (NewMove->Acceleration.IsZero())
 	{
-		return Acceleration.IsZero()
-			&& StartVelocity.IsZero()
-			&& NewMove->StartVelocity.IsZero()
-			&& !bPressedJump && !NewMove->bPressedJump
-			&& bWantsToCrouch == NewMove->bWantsToCrouch
-			&& StartBase == NewMove->StartBase
-			&& StartBoneName == NewMove->StartBoneName
-			&& MovementMode == NewMove->MovementMode
-			&& StartCapsuleRadius == NewMove->StartCapsuleRadius
-			&& StartCapsuleHalfHeight == NewMove->StartCapsuleHalfHeight
-			&& StartBaseRotation.Equals(NewMove->StartBaseRotation) // only if base hasn't rotated
-			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
+		if (!Acceleration.IsZero())
+		{
+			return false;
+		}
+
+		if (!StartVelocity.IsZero() || !NewMove->StartVelocity.IsZero())
+		{
+			return false;
+		}
 	}
 	else
 	{
-		return (NewMove->DeltaTime + DeltaTime < MaxDelta)
-			&& !bPressedJump && !NewMove->bPressedJump
-			&& bWantsToCrouch == NewMove->bWantsToCrouch
-			&& StartBase == NewMove->StartBase
-			&& StartBoneName == NewMove->StartBoneName
-			&& MovementMode == NewMove->MovementMode
-			&& StartCapsuleRadius == NewMove->StartCapsuleRadius
-			&& StartCapsuleHalfHeight == NewMove->StartCapsuleHalfHeight
-			&& FVector::Coincident(AccelNormal, NewMove->AccelNormal, AccelDotThresholdCombine)
-			&& StartBaseRotation.Equals(NewMove->StartBaseRotation) // only if base hasn't rotated
-			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
+		if (NewMove->DeltaTime + DeltaTime >= MaxDelta)
+		{
+			return false;
+		}
+			
+		if (!FVector::Coincident(AccelNormal, NewMove->AccelNormal, AccelDotThresholdCombine))
+		{
+			return false;
+		}	
 	}
+
+	if (bPressedJump || NewMove->bPressedJump)
+	{
+		return false;
+	}
+	
+	if (bWantsToCrouch != NewMove->bWantsToCrouch)
+	{
+		return false;
+	}
+
+	if (StartBase != NewMove->StartBase)
+	{
+		return false;
+	}
+
+	if (StartBoneName != NewMove->StartBoneName)
+	{
+		return false;
+	}
+
+	if (MovementMode != NewMove->MovementMode)
+	{
+		return false;
+	}
+
+	if (StartCapsuleRadius != NewMove->StartCapsuleRadius)
+	{
+		return false;
+	}
+
+	if (StartCapsuleHalfHeight != NewMove->StartCapsuleHalfHeight)
+	{
+		return false;
+	}
+
+	if (!StartBaseRotation.Equals(NewMove->StartBaseRotation)) // only if base hasn't rotated
+	{
+		return false;
+	}
+
+	if (CustomTimeDilation != NewMove->CustomTimeDilation)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
@@ -9560,6 +9610,8 @@ void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
 
 	Character->GetCharacterMovement()->bForceMaxAccel = bForceMaxAccel;
 	Character->JumpKeyHoldTime = JumpKeyHoldTime;
+	Character->JumpMaxCount = JumpMaxCount;
+	Character->JumpCurrentCount = JumpCurrentCount;
 }
 
 

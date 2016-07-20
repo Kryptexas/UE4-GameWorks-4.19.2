@@ -145,7 +145,7 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	
 	/**
 	 *	If set, this SkeletalMeshComponent will not use its SpaceBase for bone transform, but will
-	 *	use the SpaceBases array in the MasterPoseComponent. This is used when constructing a character using multiple skeletal meshes sharing the same
+	 *	use the component space transforms from the MasterPoseComponent. This is used when constructing a character using multiple skeletal meshes sharing the same
 	 *	skeleton within the same Actor.
 	 */
 	UPROPERTY(BlueprintReadOnly, Category="Mesh")
@@ -153,17 +153,17 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 
 private:
 	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
-	TArray<FTransform> SpaceBasesArray[2];
+	TArray<FTransform> ComponentSpaceTransformsArray[2];
 
 protected:
-	/** The index for the space bases buffer we can currently write to */
-	int32 CurrentEditableSpaceBases;
+	/** The index for the ComponentSpaceTransforms buffer we can currently write to */
+	int32 CurrentEditableComponentTransforms;
 
-	/** The index for the space bases buffer we can currently read from */
-	int32 CurrentReadSpaceBases;
+	/** The index for the ComponentSpaceTransforms buffer we can currently read from */
+	int32 CurrentReadComponentTransforms;
 protected:
-	/** Are we using double buffered blend spaces */
-	bool bDoubleBufferedBlendSpaces;
+	/** Are we using double buffered ComponentSpaceTransforms */
+	bool bDoubleBufferedComponentSpaceTransforms;
 
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
@@ -549,7 +549,7 @@ public:
 	 */
 
 	/** 
-	 * Refresh Bone Transform (SpaceBases)
+	 * Refresh Bone Transforms
 	 * Each class will need to implement this function
 	 * Ideally this function should be atomic (not relying on Tick or any other update.) 
 	 * 
@@ -600,17 +600,46 @@ public:
 	 */
 	void UpdateMorphMaterialUsageOnProxy();
 	
-	/** Access Space Bases for reading */
-	const TArray<FTransform>& GetSpaceBases() const { return SpaceBasesArray[CurrentReadSpaceBases]; }
+
+	/** Access ComponentSpaceTransforms for reading */
+	const TArray<FTransform>& GetComponentSpaceTransforms() const 
+	{ 
+		return ComponentSpaceTransformsArray[CurrentReadComponentTransforms]; 
+	}
 
 	/** Get Access to the current editable space bases */
-	TArray<FTransform>& GetEditableSpaceBases() { return SpaceBasesArray[CurrentEditableSpaceBases]; }
-	const TArray<FTransform>& GetEditableSpaceBases() const { return SpaceBasesArray[CurrentEditableSpaceBases]; }
+	TArray<FTransform>& GetEditableComponentSpaceTransforms() 
+	{ 
+		return ComponentSpaceTransformsArray[CurrentEditableComponentTransforms];
+	}
+	const TArray<FTransform>& GetEditableComponentSpaceTransforms() const
+	{ 
+		return ComponentSpaceTransformsArray[CurrentEditableComponentTransforms];
+	}
 
-	/** Get the number of space bases */
-	int32 GetNumSpaceBases() const { return GetSpaceBases().Num(); }
+	/** Get current number of component space transorms */
+	int32 GetNumComponentSpaceTransforms() const 
+	{ 
+		return GetComponentSpaceTransforms().Num(); 
+	}
 
-	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces);
+	void SetComponentSpaceTransformsDoubleBuffering(bool bInDoubleBufferedComponentSpaceTransforms);
+
+
+	DEPRECATED(4.13, "GetComponentSpaceTransforms is now renamed GetComponentSpaceTransforms")
+	const TArray<FTransform>& GetSpaceBases() const { return GetComponentSpaceTransforms(); }
+
+	DEPRECATED(4.13, "GetEditableSpaceBases is now renamed GetEditableComponentSpaceTransforms")
+	TArray<FTransform>& GetEditableSpaceBases() { return GetEditableComponentSpaceTransforms(); }
+
+	DEPRECATED(4.13, "GetEditableSpaceBases is now renamed GetEditableComponentSpaceTransforms")
+	const TArray<FTransform>& GetEditableSpaceBases() const { return GetEditableComponentSpaceTransforms(); }
+
+	DEPRECATED(4.13, "GetNumSpaceBases is now renamed GetNumComponentSpaceTransforms")
+	int32 GetNumSpaceBases() const { return GetNumComponentSpaceTransforms(); }
+
+	DEPRECATED(4.13, "SetSpaceBaseDoubleBuffering is now renamed SetComponentSpaceTransformsDoubleBuffering")
+	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces) { SetComponentSpaceTransformsDoubleBuffering(bInDoubleBufferedBlendSpaces);  }
 
 protected:
 

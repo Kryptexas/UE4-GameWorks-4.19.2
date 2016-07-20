@@ -9,6 +9,9 @@
 DECLARE_CYCLE_STAT(TEXT("SetTimer"), STAT_SetTimer, STATGROUP_Engine);
 DECLARE_CYCLE_STAT(TEXT("ClearTimer"), STAT_ClearTimer, STATGROUP_Engine);
 
+/** Track the last assigned handle globally */
+uint64 FTimerManager::LastAssignedHandle = 0;
+
 namespace
 {
 	void DescribeFTImerDataSafely(const FTimerData& Data)
@@ -27,7 +30,6 @@ namespace
 FTimerManager::FTimerManager()
 	: InternalTime(0.0)
 	, LastTickedFrame(static_cast<uint64>(-1))
-	, LastAssignedHandle(0)
 {
 	if (IsRunningDedicatedServer())
 	{
@@ -72,10 +74,7 @@ void FTimerManager::OnCrash()
 
 void FTimerHandle::MakeValid()
 {
-	if (GWorld)
-	{
-		GWorld->GetTimerManager().ValidateHandle(*this);
-	}
+	FTimerManager::ValidateHandle(*this);
 }
 
 

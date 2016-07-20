@@ -653,6 +653,9 @@ public:
 	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
 	void UnWeld(FBodyInstance* Body);
 
+	/** Finds all children that are technically welded to us (for example kinematics are welded but not as far as physx is concerned) and apply the actual physics engine weld on them*/
+	void ApplyWeldOnChildren();
+
 	/**
 	 * After adding/removing shapes call this function to update mass distribution etc... */
 	void PostShapeChange();

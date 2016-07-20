@@ -15,6 +15,7 @@
 #include "Engine/StreamableManager.h"
 #include "Net/OnlineEngineInterface.h"
 #include "UserActivityTracking.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -1362,6 +1363,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 
 	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1425,6 +1427,7 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 
 	FCollisionQueryParams Params(LineTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1531,6 +1534,7 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 
 	FCollisionQueryParams Params(BoxTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1588,6 +1592,7 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 
 	FCollisionQueryParams Params(BoxTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1657,6 +1662,7 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 
 	FCollisionQueryParams Params(SphereTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1719,6 +1725,7 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 
 	FCollisionQueryParams Params(SphereTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1789,6 +1796,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 	FCollisionQueryParams Params(CapsuleTraceSingleName, bTraceComplex);
 	Params.AddIgnoredActors(ActorsToIgnore);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	if (bIgnoreSelf)
 	{
@@ -1856,6 +1864,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 
 	FCollisionQueryParams Params(CapsuleTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1941,6 +1950,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 
 	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2032,6 +2042,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 
 	FCollisionQueryParams Params(LineTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2128,11 +2139,9 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 {
 	static const FName SphereTraceSingleName(TEXT("SphereTraceSingle"));
 
-
-
-
 	FCollisionQueryParams Params(SphereTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2224,6 +2233,7 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 
 	FCollisionQueryParams Params(SphereTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2316,6 +2326,7 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 
 	FCollisionQueryParams Params(BoxTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2401,6 +2412,7 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 
 	FCollisionQueryParams Params(BoxTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2499,6 +2511,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 	FCollisionQueryParams Params(CapsuleTraceSingleName, bTraceComplex);
 	Params.AddIgnoredActors(ActorsToIgnore);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	if (bIgnoreSelf)
 	{
@@ -2593,6 +2606,7 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 
 	FCollisionQueryParams Params(CapsuleTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)

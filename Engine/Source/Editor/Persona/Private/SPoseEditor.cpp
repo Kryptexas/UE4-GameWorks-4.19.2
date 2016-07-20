@@ -307,6 +307,7 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 	{
 		PersonaPtr.Pin()->RegisterOnPreviewMeshChanged(FPersona::FOnPreviewMeshChanged::CreateSP(this, &SPoseViewer::OnPreviewMeshChanged));
 		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SPoseViewer::RefreshList));
+		PersonaPtr.Pin()->RegisterOnAnimChanged(FPersona::FOnAnimChanged::CreateSP(this, &SPoseViewer::OnAssestChanged));
 	}
 
 	if (PoseAssetPtr.IsValid())
@@ -395,6 +396,15 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 
 	CreatePoseList();
 	CreateCurveList();
+}
+
+void SPoseViewer::OnAssestChanged(UAnimationAsset* NewAsset) 
+{
+	// this is odd that we're adding delegate
+	// this is because we're caching anim instance here
+	// and that change won't make it when this is constructed
+	// but so this is to refresh cached anim instance
+	RefreshCachePreviewInstance();
 }
 
 void SPoseViewer::RefreshCachePreviewInstance()
@@ -750,6 +760,7 @@ SPoseViewer::~SPoseViewer()
 
 		PersonaPtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
+		PersonaPtr.Pin()->UnregisterOnAnimChanged(this);
 	}
 
 	if (PoseAssetPtr.IsValid())

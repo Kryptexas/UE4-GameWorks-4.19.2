@@ -166,7 +166,7 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		.Padding(0, 10, 0, 10)
 		[
 			SNew(SBox)
-			.WidthOverride(128)
+			.WidthOverride(160)
 			.HeightOverride(32)
 			[
 				SNew(SButton)
@@ -215,7 +215,7 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		.HAlign(HAlign_Center)
 		[
 			SNew(SBox)
-			.WidthOverride(128)
+			.WidthOverride(180)
 			[
 				SNew(SButton)
 				.HAlign(HAlign_Center)

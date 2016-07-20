@@ -293,22 +293,23 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
 	}
 
 #if WITH_OGGVORBIS
-	if (SoundWave->CompressionName.IsNone() || SoundWave->CompressionName == TEXT("OGG"))
+	static const FName NAME_OGG(TEXT("OGG"));
+	if (FPlatformProperties::RequiresCookedData() ? SoundWave->HasCompressedData(NAME_OGG) : (SoundWave->GetCompressedData(NAME_OGG) != nullptr))
 	{
 		ICompressedAudioInfo* CompressedInfo = new FVorbisAudioInfo();
 		if (!CompressedInfo)
 		{
 			UE_LOG(LogAudio, Error, TEXT("Failed to create new FVorbisAudioInfo for SoundWave %s: out of memory."), *SoundWave->GetName());
-			return NULL;
+			return nullptr;
 		}
 		return CompressedInfo;
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 #else
-	return NULL;
+	return nullptr;
 #endif
 	
 }

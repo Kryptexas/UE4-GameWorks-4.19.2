@@ -1365,7 +1365,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Socket chooser
 	{
-		Set( "SocketChooser.TitleFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
+		Set( "SocketChooser.TitleFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "SocketIcon.Bone", new IMAGE_BRUSH( "Old/bone", Icon16x16 ) );
 		Set( "SocketIcon.Socket", new IMAGE_BRUSH( "Old/socket", Icon16x16 ) );
 		Set( "SocketIcon.None", new IMAGE_BRUSH( "Old/Favorites_Disabled", Icon16x16 ) );

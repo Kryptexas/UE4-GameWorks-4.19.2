@@ -40,6 +40,10 @@ namespace MatchState
 	const FName Aborted = FName(TEXT("Aborted"));
 }
 
+// Statically declared events for plugins to use
+FGameModeEvents::FGameModePostLoginEvent FGameModeEvents::GameModePostLoginEvent;
+FGameModeEvents::FGameModeLogoutEvent FGameModeEvents::GameModeLogoutEvent;
+
 AGameMode::AGameMode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite"))
@@ -293,6 +297,7 @@ void AGameMode::PostLogin( APlayerController* NewPlayer )
 
 	// Notify Blueprints that a new player has logged in.  Calling it here, because this is the first time that the PlayerController can take RPCs
 	K2_PostLogin(NewPlayer);
+	FGameModeEvents::GameModePostLoginEvent.Broadcast(this, NewPlayer);
 }
 
 bool AGameMode::ShouldStartInCinematicMode(APlayerController* Player, bool& OutHidePlayer,bool& OutHideHUD,bool& OutDisableMovement,bool& OutDisableTurning)
@@ -336,6 +341,7 @@ void AGameMode::Logout( AController* Exiting )
 	APlayerController* PC = Cast<APlayerController>(Exiting);
 	if ( PC != NULL )
 	{
+		FGameModeEvents::GameModeLogoutEvent.Broadcast(this, Exiting);
 		K2_OnLogout(Exiting);
 
 		RemovePlayerControllerFromPlayerCount(PC);
@@ -1687,7 +1693,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 
 void AGameMode::OverridePlayerState(APlayerController* PC, APlayerState* OldPlayerState)
 {
-	PC->PlayerState->OverrideWith(OldPlayerState);
+	PC->PlayerState->DispatchOverrideWith(OldPlayerState);
 }
 
 void AGameMode::PostSeamlessTravel()

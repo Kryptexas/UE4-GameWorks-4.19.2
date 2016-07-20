@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"

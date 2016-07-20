@@ -18,6 +18,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
 
 #include "WorkflowOrientedApp/SContentReference.h"
 #include "AssetData.h"
@@ -142,11 +143,180 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 	}
 	else if (TabIdentifier == PhATPropertiesName)
 	{
+		TSharedPtr<IDetailsView> LocalProperties = Properties;
+		TSharedPtr<FPhATSharedData> LocalSharedData = SharedData;
+		auto ProfileExistsForAll = [LocalProperties, LocalSharedData]() -> bool
+		{
+			const FName ProfileName = LocalSharedData->PhysicsAsset->CurrentConstraintProfileName;
+			
+			TArray<TWeakObjectPtr<UObject>> ObjectsCustomized = LocalProperties->GetSelectedObjects();
+			bool bExistsForAll = ObjectsCustomized.Num() > 0 && Cast<UPhysicsConstraintTemplate>(ObjectsCustomized[0].Get()) != nullptr;
+			for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomized)
+			{
+				if (UPhysicsConstraintTemplate* CS = Cast<UPhysicsConstraintTemplate>(WeakObj.Get()))
+				{
+					if (!CS->ContainsConstraintProfile(ProfileName))
+					{
+						bExistsForAll = false;
+						break;
+					}
+				}
+			}
+
+			return bExistsForAll;
+		};
+
+		auto AddProfileLambda = [LocalProperties]()
+		{
+			TArray<TWeakObjectPtr<UObject>> ObjectsCustomized = LocalProperties->GetSelectedObjects();
+
+			const FScopedTransaction Transaction(LOCTEXT("AddProfile", "Add Constraint Profile"));
+			bool bExistsForAll = ObjectsCustomized.Num() > 0;
+			
+
+			for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomized)
+			{
+				if (UPhysicsConstraintTemplate* CS = Cast<UPhysicsConstraintTemplate>(WeakObj.Get()))
+				{
+					FName ProfileName = CS->GetCurrentConstraintProfileName();
+					if (!CS->ContainsConstraintProfile(ProfileName))
+					{
+						CS->AddConstraintProfile(ProfileName);
+					}
+				}
+			}
+
+			return FReply::Handled();;
+		};
+
+		auto DeleteProfileLambda = [LocalProperties]()
+		{
+			TArray<TWeakObjectPtr<UObject>> ObjectsCustomized = LocalProperties->GetSelectedObjects();
+
+			const FScopedTransaction Transaction(LOCTEXT("RemoveConstraintProfile", "Remove From Constraint Profile"));
+			bool bVisible = ObjectsCustomized.Num() > 0;
+			for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomized)
+			{
+				if (UPhysicsConstraintTemplate* CS = Cast<UPhysicsConstraintTemplate>(WeakObj.Get()))
+				{
+					FName ProfileName = CS->GetCurrentConstraintProfileName();
+					CS->RemoveConstraintProfile(ProfileName);
+				}
+			}
+
+			return FReply::Handled();;
+		};
+
+		auto ConstraintButtonVisibleLambda = [ProfileExistsForAll, LocalSharedData, LocalProperties]()
+		{
+			TArray<TWeakObjectPtr<UObject>> ObjectsCustomized = LocalProperties->GetSelectedObjects();
+			const bool bSelectedConstraints = ObjectsCustomized.Num() && Cast<UPhysicsConstraintTemplate>(ObjectsCustomized[0].Get()) != nullptr;
+			return (bSelectedConstraints && !ProfileExistsForAll() && LocalSharedData->PhysicsAsset->CurrentConstraintProfileName != NAME_None);
+		};
+
+		auto DeleteConstraintButtonVisibleLambda = [ProfileExistsForAll, LocalSharedData, LocalProperties]()
+		{
+			TArray<TWeakObjectPtr<UObject>> ObjectsCustomized = LocalProperties->GetSelectedObjects();
+			const bool bSelectedConstraints = ObjectsCustomized.Num() && Cast<UPhysicsConstraintTemplate>(ObjectsCustomized[0].Get()) != nullptr;
+			return (bSelectedConstraints && ProfileExistsForAll() && LocalSharedData->PhysicsAsset->CurrentConstraintProfileName != NAME_None);
+		};
+
+		TAttribute<EVisibility> NewConstraintButtonVisible = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda([ConstraintButtonVisibleLambda]()
+		{
+			return ConstraintButtonVisibleLambda() ? EVisibility::Visible : EVisibility::Collapsed;
+		}));
+
+		TAttribute<EVisibility> DeleteConstraintButtonVisible = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda([DeleteConstraintButtonVisibleLambda]()
+		{
+			return DeleteConstraintButtonVisibleLambda() ? EVisibility::Visible : EVisibility::Collapsed;
+		}));
+
+		TAttribute<EVisibility> ConstraintProfileVisible = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda([DeleteConstraintButtonVisibleLambda, ConstraintButtonVisibleLambda]()
+		{
+			return (ConstraintButtonVisibleLambda() || DeleteConstraintButtonVisibleLambda()) ? EVisibility::Visible : EVisibility::Collapsed;
+		}));
+
+		TAttribute<FText> ConstraintProfileLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([ConstraintButtonVisibleLambda, LocalSharedData]()
+		{
+			const FName ProfileName = LocalSharedData->PhysicsAsset->CurrentConstraintProfileName;
+			if(ConstraintButtonVisibleLambda())
+			{
+				return FText::Format(LOCTEXT("NewConstraintProfileLabel", "At least one constraint was not found in: <RichTextBlock.Bold>{0}</>"), FText::FromName(ProfileName));
+			}
+			else
+			{
+				return FText::Format(LOCTEXT("EditingConstraintProfileLabel", "Editing constraint profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(ProfileName));
+			}
+		}));
+
+		Properties->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateLambda([ConstraintButtonVisibleLambda](){ return !ConstraintButtonVisibleLambda(); }));
+
 		return SNew(SDockTab)
 			.Icon(FEditorStyle::GetBrush("PhAT.Tabs.Properties"))
 			.Label(LOCTEXT( "PhATPropertiesTitle", "Details" ) )
 			[
-				Properties.ToSharedRef()
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SBox)
+					.Visibility(ConstraintProfileVisible)
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.Padding(10, 10, 10, 10)
+						.AutoWidth()
+						[
+							SNew(SRichTextBlock)
+							.Text(ConstraintProfileLabel)
+							.DecoratorStyleSet(&FEditorStyle::Get())
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						.Padding(10, 10, 10, 10)
+						[
+							SNew(SBox)
+							.WidthOverride(160)
+							.HeightOverride(20)
+							.Visibility(NewConstraintButtonVisible)
+							[
+								SNew(SButton)
+								.HAlign(HAlign_Center)
+								.OnClicked_Lambda(AddProfileLambda)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("NewConstraintAnimButton", "Add To Current Profile"))
+									.ToolTipText(LOCTEXT("NewConstraintAnimButtonToolTip", "Add to current constraint profile."))
+								]
+							]
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						.Padding(10, 10, 10, 10)
+						[
+							SNew(SBox)
+							.Visibility(DeleteConstraintButtonVisible)
+							.WidthOverride(180)
+							.HeightOverride(20)
+							[
+								SNew(SButton)
+								.HAlign(HAlign_Center)
+								.OnClicked_Lambda(DeleteProfileLambda)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("RemoveConstraintProfileButton", "Remove From Current Profile"))
+									.ToolTipText(LOCTEXT("RemoveConstraintProfileButtonToolTip", "Remove from current cosntraint profile."))
+								]
+							]
+						]
+					]
+				]
+				+SVerticalBox::Slot()
+				[
+					Properties.ToSharedRef()
+				]
 			];
 	}
 	else if(TabIdentifier == PhATPhysicsAssetPropertiesName)
@@ -654,6 +824,7 @@ void FPhAT::CreateInternalWidgets()
 
 	FDetailsViewArgs Args;
 	Args.bHideSelectionTip = true;
+	Args.bShowActorLabel = false;
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	Properties = PropertyModule.CreateDetailView( Args );
@@ -772,7 +943,7 @@ void FPhAT::ExtendToolbar()
 			return MenuBuilder.MakeWidget();
 		}
 
-		static TSharedRef< SWidget > FillPhysicalAnimationProfileOptions(TSharedRef<FUICommandList> InCommandList, TSharedPtr<FPhATSharedData> SharedData)
+		static TSharedRef< SWidget > FillProfileOptions(TSharedRef<FUICommandList> InCommandList, TSharedPtr<FPhATSharedData> SharedData)
 		{
 			const bool bShouldCloseWindowAfterMenuSelection = true;
 			FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
@@ -781,47 +952,155 @@ void FPhAT::ExtendToolbar()
 
 			if(SharedData->PhysicsAsset)
 			{
-				TArray<FName> ProfileNames;
-				ProfileNames.Add(NAME_None);
-				ProfileNames.Append(SharedData->PhysicsAsset->GetPhysicalAnimationProfileNames(ProfileNames));
-				
-				for(FName ProfileName : ProfileNames)
+				MenuBuilder.AddWidget(SNew(SSpacer), LOCTEXT("PhAT_PhysicalAnimationMenu", "Physical Animation Profile"));
 				{
-					FUIAction Action;
-					Action.ExecuteAction = FExecuteAction::CreateLambda( [SharedData, ProfileName]()
-					{
-						SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName = ProfileName;
-						for(USkeletalBodySetup* BS : SharedData->PhysicsAsset->SkeletalBodySetups)
-						{
-							if(FPhysicalAnimationProfile* Profile = BS->FindPhysicalAnimationProfile(ProfileName))
-							{
-								BS->CurrentPhysicalAnimationProfile = *Profile;
-							}
-						}
-					});
-
-					Action.GetActionCheckState = FGetActionCheckState::CreateLambda([SharedData, ProfileName]()
-					{
-						return SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName == ProfileName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-					});
-
-					auto SearchClickedLambda = [ProfileName, SharedData]()
-					{
-						SharedData->SetSelectedBody(nullptr);	//clear selection
-						for(int32 BSIndex = 0; BSIndex < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++BSIndex)
-						{
-							const USkeletalBodySetup* BS = SharedData->PhysicsAsset->SkeletalBodySetups[BSIndex];
-							if(BS->FindPhysicalAnimationProfile(ProfileName))
-							{
-								SharedData->SetSelectedBodyAnyPrim(BSIndex, true);
-							}
-						}
-
-
-						return FReply::Handled();
-					};
+					TArray<FName> ProfileNames;
+					ProfileNames.Add(NAME_None);
+					ProfileNames.Append(SharedData->PhysicsAsset->GetPhysicalAnimationProfileNames());
 					
-					TSharedRef<SWidget> PhysAnimProfileButton = SNew(SHorizontalBox)
+					//Make sure we don't have multiple Nones if user forgot to name profile
+					for(int32 ProfileIdx = ProfileNames.Num()-1; ProfileIdx > 0; --ProfileIdx)
+					{
+						if(ProfileNames[ProfileIdx] == NAME_None)
+						{
+							ProfileNames.RemoveAtSwap(ProfileIdx);
+						}
+					}
+				
+					for(FName ProfileName : ProfileNames)
+					{
+						FUIAction Action;
+						Action.ExecuteAction = FExecuteAction::CreateLambda( [SharedData, ProfileName]()
+						{
+							SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName = ProfileName;
+							for(USkeletalBodySetup* BS : SharedData->PhysicsAsset->SkeletalBodySetups)
+							{
+								if(FPhysicalAnimationProfile* Profile = BS->FindPhysicalAnimationProfile(ProfileName))
+								{
+									BS->CurrentPhysicalAnimationProfile = *Profile;
+								}
+							}
+						});
+
+						Action.GetActionCheckState = FGetActionCheckState::CreateLambda([SharedData, ProfileName]()
+						{
+							return SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName == ProfileName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+						});
+
+						auto SearchClickedLambda = [ProfileName, SharedData]()
+						{
+							if(SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
+							{
+								SharedData->SetSelectedBody(nullptr);	//clear selection
+								for (int32 BSIndex = 0; BSIndex < SharedData->PhysicsAsset->SkeletalBodySetups.Num(); ++BSIndex)
+								{
+									const USkeletalBodySetup* BS = SharedData->PhysicsAsset->SkeletalBodySetups[BSIndex];
+									if (BS->FindPhysicalAnimationProfile(ProfileName))
+									{
+										SharedData->SetSelectedBodyAnyPrim(BSIndex, true);
+									}
+								}
+							}
+
+							FSlateApplication::Get().DismissAllMenus();
+
+							return FReply::Handled();
+						};
+					
+						TSharedRef<SWidget> PhysAnimProfileButton = SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.FillWidth(1.f)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(FText::FromString(ProfileName.ToString()))
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(2.f, 0.f, 0.f, 0.f)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SButton)
+								.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+								.OnClicked_Lambda(SearchClickedLambda)
+								[
+									SNew(SBox)
+									.WidthOverride(MultiBoxConstants::MenuIconSize)
+									.HeightOverride(MultiBoxConstants::MenuIconSize)
+									.Visibility_Lambda([ProfileName](){ return ProfileName == NAME_None ? EVisibility::Collapsed : EVisibility::Visible; })
+									[
+										SNew(SImage)
+										.Image(FSlateIcon(FEditorStyle::GetStyleSetName(), "Symbols.SearchGlass").GetIcon())
+									]
+								
+								]
+							];
+
+
+						//MenuBuilder.AddMenuEntry( FText::FromString(ProfileName.ToString()), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::Check);
+						MenuBuilder.AddMenuEntry(Action, PhysAnimProfileButton, NAME_None, TAttribute<FText>(), EUserInterfaceActionType::Check);
+					}
+				}
+				
+				
+				MenuBuilder.AddMenuSeparator();
+				
+				MenuBuilder.AddWidget(SNew(SSpacer), LOCTEXT("PhAT_ConstraintProfileMenu", "Constraint Profile"));
+				{
+					TArray<FName> ProfileNames;
+					ProfileNames.Add(NAME_None);
+					ProfileNames.Append(SharedData->PhysicsAsset->GetConstraintProfileNames());
+
+					//Make sure we don't have multiple Nones if user forgot to name profile
+					for (int32 ProfileIdx = ProfileNames.Num() - 1; ProfileIdx > 0; --ProfileIdx)
+					{
+						if (ProfileNames[ProfileIdx] == NAME_None)
+						{
+							ProfileNames.RemoveAtSwap(ProfileIdx);
+						}
+					}
+
+					for (FName ProfileName : ProfileNames)
+					{
+						FUIAction Action;
+						Action.ExecuteAction = FExecuteAction::CreateLambda([SharedData, ProfileName]()
+						{
+							SharedData->PhysicsAsset->CurrentConstraintProfileName = ProfileName;
+							for (UPhysicsConstraintTemplate* CS : SharedData->PhysicsAsset->ConstraintSetup)
+							{
+								CS->ApplyConstraintProfile(ProfileName, CS->DefaultInstance, /*DefaultIfNotFound=*/ false);	//keep settings as they currently are if user wants to add to profile
+							}
+
+							SharedData->EditorSkelComp->SetConstraintProfileForAll(ProfileName, /*bDefaultIfNotFound=*/ true);
+						});
+
+						Action.GetActionCheckState = FGetActionCheckState::CreateLambda([SharedData, ProfileName]()
+						{
+							return SharedData->PhysicsAsset->CurrentConstraintProfileName == ProfileName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+						});
+
+						auto SearchClickedLambda = [ProfileName, SharedData]()
+						{
+							if(SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit)
+							{
+								SharedData->SetSelectedConstraint(INDEX_NONE);	//clear selection
+								for (int32 CSIndex = 0; CSIndex < SharedData->PhysicsAsset->ConstraintSetup.Num(); ++CSIndex)
+								{
+									const UPhysicsConstraintTemplate* CS = SharedData->PhysicsAsset->ConstraintSetup[CSIndex];
+									if (CS->ContainsConstraintProfile(ProfileName))
+									{
+										SharedData->SetSelectedConstraint(CSIndex, true);
+									}
+								}
+
+							}
+							
+							FSlateApplication::Get().DismissAllMenus();
+
+							return FReply::Handled();
+						};
+
+						TSharedRef<SWidget> ConstraintProfileButton = SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
 						.FillWidth(1.f)
 						.VAlign(VAlign_Center)
@@ -841,23 +1120,19 @@ void FPhAT::ExtendToolbar()
 								SNew(SBox)
 								.WidthOverride(MultiBoxConstants::MenuIconSize)
 								.HeightOverride(MultiBoxConstants::MenuIconSize)
-								.Visibility_Lambda([ProfileName](){ return ProfileName == NAME_None ? EVisibility::Collapsed : EVisibility::Visible; })
+								.Visibility_Lambda([ProfileName]() { return ProfileName == NAME_None ? EVisibility::Collapsed : EVisibility::Visible; })
 								[
 									SNew(SImage)
 									.Image(FSlateIcon(FEditorStyle::GetStyleSetName(), "Symbols.SearchGlass").GetIcon())
 								]
-								
 							]
 						];
 
 
-					//MenuBuilder.AddMenuEntry( FText::FromString(ProfileName.ToString()), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::Check);
-					MenuBuilder.AddMenuEntry(Action, PhysAnimProfileButton, NAME_None, TAttribute<FText>(), EUserInterfaceActionType::Check);
+						//MenuBuilder.AddMenuEntry( FText::FromString(ProfileName.ToString()), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::Check);
+						MenuBuilder.AddMenuEntry(Action, ConstraintProfileButton, NAME_None, TAttribute<FText>(), EUserInterfaceActionType::Check);
+					}
 				}
-				
-				MenuBuilder.AddMenuSeparator();
-				//MenuBuilder.AddMenuEntry(Commands.EditPhysicalAnimations);
-
 			}
 
 			
@@ -959,13 +1234,13 @@ void FPhAT::ExtendToolbar()
 			FUIAction PhysicalAnimationProfileAction;
 			PhysicalAnimationProfileAction.GetActionCheckState = FGetActionCheckState::CreateLambda([SharedData]() { return SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName == NAME_None ? ECheckBoxState::Unchecked : ECheckBoxState::Checked; });
 
-			ToolbarBuilder.BeginSection("PhATPhysicalAnimation");
+			ToolbarBuilder.BeginSection("PhATProfiles");
 			{
 				ToolbarBuilder.AddComboButton(
 					PhysicalAnimationProfileAction,
-					FOnGetContent::CreateStatic(&FillPhysicalAnimationProfileOptions, InCommandList, SharedData),
-					LOCTEXT("PhysicalAnimationProfile_Label", "Profile "),
-					LOCTEXT("PhysicalAnimationProfileToolTip", "Changes the Physical Animation profile"),
+					FOnGetContent::CreateStatic(&FillProfileOptions, InCommandList, SharedData),
+					LOCTEXT("PhATProfile_Label", "Profiles"),
+					LOCTEXT("PhATProfile_Tooltop", "Change the various active profiles"),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.ImportAnimation"),
 					false
 					);

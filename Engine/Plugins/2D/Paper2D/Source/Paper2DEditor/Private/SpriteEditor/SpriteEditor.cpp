@@ -464,7 +464,7 @@ FText FSpriteEditor::GetToolkitName() const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("SpriteName"), FText::FromString(SpriteBeingEdited->GetName()));
 	Args.Add(TEXT("DirtyState"), bDirtyState ? FText::FromString( TEXT( "*" ) ) : FText::GetEmpty());
-	return FText::Format(LOCTEXT("SpriteEditorAppLabel", "{SpriteName}{DirtyState}"), Args);
+	return FText::Format(LOCTEXT("SpriteEditorToolkitName", "{SpriteName}{DirtyState}"), Args);
 }
 
 FText FSpriteEditor::GetToolkitToolTipText() const

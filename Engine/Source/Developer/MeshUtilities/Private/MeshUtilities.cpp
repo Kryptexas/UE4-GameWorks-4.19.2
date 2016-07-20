@@ -29,6 +29,7 @@
 #include "LandscapeProxy.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Engine/HLODMeshCullingVolume.h"
+#include "ProxyMaterialUtilities.h"
 
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
@@ -240,12 +241,13 @@ private:
 
 	virtual bool RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const override;
 
+	virtual void CalculateTangents(const TArray<FVector> InVertices, const TArray<uint32> InIndices, const TArray<FVector2D> InUVs, const TArray<uint32> InSmoothingGroupIndices, const uint32 TangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const override;
+
 	// Need to call some members from this class, (which is internal to this module)
 	friend class FStaticMeshUtilityBuilder;
 };
 
 IMPLEMENT_MODULE(FMeshUtilities, MeshUtilities);
-
 
 class FProxyGenerationProcessor : FTickerObjectBase
 {
@@ -346,23 +348,25 @@ protected:
 		TArray<UObject*> OutAssetsToSync;
 		const FString AssetBaseName = FPackageName::GetShortName(Data->MergeData->ProxyBasePackageName);
 		const FString AssetBasePath = Data->MergeData->InOuter ? TEXT("") : FPackageName::GetLongPackagePath(Data->MergeData->ProxyBasePackageName) + TEXT("/");
+
+		// Retrieve flattened material data
+		FFlattenMaterial& FlattenMaterial = Data->Material;
 		
 		// Resize flattened material
-		FMaterialUtilities::ResizeFlattenMaterial(Data->Material, Data->MergeData->InProxySettings);
+		FMaterialUtilities::ResizeFlattenMaterial(FlattenMaterial, Data->MergeData->InProxySettings);
 
 		// Optimize flattened material
-		FMaterialUtilities::OptimizeFlattenMaterial(Data->Material);
+		FMaterialUtilities::OptimizeFlattenMaterial(FlattenMaterial);
 
-		// Construct proxy material
-		UMaterial* ProxyMaterial = FMaterialUtilities::CreateMaterial(Data->Material, Data->MergeData->InOuter, Data->MergeData->ProxyBasePackageName, RF_Public | RF_Standalone, Data->MergeData->InProxySettings.MaterialSettings, OutAssetsToSync, TEXTUREGROUP_HierarchicalLOD);
+		// Create a new proxy material instance
+		UMaterialInstanceConstant* ProxyMaterial = ProxyMaterialUtilities::CreateProxyMaterialInstance(Data->MergeData->InOuter, Data->MergeData->InProxySettings.MaterialSettings, FlattenMaterial, AssetBasePath, AssetBaseName);
 
 		// Set material static lighting usage flag if project has static lighting enabled
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
 		if (bAllowStaticLighting)
 		{
-			bool bNeedsRecompile;
-			ProxyMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_StaticLighting);
+			ProxyMaterial->CheckMaterialUsage(MATUSAGE_StaticLighting);
 		}
 
 		// Construct proxy static mesh
@@ -407,7 +411,6 @@ protected:
 		// Execute the delegate received from the user
 		Data->MergeData->CallbackDelegate.ExecuteIfBound(JobGuid, OutAssetsToSync);
 	}
-
 protected:
 	/** Holds Proxy mesh job data together with the job Guid */
 	TMap<FGuid, FMergeCompleteData*> ProxyMeshJobs;
@@ -1711,17 +1714,19 @@ public:
 };
 
 static void ComputeTriangleTangents(
-	TArray<FVector>& TriangleTangentX,
-	TArray<FVector>& TriangleTangentY,
-	TArray<FVector>& TriangleTangentZ,
-	FRawMesh const& RawMesh,
+	const TArray<FVector>& InVertices,
+	const TArray<uint32>& InIndices,
+	const TArray<FVector2D>& InUVs,
+	TArray<FVector>& OutTangentX,
+	TArray<FVector>& OutTangentY,
+	TArray<FVector>& OutTangentZ,
 	float ComparisonThreshold
 	)
 {
-	int32 NumTriangles = RawMesh.WedgeIndices.Num() / 3;
-	TriangleTangentX.Empty(NumTriangles);
-	TriangleTangentY.Empty(NumTriangles);
-	TriangleTangentZ.Empty(NumTriangles);
+	const int32 NumTriangles = InIndices.Num() / 3;
+	OutTangentX.Empty(NumTriangles);
+	OutTangentY.Empty(NumTriangles);
+	OutTangentZ.Empty(NumTriangles);
 
 	for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++)
 	{
@@ -1730,7 +1735,7 @@ static void ComputeTriangleTangents(
 		FVector P[3];
 		for (int32 i = 0; i < 3; ++i)
 		{
-			P[i] = GetPositionForWedge(RawMesh, TriangleIndex * 3 + i);
+			P[i] = InVertices[InIndices[TriangleIndex * 3 + i]];
 		}
 
 		const FVector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
@@ -1741,9 +1746,10 @@ static void ComputeTriangleTangents(
 			FPlane(0, 0, 0, 1)
 			);
 
-		FVector2D T1 = RawMesh.WedgeTexCoords[UVIndex][TriangleIndex * 3 + 0];
-		FVector2D T2 = RawMesh.WedgeTexCoords[UVIndex][TriangleIndex * 3 + 1];
-		FVector2D T3 = RawMesh.WedgeTexCoords[UVIndex][TriangleIndex * 3 + 2];
+		const FVector2D T1 = InUVs[TriangleIndex * 3 + 0];
+		const FVector2D T2 = InUVs[TriangleIndex * 3 + 1];
+		const FVector2D T3 = InUVs[TriangleIndex * 3 + 2];
+
 		FMatrix ParameterToTexture(
 			FPlane(T2.X - T1.X, T2.Y - T1.Y, 0, 0),
 			FPlane(T3.X - T1.X, T3.Y - T1.Y, 0, 0),
@@ -1754,20 +1760,82 @@ static void ComputeTriangleTangents(
 		// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
 		const FMatrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
 
-		TriangleTangentX.Add(TextureToLocal.TransformVector(FVector(1, 0, 0)).GetSafeNormal());
-		TriangleTangentY.Add(TextureToLocal.TransformVector(FVector(0, 1, 0)).GetSafeNormal());
-		TriangleTangentZ.Add(Normal);
+		OutTangentX.Add(TextureToLocal.TransformVector(FVector(1, 0, 0)).GetSafeNormal());
+		OutTangentY.Add(TextureToLocal.TransformVector(FVector(0, 1, 0)).GetSafeNormal());
+		OutTangentZ.Add(Normal);
 
 		FVector::CreateOrthonormalBasis(
-			TriangleTangentX[TriangleIndex],
-			TriangleTangentY[TriangleIndex],
-			TriangleTangentZ[TriangleIndex]
+			OutTangentX[TriangleIndex],
+			OutTangentY[TriangleIndex],
+			OutTangentZ[TriangleIndex]
 			);
+	}
+
+	check(OutTangentX.Num() == NumTriangles);
+	check(OutTangentY.Num() == NumTriangles);
+	check(OutTangentZ.Num() == NumTriangles);
+}
+
+static void ComputeTriangleTangents(
+	TArray<FVector>& OutTangentX,
+	TArray<FVector>& OutTangentY,
+	TArray<FVector>& OutTangentZ,
+	FRawMesh const& RawMesh,
+	float ComparisonThreshold
+	)
+{
+	ComputeTriangleTangents(RawMesh.VertexPositions, RawMesh.WedgeIndices, RawMesh.WedgeTexCoords[0], OutTangentX, OutTangentY, OutTangentZ, ComparisonThreshold);
+
+	/*int32 NumTriangles = RawMesh.WedgeIndices.Num() / 3;
+	TriangleTangentX.Empty(NumTriangles);
+	TriangleTangentY.Empty(NumTriangles);
+	TriangleTangentZ.Empty(NumTriangles);
+
+	for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++)
+	{
+	int32 UVIndex = 0;
+
+	FVector P[3];
+	for (int32 i = 0; i < 3; ++i)
+	{
+	P[i] = GetPositionForWedge(RawMesh, TriangleIndex * 3 + i);
+	}
+
+	const FVector Normal = ((P[1] - P[2]) ^ (P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
+	FMatrix	ParameterToLocal(
+	FPlane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
+	FPlane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
+	FPlane(P[0].X, P[0].Y, P[0].Z, 0),
+	FPlane(0, 0, 0, 1)
+	);
+
+	FVector2D T1 = RawMesh.WedgeTexCoords[UVIndex][TriangleIndex * 3 + 0];
+	FVector2D T2 = RawMesh.WedgeTexCoords[UVIndex][TriangleIndex * 3 + 1];
+	FVector2D T3 = RawMesh.WedgeTexCoords[UVIndex][TriangleIndex * 3 + 2];
+	FMatrix ParameterToTexture(
+	FPlane(T2.X - T1.X, T2.Y - T1.Y, 0, 0),
+	FPlane(T3.X - T1.X, T3.Y - T1.Y, 0, 0),
+	FPlane(T1.X, T1.Y, 1, 0),
+	FPlane(0, 0, 0, 1)
+	);
+
+	// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
+	const FMatrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
+
+	TriangleTangentX.Add(TextureToLocal.TransformVector(FVector(1, 0, 0)).GetSafeNormal());
+	TriangleTangentY.Add(TextureToLocal.TransformVector(FVector(0, 1, 0)).GetSafeNormal());
+	TriangleTangentZ.Add(Normal);
+
+	FVector::CreateOrthonormalBasis(
+	TriangleTangentX[TriangleIndex],
+	TriangleTangentY[TriangleIndex],
+	TriangleTangentZ[TriangleIndex]
+	);
 	}
 
 	check(TriangleTangentX.Num() == NumTriangles);
 	check(TriangleTangentY.Num() == NumTriangles);
-	check(TriangleTangentZ.Num() == NumTriangles);
+	check(TriangleTangentZ.Num() == NumTriangles);*/
 }
 
 /**
@@ -1777,18 +1845,19 @@ static void ComputeTriangleTangents(
 */
 static void FindOverlappingCorners(
 	TMultiMap<int32, int32>& OutOverlappingCorners,
-	FRawMesh const& RawMesh,
+	const TArray<FVector>& InVertices,
+	const TArray<uint32>& InIndices,
 	float ComparisonThreshold
 	)
 {
-	int32 NumWedges = RawMesh.WedgeIndices.Num();
+	const int32 NumWedges = InIndices.Num();
 
 	// Create a list of vertex Z/index pairs
 	TArray<FIndexAndZ> VertIndexAndZ;
-	VertIndexAndZ.Empty(NumWedges);
+	VertIndexAndZ.Reserve(NumWedges);
 	for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; WedgeIndex++)
 	{
-		new(VertIndexAndZ)FIndexAndZ(WedgeIndex, GetPositionForWedge(RawMesh, WedgeIndex));
+		new(VertIndexAndZ)FIndexAndZ(WedgeIndex, InVertices[InIndices[WedgeIndex]]);
 	}
 
 	// Sort the vertices by z value
@@ -1803,8 +1872,8 @@ static void FindOverlappingCorners(
 			if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > ComparisonThreshold)
 				break; // can't be any more dups
 
-			FVector PositionA = GetPositionForWedge(RawMesh, VertIndexAndZ[i].Index);
-			FVector PositionB = GetPositionForWedge(RawMesh, VertIndexAndZ[j].Index);
+			const FVector& PositionA = InVertices[InIndices[VertIndexAndZ[i].Index]];
+			const FVector& PositionB = InVertices[InIndices[VertIndexAndZ[j].Index]];
 
 			if (PointsEqual(PositionA, PositionB, ComparisonThreshold))
 			{
@@ -1815,15 +1884,19 @@ static void FindOverlappingCorners(
 	}
 }
 
-namespace ETangentOptions
+/**
+* Create a table that maps the corner of each face to its overlapping corners.
+* @param OutOverlappingCorners - Maps a corner index to the indices of all overlapping corners.
+* @param RawMesh - The mesh for which to compute overlapping corners.
+*/
+static void FindOverlappingCorners(
+	TMultiMap<int32, int32>& OutOverlappingCorners,
+	FRawMesh const& RawMesh,
+	float ComparisonThreshold
+	)
 {
-	enum Type
-	{
-		None = 0,
-		BlendOverlappingNormals = 0x1,
-		IgnoreDegenerateTriangles = 0x2,
-	};
-};
+	FindOverlappingCorners(OutOverlappingCorners, RawMesh.VertexPositions, RawMesh.WedgeIndices, ComparisonThreshold);
+}
 
 /**
 * Smoothing group interpretation helper structure.
@@ -1838,9 +1911,15 @@ struct FFanFace
 };
 
 static void ComputeTangents(
-	FRawMesh& RawMesh,
+	const TArray<FVector>& InVertices,
+	const TArray<uint32>& InIndices,
+	const TArray<FVector2D>& InUVs,
+	const TArray<uint32>& SmoothingGroupIndices,
 	TMultiMap<int32, int32> const& OverlappingCorners,
-	uint32 TangentOptions
+	TArray<FVector>& OutTangentX,
+	TArray<FVector>& OutTangentY,
+	TArray<FVector>& OutTangentZ,
+	const uint32 TangentOptions
 	)
 {
 	bool bBlendOverlappingNormals = (TangentOptions & ETangentOptions::BlendOverlappingNormals) != 0;
@@ -1853,10 +1932,12 @@ static void ComputeTangents(
 	TArray<FVector> TriangleTangentZ;
 
 	ComputeTriangleTangents(
+		InVertices,
+		InIndices,
+		InUVs,
 		TriangleTangentX,
 		TriangleTangentY,
 		TriangleTangentZ,
-		RawMesh,
 		bIgnoreDegenerateTriangles ? SMALL_NUMBER : 0.0f
 		);
 
@@ -1865,24 +1946,24 @@ static void ComputeTangents(
 	TArray<int32> AdjacentFaces;
 	TArray<int32> DupVerts;
 
-	int32 NumWedges = RawMesh.WedgeIndices.Num();
+	int32 NumWedges = InIndices.Num();
 	int32 NumFaces = NumWedges / 3;
 
 	// Allocate storage for tangents if none were provided.
-	if (RawMesh.WedgeTangentX.Num() != NumWedges)
+	if (OutTangentX.Num() != NumWedges)
 	{
-		RawMesh.WedgeTangentX.Empty(NumWedges);
-		RawMesh.WedgeTangentX.AddZeroed(NumWedges);
+		OutTangentX.Empty(NumWedges);
+		OutTangentX.AddZeroed(NumWedges);
 	}
-	if (RawMesh.WedgeTangentY.Num() != NumWedges)
+	if (OutTangentY.Num() != NumWedges)
 	{
-		RawMesh.WedgeTangentY.Empty(NumWedges);
-		RawMesh.WedgeTangentY.AddZeroed(NumWedges);
+		OutTangentY.Empty(NumWedges);
+		OutTangentY.AddZeroed(NumWedges);
 	}
-	if (RawMesh.WedgeTangentZ.Num() != NumWedges)
+	if (OutTangentZ.Num() != NumWedges)
 	{
-		RawMesh.WedgeTangentZ.Empty(NumWedges);
-		RawMesh.WedgeTangentZ.AddZeroed(NumWedges);
+		OutTangentZ.Empty(NumWedges);
+		OutTangentZ.AddZeroed(NumWedges);
 	}
 
 	for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
@@ -1898,7 +1979,7 @@ static void ComputeTangents(
 			CornerTangentX[CornerIndex] = FVector::ZeroVector;
 			CornerTangentY[CornerIndex] = FVector::ZeroVector;
 			CornerTangentZ[CornerIndex] = FVector::ZeroVector;
-			CornerPositions[CornerIndex] = GetPositionForWedge(RawMesh, WedgeOffset + CornerIndex);
+			CornerPositions[CornerIndex] = InVertices[InIndices[WedgeOffset + CornerIndex]];
 			RelevantFacesForCorner[CornerIndex].Reset();
 		}
 
@@ -1914,9 +1995,9 @@ static void ComputeTangents(
 		bool bCornerHasTangents[3] = { 0 };
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
-			bCornerHasTangents[CornerIndex] = !RawMesh.WedgeTangentX[WedgeOffset + CornerIndex].IsZero()
-				&& !RawMesh.WedgeTangentY[WedgeOffset + CornerIndex].IsZero()
-				&& !RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex].IsZero();
+			bCornerHasTangents[CornerIndex] = !OutTangentX[WedgeOffset + CornerIndex].IsZero()
+				&& !OutTangentY[WedgeOffset + CornerIndex].IsZero()
+				&& !OutTangentZ[WedgeOffset + CornerIndex].IsZero();
 		}
 		if (bCornerHasTangents[0] && bCornerHasTangents[1] && bCornerHasTangents[2])
 		{
@@ -1973,7 +2054,7 @@ static void ComputeTangents(
 					{
 						if (PointsEqual(
 							CornerPositions[OurCornerIndex],
-							GetPositionForWedge(RawMesh, OtherFaceIndex * 3 + OtherCornerIndex),
+							InVertices[InIndices[OtherFaceIndex * 3 + OtherCornerIndex]],
 							ComparisonThreshold
 							))
 						{
@@ -2018,7 +2099,7 @@ static void ComputeTangents(
 							if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
 							{
 								if ((NextFaceIndex != OtherFaceIdx)
-									&& (RawMesh.FaceSmoothingMasks[NextFace.FaceIndex] & RawMesh.FaceSmoothingMasks[OtherFace.FaceIndex]))
+									&& (SmoothingGroupIndices[NextFace.FaceIndex] & SmoothingGroupIndices[OtherFace.FaceIndex]))
 								{
 									int32 CommonVertices = 0;
 									int32 CommonTangentVertices = 0;
@@ -2027,17 +2108,20 @@ static void ComputeTangents(
 									{
 										for (int32 NextCornerIndex = 0; NextCornerIndex < 3; NextCornerIndex++)
 										{
-											int32 NextVertexIndex = RawMesh.WedgeIndices[NextFace.FaceIndex * 3 + NextCornerIndex];
-											int32 OtherVertexIndex = RawMesh.WedgeIndices[OtherFace.FaceIndex * 3 + OtherCornerIndex];
+											int32 NextVertexIndex = InIndices[NextFace.FaceIndex * 3 + NextCornerIndex];
+											int32 OtherVertexIndex = InIndices[OtherFace.FaceIndex * 3 + OtherCornerIndex];
 											if (PointsEqual(
-												RawMesh.VertexPositions[NextVertexIndex],
-												RawMesh.VertexPositions[OtherVertexIndex],
+												InVertices[NextVertexIndex],
+												InVertices[OtherVertexIndex],
 												ComparisonThreshold))
 											{
 												CommonVertices++;
-												if (UVsEqual(
-													RawMesh.WedgeTexCoords[0][NextFace.FaceIndex * 3 + NextCornerIndex],
-													RawMesh.WedgeTexCoords[0][OtherFace.FaceIndex * 3 + OtherCornerIndex]))
+
+
+												const FVector2D& UVOne = InUVs[NextFace.FaceIndex * 3 + NextCornerIndex];
+												const FVector2D& UVTwo = InUVs[OtherFace.FaceIndex * 3 + OtherCornerIndex];
+
+												if (UVsEqual(UVOne, UVTwo))
 												{
 													CommonTangentVertices++;
 												}
@@ -2075,8 +2159,7 @@ static void ComputeTangents(
 						}
 					}
 				}
-			}
-			while (NewConnections > 0);
+			} while (NewConnections > 0);
 		}
 
 		// Vertex normal construction.
@@ -2084,9 +2167,9 @@ static void ComputeTangents(
 		{
 			if (bCornerHasTangents[CornerIndex])
 			{
-				CornerTangentX[CornerIndex] = RawMesh.WedgeTangentX[WedgeOffset + CornerIndex];
-				CornerTangentY[CornerIndex] = RawMesh.WedgeTangentY[WedgeOffset + CornerIndex];
-				CornerTangentZ[CornerIndex] = RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex];
+				CornerTangentX[CornerIndex] = OutTangentX[WedgeOffset + CornerIndex];
+				CornerTangentY[CornerIndex] = OutTangentY[WedgeOffset + CornerIndex];
+				CornerTangentZ[CornerIndex] = OutTangentZ[WedgeOffset + CornerIndex];
 			}
 			else
 			{
@@ -2107,17 +2190,17 @@ static void ComputeTangents(
 						}
 					}
 				}
-				if (!RawMesh.WedgeTangentX[WedgeOffset + CornerIndex].IsZero())
+				if (!OutTangentX[WedgeOffset + CornerIndex].IsZero())
 				{
-					CornerTangentX[CornerIndex] = RawMesh.WedgeTangentX[WedgeOffset + CornerIndex];
+					CornerTangentX[CornerIndex] = OutTangentX[WedgeOffset + CornerIndex];
 				}
-				if (!RawMesh.WedgeTangentY[WedgeOffset + CornerIndex].IsZero())
+				if (!OutTangentY[WedgeOffset + CornerIndex].IsZero())
 				{
-					CornerTangentY[CornerIndex] = RawMesh.WedgeTangentY[WedgeOffset + CornerIndex];
+					CornerTangentY[CornerIndex] = OutTangentY[WedgeOffset + CornerIndex];
 				}
-				if (!RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex].IsZero())
+				if (!OutTangentZ[WedgeOffset + CornerIndex].IsZero())
 				{
-					CornerTangentZ[CornerIndex] = RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex];
+					CornerTangentZ[CornerIndex] = OutTangentZ[WedgeOffset + CornerIndex];
 				}
 			}
 		}
@@ -2142,15 +2225,26 @@ static void ComputeTangents(
 		// Copy back to the mesh.
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
-			RawMesh.WedgeTangentX[WedgeOffset + CornerIndex] = CornerTangentX[CornerIndex];
-			RawMesh.WedgeTangentY[WedgeOffset + CornerIndex] = CornerTangentY[CornerIndex];
-			RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex] = CornerTangentZ[CornerIndex];
+			OutTangentX[WedgeOffset + CornerIndex] = CornerTangentX[CornerIndex];
+			OutTangentY[WedgeOffset + CornerIndex] = CornerTangentY[CornerIndex];
+			OutTangentZ[WedgeOffset + CornerIndex] = CornerTangentZ[CornerIndex];
 		}
 	}
 
-	check(RawMesh.WedgeTangentX.Num() == NumWedges);
-	check(RawMesh.WedgeTangentY.Num() == NumWedges);
-	check(RawMesh.WedgeTangentZ.Num() == NumWedges);
+	check(OutTangentX.Num() == NumWedges);
+	check(OutTangentY.Num() == NumWedges);
+	check(OutTangentZ.Num() == NumWedges);
+}
+
+
+static void ComputeTangents(
+	FRawMesh& RawMesh,
+	TMultiMap<int32, int32> const& OverlappingCorners,
+	uint32 TangentOptions
+	)
+{
+	const float ComparisonThreshold = (TangentOptions & ETangentOptions::IgnoreDegenerateTriangles) ? THRESH_POINTS_ARE_SAME : 0.0f;
+	ComputeTangents(RawMesh.VertexPositions, RawMesh.WedgeIndices, RawMesh.WedgeTexCoords[0], RawMesh.FaceSmoothingMasks, OverlappingCorners, RawMesh.WedgeTangentX, RawMesh.WedgeTangentY, RawMesh.WedgeTangentZ, TangentOptions);
 }
 
 /*------------------------------------------------------------------------------
@@ -5320,6 +5414,11 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 	TArray<FFlattenMaterial> FlattenedMaterials;
 	FlattenMaterialsWithMeshData(GlobalUniqueMaterialList, SourceMeshes, GlobalMaterialMap, MeshShouldBakeVertexData, InMeshProxySettings.MaterialSettings, FlattenedMaterials);
 
+	for (FFlattenMaterial& InMaterial : FlattenedMaterials)
+	{
+		FMaterialUtilities::OptimizeFlattenMaterial(InMaterial);
+	}
+
 	//For each raw mesh, re-map the material indices from Local to Global material indices space
 	for (int32 RawMeshIndex = 0; RawMeshIndex < SourceMeshes.Num(); ++RawMeshIndex)
 	{
@@ -7094,6 +7193,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 		MergeFlattenedMaterials(FlattenedMaterials, MergedFlatMaterial, UVTransforms);
 
+		FMaterialUtilities::OptimizeFlattenMaterial(MergedFlatMaterial);
+
 		// Adjust UVs and remap material indices
 		for (int32 MeshIndex = 0; MeshIndex < SourceMeshes.Num(); ++MeshIndex)
 		{
@@ -7163,15 +7264,13 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			MaterialPackage->Modify();
 		}
 
-		UMaterial* MergedMaterial = FMaterialUtilities::CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public | RF_Standalone, InSettings.MaterialSettings, OutAssetsToSync);
-
+		UMaterialInstanceConstant* MergedMaterial = ProxyMaterialUtilities::CreateProxyMaterialInstance(MaterialPackage, InSettings.MaterialSettings, MergedFlatMaterial, MaterialAssetName, MaterialPackageName);
 		// Set material static lighting usage flag if project has static lighting enabled
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
 		if (bAllowStaticLighting)
 		{
-			bool bNeedsRecompile;
-			MergedMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_StaticLighting);
+			MergedMaterial->CheckMaterialUsage(MATUSAGE_StaticLighting);
 		}
 
 		// Only end up with one material so clear array first
@@ -7652,6 +7751,15 @@ bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LOD
 		OutTexCoords = TempMesh.WedgeTexCoords[1];
 	}
 	return bPackSuccess;
+}
+
+void FMeshUtilities::CalculateTangents(const TArray<FVector> InVertices, const TArray<uint32> InIndices, const TArray<FVector2D> InUVs, const TArray<uint32> InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const
+{
+	const float ComparisonThreshold = (InTangentOptions & ETangentOptions::IgnoreDegenerateTriangles ) ? THRESH_POINTS_ARE_SAME : 0.0f;
+
+	TMultiMap<int32, int32> OverlappingCorners;
+	FindOverlappingCorners(OverlappingCorners, InVertices, InIndices, ComparisonThreshold);
+	ComputeTangents(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutTangentX, OutTangentY, OutNormals, InTangentOptions);
 }
 
 

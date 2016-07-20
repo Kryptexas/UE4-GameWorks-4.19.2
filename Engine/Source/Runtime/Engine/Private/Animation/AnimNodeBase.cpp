@@ -232,6 +232,10 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif
+
+#if WITH_EDITOR
+		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
+#endif
 	}
 	else
 	{
@@ -290,6 +294,10 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	if (LinkedNode != NULL)
 	{
 		LinkedNode->EvaluateComponentSpace(Output);
+
+#if WITH_EDITOR
+		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
+#endif
 	}
 	else
 	{

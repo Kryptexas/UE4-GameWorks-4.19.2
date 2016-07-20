@@ -23,6 +23,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "NavigationSystemHelpers.h"
 #include "AI/NavigationOctree.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 

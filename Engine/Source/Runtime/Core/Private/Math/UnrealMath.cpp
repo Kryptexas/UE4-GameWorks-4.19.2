@@ -277,13 +277,29 @@ FVector FMath::ClosestPointOnLine(const FVector& LineStart, const FVector& LineE
 {
 	// Solve to find alpha along line that is closest point
 	// Weisstein, Eric W. "Point-Line Distance--3-Dimensional." From MathWorld--A Wolfram Web Resource. http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html 
-	const float A = (LineStart-Point) | (LineEnd - LineStart);
+	const float A = (LineStart - Point) | (LineEnd - LineStart);
 	const float B = (LineEnd - LineStart).SizeSquared();
+	// This should be robust to B == 0 (resulting in NaN) because clamp should return 1.
 	const float T = FMath::Clamp(-A/B, 0.f, 1.f);
 
 	// Generate closest point
 	FVector ClosestPoint = LineStart + (T * (LineEnd - LineStart));
 
+	return ClosestPoint;
+}
+
+FVector FMath::ClosestPointOnInfiniteLine(const FVector& LineStart, const FVector& LineEnd, const FVector& Point)
+{
+	const float A = (LineStart - Point) | (LineEnd - LineStart);
+	const float B = (LineEnd - LineStart).SizeSquared();
+	if (B < SMALL_NUMBER)
+	{
+		return LineStart;
+	}
+	const float T = -A/B;
+
+	// Generate closest point
+	const FVector ClosestPoint = LineStart + (T * (LineEnd - LineStart));
 	return ClosestPoint;
 }
 

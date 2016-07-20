@@ -259,12 +259,12 @@ FName FCodeProjectEditor::GetToolkitFName() const
 
 FText FCodeProjectEditor::GetBaseToolkitName() const
 {
-	return LOCTEXT( "AppLabel", "Code Editor" );
+	return LOCTEXT("AppLabel", "Code Editor");
 }
 
 FText FCodeProjectEditor::GetToolkitName() const
 {
-	return LOCTEXT("CodeAppLabel", "Code Editor");
+	return LOCTEXT("CodeAppToolkitName", "Code Editor");
 }
 
 FText FCodeProjectEditor::GetToolkitToolTipText() const

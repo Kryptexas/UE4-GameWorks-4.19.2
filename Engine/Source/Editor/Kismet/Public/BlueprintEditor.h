@@ -1175,6 +1175,9 @@ private:
 
 	/** Blueprint generated class instrumentation state */
 	bool bBlueprintHasInstrumentation;
+
+	// Allow derived editors to add command mappings 
+	virtual void OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList) {}
 };
 
 #undef LOCTEXT_NAMESPACE

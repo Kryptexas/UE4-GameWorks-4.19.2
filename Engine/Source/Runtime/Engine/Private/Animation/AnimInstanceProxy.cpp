@@ -221,6 +221,12 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	if (UAnimBlueprint* AnimBlueprint = GetAnimBlueprint())
 	{
 		bIsBeingDebugged = (InAnimInstance && (AnimBlueprint->GetObjectBeingDebugged() == InAnimInstance));
+		if(bIsBeingDebugged)
+		{
+			UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
+			FAnimBlueprintDebugData& DebugData = AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData();
+			PoseWatchEntriesForThisFrame = DebugData.AnimNodePoseWatch;
+		}
 	}
 #endif
 
@@ -234,8 +240,13 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 {
 #if WITH_EDITORONLY_DATA
-	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
-	AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData().RecordNodeVisitArray(UpdatedNodesThisFrame);
+	if(bIsBeingDebugged)
+	{
+		UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
+		FAnimBlueprintDebugData& DebugData = AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData();
+		DebugData.RecordNodeVisitArray(UpdatedNodesThisFrame);
+		DebugData.AnimNodePoseWatch = MoveTemp(PoseWatchEntriesForThisFrame);
+	}
 #endif
 	InAnimInstance->NotifyQueue.Append(NotifyQueue);
 	InAnimInstance->NotifyQueue.ApplyMontageNotifies(*this);
@@ -365,7 +376,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 
 				if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 				{
-					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
+					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, GroupLeader.EffectiveBlendWeight);
 				}
 
 				// if we're not using marker based sync, we don't care, get out
@@ -424,7 +435,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 					}
 					if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 					{
-						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
+						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayer.EffectiveBlendWeight);
 					}
 				}
 			}
@@ -448,7 +459,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 		}
 		if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 		{
-			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayerToTick.EffectiveBlendWeight);
+			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayerToTick.EffectiveBlendWeight);
 		}
 	}
 }
@@ -762,16 +773,21 @@ void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
 	// Evaluate native code if implemented, otherwise evaluate the node graph
 	if (!Evaluate(Output))
 	{
-		if (RootNode != NULL)
-		{
-			ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, !IsInGameThread());
-			EvaluationCounter.Increment();
-			RootNode->Evaluate(Output);
-		}
-		else
-		{
-			Output.ResetToRefPose();
-		}
+		EvaluateAnimationNode(Output);
+	}
+}
+
+void FAnimInstanceProxy::EvaluateAnimationNode(FPoseContext& Output)
+{
+	if (RootNode != NULL)
+	{
+		ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, !IsInGameThread());
+		EvaluationCounter.Increment();
+		RootNode->Evaluate(Output);
+	}
+	else
+	{
+		Output.ResetToRefPose();
 	}
 }
 
@@ -1619,5 +1635,39 @@ void FAnimInstanceProxy::ResetDynamics()
 		Node->ResetDynamics();
 	}
 }
+
+#if WITH_EDITOR
+void FAnimInstanceProxy::RegisterWatchedPose(const FCompactPose& Pose, int32 LinkID)
+{
+	if(bIsBeingDebugged)
+	{
+		for (FAnimNodePoseWatch& PoseWatch : PoseWatchEntriesForThisFrame)
+		{
+			if (PoseWatch.NodeID == LinkID)
+			{
+				PoseWatch.PoseInfo->CopyBonesFrom(Pose);
+				break;
+			}
+		}
+	}
+}
+
+void FAnimInstanceProxy::RegisterWatchedPose(const FCSPose<FCompactPose>& Pose, int32 LinkID)
+{
+	if (bIsBeingDebugged)
+	{
+		for (FAnimNodePoseWatch& PoseWatch : PoseWatchEntriesForThisFrame)
+		{
+			if (PoseWatch.NodeID == LinkID)
+			{
+				FCompactPose TempPose;
+				Pose.ConvertToLocalPoses(TempPose);
+				PoseWatch.PoseInfo->CopyBonesFrom(TempPose);
+				break;
+			}
+		}
+	}
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

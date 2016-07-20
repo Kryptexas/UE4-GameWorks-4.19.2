@@ -1011,6 +1011,28 @@ void UKismetMathLibrary::FindNearestPointsOnLineSegments(FVector Segment1Start, 
 	FMath::SegmentDistToSegmentSafe(Segment1Start, Segment1End, Segment2Start, Segment2End, Segment1Point, Segment2Point);
 }
 
+FVector UKismetMathLibrary::FindClosestPointOnSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd)
+{
+	return FMath::ClosestPointOnSegment(Point, SegmentStart, SegmentEnd);
+}
+
+FVector UKismetMathLibrary::FindClosestPointOnLine(FVector Point, FVector LineOrigin, FVector LineDirection)
+{
+	const FVector SafeDir = LineDirection.GetSafeNormal();
+	const FVector ClosestPoint = LineOrigin + (SafeDir * ((Point-LineOrigin) | SafeDir));
+	return ClosestPoint;
+}
+
+float UKismetMathLibrary::GetPointDistanceToSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd)
+{
+	return FMath::PointDistToSegment(Point, SegmentStart, SegmentEnd);
+}
+
+float UKismetMathLibrary::GetPointDistanceToLine(FVector Point, FVector LineOrigin, FVector LineDirection)
+{
+	return FMath::PointDistToLine(Point, LineDirection, LineOrigin);
+}
+
 FVector UKismetMathLibrary::ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal)
 {
 	return FVector::PointPlaneProject(Point, PlaneBase, PlaneNormal);

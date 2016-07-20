@@ -938,10 +938,13 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		check( ConInst );
 		ConInst->ConstraintIndex = i; // Set the ConstraintIndex property in the ConstraintInstance.
 		ConInst->CopyConstraintParamsFrom(&ConstraintSetup->DefaultInstance);
-		if(UPhysicsConstraintProfile* DefaultProfile = ConstraintSetup->GetDefaultProfile())
+#if WITH_EDITOR
+		if(GetWorld()->IsGameWorld())
 		{
-			ConInst->CopyProfilePropertiesFrom(DefaultProfile->ProfileProperties);
+			//In the editor we may be currently editing the physics asset, so make sure to use the default profile
+			ConstraintSetup->ApplyConstraintProfile(NAME_None, *ConInst, /*bDefaultIfNotFound=*/true);
 		}
+#endif
 		
 
 		// Get bodies we want to joint
@@ -1224,7 +1227,7 @@ void USkeletalMeshComponent::SetAllMotorsAngularVelocityDrive(bool bEnableSwingD
 	}
 }
 
-void USkeletalMeshComponent::SetConstraintProfile(FName JointName, FName ProfileName)
+void USkeletalMeshComponent::SetConstraintProfile(FName JointName, FName ProfileName, bool bDefaultIfNotFound)
 {
 	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 	if (!PhysicsAsset)
@@ -1237,9 +1240,20 @@ void USkeletalMeshComponent::SetConstraintProfile(FName JointName, FName Profile
 		FConstraintInstance* ConstraintInstance = Constraints[i];
 		if(ConstraintInstance->JointName == JointName)
 		{
-			if(UPhysicsConstraintProfile* Profile = PhysicsAsset->ConstraintSetup[i]->GetProfile(ProfileName))
+			PhysicsAsset->ConstraintSetup[i]->ApplyConstraintProfile(ProfileName, *ConstraintInstance, bDefaultIfNotFound);
+		}
+	}
+}
+
+void USkeletalMeshComponent::SetConstraintProfileForAll(FName ProfileName, bool bDefaultIfNotFound)
+{
+	if(UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset())
+	{
+		for (int32 i = 0; i < Constraints.Num(); i++)
+		{
+			if(FConstraintInstance* ConstraintInstance = Constraints[i])
 			{
-				ConstraintInstance->CopyProfilePropertiesFrom(Profile->ProfileProperties);
+				PhysicsAsset->ConstraintSetup[i]->ApplyConstraintProfile(ProfileName, *ConstraintInstance, bDefaultIfNotFound);
 			}
 		}
 	}
@@ -1342,6 +1356,11 @@ void USkeletalMeshComponent::SetAllBodiesPhysicsBlendWeight(float PhysicsBlendWe
 			BodyInst->PhysicsBlendWeight = PhysicsBlendWeight;
 		}
 	}
+
+	bBlendPhysics = false;
+
+	UpdatePostPhysicsTickRegisteredState();
+	UpdateClothTickRegisteredState();
 }
 
 
@@ -1398,8 +1417,7 @@ void USkeletalMeshComponent::AddForceToAllBodiesBelow(FVector Force, FName BoneN
 	ForEachBodyBelow(BoneName, bIncludeSelf, /*bSkipCustomPhysics=*/false, [Force, bAccelChange](FBodyInstance* BI)
 	{
 		BI->AddForce(Force, /*bAllowSubstepping=*/ true, bAccelChange);
-	}
-	);
+	});
 }
 
 void USkeletalMeshComponent::AddImpulseToAllBodiesBelow(FVector Impulse, FName BoneName, bool bVelChange, bool bIncludeSelf)
@@ -1407,8 +1425,7 @@ void USkeletalMeshComponent::AddImpulseToAllBodiesBelow(FVector Impulse, FName B
 	ForEachBodyBelow(BoneName, bIncludeSelf,/*bSkipCustomPhysics=*/false, [Impulse, bVelChange](FBodyInstance* BI)
 	{
 		BI->AddImpulse(Impulse, bVelChange);
-	}
-	);
+	});
 }
 
 #ifndef OLD_FORCE_UPDATE_BEHAVIOR
@@ -1424,9 +1441,9 @@ void USkeletalMeshComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTrans
 	if(bPhysicsStateCreated && !(UpdateTransformFlags&EUpdateTransformFlags::SkipPhysicsUpdate))
 	{
 #if !OLD_FORCE_UPDATE_BEHAVIOR
-		UpdateKinematicBonesToAnim(GetSpaceBases(), Teleport, false);
+		UpdateKinematicBonesToAnim(GetComponentSpaceTransforms(), Teleport, false);
 #else
-		UpdateKinematicBonesToAnim(GetSpaceBases(), ETeleportType::TeleportPhysics, false);
+		UpdateKinematicBonesToAnim(GetComponentSpaceTransforms(), ETeleportType::TeleportPhysics, false);
 #endif
 	}
 
@@ -1620,14 +1637,14 @@ FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName, bool) con
 	return BodyInst;
 }
 
-void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
+void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld)
 {
 	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
 
 	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 	{
 		FBodyInstance* BI = Bodies[BodyIdx];
-		if (BI && BI->bWelded)
+		if (BI && (BI->bWelded || (bIncludingAutoWeld && BI->bAutoWeld)))
 		{
 			OutWeldedBodies.Add(&BodyInstance);
 			if (PhysicsAsset)
@@ -1650,7 +1667,7 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 			{
 				if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
 				{
-					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels, bIncludingAutoWeld);
 				}
 			}
 		}
@@ -1710,6 +1727,42 @@ int32 USkeletalMeshComponent::ForEachBodyBelow(FName BoneName, bool bIncludeSelf
 	}
 
 	return 0;
+}
+
+void USkeletalMeshComponent::SetNotifyRigidBodyCollision(bool bNewNotifyRigidBodyCollision)
+{
+	for(FBodyInstance* BI : Bodies)
+	{
+		BI->SetInstanceNotifyRBCollision(bNewNotifyRigidBodyCollision);
+	}
+
+	if(Bodies.Num() > 0)
+	{
+		OnComponentCollisionSettingsChanged();
+	}
+}
+
+void USkeletalMeshComponent::SetBodyNotifyRigidBodyCollision(bool bNewNotifyRigidBodyCollision, FName BoneName /* = NAME_None */)
+{
+	if(FBodyInstance* BI = GetBodyInstance(BoneName))
+	{
+		BI->SetInstanceNotifyRBCollision(bNewNotifyRigidBodyCollision);
+
+		OnComponentCollisionSettingsChanged();
+	}
+}
+
+void USkeletalMeshComponent::SetNotifyRigidBodyCollisionBelow(bool bNewNotifyRigidBodyCollision, FName BoneName, bool bIncludeSelf)
+{
+	const int32 NumBodiesFound = ForEachBodyBelow(BoneName, bIncludeSelf, /*bSkipCustomType=*/false, [bNewNotifyRigidBodyCollision](FBodyInstance* BI)
+	{
+		BI->SetInstanceNotifyRBCollision(bNewNotifyRigidBodyCollision);
+	});
+	
+	if(NumBodiesFound > 0)
+	{
+		OnComponentCollisionSettingsChanged();
+	}
 }
 
 void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocation, FName InBoneName)
@@ -1980,6 +2033,28 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 	return Super::GetSkinnedVertexPosition(VertexIndex);
 }
 
+void USkeletalMeshComponent::SetEnableBodyGravity(bool bEnableGravity, FName BoneName)
+{
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
+	{
+		BI->SetEnableGravity(bEnableGravity);
+	}
+}
+
+bool USkeletalMeshComponent::IsBodyGravityEnabled(FName BoneName)
+{
+	const FBodyInstance* BI = GetBodyInstance(BoneName);
+	return BI && BI->bEnableGravity;
+}
+
+void USkeletalMeshComponent::SetEnableGravityOnAllBodiesBelow(bool bEnableGravity, FName BoneName, bool bIncludeSelf)
+{
+    ForEachBodyBelow(BoneName, bIncludeSelf, /*bSkipCustomPhysics=*/false, [bEnableGravity](FBodyInstance* BI)
+	{
+		BI->SetEnableGravity(bEnableGravity);
+	});
+}
+
 //////////////////////////////////////////////////////////////////////////
 // COLLISION
 
@@ -2033,7 +2108,7 @@ bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldP
 	const FReferenceSkeleton* RefSkeleton = SkeletalMesh ? &SkeletalMesh->RefSkeleton : nullptr;
 	if(PhysicsAsset && RefSkeleton)
 	{
-		const TArray<FTransform>& SpaceBases = GetSpaceBases();
+		const TArray<FTransform>& BoneTransforms = GetComponentSpaceTransforms();
 		const bool bHasMasterPoseComponent = MasterPoseComponent.IsValid();
 		const FVector ComponentPosition = ComponentToWorld.InverseTransformPosition(WorldPosition);
 	
@@ -2048,7 +2123,7 @@ bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldP
 			const int32 BoneIndex = RefSkeleton->FindBoneIndex(BoneName);
 			if(BoneIndex != INDEX_NONE)
 			{
-				const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(BoneIndex) : SpaceBases[BoneIndex];
+				const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(BoneIndex) : BoneTransforms[BoneIndex];
 				const float Dist = bApproximate ? (BoneTM.GetLocation() - ComponentPosition).SizeSquared() : BodySetupInstance->GetShortestDistanceToPoint(ComponentPosition, BoneTM);
 
 				if (Dist < CurrentClosestDistance)
@@ -2066,7 +2141,7 @@ bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldP
 		{
 			bSuccess = true;
 
-			const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(CurrentClosestBoneIndex) : (SpaceBases[CurrentClosestBoneIndex] * ComponentToWorld);
+			const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(CurrentClosestBoneIndex) : (BoneTransforms[CurrentClosestBoneIndex] * ComponentToWorld);
 			ClosestPointOnPhysicsAsset.Distance = CurrentClosestBodySetup->GetClosestPointAndNormal(WorldPosition, BoneTM, ClosestPointOnPhysicsAsset.ClosestWorldPosition, ClosestPointOnPhysicsAsset.Normal);
 			ClosestPointOnPhysicsAsset.BoneName = CurrentClosestBodySetup->BoneName;
 		}
@@ -5223,8 +5298,15 @@ void USkeletalMeshComponent::ForceClothNextUpdateTeleportAndReset()
 
 FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyInstance* UseBI)
 {
-	// undo root transform so that it only moves according to what actor itself suppose to move
-	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
-	return RootBodyData.TransformToRoot * BodyTransform;
+	if (PhysicsTransformUpdateMode == EPhysicsTransformUpdateMode::SimulationUpatesComponentTransform)
+	{
+		// undo root transform so that it only moves according to what actor itself suppose to move
+		const FTransform& BodyTransform = UseBI->GetUnrealWorldTransform();
+		return RootBodyData.TransformToRoot * BodyTransform;
+	}
+	else
+	{
+		return ComponentToWorld;
+	}
 }
 #undef LOCTEXT_NAMESPACE

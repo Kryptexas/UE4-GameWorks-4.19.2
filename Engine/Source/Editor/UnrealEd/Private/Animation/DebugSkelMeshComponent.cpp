@@ -105,7 +105,7 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 	{
 		// extend bounds by bones but without root bone
 		FBox BoundingBox(0);
-		const int32 NumBones = GetNumSpaceBases();
+		const int32 NumBones = GetNumComponentSpaceTransforms();
 		for (int32 BoneIndex = 1; BoneIndex < NumBones; ++BoneIndex)
 		{
 			BoundingBox += GetBoneMatrix(BoneIndex).GetOrigin();
@@ -181,7 +181,7 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 	{
 		if (ExtractedRootMotion.bHasRootMotion)
 		{
-			AddLocalTransform(ExtractedRootMotion.RootMotionTransform);
+			AddLocalTransform(ExtractedRootMotion.GetRootMotionTransform());
 
 			//Handle moving component so that it stays within the editor floor
 			FTransform CurrentTransform = GetRelativeTransform();
@@ -401,12 +401,12 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 
 void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 {
-	TArray<FTransform> TempLocalAtoms;
-	TempLocalAtoms.AddUninitialized(OutSpaceBases.Num());
+	TArray<FTransform> TempBoneSpaceTransforms;
+	TempBoneSpaceTransforms.AddUninitialized(OutSpaceBases.Num());
 	FVector TempRootBoneTranslation;
 	FBlendedHeapCurve TempCurve;
 	PreviewInstance->PrePerformAnimationEvaluation();
-	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempLocalAtoms, TempRootBoneTranslation, TempCurve);
+	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempBoneSpaceTransforms, TempRootBoneTranslation, TempCurve);
 	PreviewInstance->PostPerformAnimationEvaluation();
 }
 

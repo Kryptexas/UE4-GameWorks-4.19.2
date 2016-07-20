@@ -7,6 +7,7 @@
 #include "Engine/CollisionProfile.h"
 #include "SNumericEntryBox.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 #include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstanceCustomization"

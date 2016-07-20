@@ -21,5 +21,20 @@ public:
 	UPROPERTY(EditAnywhere, Category = Settings)
 	FAnimationGroupReference SyncGroup;
 
+	/** UEdGraphNode interface */
+	ANIMGRAPH_API virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
+	ANIMGRAPH_API virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
+
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) { check(false); /*Base function called*/ }
+
+	/** Store off a string asset reference for later restoration */
+	void SetAssetReferenceForPinRestoration(UObject* InAsset);
+
+	/** Find an asset reference when restoring pins */
+	UObject* GetAssetReferenceForPinRestoration();
+
+private:
+	/** Non-concrete reference to asset that was being used, now potentially coming from a pin */
+	UPROPERTY()
+	FStringAssetReference AssetReferenceForPinRestoration;
 };

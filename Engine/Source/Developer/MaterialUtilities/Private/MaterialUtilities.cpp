@@ -25,6 +25,12 @@
 #include "MeshMergeData.h"
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#include "ObjectTools.h"
+#include "Tests/AutomationEditorCommon.h"
+#endif // WITH_EDITOR
+
 IMPLEMENT_MODULE(FMaterialUtilities, MaterialUtilities);
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialUtilities, Log, All);
@@ -1220,6 +1226,47 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	return Material;
 }
 
+UMaterialInstanceConstant* FMaterialUtilities::CreateInstancedMaterial(UMaterial* BaseMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags)
+{
+	// Base name for a new assets
+	// In case outer is null BaseName has to be long package name
+	if (InOuter == nullptr && FPackageName::IsShortPackageName(BaseName))
+	{
+		UE_LOG(LogMaterialUtilities, Warning, TEXT("Invalid long package name: '%s'."), *BaseName);
+		return nullptr;
+	}
+
+	const FString AssetBaseName = FPackageName::GetShortName(BaseName);
+	const FString AssetBasePath = InOuter ? TEXT("") : FPackageName::GetLongPackagePath(BaseName) + TEXT("/");
+
+	// Create material
+	const FString MaterialAssetName = TEXT("M_") + AssetBaseName;
+	UPackage* MaterialOuter = InOuter;
+	if (MaterialOuter == NULL)
+	{		
+		MaterialOuter = CreatePackage(NULL, *(AssetBasePath + MaterialAssetName));
+		MaterialOuter->FullyLoad();
+		MaterialOuter->Modify();
+	}
+
+	// We need to check for this due to the change in material object type, this causes a clash of path/type with old assets that were generated, so we delete the old (resident) UMaterial objects
+	UObject* ExistingPackage = FindObject<UMaterial>(MaterialOuter, *MaterialAssetName);
+	if (ExistingPackage && !ExistingPackage->IsA<UMaterialInstanceConstant>())
+	{
+#if WITH_EDITOR
+		AutomationEditorCommonUtils::NullReferencesToObject(ExistingPackage);		
+#endif // WITH_EDITOR
+		ExistingPackage->MarkPendingKill();
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+	}
+
+	UMaterialInstanceConstant* MaterialInstance = NewObject<UMaterialInstanceConstant>(MaterialOuter, FName(*MaterialAssetName), Flags);
+	checkf(MaterialInstance, TEXT("Failed to create instanced material"));
+	MaterialInstance->Parent = BaseMaterial;	
+	
+	return MaterialInstance;
+}
+
 UTexture2D* FMaterialUtilities::CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB, const FGuid& SourceGuidHash)
 {
 	FCreateTexture2DParameters TexParams;
@@ -2036,14 +2083,14 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 	}
 
 	// Determine whether or not certain properties can be rendered
-	bool bRenderNormal = (Material->GetMaterial()->HasNormalConnected() || Material->GetMaterial()->bUseMaterialAttributes || Material->IsPropertyActive(MP_Normal)) && (OutFlattenMaterial.NormalSize.X > 0 && OutFlattenMaterial.NormalSize.Y > 0);
-	bool bRenderEmissive = (Material->GetMaterial()->EmissiveColor.IsConnected() || Material->GetMaterial()->bUseMaterialAttributes || Material->IsPropertyActive(MP_EmissiveColor)) && OutFlattenMaterial.EmissiveSize.X > 0 && OutFlattenMaterial.EmissiveSize.Y > 0;
-	bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
-	bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode()) && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
-	bool bRenderSubSurface = Material->IsPropertyActive(MP_SubsurfaceColor) && OutFlattenMaterial.SubSurfaceSize.X > 0 && OutFlattenMaterial.SubSurfaceSize.Y > 0;
-	bool bRenderMetallic = Material->IsPropertyActive(MP_Metallic) && OutFlattenMaterial.MetallicSize.X > 0 && OutFlattenMaterial.MetallicSize.Y > 0;
-	bool bRenderSpecular = Material->IsPropertyActive(MP_Specular) && OutFlattenMaterial.SpecularSize.X > 0 && OutFlattenMaterial.SpecularSize.Y > 0;
-	bool bRenderRoughness = Material->IsPropertyActive(MP_Roughness) && OutFlattenMaterial.RoughnessSize.X > 0 && OutFlattenMaterial.RoughnessSize.Y > 0;
+	const bool bRenderNormal = (Material->GetMaterial()->HasNormalConnected() || Material->GetMaterial()->bUseMaterialAttributes) && (OutFlattenMaterial.NormalSize.X > 0 && OutFlattenMaterial.NormalSize.Y > 0);
+	const bool bRenderEmissive = (Material->GetMaterial()->EmissiveColor.IsConnected() || Material->GetMaterial()->bUseMaterialAttributes) && OutFlattenMaterial.EmissiveSize.X > 0 && OutFlattenMaterial.EmissiveSize.Y > 0;
+	const bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
+	const bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode()) && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
+	const bool bRenderSubSurface = Material->IsPropertyActive(MP_SubsurfaceColor) && OutFlattenMaterial.SubSurfaceSize.X > 0 && OutFlattenMaterial.SubSurfaceSize.Y > 0;
+	const bool bRenderMetallic = Material->IsPropertyActive(MP_Metallic) && OutFlattenMaterial.MetallicSize.X > 0 && OutFlattenMaterial.MetallicSize.Y > 0;
+	const bool bRenderSpecular = Material->IsPropertyActive(MP_Specular) && OutFlattenMaterial.SpecularSize.X > 0 && OutFlattenMaterial.SpecularSize.Y > 0;
+	const bool bRenderRoughness = Material->IsPropertyActive(MP_Roughness) && OutFlattenMaterial.RoughnessSize.X > 0 && OutFlattenMaterial.RoughnessSize.Y > 0;
 
 	check(!bRenderOpacity || !bRenderOpacityMask);
 
@@ -2281,7 +2328,7 @@ void FMaterialUtilities::OptimizeSampleArray(TArray<FColor>& InSamples, FIntPoin
 			InSamples.Add(ColourValue);
 			InSampleSize = FIntPoint(1, 1);
 		}
-	}	
+	}
 }
 
 FExportMaterialProxyCache::FExportMaterialProxyCache()

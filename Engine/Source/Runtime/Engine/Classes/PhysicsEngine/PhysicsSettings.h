@@ -7,6 +7,7 @@
 #pragma once
 
 #include "PhysicsSettingsEnums.h"
+#include "BodySetupEnums.h"
 #include "Engine/DeveloperSettings.h"
 #include "PhysicsSettings.generated.h"
 
@@ -88,6 +89,10 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	/** Default fluid friction for Physics Volumes. */
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultFluidFriction;
+	
+	/** Amount of memory to reserve for PhysX simulate(), this is per pxscene */
+	UPROPERTY(config, EditAnywhere, Category = Constants, meta = (ClampMin = "0", UIMin = "0"))
+	int32 SimulateScratchMemorySize;
 
 	/** Threshold for ragdoll bodies above which they will be added to an aggregate before being added to the scene */
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "1", UIMin = "1", ClampMax = "127", UIMax = "127"), Category = Constants)
@@ -163,16 +168,24 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bSimulateSkeletalMeshOnDedicatedServer;
 
+	/**
+	*  Determines the default physics shape complexity. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	TEnumAsByte<ECollisionTraceFlag> DefaultShapeComplexity;
 	
 	/**
 	*  If true, static meshes will use per poly collision as complex collision by default. If false the default behavior is the same as UseSimpleAsComplex. */
-	UPROPERTY(config, EditAnywhere, Category = Simulation)
-	bool bDefaultHasComplexCollision;
+	UPROPERTY(config)
+	bool bDefaultHasComplexCollision_DEPRECATED;
 
 	/**
 	*  If true, the internal physx face to UE face mapping will not be generated. This is a memory optimization available if you do not rely on face indices returned by scene queries. */
 	UPROPERTY(config, EditAnywhere, Category = Optimization)
 	bool bSuppressFaceRemapTable;
+
+	/** If true, store extra information to allow FindCollisionUV to derive UV info from a line trace hit result, using the FindCollisionUV utility */
+	UPROPERTY(config, EditAnywhere, Category = Optimization)
+	bool bSupportUVFromHitResults;
 
 	/**
 	* If true, physx will not update unreal with any bodies that have moved during the simulation. This should only be used if you have no physx simulation or you are manually updating the unreal data via polling physx.  */
@@ -227,7 +240,6 @@ public:
 	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
-
 	virtual bool CanEditChange( const UProperty* Property ) const override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 

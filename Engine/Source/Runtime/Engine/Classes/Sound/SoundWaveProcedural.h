@@ -35,6 +35,7 @@ public:
 
 	//~ Begin USoundWave Interface.
 	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) override;
+	virtual bool HasCompressedData(FName Format) const override;
 	virtual FByteBulkData* GetCompressedData(FName Format) override;
 	virtual void InitAudioResource( FByteBulkData& CompressedData ) override;
 	virtual bool InitAudioResource(FName Format) override;

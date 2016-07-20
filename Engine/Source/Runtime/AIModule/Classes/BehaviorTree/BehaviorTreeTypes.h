@@ -326,9 +326,6 @@ struct FBehaviorTreeInstance
 	/** initialize memory and create node instances */
 	void Initialize(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
 
-	/** update injected nodes */
-	void InjectNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex);
-
 	/** cleanup node instances */
 	void Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemoryClear::Type CleanupType);
 

@@ -261,6 +261,9 @@ public:
 	float GetBlendTime() const { return Blend.GetBlendTime(); }
 	int32 GetSyncGroupIndex() const { return SyncGroupIndex;  }
 
+	/** Set the weight */
+	void SetWeight(float InValue) { Blend.SetAlpha(InValue); }
+
 private:
 	/** Followers this Montage will synchronize */
 	TArray<struct FAnimMontageInstance*> MontageSyncFollowers;

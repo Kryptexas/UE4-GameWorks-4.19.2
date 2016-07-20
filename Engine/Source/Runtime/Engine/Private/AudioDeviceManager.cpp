@@ -279,6 +279,9 @@ class FAudioDevice* FAudioDeviceManager::GetActiveAudioDevice()
 
 void FAudioDeviceManager::UpdateActiveAudioDevices(bool bGameTicking)
 {
+	// Before we kick off the next update make sure that we've finished the previous frame's update (this should be extremely rare)
+	SyncFence.Wait();
+
 	for (FAudioDevice* AudioDevice : Devices)
 	{
 		if (AudioDevice)
@@ -286,6 +289,8 @@ void FAudioDeviceManager::UpdateActiveAudioDevices(bool bGameTicking)
 			AudioDevice->Update(bGameTicking);
 		}
 	}
+
+	SyncFence.BeginFence();
 }
 
 void FAudioDeviceManager::AddReferencedObjects(FReferenceCollector& Collector)

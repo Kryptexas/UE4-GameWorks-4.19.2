@@ -783,7 +783,7 @@ void UAnimPreviewInstance::MontagePreview_RemoveBlendOut()
 	}
 }
 
-void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx)
+void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx, bool bPlay)
 {
 	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
 	{
@@ -807,11 +807,13 @@ void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx)
 		MontagePreview_SetLoopNormal(Proxy.IsLooping(), FromSectionIdx);
 		Montage_JumpToSection(Montage->GetSectionName(PreviewFromSection));
 		MontagePreview_RemoveBlendOut();
-		Proxy.SetPlaying(true);
+		Proxy.SetPlaying(bPlay);
+		GetActiveMontageInstance()->SetWeight(1.0f);
+		GetActiveMontageInstance()->bPlaying = Proxy.IsPlaying();
 	}
 }
 
-void UAnimPreviewInstance::MontagePreview_PreviewAllSections()
+void UAnimPreviewInstance::MontagePreview_PreviewAllSections(bool bPlay)
 {
 	UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
 	if (Montage && Montage->SequenceLength > 0.f)
@@ -826,7 +828,9 @@ void UAnimPreviewInstance::MontagePreview_PreviewAllSections()
 		MontagePreview_SetLoopAllSections(Proxy.IsLooping());
 		MontagePreview_JumpToPreviewStart();
 		MontagePreview_RemoveBlendOut();
-		Proxy.SetPlaying(true);
+		Proxy.SetPlaying(bPlay);
+		GetActiveMontageInstance()->SetWeight(1.0f);
+		GetActiveMontageInstance()->bPlaying = Proxy.IsPlaying();
 	}
 }
 

@@ -11,6 +11,7 @@
 #include "ShadowMap.h"
 #include "Components/ModelComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial):
 	Component(InComponent),

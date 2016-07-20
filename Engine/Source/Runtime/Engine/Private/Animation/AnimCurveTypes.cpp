@@ -14,10 +14,10 @@ DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, ST
 void FAnimCurveBase::PostSerialize(FArchive& Ar)
 {
 	FSmartNameMapping::UID CurveUid = FSmartNameMapping::MaxUID;
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
 	if ((Ar.IsLoading()))
 	{
-		Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::SmartNameRefactor)
 		{
 			if (Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)

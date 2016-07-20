@@ -617,7 +617,7 @@ bool FConstraintInstance::IsValidConstraintInstance() const
 #endif // WITH_PHYSX
 }
 
-void FConstraintInstance::CopyProfilePropertiesFrom(FConstraintProfileProperties& FromProperties)
+void FConstraintInstance::CopyProfilePropertiesFrom(const FConstraintProfileProperties& FromProperties)
 {
 	ProfileInstance = FromProperties;
 #if WITH_PHYSX
@@ -757,7 +757,7 @@ void FConstraintInstance::SetRefOrientation(EConstraintFrame::Type Frame, const 
 #if WITH_PHYSX
 	ExecuteOnUnbrokenJointReadWrite([&] (PxD6Joint* Joint)
 	{
-		FTransform URefTransform = FTransform(PriAxis1, SecAxis, PriAxis ^ SecAxis, RefPos);
+		FTransform URefTransform = FTransform(PriAxis, SecAxis, PriAxis ^ SecAxis, RefPos);
 		PxTransform PxRefFrame = U2PTransform(URefTransform);
 		Joint->setLocalPose(PxFrame, PxRefFrame);
 	});

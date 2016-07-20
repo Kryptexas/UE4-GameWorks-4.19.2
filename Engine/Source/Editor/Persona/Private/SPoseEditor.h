@@ -315,6 +315,7 @@ private:
 
 	void ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const;
 	void RefreshCachePreviewInstance();
+	void OnAssestChanged(UAnimationAsset* NewAsset);
 
 	/** Pointer back to the Persona that owns us */
 	TWeakPtr<FPersona> PersonaPtr;

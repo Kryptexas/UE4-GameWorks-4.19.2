@@ -52,6 +52,7 @@
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/GameMode.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
@@ -1254,7 +1255,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 
 		// Get max tick rate based on network settings and current delta time.
 		const float GivenMaxTickRate = GetMaxTickRate(DeltaTime);
-		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : bUseFixedFrameRate ? FMath::Min(GivenMaxTickRate, FixedFrameRate) : GivenMaxTickRate;
+		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : (bUseFixedFrameRate ? FixedFrameRate : GivenMaxTickRate);
 		float WaitTime		= 0;
 		// Convert from max FPS to wait time.
 		if( MaxTickRate > 0 )

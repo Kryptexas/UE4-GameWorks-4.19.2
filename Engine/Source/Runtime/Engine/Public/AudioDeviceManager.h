@@ -2,6 +2,8 @@
 
 #pragma once 
 
+#include "AudioThread.h"
+
 /**
 * Class for managing multiple audio devices.
 */
@@ -193,6 +195,9 @@ private:
 
 	/** Whether or not 3d debug visualization is enabled. */
 	bool bVisualize3dDebug;
+
+	/** Audio Fence to ensure that we don't allow the audio thread to drift never endingly behind. */
+	FAudioCommandFence SyncFence;
 };
 
 

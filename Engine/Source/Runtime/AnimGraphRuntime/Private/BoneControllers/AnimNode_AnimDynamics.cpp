@@ -3,6 +3,7 @@
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimNode_AnimDynamics.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 DEFINE_STAT(STAT_AnimDynamicsOverall);
 DEFINE_STAT(STAT_AnimDynamicsWindData);
@@ -32,6 +33,8 @@ FAnimNode_AnimDynamics::FAnimNode_AnimDynamics()
 , LinearDampingOverride(0.0f)
 , bOverrideAngularDamping(false)
 , AngularDampingOverride(0.0f)
+, bOverrideAngularBias(false)
+, AngularBiasOverride(0.0f)
 , bDoUpdate(true)
 , bDoEval(true)
 , NumSolverIterationsPreUpdate(4)
@@ -571,11 +574,11 @@ void FAnimNode_AnimDynamics::UpdateLimits(USkeletalMeshComponent* SkelComp, FCSP
 #endif
 
 			// Add angular limits. any limit with 360+ degree range is ignored and left free.
-			FAnimPhys::ConstrainAngularRange(NextTimeStep, AngularLimits, PrevBody, &RigidBody, ShapeTransform.GetRotation(), ConstraintSetup.TwistAxis, ConstraintSetup.AngularLimitsMin, ConstraintSetup.AngularLimitsMax);
+			FAnimPhys::ConstrainAngularRange(NextTimeStep, AngularLimits, PrevBody, &RigidBody, ShapeTransform.GetRotation(), ConstraintSetup.TwistAxis, ConstraintSetup.AngularLimitsMin, ConstraintSetup.AngularLimitsMax, bOverrideAngularBias ? AngularBiasOverride : AnimPhysicsConstants::JointBiasFactor);
 		}
 		else
 		{
-			FAnimPhys::ConstrainConeAngle(NextTimeStep, AngularLimits, PrevBody, BoundBoneTransform.GetRotation().GetAxisX(), &RigidBody, FVector(1.0f, 0.0f, 0.0f), ConstraintSetup.ConeAngle);
+			FAnimPhys::ConstrainConeAngle(NextTimeStep, AngularLimits, PrevBody, BoundBoneTransform.GetRotation().GetAxisX(), &RigidBody, FVector(1.0f, 0.0f, 0.0f), ConstraintSetup.ConeAngle, bOverrideAngularBias ? AngularBiasOverride : AnimPhysicsConstants::JointBiasFactor);
 		}
 
 		if(PlanarLimits.Num() > 0 && bUsePlanarLimit)

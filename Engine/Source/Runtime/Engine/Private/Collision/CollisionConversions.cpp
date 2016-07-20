@@ -10,6 +10,8 @@
 #include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 // Used to place overlaps into a TMap when deduplicating them
 struct FOverlapKey
@@ -528,7 +530,9 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 	// Fill in Actor, Component, material, etc.
 	SetHitResultFromShapeAndFaceIndex(PHit.shape, PHit.actor, PHit.faceIndex, OutResult, bReturnPhysMat);
 
-	if( PHit.shape->getGeometryType() == PxGeometryType::eHEIGHTFIELD)
+	PxGeometryType::Enum PGeomType = PHit.shape->getGeometryType();
+
+	if(PGeomType == PxGeometryType::eHEIGHTFIELD)
 	{
 		// Lookup physical material for heightfields
 		if (bReturnPhysMat && PHit.faceIndex != InvalidQueryHit.faceIndex)
@@ -540,7 +544,7 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 			}
 		}
 	}
-	else if (bReturnFaceIndex && PHit.shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
+	else if (bReturnFaceIndex && PGeomType == PxGeometryType::eTRIANGLEMESH)
 	{
 		PxTriangleMeshGeometry PTriMeshGeom;
 		if(	PHit.shape->getTriangleMeshGeometry(PTriMeshGeom) && 

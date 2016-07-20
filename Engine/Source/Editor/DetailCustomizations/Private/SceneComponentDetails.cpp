@@ -208,6 +208,16 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 
 	MobilityCustomization = MakeShareable(new FMobilityCustomization);
 	MobilityCustomization->CreateMobilityCustomization(TransformCategory, MobilityHandle, RestrictedMobilityBits, bAnySelectedIsLight);
+
+	// Only display bHiddenInGame if the property is being flattened in to an Actor.
+	// Details panel for BP component will have the base class be the Actor due to how the SKismetInspector works, but in that case we
+	// have a class default object selected, so use that to infer that this is the component directly selected and since BPs do not do
+	// property flattening it all kind of works
+	if (DetailBuilder.GetDetailsView().GetBaseClass()->IsChildOf<AActor>() && !DetailBuilder.GetDetailsView().HasClassDefaultObject())
+	{
+		TSharedPtr<IPropertyHandle> ComponentHiddenInGameProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USceneComponent, bHiddenInGame));
+		ComponentHiddenInGameProperty->MarkHiddenByCustomization();
+	}
 }
 
 void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailBuilder )

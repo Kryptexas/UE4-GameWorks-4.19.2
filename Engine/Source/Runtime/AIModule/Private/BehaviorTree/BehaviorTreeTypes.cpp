@@ -3,7 +3,6 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 #include "BehaviorTree/BTCompositeNode.h"
-#include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "BehaviorTree/BTDecorator.h"
 
@@ -63,27 +62,6 @@ void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent& OwnerComp, UBTCom
 			}
 
 			ChildInfo.ChildTask->InitializeInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
-		}
-	}
-}
-
-void FBehaviorTreeInstance::InjectNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex)
-{
-	for (int32 ChildIndex = 0; ChildIndex < Node.Children.Num(); ChildIndex++)
-	{
-		FBTCompositeChild& ChildInfo = Node.Children[ChildIndex];
-		if (ChildInfo.ChildComposite)
-		{
-			InjectNodes(OwnerComp, *(ChildInfo.ChildComposite), InstancedIndex);
-		}
-		else
-		{
-			UBTTask_RunBehavior* InjectingTask = Cast<UBTTask_RunBehavior>(ChildInfo.ChildTask);
-			if (InjectingTask)
-			{
-				uint8* NodeMemory = InjectingTask->GetNodeMemory<uint8>(*this);
-				InjectingTask->InjectNodes(OwnerComp, NodeMemory, InstancedIndex);
-			}
 		}
 	}
 }
@@ -292,7 +270,7 @@ void FBlackboardKeySelector::ResolveSelectedKey(const UBlackboardData& Blackboar
 {
 	if (SelectedKeyName.IsNone() == false || !bNoneIsAllowedValue)
 	{
-		if (SelectedKeyName.IsNone())
+		if (SelectedKeyName.IsNone() && !bNoneIsAllowedValue)
 		{
 			InitSelection(BlackboardAsset);
 		}

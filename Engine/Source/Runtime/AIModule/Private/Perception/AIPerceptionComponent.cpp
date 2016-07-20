@@ -702,7 +702,10 @@ void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCat
 
 	for (UAISenseConfig* SenseConfig : SensesConfig)
 	{
-		SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
+		if (SenseConfig)
+		{
+			SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
+		}
 	}
 }
 #endif // WITH_GAMEPLAY_DEBUGGER

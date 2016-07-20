@@ -106,7 +106,7 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 		FAIMoveRequest MoveReq;
 		MoveReq.SetUsePathfinding(true);
 		MoveReq.SetAcceptanceRadius(AcceptanceRadius);
-		MoveReq.SetStopOnOverlap(bStopOnOverlap);
+		MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 		if (TargetActor)
 		{
 			MoveReq.SetGoalActor(TargetActor);

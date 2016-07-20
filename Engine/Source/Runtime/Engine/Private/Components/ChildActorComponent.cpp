@@ -341,14 +341,7 @@ void UChildActorComponent::CreateChildActor()
 					bSpawn = false;
 					UE_LOG(LogChildActorComponent, Error, TEXT("Found cycle in child actor component '%s'.  Not spawning Actor of class '%s' to break."), *GetPathName(), *ChildActorClass->GetName());
 				}
-				if (UChildActorComponent* ParentComponent = Actor->GetParentComponent())
-				{
-					Actor = ParentComponent->GetOwner();
-				}
-				else
-				{
-					Actor = nullptr;
-				}
+				Actor = Actor->GetParentActor();
 			}
 
 			if (bSpawn)

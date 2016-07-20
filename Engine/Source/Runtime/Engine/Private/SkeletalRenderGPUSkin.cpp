@@ -1233,12 +1233,12 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::ReleaseMorphResources()
 }
 
 
-TArray<FTransform>* FSkeletalMeshObjectGPUSkin::GetSpaceBases() const
+TArray<FTransform>* FSkeletalMeshObjectGPUSkin::GetComponentSpaceTransforms() const
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if(DynamicData)
 	{
-		return &(DynamicData->MeshSpaceBases);
+		return &(DynamicData->MeshComponentSpaceTransforms);
 	}
 	else
 #endif
@@ -1274,7 +1274,7 @@ void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 	ReferenceToLocal.Reset();
 	CustomLeftRightVectors.Reset();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
-	MeshSpaceBases.Reset();
+	MeshComponentSpaceTransforms.Reset();
 #endif
 	LODIndex = 0;
 	ActiveMorphTargets.Reset();
@@ -1319,9 +1319,9 @@ void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(
 	UpdateCustomLeftRightVectors( CustomLeftRightVectors, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	check(!MeshSpaceBases.Num());
+	check(!MeshComponentSpaceTransforms.Num());
 	// append instead of equals to avoid alloc
-	MeshSpaceBases.Append(InMeshComponent->GetSpaceBases());
+	MeshComponentSpaceTransforms.Append(InMeshComponent->GetComponentSpaceTransforms());
 #endif
 
 	// find number of morphs that are currently weighted and will affect the mesh

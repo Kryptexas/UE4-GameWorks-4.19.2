@@ -269,9 +269,6 @@ public:
 	/** cooked streaming platform data for this sound */
 	TMap<FString, FStreamedAudioPlatformData*> CookedPlatformData;
 
-	/** Codec used to compress/encode this audio data */
-	FName CompressionName;
-
 	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;
@@ -357,6 +354,8 @@ public:
 		FByteBulkData* Data = GetCompressedData(Format);
 		return Data ? Data->GetBulkDataSize() : 0;
 	}
+
+	virtual bool HasCompressedData(FName Format) const;
 
 	/** 
 	 * Gets the compressed data from derived data cache for the specified platform

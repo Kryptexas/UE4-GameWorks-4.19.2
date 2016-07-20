@@ -21,6 +21,7 @@
 #include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 /** Physics stats **/
 
@@ -65,8 +66,6 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROU
 
 static int16 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
-
-CreateSimEventCallbackFn* FPhysScene::CreateSimEventCallback;
 
 EPhysicsSceneType FPhysScene::SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const
 {
@@ -248,6 +247,8 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 };
 #endif
 
+TSharedPtr<ISimEventCallbackFactory> FPhysScene::SimEventCallbackFactory;
+
 /** Exposes creation of physics-engine scene outside Engine (for use with PhAT for example). */
 FPhysScene::FPhysScene()
 #if WITH_APEX
@@ -308,6 +309,29 @@ FPhysScene::FPhysScene()
 #endif
 
 	PreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FPhysScene::WaitPhysScenes);
+
+#if WITH_PHYSX
+	// Initialise PhysX scratch buffers (only if size > 0)
+	int32 SceneScratchBufferSize = PhysSetting->SimulateScratchMemorySize;
+	if(SceneScratchBufferSize > 0)
+	{
+		for(uint32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
+		{
+			if(SceneType < NumPhysScenes)
+			{
+				// Only allocate a scratch buffer if we have a scene and we are not using that cloth scene.
+				// Clothing actors are not simulated with this scene but simulated per-actor
+				PxScene* Scene = GetPhysXScene(SceneType);
+				if(SceneType != PST_Cloth && Scene)
+				{
+					// We have a valid scene, so allocate the buffer for it
+					SimScratchBuffers[SceneType].Buffer = (uint8*)FMemory::Malloc(SceneScratchBufferSize, 16);
+					SimScratchBuffers[SceneType].BufferSize = SceneScratchBufferSize;
+				}
+			}
+		}
+	}
+#endif
 }
 
 void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
@@ -332,6 +356,19 @@ FPhysScene::~FPhysScene()
 		GPhysCommandHandler->DeferredDeleteCPUDispathcer(CPUDispatcher[SceneType]);
 #endif	//#if WITH_PHYSX
 	}
+
+#if WITH_PHYSX
+	// Free the scratch buffers
+ 	for(uint32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
+	{
+		if(SimScratchBuffers[SceneType].Buffer != nullptr)
+		{
+			FMemory::Free(SimScratchBuffers[SceneType].Buffer);
+			SimScratchBuffers[SceneType].Buffer = nullptr;
+			SimScratchBuffers[SceneType].BufferSize = 0;
+		}
+	}
+#endif
 }
 
 namespace
@@ -566,7 +603,7 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 	}else
 	{
 		//we have valid scene and subtime so enqueue task
-		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager());
+		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager(), &SimScratchBuffers[SceneType]);
 		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::SetTaskPriority(ENamedThreads::GameThread, ENamedThreads::HighTaskPriority);
 
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SubstepSimulationImp"),
@@ -796,7 +833,7 @@ void FPhysScene::UpdateKinematicsOnDeferredSkelMeshes()
 		check(SkelComp->bDeferredKinematicUpdate); // Should be true if in map!
 
 		// Perform kinematic updates
-		SkelComp->UpdateKinematicBonesToAnim(SkelComp->GetSpaceBases(), Info.TeleportType, Info.bNeedsSkinning, EAllowKinematicDeferral::DisallowDeferral);
+		SkelComp->UpdateKinematicBonesToAnim(SkelComp->GetComponentSpaceTransforms(), Info.TeleportType, Info.bNeedsSkinning, EAllowKinematicDeferral::DisallowDeferral);
 
 		// Clear deferred flag
 		SkelComp->bDeferredKinematicUpdate = false; 
@@ -892,10 +929,10 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if (PScene && (UseDelta > 0.f))
 #else
 	NxApexScene* ApexScene = GetApexScene(SceneType);
-	if (ApexScene && UseDelta > 0.f)
+	if(ApexScene && UseDelta > 0.f)
 #endif
 	{
-		if (IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
+		if(IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
 		}
@@ -904,13 +941,13 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 #if !WITH_APEX
 			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager());
 			PScene->lockWrite();
-			PScene->simulate(AveragedFrameTime[SceneType], Task);
+			PScene->simulate(AveragedFrameTime[SceneType], Task, SimScratchBuffers[SceneType].Buffer, SimScratchBuffers[SceneType].BufferSize);
 			PScene->unlockWrite();
 			Task->removeReference();
 			bTaskOutstanding = true;
 #else
 			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, ApexScene->getTaskManager());
-			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task);
+			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task, SimScratchBuffers[SceneType].Buffer, SimScratchBuffers[SceneType].BufferSize);
 			Task->removeReference();
 			bTaskOutstanding = true;
 
@@ -1672,7 +1709,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysxUserData = FPhysxUserData(this);
 
 	// Create sim event callback
-	SimEventCallback[SceneType] = CreateSimEventCallback ? (*CreateSimEventCallback)(this, SceneType) : new FPhysXSimEventCallback(this, SceneType);
+	SimEventCallback[SceneType] = SimEventCallbackFactory.IsValid() ? SimEventCallbackFactory->Create(this, SceneType) : new FPhysXSimEventCallback(this, SceneType);
 
 	// Include scene descriptor in loop, so that we might vary it with scene type
 	PxSceneDesc PSceneDesc(GPhysXSDK->getTolerancesScale());

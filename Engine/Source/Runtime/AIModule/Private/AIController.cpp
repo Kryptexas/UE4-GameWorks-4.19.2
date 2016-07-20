@@ -575,7 +575,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	MoveReq.SetAllowPartialPath(bAllowPartialPaths);
 	MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : DefaultNavigationFilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptanceRadius);
-	MoveReq.SetStopOnOverlap(bStopOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
@@ -595,7 +595,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	MoveReq.SetProjectGoalLocation(bProjectDestinationToNavigation);
 	MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : DefaultNavigationFilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptanceRadius);
-	MoveReq.SetStopOnOverlap(bStopOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
@@ -628,7 +628,7 @@ FPathFollowingRequestResult AAIController::MoveTo(const FAIMoveRequest& MoveRequ
 
 	bool bCanRequestMove = true;
 	bool bAlreadyAtGoal = false;
-
+	
 	if (!MoveRequest.IsMoveToActorRequest())
 	{
 		if (MoveRequest.GetGoalLocation().ContainsNaN() || FAISystem::IsValidLocation(MoveRequest.GetGoalLocation()) == false)
@@ -653,11 +653,11 @@ FPathFollowingRequestResult AAIController::MoveTo(const FAIMoveRequest& MoveRequ
 			MoveRequest.UpdateGoalLocation(ProjectedLocation.Location);
 		}
 
-		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(MoveRequest.GetGoalLocation(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
+		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(MoveRequest);
 	}
 	else 
 	{
-		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(*MoveRequest.GetGoalActor(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
+		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(MoveRequest);
 	}
 
 	if (bAlreadyAtGoal)

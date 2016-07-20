@@ -130,9 +130,9 @@ void FBoneMappingHelper::Initialize(int32 Index, const FReferenceSkeleton&  InRe
 	{
 		BoneDescList.AddZeroed(TotalNum);
 
-		// fill up spacebases
-		TArray<FTransform> SpaceBases;
-		FAnimationRuntime::FillUpSpaceBases(InRefSkeleton, InRefSkeleton.GetRefBonePose(), SpaceBases);
+		// fill up component space transforms
+		TArray<FTransform> ComponentSpaceTransforms;
+		FAnimationRuntime::FillUpComponentSpaceTransforms(InRefSkeleton, InRefSkeleton.GetRefBonePose(), ComponentSpaceTransforms);
 
 		// get extent
 		FBox BoxExtent;
@@ -140,11 +140,11 @@ void FBoneMappingHelper::Initialize(int32 Index, const FReferenceSkeleton&  InRe
 
 		for (int32 BoneIndex = 0; BoneIndex < TotalNum; ++BoneIndex)
 		{
-			BoxExtent += SpaceBases[BoneIndex].GetLocation();
+			BoxExtent += ComponentSpaceTransforms[BoneIndex].GetLocation();
 		}
 
 		const FVector MeshBoxSize = BoxExtent.GetSize();
-		const FVector RootPosition = SpaceBases[0].GetTranslation();
+		const FVector RootPosition = ComponentSpaceTransforms[0].GetTranslation();
 
 		if (MeshBoxSize.GetMin() > SMALL_NUMBER)
 		{
@@ -157,7 +157,7 @@ void FBoneMappingHelper::Initialize(int32 Index, const FReferenceSkeleton&  InRe
 				BoneDesc.NumChildren = 0;
 
 				// normalized position
-				const FVector& Position = SpaceBases[BoneIndex].GetLocation();
+				const FVector& Position = ComponentSpaceTransforms[BoneIndex].GetLocation();
 				BoneDesc.NormalizedPosition = (Position - BoxExtent.Min) / MeshBoxSize;
 
 				// increase parent child
@@ -166,7 +166,7 @@ void FBoneMappingHelper::Initialize(int32 Index, const FReferenceSkeleton&  InRe
 					const int32 ParentIndex = BoneDesc.BoneInfo.ParentIndex;
 					++BoneDescList[ParentIndex].NumChildren;
 
-					const FVector& ParentPosition = SpaceBases[ParentIndex].GetLocation();
+					const FVector& ParentPosition = ComponentSpaceTransforms[ParentIndex].GetLocation();
 					FVector ToChild = (Position-ParentPosition);
 					BoneDesc.RatioFromParent = ToChild.Size() / MeshBoxSize.Size();
 					BoneDesc.DirFromParent = ToChild.GetSafeNormal();

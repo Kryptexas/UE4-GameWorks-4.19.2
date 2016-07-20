@@ -5627,16 +5627,15 @@ ULevel* UWorld::GetCurrentLevel() const
 
 ENetMode UWorld::InternalGetNetMode() const
 {
-	const bool bIsClientOnly = IsRunningClientOnly();
-
 	if ( NetDriver != NULL )
 	{
+		const bool bIsClientOnly = IsRunningClientOnly();
 		return bIsClientOnly ? NM_Client : NetDriver->GetNetMode();
 	}
 
 	if ( DemoNetDriver )
 	{
-		return bIsClientOnly ? NM_Client : DemoNetDriver->GetNetMode();
+		return DemoNetDriver->GetNetMode();
 	}
 
 // PIE: NetDriver is not initialized so use PlayInSettings

@@ -2036,6 +2036,7 @@ enum class ETeleportType
 };
 
 FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
+FORCEINLINE bool TeleportEnumToFlag(ETeleportType Teleport) { return ETeleportType::TeleportPhysics == Teleport; }
 
 
 /** Structure containing information about one hit of an overlap test */

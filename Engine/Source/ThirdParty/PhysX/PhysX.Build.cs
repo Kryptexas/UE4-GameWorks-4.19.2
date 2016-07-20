@@ -106,16 +106,6 @@ public class PhysX : ModuleRules
 		    Definitions.Add("WITH_PHYSX_RELEASE=0");
 		}
 
-        if (LibraryMode == PhysXLibraryMode.Checked)
-        {
-            Definitions.Add("WITH_PHYSX_CHECKED=1");
-        }
-        else
-        {
-            Definitions.Add("WITH_PHYSX_CHECKED=0");
-        }
-        
-
 		string PhysXVersion = "PhysX-3.3";
 
 		string PhysXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/" + PhysXVersion + "/";
@@ -185,6 +175,11 @@ public class PhysX : ModuleRules
 			}
 			RuntimeDependencies.Add(PhysXBinariesDir + "nvToolsExt64_1.dll", StagedFileType.NonUFS);
 			RuntimeDependencies.Add(PhysXBinariesDir + "glut32.dll", StagedFileType.NonUFS);
+
+			if (LibrarySuffix != "")
+			{
+				Definitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
+			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
@@ -236,6 +231,12 @@ public class PhysX : ModuleRules
 			}
 			RuntimeDependencies.Add(PhysXBinariesDir + "nvToolsExt32_1.dll", StagedFileType.NonUFS);
 			RuntimeDependencies.Add(PhysXBinariesDir + "glut32.dll", StagedFileType.NonUFS);
+
+			if(LibrarySuffix != "")
+			{
+				Definitions.Add("UE_PHYSX_SUFFIX=" + LibrarySuffix);
+			}
+			
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{

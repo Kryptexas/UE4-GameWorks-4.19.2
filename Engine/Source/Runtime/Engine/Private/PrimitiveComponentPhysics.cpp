@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Components/LineBatchComponent.h"
 #include "MessageLog.h"
+#include "PhysicsEngine/BodySetup.h"
 
 //////////////// PRIMITIVECOMPONENT ///////////////
 
@@ -682,7 +683,7 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FN
 	return Result;
 }
 
-void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
+void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld)
 {
 	OutWeldedBodies.Add(&BodyInstance);
 	OutLabels.Add(NAME_None);
@@ -693,9 +694,9 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 		{
 			if (FBodyInstance* BI = PrimChild->GetBodyInstance(NAME_None, false))
 			{
-				if (BI->bWelded)
+				if (BI->bWelded || (bIncludingAutoWeld && BI->bAutoWeld))
 				{
-					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels, bIncludingAutoWeld);
 				}
 			}
 		}
@@ -800,6 +801,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 		if (FBodyInstance* RootBI = RootComponent->GetBodyInstance(SocketName, false))
 		{
 			bool bRootIsBeingDeleted = RootComponent->IsPendingKillOrUnreachable();
+			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
 			if (!bRootIsBeingDeleted)
 			{
 				//create new root
@@ -807,7 +809,6 @@ void UPrimitiveComponent::UnWeldFromParent()
 			}
 
 			NewRootBI->bWelded = false;
-			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
 			FPlatformAtomics::InterlockedExchangePtr((void**)&NewRootBI->WeldParent, nullptr);
 
 			bool bHasBodySetup = GetBodySetup() != nullptr;
@@ -964,6 +965,12 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 
 		EnsurePhysicsStateCreated();
 		OnComponentCollisionSettingsChanged();
+
+		if(IsRegistered() && BodyInstance.bSimulatePhysics && !IsWelded())
+		{
+			
+			BodyInstance.ApplyWeldOnChildren();
+		}
 
 	}
 }

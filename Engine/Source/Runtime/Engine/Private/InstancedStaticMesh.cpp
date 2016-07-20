@@ -12,6 +12,7 @@
 #include "InstancedStaticMesh.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 #include "PhysicsSerializer.h"
+#include "PhysicsEngine/BodySetup.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -1537,18 +1538,20 @@ void UInstancedStaticMeshComponent::OnUpdateTransform(EUpdateTransformFlags Upda
 	// We are handling the physics move below, so don't handle it at higher levels
 	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
 
+	const bool bTeleport = TeleportEnumToFlag(Teleport);
+
 	// Always send new transform to physics
 	if (bPhysicsStateCreated && !(EUpdateTransformFlags::SkipPhysicsUpdate & UpdateTransformFlags))
 	{
-		for (int i = 0; i < PerInstanceSMData.Num(); i++)
+		for (int32 i = 0; i < PerInstanceSMData.Num(); i++)
 		{
 			const FTransform InstanceTransform(PerInstanceSMData[i].Transform);
-			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, true);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
 		}
 	}
 }
 
-bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
+bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
@@ -1588,7 +1591,7 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 			if (InstanceBodyInstance)
 			{
 				// Update existing BodyInstance
-				InstanceBodyInstance->SetBodyTransform(WorldTransform, ETeleportType::None);
+				InstanceBodyInstance->SetBodyTransform(WorldTransform, TeleportFlagToEnum(bTeleport));
 				InstanceBodyInstance->UpdateBodyScale(WorldTransform.GetScale3D());
 			}
 			else

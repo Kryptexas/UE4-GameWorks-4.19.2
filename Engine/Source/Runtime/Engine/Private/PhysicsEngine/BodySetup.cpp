@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 #include "TargetPlatform.h"
 #include "Animation/AnimStats.h"
 
@@ -48,6 +49,23 @@ static TAutoConsoleVariable<float> CVarMaxContactOffset(
 	-1.f,
 	TEXT("Max value of contact offset, which controls how close objects get before generating contacts. < 0 implies use project settings. Default: 1.0"),
 	ECVF_Default);
+
+
+SIZE_T FBodySetupUVInfo::GetResourceSize()
+{
+	SIZE_T Size = 0;
+	Size += IndexBuffer.GetAllocatedSize();
+	Size += VertPositions.GetAllocatedSize();
+
+	for (int32 ChannelIdx = 0; ChannelIdx < VertUVs.Num(); ChannelIdx++)
+	{
+		Size += VertUVs[ChannelIdx].GetAllocatedSize();
+	}
+
+	Size += VertUVs.GetAllocatedSize();
+	return Size;
+}
+
 
 DEFINE_LOG_CATEGORY(LogPhysics);
 UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
@@ -143,7 +161,7 @@ void UBodySetup::CreatePhysicsMeshes()
 			return;
 		}
 
-		FPhysXFormatDataReader CookedDataReader(*FormatData);
+		FPhysXFormatDataReader CookedDataReader(*FormatData, &UVInfo);
 
 		if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 		{
@@ -1020,6 +1038,37 @@ int32 UBodySetup::GetRuntimeOnlyCookOptimizationFlags() const
 	return RuntimeCookFlags;
 }
 
+bool UBodySetup::CalcUVAtLocation(const FVector& BodySpaceLocation, int32 FaceIndex, int32 UVChannel, FVector2D& UV) const
+{
+	bool bSuccess = false;
+
+	if (UVInfo.VertUVs.IsValidIndex(UVChannel) && UVInfo.IndexBuffer.IsValidIndex(FaceIndex * 3 + 2))
+	{
+		int32 Index0 = UVInfo.IndexBuffer[FaceIndex * 3 + 0];
+		int32 Index1 = UVInfo.IndexBuffer[FaceIndex * 3 + 1];
+		int32 Index2 = UVInfo.IndexBuffer[FaceIndex * 3 + 2];
+
+		FVector Pos0 = UVInfo.VertPositions[Index0];
+		FVector Pos1 = UVInfo.VertPositions[Index1];
+		FVector Pos2 = UVInfo.VertPositions[Index2];
+
+		FVector2D UV0 = UVInfo.VertUVs[UVChannel][Index0];
+		FVector2D UV1 = UVInfo.VertUVs[UVChannel][Index1];
+		FVector2D UV2 = UVInfo.VertUVs[UVChannel][Index2];
+
+		// Transform hit location from world to local space.
+		// Find barycentric coords
+		FVector BaryCoords = FMath::ComputeBaryCentric2D(BodySpaceLocation, Pos0, Pos1, Pos2);
+		// Use to blend UVs
+		UV = (BaryCoords.X * UV0) + (BaryCoords.Y * UV1) + (BaryCoords.Z * UV2);
+
+		bSuccess = true;
+	}
+
+	return bSuccess;
+}
+
+
 FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimizedVersion)
 {
 	if (IsTemplate())
@@ -1177,6 +1226,9 @@ SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 		ResourceSize += FmtData.GetElementSize() * FmtData.GetElementCount();
 	}
 	
+	// Count any UV info
+	ResourceSize += UVInfo.GetResourceSize();
+
 	return ResourceSize;
 }
 
@@ -1621,6 +1673,6 @@ float UBodySetup::GetVolume(const FVector& Scale) const
 
 TEnumAsByte<enum ECollisionTraceFlag> UBodySetup::GetCollisionTraceFlag() const
 {
-	TEnumAsByte<enum ECollisionTraceFlag> DefaultFlag = UPhysicsSettings::Get()->bDefaultHasComplexCollision ? ECollisionTraceFlag::CTF_UseDefault : ECollisionTraceFlag::CTF_UseSimpleAsComplex;
+	TEnumAsByte<enum ECollisionTraceFlag> DefaultFlag = UPhysicsSettings::Get()->DefaultShapeComplexity;
 	return CollisionTraceFlag == ECollisionTraceFlag::CTF_UseDefault ? DefaultFlag : CollisionTraceFlag;
 }

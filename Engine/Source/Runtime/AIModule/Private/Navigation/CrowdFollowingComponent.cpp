@@ -873,7 +873,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 			// can't use HasReachedDestination here, because it will use last path point
 			// which is not set correctly for partial paths without string pulling
-			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap ? MinAgentRadiusPct : 0.0f))
+			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bReachTestIncludesAgentRadius ? MinAgentRadiusPct : 0.0f))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
 				OnPathFinished(FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::None));

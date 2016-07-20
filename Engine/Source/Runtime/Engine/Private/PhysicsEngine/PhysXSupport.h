@@ -226,7 +226,7 @@ public:
 	TArray<PxConvexMesh*> ConvexMeshesNegX;
 	TArray<PxTriangleMesh*> TriMeshes;
 
-	FPhysXFormatDataReader( FByteBulkData& InBulkData );
+	FPhysXFormatDataReader( FByteBulkData& InBulkData, struct FBodySetupUVInfo* UVInfo );
 
 private:
 

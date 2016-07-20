@@ -71,22 +71,42 @@ FText UAnimGraphNode_PoseBlendNode::GetTooltipText() const
 	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
+FText UAnimGraphNode_PoseBlendNode::GetNodeTitleForPoseAsset(ENodeTitleType::Type TitleType, UPoseAsset* InPoseAsset) const
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("PoseAssetName"), FText::FromString(InPoseAsset->GetName()));
+
+	// FText::Format() is slow, so we cache this to save on performance
+	CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("PoseByName_Title", "{PoseAssetName}"), Args), this);
+
+	return CachedNodeTitle;
+}
+
 FText UAnimGraphNode_PoseBlendNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (Node.PoseAsset == nullptr)
 	{
-		return LOCTEXT("PoseByName_TitleNONE", "Pose (None)");
+		// we may have a valid variable connected or default pin value
+		UEdGraphPin* PosePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_PoseBlendNode, PoseAsset));
+		if (PosePin && PosePin->LinkedTo.Num() > 0)
+		{
+			return LOCTEXT("PoseByName_TitleVariable", "Pose");
+		}
+		else if (PosePin && PosePin->DefaultObject != nullptr)
+		{
+			return GetNodeTitleForPoseAsset(TitleType, CastChecked<UPoseAsset>(PosePin->DefaultObject));
+		}
+		else
+		{
+			return LOCTEXT("PoseByName_TitleNONE", "Pose (None)");
+		}
 	}
 	// @TODO: don't know enough about this node type to comfortably assert that
 	//        the CacheName won't change after the node has spawned... until
 	//        then, we'll leave this optimization off
 	else //if (CachedNodeTitle.IsOutOfDate(this))
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("PoseAssetName"), FText::FromString(Node.PoseAsset->GetName()));
-
-		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("PoseByName_Title", "{PoseAssetName}"), Args), this);
+		GetNodeTitleForPoseAsset(TitleType, Node.PoseAsset);
 	}
 
 	return CachedNodeTitle;
@@ -244,13 +264,23 @@ void UAnimGraphNode_PoseBlendNode::SetAnimationAsset(UAnimationAsset* Asset)
 
 void UAnimGraphNode_PoseBlendNode::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
-	if (Node.PoseAsset == NULL)
+	UPoseAsset* PoseAssetToCheck = Node.PoseAsset;
+	UEdGraphPin* PoseAssetPin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_PoseBlendNode, PoseAsset));
+	if (PoseAssetPin != nullptr && PoseAssetToCheck == nullptr)
 	{
-		MessageLog.Error(TEXT("@@ references an unknown poseasset"), this);
+		PoseAssetToCheck = Cast<UPoseAsset>(PoseAssetPin->DefaultObject);
+	}
+
+	if (PoseAssetToCheck == nullptr)
+	{
+		if (PoseAssetPin == nullptr || PoseAssetPin->LinkedTo.Num() == 0)
+		{
+			MessageLog.Error(TEXT("@@ references an unknown poseasset"), this);
+		}
 	}
 	else
 	{
-		USkeleton* SeqSkeleton = Node.PoseAsset->GetSkeleton();
+		USkeleton* SeqSkeleton = PoseAssetToCheck->GetSkeleton();
 		if (SeqSkeleton&& // if PoseAsset doesn't have skeleton, it might be due to PoseAsset not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!SeqSkeleton->IsCompatible(ForSkeleton))
 		{
@@ -266,7 +296,14 @@ bool UAnimGraphNode_PoseBlendNode::DoesSupportTimeForTransitionGetter() const
 
 UAnimationAsset* UAnimGraphNode_PoseBlendNode::GetAnimationAsset() const 
 {
-	return Node.PoseAsset;
+	UPoseAsset* PoseAsset = Node.PoseAsset;
+	UEdGraphPin* PoseAssetPin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_PoseBlendNode, PoseAsset));
+	if (PoseAssetPin != nullptr && PoseAsset == nullptr)
+	{
+		PoseAsset = Cast<UPoseAsset>(PoseAssetPin->DefaultObject);
+	}
+
+	return PoseAsset;
 }
 
 void UAnimGraphNode_PoseBlendNode::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const

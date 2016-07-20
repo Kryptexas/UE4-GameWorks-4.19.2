@@ -544,16 +544,15 @@ void UAudioComponent::Deactivate()
 	}
 }
 
-void UAudioComponent::SetFloatParameter( FName InName, float InFloat )
+void UAudioComponent::SetFloatParameter( const FName InName, const float InFloat )
 {
 	if (InName != NAME_None)
 	{
 		bool bFound = false;
 
 		// First see if an entry for this name already exists
-		for (int32 i = 0; i < InstanceParameters.Num(); i++)
+		for (FAudioComponentParam& P : InstanceParameters)
 		{
-			FAudioComponentParam& P = InstanceParameters[i];
 			if (P.ParamName == InName)
 			{
 				P.FloatParam = InFloat;
@@ -565,7 +564,7 @@ void UAudioComponent::SetFloatParameter( FName InName, float InFloat )
 		// We didn't find one, so create a new one.
 		if (!bFound)
 		{
-			const int32 NewParamIndex = InstanceParameters.AddZeroed();
+			const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 			InstanceParameters[ NewParamIndex ].ParamName = InName;
 			InstanceParameters[ NewParamIndex ].FloatParam = InFloat;
 		}
@@ -591,15 +590,14 @@ void UAudioComponent::SetFloatParameter( FName InName, float InFloat )
 	}
 }
 
-void UAudioComponent::SetWaveParameter( FName InName, USoundWave* InWave )
+void UAudioComponent::SetWaveParameter( const FName InName, USoundWave* InWave )
 {
 	if (InName != NAME_None)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for (int32 i = 0; i < InstanceParameters.Num(); i++)
+		for (FAudioComponentParam& P : InstanceParameters)
 		{
-			FAudioComponentParam& P = InstanceParameters[i];
 			if (P.ParamName == InName)
 			{
 				P.SoundWaveParam = InWave;
@@ -611,7 +609,7 @@ void UAudioComponent::SetWaveParameter( FName InName, USoundWave* InWave )
 		// We didn't find one, so create a new one.
 		if (!bFound)
 		{
-			const int32 NewParamIndex = InstanceParameters.AddZeroed();
+			const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 			InstanceParameters[NewParamIndex].ParamName = InName;
 			InstanceParameters[NewParamIndex].SoundWaveParam = InWave;
 		}
@@ -637,15 +635,14 @@ void UAudioComponent::SetWaveParameter( FName InName, USoundWave* InWave )
 	}
 }
 
-void UAudioComponent::SetBoolParameter( FName InName, bool InBool )
+void UAudioComponent::SetBoolParameter( const FName InName, const bool InBool )
 {
 	if (InName != NAME_None)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for (int32 i = 0; i < InstanceParameters.Num(); i++)
+		for (FAudioComponentParam& P : InstanceParameters)
 		{
-			FAudioComponentParam& P = InstanceParameters[i];
 			if (P.ParamName == InName)
 			{
 				P.BoolParam = InBool;
@@ -657,7 +654,7 @@ void UAudioComponent::SetBoolParameter( FName InName, bool InBool )
 		// We didn't find one, so create a new one.
 		if (!bFound)
 		{
-			const int32 NewParamIndex = InstanceParameters.AddZeroed();
+			const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 			InstanceParameters[ NewParamIndex ].ParamName = InName;
 			InstanceParameters[ NewParamIndex ].BoolParam = InBool;
 		}
@@ -684,15 +681,14 @@ void UAudioComponent::SetBoolParameter( FName InName, bool InBool )
 }
 
 
-void UAudioComponent::SetIntParameter( FName InName, int32 InInt )
+void UAudioComponent::SetIntParameter( const FName InName, const int32 InInt )
 {
 	if (InName != NAME_None)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for (int32 i = 0; i < InstanceParameters.Num(); i++)
+		for (FAudioComponentParam& P : InstanceParameters)
 		{
-			FAudioComponentParam& P = InstanceParameters[i];
 			if (P.ParamName == InName)
 			{
 				P.IntParam = InInt;
@@ -704,7 +700,7 @@ void UAudioComponent::SetIntParameter( FName InName, int32 InInt )
 		// We didn't find one, so create a new one.
 		if (!bFound)
 		{
-			const int32 NewParamIndex = InstanceParameters.AddZeroed();
+			const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 			InstanceParameters[NewParamIndex].ParamName = InName;
 			InstanceParameters[NewParamIndex].IntParam = InInt;
 		}
@@ -736,9 +732,8 @@ void UAudioComponent::SetSoundParameter(const FAudioComponentParam& Param)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for (int32 i = 0; i < InstanceParameters.Num(); i++)
+		for (FAudioComponentParam& P : InstanceParameters)
 		{
-			FAudioComponentParam& P = InstanceParameters[i];
 			if (P.ParamName == Param.ParamName)
 			{
 				P = Param;
@@ -750,8 +745,7 @@ void UAudioComponent::SetSoundParameter(const FAudioComponentParam& Param)
 		// We didn't find one, so create a new one.
 		if (!bFound)
 		{
-			const int32 NewParamIndex = InstanceParameters.AddZeroed();
-			InstanceParameters[NewParamIndex] = Param;
+			const int32 NewParamIndex = InstanceParameters.Add(Param);
 		}
 
 		if (bIsActive)
@@ -774,7 +768,7 @@ void UAudioComponent::SetSoundParameter(const FAudioComponentParam& Param)
 	}
 }
 
-void UAudioComponent::SetVolumeMultiplier(float NewVolumeMultiplier)
+void UAudioComponent::SetVolumeMultiplier(const float NewVolumeMultiplier)
 {
 	VolumeMultiplier = NewVolumeMultiplier;
 	VolumeModulationMin = VolumeModulationMax = 1.f;
@@ -795,7 +789,7 @@ void UAudioComponent::SetVolumeMultiplier(float NewVolumeMultiplier)
 	}
 }
 
-void UAudioComponent::SetPitchMultiplier(float NewPitchMultiplier)
+void UAudioComponent::SetPitchMultiplier(const float NewPitchMultiplier)
 {
 	PitchMultiplier = NewPitchMultiplier;
 	PitchModulationMin = PitchModulationMax = 1.f;
@@ -810,13 +804,13 @@ void UAudioComponent::SetPitchMultiplier(float NewPitchMultiplier)
 			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
 			if (ActiveSound)
 			{
-				ActiveSound->VolumeMultiplier = NewPitchMultiplier;
+				ActiveSound->PitchMultiplier = NewPitchMultiplier;
 			}
 		}, GET_STATID(STAT_AudioSetPitchMultiplier));
 	}
 }
 
-void UAudioComponent::SetUISound(bool bInIsUISound)
+void UAudioComponent::SetUISound(const bool bInIsUISound)
 {
 	bIsUISound = bInIsUISound;
 

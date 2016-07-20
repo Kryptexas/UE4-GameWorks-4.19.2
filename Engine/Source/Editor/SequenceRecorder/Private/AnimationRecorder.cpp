@@ -168,7 +168,7 @@ static void GetBoneTransforms(USkeletalMeshComponent* Component, TArray<FTransfo
 	const USkinnedMeshComponent* const MasterPoseComponentInst = Component->MasterPoseComponent.Get();
 	if(MasterPoseComponentInst)
 	{
-		const TArray<FTransform>& SpaceBases = MasterPoseComponentInst->GetSpaceBases();
+		const TArray<FTransform>& SpaceBases = MasterPoseComponentInst->GetComponentSpaceTransforms();
 		BoneTransforms.Reset(BoneTransforms.Num());
 		BoneTransforms.AddUninitialized(SpaceBases.Num());
 		for(int32 BoneIndex = 0; BoneIndex < SpaceBases.Num(); BoneIndex++)
@@ -195,7 +195,7 @@ static void GetBoneTransforms(USkeletalMeshComponent* Component, TArray<FTransfo
 	}
 	else
 	{
-		BoneTransforms =  Component->GetSpaceBases();
+		BoneTransforms = Component->GetComponentSpaceTransforms();
 	}
 }
 

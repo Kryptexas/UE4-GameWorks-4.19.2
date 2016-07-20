@@ -183,6 +183,21 @@ enum class EPathFollowingVelocityMode : uint8
 	Keep,
 };
 
+enum class EPathFollowingReachMode : uint8
+{
+	/** reach test uses only AcceptanceRadius */
+	ExactLocation,
+
+	/** reach test uses AcceptanceRadius increased by modified agent radius */
+	OverlapAgent,
+
+	/** reach test uses AcceptanceRadius increased by goal actor radius */
+	OverlapGoal,
+
+	/** reach test uses AcceptanceRadius increased by modified agent radius AND goal actor radius */
+	OverlapAgentAndGoal,
+};
+
 UCLASS(config=Engine)
 class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIResourceInterface
 {
@@ -253,17 +268,20 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** simple test for stationary agent (used as early finish condition), check if reached given point
 	 *  @param TestPoint - point to test
 	 *  @param AcceptanceRadius - allowed 2D distance
-	 *  @param bExactSpot - false: increase AcceptanceRadius with agent's radius
+	 *  @param ReachMode - modifiers for AcceptanceRadius
 	 */
-	bool HasReached(const FVector& TestPoint, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
+	bool HasReached(const FVector& TestPoint, EPathFollowingReachMode ReachMode, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius) const;
 
 	/** simple test for stationary agent (used as early finish condition), check if reached given goal
 	 *  @param TestGoal - actor to test
 	 *  @param AcceptanceRadius - allowed 2D distance
-	 *  @param bExactSpot - false: increase AcceptanceRadius with agent's radius
+	 *  @param ReachMode - modifiers for AcceptanceRadius
 	 *  @param bUseNavAgentGoalLocation - true: if the goal is a nav agent, we will use their nav agent location rather than their actual location
 	 */
-	bool HasReached(const AActor& TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false, bool bUseNavAgentGoalLocation = true) const;
+	bool HasReached(const AActor& TestGoal, EPathFollowingReachMode ReachMode, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bUseNavAgentGoalLocation = true) const;
+
+	/** simple test for stationary agent (used as early finish condition), check if reached target specified in move request */
+	bool HasReached(const FAIMoveRequest& MoveRequest) const;
 
 	/** update state of block detection */
 	void SetBlockDetectionState(bool bEnable);
@@ -402,6 +420,12 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	DEPRECATED(4.13, "This function is now deprecated and no longer supported.")
 	int32 OptimizeSegmentVisibility(int32 StartIndex) { return StartIndex + 1; }
 
+	DEPRECATED(4.13, "This function is now deprecated, please use version with EPathFollowingReachMode parameter instead.")
+	bool HasReached(const FVector& TestPoint, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
+
+	DEPRECATED(4.13, "This function is now deprecated, please use version with EPathFollowingReachMode parameter instead.")
+	bool HasReached(const AActor& TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false, bool bUseNavAgentGoalLocation = true) const;
+
 	// This delegate is now deprecated, please use OnRequestFinished instead
 	FMoveCompletedSignature OnMoveFinished_DEPRECATED;
 
@@ -464,7 +488,10 @@ protected:
 	float PathTimeWhenPaused;
 
 	/** increase acceptance radius with agent's radius */
-	uint32 bStopOnOverlap : 1;
+	uint32 bReachTestIncludesAgentRadius : 1;
+
+	/** increase acceptance radius with goal's radius */
+	uint32 bReachTestIncludesGoalRadius : 1;
 
 	/** if set, movement block detection will be used */
 	uint32 bUseBlockDetection : 1;
@@ -625,6 +652,9 @@ private:
 
 	/** timer handle for OnWaitingPathTimeout function */
 	FTimerHandle WaitingForPathTimer;
+
+	/** DEPRECATED, use bReachTestIncludesAgentRadius instead */
+	uint32 bStopOnOverlap : 1;
 
 public:
 	/** special float constant to symbolize "use default value". This does not contain 

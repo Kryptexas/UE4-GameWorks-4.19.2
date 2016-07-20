@@ -483,7 +483,7 @@ struct FCSPose
 	void LocalBlendCSBoneTransforms(const TArray<struct FBoneTransform>& BoneTransforms, float Alpha);
 
 	// Convert any component space transforms back to local space
-	void ConvertToLocalPoses(PoseType& OutPose);
+	void ConvertToLocalPoses(PoseType& OutPose) const;
 
 protected:
 	PoseType Pose;
@@ -783,7 +783,7 @@ void FCSPose<PoseType>::LocalBlendCSBoneTransforms(const TArray<struct FBoneTran
 }
 
 template<class PoseType>
-void FCSPose<PoseType>::ConvertToLocalPoses(PoseType& OutPose)
+void FCSPose<PoseType>::ConvertToLocalPoses(PoseType& OutPose) const
 {
 	checkSlow(Pose.IsValid());
 	OutPose = Pose;

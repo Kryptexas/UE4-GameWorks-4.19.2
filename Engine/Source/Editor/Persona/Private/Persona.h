@@ -244,6 +244,7 @@ protected:
 	//~ Begin FBlueprintEditor Interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
+	virtual void OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList);
 	virtual void OnSelectBone() override;
 	virtual bool CanSelectBone() const override;
 	virtual void OnAddPosePin() override;
@@ -284,6 +285,8 @@ protected:
 	// Generic Command handlers
 	void OnCommandGenericDelete();
 
+	// Pose watch handler
+	void OnTogglePoseWatch();
 protected:
 	// 
 	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UObject* InAnimAsset);

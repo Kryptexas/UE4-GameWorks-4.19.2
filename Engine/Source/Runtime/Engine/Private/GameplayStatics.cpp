@@ -20,7 +20,11 @@
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
 #include "MessageLog.h"
+#include "UObjectToken.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -824,7 +828,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 	return PSC;
 }
 
-void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, FVector& TraceStart, FVector& TraceEnd)
+void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, int32& FaceIndex, FVector& TraceStart, FVector& TraceEnd)
 {
 	bBlockingHit = Hit.bBlockingHit;
 	bInitialOverlap = Hit.bStartPenetrating;
@@ -840,9 +844,10 @@ void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit,
 	HitItem = Hit.Item;
 	TraceStart = Hit.TraceStart;
 	TraceEnd = Hit.TraceEnd;
+	FaceIndex = Hit.FaceIndex;
 }
 
-FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, FVector TraceStart, FVector TraceEnd)
+FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, int32 FaceIndex, FVector TraceStart, FVector TraceEnd)
 {
 	FHitResult Hit;
 	Hit.bBlockingHit = bBlockingHit;
@@ -859,6 +864,7 @@ FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverl
 	Hit.Item = HitItem;
 	Hit.TraceStart = TraceStart;
 	Hit.TraceEnd = TraceEnd;
+	Hit.FaceIndex = FaceIndex;
 	return Hit;
 }
 
@@ -866,6 +872,28 @@ EPhysicalSurface UGameplayStatics::GetSurfaceType(const struct FHitResult& Hit)
 {
 	UPhysicalMaterial* const HitPhysMat = Hit.PhysMaterial.Get();
 	return UPhysicalMaterial::DetermineSurfaceType( HitPhysMat );
+}
+
+bool UGameplayStatics::FindCollisionUV(const struct FHitResult& Hit, int32 UVChannel, FVector2D& UV)
+{
+	bool bSuccess = false;
+
+	if (!UPhysicsSettings::Get()->bSupportUVFromHitResults)
+	{
+		FMessageLog("PIE").Warning(LOCTEXT("CollisionUVNoSupport", "Calling FindCollisionUV but 'Support UV From Hit Results' is not enabled in project settings. This is required for finding UV for collision results."));
+	}
+	else
+	{
+		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Hit.Component.Get());
+		if (StaticMeshComp && StaticMeshComp->StaticMesh && StaticMeshComp->StaticMesh->BodySetup)
+		{
+			const FVector LocalHitPos = StaticMeshComp->GetComponentToWorld().InverseTransformPosition(Hit.Location);
+
+			bSuccess = StaticMeshComp->StaticMesh->BodySetup->CalcUVAtLocation(LocalHitPos, Hit.FaceIndex, UVChannel, UV);
+		}
+	}
+
+	return bSuccess;
 }
 
 bool UGameplayStatics::AreAnyListenersWithinRange(UObject* WorldContextObject, FVector Location, float MaximumRange)
@@ -1067,7 +1095,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 
 	if (!AttachToComponent)
 	{
-		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnSoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
 		return nullptr;
 	}
 
@@ -1636,7 +1664,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 
-	const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? -OverrideGravityZ : -World->GetGravityZ();
+	const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? -World->GetGravityZ() : -OverrideGravityZ;
 
 	// v^4 - g*(g*x^2 + 2*y*v^2)
 	const float InsideTheSqrt = FMath::Square(TossSpeedSq) - GravityZ * ( (GravityZ * FMath::Square(DeltaXY)) + (2.f * DeltaZ * TossSpeedSq) );
@@ -1808,7 +1836,7 @@ bool UGameplayStatics::PredictProjectilePath(UObject* WorldContextObject, FHitRe
 		float const SubstepDeltaTime = 1.f / SimFrequency;
 		int32 const StepLimit = FMath::CeilToInt(SimFrequency * MaxSimTime);
 
-		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? OverrideGravityZ : World->GetGravityZ();
+		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
 
 		OutPathPositions.Add(StartPos);
 
@@ -1878,7 +1906,7 @@ bool UGameplayStatics::PredictProjectilePath(UObject* WorldContextObject, FHitRe
 	return bBlockingHit;
 }
 
-bool UGameplayStatics::SuggestProjectileVelocity_MediumArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ /*= 0*/)
+bool UGameplayStatics::SuggestProjectileVelocity_CustomArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ /*= 0*/, float ArcParam /*= 0.5f */)
 {
 	/* Make sure the start and end aren't the same location */
 	FVector const StartToEnd = EndPos - StartPos;
@@ -1887,12 +1915,11 @@ bool UGameplayStatics::SuggestProjectileVelocity_MediumArc(UObject* WorldContext
 	UWorld const* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World && StartToEndDist > KINDA_SMALL_NUMBER)
 	{
-		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? OverrideGravityZ : World->GetGravityZ();
+		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
 
-		// choose arc halfway between up and direct line
-
+		// choose arc according to the arc param
 		FVector const StartToEndDir = StartToEnd / StartToEndDist;
-		FVector LaunchDir = (StartToEndDir + FVector::UpVector) * 0.5f;
+		FVector LaunchDir = FMath::Lerp(FVector::UpVector, StartToEndDir, ArcParam).GetSafeNormal();
 
 		// v = sqrt ( g * dx^2 / ( (dx tan(angle) + dz) * 2 * cos(angle))^2 ) )
 
@@ -1907,11 +1934,8 @@ bool UGameplayStatics::SuggestProjectileVelocity_MediumArc(UObject* WorldContext
 		if (InsideSqrt >= 0.f)
 		{
 			// there exists a solution
-			float const SpeedY = FMath::Sqrt(InsideSqrt);	// this is the mag of the vertical component
-			float VelMag = SpeedY / FMath::Sin(Angle);			// find speed in direction of the launch dir
-
-			OutLaunchVelocity = LaunchDir * VelMag;
-
+			float const Speed = FMath::Sqrt(InsideSqrt);	// this is the mag of the vertical component
+			OutLaunchVelocity = LaunchDir * Speed;
 			return true;
 		}
 	}

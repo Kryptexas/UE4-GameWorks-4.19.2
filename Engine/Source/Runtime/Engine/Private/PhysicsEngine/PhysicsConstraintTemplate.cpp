@@ -31,6 +31,14 @@ UPhysicsConstraintTemplate::UPhysicsConstraintTemplate(const FObjectInitializer&
 
 void UPhysicsConstraintTemplate::Serialize(FArchive& Ar)
 {
+#if WITH_EDITOR
+	FConstraintProfileProperties CurrentProfile = DefaultInstance.ProfileInstance;	//Save off current profile in case they save in editor and we don't want to lose their work
+	if(Ar.IsSaving() && !Ar.IsTransacting())
+	{
+		DefaultInstance.ProfileInstance = DefaultProfile;
+	}
+#endif
+
 	Super::Serialize(Ar);
 
 	// If old content, copy properties out of setup into instance
@@ -39,101 +47,66 @@ void UPhysicsConstraintTemplate::Serialize(FArchive& Ar)
 		CopySetupPropsToInstance(&DefaultInstance);
 	}
 
-	if(Ar.IsLoading() && !Ar.IsTransacting())
+	if(!Ar.IsTransacting())
 	{
-		UpdateConstraintProfileMap();
-#if WITH_EDITORONLY_DATA
-
-		if(!ConstraintProfileNameMap.FindRef(DefaultProfileName))	//If no profile found make sure to copy what's in default
+		//Make sure to keep default profile and instance in sync
+		if (Ar.IsLoading())
 		{
-			NoProfileInstance = DefaultInstance.ProfileInstance;
+			DefaultProfile = DefaultInstance.ProfileInstance;
 		}
-
-		UpdateInstanceFromProfile();
-#endif
-	}
-}
-
-#if WITH_EDITORONLY_DATA
-void UPhysicsConstraintTemplate::UpdateInstanceFromProfile()
-{
-	if(UPhysicsConstraintProfile* ProfileInstance = ConstraintProfileNameMap.FindRef(DefaultProfileName))
-	{
-		DefaultInstance.ProfileInstance = ProfileInstance->ProfileProperties;
-	}
-	else
-	{
-		//no profile found so update the no profile cache
-		DefaultInstance.ProfileInstance = NoProfileInstance;
-	}
-}
-#endif
-
 #if WITH_EDITOR
-void UPhysicsConstraintTemplate::UpdateProfileBeingEdited()
-{
-	if (UPhysicsConstraintProfile* Profile = ConstraintProfileNameMap.FindRef(DefaultProfileName))
-	{
-		//Make sure any changes we make are passed back to the profile we are currently editing
-		Profile->ProfileProperties = DefaultInstance.ProfileInstance;
-	}
-	else
-	{
-		//No profile found so make sure to update the no profile cache
-		NoProfileInstance = DefaultInstance.ProfileInstance;
-	}
-}
+		else if(Ar.IsSaving())
+		{
+			DefaultInstance.ProfileInstance = CurrentProfile;	//recover their settings before we saved
+		}
 #endif
-
-void UPhysicsConstraintTemplate::SanitizeProfileArray()
-{
-	for(FPhysicsConstraintProfileHandle& ProfileHandle : ProfileHandles)
-	{
-		if(ProfileHandle.Profile == nullptr)
-		{
-			ProfileHandle.Profile = NewObject<UPhysicsConstraintProfile>(this);
-			checkSlow(ProfileHandle.Profile);	//checkSlow to make static analysis happy
-			ProfileHandle.Profile->ProfileProperties = DefaultInstance.ProfileInstance;	//new objects use whatever is the current default
-		}
-	}
-}
-
-void UPhysicsConstraintTemplate::UpdateConstraintProfileMap()
-{
-	SanitizeProfileArray();
-
-	ConstraintProfileNameMap.Empty(ProfileHandles.Num());
-	for(const FPhysicsConstraintProfileHandle& ProfileHandle : ProfileHandles)
-	{
-		if(ProfileHandle.Profile)
-		{
-			ConstraintProfileNameMap.Add(ProfileHandle.ProfileName, ProfileHandle.Profile);
-		}
 	}
 }
 
 #if WITH_EDITOR
 void UPhysicsConstraintTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if(UProperty* Property = PropertyChangedEvent.Property)
+	//If anything changes, update the profile instance
+	const FName CurrentProfileName = GetCurrentConstraintProfileName();
+	if(CurrentProfileName == NAME_None)
 	{
-		const FName PropertyName = Property->GetFName();
-		FName ProfileHandlesName = GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, ProfileHandles);
-		FName ProfileHandleInnerName = GET_MEMBER_NAME_CHECKED(FPhysicsConstraintProfileHandle, ProfileName);	//The profile name (inside the array element)
-		if(PropertyName == ProfileHandlesName || PropertyName == ProfileHandleInnerName)
+		DefaultProfile = DefaultInstance.ProfileInstance;
+	}
+	else
+	{
+		for (FPhysicsConstraintProfileHandle& ProfileHandle : ProfileHandles)
 		{
-			UpdateConstraintProfileMap();
+			if (ProfileHandle.ProfileName == CurrentProfileName)
+			{
+				ProfileHandle.ProfileProperties = DefaultInstance.ProfileInstance;
+			}
 		}
-		
-		FName DefaultProfileNamePropertyName = GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, DefaultProfileName);
-		if (PropertyName == DefaultProfileNamePropertyName || PropertyName == ProfileHandlesName || PropertyName == ProfileHandleInnerName)
-		{
-			UpdateInstanceFromProfile();
-		}
-		
-		UpdateProfileBeingEdited();
 	}
 }
+
+void UPhysicsConstraintTemplate::UpdateConstraintProfiles(const TArray<FName>& Profiles)
+{
+	//TODO: rename code. At the moment just deletes
+	for (int32 ProfileIdx = ProfileHandles.Num() - 1; ProfileIdx >= 0; --ProfileIdx)
+	{
+		if (Profiles.Contains(ProfileHandles[ProfileIdx].ProfileName) == false)
+		{
+			ProfileHandles.RemoveAtSwap(ProfileIdx);
+		}
+	}
+}
+
+FName UPhysicsConstraintTemplate::GetCurrentConstraintProfileName() const
+{
+	FName CurrentProfileName;
+	if (UPhysicsAsset* OwningPhysAsset = Cast<UPhysicsAsset>(GetOuter()))
+	{
+		CurrentProfileName = OwningPhysAsset->CurrentConstraintProfileName;
+	}
+
+	return CurrentProfileName;
+}
+
 #endif
 
 void UPhysicsConstraintTemplate::CopySetupPropsToInstance(FConstraintInstance* Instance)

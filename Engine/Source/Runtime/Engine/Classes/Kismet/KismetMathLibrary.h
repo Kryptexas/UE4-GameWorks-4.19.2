@@ -795,15 +795,62 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
 
 	/**
-	* Projects a point onto a plane defined by a point on the plane and a plane normal.
-	*
-	* @param  A1 Start of first line segment
-	* @param  PlaneBase A point on the plane.
-	* @param  PlaneNormal Normal of the plane.
+	 * Find closest points between 2 segments.
+	 *
+	 * @param	Segment1Start	Start of the 1st segment.
+	 * @param	Segment1End		End of the 1st segment.
+	 * @param	Segment2Start	Start of the 2nd segment.
+	 * @param	Segment2End		End of the 2nd segment.
+	 * @param	Segment1Point	Closest point on segment 1 to segment 2.
+	 * @param	Segment2Point	Closest point on segment 2 to segment 1.
 	*/
 	UFUNCTION(BlueprintPure, Category = "Math|Vector")
 	static void FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point);
 	
+	/**
+	 * Find the closest point on a segment to a given point.
+	 *
+	 * @param Point			Point for which we find the closest point on the segment.
+	 * @param SegmentStart	Start of the segment.
+	 * @param SegmentEnd	End of the segment.
+	 * @return The closest point on the segment to the given point.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static FVector FindClosestPointOnSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd);
+
+	/**
+	 * Find the closest point on an infinite line to a given point.
+	 *
+	 * @param Point			Point for which we find the closest point on the line.
+	 * @param LineOrigin	Point of reference on the line.
+	 * @param LineDirection Direction of the line. Not required to be normalized.
+	 * @return The closest point on the line to the given point.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static FVector FindClosestPointOnLine(FVector Point, FVector LineOrigin, FVector LineDirection);
+
+	/**
+	* Find the distance from a point to the closest point on a segment.
+	*
+	* @param Point			Point for which we find the distance to the closest point on the segment.
+	* @param SegmentStart	Start of the segment.
+	* @param SegmentEnd		End of the segment.
+	* @return The distance from the given point to the closest point on the segment.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static float GetPointDistanceToSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd);
+
+	/**
+	* Find the distance from a point to the closest point on an infinite line.
+	*
+	* @param Point			Point for which we find the distance to the closest point on the line.
+	* @param LineOrigin		Point of reference on the line.
+	* @param LineDirection	Direction of the line. Not required to be normalized.
+	* @return The distance from the given point to the closest point on the line.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static float GetPointDistanceToLine(FVector Point, FVector LineOrigin, FVector LineDirection);
+
 	/**
 	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
 	 *

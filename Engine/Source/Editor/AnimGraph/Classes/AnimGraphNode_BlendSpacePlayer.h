@@ -37,6 +37,11 @@ class UAnimGraphNode_BlendSpacePlayer : public UAnimGraphNode_BlendSpaceBase
 	// End of UK2Node interface
 
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+
+private:
+	/** Helper function for GetNodeTitle */
+	FText GetNodeTitleForBlendSpace(ENodeTitleType::Type TitleType, UBlendSpaceBase* InBlendSpace) const;
+
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTitleTextTable CachedNodeTitles;

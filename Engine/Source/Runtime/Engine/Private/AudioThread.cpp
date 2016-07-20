@@ -260,7 +260,7 @@ void FAudioThread::StartAudioThread()
 		// Create the audio thread.
 		AudioThreadRunnable = new FAudioThread();
 
-		GAudioThread = FRunnableThread::Create(AudioThreadRunnable, *BuildAudioThreadName(ThreadCount), 0, TPri_Normal, FPlatformAffinity::GetAudioThreadMask());
+		GAudioThread = FRunnableThread::Create(AudioThreadRunnable, *BuildAudioThreadName(ThreadCount), 0, TPri_BelowNormal, FPlatformAffinity::GetAudioThreadMask());
 
 		// Wait for audio thread to have taskgraph bound before we dispatch any tasks for it.
 		((FAudioThread*)AudioThreadRunnable)->TaskGraphBoundSyncEvent->Wait();

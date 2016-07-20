@@ -39,18 +39,18 @@ bool UMorphTarget::HasDataForLOD(int32 LODIndex)
 }
 
 
-void UMorphTarget::PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal )
+void UMorphTarget::PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal)
 {
 	// @todo anim: update BaseSkelMesh with my information
 	NewMesh->RegisterMorphTarget(this);
 
-	CreateMorphMeshStreams( BaseSource, TargetSource, LODIndex, bCompareNormal );
+	CreateMorphMeshStreams( BaseSource, TargetSource, LODIndex, bCompareNormal);
 
 	MarkPackageDirty();
 }
 
 
-void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal )
+void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal)
 {
 	check(BaseSource.IsValidTarget(TargetSource));
 
@@ -81,7 +81,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	// Build a mapping of wedge point indices to vertex indices for fast lookup later.
 	for( int32 Idx=0; Idx < TargetSource.WedgePointIndices.Num(); Idx++ )
 	{
-		WedgePointToVertexIndexMap.Add( TargetSource.WedgePointIndices[Idx], Idx );
+		WedgePointToVertexIndexMap.Add( TargetSource.WedgePointIndices[Idx], Idx);
 	}
 
 	// iterate over all the base mesh indices
@@ -150,6 +150,44 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	// remove array slack
 	MorphModel.Vertices.Shrink();
 }
+
+void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex)
+{
+	// create the LOD entry if it doesn't already exist
+	if (LODIndex >= MorphLODModels.Num())
+	{
+		MorphLODModels.AddDefaulted(LODIndex - MorphLODModels.Num() + 1);
+	}
+
+	// morph mesh data to modify
+	FMorphTargetLODModel& MorphModel = MorphLODModels[LODIndex];
+	// copy the wedge point indices
+	// for now just keep every thing 
+
+	// set the original number of vertices
+	MorphModel.NumBaseMeshVerts = Deltas.Num();
+
+	// empty morph mesh vertices first
+	MorphModel.Vertices.Empty(Deltas.Num());
+
+	// Still keep this (could remove in long term due to incoming data)
+	for (const FMorphTargetDelta& Delta : Deltas)
+	{
+		if (Delta.PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR))
+		{
+			MorphModel.Vertices.Add(Delta);
+		}
+	}
+
+	// sort the array of vertices for this morph target based on the base mesh indices
+	// that each vertex is associated with. This allows us to sequentially traverse the list
+	// when applying the morph blends to each vertex.
+	MorphModel.Vertices.Sort(FCompareMorphTargetDeltas());
+
+	// remove array slack
+	MorphModel.Vertices.Shrink();
+}
+
 
 void UMorphTarget::RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices )
 {

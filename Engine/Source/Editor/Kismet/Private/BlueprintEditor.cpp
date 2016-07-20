@@ -1238,6 +1238,8 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FCanExecuteAction(),
 				FGetActionCheckState::CreateSP(this, &FBlueprintEditor::CheckEnabledStateForSelectedNodes, ENodeEnabledState::DevelopmentOnly)
 				);
+
+			OnCreateGraphEditorCommands(GraphEditorCommands);
 		}
 	}
 

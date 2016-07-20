@@ -21,7 +21,10 @@ struct ENGINE_API FFindFloorResult
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** True if there was a blocking hit in the floor test. */
+	/**
+	* True if there was a blocking hit in the floor test that was NOT in initial penetration.
+	* The HitResult can give more info about other circumstances.
+	*/
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=CharacterFloor)
 	uint32 bBlockingHit:1;
 
@@ -2190,6 +2193,8 @@ public:
 	float DeltaTime;    // amount of time for this move
 	float CustomTimeDilation;
 	float JumpKeyHoldTime;
+	int32 JumpMaxCount;
+	int32 JumpCurrentCount;
 	uint8 MovementMode;	// packed movement mode
 
 	// Information at the start of the move

@@ -61,7 +61,7 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
 	/** component space bone transforms*/
-	TArray<FTransform> MeshSpaceBases;
+	TArray<FTransform> MeshComponentSpaceTransforms;
 #endif
 
 	/** currently LOD for bones being updated */
@@ -237,7 +237,7 @@ public:
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
 	virtual bool IsCPUSkinned() const override { return false; }
-	virtual TArray<FTransform>* GetSpaceBases() const override;
+	virtual TArray<FTransform>* GetComponentSpaceTransforms() const override;
 	virtual const TArray<FMatrix>& GetReferenceToLocalMatrices() const override;
 
 	virtual int32 GetLOD() const override

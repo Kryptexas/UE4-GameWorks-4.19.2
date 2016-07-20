@@ -36,6 +36,7 @@
 #include "AnimGraphNode_SubInstance.h"
 #include "AnimGraphNode_Slot.h"
 #include "EdGraph/EdGraphPin.h"
+#include "AnimationEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
 
@@ -1820,6 +1821,11 @@ void FAnimBlueprintCompiler::PostCompile()
 			}
 		}
 	}
+
+	for (UPoseWatch* PoseWatch : AnimBlueprint->PoseWatches)
+	{
+		AnimationEditorUtils::SetPoseWatch(PoseWatch, AnimBlueprint);
+	}
 }
 
 void FAnimBlueprintCompiler::CreateFunctionList()
@@ -1914,7 +1920,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	switch (Getter->GetterType)
 	{
 	case ETransitionGetter::AnimationAsset_GetCurrentTime:
-		if (SourceTimePin != NULL)
+		if ((AnimAsset != NULL) && (SourceTimePin != NULL))
 		{
 			// Move all the connections over
 			for (int32 LinkIndex = 0; LinkIndex < OutputPin->LinkedTo.Num(); ++LinkIndex)
@@ -1926,7 +1932,14 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		}
 		else
 		{
-			MessageLog.Error(TEXT("@@ is not associated with any AnimAsset players"), Getter);
+			if (Getter->AssociatedAnimAssetPlayerNode)
+			{
+				MessageLog.Error(TEXT("Please replace @@ with Get Relevant Anim Time. @@ has no animation asset"), Getter, Getter->AssociatedAnimAssetPlayerNode);
+			}
+			else
+			{
+				MessageLog.Error(TEXT("@@ is not asscociated with an asset player"), Getter);
+			}
 		}
 		break;
 	case ETransitionGetter::AnimationAsset_GetLength:
@@ -1937,7 +1950,14 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		}
 		else
 		{
-			MessageLog.Error(TEXT("@@ is not associated with any AnimAsset players"), Getter);
+			if (Getter->AssociatedAnimAssetPlayerNode)
+			{
+				MessageLog.Error(TEXT("Please replace @@ with Get Relevant Anim Length. @@ has no animation asset"), Getter, Getter->AssociatedAnimAssetPlayerNode);
+			}
+			else
+			{
+				MessageLog.Error(TEXT("@@ is not asscociated with an asset player"), Getter);
+			}
 		}
 		break;
 	case ETransitionGetter::AnimationAsset_GetCurrentTimeFraction:
@@ -1949,7 +1969,14 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		}
 		else
 		{
-			MessageLog.Error(TEXT("@@ is not associated with any AnimAsset players"), Getter);
+			if (Getter->AssociatedAnimAssetPlayerNode)
+			{
+				MessageLog.Error(TEXT("Please replace @@ with Get Relevant Anim Time Fraction. @@ has no animation asset"), Getter, Getter->AssociatedAnimAssetPlayerNode);
+			}
+			else
+			{
+				MessageLog.Error(TEXT("@@ is not asscociated with an asset player"), Getter);
+			}
 		}
 		break;
 	case ETransitionGetter::AnimationAsset_GetTimeFromEnd:
@@ -1961,7 +1988,14 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		}
 		else
 		{
-			MessageLog.Error(TEXT("@@ is not associated with any AnimAsset players"), Getter);
+			if (Getter->AssociatedAnimAssetPlayerNode)
+			{
+				MessageLog.Error(TEXT("Please replace @@ with Get Relevant Anim Time Remaining. @@ has no animation asset"), Getter, Getter->AssociatedAnimAssetPlayerNode);
+			}
+			else
+			{
+				MessageLog.Error(TEXT("@@ is not asscociated with an asset player"), Getter);
+			}
 		}
 		break;
 	case ETransitionGetter::AnimationAsset_GetTimeFromEndFraction:
@@ -1973,7 +2007,14 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		}
 		else
 		{
-			MessageLog.Error(TEXT("@@ is not associated with any AnimAsset players"), Getter);
+			if (Getter->AssociatedAnimAssetPlayerNode)
+			{
+				MessageLog.Error(TEXT("Please replace @@ with Get Relevant Anim Time Remaining Fraction. @@ has no animation asset"), Getter, Getter->AssociatedAnimAssetPlayerNode);
+			}
+			else
+			{
+				MessageLog.Error(TEXT("@@ is not asscociated with an asset player"), Getter);
+			}
 		}
 		break;
 

@@ -371,12 +371,12 @@ void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::UpdateFinalSkinVertexBu
 	RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
 }
 
-TArray<FTransform>* FSkeletalMeshObjectCPUSkin::GetSpaceBases() const
+TArray<FTransform>* FSkeletalMeshObjectCPUSkin::GetComponentSpaceTransforms() const
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if(DynamicData)
 	{
-		return &(DynamicData->MeshSpaceBases);
+		return &(DynamicData->MeshComponentSpaceTransforms);
 	}
 	else
 #endif
@@ -461,7 +461,7 @@ FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 	UpdateCustomLeftRightVectors( CustomLeftRightVectors, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	MeshSpaceBases = InMeshComponent->GetSpaceBases();
+	MeshComponentSpaceTransforms = InMeshComponent->GetComponentSpaceTransforms();
 #endif
 }
 

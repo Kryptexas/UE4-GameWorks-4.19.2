@@ -958,8 +958,11 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool SphereConeIntersection(const FVector& SphereCenter, float SphereRadius, const FVector& ConeAxis, float ConeAngleSin, float ConeAngleCos);
 
-	/** Find the point on line segment from LineStart to LineEnd which is closest to Point */
+	/** Find the point on the line segment from LineStart to LineEnd which is closest to Point */
 	static CORE_API FVector ClosestPointOnLine(const FVector& LineStart, const FVector& LineEnd, const FVector& Point);
+
+	/** Find the point on the infinite line between two points (LineStart, LineEnd) which is closest to Point */
+	static CORE_API FVector ClosestPointOnInfiniteLine(const FVector& LineStart, const FVector& LineEnd, const FVector& Point);
 
 	/** Compute intersection point of three planes. Return 1 if valid, 0 if infinite. */
 	static bool IntersectPlanes3( FVector& I, const FPlane& P1, const FPlane& P2, const FPlane& P3 );
@@ -974,15 +977,15 @@ struct FMath : public FPlatformMath
 	 * Calculates the distance of a given Point in world space to a given line,
 	 * defined by the vector couple (Origin, Direction).
 	 *
-	 * @param	Point				point to check distance to Axis
-	 * @param	Direction			unit vector indicating the direction to check against
-	 * @param	Origin				point of reference used to calculate distance
+	 * @param	Point				Point to check distance to line
+	 * @param	Direction			Vector indicating the direction of the line. Not required to be normalized.
+	 * @param	Origin				Point of reference used to calculate distance
 	 * @param	OutClosestPoint	optional point that represents the closest point projected onto Axis
 	 *
 	 * @return	distance of Point from line defined by (Origin, Direction)
 	 */
-	static CORE_API float PointDistToLine(const FVector &Point, const FVector &Line, const FVector &Origin, FVector &OutClosestPoint);
-	static CORE_API float PointDistToLine(const FVector &Point, const FVector &Line, const FVector &Origin);
+	static CORE_API float PointDistToLine(const FVector &Point, const FVector &Direction, const FVector &Origin, FVector &OutClosestPoint);
+	static CORE_API float PointDistToLine(const FVector &Point, const FVector &Direction, const FVector &Origin);
 
 	/**
 	 * Returns closest point on a segment to a given point.

@@ -275,6 +275,22 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
 	float AngularDampingOverride;
 
+	/** If true, the override value will be used for the angular bias for bodies in this node. 
+	 *  Angular bias is essentially a twist reduction for chain forces and defaults to a value to keep chains stability
+	 *  in check. When using single-body systems sometimes angular forces will look like they are "catching-up" with
+	 *  the mesh, if that's the case override this and push it towards 1.0f until it settles correctly
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	bool bOverrideAngularBias;
+
+	/** Overridden angular bias value
+	 *  Angular bias is essentially a twist reduction for chain forces and defaults to a value to keep chains stability
+	 *  in check. When using single-body systems sometimes angular forces will look like they are "catching-up" with
+	 *  the mesh, if that's the case override this and push it towards 1.0f until it settles correctly
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup, meta = (PinHiddenByDefault))
+	float AngularBiasOverride;
+
 	/** If true we will perform physics update, otherwise skip - allows visualisation of the initial state of the bodies */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
 	bool bDoUpdate;

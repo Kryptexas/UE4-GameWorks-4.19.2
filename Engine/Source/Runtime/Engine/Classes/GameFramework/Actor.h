@@ -404,6 +404,10 @@ public:
 	/** If true, this actor will be replicated to network replays (default is true) */
 	UPROPERTY()
 	uint8 bRelevantForNetworkReplays:1;
+	
+    /** If true, this actor will generate overlap events when spawned as part of level streaming. You might enable this is in the case where a streaming level loads around an actor and you want overlaps to trigger. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Actor)
+	uint8 bGenerateOverlapEventsDuringLevelStreaming:1;
 
 	/** Controls how to handle spawning this actor in a situation where it's colliding with something else. "Default" means AlwaysSpawn here. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor)
@@ -2182,6 +2186,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	UChildActorComponent* GetParentComponent() const;
+
+	UFUNCTION(BlueprintCallable, Category="Actor")
+	AActor* GetParentActor() const;
 
 	/** Ensure that all the components in the Components array are registered */
 	virtual void RegisterAllComponents();

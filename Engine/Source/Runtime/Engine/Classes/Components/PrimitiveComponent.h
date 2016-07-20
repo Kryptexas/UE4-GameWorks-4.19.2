@@ -1366,7 +1366,7 @@ public:
 	/**
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
-	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);
+	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld = false);
 	
 	/** Whether the component has been welded to another simulating component */
 	bool IsWelded() const;

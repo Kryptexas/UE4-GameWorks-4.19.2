@@ -1590,9 +1590,10 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 			//We must fixup the relative location,rotation,scale as the attachment is no longer valid. Blueprint uses simple construction to try and attach before ComponentToWorld has ever been updated, so we cannot rely on it.
 			//As such we must calculate the proper Relative information
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
-			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
+			UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(this);
+			FBodyInstance* BI = PrimitiveComponent ? PrimitiveComponent->GetBodyInstance() : nullptr;
 
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !AttachmentRules.bWeldSimulatedBodies)
+			if (BI && BI->bSimulatePhysics && !AttachmentRules.bWeldSimulatedBodies)
 			{
 				UWorld* MyWorld = GetWorld();
 				if (MyWorld && MyWorld->IsGameWorld())
@@ -2061,6 +2062,7 @@ FTransform USceneComponent::GetSocketTransform(FName SocketName, ERelativeTransf
 			break;
 		}
 		case RTS_Component:
+		case RTS_ParentBoneSpace:
 		{
 			return FTransform::Identity;
 		}
