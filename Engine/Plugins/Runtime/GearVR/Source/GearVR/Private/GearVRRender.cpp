@@ -12,6 +12,10 @@
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
 
+#if !UE_BUILD_SHIPPING
+#include "OculusStressTests.h"
+#endif
+
 #define NUM_BUFFERS 3
 
 #if !UE_BUILD_SHIPPING
@@ -278,8 +282,8 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 
 				//transform calculation
 				OVR::Posef pose;
-				pose.Orientation = ToOVRQuat<OVR::Quatf>(LayerDesc.GetTransform().GetRotation());
-				pose.Position = ToOVRVector_U2M<OVR::Vector3f>(LayerDesc.GetTransform().GetTranslation(), WorldToMetersScale);
+				pose.Rotation = ToOVRQuat<OVR::Quatf>(LayerDesc.GetTransform().GetRotation());
+				pose.Translation = ToOVRVector_U2M<OVR::Vector3f>(LayerDesc.GetTransform().GetTranslation(), WorldToMetersScale);
 
 				OVR::Vector3f scale(LayerDesc.GetQuadSize().X * LayerDesc.GetTransform().GetScale3D().Y / WorldToMetersScale, LayerDesc.GetQuadSize().Y * LayerDesc.GetTransform().GetScale3D().Z / WorldToMetersScale, 1.0f);
 				// apply the scale from transform. We use Y for width and Z for height to match the UE coord space
@@ -385,6 +389,14 @@ void FGearVR::RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdL
 	check(pGearVRBridge);
 
 	pGearVRBridge->UpdateLayers(RHICmdList);
+
+#if !UE_BUILD_SHIPPING
+	if (StressTester)
+	{
+		//StressTester->TickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);
+		StressTester->TickGPU_RenderThread(RHICmdList, SrcTexture, BackBuffer);
+	}
+#endif
 }
 
 bool FGearVR::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)

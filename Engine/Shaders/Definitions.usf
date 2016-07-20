@@ -200,6 +200,10 @@
 #define INSTANCED_STEREO								0
 #endif	
 
+#ifndef MULTI_VIEW
+#define MULTI_VIEW									0
+#endif	
+
 #ifndef CLEAR_COAT_BOTTOM_NORMAL
 #define CLEAR_COAT_BOTTOM_NORMAL						0
 #endif

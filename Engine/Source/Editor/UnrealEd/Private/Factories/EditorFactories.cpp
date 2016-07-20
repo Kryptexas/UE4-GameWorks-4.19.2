@@ -99,7 +99,9 @@
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "GameFramework/ForceFeedbackEffect.h"
-#include "GameFramework/HapticFeedbackEffect.h"
+#include "Haptics/HapticFeedbackEffect_Curve.h"
+#include "Haptics/HapticFeedbackEffect_Buffer.h"
+#include "Haptics/HapticFeedbackEffect_SoundWave.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Engine/SubDSurface.h"
 #include "Camera/CameraAnim.h"
@@ -7195,21 +7197,57 @@ UObject* UForceFeedbackEffectFactory::FactoryCreateNew( UClass* InClass, UObject
 }
 
 /*-----------------------------------------------------------------------------
-	UHapticFeedbackEffectFactory implementation.
+	UHapticFeedbackEffectCurveFactory implementation.
 -----------------------------------------------------------------------------*/
-UHapticFeedbackEffectFactory::UHapticFeedbackEffectFactory(const FObjectInitializer& ObjectInitializer)
+UHapticFeedbackEffectCurveFactory::UHapticFeedbackEffectCurveFactory(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 
-	SupportedClass = UHapticFeedbackEffect::StaticClass();
+	SupportedClass = UHapticFeedbackEffect_Curve::StaticClass();
 	bCreateNew = true;
 	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
-UObject* UHapticFeedbackEffectFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+UObject* UHapticFeedbackEffectCurveFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	return NewObject<UHapticFeedbackEffect>(InParent, InName, Flags);
+	return NewObject<UHapticFeedbackEffect_Curve>(InParent, InName, Flags);
+}
+
+/*-----------------------------------------------------------------------------
+UHapticFeedbackEffectBufferFactory implementation.
+-----------------------------------------------------------------------------*/
+UHapticFeedbackEffectBufferFactory::UHapticFeedbackEffectBufferFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = UHapticFeedbackEffect_Buffer::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* UHapticFeedbackEffectBufferFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<UHapticFeedbackEffect_Buffer>(InParent, InName, Flags);
+}
+
+/*-----------------------------------------------------------------------------
+UHapticFeedbackEffectSoundWaveFactory implementation.
+-----------------------------------------------------------------------------*/
+UHapticFeedbackEffectSoundWaveFactory::UHapticFeedbackEffectSoundWaveFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = UHapticFeedbackEffect_SoundWave::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* UHapticFeedbackEffectSoundWaveFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<UHapticFeedbackEffect_SoundWave>(InParent, InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------

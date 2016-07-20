@@ -87,7 +87,7 @@ public:
 
 	static FD3D11Texture2DSet* D3D11CreateTexture2DSet(
 		FD3D11DynamicRHI* InD3D11RHI,
-		FOvrSessionSharedParamRef OvrSession,
+		const FOvrSessionSharedPtr& OvrSession,
 		ovrTextureSwapChain InTextureSet,
 		const D3D11_TEXTURE2D_DESC& InDsDesc,
 		EPixelFormat InFormat,
@@ -110,7 +110,7 @@ protected:
 class FD3D11Texture2DSetProxy : public FTexture2DSetProxy
 {
 public:
-	FD3D11Texture2DSetProxy(FOvrSessionSharedParamRef InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat, uint32 SrcNumMips)
+	FD3D11Texture2DSetProxy(const FOvrSessionSharedPtr& InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat, uint32 SrcNumMips)
 		: FTexture2DSetProxy(InOvrSession, InTexture, SrcSizeX, SrcSizeY, SrcFormat, SrcNumMips) {}
 
 	virtual ovrTextureSwapChain GetSwapTextureSet() const override
@@ -201,7 +201,7 @@ void FD3D11Texture2DSet::ReleaseResources(ovrSession InOvrSession)
 
 FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 	FD3D11DynamicRHI* InD3D11RHI,
-	FOvrSessionSharedParamRef InOvrSession,
+	const FOvrSessionSharedPtr& InOvrSession,
 	ovrTextureSwapChain InTextureSet,
 	const D3D11_TEXTURE2D_DESC& InDsDesc,
 	EPixelFormat InFormat,
@@ -438,7 +438,7 @@ void FOculusRiftPlugin::SetGraphicsAdapter(const ovrGraphicsLuid& luid)
 // FOculusRiftHMD::D3D11Bridge
 //-------------------------------------------------------------------------------------------------
 
-FOculusRiftHMD::D3D11Bridge::D3D11Bridge(FOvrSessionSharedParamRef InOvrSession)
+FOculusRiftHMD::D3D11Bridge::D3D11Bridge(const FOvrSessionSharedPtr& InOvrSession)
 	: FCustomPresent(InOvrSession)
 {
 }
@@ -553,7 +553,7 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	}
 }
 
-FTexture2DSetProxyRef FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
+FTexture2DSetProxyPtr FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
 {
 	auto D3D11RHI = static_cast<FD3D11DynamicRHI*>(GDynamicRHI);
 	ID3D11Device* D3DDevice = D3D11RHI->GetDevice();

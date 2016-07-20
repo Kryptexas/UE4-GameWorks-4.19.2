@@ -30,15 +30,36 @@ public:
     FOSVRCustomPresent(OSVR_ClientContext clientContext, float screenScale) :
         FRHICustomPresent(nullptr)
     {
+        // If we are passed in a client context to use, we don't own it, so
+        // we won't shut it down when we're done with it. Otherwise we will.
+        // @todo - we're not currently using the passed-in clientContext, so
+        // for now we always own it.
+        //bOwnClientContext = (clientContext == nullptr);
+        bOwnClientContext = true;
         mClientContext = osvrClientInit("com.osvr.unreal.plugin.FOSVRCustomPresent");
         mScreenScale = screenScale;
     }
 
     virtual ~FOSVRCustomPresent()
     {
+        OSVR_ReturnCode rc;
         if (mRenderManager)
         {
-            osvrDestroyRenderManager(mRenderManager);
+            rc = osvrDestroyRenderManager(mRenderManager);
+            if (rc != OSVR_RETURN_SUCCESS)
+            {
+                UE_LOG(FOSVRCustomPresentLog, Warning, TEXT("[OSVR] Failed to destroy the render manager in ~FOSVRCustomPresent()."));
+            }
+        }
+
+        // only shut down the client context if we own it (currently always)
+        if (bOwnClientContext && mClientContext)
+        {
+            rc = osvrClientShutdown(mClientContext);
+            if (rc != OSVR_RETURN_SUCCESS)
+            {
+                UE_LOG(FOSVRCustomPresentLog, Warning, TEXT("[OSVR] Failed to shut down client context in ~FOSVRCustomPresent()."));
+            }
         }
     }
 
@@ -69,7 +90,7 @@ public:
         return bInitialized;
     }
 
-    virtual void GetProjectionMatrix(OSVR_RenderInfoCount eye, double &left, double &right, double &bottom, double &top) = 0;
+    virtual void GetProjectionMatrix(OSVR_RenderInfoCount eye, float &left, float &right, float &bottom, float &top, float nearClip, float farClip) = 0;
     virtual bool UpdateViewport(const FViewport& InViewport, class FRHIViewport* InViewportRHI) = 0;
 
     // RenderManager normalizes displays a bit. We create the render target assuming horizontal side-by-side.
@@ -89,9 +110,11 @@ protected:
 
     bool bRenderBuffersNeedToUpdate = true;
     bool bInitialized = false;
+    bool bOwnClientContext = true;
     float mScreenScale = 1.0f;
     OSVR_ClientContext mClientContext = nullptr;
     OSVR_RenderManager mRenderManager = nullptr;
+    OSVR_RenderInfoCollection mCachedRenderInfoCollection = nullptr;
 
     virtual bool CalculateRenderTargetSizeImpl(uint32& InOutSizeX, uint32& InOutSizeY) = 0;
 

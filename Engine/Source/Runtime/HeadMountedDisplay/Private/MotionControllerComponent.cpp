@@ -81,8 +81,9 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 	if (IsInGameThread())
 	{
 		// Cache state from the game thread for use on the render thread
-		const APlayerController* Actor = Cast<APlayerController>(GetOwner());
-		bHasAuthority = !Actor || Actor->IsLocalPlayerController();
+		const AActor* MyOwner = GetOwner();
+		const APawn* MyPawn = Cast<APawn>(MyOwner);
+		bHasAuthority = MyPawn ? MyPawn->IsLocallyControlled() : (MyOwner->Role == ENetRole::ROLE_Authority);
 	}
 
 	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)

@@ -315,8 +315,8 @@ bool FGearVR::GetEyePoses(const FGameFrame& InFrame, ovrPosef outEyePoses[2], ov
 	const OVR::Posef hmdPose = (OVR::Posef)outTracking.HeadPose.Pose;
 	const OVR::Vector3f HmdToEyeViewOffset0 = OVR::Vector3f(-InFrame.GetSettings()->HeadModelParms.InterpupillaryDistance * 0.5f, 0, 0); // -X <=, +X => (OVR coord sys)
 	const OVR::Vector3f HmdToEyeViewOffset1 = OVR::Vector3f(InFrame.GetSettings()->HeadModelParms.InterpupillaryDistance * 0.5f, 0, 0);  // -X <=, +X => (OVR coord sys)
-	const OVR::Vector3f transl0 = hmdPose.Orientation.Rotate(HmdToEyeViewOffset0);
-	const OVR::Vector3f transl1 = hmdPose.Orientation.Rotate(HmdToEyeViewOffset1);
+	const OVR::Vector3f transl0 = hmdPose.Rotation.Rotate(HmdToEyeViewOffset0);
+	const OVR::Vector3f transl1 = hmdPose.Rotation.Rotate(HmdToEyeViewOffset1);
 
 	outEyePoses[0].Orientation = outEyePoses[1].Orientation = outTracking.HeadPose.Pose.Orientation;
 	outEyePoses[0].Position = OVR::Vector3f(outTracking.HeadPose.Pose.Position) + transl0;
@@ -552,7 +552,7 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					LayerDesc.Priority = 10;
 					LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 100, 0));
 					LayerDesc.QuadSize = FVector2D(200, 200);
-					LayerDesc.Type = IStereoLayers::ELayerType::TorsoLocked;
+					LayerDesc.Type = IStereoLayers::ELayerType::TrackerLocked;
 					LID3 = StereoL->CreateLayer(LayerDesc);
 				}
 			}
@@ -1336,7 +1336,7 @@ void FGearVR::HandleBackButtonAction()
 	}
 	else if (BackButtonState == BACK_BUTTON_STATE_PENDING_SHORT_PRESS && !BackButtonDown)
 	{
-		if ( ( vrapi_GetTimeInSeconds() - BackButtonDownStartTime ) > BACK_BUTTON_DOUBLE_TAP_TIME_IN_SECONDS )
+		if ( ( vrapi_GetTimeInSeconds() - BackButtonDownStartTime ) > BUTTON_DOUBLE_TAP_TIME_IN_SECONDS )
 		{
 			UE_LOG(LogHMD, Log, TEXT("back button short press"));
 
@@ -1373,7 +1373,7 @@ bool FGearVR::HandleInputKey(UPlayerInput* pPlayerInput,
 			{
 				if (!BackButtonDown)
 				{
-					if ((vrapi_GetTimeInSeconds() - BackButtonDownStartTime ) < BACK_BUTTON_DOUBLE_TAP_TIME_IN_SECONDS)
+					if ((vrapi_GetTimeInSeconds() - BackButtonDownStartTime ) < BUTTON_DOUBLE_TAP_TIME_IN_SECONDS)
 					{
 						BackButtonState = BACK_BUTTON_STATE_PENDING_DOUBLE_TAP;
 					}
@@ -1385,7 +1385,7 @@ bool FGearVR::HandleInputKey(UPlayerInput* pPlayerInput,
 			{
 				if (BackButtonState == BACK_BUTTON_STATE_NONE)
 				{
-					if ( ( vrapi_GetTimeInSeconds() - BackButtonDownStartTime ) < BACK_BUTTON_SHORT_PRESS_TIME_IN_SECONDS )
+					if ( ( vrapi_GetTimeInSeconds() - BackButtonDownStartTime ) < BUTTON_SHORT_PRESS_TIME_IN_SECONDS )
 					{
 						BackButtonState = BACK_BUTTON_STATE_PENDING_SHORT_PRESS;
 					}
@@ -1619,6 +1619,7 @@ bool FGearVRPlugin::IsInLoadingIconMode() const
 
 #include <HeadMountedDisplayCommon.cpp>
 #include <AsyncLoadingSplash.cpp>
+#include <OculusStressTests.cpp>
 
 #endif //GEARVR_SUPPORTED_PLATFORMS
 

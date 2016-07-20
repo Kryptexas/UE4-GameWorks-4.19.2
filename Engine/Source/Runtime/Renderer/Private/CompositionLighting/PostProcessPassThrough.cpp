@@ -204,7 +204,7 @@ void CopyOverOtherViewportsIfNeeded(FRenderingCompositePassContext& Context, con
 					Size,
 					Size,
 					*VertexShader,
-					View.StereoPass, 
+					LocalView.StereoPass, 
 					Context.HasHmdMesh(),
 					EDRF_UseTriangleOptimization);
 			}

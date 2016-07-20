@@ -84,8 +84,24 @@ public:
 
 	/**
 	 * If the HMD supports positional tracking via a sensor, this returns the frustum properties (all in game-world space) of the sensor.
+	 * Returns false, if the sensor at the specified index is not available.
 	 */
-	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
+	//DEPRECATED(4.13, "Please use GetNumOfTrackingSensors / GetTrackingSensorProperties functions")
+	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
+	{
+		GetTrackingSensorProperties(0, OutOrigin, OutOrientation, OutHFOV, OutVFOV, OutCameraDistance, OutNearPlane, OutFarPlane);
+	}
+
+	/**
+	 *  Returns total number of tracking sensors supported by the HMD. To be used along with GetP
+	 */
+	virtual uint32	GetNumOfTrackingSensors() const { return 0; }
+
+	/**
+	 * If the HMD supports positional tracking via a sensor, this returns the frustum properties (all in game-world space) of the sensor.
+	 * Returns false, if the sensor at the specified index is not available.
+	 */
+	virtual bool	GetTrackingSensorProperties(uint8 InSensorIndex, FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const { return false; }
 
 	/**
 	 * Accessors to modify the interpupillary distance (meters)

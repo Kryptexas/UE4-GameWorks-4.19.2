@@ -43,8 +43,6 @@ struct FFlatTessellationHSToDS
 
 	FHullShaderConstantOutput HS_FlatTrianglesConstant( const OutputPatch<FFlatTessellationHSToDS, 3> I )
 	{
-		ResolvedView = ResolveView();
-
 		FHullShaderConstantOutput O = (FHullShaderConstantOutput)0;
 
 		#if INSTANCED_STEREO
@@ -136,15 +134,16 @@ struct FFlatTessellationHSToDS
 #if USE_GLOBAL_CLIP_PLANE
 		, out float OutGlobalClipPlaneDistance : SV_ClipDistance
 #endif
-#if INSTANCED_STEREO
+#if INSTANCED_STEREO && !MULTI_VIEW
 		, out float OutClipDistance : SV_ClipDistance1
-		, out float OutCullDistance : SV_CullDistance1
 #endif
 		)
 	{
 		#if INSTANCED_STEREO
 			ResolvedView = ResolveView(GetEyeIndex(I[0].PassSpecificData.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex));
-			OutCullDistance = OutClipDistance = 0.0;
+			#if !MULTI_VIEW
+				OutClipDistance = 0.0;
+			#endif
 		#else
 			ResolvedView = ResolveView();
 		#endif
@@ -162,6 +161,11 @@ struct FFlatTessellationHSToDS
 		FPassSpecificVSToDS Interp = PassInterpolate(
 			PassInterpolate( I[0].PassSpecificData, U, I[1].PassSpecificData, V ), 1.f,
 			I[2].PassSpecificData, W );
+							
+		// Forward the eye index along	
+		#if INSTANCED_STEREO
+		Interp.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex = I[0].PassSpecificData.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex;
+		#endif
 																		
 		FMaterialTessellationParameters MaterialParameters = GetMaterialTessellationParameters(Interp.FactoryInterpolants, WorldPosition.xyz);
 
@@ -210,14 +214,14 @@ struct FFlatTessellationHSToDS
 
 		FPassSpecificVSToPS Result = PassFinalizeTessellationOutput(Interp, WorldPosition,MaterialParameters);
 
-		#if INSTANCED_STEREO
+		#if INSTANCED_STEREO && !MULTI_VIEW
 		BRANCH
 		if (IsInstancedStereo(I[0].PassSpecificData.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex))
 		{
 			const uint EyeIndex = GetEyeIndex(I[0].PassSpecificData.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex);
 
 			// Clip at the center of the screen
-			OutCullDistance = OutClipDistance = dot(Result.Position, EyeClipEdge[EyeIndex]);
+			OutClipDistance = dot(Result.Position, EyeClipEdge[EyeIndex]);
 			
 			// Scale to the width of a single eye viewport
 			Result.Position.x *= 0.5 * ResolvedView.HMDEyePaddingOffset;

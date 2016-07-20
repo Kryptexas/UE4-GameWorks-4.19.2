@@ -38,7 +38,57 @@ public class GoogleVR : ModuleRules
 		{
 			string GoogleVRIOSLibPath = GoogleVRBaseLibPath + "ios/";
 			PublicLibraryPaths.Add(GoogleVRIOSLibPath);
-			PublicAdditionalLibraries.Add(GoogleVRIOSLibPath + "libgvr.a");
+
+			// Frameworks that GoogleVR frame depends on
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("CoreText"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("AudioToolbox"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("AVFoundation"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("CoreGraphics"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("CoreMotion"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("CoreVideo"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("GLKit"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("MediaPlayer"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("OpenGLES"));
+			PublicAdditionalFrameworks.Add(new UEBuildFramework("QuartzCore"));
+
+			// GoogleVR framework.
+			// Note: Had to add 5 times because there are 5 different resource bundles and there doesn't seem to be support for
+			//       just adding resource bundles on iOS
+			PublicAdditionalFrameworks.Add(
+				new UEBuildFramework(
+					"GVRSDK",														// Framework name
+					"ThirdPartyFrameworks/GVRSDK.embeddedframework.zip",			// Zip name
+					"GVRSDK.framework/Resources/GoogleKitCore.bundle"				// Resources we need copied and staged
+				)
+			);
+			PublicAdditionalFrameworks.Add(
+				new UEBuildFramework(
+					"GVRSDK",														// Framework name
+					"ThirdPartyFrameworks/GVRSDK.embeddedframework.zip",			// Zip name
+					"GVRSDK.framework/Resources/GoogleKitDialogs.bundle"			// Resources we need copied and staged
+				)
+			);
+			PublicAdditionalFrameworks.Add(
+				new UEBuildFramework(
+					"GVRSDK",														// Framework name
+					"ThirdPartyFrameworks/GVRSDK.embeddedframework.zip",			// Zip name
+					"GVRSDK.framework/Resources/CardboardSDK.bundle"				// Resources we need copied and staged
+				)
+			);
+			PublicAdditionalFrameworks.Add(
+				new UEBuildFramework(
+					"GVRSDK",														// Framework name
+					"ThirdPartyFrameworks/GVRSDK.embeddedframework.zip",			// Zip name
+					"GVRSDK.framework/Resources/GoogleKitHUD.bundle"				// Resources we need copied and staged
+				)
+			);
+			PublicAdditionalFrameworks.Add(
+				new UEBuildFramework(
+					"GVRSDK",														// Framework name
+					"ThirdPartyFrameworks/GVRSDK.embeddedframework.zip",			// Zip name
+					"GVRSDK.framework/Resources/MaterialRobotoFontLoader.bundle"	// Resources we need copied and staged
+				)
+			);
 		}
 	}
 }

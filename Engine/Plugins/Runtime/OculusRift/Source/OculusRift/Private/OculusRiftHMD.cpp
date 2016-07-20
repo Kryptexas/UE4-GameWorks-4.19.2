@@ -7,8 +7,7 @@
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftHMD_05.cpp
 
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
-#include "AnalyticsEventAttribute.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "SceneViewport.h"
 #include "PostProcess/SceneRenderTargets.h"
 #include "HardwareInfo.h"
@@ -40,6 +39,15 @@ static void OVR_CDECL OvrLogCallback(uintptr_t userData, int level, const char* 
 	GLog->Logf(TEXT("OCULUS:%s %s"), levelStr, *tbuf);
 }
 #endif // !UE_BUILD_SHIPPING
+
+static FString GetVersionString()
+{
+	const char* Results = ovr_GetVersionString();
+	FString s = FString::Printf(TEXT("%s, LibOVR: %s, SDK: %s, built %s, %s"), *FEngineVersion::Current().ToString(), UTF8_TO_TCHAR(Results),
+		UTF8_TO_TCHAR(OVR_VERSION_STRING), UTF8_TO_TCHAR(__DATE__), UTF8_TO_TCHAR(__TIME__));
+	return s;
+}
+
 #endif // OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 FOculusRiftPlugin::FOculusRiftPlugin()
@@ -70,6 +78,23 @@ bool FOculusRiftPlugin::Initialize()
 
 			if (OVR_SUCCESS(result))
 			{
+				FString identityStr;
+				static const TCHAR* AppNameKey = TEXT("ApplicationName:");
+				static const TCHAR* AppVersionKey = TEXT("ApplicationVersion:");
+				static const TCHAR* EngineNameKey = TEXT("EngineName:");
+				static const TCHAR* EngineVersionKey = TEXT("EngineVersion:");
+				static const TCHAR* EnginePluginNameKey = TEXT("EnginePluginName:");
+				static const TCHAR* EnginePluginVersionKey = TEXT("EnginePluginVersion:");
+				static const TCHAR* EngineEditorKey = TEXT("EngineEditor:");
+
+				identityStr += FString(AppNameKey) + FString(FPlatformProcess::ExecutableName()) + TEXT("\n");
+				identityStr += FString(EngineNameKey) + TEXT("UnrealEngine") + TEXT("\n");
+				identityStr += FString(EngineVersionKey) + FEngineVersion::Current().ToString() + TEXT("\n");
+				identityStr += FString(EnginePluginNameKey) + TEXT("OculusRiftHMD") + TEXT("\n");
+				identityStr += FString(EnginePluginVersionKey) + GetVersionString() + TEXT("\n");
+				identityStr += FString(EngineEditorKey) + ((GIsEditor) ? TEXT("true") : TEXT("false")) + TEXT("\n");
+
+				ovr_IdentifyClient(TCHAR_TO_ANSI(*identityStr));
 				bInitialized = true;
 			}
 			else if (ovrError_LibLoad == result)
@@ -395,16 +420,9 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 		}
 	}
 
-	if (!FHeadMountedDisplay::OnStartGameFrame( InWorldContext ))
+	if (!FHeadMountedDisplay::OnStartGameFrame(InWorldContext))
 	{
 		return false;
-	}
-
-	FApp::SetUseVRFocus(Settings->IsStereoEnabled());
-	// check the current state of VR focus and propagate it to the Engine
-	if (pCustomPresent)
-	{
-		FApp::SetHasVRFocus(FApp::UseVRFocus() && pCustomPresent->GetLastVisibilityState());
 	}
 
 	FGameFrame* CurrentFrame = GetFrame();
@@ -427,6 +445,10 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 		}
 
 		ovr_GetSessionStatus(OvrSession, &CurrentFrame->SessionStatus);
+
+		FApp::SetUseVRFocus(true);
+		FApp::SetHasVRFocus(CurrentFrame->SessionStatus.IsVisible != ovrFalse);
+
 		// Do not pause if Editor is running (otherwise it will become very lagy)
 		if (!GIsEditor)
 		{
@@ -533,7 +555,11 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 				FCoreDelegates::VRHeadsetRecenter.Broadcast();
 
 				// we must call ovr_ClearShouldRecenterFlag, otherwise ShouldRecenter flag won't reset
-				ovr_ClearShouldRecenterFlag(OvrSession);
+				FOvrSessionShared::AutoSession CurrentOvrSession(Session);
+				if (OvrSession)
+				{
+					ovr_ClearShouldRecenterFlag(CurrentOvrSession);
+				}
 			}
 			else
 			{
@@ -679,9 +705,19 @@ bool FOculusRiftHMD::HasValidTrackingPosition()
 	return (frame && frame->Settings->Flags.bHmdPosTracking && frame->Flags.bHaveVisionTracking);
 }
 
+uint32 FOculusRiftHMD::GetNumOfTrackingSensors() const
+{
+	if (!Session->IsActive())
+	{
+		return 0;
+	}
+	FOvrSessionShared::AutoSession OvrSession(Session);
+	return ovr_GetTrackerCount(OvrSession);
+}
+
 #define SENSOR_FOCAL_DISTANCE			1.00f // meters (focal point to origin for position)
 
-void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
+bool FOculusRiftHMD::GetTrackingSensorProperties(uint8 InSensorIndex, FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
 {
 	OutOrigin = FVector::ZeroVector;
 	OutOrientation = FQuat::Identity;
@@ -690,12 +726,17 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 	const auto frame = GetFrame();
 	if (!Session->IsActive() || !frame)
 	{
-		return;
+		return false;
 	}
 
 	FOvrSessionShared::AutoSession OvrSession(Session);
-	const ovrTrackerDesc TrackerDesc = ovr_GetTrackerDesc(OvrSession, 0);
-	const ovrTrackerPose TrackerPose = ovr_GetTrackerPose(OvrSession, 0);
+	unsigned int NumOfSensors = ovr_GetTrackerCount(OvrSession);
+	if (InSensorIndex >= NumOfSensors)
+	{
+		return false;
+	}
+	const ovrTrackerDesc TrackerDesc = ovr_GetTrackerDesc(OvrSession, InSensorIndex);
+	const ovrTrackerPose TrackerPose = ovr_GetTrackerPose(OvrSession, InSensorIndex);
 
 	const float WorldToMetersScale = frame->GetWorldToMetersScale();
 	check(WorldToMetersScale >= 0);
@@ -716,6 +757,7 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 		OutOrientation = Orient;
 		OutOrigin = Pos + frame->Settings->PositionOffset;
 	}
+	return true;
 }
 
 void FOculusRiftHMD::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
@@ -957,6 +999,23 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			Settings->Flags.bDrawGrid = !Settings->Flags.bDrawGrid;
 			return true;
 		}
+		else if (FParse::Command(&Cmd, TEXT("CUBEMAP")))
+		{
+			ECubemapType CMType = CM_Rift;
+			FVector off(FVector::ZeroVector);
+			float yaw = 0.f;
+			FParse::Value(Cmd, TEXT("XOFF="), off.X);
+			FParse::Value(Cmd, TEXT("YOFF="), off.Y);
+			FParse::Value(Cmd, TEXT("ZOFF="), off.Z);
+			FParse::Value(Cmd, TEXT("YAW="), yaw);
+
+			if (FCString::Strfind(Cmd+1, TEXT("GEARVR")))
+			{
+				CMType = CM_GearVR;
+			}
+			CaptureCubemap(InWorld, CMType, off, yaw);
+			return true;
+		}
 #endif //UE_BUILD_SHIPPING
 		else
 		{
@@ -1071,6 +1130,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 	else if (FParse::Command(&Cmd, TEXT("TESTEXIT")))
 	{
 		OCFlags.EnforceExit = true;
+		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("TESTL")))
 	{
@@ -1161,7 +1221,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 					LayerDesc.Priority = 10;
 					LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 100, 0));
 					LayerDesc.QuadSize = FVector2D(200, 200);
-					LayerDesc.Type = IStereoLayers::ELayerType::TorsoLocked;
+					LayerDesc.Type = IStereoLayers::ELayerType::TrackerLocked;
 					LID3 = StereoL->CreateLayer(LayerDesc);
 				}
 			}
@@ -1194,10 +1254,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 
 FString FOculusRiftHMD::GetVersionString() const
 {
-	const char* Results = ovr_GetVersionString();
-	FString s = FString::Printf(TEXT("%s, LibOVR: %s, SDK: %s, built %s, %s"), *FEngineVersion::Current().ToString(), UTF8_TO_TCHAR(Results),
-		UTF8_TO_TCHAR(OVR_VERSION_STRING), UTF8_TO_TCHAR(__DATE__), UTF8_TO_TCHAR(__TIME__));
-	return s;
+	return ::GetVersionString();
 }
 
 
@@ -1238,26 +1295,26 @@ void FOculusRiftHMD::RecordAnalytics()
 		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
 
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), (uint64)Settings->Flags.bChromaAbCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), (uint64)Settings->Flags.bYawDriftCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), (uint64)Settings->Flags.bDevSettingsEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), (uint64)Settings->Flags.bOverrideIPD));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), (bool) Settings->Flags.bChromaAbCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), (bool) Settings->Flags.bYawDriftCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), (bool) Settings->Flags.bDevSettingsEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), (bool) Settings->Flags.bOverrideIPD));
 		if (Settings->Flags.bOverrideIPD)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), (uint64)Settings->Flags.bOverrideStereo));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), (bool) Settings->Flags.bOverrideStereo));
 		if (Settings->Flags.bOverrideStereo)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HFOV"), Settings->HFOVInRadians));
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VFOV"), Settings->VFOVInRadians));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), (uint64)Settings->Flags.bOverrideVSync));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), (bool) Settings->Flags.bOverrideVSync));
 		if (Settings->Flags.bOverrideVSync)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), (uint64)Settings->Flags.bVSync));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), (bool) Settings->Flags.bVSync));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), (uint64)Settings->Flags.bOverrideScreenPercentage));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), (bool) Settings->Flags.bOverrideScreenPercentage));
 		if (Settings->Flags.bOverrideScreenPercentage)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ScreenPercentage"), Settings->ScreenPercentage));
@@ -1267,11 +1324,11 @@ void FOculusRiftHMD::RecordAnalytics()
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("WorldToMetersScale"), Settings->WorldToMetersScale));
 		}
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), Settings->InterpupillaryDistance));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), (uint64)Settings->Flags.bTimeWarp));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), (uint64)Settings->Flags.bHmdPosTracking));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HQDistortion"), (uint64)Settings->Flags.bHQDistortion));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), (uint64)Settings->Flags.bUpdateOnRT));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), (uint64)Settings->Flags.bMirrorToWindow));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), (bool) Settings->Flags.bTimeWarp));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), (bool) Settings->Flags.bHmdPosTracking));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HQDistortion"), (bool) Settings->Flags.bHQDistortion));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), (bool) Settings->Flags.bUpdateOnRT));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), (bool) Settings->Flags.bMirrorToWindow));
 
 		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
 		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);
@@ -1319,7 +1376,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 
 	FSceneViewport* SceneVP = FindSceneViewport();
 
-	if (!Settings->Flags.bHMDEnabled || SceneVP && !SceneVP->IsStereoRenderingAllowed())
+	if (!Settings->Flags.bHMDEnabled || (SceneVP && !SceneVP->IsStereoRenderingAllowed()))
 	{
 		bStereo = false;
 	}
@@ -1337,7 +1394,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 		Window = SceneVP->FindWindow();
 	}
 
-	if (!Window.IsValid() || (SceneVP && !SceneVP->GetViewportWidget().IsValid()))
+	if (!Window.IsValid() || !SceneVP || !SceneVP->GetViewportWidget().IsValid())
 	{
 		// try again next frame
 		if(bStereo)
@@ -1364,7 +1421,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 		return Settings->Flags.bStereoEnabled;
 	}
 
-	if (SceneVP && OnOculusStateChange(bStereo))
+	if (OnOculusStateChange(bStereo))
 	{
 		Settings->Flags.bStereoEnabled = bStereo;
 
@@ -1695,6 +1752,7 @@ FOculusRiftHMD::FOculusRiftHMD()
 	DeltaControlRotation = FRotator::ZeroRotator;
 	HmdDesc.Type = ovrHmd_None;
 	Session = MakeShareable(new FOvrSessionShared());
+	CubemapCapturer = nullptr;
 
 	Settings = MakeShareable(new FSettings);
 
@@ -1704,6 +1762,12 @@ FOculusRiftHMD::FOculusRiftHMD()
 
 FOculusRiftHMD::~FOculusRiftHMD()
 {
+#if !UE_BUILD_SHIPPING
+	if (CubemapCapturer)
+	{
+		CubemapCapturer->RemoveFromRoot();
+	}
+#endif
 	Shutdown();
 }
 
@@ -2093,7 +2157,7 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 
 		const ovrSizei recommenedTex0Size = ovr_GetFovTextureSize(OvrSession, ovrEye_Left, CurrentSettings->EyeFov[0], CurrentSettings->PixelDensity);
 		const ovrSizei recommenedTex1Size = ovr_GetFovTextureSize(OvrSession, ovrEye_Right, CurrentSettings->EyeFov[1], CurrentSettings->PixelDensity);
-		const float texturePadding = CurrentSettings->GetTexturePaddingPerEye();
+		const int32 texturePadding = FMath::CeilToInt(CurrentSettings->GetTexturePaddingPerEye());
 		CurrentSettings->RenderTargetSize.X = recommenedTex0Size.w + recommenedTex1Size.w + texturePadding*2;
 		CurrentSettings->RenderTargetSize.Y = FMath::Max(recommenedTex0Size.h, recommenedTex1Size.h);
 		
@@ -2519,6 +2583,29 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 
 	pPresentBridge = OculusHMD->pCustomPresent;
 }
+
+#if !UE_BUILD_SHIPPING
+const uint32 CaptureHeight = 2048;
+
+void FOculusRiftHMD::CaptureCubemap(UWorld* World, ECubemapType CubemapType, FVector InOffset, float InYaw)
+{
+	if (CubemapCapturer)
+	{
+		CubemapCapturer->RemoveFromRoot();
+	}
+	CubemapCapturer = NewObject<USceneCubemapCapturer>();
+	CubemapCapturer->AddToRoot();
+	CubemapCapturer->SetOffset(InOffset);
+	if (InYaw != 0.f)
+	{
+		FRotator Rotation(FRotator::ZeroRotator);
+		Rotation.Yaw = InYaw;
+		const FQuat Orient(Rotation);
+		CubemapCapturer->SetInitialOrientation(Orient);
+	}
+	CubemapCapturer->StartCapture(World, (CubemapType == CM_GearVR) ? CaptureHeight / 2 : CaptureHeight);
+}
+#endif
 
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 #endif //#if !PLATFORM_MAC

@@ -28,11 +28,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 
-#define USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS (1 && GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS)
 #define LOG_VIEWER_DATA_FOR_GENERATION 0
-
-// TODO: Temporary flag to force full-device resolution until scaling is figured out for iOS
-#define GOOGLEVR_FORCE_NATIVE_RESOLUTION (0 && GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS)
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
@@ -57,6 +53,18 @@ extern gvr_context* GVRAPI;
 #endif
 
 #endif //GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+
+#import <GVRSDK/GVROverlayView.h>
+
+@class FOverlayViewDelegate;
+@interface FOverlayViewDelegate : UIResponder<GVROverlayViewDelegate>
+{
+}
+@end
+
+#endif //GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
 
 // Forward decl
 class FGoogleVRHMD;
@@ -182,6 +190,9 @@ public:
 	/** Helper method to get renderer module */
 	IRendererModule* GetRendererModule();
 
+	/** Refreshes the viewer if it might have changed */
+	void RefreshViewerProfile();
+
 private:
 
 	/** Refresh RT so screen isn't black */
@@ -212,21 +223,6 @@ public:
 	/** Enable/disable chromatic aberration correction */
 	void SetChromaticAberrationCorrectionEnabled(bool bEnable);
 
-	/** Enable/disable entire UiLayer */
-	void SetUiLayerEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Alignment Marker */
-	void SetUiLayerAlignmentMarkerEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Settings Button  */
-	void SetUiLayerSettingButtonEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Transition View */
-	void SetUiLayerTransitionViewEnabled(bool bEnable);
-	
-	/** Enable/disable UiLayer Back Button */
-	void SetUiLayerBackButtonEnabled(bool bEnable);
-
 	/** Change the default viewer profile */
 	bool SetDefaultViewerProfile(const FString& ViewerProfileURL);
 
@@ -239,18 +235,6 @@ public:
 	/** Check which method distortion correction is using */
 	bool IsUsingGVRApiDistortionCorrection() const;
 
-	/** Check if transition view is enabled */
-	bool GetUiLayerTransitionViewEnabled() const;
-
-	/** Check if settings button is enabled */
-	bool GetUiLayerSettingsButtonEnabled() const;
-
-	/** Check if alignment marker is enabled */
-	bool GetUiLayerAlignmentMarkerEnabled() const;
-
-	/** Check if back button is enabled */
-	bool GetUiLayerBackButtonEnabled() const;
-	
 	/** Get the currently set viewer model */
 	FString GetViewerModel();
 
@@ -285,18 +269,21 @@ public:
 	/** Get preview viewer vertices */
 	static const FDistortionVertex* GetPreviewViewerVertices(enum EStereoscopicPass StereoPass);
 
-private:
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	static uint32 GetOffscreenBufferMSAASetting();
+#endif
 
+private:
 	// Updating Data
 	bool		bStereoEnabled;
 	bool		bHMDEnabled;
 	bool		bDistortionCorrectionEnabled;
 	bool		bUseGVRApiDistortionCorrection;
+	bool		bUseOffscreenFramebuffers;
 	FQuat		CurHmdOrientation;
 	FQuat		LastHmdOrientation;
 	FRotator	DeltaControlRotation;    // same as DeltaControlOrientation but as rotator
 	FQuat		DeltaControlOrientation; // same as DeltaControlRotation but as quat
-	mutable double	LastSensorTime;
 	FQuat		BaseOrientation;
 
 	// Drawing Data
@@ -306,6 +293,10 @@ private:
 	FDistortionVertex* DistortionMeshVerticesRightEye;
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	FGoogleVRHMDCustomPresent* CustomPresent;
+#endif
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+	GVROverlayView* OverlayView;
+	FOverlayViewDelegate* OverlayViewDelegate;
 #endif
 
 	// Cached data that should only be updated once per frame
@@ -414,11 +405,6 @@ public:
 	 */
 	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 
-	///**
-	// * Returns timewarp matrices, used from PostProcessHMD, RenderThread.
-	// */
-	//virtual void GetTimewarpMatrices_RenderThread(const struct FRenderingCompositePassContext& Context, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const {}
-
 	// Optional methods to support rendering into a texture.
 	/**
 	 * Updates viewport for direct rendering of distortion. Should be called on a game thread.
@@ -442,11 +428,6 @@ public:
 	// Renders texture into a backbuffer. Could be empty if no rendertarget texture is used, or if direct-rendering 
 	// through RHI bridge is implemented. 
 	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const override;
-
-	///**
-	// * Called after Present is called.
-	// */
-	//virtual void FinishRenderingFrame_RenderThread(class FRHICommandListImmediate& RHICmdList) {}
 
 	///**
 	// * Returns orthographic projection , used from Canvas::DrawItem.

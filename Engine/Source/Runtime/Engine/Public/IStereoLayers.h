@@ -14,7 +14,7 @@ public:
 	enum ELayerType
 	{
 		WorldLocked,
-		TorsoLocked,
+		TrackerLocked,
 		FaceLocked
 	};
 

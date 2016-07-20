@@ -397,6 +397,7 @@ namespace UnrealBuildTool
 				Result += "-no_pie";
 			}
 			Result += " -stdlib=libc++";
+			Result += " -ObjC";
 			//			Result += " -v";
 
 			Result += " " + PlatformContext.GetAdditionalLinkerFlags(LinkEnvironment.Config.Target.Configuration);

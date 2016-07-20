@@ -2479,32 +2479,39 @@ void FAudioDevice::DestroyEffect(FSoundSource* Source)
 
 void FAudioDevice::HandlePause(bool bGameTicking, bool bGlobalPause)
 {
-	// Pause all sounds if transitioning to pause mode.
-	if (!bGameTicking && (bGameWasTicking || bGlobalPause))
-	{
-		for (int32 i = 0; i < Sources.Num(); i++)
-		{
-			FSoundSource* Source = Sources[ i ];
-			if (!Source->IsPaused() && (bGlobalPause || Source->IsGameOnly()))
-			{
-				Source->Pause();
-			}
-		}
-	}
-	// Unpause all sounds if transitioning back to game.
-	else if (bGameTicking && (!bGameWasTicking || bGlobalPause))
-	{
-		for (int32 i = 0; i < Sources.Num(); i++)
-		{
-			FSoundSource* Source = Sources[ i ];
-			if (Source->IsPaused() && (bGlobalPause || Source->IsGameOnly()))
-			{
-				Source->Play();
-			}
-		}
-	}
+	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.HandlePause"), STAT_AudioHandlePause, STATGROUP_AudioThreadCommands);
 
-	bGameWasTicking = bGameTicking;
+	FAudioDevice* AudioDevice = this;
+	FAudioThread::RunCommandOnAudioThread([AudioDevice, bGameTicking, bGlobalPause]()
+	{
+		// Pause all sounds if transitioning to pause mode.
+		if (!bGameTicking && (AudioDevice->bGameWasTicking || bGlobalPause))
+		{
+			for (int32 i = 0; i < AudioDevice->Sources.Num(); i++)
+			{
+				FSoundSource* Source = AudioDevice->Sources[ i ];
+				if (!Source->IsPaused() && (bGlobalPause || Source->IsGameOnly()))
+				{
+					Source->Pause();
+				}
+			}
+		}
+		// Unpause all sounds if transitioning back to game.
+		else if (bGameTicking && (!AudioDevice->bGameWasTicking || bGlobalPause))
+		{
+			for (int32 i = 0; i < AudioDevice->Sources.Num(); i++)
+			{
+				FSoundSource* Source = AudioDevice->Sources[ i ];
+				if (Source->IsPaused() && (bGlobalPause || Source->IsGameOnly()))
+				{
+					Source->Play();
+				}
+			}
+		}
+
+		AudioDevice->bGameWasTicking = bGameTicking;
+	}, GET_STATID(STAT_AudioHandlePause));
+
 }
 
 

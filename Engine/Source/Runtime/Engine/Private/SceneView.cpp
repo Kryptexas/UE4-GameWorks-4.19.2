@@ -448,6 +448,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
 	, bIsInstancedStereoEnabled(false)
+	, bIsMultiViewEnabled(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
@@ -656,9 +657,12 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	SelectionOutlineColor = GEngine->GetSelectionOutlineColor();
 #endif
 
-	// Query instanced stereo state
+	// Query instanced stereo and multi-view state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
+
+	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
+	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
 }
 
 static TAutoConsoleVariable<int32> CVarCompensateForFOV(
@@ -765,6 +769,9 @@ void FSceneView::UpdateViewMatrix()
 
 	// Derive the view frustum from the view projection matrix.
 	GetViewFrustumBounds(ViewFrustum, ViewProjectionMatrix, false);
+
+	// We need to keep ShadowViewMatrices in sync.
+	ShadowViewMatrices = ViewMatrices;
 }
 
 void FSceneView::SetScaledViewRect(FIntRect InScaledViewRect)

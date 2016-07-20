@@ -19,6 +19,12 @@
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif // GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+#include "IOS/IOSApplication.h"
+#include "IOS/IOSWindow.h"
+#include "IOSAppDelegate.h"
+#include "IOSView.h"
+#endif
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
@@ -28,12 +34,12 @@
 
 static TAutoConsoleVariable<int32> CVarViewerPreview(
 	TEXT("googlevr.ViewerPreview"), 
-	2, 
+	3, 
 	TEXT("Change which viewer data is used for VR previewing.\n")
 	TEXT(" 0: No viewer or distortion\n")
 	TEXT(" 1: Google Cardboard 1.0\n")
-	TEXT(" 2: Google Cardboard 2.0 (default)\n")
-	TEXT(" 3: ViewMaster\n")
+	TEXT(" 2: Google Cardboard 2.0\n")
+	TEXT(" 3: ViewMaster (default)\n")
 	TEXT(" 4: SnailVR\n")
 	TEXT(" 5: RiTech 2.0\n")
 	TEXT(" 6: Go4D C1-Glass")
@@ -53,6 +59,7 @@ static TAutoConsoleVariable<float> CVarPreviewSensitivity(
 // GoogleVR Api Reference
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 gvr_context* GVRAPI = nullptr;
+static uint32 OffscreenBufferMSAASetting = 2;
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
 // Only one HMD can be active at a time, so using file static to track this for transferring to game thread
@@ -106,83 +113,6 @@ void AndroidThunkCpp_UiLayer_SetEnabled(bool bEnable)
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod, bEnable);
  	}
 }
-
-void AndroidThunkCpp_UiLayer_SetAlignmentMarkerEnabled(bool bEnable)
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_SetAlignmentMarkerEnabled", "(Z)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod, bEnable);
- 	}
-}
-
-void AndroidThunkCpp_UiLayer_SetSettingsButtonEnabled(bool bEnable)
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_SetSettingsButtonEnabled", "(Z)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod, bEnable);
- 	}
-}
-
-void AndroidThunkCpp_UiLayer_SetTransitionViewEnabled(bool bEnable)
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_SetTransitionViewEnabled", "(Z)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod, bEnable);
- 	}
-}
-
-void AndroidThunkCpp_UiLayer_SetBackButtonEnabled(bool bEnable)
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_SetBackButtonEnabled", "(Z)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod, bEnable);
- 	}
-}
-
-bool AndroidThunkCpp_UiLayer_GetTransitionViewEnabled()
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_GetTransitionViewEnabled", "()Z", false);
-		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod);
- 	}
-	return false;
-}
-
-bool AndroidThunkCpp_UiLayer_GetSettingsButtonEnabled()
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_GetSettingsButtonEnabled", "()Z", false);
-		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod);
- 	}
-	return false;
-}
-
-bool AndroidThunkCpp_UiLayer_GetAlignmentMarkerEnabled()
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_GetAlignmentMarkerEnabled", "()Z", false);
-		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod);
- 	}
-	return false;
-}
-
-bool AndroidThunkCpp_UiLayer_GetBackButtonEnabled()
-{
- 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
- 	{
-		static jmethodID UiLayerMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_UiLayer_GetBackButtonEnabled", "()Z", false);
-		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, UiLayerMethod);
- 	}
-	return false;
-}
-
 void AndroidThunkCpp_UiLayer_SetViewerName(const FString& ViewerName)
 {
 	if(ViewerName.Len() == 0)
@@ -229,7 +159,55 @@ void AndroidThunkCpp_GvrLayout_SetFixedPresentationSurfaceSizeToCurrent()
  	}
 }
 
+bool AndroidThunkCpp_ProjectWantsCardboardOnlyMode()
+{
+ 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+ 	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_ProjectWantsCardboardOnlyMode", "()Z", false);
+		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, Method);
+ 	}
+
+	return false;
+}
+
 #endif // GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+
+/////////////////////////////////////
+// Begin IOS Class Implementations //
+/////////////////////////////////////
+
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+
+// Helped function to get global access
+FGoogleVRHMD* GetGoogleVRHMD()
+{
+	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
+	{
+		return static_cast<FGoogleVRHMD*>(GEngine->HMDDevice.Get());
+	}
+
+	return nullptr;
+}
+
+@implementation FOverlayViewDelegate
+
+- (void)didChangeViewerProfile
+{
+	FGoogleVRHMD* HMD = GetGoogleVRHMD();
+	if(HMD)
+	{
+		HMD->RefreshViewerProfile();
+	}
+}
+
+- (void)didTapBackButton
+{
+	bBackDetected = true;
+}
+
+@end
+
+#endif
 
 /////////////////////////////////////////////////
 // Begin FGoogleVRHMDPlugin Implementation //
@@ -275,28 +253,36 @@ FGoogleVRHMD::FGoogleVRHMD()
 	, bHMDEnabled(false)
 	, bDistortionCorrectionEnabled(true)
 	, bUseGVRApiDistortionCorrection(true)
+	, bUseOffscreenFramebuffers(true)
 	, CurHmdOrientation(FQuat::Identity)
 	, LastHmdOrientation(FQuat::Identity)
 	, DeltaControlRotation(FRotator::ZeroRotator)
 	, DeltaControlOrientation(FQuat::Identity)
-	, LastSensorTime(-1.0)
 	, BaseOrientation(FQuat::Identity)
 	, RendererModule(nullptr)
 	, DistortionMeshIndices(nullptr)
 	, DistortionMeshVerticesLeftEye(nullptr)
 	, DistortionMeshVerticesRightEye(nullptr)
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	, CustomPresent(nullptr)
+#endif
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+	, OverlayView(nil)
+#endif
 	, LastUpdatedCacheFrame(0)
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	, CachedDistortedRenderTextureParams(nullptr)
 	, CachedNonDistortedRenderTextureParams(nullptr)
-	, CustomPresent(nullptr)
 #endif
 	, PosePitch(0.0f)
 	, PoseYaw(0.0f)
 	, DistortionPointsX(40)
 	, DistortionPointsY(40)
+	, NumVerts(0)
+	, NumTris(0)
+	, NumIndices(0)
 {
-	UE_LOG(LogHMD, Log, TEXT("Initializing FGoogleVRHMD"));
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("Initializing FGoogleVRHMD"));
 
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 
@@ -309,10 +295,10 @@ FGoogleVRHMD::FGoogleVRHMD()
 
 #endif
 
-	UE_LOG(LogHMD, Log, TEXT("GoogleVR API created"));
-
 	if(IsInitialized())
 	{
+		UE_LOG(LogHMD, Log, TEXT("GoogleVR API created"));
+
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
 		// Initialize OpenGL resources for API
@@ -321,26 +307,41 @@ FGoogleVRHMD::FGoogleVRHMD()
 		// Set default framebuffer
 		gvr_set_default_framebuffer_active(GVRAPI);
 
-#if GOOGLEVR_FORCE_NATIVE_RESOLUTION
-
-		// Force native resolution as a temporary workaround for iOS
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
-		if(CVar)
-		{
-			CVar->Set(0.0f);
-		}
-
-#endif // GOOGLEVR_FORCE_NATIVE_RESOLUTION
+		// Log the current viewer
+		UE_LOG(LogHMD, Log, TEXT("The current viewer is %s"), UTF8_TO_TCHAR(gvr_get_viewer_model(GVRAPI)));
 
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 
+		// Fix some flags based on deployment mode for Android
+		// Also disable GVR Distortion if scanline racing is not enabled.
+		if(AndroidThunkCpp_ProjectWantsCardboardOnlyMode() || !AndroidThunkCpp_IsScanlineRacingEnabled())
+		{
+			bUseOffscreenFramebuffers = false;
+			bUseGVRApiDistortionCorrection = false;
+		}
+
 		// Show ui on Android
 		AndroidThunkCpp_UiLayer_SetEnabled(true);
-		AndroidThunkCpp_UiLayer_SetTransitionViewEnabled(true);
 		AndroidThunkCpp_UiLayer_SetViewerName(UTF8_TO_TCHAR(gvr_get_viewer_model(GVRAPI)));
 
 		// Set Hardware Scaling in GvrLayout
 		AndroidThunkCpp_GvrLayout_SetFixedPresentationSurfaceSizeToCurrent();
+
+#elif GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+
+		// No support for these
+		bUseOffscreenFramebuffers = false;
+		bUseGVRApiDistortionCorrection = false;
+
+		// Setup and show ui on iOS
+		dispatch_async(dispatch_get_main_queue(), ^
+		{
+			OverlayViewDelegate = [[FOverlayViewDelegate alloc] init];
+			OverlayView = [[GVROverlayView alloc] initWithFrame:[IOSAppDelegate GetDelegate].IOSView.bounds];
+			OverlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+			OverlayView.delegate = OverlayViewDelegate;
+			[[IOSAppDelegate GetDelegate].IOSView addSubview:OverlayView];
+		});
 
 #endif // GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 
@@ -373,6 +374,10 @@ FGoogleVRHMD::FGoogleVRHMD()
 
 		// Initialize distortion mesh and indices
 		SetNumOfDistortionPoints(DistortionPointsX, DistortionPointsY);
+	}
+	else
+	{
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("GoogleVR context failed to create successfully."));
 	}
 }
 
@@ -418,15 +423,10 @@ void FGoogleVRHMD::GetCurrentPose(FQuat& CurrentOrientation)
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
 	// Get head pose
-	const gvr_mat3f& HeadMatrix = CachedPose.rotation;
+	const gvr_quatf& HeadRotation = CachedPose.rotation;
 
 	// Set output orientation
-	CurrentOrientation = FMatrix(
-		FVector(HeadMatrix.m[0][0],	HeadMatrix.m[1][0],	HeadMatrix.m[2][0]),
-		FVector(HeadMatrix.m[0][1],	HeadMatrix.m[1][1],	HeadMatrix.m[2][1]),
-		FVector(HeadMatrix.m[0][2],	HeadMatrix.m[1][2],	HeadMatrix.m[2][2]),
-		FVector(0.0f,				0.0f,				0.0f)
-		).ToQuat();
+	CurrentOrientation = FQuat(HeadRotation.qx, HeadRotation.qy, HeadRotation.qz, HeadRotation.qw);
 
 	// Fix coordinate system for Google -> UE4
 	CurrentOrientation = BaseOrientation * FQuat(-CurrentOrientation.Z, CurrentOrientation.X, CurrentOrientation.Y, -CurrentOrientation.W);
@@ -498,7 +498,7 @@ IRendererModule* FGoogleVRHMD::GetRendererModule()
 	return RendererModule;
 }
 
-void FGoogleVRHMD::ApplicationResumeDelegate()
+void FGoogleVRHMD::RefreshViewerProfile()
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	gvr_refresh_viewer_profile(GVRAPI);
@@ -506,6 +506,11 @@ void FGoogleVRHMD::ApplicationResumeDelegate()
 
 	// Re-Initialize distortion meshes, as the viewer may have changed
 	SetNumOfDistortionPoints(DistortionPointsX, DistortionPointsY);
+}
+
+void FGoogleVRHMD::ApplicationResumeDelegate()
+{
+	RefreshViewerProfile();
 }
 
 void FGoogleVRHMD::HandleGVRBackEvent()
@@ -518,6 +523,10 @@ void FGoogleVRHMD::HandleGVRBackEvent()
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 		GEngine->GameViewport->Viewport->GetClient()->InputKey(GEngine->GameViewport->Viewport, 0, EKeys::Android_Back, EInputEvent::IE_Pressed);
 		GEngine->GameViewport->Viewport->GetClient()->InputKey(GEngine->GameViewport->Viewport, 0, EKeys::Android_Back, EInputEvent::IE_Released);
+#elif GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+		// TODO: iOS doesn't have hardware back buttons, so what should be fired?
+		GEngine->GameViewport->Viewport->GetClient()->InputKey(GEngine->GameViewport->Viewport, 0, EKeys::Global_Back, EInputEvent::IE_Pressed);
+		GEngine->GameViewport->Viewport->GetClient()->InputKey(GEngine->GameViewport->Viewport, 0, EKeys::Global_Back, EInputEvent::IE_Released);
 #endif
 	}
 }
@@ -525,9 +534,10 @@ void FGoogleVRHMD::HandleGVRBackEvent()
 void FGoogleVRHMD::SetDistortionCorrectionEnabled(bool bEnable)
 {
 	// Can't turn off distortion correction if using offscreen framebuffers
-#if !USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS || !GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	bDistortionCorrectionEnabled = bEnable;
-#endif
+	if(!bUseOffscreenFramebuffers || !GOOGLEVRHMD_SUPPORTED_PLATFORMS)
+	{
+		bDistortionCorrectionEnabled = bEnable;
+	}
 }
 
 void FGoogleVRHMD::SetDistortionCorrectionMethod(bool bInUseGVRApiDistortionCorrection)
@@ -538,42 +548,7 @@ void FGoogleVRHMD::SetDistortionCorrectionMethod(bool bInUseGVRApiDistortionCorr
 void FGoogleVRHMD::SetChromaticAberrationCorrectionEnabled(bool bEnable)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	gvr_set_bool_parameter(GVRAPI, GVR_CHROMATIC_ABBERATION_CORRECTED_ENABLED, bEnable);
-#endif
-}
-
-void FGoogleVRHMD::SetUiLayerEnabled(bool bEnable)
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	AndroidThunkCpp_UiLayer_SetEnabled(bEnable);
-#endif
-}
-
-void FGoogleVRHMD::SetUiLayerAlignmentMarkerEnabled(bool bEnable)
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	AndroidThunkCpp_UiLayer_SetAlignmentMarkerEnabled(bEnable);
-#endif
-}
-
-void FGoogleVRHMD::SetUiLayerSettingButtonEnabled(bool bEnable)
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	AndroidThunkCpp_UiLayer_SetSettingsButtonEnabled(bEnable);
-#endif
-}
-
-void FGoogleVRHMD::SetUiLayerTransitionViewEnabled(bool bEnable)
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	AndroidThunkCpp_UiLayer_SetTransitionViewEnabled(bEnable);
-#endif
-}
-
-void FGoogleVRHMD::SetUiLayerBackButtonEnabled(bool bEnable)
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	AndroidThunkCpp_UiLayer_SetBackButtonEnabled(bEnable);
+	gvr_set_bool_parameter(GVRAPI, GVR_CHROMATIC_ABERRATION_CORRECTION_ENABLED, bEnable);
 #endif
 }
 
@@ -666,43 +641,7 @@ bool FGoogleVRHMD::GetDistortionCorrectionEnabled() const
 bool FGoogleVRHMD::IsUsingGVRApiDistortionCorrection() const
 {
 	// Offscreen framebuffers don't support PPHMD
-	return USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS || bUseGVRApiDistortionCorrection;
-}
-
-bool FGoogleVRHMD::GetUiLayerTransitionViewEnabled() const
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	return AndroidThunkCpp_UiLayer_GetTransitionViewEnabled();
-#endif
-
-	return false;
-}
-
-bool FGoogleVRHMD::GetUiLayerSettingsButtonEnabled() const
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	return AndroidThunkCpp_UiLayer_GetSettingsButtonEnabled();
-#endif
-
-	return false;
-}
-
-bool FGoogleVRHMD::GetUiLayerAlignmentMarkerEnabled() const
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	return AndroidThunkCpp_UiLayer_GetAlignmentMarkerEnabled();
-#endif
-
-	return false;
-}
-
-bool FGoogleVRHMD::GetUiLayerBackButtonEnabled() const
-{
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	return AndroidThunkCpp_UiLayer_GetBackButtonEnabled();
-#endif
-
-	return false;
+	return bUseOffscreenFramebuffers || bUseGVRApiDistortionCorrection;
 }
 
 FString FGoogleVRHMD::GetViewerModel()
@@ -844,6 +783,14 @@ const FDistortionVertex* FGoogleVRHMD::GetPreviewViewerVertices(enum EStereoscop
 	}
 }
 
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+uint32 FGoogleVRHMD::GetOffscreenBufferMSAASetting()
+{
+	return OffscreenBufferMSAASetting;
+}
+#endif
+
+
 //////////////////////////////////////////////////////
 // Begin ISceneViewExtension Pure-Virtual Interface //
 //////////////////////////////////////////////////////
@@ -882,7 +829,7 @@ void FGoogleVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RH
 	ConditionalUpdateCache();
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	if(CustomPresent)
+	if(CustomPresent && bUseOffscreenFramebuffers)
 	{
 		CustomPresent->BeginRendering(RHICmdList, InViewFamily);
 	}
@@ -900,6 +847,17 @@ bool FGoogleVRHMD::IsStereoEnabled() const
 
 bool FGoogleVRHMD::EnableStereo(bool stereo)
 {
+
+#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+	// We will not allow stereo rendering to be disabled when using Scanline Racing
+	if(AndroidThunkCpp_IsScanlineRacingEnabled() && !stereo)
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Attemp to disable stereo rendering when using scanline racing. This is not support so the operation will be ignored!"));
+		return true;
+	}
+	AndroidThunkCpp_UiLayer_SetEnabled(stereo);
+#endif
+
 	bStereoEnabled = stereo;
 	GEngine->bForceDisableFrameRateSmoothing = bStereoEnabled;
 	return bStereoEnabled;
@@ -1137,7 +1095,7 @@ bool FGoogleVRHMD::NeedReAllocateViewportRenderTarget(const class FViewport& Vie
 bool FGoogleVRHMD::ShouldUseSeparateRenderTarget() const
 {
 	check(IsInGameThread());
-	return IsStereoEnabled() && (bDistortionCorrectionEnabled || USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS);
+	return IsStereoEnabled() && (bDistortionCorrectionEnabled || bUseOffscreenFramebuffers);
 }
 
 void FGoogleVRHMD::SetClippingPlanes(float NCP, float FCP)
@@ -1161,7 +1119,19 @@ bool FGoogleVRHMD::IsHMDEnabled() const
 
 void FGoogleVRHMD::EnableHMD(bool bEnable)
 {
+#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+	// We will not allow stereo rendering to be disabled when using Scanline Racing
+	if(AndroidThunkCpp_IsScanlineRacingEnabled() && !bEnable)
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Attemp to disable HMD when using scanline racing. This is not support so the operation will be ignored!"));
+		return;
+	}
+#endif
 	bHMDEnabled = bEnable;
+	if(!bHMDEnabled)
+	{
+		EnableStereo(false);
+	}
 }
 
 EHMDDeviceType::Type FGoogleVRHMD::GetHMDDeviceType() const
@@ -1192,8 +1162,11 @@ bool	FGoogleVRHMD::GetHMDMonitorInfo(MonitorInfo& OutMonitorInfo)
 	FPlatformRect Rect = FAndroidWindow::GetScreenRect();
 	OutMonitorInfo.ResolutionX = Rect.Right - Rect.Left;
 	OutMonitorInfo.ResolutionY = Rect.Bottom - Rect.Top;
+#elif GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS
+	FPlatformRect Rect = FIOSWindow::GetScreenRect();
+	OutMonitorInfo.ResolutionX = Rect.Right - Rect.Left;
+	OutMonitorInfo.ResolutionY = Rect.Bottom - Rect.Top;
 #else
-	// TODO: Does IOS have hardware scaling as well as Android?
 	gvr_recti Bounds = gvr_get_window_bounds(GVRAPI);
 	OutMonitorInfo.ResolutionX = Bounds.right - Bounds.left;
 	OutMonitorInfo.ResolutionY = Bounds.top - Bounds.bottom;
@@ -1316,7 +1289,7 @@ bool FGoogleVRHMD::IsChromaAbCorrectionEnabled() const
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
-	return gvr_get_bool_parameter(GVRAPI, GVR_CHROMATIC_ABBERATION_CORRECTED_ENABLED);
+	return gvr_get_bool_parameter(GVRAPI, GVR_CHROMATIC_ABERRATION_CORRECTION_ENABLED);
 
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
@@ -1325,7 +1298,20 @@ bool FGoogleVRHMD::IsChromaAbCorrectionEnabled() const
 
 bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	if (FParse::Command(&Cmd, TEXT("STEREO")))
+	if (FParse::Command(&Cmd, TEXT("HMD")))
+	{
+		if (FParse::Command(&Cmd, TEXT("ON")))
+		{
+			EnableHMD(true);
+			return true;
+		}
+		else if(FParse::Command(&Cmd, TEXT("OFF")))
+		{
+			EnableHMD(false);
+			return true;
+		}
+	}
+	else if (FParse::Command(&Cmd, TEXT("STEREO")))
 	{
 		if (FParse::Command(&Cmd, TEXT("ON")))
 		{
@@ -1373,75 +1359,6 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			return true;
 		}
 	}
-#endif
-#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
-	else if(FParse::Command(&Cmd, TEXT("UI")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			AndroidThunkCpp_UiLayer_SetEnabled(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			AndroidThunkCpp_UiLayer_SetEnabled(false);
-			return true;
-		}
-	}
-	else if(FParse::Command(&Cmd, TEXT("UIALIGNMARKER")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			AndroidThunkCpp_UiLayer_SetAlignmentMarkerEnabled(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			AndroidThunkCpp_UiLayer_SetAlignmentMarkerEnabled(false);
-			return true;
-		}
-	}
-	else if(FParse::Command(&Cmd, TEXT("UISETTINGSBUTTON")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			AndroidThunkCpp_UiLayer_SetSettingsButtonEnabled(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			AndroidThunkCpp_UiLayer_SetSettingsButtonEnabled(false);
-			return true;
-		}
-	}
-	else if(FParse::Command(&Cmd, TEXT("UITRANSITIONVIEW")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			AndroidThunkCpp_UiLayer_SetTransitionViewEnabled(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			AndroidThunkCpp_UiLayer_SetTransitionViewEnabled(false);
-			return true;
-		}
-	}
-	else if(FParse::Command(&Cmd, TEXT("UIBACK")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			AndroidThunkCpp_UiLayer_SetBackButtonEnabled(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			AndroidThunkCpp_UiLayer_SetBackButtonEnabled(false);
-			return true;
-		}
-	}
-#endif
-#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	else if (FParse::Command(&Cmd, TEXT("DISTORTMESH")))
 	{
 		if (FParse::Command(&Cmd, TEXT("VERYSMALL")))
@@ -1470,6 +1387,30 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			return true;
 		}
 	}
+	else if(FParse::Command(&Cmd, TEXT("GVRMSAA"))) // ChromaABCorrection
+	{
+		if (FParse::Command(&Cmd, TEXT("1")))
+		{
+			OffscreenBufferMSAASetting = 1;
+			return true;
+		}
+		else if(FParse::Command(&Cmd, TEXT("2")))
+		{
+			OffscreenBufferMSAASetting = 2;
+			return true;
+		}
+		else if(FParse::Command(&Cmd, TEXT("4")))
+		{
+			OffscreenBufferMSAASetting = 4;
+			return true;
+		}
+		else if(FParse::Command(&Cmd, TEXT("8")))
+		{
+			OffscreenBufferMSAASetting = 8;
+			return true;
+		}
+	}
+
 #endif
 
 	return false;

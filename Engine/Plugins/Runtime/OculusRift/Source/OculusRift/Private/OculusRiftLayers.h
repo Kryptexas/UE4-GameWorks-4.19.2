@@ -29,7 +29,7 @@ namespace OculusRift {
 class FTexture2DSetProxy : public FTextureSetProxy
 {
 public:
-	FTexture2DSetProxy(FOvrSessionSharedParamRef InOvrSession, FTextureRHIParamRef InTexture, uint32 InSrcSizeX, uint32 InSrcSizeY, EPixelFormat InSrcFormat, uint32 InSrcNumMips) 
+	FTexture2DSetProxy(const FOvrSessionSharedPtr& InOvrSession, FTextureRHIParamRef InTexture, uint32 InSrcSizeX, uint32 InSrcSizeY, EPixelFormat InSrcFormat, uint32 InSrcNumMips) 
 		: FTextureSetProxy(InSrcSizeX, InSrcSizeY, InSrcFormat, InSrcNumMips)
 		, Session(InOvrSession), RHITexture(InTexture) 
 	{
@@ -90,12 +90,11 @@ protected:
 	}
 
 protected:
-	FOvrSessionSharedRef Session;
+	FOvrSessionSharedPtr Session;
 	FTextureRHIRef		 RHITexture;
 	FDelegateHandle		 DestroyDelegateHandle;
 };
-typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyParamRef;
-typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyRef;
+typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyPtr;
 
 // Implementation of FHMDRenderLayer for OculusRift.
 class FRenderLayer : public FHMDRenderLayer
@@ -148,7 +147,6 @@ public:
 	// Submits all the layers
 	ovrResult SubmitFrame_RenderThread(ovrSession OvrSession, const class FGameFrame* RenderFrame, bool AdvanceToNextElem);
 
-	bool GetLastVisibilityState() const { return LastVisibilityState; }
 	ovrResult GetLastSubmitFrameResult() const { return (ovrResult)LastSubmitFrameResult.GetValue(); }
 
 	// Should be called when any TextureSet is released; will be reset in PreSubmitUpdate.
@@ -166,7 +164,6 @@ protected:
 	uint32					LayersListLen;
 	uint32					EyeLayerId;
 	FThreadSafeCounter		LastSubmitFrameResult;
-	FThreadSafeBool			LastVisibilityState;
 	FThreadSafeBool			bTextureSetsAreInvalid;
 	bool					bInitialized : 1;
 };

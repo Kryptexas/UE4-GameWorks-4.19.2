@@ -470,11 +470,9 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 	}
 
-	bool bNeedCallFinishFrameForStereo = false;
 	if (GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 	{
 		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
-		bNeedCallFinishFrameForStereo = true;
 	}
 
 	// Calculate renderthread time (excluding idle time).	
@@ -482,10 +480,6 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
-	if (bNeedCallFinishFrameForStereo)
-	{
-		GEngine->StereoRenderingDevice->FinishRenderingFrame_RenderThread(RHICmdList);
-	}
 	uint32 EndTime		= FPlatformTime::Cycles();
 
 	GSwapBufferTime		= EndTime - StartTime;

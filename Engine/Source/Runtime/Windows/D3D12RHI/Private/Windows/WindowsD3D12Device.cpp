@@ -247,9 +247,9 @@ void FD3D12DynamicRHIModule::FindAdapter()
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
 	int32 HmdGraphicsAdapter = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
 	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
-	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
+	int32 CVarExplicitAdapterValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 
-	const bool bFavorNonIntegrated = CVarValue == -1;
+	const bool bFavorNonIntegrated = CVarExplicitAdapterValue == -1;
 
 	TRefCountPtr<IDXGIAdapter> TempAdapter;
 	D3D_FEATURE_LEVEL MaxAllowedFeatureLevel = GetAllowedD3DFeatureLevel();
@@ -306,41 +306,33 @@ void FD3D12DynamicRHIModule::FindAdapter()
 
 				FD3D12Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
 
-				if (bRequestedWARP && !bIsWARP)
-				{
-					// Requested WARP, reject all other adapters.
-					continue;
-				}
+				// Requested WARP, reject all other adapters.
+				const bool bSkipRequestedWARP = bRequestedWARP && !bIsWARP;
+				
+				// Add special check to support WARP and HMDs, which do not have associated outputs.
+				// This device has no outputs. Reject it, 
+				// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8
+				const bool bSkipHmdGraphicsAdapter = !OutputCount && !bIsWARP && !bUseHmdGraphicsAdapter;
+				
+				// we don't allow the PerfHUD adapter
+				const bool bSkipPerfHUDAdapter = bIsPerfHUD && !bAllowPerfHUD;
+				
+				// the user wants a specific adapter, not this one
+				const bool bSkipExplicitAdapter = CVarExplicitAdapterValue >= 0 && AdapterIndex != CVarExplicitAdapterValue;
+				
+				const bool bSkipAdapter = bSkipRequestedWARP || bSkipHmdGraphicsAdapter || bSkipPerfHUDAdapter || bSkipExplicitAdapter;
 
-				if (!OutputCount && !bIsWARP && !bUseHmdGraphicsAdapter)
+				if (!bSkipAdapter)
 				{
-					// Add special check to support WARP and HMDs, which do not have associated outputs.
+					if (!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
+					{
+						FirstWithoutIntegratedAdapter = CurrentAdapter;
+					}
 
-					// This device has no outputs. Reject it, 
-					// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8
-					continue;
-				}
-
-				if (bIsPerfHUD && !bAllowPerfHUD)
-				{
-					// we don't allow the PerfHUD adapter
-					continue;
-				}
-
-				if (CVarValue >= 0 && AdapterIndex != CVarValue)
-				{
-					// the user wants a specific adapter, not this one
-					continue;
-				}
-
-				if (!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
-				{
-					FirstWithoutIntegratedAdapter = CurrentAdapter;
-				}
-
-				if (!FirstAdapter.IsValid())
-				{
-					FirstAdapter = CurrentAdapter;
+					if (!FirstAdapter.IsValid())
+					{
+						FirstAdapter = CurrentAdapter;
+					}
 				}
 			}
 		}

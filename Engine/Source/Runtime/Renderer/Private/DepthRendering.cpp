@@ -798,9 +798,20 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)
 	}
 	else
 	{
-		// When rendering with instanced stereo, render the full frame.
-		RHICmdList.SetViewport(0, 0, 0, View.Family->FamilySizeX, View.ViewRect.Max.Y, 1);
-	}	
+		if (View.bIsMultiViewEnabled)
+		{
+			const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
+			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
+			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
+			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0.0f, LeftMaxX, RightMaxX, View.ViewRect.Max.Y, 1.0f);
+		}
+		else
+		{
+			// When rendering with instanced stereo, render the full frame.
+			RHICmdList.SetViewport(0, 0, 0, View.Family->FamilySizeX, View.ViewRect.Max.Y, 1);
+		}
+	}
 }
 
 static void RenderHiddenAreaMaskView(FRHICommandList& RHICmdList, const FViewInfo& View)

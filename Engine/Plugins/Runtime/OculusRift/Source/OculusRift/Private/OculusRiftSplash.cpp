@@ -274,20 +274,20 @@ void FOculusRiftSplash::PushFrame()
 		struct FSplashRenParams
 		{
 			FCustomPresent*		pCustomPresent;
-			FHMDGameFrameRef	CurrentFrame;
-			FHMDGameFrameRef*	RenderFrameRef;
+			FHMDGameFramePtr	CurrentFrame;
+			FHMDGameFramePtr*	RenderFramePtr;
 		};
 
 		FSplashRenParams params;
 		params.pCustomPresent = pCustomPresent;
 		params.CurrentFrame = CurrentFrame;
-		params.RenderFrameRef = &RenderFrame;
+		params.RenderFramePtr = &RenderFrame;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(SubmitSplash,
 		const FSplashRenParams&, Params, params,
 		FLayerManager*, LayerMgr, LayerMgr.Get(),
 		{
-			*Params.RenderFrameRef = Params.CurrentFrame;
+			*Params.RenderFramePtr = Params.CurrentFrame;
 
 			auto pCurrentFrame = (FGameFrame*)Params.CurrentFrame.Get();
 			FOvrSessionShared::AutoSession OvrSession(Params.pCustomPresent->GetSession());

@@ -538,6 +538,30 @@ struct FRHICommandSetViewport : public FRHICommand<FRHICommandSetViewport>
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
+struct FRHICommandSetStereoViewport : public FRHICommand<FRHICommandSetStereoViewport>
+{
+	uint32 LeftMinX;
+	uint32 RightMinX;
+	uint32 MinY;
+	float MinZ;
+	uint32 LeftMaxX;
+	uint32 RightMaxX;
+	uint32 MaxY;
+	float MaxZ;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetStereoViewport(uint32 InLeftMinX, uint32 InRightMinX, uint32 InMinY, float InMinZ, uint32 InLeftMaxX, uint32 InRightMaxX, uint32 InMaxY, float InMaxZ)
+		: LeftMinX(InLeftMinX)
+		, RightMinX(InRightMinX)
+		, MinY(InMinY)
+		, MinZ(InMinZ)
+		, LeftMaxX(InLeftMaxX)
+		, RightMaxX(InRightMaxX)
+		, MaxY(InMaxY)
+		, MaxZ(InMaxZ)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
 struct FRHICommandSetScissorRect : public FRHICommand<FRHICommandSetScissorRect>
 {
 	bool bEnable;
@@ -1637,6 +1661,16 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandSetViewport>()) FRHICommandSetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHISetStereoViewport)(LeftMinX, RightMinX, MinY, MinZ, LeftMaxX, RightMaxX, MaxY, MaxZ);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetStereoViewport>()) FRHICommandSetStereoViewport(LeftMinX, RightMinX, MinY, MinZ, LeftMaxX, RightMaxX, MaxY, MaxZ);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)

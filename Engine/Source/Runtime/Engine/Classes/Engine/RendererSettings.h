@@ -330,6 +330,13 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bInstancedStereo:1;
 
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		EditCondition = "bInstancedStereo",
+		ConsoleVariable = "vr.MultiView", DisplayName = "Multi-View",
+		ToolTip = "Enable multi-view for instanced stereo rendering (only available on the PS4).",
+		ConfigRestartRequired = true))
+	uint32 bMultiView : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))

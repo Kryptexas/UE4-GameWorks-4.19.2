@@ -638,6 +638,11 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass
 			//OutViewInfo.bConstrainAspectRatio = true;
         }
     }
+
+	for (int ViewExt = 0; ViewExt < GEngine->ViewExtensions.Num(); ViewExt++)
+	{
+		GEngine->ViewExtensions[ViewExt]->SetupViewPoint(PlayerController, OutViewInfo);
+	}
 }
 
 bool ULocalPlayer::CalcSceneViewInitOptions(

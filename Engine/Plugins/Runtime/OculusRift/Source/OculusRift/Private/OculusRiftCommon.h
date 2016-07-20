@@ -151,7 +151,6 @@ private:
 	FOvrSessionSharedDelegate DestoryDelegate;
 
 };
-typedef TSharedPtr<FOvrSessionShared, ESPMode::ThreadSafe> FOvrSessionSharedRef;
-typedef TSharedPtr<FOvrSessionShared, ESPMode::ThreadSafe> FOvrSessionSharedParamRef;
+typedef TSharedPtr<FOvrSessionShared, ESPMode::ThreadSafe> FOvrSessionSharedPtr;
 
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS

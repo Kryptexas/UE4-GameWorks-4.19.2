@@ -14,6 +14,9 @@
 
 #include "SlateBasics.h"
 
+#if !UE_BUILD_SHIPPING
+#include "OculusStressTests.h"
+#endif
 
 // STATGROUP_OculusRiftHMD is declared in OculusRiftHMD.h
 DEFINE_STAT(STAT_BeginRendering); // see OculusRiftHMD.h
@@ -380,9 +383,16 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			// leftover pixels from a previous frame
 			const bool bClearRenderTargetToBlackFirst = ( DstViewRect != BackBufferRect );
 
-			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), DstViewRect, SrcViewRect, false, bClearRenderTargetToBlackFirst);
+			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), FIntRect(), SrcViewRect, false, bClearRenderTargetToBlackFirst);
 		}
 	}
+#if !UE_BUILD_SHIPPING
+	if (StressTester)
+	{
+		StressTester->TickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);
+		//StressTester->TickGPU_RenderThread(RHICmdList, SrcTexture, BackBuffer);
+	}
+#endif
 }
 
 static void DrawOcclusionMesh(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass, const FHMDViewMesh MeshAssets[])
@@ -799,7 +809,7 @@ void FOculusRiftHMD::ShutdownRendering()
 // FCustomPresent
 //-------------------------------------------------------------------------------------------------
 
-FCustomPresent::FCustomPresent(FOvrSessionSharedParamRef InOvrSession)
+FCustomPresent::FCustomPresent(const FOvrSessionSharedPtr& InOvrSession)
 	: FRHICustomPresent(nullptr)
 	, Session(InOvrSession)
 	, LayerMgr(MakeShareable(new FLayerManager(this)))
@@ -979,13 +989,13 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 			LayerMgr->InvalidateTextureSets();
 		}
 
-		FTexture2DSetProxyRef ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, DefaultEyeBuffer);
+		FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, DefaultEyeBuffer);
 		if (ColorTextureSet.IsValid())
 		{
 			// update the eye layer textureset. at the moment only one eye layer is supported
-			const FHMDLayerDesc* pEyeLayerDescUpdate = LayerMgr->GetEyeLayerDesc();
-			check(pEyeLayerDescUpdate);
-			FHMDLayerDesc EyeLayerDesc = *pEyeLayerDescUpdate;
+			const FHMDLayerDesc* pEyeLayerDescToUpdate = LayerMgr->GetEyeLayerDesc();
+			check(pEyeLayerDescToUpdate);
+			FHMDLayerDesc EyeLayerDesc = *pEyeLayerDescToUpdate;
 			EyeLayerDesc.SetHighQuality(bEyeLayerShouldBeHQ);
 			EyeLayerDesc.SetTextureSet(ColorTextureSet);
 			LayerMgr->UpdateLayer(EyeLayerDesc);

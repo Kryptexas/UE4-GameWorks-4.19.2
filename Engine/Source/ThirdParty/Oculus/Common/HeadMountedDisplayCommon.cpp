@@ -3,6 +3,10 @@
 #include "Engine.h"
 #include "HeadMountedDisplayCommon.h"
 
+#if !UE_BUILD_SHIPPING
+#include "OculusStressTests.h"
+#endif
+
 FHMDSettings::FHMDSettings() :
 	SavedScrPerc(100.f)
 	, ScreenPercentage(100.f)
@@ -164,6 +168,17 @@ FHeadMountedDisplay::FHeadMountedDisplay()
 #endif
 
 	CurrentFrameNumber.Set(1);
+
+#if !UE_BUILD_SHIPPING
+	StressTester = nullptr;
+#endif // #if !UE_BUILD_SHIPPING
+}
+
+FHeadMountedDisplay::~FHeadMountedDisplay()
+{
+#if !UE_BUILD_SHIPPING
+	delete StressTester;
+#endif
 }
 
 bool FHeadMountedDisplay::IsInitialized() const
@@ -227,6 +242,13 @@ FHMDGameFrame* FHeadMountedDisplay::GetCurrentFrame() const
 bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 {
 	check(IsInGameThread());
+
+#if !UE_BUILD_SHIPPING
+	if (StressTester)
+	{
+		StressTester->TickCPU_GameThread(this);
+	}
+#endif
 
 	if( !WorldContext.World() || ( !( GEnableVREditorHacks && WorldContext.WorldType == EWorldType::Editor ) && !WorldContext.World()->IsGameWorld() ) )	// @todo vreditor: (Also see OnEndGameFrame()) Kind of a hack here so we can use VR in editor viewports.  We need to consider when running GameWorld viewports inside the editor with VR.
 	{
@@ -413,10 +435,6 @@ bool FHeadMountedDisplay::DoesSupportPositionalTracking() const
 bool FHeadMountedDisplay::HasValidTrackingPosition()
 {
 	return false;
-}
-
-void FHeadMountedDisplay::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
-{
 }
 
 void FHeadMountedDisplay::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
@@ -872,6 +890,63 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 			Settings->PositionOffset.Z = FCString::Atof(*StrZ);
 		}
 	}
+	else if (FParse::Command(&Cmd, TEXT("STRESS")))
+	{
+		if (!StressTester)
+		{
+			StressTester = new FOculusStressTester;
+		}
+		if (FParse::Command(&Cmd, TEXT("GPU")))
+		{
+			StressTester->SetStressMode(FOculusStressTester::STM_GPU | StressTester->GetStressMode());
+			FString ValueStr = FParse::Token(Cmd, 0);
+			if (!ValueStr.IsEmpty())
+			{
+				const int gpuMult = FCString::Atoi(*ValueStr);
+				StressTester->SetGPULoadMultiplier(gpuMult);
+			}
+			ValueStr = FParse::Token(Cmd, 0);
+			if (!ValueStr.IsEmpty())
+			{
+				const float gpuTimeLimit = FCString::Atof(*ValueStr);
+				StressTester->SetGPUsTimeLimitInSeconds(gpuTimeLimit);
+			}
+		}
+		else if (FParse::Command(&Cmd, TEXT("CPU")))
+		{
+			StressTester->SetStressMode(FOculusStressTester::STM_CPUSpin | StressTester->GetStressMode());
+
+			// Specify CPU spin off delta per frame in seconds
+			FString ValueStr = FParse::Token(Cmd, 0);
+			if (!ValueStr.IsEmpty())
+			{
+				const float cpuLimit = FCString::Atof(*ValueStr);
+				StressTester->SetCPUSpinOffPerFrameInSeconds(cpuLimit);
+			}
+			ValueStr = FParse::Token(Cmd, 0);
+			if (!ValueStr.IsEmpty())
+			{
+				const float cpuTimeLimit = FCString::Atof(*ValueStr);
+				StressTester->SetCPUsTimeLimitInSeconds(cpuTimeLimit);
+			}
+		}
+		else if (FParse::Command(&Cmd, TEXT("PD")))
+		{
+			StressTester->SetStressMode(FOculusStressTester::STM_EyeBufferRealloc | StressTester->GetStressMode());
+			FString ValueStr = FParse::Token(Cmd, 0);
+			if (!ValueStr.IsEmpty())
+			{
+				const float timeLimit = FCString::Atof(*ValueStr);
+				StressTester->SetPDsTimeLimitInSeconds(timeLimit);
+			}
+		}
+		else if (FParse::Command(&Cmd, TEXT("RESET")))
+		{
+			StressTester->SetStressMode(0);
+		}
+
+		return true;
+	}
 #endif //!UE_BUILD_SHIPPING
 	else if (FParse::Command(&Cmd, TEXT("HMDPOS")))
 	{
@@ -1183,75 +1258,79 @@ void FHeadMountedDisplay::DrawDebugTrackingCameraFrustum(UWorld* World, const FR
 	FVector origin;
 	FQuat orient;
 	float hfovDeg, vfovDeg, nearPlane, farPlane, cameraDist;
-	GetPositionalTrackingCameraProperties(origin, orient, hfovDeg, vfovDeg, cameraDist, nearPlane, farPlane);
-
-	FVector HeadPosition;
-	FQuat HeadOrient;
-	GetCurrentPose(HeadOrient, HeadPosition, false, false);
-	const FQuat DeltaControlOrientation = ViewRotation.Quaternion() * HeadOrient.Inverse();
-
-	orient = DeltaControlOrientation * orient;
-	if( frame->Flags.bPositionChanged && ( !frame->Flags.bPlayerControllerFollowsHmd ) )
+	uint32 nSensors = GetNumOfTrackingSensors();
+	for (uint8 sensorIndex = 0; sensorIndex < nSensors; ++sensorIndex)
 	{
-		origin = origin - HeadPosition;
+		GetTrackingSensorProperties(sensorIndex, origin, orient, hfovDeg, vfovDeg, cameraDist, nearPlane, farPlane);
+
+		FVector HeadPosition;
+		FQuat HeadOrient;
+		GetCurrentPose(HeadOrient, HeadPosition, false, false);
+		const FQuat DeltaControlOrientation = ViewRotation.Quaternion() * HeadOrient.Inverse();
+
+		orient = DeltaControlOrientation * orient;
+		if (frame->Flags.bPositionChanged && !frame->Flags.bPlayerControllerFollowsHmd)
+		{
+			origin = origin - HeadPosition;
+		}
+		origin = DeltaControlOrientation.RotateVector(origin);
+
+		// Level line
+		//DrawDebugLine(World, ViewLocation, FVector(ViewLocation.X + 1000, ViewLocation.Y, ViewLocation.Z), FColor::Blue);
+
+		const float hfov = FMath::DegreesToRadians(hfovDeg * 0.5f);
+		const float vfov = FMath::DegreesToRadians(vfovDeg * 0.5f);
+		FVector coneTop(0, 0, 0);
+		FVector coneBase1(-farPlane, farPlane * FMath::Tan(hfov), farPlane * FMath::Tan(vfov));
+		FVector coneBase2(-farPlane, -farPlane * FMath::Tan(hfov), farPlane * FMath::Tan(vfov));
+		FVector coneBase3(-farPlane, -farPlane * FMath::Tan(hfov), -farPlane * FMath::Tan(vfov));
+		FVector coneBase4(-farPlane, farPlane * FMath::Tan(hfov), -farPlane * FMath::Tan(vfov));
+		FMatrix m(FMatrix::Identity);
+		m = orient * m;
+		m *= FScaleMatrix(frame->CameraScale3D);
+		m *= FTranslationMatrix(origin);
+		m *= FTranslationMatrix(ViewLocation); // to location of pawn
+		coneTop = m.TransformPosition(coneTop);
+		coneBase1 = m.TransformPosition(coneBase1);
+		coneBase2 = m.TransformPosition(coneBase2);
+		coneBase3 = m.TransformPosition(coneBase3);
+		coneBase4 = m.TransformPosition(coneBase4);
+
+		// draw a point at the camera pos
+		DrawDebugPoint(World, coneTop, 5, c);
+
+		// draw main pyramid, from top to base
+		DrawDebugLine(World, coneTop, coneBase1, c);
+		DrawDebugLine(World, coneTop, coneBase2, c);
+		DrawDebugLine(World, coneTop, coneBase3, c);
+		DrawDebugLine(World, coneTop, coneBase4, c);
+
+		// draw base (far plane)				  
+		DrawDebugLine(World, coneBase1, coneBase2, c);
+		DrawDebugLine(World, coneBase2, coneBase3, c);
+		DrawDebugLine(World, coneBase3, coneBase4, c);
+		DrawDebugLine(World, coneBase4, coneBase1, c);
+
+		// draw near plane
+		FVector coneNear1(-nearPlane, nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
+		FVector coneNear2(-nearPlane, -nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
+		FVector coneNear3(-nearPlane, -nearPlane * FMath::Tan(hfov), -nearPlane * FMath::Tan(vfov));
+		FVector coneNear4(-nearPlane, nearPlane * FMath::Tan(hfov), -nearPlane * FMath::Tan(vfov));
+		coneNear1 = m.TransformPosition(coneNear1);
+		coneNear2 = m.TransformPosition(coneNear2);
+		coneNear3 = m.TransformPosition(coneNear3);
+		coneNear4 = m.TransformPosition(coneNear4);
+		DrawDebugLine(World, coneNear1, coneNear2, c);
+		DrawDebugLine(World, coneNear2, coneNear3, c);
+		DrawDebugLine(World, coneNear3, coneNear4, c);
+		DrawDebugLine(World, coneNear4, coneNear1, c);
+
+		// center line
+		FVector centerLine(-cameraDist, 0, 0);
+		centerLine = m.TransformPosition(centerLine);
+		DrawDebugLine(World, coneTop, centerLine, FColor::Yellow);
+		DrawDebugPoint(World, centerLine, 5, FColor::Yellow);
 	}
-	origin = DeltaControlOrientation.RotateVector(origin);
-
-	// Level line
-	//DrawDebugLine(World, ViewLocation, FVector(ViewLocation.X + 1000, ViewLocation.Y, ViewLocation.Z), FColor::Blue);
-
-	const float hfov = FMath::DegreesToRadians(hfovDeg * 0.5f);
-	const float vfov = FMath::DegreesToRadians(vfovDeg * 0.5f);
-	FVector coneTop(0, 0, 0);
-	FVector coneBase1(-farPlane, farPlane * FMath::Tan(hfov), farPlane * FMath::Tan(vfov));
-	FVector coneBase2(-farPlane, -farPlane * FMath::Tan(hfov), farPlane * FMath::Tan(vfov));
-	FVector coneBase3(-farPlane, -farPlane * FMath::Tan(hfov), -farPlane * FMath::Tan(vfov));
-	FVector coneBase4(-farPlane, farPlane * FMath::Tan(hfov), -farPlane * FMath::Tan(vfov));
-	FMatrix m(FMatrix::Identity);
-	m = orient * m;
-	m *= FScaleMatrix(frame->CameraScale3D);
-	m *= FTranslationMatrix(origin);
-	m *= FTranslationMatrix(ViewLocation); // to location of pawn
-	coneTop = m.TransformPosition(coneTop);
-	coneBase1 = m.TransformPosition(coneBase1);
-	coneBase2 = m.TransformPosition(coneBase2);
-	coneBase3 = m.TransformPosition(coneBase3);
-	coneBase4 = m.TransformPosition(coneBase4);
-
-	// draw a point at the camera pos
-	DrawDebugPoint(World, coneTop, 5, c);
-
-	// draw main pyramid, from top to base
-	DrawDebugLine(World, coneTop, coneBase1, c);
-	DrawDebugLine(World, coneTop, coneBase2, c);
-	DrawDebugLine(World, coneTop, coneBase3, c);
-	DrawDebugLine(World, coneTop, coneBase4, c);
-
-	// draw base (far plane)				  
-	DrawDebugLine(World, coneBase1, coneBase2, c);
-	DrawDebugLine(World, coneBase2, coneBase3, c);
-	DrawDebugLine(World, coneBase3, coneBase4, c);
-	DrawDebugLine(World, coneBase4, coneBase1, c);
-
-	// draw near plane
-	FVector coneNear1(-nearPlane, nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
-	FVector coneNear2(-nearPlane, -nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
-	FVector coneNear3(-nearPlane, -nearPlane * FMath::Tan(hfov), -nearPlane * FMath::Tan(vfov));
-	FVector coneNear4(-nearPlane, nearPlane * FMath::Tan(hfov), -nearPlane * FMath::Tan(vfov));
-	coneNear1 = m.TransformPosition(coneNear1);
-	coneNear2 = m.TransformPosition(coneNear2);
-	coneNear3 = m.TransformPosition(coneNear3);
-	coneNear4 = m.TransformPosition(coneNear4);
-	DrawDebugLine(World, coneNear1, coneNear2, c);
-	DrawDebugLine(World, coneNear2, coneNear3, c);
-	DrawDebugLine(World, coneNear3, coneNear4, c);
-	DrawDebugLine(World, coneNear4, coneNear1, c);
-
-	// center line
-	FVector centerLine(-cameraDist, 0, 0);
-	centerLine = m.TransformPosition(centerLine);
-	DrawDebugLine(World, coneTop, centerLine, FColor::Yellow);
-	DrawDebugPoint(World, centerLine, 5, FColor::Yellow);
 }
 
 void FHeadMountedDisplay::DrawSeaOfCubes(UWorld* World, FVector ViewLocation)
@@ -1346,7 +1425,7 @@ static FHMDLayerManager::LayerOriginType ConvertLayerType(IStereoLayers::ELayerT
 	{
 	case IStereoLayers::WorldLocked:
 		return FHMDLayerManager::Layer_WorldLocked;
-	case IStereoLayers::TorsoLocked:
+	case IStereoLayers::TrackerLocked:
 		return FHMDLayerManager::Layer_TorsoLocked;
 	case IStereoLayers::FaceLocked:
 		return FHMDLayerManager::Layer_HeadLocked;
@@ -1422,7 +1501,7 @@ void FHeadMountedDisplay::SetLayerDesc(uint32 LayerId, const IStereoLayers::FLay
 		FHMDLayerDesc Layer = *pLayer;
 		Layer.SetFlags(InLayerDesc.Flags);
 		Layer.SetLockedToHead(InLayerDesc.Type == IStereoLayers::ELayerType::FaceLocked);
-		Layer.SetLockedToTorso(InLayerDesc.Type == IStereoLayers::ELayerType::TorsoLocked);
+		Layer.SetLockedToTorso(InLayerDesc.Type == IStereoLayers::ELayerType::TrackerLocked);
 		Layer.SetTexture(InLayerDesc.Texture);
 		Layer.SetQuadSize(NewQuadSize);
 		Layer.SetTransform(InLayerDesc.Transform);
@@ -1464,7 +1543,7 @@ bool FHeadMountedDisplay::GetLayerDesc(uint32 LayerId, IStereoLayers::FLayerDesc
 	}
 	else if (Layer.IsTorsoLocked())
 	{
-		OutLayerDesc.Type = IStereoLayers::TorsoLocked;
+		OutLayerDesc.Type = IStereoLayers::TrackerLocked;
 	}
 	else
 	{
@@ -1557,7 +1636,7 @@ void FHMDLayerDesc::SetTexture(FTextureRHIRef InTexture)
 	LayerManager.SetDirty();
 }
 
-void FHMDLayerDesc::SetTextureSet(FTextureSetProxyParamRef InTextureSet)
+void FHMDLayerDesc::SetTextureSet(const FTextureSetProxyPtr& InTextureSet)
 {
 	TextureSet = InTextureSet;
 	bTextureHasChanged = true;
@@ -1859,7 +1938,7 @@ void FHMDLayerManager::ReleaseTextureSetsInArray_RenderThread_NoLock(TArray<TSha
 	{
 		if (Layers[i].IsValid())
 		{
-			FTextureSetProxyRef TexSet = Layers[i]->GetTextureSet();
+			FTextureSetProxyPtr TexSet = Layers[i]->GetTextureSet();
 			if (TexSet.IsValid())
 			{
 				TexSet->ReleaseResources();

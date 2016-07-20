@@ -95,7 +95,19 @@ void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Ey
 			gvr_vec2f UndistortedCoord = gvr_vec2f{float(x) / float(DistortionPointsX - 1), float(y) / float(DistortionPointsY - 1)};
 			gvr_vec2f DistortedCoords[3];
 			gvr_compute_distorted_point(GVRAPI, Type, UndistortedCoord, DistortedCoords);
-			const FVector2D ScreenPos = FVector2D(UndistortedCoord.x * 2.0f - 1.0f, UndistortedCoord.y * 2.0f - 1.0f);
+
+			float ScreenYDirection = -1.0f;
+
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS && HAS_METAL
+			// Metal render the scene flipped, so we need to flip to back again.
+			bool bSupportsMetal = false;
+			GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
+			if(bSupportsMetal)
+			{
+				ScreenYDirection = 1.0f;
+			}
+#endif
+			const FVector2D ScreenPos = FVector2D(UndistortedCoord.x * 2.0f - 1.0f, (UndistortedCoord.y * 2.0f - 1.0f) * ScreenYDirection);
 
 			const FVector2D UndistortedUV = FVector2D(UndistortedCoord.x, UndistortedCoord.y);
 			const FVector2D OrigRedUV = FVector2D(DistortedCoords[0].x, DistortedCoords[0].y);
@@ -104,12 +116,17 @@ void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Ey
 
 			// Final distorted UVs
 			FVector2D FinalRedUV = OrigRedUV;
-			FinalRedUV.Y = 1.0f - FinalRedUV.Y;
 			FVector2D FinalGreenUV = OrigGreenUV;
-			FinalGreenUV.Y = 1.0f - FinalGreenUV.Y;
 			FVector2D FinalBlueUV = OrigBlueUV;
-			FinalBlueUV.Y = 1.0f - FinalBlueUV.Y;
 
+#if GOOGLEVRHMD_SUPPORTED_IOS_PLATFORMS && HAS_METAL
+			if(bSupportsMetal)
+			{
+				FinalRedUV.Y = 1.0f - FinalRedUV.Y;
+				FinalGreenUV.Y = 1.0f - FinalGreenUV.Y;
+				FinalBlueUV.Y = 1.0f - FinalBlueUV.Y;
+			}
+#endif
 			FDistortionVertex FinalVertex = FDistortionVertex{ ScreenPos, FinalRedUV, FinalGreenUV, FinalBlueUV, 1.0f, 0.0f };
 			Verts[VertexIndex++] = FinalVertex;
 			
@@ -260,7 +277,7 @@ static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, IRe
 		RHICmdList.ClearMRT(false, 0, nullptr, false, 0.0f, false, 0, FIntRect());
 	}
 
-	RHICmdList.Flush();
+	RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 
 #endif
 }
@@ -290,22 +307,7 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 		}
 
 		// Perform render
-#if !USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS
-		// With proper resolution scaling, this should always be true!
-		check(ViewportWidth == TextureWidth);
-		check(ViewportHeight == TextureHeight);
-
-		// Set target to back buffer
-		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 1.0f);
-		ResolvePendingRenderTarget(RHICmdList, RendererModule);
-
-		gvr_distort_to_screen(GVRAPI, *reinterpret_cast<GLuint*>(SrcTexture->GetNativeResource()),
-			CachedDistortedRenderTextureParams,
-			&CachedPose,
-			&CachedFuturePoseTime);
-#else
-		if(!IsDeviceScanlineRacingEnabled())
+		if(!bUseOffscreenFramebuffers)
 		{
 			// With proper resolution scaling, this should always be true!
 			check(ViewportWidth == TextureWidth);
@@ -315,13 +317,31 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
 			RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 1.0f);
 			ResolvePendingRenderTarget(RHICmdList, RendererModule);
-		}
 
-		gvr_distort_offscreen_framebuffer_to_screen(GVRAPI, CustomPresent->GetFrameBufferId(),
-			CachedDistortedRenderTextureParams,
-			&CachedPose,
-			&CachedFuturePoseTime);
-#endif
+			gvr_distort_to_screen(GVRAPI, *reinterpret_cast<GLuint*>(SrcTexture->GetNativeResource()),
+				CachedDistortedRenderTextureParams,
+				&CachedPose,
+				&CachedFuturePoseTime);
+		}
+		else
+		{
+			if(!IsDeviceScanlineRacingEnabled())
+			{
+				// With proper resolution scaling, this should always be true!
+				check(ViewportWidth == TextureWidth);
+				check(ViewportHeight == TextureHeight);
+
+				// Set target to back buffer
+				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+				RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 1.0f);
+				ResolvePendingRenderTarget(RHICmdList, RendererModule);
+			}
+
+			gvr_distort_offscreen_framebuffer_to_screen(GVRAPI, CustomPresent->GetFrameBufferId(),
+				CachedDistortedRenderTextureParams,
+				&CachedPose,
+				&CachedFuturePoseTime);
+		}
 	}
 	else // falls through on purpose
 
@@ -378,7 +398,7 @@ FRHICustomPresent* FGoogleVRHMD::GetCustomPresent()
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 
-	if(USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS)
+	if(bUseOffscreenFramebuffers)
 	{
 		return CustomPresent;
 	}
@@ -400,10 +420,13 @@ bool FGoogleVRHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint3
 	check(IsInGameThread() && IsInRenderingThread()); // checking if rendering thread is suspended
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	return CustomPresent ? CustomPresent->AllocateRenderTargetTexture(Index, SizeX, SizeY, Format, NumMips, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples) : false;
-#else
-	return false;
+	if(bUseOffscreenFramebuffers)
+	{
+		return CustomPresent ? CustomPresent->AllocateRenderTargetTexture(Index, SizeX, SizeY, Format, NumMips, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples) : false;
+	}
 #endif
+
+	return false;
 }
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
@@ -482,9 +505,19 @@ FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 	check(DesiredSizeX == (uint32)ActualScreenSizeX);
 	check(DesiredSizeY == (uint32)ActualScreenSizeY);
 
+
+	// Get MobileMSAA Settings and use that to set the MSAA on offscreen buffer
+	// TODO: Use the MSAA setting from Unreal.
+	// We are using the OffscreenBufferMSAASetting in our plugin for now since Unreal only support
+	// 2x MSAA for android using gles.
+
 	// Create resource using GVR Api
+	gvr_framebuffer_spec* FramebufferSpec = gvr_framebuffer_spec_create(GVRAPI);
 	gvr_sizei TextureSize = gvr_sizei{ActualScreenSizeX, ActualScreenSizeY};
-	int ResourceIdentifier = gvr_create_offscreen_framebuffer(GVRAPI, TextureSize);
+	gvr_framebuffer_spec_set_size(FramebufferSpec, TextureSize);
+	gvr_framebuffer_spec_set_samples(FramebufferSpec, FGoogleVRHMD::GetOffscreenBufferMSAASetting());
+	int ResourceIdentifier = gvr_create_offscreen_framebuffer(GVRAPI, FramebufferSpec);
+	gvr_framebuffer_spec_destroy(&FramebufferSpec);
 
 	// Fail?
 	if(ResourceIdentifier == 0)
@@ -513,10 +546,6 @@ bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32
 {
 	check(SizeX != 0 && SizeY != 0);
 
-#if !USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS
-	return false;
-#endif
-
 	InFlags |= TargetableTextureFlags;
 
 	FOpenGLDynamicRHI* GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
@@ -542,7 +571,7 @@ bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32
 void FGoogleVRHMDCustomPresent::BeginRendering(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	if(TextureSet.IsValid() && USE_GVRAPI_OFFSCREEN_FRAMEBUFFERS)
+	if(TextureSet.IsValid())
 	{
 		// Binds a framebuffer to the pipeline.  When scanline racing, this resource changes every frame.  We need to grab the texture
 		// attachment id to apply to the texture set below.

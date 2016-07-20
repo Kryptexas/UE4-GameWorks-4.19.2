@@ -270,9 +270,9 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
 	int32 HmdGraphicsAdapter  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
 	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
-	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
+	int32 CVarExplicitAdapterValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 
-	const bool bFavorNonIntegrated = CVarValue == -1;
+	const bool bFavorNonIntegrated = CVarExplicitAdapterValue == -1;
 
 	TRefCountPtr<IDXGIAdapter> TempAdapter;
 	D3D_FEATURE_LEVEL MaxAllowedFeatureLevel = GetAllowedD3DFeatureLevel();
@@ -336,36 +336,31 @@ void FD3D11DynamicRHIModule::FindAdapter()
 
 				FD3D11Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
 
-				if(bIsMicrosoft && CVarValue < 0 && !bUseHmdGraphicsAdapter)
-				{
-					// Add special check to support HMDs, which do not have associated outputs.
+				// Add special check to support HMDs, which do not have associated outputs.
+				// To reject the software emulation, unless the cvar wants it.
+				// https://msdn.microsoft.com/en-us/library/windows/desktop/bb205075(v=vs.85).aspx#WARP_new_for_Win8
+				// Before we tested for no output devices but that failed where a laptop had a Intel (with output) and NVidia (with no output)
+				const bool bSkipHmdGraphicsAdapter = bIsMicrosoft && CVarExplicitAdapterValue < 0 && !bUseHmdGraphicsAdapter;
+				
+				// we don't allow the PerfHUD adapter
+				const bool bSkipPerfHUDAdapter = bIsPerfHUD && !bAllowPerfHUD;
+				
+				// the user wants a specific adapter, not this one
+				const bool bSkipExplicitAdapter = CVarExplicitAdapterValue >= 0 && AdapterIndex != CVarExplicitAdapterValue;
+				
+				const bool bSkipAdapter = bSkipHmdGraphicsAdapter || bSkipPerfHUDAdapter || bSkipExplicitAdapter;
 
-					// To reject the software emulation, unless the cvar wants it.
-					// https://msdn.microsoft.com/en-us/library/windows/desktop/bb205075(v=vs.85).aspx#WARP_new_for_Win8
-					// Before we tested for no output devices but that failed where a laptop had a Intel (with output) and NVidia (with no output)
-					continue;
-				}
-
-				if(bIsPerfHUD && !bAllowPerfHUD)
+				if (!bSkipAdapter)
 				{
-					// we don't allow the PerfHUD adapter
-					continue;
-				}
+					if (!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
+					{
+						FirstWithoutIntegratedAdapter = CurrentAdapter;
+					}
 
-				if(CVarValue >= 0 && AdapterIndex != CVarValue)
-				{
-					// the user wants a specific adapter, not this one
-					continue;
-				}
-
-				if(!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
-				{
-					FirstWithoutIntegratedAdapter = CurrentAdapter;
-				}
-
-				if(!FirstAdapter.IsValid())
-				{
-					FirstAdapter = CurrentAdapter;
+					if (!FirstAdapter.IsValid())
+					{
+						FirstAdapter = CurrentAdapter;
+					}
 				}
 			}
 		}

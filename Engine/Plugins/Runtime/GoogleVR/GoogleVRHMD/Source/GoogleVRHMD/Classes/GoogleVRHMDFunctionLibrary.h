@@ -37,7 +37,6 @@ class GOOGLEVRHMD_API UGoogleVRHMDFunctionLibrary : public UBlueprintFunctionLib
 	GENERATED_UCLASS_BODY()
 
 public:
-	
 	/** Enable/disable chromatic aberration correction */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static void SetChromaticAberrationCorrectionEnabled(bool bEnable);
@@ -45,26 +44,6 @@ public:
 	/** Enable/disable distortion correction */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static void SetDistortionCorrectionEnabled(bool bEnable);
-
-	/** Enable/disable entire UiLayer */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static void SetUiLayerEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Alignment Marker */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static void SetUiLayerAlignmentMarkerEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Settings Button  */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static void SetUiLayerSettingButtonEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Transition View */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static void SetUiLayerTransitionViewEnabled(bool bEnable);
-
-	/** Enable/disable UiLayer Back Button */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static void SetUiLayerBackButtonEnabled(bool bEnable);
 
 	/** Change the default viewer profile */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
@@ -77,22 +56,6 @@ public:
 	/** Check if distortion correction is enabled */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool GetDistortionCorrectionEnabled();
-
-	/** Check if transition view is enabled */
-	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static bool GetUiLayerTransitionViewEnabled();
-
-	/** Check if settings button is enabled */
-	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static bool GetUiLayerSettingsButtonEnabled();
-
-	/** Check if alignment marker is enabled */
-	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static bool GetUiLayerAlignmentMarkerEnabled();
-
-	/** Check if back button is enabled */
-	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
-	static bool GetUiLayerBackButtonEnabled();
 
 	/** Get the currently set viewer model */
 	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))

@@ -689,9 +689,22 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 	}
 	else
 	{
-		const uint32 MaxX = View.Family->FamilySizeX * VelocityBufferSize.X / BufferSize.X;
 		const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
-		RHICmdList.SetViewport(0, 0, 0.0f, MaxX, MaxY, 1.0f);
+
+		if (View.bIsMultiViewEnabled)
+		{
+			const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
+			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
+			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
+			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+			
+			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0.0f, LeftMaxX, RightMaxX, MaxY, 1.0f);
+		}
+		else
+		{
+			const uint32 MaxX = View.Family->FamilySizeX * VelocityBufferSize.X / BufferSize.X;
+			RHICmdList.SetViewport(0, 0, 0.0f, MaxX, MaxY, 1.0f);
+		}
 	}
 
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());

@@ -125,6 +125,11 @@ void FMetalRHICommandContext::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,
 	FShaderCache::SetViewport(MinX,MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 
+void FMetalRHICommandContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+{
+	NOT_SUPPORTED("RHISetStereoViewport");
+}
+
 void FMetalRHICommandContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
 { 
 	NOT_SUPPORTED("RHISetMultipleViewports");

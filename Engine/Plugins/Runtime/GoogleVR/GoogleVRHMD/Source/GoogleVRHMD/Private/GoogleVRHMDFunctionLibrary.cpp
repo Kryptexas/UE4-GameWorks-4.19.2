@@ -50,51 +50,6 @@ void UGoogleVRHMDFunctionLibrary::SetDistortionCorrectionEnabled(bool bEnable)
 	}
 }
 
-void UGoogleVRHMDFunctionLibrary::SetUiLayerEnabled(bool bEnable)
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetUiLayerEnabled(bEnable);
-	}
-}
-
-void UGoogleVRHMDFunctionLibrary::SetUiLayerAlignmentMarkerEnabled(bool bEnable)
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetUiLayerAlignmentMarkerEnabled(bEnable);
-	}
-}
-
-void UGoogleVRHMDFunctionLibrary::SetUiLayerSettingButtonEnabled(bool bEnable)
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetUiLayerSettingButtonEnabled(bEnable);
-	}
-}
-
-void UGoogleVRHMDFunctionLibrary::SetUiLayerTransitionViewEnabled(bool bEnable)
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetUiLayerTransitionViewEnabled(bEnable);
-	}
-}
-
-void UGoogleVRHMDFunctionLibrary::SetUiLayerBackButtonEnabled(bool bEnable)
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetUiLayerBackButtonEnabled(bEnable);
-	}
-}
-
 bool UGoogleVRHMDFunctionLibrary::SetDefaultViewerProfile(const FString& ViewerProfileURL)
 {
 	FGoogleVRHMD* HMD = GetHMD();
@@ -121,50 +76,6 @@ bool UGoogleVRHMDFunctionLibrary::GetDistortionCorrectionEnabled()
 	if(HMD)
 	{
 		return HMD->GetDistortionCorrectionEnabled();
-	}
-
-	return false;
-}
-
-bool UGoogleVRHMDFunctionLibrary::GetUiLayerTransitionViewEnabled()
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		return HMD->GetUiLayerTransitionViewEnabled();
-	}
-
-	return false;
-}
-
-bool UGoogleVRHMDFunctionLibrary::GetUiLayerSettingsButtonEnabled()
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		return HMD->GetUiLayerSettingsButtonEnabled();
-	}
-
-	return false;
-}
-
-bool UGoogleVRHMDFunctionLibrary::GetUiLayerAlignmentMarkerEnabled()
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		return HMD->GetUiLayerAlignmentMarkerEnabled();
-	}
-
-	return false;
-}
-
-bool UGoogleVRHMDFunctionLibrary::GetUiLayerBackButtonEnabled()
-{
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		return HMD->GetUiLayerBackButtonEnabled();
 	}
 
 	return false;

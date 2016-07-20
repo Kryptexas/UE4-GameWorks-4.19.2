@@ -42,6 +42,8 @@ FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMe
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	, pController(nullptr)
 #endif
+	,bControllerReadyToPollState(false)
+	,MessageHandler(InMessageHandler)
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
 

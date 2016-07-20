@@ -31,10 +31,10 @@
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/InputSettings.h"
-#include "GameFramework/HapticFeedbackEffect.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/GameMode.h"
+#include "Haptics/HapticFeedbackEffect_Base.h"
 #include "Engine/ChildConnection.h"
 #include "Engine/GameEngine.h"
 #include "Engine/GameInstance.h"
@@ -3509,7 +3509,7 @@ void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration
 	}
 }
 
-void APlayerController::PlayHapticEffect(UHapticFeedbackEffect* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale)
+void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale)
 {
 	if (HapticEffect)
 	{
