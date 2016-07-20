@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3019793
-Availability:Public
+﻿Availability:Public
 Title:平面反射
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:ローカルの光沢がある質感の光の反射をキャプチャ及び表示するシステム
@@ -31,15 +30,15 @@ UE4 は、リアルタイムの平面反射をサポートしています。ス�
 ### 平面反射を有効にする方法 
 プロジェクトでこの機能を使用するには、以下の手順を行います。
 
-1. メイン ツールバー で **[Edit (編集)]** > **[Project Settings (プロジェクト設定)]** を選び、[Project Settings (プロジェクト設定)] メニューで **[Rendering]** > **[Optimizations (最適化)]** セクションを開きます。
-
+1. メイン ツールバー で **[Edit (編集)] > [Project Settings (プロジェクト設定)]** を選び、[Project Settings (プロジェクト設定)] メニューで **[Rendering] > [Optimizations (最適化)]** セクションを開きます。
 	[REGION:lightbox]
+
 	[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)(w:502 h:322)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)
 	[/REGION]
 
 1. **[Support global clip plane for Planar Reflections (平面反射のグローバル クリップ プレーンをサポート)]** の横にあるチェックボックスをクリックして、要求されたら UE4 エディタを再起動します。 
-
 	![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Enable_PR_00.png)
+
 
 	[region:warning]
 	平面反射を有効にした後、UE4 エディタを再起動しないと、平面反射は使えません。
@@ -52,8 +51,8 @@ UE4 は、リアルタイムの平面反射をサポートしています。ス�
 	[/REGION]
 
 1. Planar Reflection アクタをレベルに配置したら、**G** キーを使ってこのアクタの表示 / 非表示を操作できます。**Move**、**Rotate**、**Scale** ツールでも、Planar Reflection アクタの配置やサイズをうまく調整して、レベルのニーズに合わせることができます。 
-
 	[OBJECT:EmbeddedVideo]
+
 	[PARAMLITERAL:width]
 	640
 	[/PARAMLITERAL]
