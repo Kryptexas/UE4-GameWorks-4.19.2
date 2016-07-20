@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3013123
+﻿INTSourceChangelist:3038067
 Availability:Public
 Title:シーケンサー エディタ
 Crumbs: %ROOT%, Engine
@@ -7,6 +7,7 @@ Navigation:topic
 parent:Engine
 order:3
 social-image:sequencer_social.png
+related:Engine/Matinee
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,42 +52,23 @@ social-image:sequencer_social.png
 ![](SequencerBanner.png)(convert:false)
 [/REGION]
 
-**シーケンサー** エディタは、アンリアル エンジン 4 に内蔵されている 2 つあるシネマティックス編集ツールの 1 つです。シーケンサーの前に、シネマティックスをオーサリングする主要手段が [**マチネ**](Engine/Matinee) エディタ内で実行されています。
+**シーケンサー** エディタは、UE4 に内蔵されている 2 つあるシネマティックス編集ツールの 1 つです。シーケンサーの前に、シネマティックスをオーサリングする主要手段が [**マチネ**](Engine/Matinee) エディタ内で実行されています。
 シーケンサーもマチネと同様で、特殊な **トラック** をいろいろ使ってシーンの構成を定義します。 
 いくつかのスケルタルメッシュのトラックをシーケンサーに追加してから Animation トラックを追加してこれらのスケルタルメッシュをアニメートし、Camera トラックと Camera Cuts トラックを加えてカメラ間の視点を与え、カメラ間で循環すると、シネマティック シーケンスの設定の基礎ができます。 
 
 このページでは、シーケンサー エディタのさまざまな特徴に関するドキュメントへのリンクを紹介します。 
 シーケンサーを初めて使う場合は **[Essentials (基本)]** セクションを一読することをお勧めします。ここには、シーケンサー エディタの概要、シーケンサー エディタのコンポーネントの詳細を示すエディタ リファレンス、迅速に作業を開始するためのクイックスタートガイド、シーケンサーの各種タスクを手短に説明する操作ガイド、ワークフローのコツが含まれています。 
 
+エピックのランチャーの [Learn (ラーニング)] タブから入手できる Sequencer Subway サンプル プロジェクトでは、UE4 のシーケンサー エディタを使って、映画のような品質のシネマティック シーケンスの作成方法を紹介します。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Sequencer\Overview "%Engine\Sequencer\Overview:description%")
-		* [](Engine\Sequencer\ReferenceEditor "%Engine\Sequencer\ReferenceEditor:description%")
-		* [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
-		* [](Engine\Sequencer\HowTo "%Engine\Sequencer\HowTo:description%")
-		* [](Engine\Sequencer\Workflow\ "%Engine\Sequencer\Workflow:description%")
-	[/PARAM]
-[/OBJECT]
+## 基本
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Links
-	[/PARAM]
-	[PARAM:links]
-		* [マチネ エディタ](Engine/Matinee "%Engine/Matinee:description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"listbutton" parent:"Engine/Sequencer" org:"hierarchy" end:"1")]
 
+
+## サンプル
+
+[DIR(output:"topiccompact" parent:"Resources/Showcases" tags:"Sequencer")]
 
 <!-- Killing this for now while the current does get updates instead.
 * [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
