@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3017881
+﻿INTSourceChangelist:3038380
 Availability:Public
 Title:1 - 必要な設定
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -7,24 +7,12 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:1
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Sequencer\QuickStart\2 "%Engine\Sequencer\QuickStart\2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 シーンの作成に取り掛かる前に、必要ないくつかのアセットを作成し、シネマティックスをリアルタイムでプレビューするためにエディタの UI をセットアップします。 
 エディタのレイアウトでは、いろいろなオプションを使ってみて、使いやすいものを選択してください。 
@@ -56,7 +44,7 @@ checkpoint: editorqs
 
 	上の画面では、**コンテンツ ブラウザ** の隣にシーケンサー エディタをドッキングしました。これにより、**[コンテンツ ブラウザ]** タブをクリックしてコンテンツ ブラウザを表示させるか、**[シーケンサー]** タブをクリックしてシーケンサー エディタを開きます。 
 
-1.	**コンテンツ ブラウザ** で **Master** レベル シーケンス上で **右クリック** し、複製して **Shot01** と名前を付けます。 
+1.	**コンテンツ ブラウザ** で **Master** レベル シーケンス上で **右クリック** し、**Duplicate** を選びます。新しいレベル シーケンスに **Shot01** と名前を付けます。 
 
 	![](SequencerQS_1_3.png)
 
@@ -66,7 +54,7 @@ checkpoint: editorqs
 
 	![](SequencerQS_1_4.png)
 
-1.	ビューポート ウィンドウで **[Viewport Options]** ボタンをクリックし、**[Layout]** で **[Vertical Two Panes]** オプションを選択します。 
+1.	ビューポート ウィンドウで **[Viewport Options]** ボタンをクリックし、**[Layout]** で **[Vertical Two Panes (縦方向に 2 つの枠)]** オプションを選択します。 
 
 	![](SequencerQS_1_5.png)
 
@@ -78,12 +66,10 @@ checkpoint: editorqs
 
 	![](SequencerQS_1_7.png)
 
-1.	右のビューポートで **G** キーを押して **Ctrl+Shift+T** キーを押します。 
+1.	右のビューポートで、**G** キーを押して、**Ctrl+Shift+T** を押します。**G** キーを押すと、[ゲーム ビュー](Engine/UI/LevelEditor/Viewports/Basics) になり、すべてのエディタ アイコンが非表示になり、ゲーム (またはシネマティックス) がどのような外観になるかが表示されます。 
+	**Ctrl+Shift+T** キーを押すと、ビューポートのツールバーの表示が切り替わります (グリッドのスナッピング、ビューモード、トランスフォーム ギズモなどシネマティックスのプレビューでは不要なものも含まれます)。 
 
 	![](SequencerQS_1_8.png)
-
-	**G** キーを押すと [ゲーム ビュー](Engine/UI/LevelEditor/Viewports/Basics) になり、すべてのエディタ アイコンが非表示になり、ゲーム (またはシネマティックス) がどのような外観になるかが表示されます。 
-	**Ctrl+Shift+T** キーを押すと、ビューポートのツールバーの表示が切り替わります (グリッドのスナッピング、ビューモード、トランスフォーム ギズモなどシネマティックスのプレビューでは不要なものも含まれます)。 
 
 	[REGION:tip]
 	再度 **G** キーを押すと、エディタのアイコンが再び有効になります。または、**Ctrl+Shift+T** キーを押してビューポートのツールバーを再度表示します。 
@@ -97,6 +83,6 @@ checkpoint: editorqs
 
 次にひとつめのショットで作業をして、カメラを追加し、フォーカスを調整し、カメラの動きも生成します。
 
-%Steps%
+[NAV]
 
 
