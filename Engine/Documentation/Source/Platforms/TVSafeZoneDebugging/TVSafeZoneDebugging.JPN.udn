@@ -1,131 +1,134 @@
-﻿INTSourceChangelist:0
-Availability:Public
-Title:Setting TV Safe Zone Debugging
+﻿INTSourceChangelist:3055464
+Availability:Docs
+Title:TV セーフティ ゾーンのデバッグ設定
 Crumbs:%ROOT%, Platforms
-Description:Making sure that UI elements are not too close to the edges of the TV
-Version: 4.12
+Description:UI が TV 画面の角から少し離れるようにする設定
+Version:4.12
+skilllevel:Intermediate
+parent:Platforms
+order:1000
 
 [TOC(start:2)]
 
-When working on and Unreal Engine 4 project, it is important that UI or text are not too close to the edges of the screen so that it does not become distorted. To help ensure that this does not happen, the TV Safe Zone Debugging tool was created. In the following document we will go over how to use this tool in your UE4 projects:
+アンリアル エンジン 4 プロジェクトを使用する場合、UI またはテキストが画面の角に近すぎるために歪んでしまわないようにすることが重要です。TV Safe Zone Debugging ツールはそれを防ぐために開発されました。それでは、このツールを UE4 プロジェクトで使用する方法を説明します。
 
-## What is a TV Safe Zone
-A TV Safe Zone or Safe Area is the term used in television production to describe the area of the television picture that ensures the content can be cleanly viewed by a majority of TV viewers. Generally speaking the most important content for a TV show will be placed in this area to ensure that it will not be distorted when viewed on a wide range of TV sets.
+## TV セーフティ ゾーンとは何か
+TV セーフティゾーンまたは TV セーフティ エリアは、テレビ視聴者の大半に対してコンテンツをはっきり表示できるテレビの表示領域を示すテレビ制作用語です。一般的に、テレビ ショーの重要なコンテンツの大部分は、様々なテレビセットで表示されても歪まないようにするためこの領域に置かれます。
 
 [region:note]
-You can read more about TV Safe Zones / Safe Areas on the following Wikipedia page,
+TV セーフティ ゾーン / セーフティ エリアの詳細は、以下のウィキペディアを参照してください。
 **[TV Safe area](http://tinyurl.com/zq55mzl)**
 [/region]
 
-## Difference between Title Safe Zone & Action Safe Zone
-UE4 has two different types of TV Safe Zones called, Title Safe Zone and Action Safe Zone which are very similar to one another.
+## タイトル セーフティゾーンとアクション セーフティソーンの違い
+UE4 には、異なるタイプの TV セーフゾーンがあります。これらは、タイトル セーフティゾーンとアクション セーフティゾーンと呼ばれ、非常によく似ています。
 
-**Title Safe Zone**: The Title Safe Zone is to ensure that UI or Text elements are not cutoff or distorted when viewed. 
+**タイトル セーフティゾーン**:タイトル セーフティゾーンは、表示された時に UI またはテキスト エレメントがカットオフされたり歪まないようにします。 
 
-**Action Safe Zone**: The Action Safe Zone is used to allow things like characters or enemies to wander partially off screen. 
+**アクション セーフティ ゾーン**:アクション セーフティ ゾーンを使うと、キャラクターや敵などを部分的に画面から外すことができます。 
 
 [region:note]
-The area outside of the Action Safe zone will probably be clipped on displays with overscan, while areas between the Action Safe zone and Title Safe zone may be partially clipped.  It's ok to have some action (e.g., other characters or enemies) occur in that region.  The Action Safe zone is the same size as the Title Safe zone on many platforms.
+アクション セーフティ ゾーンとタイトル セーフティ ゾーンの間の領域は部分的にクリップされ、アクション セーフティ ゾーンの外側はオーバースキャンで画面上にクリップされます。その領域で何かアクション (例えば、他のキャラクターや敵) が発生してもかまいません。アクション セーフティ ゾーンは、多くのプラットフォーム上のタイトル セーフティ ゾーンと同じサイズです。
 [/region]
 
 
-## TV Safe Zone Commands
-In the following section we will go over what commands you can use with the TV Safe Zone as well as the two different ways you can enable and use the TV Safe Zone Debugging in your Unreal Engine 4 (UE4) project.
+## TV セーフティ ゾーン コマンド
+次のセクションでは、TV セーフティ ゾーンで地用できるコマンドと、アンリアル エンジン 4 (UE4) プロジェクトで TV セーフティ ゾーンを有効にして使用する 2 通りの方法を説明します。
 
-You can enter the following TV Safe Zone commands right to into the UE4 console.
+以下の TV セーフティ ゾーン コマンドを UE4 コンソールに直接入力することができます。
 
-|Command Name| Value| Description|
+|コマンド名| 値| 説明|
 |----------------------|----------------|--------|
-|r.DebugSafeZone|0| Disables all overlays.|
-|r.DebugSafeZone|1| Enables Title safe zone.|
-|r.DebugSafeZone|2| Enables Action safe zone.| 
-|r.DebugSafeZone.OverlayAlpha|0 to 1|Controls how opaque the debug visualization overlay is (Default is 0.3)|
-|r.DebugSafeZone.TitleRatio|0 to 1|Controls the action safe zone margins returned in FDisplayMetrics (Default is 0.9).|
-|r.DebugActionZone.ActionRatio| 0 to 1|Controls the action safe zone margins returned in FDisplayMetrics (Default is 0.9).|
+|r.DebugSafeZone|0| オーバーレイ表示をすべて無効にします。|
+|r.DebugSafeZone|1| タイトル セーフティ ゾーンを有効にします。|
+|r.DebugSafeZone|2| アクション セーフティ ゾーンを有効にします。| 
+|r.DebugSafeZone.OverlayAlpha|0 から 1| デバッグ可視化オーバーレイ表示の不明瞭さを制御します (デフォルトは 0.3)。|
+|r.DebugSafeZone.TitleRatio|0 から 1|FDisplayMetrics に返されたアクション セーフティ ゾーン マージンを制御します (デフォルトは 0.9)。|
+|r.DebugActionZone.ActionRatio|0 から 1|FDisplayMetrics に返されたアクション セーフティ ゾーン マージンを制御します (デフォルトは 0.9)。|
 
-You can also place the TV Safe Zone commands in your projects **DefaultEngine.ini** file under the **[SystemSettings]** section. 
+TV セーフティ ゾーン コマンドをプロジェクトの **[SystemSettings]** セクション配下の **DefaultEngine.ini** ファイルに置くこともできます。 
 
 ![](SZ_Default_Engine_INI.png)
 
-## Activating the Safe & Action Zones
+## セーフティ ソーンおよびアクション ゾーンを有効にする方法
 
 [region:warning]
-For the ratio of the safe areas to be correctly displayed you **must** run the project in **windowed fullscreen** or **fullscreen**. Failing to do this will result in the safe zone being incorrectly displayed or displayed smaller than expected.
+正しく表示される安全な領域の比率のために、**ウィンドウ表示の全画面表示** もしくは **全画面表示** にしてプロジェクトを実行 **しなければなりません**。これを行わないと、セーフティゾーンは正しく表示されない、または期待よりも小さく表示されてしまいます。
 [/region]
 
-In the following section, we will take a look at what you need to do to activate the Safe and Action Zones.
+次のセクションでは、セーフティ ゾーンとアクション ゾーンを有効にする方法を説明します。
 
 
-1. From the **Main Toolbar** go to the **Play** section and click on the small white arrow next to the play icon to change the play mode options.
+1. **メイン ツールバー** の **[Play (プレイ)]** セクションで、[Play] アイコンの横の小さな白い矢印をクリックして、プレイモード オプションを変更します。
 
 	![](SZ_Play_Mode.png)
 
-1. Once the Play Modes menu has been opened, select the **New Editor Window (PIE)** option so that the game will launch itself in a new stand alone window.
+1. [Play Modes] メニューが開いたら、**[New Editor Window (PIE)]** オプションを選択し、新しいスタンドアローンでゲームがそれを実行できるようにします。
 
 	![](SZ_NEW_PIE.png)
 
-1. Press the Play button to launch the game in its own window and then on the upper right-hand corner of the new game window, click on the **square icon** to maximize the window to full screen. 
+1. [Play (プレイ)] ボタンを押してゲームを起動してから、開いたゲーム ウィンドウの右上隅にある **四角いアイコン** をクリックしてウィンドウを最大表示にします。 
 
 	![](SZ_Fullscreen_Window.png)
 
-1. With the game window now full screen, press the **Backtick (`)** key to open the Unreal Console and input either of the following commands to display the needed safe zone, pressing the **Enter** key to apply it.
+1. ゲームウィンドウを全画面表示にしたら、**バックティック (`)** キーを押してアンリアル コンソールを開きます。以下のいずれかのコマンドを入力し、必要なセーフティ ゾーンを表示したら、**[Enter]** キーを押して適用します。
 
-	|Command Name| Value| Description|
+	|コマンド名| 値| 説明|
 	|----------------------|----------------|--------|
-	|r.DebugSafeZone|1| Enables Title Safe zone.|
-	|r.DebugSafeZone|2| Enables Action Safe zone.| 
+	|r.DebugSafeZone|1| タイトル セーフティ ゾーンを有効にします。|
+	|r.DebugSafeZone|2| アクション セーフティ ゾーンを有効にします。| 
 
 	![](SZ_Enter_Command.png)
 
-1. Once the command has been input, you should now see a slightly transparent red border placed around the entire play window like in the following image.
+1. コマンドを入力すると、以下の画像のように、若干透明がかった赤の縁で囲まれたプレイ ウィンドウが表示されます。
 
 	[REGION:lightbox]
 	[![](Safe_Zone_00.png)(w:645 h:377)](Safe_Zone_00.png)
 	[/REGION]
-	
+
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
 
-## Adjusting the Size of the Safe & Action Zones
+## セーフティ ゾーンおよびアクション ゾーンのサイズの調整方法
 
-You can adjust the size of either the Safe or Action Zones by entering the following commands into the Unreal Console. 
+以下のコマンドをアンリアル コンソールに入力すれば、セーフティ ゾーンもしくはアクション ゾーンのサイズを調整することができます。 
 
-|Command Name| Value| Description|
+|コマンド名| 値| 説明|
 |----------------------|----------------|--------|
-|r.DebugSafeZone.TitleRatio|0 to 1 Range|Controls the Safe Zone margins returned in FDisplayMetrics (Default is 0.9).|
-|r.DebugActionZone.ActionRatio| 0 to 1 Range|Controls the Action Safe Zone margins returned in FDisplayMetrics (Default is 0.9).|
+|r.DebugSafeZone.TitleRatio|0 から 1|FDisplayMetrics に返されたセーフティ ゾーン マージンを制御します (デフォルトは 0.9)。|
+|r.DebugActionZone.ActionRatio|0 から 1|FDisplayMetrics に返されたアクション セーフティ ゾーン マージンを制御します (デフォルトは 0.9)。|
 
 [region:tip]
-It is not possible to have both the Safe and Action Zone active at the same time. To view another zone, you will have to disable the one you are currently viewing and then enable the one you want to view.
+セーフティ ゾーンとアクション ゾーンを同時に有効にすることはできません。片方のゾーンを表示するには、現在表示中のゾーンを無効にしてから、別のゾーンを有効にします。
 [/region]
 
-In the images below, the command **r.DebugActionZone.ActionRatio** was used to decrease to size of the Action Zone from 0.99 all the way down to 0.1.
+下の画像では **r.DebugActionZone.ActionRatio** を使ってアクション ゾーンのサイズを 0.99 から 0.1 まで下げました。
 
 [INCLUDE:Platforms\TVSafeZoneDebugging\\#SZ]
 
-## Adjusting the Alpha of the Safe & Action Zone Overlay
+## セーフティ ゾーンおよびアクション ゾーンのオーバーレイ表示の調整方法
 
-You can increase or decrease the opacity of the Safe & Action Zones by entering the following command into the Unreal console. 
+以下のコマンドをアンリアル コンソールに入力すれば、セーフティ ゾーンおよびアクション ゾーンのオパシティの増減ができます。 
 
-|Command Name| Value| Description|
+|コマンド名| 値| 説明|
 |----------------------|----------------|--------|
-|r.DebugSafeZone.OverlayAlpha|0 to 1|Controls the opacity of the Safe & Action Zones overlays(Default is 0.3).|
+|r.DebugSafeZone.OverlayAlpha|0 to 1|セーフティ ゾーンおよびアクション ゾーンのオーバーレイ表示のオパシティを制御します (デフォルトは 0.3)。|
 
-In the images below you can see what happens to the opacity of the Safe & Action Zone overlays when the value of r.DebugSafeZone.OverlayAlpha was set from a value of 1.0 to a value of 0.1.
+以下の画像を見ると、r.DebugSafeZone.OverlayAlpha の値が 1.0 から 0.1 に設定された時にセーフティ ゾーンとアクション ゾーンのオーバーレイ表示のオパシティがどうなるのか分かります。
 
 [INCLUDE:Platforms\TVSafeZoneDebugging\\#SZA]
 
-## TV Safe Zone Troubleshooting
+## TV セーフティ ゾーンのトラブルシューティング
 
-In the following section we will go over some pieces of information you need to be aware of to ensure that you are using the TV Safe Zone tool correctly. 
+次のセクションでは、TV セーフティ ゾーン ツールを正確に使うために気を付ける点について説明します。 
 
-* Right now the safe areas are defined in terms of the full screen size (the API wasn't really designed for non-consoles) rather than returning the ratios directly to let them be used in windowed mode. This could be changed in the future, but for now you need to be running in **windowed fullscreen** or **fullscreen** for the ratio to be correct.
+* 現在このツールは、ウィンドウ モードで使用するために比率を直接返すのではなく、安全な領域は全画面サイズで定義されています (API はノンコンソール向けではありません)。今後変更される場合がありますが、現時点では正しい比率で表示するために **ウィンドウ表示の全画面** あるいは **全画面** で実行する必要があります。
 
-* The UI isn't currently expected to be able to handle this changing at runtime, so if you change the TitleRatio / ActionRatio via the console while running you'll probably need to switch game modes to see the changes (e.g., go from front-end to in-game or vis-versa, or 'open FrontEndScene' again).
+* 現時点ではランタイム時にこの変更を UI が処理するようにはなっていません。従って、使用中にコンソール経由で TitleRatio / ActionRatio を変更する場合は、ゲームモードを切り替えて変更を確認する必要があります (例えば、フロントエンドからインゲームあるいはその逆、もしくは再度 'open FrontEndScene')。
 
-* When using this tool on the PS4, you only need the first command, **r.DebugSafeZone.Mode 1** as the Safe Zone values are driven by the system setting you can pick in the PS4 OS menus.
+* Safe Zone 値は PS4 OS メニューで選択することができるシステム設定で操作できるので、PS4 でこのツールを使用する場合に必要なコマンドは最初の **r.DebugSafeZone.Mode 1** のみです。
 
 
 
@@ -144,14 +147,14 @@ In the following section we will go over some pieces of information you need to 
 	SZ
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Dragging the slider will show what happens when adjusting the size of the Safe Zone.**
+	**スライダーをドラッグすると、セーフティ ゾーンのサイズを調整した結果が反映されます。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](SZ_1.png)
 	![](SZ_2.png)
 	![](SZ_3.png)
 	![](SZ_4.png)
-	![](SZ_6.png)
+	![](SZ_5.png)
 	![](SZ_6.png)
 	![](SZ_7.png)
 	![](SZ_8.png)
@@ -175,7 +178,7 @@ In the following section we will go over some pieces of information you need to 
 	SZA
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Dragging the slider will show what happens when adjusting the opacity of the Overlay Alpha.**
+	**スライダーをドラッグすると、オーバーレイ表示のオパシティを調整した結果が反映されます。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](SZA_1.png)
