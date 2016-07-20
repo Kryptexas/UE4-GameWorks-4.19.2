@@ -449,7 +449,7 @@ namespace UnrealBuildTool
 
 		protected override String GetRequiredScriptVersionString()
 		{
-			return "3.0";
+			return "3.1";
 		}
 
 		// prefer auto sdk on android as correct 'manual' sdk detection isn't great at the moment.
