@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3017899
+﻿INTSourceChangelist:3038380
 Availability:Public
 Title:6 応用編
 Crumbs:%ROOT%
@@ -7,24 +7,12 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:6
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 シーケンサーでサンプル シネマティックスを作成したので、このシーンにいくつかの操作を加えることができます。 
 
@@ -56,14 +44,9 @@ checkpoint: editorqs
 
 	![](ExportMovie.png)
 
-1. **[General]** で **[Output Directory]** を定義し、**[Capture Movie]** をクリックしてレンダリングを開始します。
+1. **[General]** で **[Output Directory]** を定義し、**[Capture Movie]** をクリックしてレンダリングを開始します。レンダリング中にプレビュー ウィンドウが表示され、終了すると閉じます。
 
-	![](ExportMovieB.png)
-
-	ムービー出力中にプレビュー ウィンドウが表示されて、終了すると閉じます。 
+	![](ExportMovieB.png) 
 
 
-
-%Steps%
-
-
+[NAV]
