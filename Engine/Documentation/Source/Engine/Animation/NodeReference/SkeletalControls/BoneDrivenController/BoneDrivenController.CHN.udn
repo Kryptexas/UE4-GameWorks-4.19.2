@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3016843
 Availability:Public
 Title:Bone Driven Controller
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes the Bone Driven Controller node which allows a "Driver" bone to dynamically affect the motion of one or more "Driven" bones.
-version: 4.12
+Description:对 Bone Driven Controller 节点进行描述。此节点使“驱动”骨骼对一个或多个“被驱动”骨骼的运动产生动态影响。
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,11 +39,11 @@ version: 4.12
 [/OBJECT]
 [/VAR]
 
-The **Bone Driven Controller** allows a "Driver" bone to dynamically affect the motion of one or more "Driven" bones. This is useful for characters that have accessories attached as you can use this to avoid geometry from intersecting during an animation, even when a lot of blending is being used. 
+**Bone Driven Controller** 使“驱动”骨骼对一个或多个“被驱动”骨骼的运动产生动态影响。这对带有附件的角色较为实用，可避免动画中（甚至在使用大量混合时）出现几何体穿插。 
 
-You can either set the "Driver" value directly with a **Multiplier**, remap it to a whole new range, or use a **Curve** asset to drive the motion. Using a Curve is usually the best approach as it lest you define the response naturally and interactively tweak points/tangents while seeing the changes reflected in real-time.  
+可通过 **乘数（Multiplier）** 直接设置“驱动器”值，将其重映射到一个全新的范围中；或使用一个 **曲线（Curve）** 资源形成运动。使用曲线通常是最好的方法，可通过它自然地定义反应，对点/切线进行交互式调整并即时了解变化。  
 
-In the example below, the attached accessory (green) has no authored animations, and is being driven in two axes as a function of the character's thigh bone. This is all calculated at runtime, so a blend of animations ends up working quite well here, even without hand-authored tweaking. 
+在下例中，附件（绿色）不带制作的动画，它作为角色股骨机能在两个轴之间运动。这在运行时进行计算，动画混合在此效果极佳，甚至无需进行手动调整。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -59,32 +59,32 @@ CDG4WcQ7cIY
 
 ![Bone Driven Controller](BoneDrivenController.png)
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]**Source (Driver)**[/REGION] ||
-| **Source Bone** | The Bone to use as the controller input. |
-| **Source Component** | The Transform component to use as input.  |
-| [REGION:tablesection]**Mapping**[/REGION] ||
-| **Driving Curve** | Curve used to map from the source attribute to the driven attributes if present (otherwise the Multiplier will be used). |
-| **Remap Source** | Whether or not to clamp the driver value and remap it before scaling it. |
-| **Multiplier** | Multiplier to apply to the input value (Ignored when a Curve is used). |
-| [REGION:tablesection]**Destination (Driven)**[/REGION] ||
-| **Target Bone** | Bone to drive using controller input. |
-| **Target Component Space** | The Parent Bone Space used. [INCLUDE:#LocationSpace] |
-| **Modification Mode** | Set the type of modification to make to the destination component(s). [INCLUDE:#ModificationSettings]  |
-| [REGION:tablesection]**Settings**[/REGION] ||
-| **(As Pin) Alpha** | Enable/Disable the display of the Alpha pin on the node. |
-| **Alpha Scale Bias** | Set the minimal and maximal input scaling values. |
+| [REGION:tablesection]**源（驱动器）**[/REGION] ||
+| **Source Bone** | 用作控制器输入的骨骼。|
+| **Source Component** | 用作输入的转换组件。|
+| [REGION:tablesection]**映射**[/REGION] ||
+| **Driving Curve** | 从源属性映射到被驱动属性（如存在）的曲线（否则将使用乘数）。|
+| **Remap Source** | 是否锁定驱动器值并在缩放前进行重映射。|
+| **Multiplier** | 应用到输入值的乘数（使用曲线时无视）。|
+| [REGION:tablesection]**目标（被驱动）**[/REGION] ||
+| **Target Bone** | 使用控制器输入驱动的骨骼。|
+| **Target Component Space** | 使用的父骨骼空间。[INCLUDE:#LocationSpace] |
+| **Modification Mode** | 设置对目标组件所进行修改的类型。[INCLUDE:#ModificationSettings]  |
+| [REGION:tablesection]**设置**[/REGION] ||
+| **(As Pin) Alpha** | 启用/禁用节点上 Alpha 引脚的显示。|
+| **Alpha Scale Bias** | 设置最小和最大输入标度值。|
 
 
 <!--
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
-| Value | Effect |
+| 数值 | 效果 |
 | ----- | ------ |
-| **Translation** | The XYZ component of translation on the target bone. |
-| **Rotation** | The XYZ component of rotation on the target bone. |
-| **Scale** | The XYZ component of scale on the target bone. |
+| **Translation** | XYZ 组件在目标骨骼上的平移。|
+| **Rotation** | XYZ 组件在目标骨骼上的旋转。|
+| **Scale** | XYZ 组件在目标骨骼上的缩放。|
 [/REGION] 
 [/EXCERPT:LocationSpace]
 -->
@@ -92,11 +92,11 @@ CDG4WcQ7cIY
 <!--
 [EXCERPT:ModificationSettings]
 [REGION:simpletable]
-| Value | Effect |
+| 数值 | 效果 |
 | ----- | ------ |
-| **Add to Input** | Add the driven value to the input component value(s). |
-| **Replace Component** | Replace the input component value(s) with the driven value. |
-| **Add to Ref Pose** | Add the driven value to the reference pose value. |
+| **Add to Input** | 将驱动值添加到输入组件值。|
+| **Replace Component** | 用驱动值替代输入组件值。|
+| **Add to Ref Pose** | 将驱动值添加到参考姿态值。|
 [/REGION] 
 [/EXCERPT:ModificationSettings]
 -->
