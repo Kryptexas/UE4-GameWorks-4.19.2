@@ -1,23 +1,23 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Actor Merging
+﻿INTSourceChangelist:3052189
+Availability:Docs
+Title:アクタのマージ
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
-Description:How to use the Actor Merge tool to combine multiple Static Meshes into one in UE4.
-Version: 4.12
+Description:Actor の Merge ツールを使って、UE4 で複数のスタティックメッシュをひとつに結合します。
+Version:4.12
 
 
 
 [TOC(start:2 end:2)]
 
-The Merge Actors tool enables the user to combine multiple Static Meshes into a single new Actor. Materials can also be baked together into a single Material with a series of custom textures using a new UV layout, and the original Static Meshes used can even be completely replaced by the newly merged asset.
+Merge Actors ツールを使用すると、複数のスタティックメッシュをひとつの新しいアクタに結合することができます。複数マテリアルも、新しい UV レイアウトを使い一連のカスタム テクスチャと共にひとつのマテリアルにベイクすることができます。使用されるオリジナルのスタティックメッシュは、新しくマージされたアセットに完全に置き換えることができます。
 
 [REGION:warning]
-The Merge Actor feature is officially supported in 4.12 and later. In 4.8 to 4.11, it must be activated from the Editor Settings under the Experimental tab. If you are using a version of the engine earlier than 4.12, this feature is considered experimental and is not officially supported.
+この Merge Actor 機能は 4.12 以降、公式にサポートされるようになりました。4.8 から 4.11 では、エディタ設定の [Experimental] タブからアクティベートしなければなりません。4.12 よりも前のバージョンのエンジンを使用している場合、この機能は実験的なものとみなされ、公式にはサポートされていません。
 [/REGION]
 
 ![](MergeActorsWindow.png)
 
-## Actor Merging Worklow
+## アクタのマージのワークフロー
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:videoid]
@@ -31,33 +31,33 @@ _fTSGN8HGu8
 [/PARAMLITERAL]
 [/OBJECT]
 
-Merging Static Meshes in your scene is handled like so:
+シーン内のスタティックメッシュのマージは以下のように行います。
 
-1. Select a number of Static Meshes in your level that your would like to merge. 
+1. レベル内でマージするスタティックメッシュをいくつか選択します。 
 
-2. From the main menubar choose **Window > Developer Tools > Merge Actors.**
+1. メイン メニューバーから、**Window > Developer Tools > Merge Actors** の順に選択します。
 
-3. Choose the appropriate options (explained below).
+1. 適切なオプションを選択します (以下で説明)。
 
-4. Click the Merge Actors button.
+1. [Merge Actors] ボタンをクリックします。
 
-[REGION:tip]If you select fewer than **two** Static Meshes, you will get a warning saying there are insufficient meshes to merge.[/REGION]
+[REGION:tip]選んだスタティックメッシュが **2** より少ないと、マージするにはメッシュの数が不足している旨の警告が表示されます。[/REGION]
 
-## Merge Actors Tool Options
+## Merge Actors ツールのオプション
 
-At the top of the Merge Actors window is a list of all the Static Meshes selected in the viewport. Here you can check which meshes will be included in the final merge. 
+[Merge Actors] ウィンドウの上部には、ビューポートで選択したすべてのスタティックメッシュのリストがあります。最終的なマージに、どのメッシュを含めるかをここでチェックすることができます。 
 
-If you have one or fewer meshes selected, you will see a yellow warning near the bottom of the window stating that you have insufficient mesh components for merging.
+ひとつ以下のメッシュを選択すると、マージするにはメッシュ コンポーネントの数が不足している旨を示す黄色の警告がウィンドウ下部付近に表示されます。
 
 
-| Option | Description |
+| オプション| 説明 |
 |--------|-------------|
-|[REGION:tablesection]Mesh Settings[/REGION]|||
-|**Pivot Point at Zero**|If set to true, the pivot point of the final merged actor will be set to the scene's origin <0,0,0>. If set to false, the pivot will be located at the pivot location of the first Static Mesh Actor selected for the merge.
-|**Merge Physics Data**|If true, this will merge together all of the physics primitives into a single physics object.|
-|**Export Specific LOD**| Use this to force the selected meshes to a specific LOD prior to merging.|
-|[REGION:tablesection]Material Settings[/REGION]||
-|**Merge Materials**|If checked, the Materials of all the merged assets will be combined into a single Material with new UV layout. The following subsettings apply only if Merge Materials is checked. |
+|[REGION:tablesection]メッシュの設定[/REGION]|||
+|**Pivot Point at Zero**|true に設定すると、最終的にマージされたアクタのピボット ポイントは、シーンの原点 <0,0,0> に設定されます。false に設定すると、ピボットはマージのために選択されたひとつめの Static Mesh アクタのピボット位置になります。
+|**Merge Physics Data**|true の場合、すべての物理プリミティブをひとつの物理オブジェクトにマージします。|
+|**Export Specific LOD**| このオプションを使うと、選択したメッシュをマージの前に特定の LOD になるように強制します。|
+|[REGION:tablesection]マテリアルの設定[/REGION]||
+|**Merge Materials**|チェックを入れると、マージしたすべてのアセットのマテリアルは、新しい UV レイアウトでひとつのマテリアルに結合されます。以下のサブ設定は、Merge Materials にチェックが入っている場合のみ適用されます。 |
 | |[INCLUDE:#materialsettings]|
 
 
@@ -65,25 +65,25 @@ If you have one or fewer meshes selected, you will see a yellow warning near the
 [EXCERPT:MaterialSettings]
 [REGION:simpletable]
 |----|----|
-|**Texture Size**|This provides access to the X and Y pixel dimensions (resolution) for the final merged Material's textures.|
-|**Texture Sizing Type**| The settings for this property are explained in the table below.|
-| **Normal Map**| If checked, a Normal map will be baked out for the resulting merged Actor.|
-|** Metallic Map** |If checked, a Metallic map will be baked out for the resulting merged Actor. This nullifies the Metallic Constant property.|
-| **Metallic Constant**|Only enabled if Metallic Map is unchecked, this sets a constant value for the Metallic property of the resulting merged Actor's Material.|
-| **Roughness Map** |If checked, a Roughness map will be baked out for the resulting merged Actor. This nullifies the Roughness Constant property.|
-| **Roughness Constant**|Only enabled if Roughness Map is unchecked, this sets a constant value for the Roughness property of the resulting merged Actor's Material.| 
-| **Specular Map** |If checked, a Specular map will be baked out for the resulting merged Actor. This nullifies the Specular Constant property.|
-| **Specular Constant**|Only enabled if Specular Map is unchecked, this sets a constant value for the Specular property of the resulting merged Actor's Material.|
-| **Emissive Map** |If checked, an Emissive map will be baked out for the resulting merged Actor.|
-|**Bake Vertex Data**|Bakes vertex data including vertex color and normals into the new resulting mesh.|
+|**Texture Size**|最終的にマージされたマテリアルのテクスチャの X と Y のピクセルのサイズ (解像度) を設定します。|
+|**Texture Sizing Type**| このプロパティの設定は、以下の表で説明します。|
+| **Normal Map**| チェックを入れると、マージされたアクタの法線マップがベイクされます。|
+|** Metallic Map** | チェックを入れると、マージされたアクタのメタリック マップがベイクされます。これにより、Metallic Constant プロパティが無効になります。|
+| **Metallic Constant**|Metallic Map にチェックが入っていない場合のみ有効になります。マージされたアクタのマテリアルのメタリック プロパティの定数値を設定します。|
+| **Roughness Map** |チェックを入れると、マージされたアクタのラフネス マップがベイクされます。これにより、Roughness Constant プロパティが無効になります。|
+| **Roughness Constant**|ラフネス マップにチェックが入っていない場合のみ有効になります。マージされたアクタのマテリアルの Roughness プロパティの定数値を設定します。| 
+| **Specular Map** |チェックを入れると、マージされたアクタのスペキュラ マップがベイクされます。これにより、Specular Constant プロパティが無効になります。|
+| **Specular Constant**|Specular Map にチェックが入っていない場合のみ有効になります。マージされたアクタのマテリアルの Specular プロパティの定数値を設定します。|
+| **Emissive Map** |チェックを入れると、マージされたアクタのエミッシブ マップがベイクされます。|
+|**Bake Vertex Data**|頂点カラーと法線を含む頂点データを新たに得られるメッシュにベイクします。|
 [/REGION]
 [/EXCERPT:MaterialSettings]
 -->
 
-|[REGION:tablesection]Texture Sizing Type Settings[/REGION]||
+|[REGION:tablesection]テクスチャのサイジング タイプの設定[/REGION]||
 |-----|-----|
-|**Use TextureSize for all material properties**|This uses the resolution set in the Texture Size property for all baked textures.|
-|**Use automatically biased texture sizes based on TextureSize**|This creates a 1:0.5:0.25 bias for all textures such that Normal gets 100% of the resolution set in Texture Size, Diffuse (Base Color) gets 50% of Texture Size, and all other properties get 25% of TextureSize|
-|**Use per property manually overriden texture sizes**|This provides individual number entry fields for explicitly providing the resolution for each map being baked.|
-|**Use Simplygon's automatic texture sizing**|This uses Simplygon's algorithm for texture sizing based on its decimation settings. This should only be used if you are already using Simplygon.|
+|**Use TextureSize for all material properties**|すべてのベイクしたテクスチャに対して Texture Size のプロパティで設定された解像度を使用します。|
+|**Use automatically biased texture sizes based on TextureSize**|すべてのテクスチャに対して 1:0.5:0.25 のバイアスを作り、法線がテクスチャ サイズで設定されている解像度の 100 %、ディフューズ (基本色) がテクスチャ サイズの 50%、他の全てのプロパティがテクスチャ サイズの 25% になるようにします。|
+|**Use per property manually overriden texture sizes**|ベイクされている各マップの解像度を明示的に指定するための個々の数の入力欄があります。|
+|**Use Simplygon's automatic texture sizing**|Simplygon のアルゴリズムを使い、そのデシメーション設定に基づきテクスチャのサイジングをします。これは、Simplygon を既に使っている場合にのみ使うようにしてください。|
 
