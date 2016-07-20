@@ -7,27 +7,14 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:4
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Sequencer\QuickStart\3 "%Engine\Sequencer\QuickStart\3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Sequencer\QuickStart\5 "%Engine\Sequencer\QuickStart\5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-最初のショットができたので、学んだことを使ってシーン用に追加のショットを作成します。 
+最初のショットができたので、学んだことを生かして、もうひとつ作成しましょう。
 
 今回はキャラクターの前面からその顔にカメラをプッシュインします。 
 
@@ -39,41 +26,41 @@ checkpoint: editorqs
 
 	Shot01 にはほとんどの既存コンテンツがあるため、2 つめのショットでも使用します。 
 
-1.	**Shot02** 内で、既存の **CineCameraActor** を削除してから **Add Camera** ボタンをクリックします。 
+1.	**Shot02** 内で、既存の **CineCameraActor** を削除し、**Add Camera** ボタンをクリックしてそれを自動的に Camera Cuts トラックに割り当て、カメラをパイロット モードにします。 
 
 	![](SequencerQS_4_2.png)
-
-	これで、Camera Cuts トラックに自動的に割り当てられ、カメラがパイロット モードになります。 
 
 1.	カメラをレベルの Skeletal Mesh アクタの前に移動します。 
 
 	![](SequencerQS_4_3.png)
 
+	[REGION:note]
 	CineCameraActor の名前は上のものとは異なることがありますが、問題ありません。 
+	[/REGION]
 
 1.	シーケンサーで **CineCameraActor** トラックを選択した状態で、**S** キーを押して、カメラのトランスフォームのキーフレームを追加します。
 
 	![](SequencerQS_4_3b.png)
 
-1.	カメラの **[詳細]** パネルで、**スポイトアイコン** を使ってキャラクターにフォーカスして、キーフレームを追加します。 
+1.	カメラの **[詳細]** パネルで、**スポイトアイコン** を使ってキャラクターにフォーカスします。キーフレームを追加します。 
 
 	![](SequencerQS_4_4.png)
 
+	[REGION:note]
 	カメラをどこに配置したかによって上の値とは異なる値になることがあります。 
+	[/REGION]
 
-1.	シネマティックス プレビューで、**[To End]** ボタンを使ってシーケンスの終わりにジャンプします。 
+1.	シネマティックス プレビューで、**[To End]** ボタンをクリックしてシーケンスの終わりにジャンプします。 
 
 1.	キャラクター上にカメラを移動して、その位置のキーフレーム (**S**) を追加します。 
 
 	![](SequencerQS_4_5.png)
 
-1.	カメラの **[詳細]** パネルで、**スポイトアイコン** を使ってキャラクターにフォーカスして、キーフレームを追加します。 
+1.	カメラの **[詳細]** パネルで、**スポイトアイコン** を使ってキャラクターにフォーカスします。キーフレームを追加します。最初の位置で開始するキーフレーム、最後にフォーカス値があるキーフレームがあります。
 
-	![](SequencerQS_4_6.png)
+	![](SequencerQS_4_6.png) 
 
-	最初の位置で開始するキーフレーム、最後にフォーカス値があるキーフレームがあります。 
-
-1.	**Camera Cuts** トラック上で **Camera Lock** の切替ボタンを使ってシネマティックス プレビューを有効にします。 
+1.	**Camera Cuts** トラック上で **Camera Lock** の切替ボタンをクリックしてシネマティックス プレビューを有効にします。 
 
 	![](SequencerQS_4_7.png)
 
@@ -82,10 +69,6 @@ checkpoint: editorqs
 
 シーケンスの 2 番めのショットをセットアップしました。カメラは遠くから始まりキャラクター上にプッシュインします。 
 
-次のステップでは、マスター レベル シーケンスで **Shot Track** を使ってショットを結合します。 
-ショットのひとつの **テイク** (すなわちバリエーション) も作成して、迅速にスワップイン、スワップアウトすることができます。 
-サンプルシーンがもうすぐ完成するのでシーン内のショットの順序を並び替えることもできます。 
+次のステップでは、マスター レベル シーケンスで **Shot Track** を使ってショットを結合します。ショットのひとつの **テイク** (すなわちバリエーション) も作成して、迅速にスワップイン、スワップアウトすることができます。サンプルシーンがもうすぐ完成するのでシーン内のショットの順序を並び替えることもできます。 
 
-%Steps%
-
-
+[NAV]
