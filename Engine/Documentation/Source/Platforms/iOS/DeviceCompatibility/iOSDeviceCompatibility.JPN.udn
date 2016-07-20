@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3051446
 Availability:Public
 Title:iOS デバイスの互換性
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -19,6 +19,8 @@ type:overview
 [VAR:Unsupported]
 ![](%ROOT%/icon_error_16x.png)
 [/VAR]
+
+アンリアル エンジンは iOS 7.0 以上をサポートしています。エンジン機能の互換性をデバイス別に以下の表にまとめました。 
 
 すべての iOS デバイスをテストしたわけではありませんが、それぞれのデバイスと相性よく動作すると思われる機能を以下の表にまとめてみました。新規デバイスのリリース時および社内テスト中のデバイスの追加に応じて、本ページに詳細な記載を追加する予定です。
 
