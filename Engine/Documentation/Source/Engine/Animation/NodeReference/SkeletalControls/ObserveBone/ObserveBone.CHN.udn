@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3016843
 Availability:Public
-Title:Observe Bone
+Title:观察骨骼（Observe Bone）
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how you can debug a specified Bone with the Observe Bone node.
-version: 4.12
+Description:说明如何通过 Observe Bone 节点对指定骨骼进行调试。
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,24 +39,24 @@ version: 4.12
 [/OBJECT]
 [/VAR]
 
-The **Observe Bone** node can be used to give debug transform information about a specified bone.
+**Observe Bone** 节点可生成特定骨骼的调试转换信息。
 
 ![](ObserveBone.png)
 
-Below, a bone by the name of **b_MF_Hand_L** is being observed and debug information is being displayed.
+下图中，一个名为 **b_MF_Hand_L** 的骨骼正处于观察中，同时显示调试信息。
 
 ![](ObserveBone_Debug.png)
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]**Skeletal Control**[/REGION] ||
-| **Bone to Observe** | Name of the bone to observe. |
-| **Display Space** | Reference frame to display the bone transform in. |
-| **Relative to Ref Pose** | Whether or not to show the difference from the reference pose. |
+| [REGION:tablesection]**骨骼控制器**[/REGION] ||
+| **Bone to Observe** | 需要观察的骨骼名。|
+| **Display Space** | 显示骨骼转换的参考框架。 |
+| **Relative to Ref Pose** | 是否显示和参考姿态之间的不同。|
 
-| Pin | Description |
+| 引脚 | 描述 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Component Pose** | The incoming pose. |
+| [REGION:tablesection]**输入引脚**[/REGION] ||
+| **Component Pose** | 引入的姿态。|
 
 

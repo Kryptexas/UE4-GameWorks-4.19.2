@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3020428
 Availability:Public
 Title:Two Bone IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Describes how the Two Bone IK control can be used to apply IK to a 3-joint chain. 
-version: 4.12
+Description:说明 Two Bone IK 控制器如何将 IK 应用到拥有 3 个关节的骨骼链条。 
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -41,11 +41,11 @@ version: 4.12
 
 
 
-The **Two Bone IK** control applies an Inverse Kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.
+**Two Bone IK** 将一个逆运动（IK）解算器应用到拥有 3 个关节的骨骼链条（如角色的四肢）。
 
 ![](node_twobone.png)
 
-Below a series of **Two Bone IK** controllers are used, along with [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting) to control how the character holds a weapon. 
+下例中使用了一系列 **Two Bone IK** 控制器和 [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting)，控制角色手持武器的方式。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -59,40 +59,39 @@ JxzEo3wUSWw
 [/PARAMLITERAL]
 [/OBJECT]
 
-Variables are used to drive the **Join Target Location** properties on the controller for the **hand_l** and **hand_r** bones of our character. 
-By adjusting these values we can determine how the character holds the weapon without having to hand-animate different poses based on different characters. 
+变量用于驱动角色 **hand_l** 和 **hand_r** 控制器上的 **Join Target Location** 属性。对数值进行调整即可确定角色手持武器的方式，而无需手动调整每个角色的不同姿态。 
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
 | [REGION:tablesection]**IK**[/REGION] ||
-| **IK Bone** | Name of the bone to apply the IK solver to. This should be the bone at the end of the bone chain, i.e. the ankle or wrist bone. |
-| [REGION:tablesection]**Stretch Limits**[/REGION] ||
-| **X** | The ratio of the Max Limb Length, which is used to determine when to scale the bones. |
-| **Y** | The maximum allowable amount of scaling of the translation component. |
-| **Allow Stretching** | If true, allows the bones to be stretched. |
-| [REGION:tablesection]**End Effector**[/REGION] ||
-| **Effector Space Bone Name** | The name of the bone to use as the effector location when Effector Location Space is set to BCS_BoneSpace. |
-| **Take Rotation from Effector Space** | If enabled, the Rotation of the effector (component, parent, or bone) is applied to the IK Bone.  |
-| **Maintain Effector Rel Rot** | If enabled, the IK Bone will maintain its Rotation relative to the effector. [REGION:note]This is overridden when Take Rotation from Effector Space is enabled.[/REGION] |
-| **Effector Location Space** | The reference frame for the Effector Location. [INCLUDE:#LocationSpace] |
-| [REGION:tablesection]**Join Target**[/REGION] ||
-| **Joint Target Location Space** | The reference frame for the Joint Target Location. [INCLUDE:#LocationSpace] |
-| **Joint Target Space Bone Name** | The name of the bone to use as the joint target location when Joint Target Location Space is set to BCS_BoneSpace. |
+| **IK Bone** | 应用 IK 解算器的骨骼名称。这应该是骨骼链末端的骨骼（如踝骨或腕骨）。|
+| [REGION:tablesection]**拉伸极限**[/REGION] ||
+| **X** | Max Limb Length 的比率，用于确定何时缩放骨骼。|
+| **Y** | 允许的平移组件最大缩放量。|
+| **Allow Stretching** | 如为 true，则允许骨骼拉伸。|
+| [REGION:tablesection]**末端执行器**[/REGION] ||
+| **Effector Space Bone Name** | 执行器位置空间（Effector Location Space）设为 BCS_BoneSpace 时用作执行器位置的骨骼名称。|
+| **Take Rotation from Effector Space** | 启用后，执行器的旋转（组件、父项或骨骼）将应用至 IK 骨骼。|
+| **Maintain Effector Rel Rot** | 启用后，IK 骨骼将保持其相对于执行器的旋转。[REGION:note]Take Rotation from Effector Space 启用后，此项将被覆写。[/REGION]|
+| **Effector Location Space** | 执行器位置的参考坐标系。[INCLUDE:#LocationSpace] |
+| [REGION:tablesection]**关节目标**[/REGION] ||
+| **Joint Target Location Space** | 关节目标位置的参考坐标系。[INCLUDE:#LocationSpace] |
+| **Joint Target Space Bone Name** | 关节目标位置空间（Joint Target Location Space）设为 BCS_BoneSpace 时用作关节目标位置的骨骼名称。|
 
-| Pin | Description |
+| 引脚 | 描述 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
-| **Effector Location** | A Vector specifying the location effector in the Effector Location Space. |
-| **Joint Target Location** | A Vector specifying the location joint target in the Joint Target Location Space. |
+| [REGION:tablesection]**输入引脚**[/REGION] ||
+| **Effector Location** | 一个矢量值，用于指定执行器位置空间中的位置执行器。|
+| **Joint Target Location** | 一个矢量值，用于指定关节目标位置空间中的位置关节目标。|
 
 <!--
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
-| Value | Effect |
+| 数值 | 效果 |
 | ----- | ------ |
-| **Translation** | The XYZ component of translation on the target bone. |
-| **Rotation** | The XYZ component of rotation on the target bone. |
-| **Scale** | The XYZ component of scale on the target bone. |
+| **Translation** | XYZ 组件在目标骨骼上的平移。|
+| **Rotation** | XYZ 组件在目标骨骼上的旋转。|
+| **Scale** | XYZ 组件在目标骨骼上的缩放。|
 [/REGION] 
 [/EXCERPT:LocationSpace]
 -->
