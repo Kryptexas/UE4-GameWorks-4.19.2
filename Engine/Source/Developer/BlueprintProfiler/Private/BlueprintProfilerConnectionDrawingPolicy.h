@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Editor/GraphEditor/Public/BlueprintConnectionDrawingPolicy.h"
-#include "BlueprintProfilerModule.h"
+#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
 
 /////////////////////////////////////////////////////
 // FBlueprintProfilerPinConnectionFactory
@@ -64,7 +64,7 @@ protected:
 
 public:
 
-	FBlueprintProfilerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, EBlueprintProfilerHeatMapDisplayMode::Type InHeatmapType, UEdGraph* InGraphObj);
+	FBlueprintProfilerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, EBlueprintProfilerHeatMapDisplayMode InHeatmapType, UEdGraph* InGraphObj);
 
 	// FKismetConnectionDrawingPolicy
 	virtual void BuildExecutionRoadmap() override;
@@ -88,7 +88,7 @@ private:
 private:
 
 	/** The current wire heat map mode */
-	EBlueprintProfilerHeatMapDisplayMode::Type WireHeatMode;
+	EBlueprintProfilerHeatMapDisplayMode WireHeatMode;
 	/** The current graph */
 	TWeakObjectPtr<UEdGraph> GraphReference;
 

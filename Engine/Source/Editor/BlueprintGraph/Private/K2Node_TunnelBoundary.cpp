@@ -84,12 +84,16 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 			}
 		}
 	}
+	// Find the blueprint tunnel instance.
+	UEdGraphNode* SourceTunnelInstance = Cast<UEdGraphNode>(MessageLog.FindSourceObject(TunnelInstance));
+	SourceTunnelInstance = FindTrueSourceTunnelInstance(TunnelInstance, SourceTunnelInstance);
 	// Create the Boundary nodes for each unique entry/exit site.
 	for (UEdGraphPin* EntryPin : TunnelEntryPins)
 	{
 		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
+		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
 		TunnelBoundaryNode->WireUpTunnelEntry(TunnelInstance, EntryPin, MessageLog);
 	}
 	for (UEdGraphPin* ExitPin : TunnelExitPins)
@@ -97,7 +101,25 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
+		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
 		TunnelBoundaryNode->WireUpTunnelExit(TunnelInstance, ExitPin, MessageLog);
+	}
+	// Build node guid map to locate true source node.
+	TMap<FGuid, const UEdGraphNode*> TrueSourceNodeMap;
+	BuildSourceNodeMap(SourceTunnelInstance, TrueSourceNodeMap);
+	// Register all the nodes to the tunnel instance map
+	if (SourceTunnelInstance)
+	{
+		for (auto Node : TunnelGraph->Nodes)
+		{
+			MessageLog.SourceNodeToTunnelInstanceNodeMap.Add(Node, SourceTunnelInstance);
+			if (const UEdGraphNode** SearchNode = TrueSourceNodeMap.Find(Node->NodeGuid))
+			{
+				const UEdGraphNode* SourceGraphNode = *SearchNode;
+				MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(Node, SourceGraphNode);
+			}
+		}
+		MessageLog.SourceNodeToTunnelInstanceNodeMap.Add(TunnelInstance, SourceTunnelInstance);
 	}
 }
 
@@ -118,7 +140,6 @@ void UK2Node_TunnelBoundary::WireUpTunnelEntry(UK2Node_Tunnel* TunnelInstance, U
 		UEdGraphPin* SourcePin = TunnelInstance->FindPin(TunnelPin->PinName);
 		// Wire in the node
 		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT(""), NULL, false, false, TEXT("TunnelEntryExec"));
-		MessageLog.NotifyIntermediatePinCreation(OutputPin, SourcePin);
 		for (auto LinkedPin : TunnelPin->LinkedTo)
 		{
 			LinkedPin->MakeLinkTo(OutputPin);
@@ -148,7 +169,6 @@ void UK2Node_TunnelBoundary::WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UE
 			LinkedPin->MakeLinkTo(InputPin);
 		}
 		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT(""), NULL, false, false, TEXT("TunnelExitExec"));
-		MessageLog.NotifyIntermediatePinCreation(OutputPin, SourcePin);
 		TunnelPin->BreakAllPinLinks();
 		TunnelPin->MakeLinkTo(OutputPin);
 	}
@@ -166,6 +186,70 @@ void UK2Node_TunnelBoundary::DetermineTunnelGraphName(UK2Node_Tunnel* TunnelInst
 		TunnelGraph = CompositeInstance->BoundGraph;
 	}
 	TunnelGraphName = TunnelGraph ? TunnelGraph->GetFName() : NAME_None;
+}
+
+void UK2Node_TunnelBoundary::BuildSourceNodeMap(UEdGraphNode* Tunnel, TMap<FGuid, const UEdGraphNode*>& SourceNodeMap)
+{
+	// Crawl the graph and locate source node guids
+	UEdGraph* TunnelGraph = nullptr;
+	if (UK2Node_MacroInstance* SourceMacroInstance = Cast<UK2Node_MacroInstance>(Tunnel))
+	{
+		TunnelGraph = SourceMacroInstance->GetMacroGraph();
+	}
+	else if (UK2Node_Composite* SourceCompositeInstance = Cast<UK2Node_Composite>(Tunnel))
+	{
+		TunnelGraph = SourceCompositeInstance->BoundGraph;
+	}
+	if (TunnelGraph)
+	{
+		for (auto GraphNode : TunnelGraph->Nodes)
+		{
+			SourceNodeMap.Add(GraphNode->NodeGuid) = GraphNode;
+		}
+	}
+}
+
+UEdGraphNode* UK2Node_TunnelBoundary::FindTrueSourceTunnelInstance(UEdGraphNode* Tunnel, UEdGraphNode* SourceTunnelInstance)
+{
+	UEdGraphNode* SourceNode = nullptr;
+	if (Tunnel && SourceTunnelInstance)
+	{
+		if (Tunnel->NodeGuid == SourceTunnelInstance->NodeGuid)
+		{
+			SourceNode = SourceTunnelInstance;
+		}
+		else
+		{
+			UEdGraph* TunnelGraph = nullptr;
+			if (UK2Node_MacroInstance* SourceMacroInstance = Cast<UK2Node_MacroInstance>(SourceTunnelInstance))
+			{
+				TunnelGraph = SourceMacroInstance->GetMacroGraph();
+			}
+			else if (UK2Node_Composite* SourceCompositeInstance = Cast<UK2Node_Composite>(SourceTunnelInstance))
+			{
+				TunnelGraph = SourceCompositeInstance->BoundGraph;
+			}
+			if (TunnelGraph)
+			{
+				for (auto GraphNode : TunnelGraph->Nodes)
+				{
+					if (GraphNode->NodeGuid == Tunnel->NodeGuid)
+					{
+						SourceNode = GraphNode;
+					}
+					else if (GraphNode->IsA<UK2Node_Composite>() || GraphNode->IsA<UK2Node_MacroInstance>())
+					{
+						SourceNode = FindTrueSourceTunnelInstance(Tunnel, GraphNode);
+					}
+					if (SourceNode)
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+	return SourceNode;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -484,10 +484,10 @@ void UEdGraphSchema::BreakNodeLinks(UEdGraphNode& TargetNode) const
 	for (TArray<UEdGraphPin*>::TIterator PinIt(TargetNode.Pins); PinIt; ++PinIt)
 	{
 		UEdGraphPin* TargetPin = *PinIt;
-		if (TargetPin)
+		if (TargetPin != nullptr && TargetPin->SubPins.Num() == 0)
 		{
 			// Keep track of which node(s) the pin's connected to
-			for (auto OtherPin : TargetPin->LinkedTo)
+			for (UEdGraphPin*& OtherPin : TargetPin->LinkedTo)
 			{
 				if (OtherPin)
 				{
@@ -535,18 +535,26 @@ void UEdGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifc
 	TargetPin.BreakAllPinLinks();
 
 #if WITH_EDITOR
+	UEdGraphNode* OwningNode = TargetPin.GetOwningNode();
 	TSet<UEdGraphNode*> NodeList;
+
 	// Notify this node
-	TargetPin.GetOwningNode()->PinConnectionListChanged(&TargetPin);
-	NodeList.Add(TargetPin.GetOwningNode());
+	if (OwningNode != nullptr)
+	{
+		OwningNode->PinConnectionListChanged(&TargetPin);
+		NodeList.Add(OwningNode);
+	}
 
 	// As well as all other nodes that were connected
 	for (TArray<UEdGraphPin*>::TIterator PinIt(OldLinkedTo); PinIt; ++PinIt)
 	{
 		UEdGraphPin* OtherPin = *PinIt;
 		UEdGraphNode* OtherNode = OtherPin->GetOwningNode();
-		OtherNode->PinConnectionListChanged(OtherPin);
-		NodeList.Add(OtherNode);
+		if (OtherNode != nullptr)
+		{
+			OtherNode->PinConnectionListChanged(OtherPin);
+			NodeList.Add(OtherNode);
+		}
 	}
 
 	if (bSendsNodeNotifcation)
@@ -558,6 +566,7 @@ void UEdGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifc
 			Node->NodeConnectionListChanged();
 		}
 	}
+	
 #endif	//#if WITH_EDITOR
 }
 

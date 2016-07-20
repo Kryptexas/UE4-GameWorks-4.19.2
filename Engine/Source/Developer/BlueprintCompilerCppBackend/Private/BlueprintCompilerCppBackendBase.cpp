@@ -281,14 +281,23 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	EmitStructProperties(EmitterContext, SourceClass);
 
+	TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies;
 	// Emit function declarations and definitions (writes to header and body simultaneously)
 	if (!bIsInterface)
 	{
+		UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(EmitterContext.GetCurrentlyGeneratedClass());
+		UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
+		ParentDependencies = TSharedPtr<FGatherConvertedClassDependencies>(ParentBPGC ? new FGatherConvertedClassDependencies(ParentBPGC) : nullptr);
+
+		FEmitDefaultValueHelper::FillCommonUsedAssets(EmitterContext, ParentDependencies);
+
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());"), *CppClassName));
 		EmitterContext.Header.AddLine(TEXT("virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;"));
-		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitialization(UDynamicClass* InDynamicClass);"));
-		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitializationUsedAssets(UDynamicClass* InDynamicClass);"));
+
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_CommonAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		if (bHasStaticSearchableValues)
 		{
 			FBackendHelperStaticSearchableValues::EmitFunctionDeclaration(EmitterContext);
@@ -325,7 +334,9 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	{
 		// must be called after GenerateConstructor
 		// now we knows which assets are directly used in source code
-		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitializationUsedAssets(EmitterContext);
+		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
+		FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
+		FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
 	}
 
 	FEmitHelper::EmitLifetimeReplicatedPropsImpl(EmitterContext);

@@ -114,8 +114,8 @@ protected:
 	/** Navigate to referenced node */
 	void NavigateTo() const;
 
-	/** Calculate and return the heat color to use for exclusive timing stats. */
-	FSlateColor GetNodeHeatColor() const;
+	/** Calculate and return the heat color to use for average timing stats. */
+	FSlateColor GetAverageHeatColor() const;
 
 	/** Calculate and return the heat color to use for inclusive timing stats. */
 	FSlateColor GetInclusiveHeatColor() const;
@@ -133,5 +133,4 @@ protected:
 	TSharedPtr<FScriptPerfData> PerformanceStats;
 	/** Child statistics */
 	TArray<TSharedPtr<FBPProfilerStatWidget>> CachedChildren;
-
 };

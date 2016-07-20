@@ -113,7 +113,7 @@ public:
 		}
 
 		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
-		check (Cast<UK2Node_Event>(Result) == nullptr);
+		//check (Cast<UK2Node_Event>(Result) == nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
 
@@ -132,7 +132,7 @@ public:
 		}
 
 		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
-		check (Cast<UK2Node_Event>(Result) != nullptr);
+		//check (Cast<UK2Node_Event>(Result) != nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
 		// Track all expansion step generated events.

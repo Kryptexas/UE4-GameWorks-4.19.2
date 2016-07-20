@@ -142,17 +142,7 @@ public:
 
 	UClass* GetFirstNativeOrConvertedClass(UClass* InClass) const
 	{
-		check(InClass);
-		for (UClass* ItClass = InClass; ItClass; ItClass = ItClass->GetSuperClass())
-		{
-			auto BPGC = Cast<UBlueprintGeneratedClass>(ItClass);
-			if (ItClass->HasAnyClassFlags(CLASS_Native) || (ensure(BPGC) && Dependencies.WillClassBeConverted(BPGC)))
-			{
-				return ItClass;
-			}
-		}
-		check(false);
-		return nullptr;
+		return Dependencies.GetFirstNativeOrConvertedClass(InClass);
 	}
 
 	FString GenerateUniqueLocalName();
@@ -236,8 +226,6 @@ struct FEmitHelper
 
 	static FString LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject, const FText* OptionalTextLiteral = nullptr);
 
-	static FString DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type);
-
 	static FString PinTypeToNativeType(const FEdGraphPinType& InType);
 
 	static UFunction* GetOriginalFunction(UFunction* Function);
@@ -278,9 +266,9 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
-	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
+	static void FillCommonUsedAssets(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
-	static void GenerateCustomDynamicClassInitializationUsedAssets(FEmitterLocalContext& Context);
+	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
 	enum class EPropertyAccessOperator
 	{
@@ -303,6 +291,10 @@ struct FEmitDefaultValueHelper
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
+	// Add static initialization functions. Must be call after Context.UsedObjectInCurrentClass is fully filled
+	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
+
+	static void AddRegisterHelper(FEmitterLocalContext& Context);
 private:
 	// Returns native term, 
 	// returns empty string if cannot handle

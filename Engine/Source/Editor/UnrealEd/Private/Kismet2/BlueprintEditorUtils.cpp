@@ -3004,7 +3004,7 @@ void FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(UBlueprint* Bluepri
 	}
 }
 
-void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints)
+void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints, bool bRemoveSelf)
 {
 	TArray<UObject*> AllBlueprints;
 	bool const bIncludeDerivedClasses = true;
@@ -3028,11 +3028,16 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 					// depends on it must also depend on this Blueprint for re-compiling (bytecode, skeleton, full) purposes
 					if (TestBP->BlueprintType == BPTYPE_MacroLibrary)
 					{
-						GetDependentBlueprints(TestBP, DependentBlueprints);
+						GetDependentBlueprints(TestBP, DependentBlueprints, false);
 					}
 				}
 			}
 		}
+	}
+
+	if (bRemoveSelf)
+	{
+		DependentBlueprints.RemoveSwap(Blueprint);
 	}
 }
 
@@ -3282,6 +3287,27 @@ UEdGraph* FBlueprintEditorUtils::FindEventGraph(const UBlueprint* Blueprint)
 	}
 
 	return NULL;
+}
+
+bool FBlueprintEditorUtils::IsEventGraph(const UEdGraph* InGraph)
+{
+	if (InGraph)
+	{
+		if (const UBlueprint* Blueprint = FindBlueprintForGraph(InGraph))
+		{
+			return (nullptr != Blueprint->UbergraphPages.FindByKey(InGraph));
+		}
+	}
+	return false;
+}
+
+bool FBlueprintEditorUtils::IsTunnelInstanceNode(const UEdGraphNode* InGraphNode)
+{
+	if (InGraphNode)
+	{
+		return InGraphNode->IsA<UK2Node_MacroInstance>() || InGraphNode->IsA<UK2Node_Composite>();
+	}
+	return false;
 }
 
 bool FBlueprintEditorUtils::DoesBlueprintDeriveFrom(const UBlueprint* Blueprint, UClass* TestClass)

@@ -240,17 +240,7 @@ void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* So
 {
 	// Clone the graph, then move all of it's children
 	UEdGraph* ClonedGraph = CloneGraph(SourceGraph, NULL, &MessageLog, true);
-
-	// Create any Boundary nodes around child graphs if specified.
-	if (bCreateBoundaryNodes)
-	{
-		for (UEdGraph* SubGraph : ClonedGraph->SubGraphs)
-		{
-			UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(SubGraph, MessageLog);
-		}
-	}
-
-	MergeChildrenGraphsIn(ClonedGraph, ClonedGraph, bRequireSchemaMatch);
+	MergeChildrenGraphsIn(ClonedGraph, ClonedGraph, bRequireSchemaMatch, false, &MessageLog, bCreateBoundaryNodes);
 
 	// Duplicate the list of cloned nodes
 	if (OutClonedNodes != NULL)
@@ -267,7 +257,7 @@ void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* So
 }
 
 // Moves the contents of all of the children graphs (recursively) into the target graph.  This does not clone, it's destructive to the source
-void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* ParentGraph, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/)
+void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* ParentGraph, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, FCompilerResultsLog* MessageLog/* = nullptr*/, bool bWantBoundaryNodes/* = false*/)
 {
 	// Determine if we are regenerating a blueprint on load
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(MergeTarget);
@@ -277,6 +267,12 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 	for (int32 Index = 0; Index < ParentGraph->SubGraphs.Num(); ++Index)
 	{
 		UEdGraph* ChildGraph = ParentGraph->SubGraphs[Index];
+
+		if (bWantBoundaryNodes)
+		{
+			// Create boundary nodes around tunnels for debugging/profiling if requested.
+			UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(ChildGraph, *MessageLog);
+		}
 
 		auto NodeOwner = Cast<const UEdGraphNode>(ChildGraph ? ChildGraph->GetOuter() : nullptr);
 		const bool bNonVirtualGraph = NodeOwner ? NodeOwner->ShouldMergeChildGraphs() : true;
@@ -294,7 +290,7 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 				ChildGraph->MoveNodesToAnotherGraph(MergeTarget, IsAsyncLoading() || bIsLoading, bInIsCompiling);
 			}
 
-			MergeChildrenGraphsIn(MergeTarget, ChildGraph, bRequireSchemaMatch, bInIsCompiling);
+			MergeChildrenGraphsIn(MergeTarget, ChildGraph, bRequireSchemaMatch, bInIsCompiling, MessageLog, bWantBoundaryNodes);
 		}
 	}
 }

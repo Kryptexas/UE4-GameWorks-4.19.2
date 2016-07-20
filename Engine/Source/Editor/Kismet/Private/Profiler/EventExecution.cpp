@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "BlueprintProfilerSettings.h"
 #include "EventExecution.h"
-#include "BlueprintProfilerModule.h"
 #include "SHyperlink.h"
 
-// This forces checking against correct tracepaths when querying data
-#define STRICT_PERFDATA_CREATION 0
+// Debugging defines
+#define STRICT_PERFDATA_CREATION 0		// Asserts when script perf data is created from an incorrect tracepath.
+#define DISPLAY_NODENAMES_IN_TITLES 0 	// Displays full node names in the stat widget titles for debugging.
+#define DISPLAY_NODENAMES_ON_TOOLTIPS 0 // Displays full node names in the stat widget tooltips for debugging.
 
 #define LOCTEXT_NAMESPACE "BlueprintEventUI"
 
@@ -60,7 +62,7 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetOrAddPerfDataByInstanceAndTr
 	TSharedPtr<FScriptPerfData>& Result = InstanceMap.FindOrAdd(TracePath);
 	if (!Result.IsValid())
 	{
-		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType(), SampleFrequency));
 	}
 	return Result;
 }
@@ -76,7 +78,7 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetPerfDataByInstanceAndTracePa
 	TSharedPtr<FScriptPerfData>& Result = InstanceMap.FindOrAdd(TracePath);
 	if (!Result.IsValid())
 	{
-		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType(), SampleFrequency));
 	}
 	return Result;
 	#endif
@@ -103,7 +105,7 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetOrAddBlueprintPerfDataByTrac
 	TSharedPtr<FScriptPerfData>& Result = BlueprintMap.FindOrAdd(TracePath);
 	if (!Result.IsValid())
 	{
-		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType(), SampleFrequency));
 	}
 	return Result;
 }
@@ -120,7 +122,7 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetBlueprintPerfDataByTracePath
 	TSharedPtr<FScriptPerfData>& Result = BlueprintMap.FindOrAdd(TracePath);
 	if (!Result.IsValid())
 	{
-		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType(), SampleFrequency));
 	}
 	return Result;
 	#endif
@@ -145,19 +147,25 @@ void FScriptNodePerfData::GetBlueprintPerfDataForAllTracePaths(FScriptPerfData& 
 // FScriptExecutionNode
 
 FScriptExecutionNode::FScriptExecutionNode()
-	: NodeFlags(EScriptExecutionNodeFlags::None)
+	: FScriptNodePerfData(1)
+	, NodeFlags(EScriptExecutionNodeFlags::None)
 	, bExpansionState(false)
 {
 }
 
 FScriptExecutionNode::FScriptExecutionNode(const FScriptExecNodeParams& InitParams)
-	: NodeName(InitParams.NodeName)
+	: FScriptNodePerfData(InitParams.SampleFrequency)
+	, NodeName(InitParams.NodeName)
 	, OwningGraphName(InitParams.OwningGraphName)
 	, NodeFlags(InitParams.NodeFlags)
 	, ObservedObject(InitParams.ObservedObject)
 	, ObservedPin(InitParams.ObservedPin)
 	, DisplayName(InitParams.DisplayName)
+#if DISPLAY_NODENAMES_ON_TOOLTIPS
+	, Tooltip(FText::FromName(InitParams.NodeName))
+#else
 	, Tooltip(InitParams.Tooltip)
+#endif
 	, IconColor(InitParams.IconColor)
 	, Icon(InitParams.Icon)
 	, bExpansionState(false)
@@ -179,12 +187,12 @@ TSharedRef<SWidget> FScriptExecutionNode::GetIconWidget(const uint32 /*TracePath
 TSharedRef<SWidget> FScriptExecutionNode::GetHyperlinkWidget(const uint32 /*TracePath*/)
 {
 	return SNew(SHyperlink)
-		#if TRACEPATH_DEBUG
+		#if DISPLAY_NODENAMES_IN_TITLES
 		.Text(FText::FromName(NodeName))
 		#else
 		.Text(DisplayName)
 		#endif
-		.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
+		.Style(FEditorStyle::Get(), "BlueprintProfiler.Node.Hyperlink")
 		.ToolTipText(Tooltip)
 		.OnNavigate(this, &FScriptExecutionNode::NavigateToObject);
 }
@@ -304,22 +312,22 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 					TSharedPtr<FScriptPerfData> InstancePerfData = GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
 					InstancePerfData->Reset();
 					BlueprintPooledStats.Add(InstancePerfData);
+					TArray<TSharedPtr<FScriptPerfData>> ChildDataSet;
 
 					for (auto ChildIter : ChildExecPaths)
 					{
 						TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter.LinkedNode->GetPerfDataByInstanceAndTracePath(InstanceIter, ChildIter.TracePath);
-						InstancePerfData->AddBranchData(*ChildPerfData.Get());
+						if (ChildPerfData.IsValid())
+						{
+							ChildDataSet.Add(ChildPerfData);
+						}
 					}
+					InstancePerfData->InitialiseFromDataSet(ChildDataSet);
 				}
 			}
 			// Update Blueprint stats as branches
 			TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
-			BlueprintData->Reset();
-
-			for (auto BlueprintChildDataIter : BlueprintPooledStats)
-			{
-				BlueprintData->AddBranchData(*BlueprintChildDataIter.Get());
-			}
+			BlueprintData->InitialiseFromDataSet(BlueprintPooledStats);
 			BlueprintPooledStats.Reset(0);
 			bRefreshLinkStats = false;
 			break;
@@ -358,6 +366,31 @@ void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 	}
 }
 
+void FScriptExecutionNode::CalculateHeatLevelStats(TSharedPtr<FScriptHeatLevelMetrics> HeatLevelMetrics)
+{
+	for (auto InstancePerfDataMapIter : InstanceInputPinToPerfDataMap)
+	{
+		for (auto TracePathPerfDataMapIter : InstancePerfDataMapIter.Value)
+		{
+			TSharedPtr<FScriptPerfData> PerfData = TracePathPerfDataMapIter.Value;
+			if (PerfData.IsValid())
+			{
+				PerfData->SetHeatLevels(HeatLevelMetrics);
+			}
+		}
+	}
+
+	for (auto ChildIter : ChildNodes)
+	{
+		ChildIter->CalculateHeatLevelStats(HeatLevelMetrics);
+	}
+
+	for (auto LinkIter : LinkedNodes)
+	{
+		LinkIter.Value->CalculateHeatLevelStats(HeatLevelMetrics);
+	}
+}
+
 float FScriptExecutionNode::CalculateHottestPathStats(FScriptExecutionHottestPathParams HotPathParams)
 {
 	// Grab local perf data
@@ -367,11 +400,9 @@ float FScriptExecutionNode::CalculateHottestPathStats(FScriptExecutionHottestPat
 	if (!IsEvent())
 	{
 		// Subtract local inclusive cost from parent inclusive cost
-		const double NodeTime = IsBranch() ? LocalPerfData->GetExclusiveTiming() : LocalPerfData->GetInclusiveTiming();
+		const double NodeTime = IsBranch() ? LocalPerfData->GetAverageTiming() : LocalPerfData->GetInclusiveTiming();
 		HotPathParams.TimeSoFar += NodeTime;
 		AccumulatedTime += NodeTime;
-		const float HottestEndpointValue = static_cast<float>(HotPathParams.TimeSoFar / HotPathParams.EventTiming);
-		LocalPerfData->SetHottestEndpointHeatLevel(HottestEndpointValue);
 	}
 	// Update children
 	for (auto ChildIter : ChildNodes)
@@ -540,27 +571,26 @@ void FScriptExecutionTunnelEntry::GetLinearExecutionPath(TArray<FLinearExecPath>
 void FScriptExecutionTunnelEntry::AddTunnelTiming(const FName InstanceName, const FTracePath& TracePath, const FTracePath& InternalTracePath, const int32 ExitScriptOffset, const double Time)
 {
 	TSharedPtr<FScriptPerfData> PerfData = GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
-	PerfData->AddEventTiming(Time);
+	PerfData->AddEventTiming(0.0);
+	PerfData->AddInclusiveTiming(Time, false);
+	PerfData->OverrideSampleCount(TunnelEntryCount);
 	// Tick Entry points
 	for (auto EntrySite : ChildNodes)
 	{
 		PerfData = EntrySite->GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
-		PerfData->TickSamples();
+		PerfData->AddEventTiming(0.0);
+		PerfData->OverrideSampleCount(TunnelEntryCount);
 	}
 	// Tick exit sites
 	TSharedPtr<FScriptExecutionNode> TunnelExitNode = GetExitSite(ExitScriptOffset);
 	if (TunnelExitNode.IsValid())
 	{
 		PerfData = TunnelExitNode->GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
-		PerfData->TickSamples();
+		PerfData->AddEventTiming(0.0);
+		PerfData->OverrideSampleCount(TunnelEntryCount);
 		PerfData = TunnelExitNode->GetPerfDataByInstanceAndTracePath(InstanceName, InternalTracePath);
-		PerfData->TickSamples();
+		PerfData->AddEventTiming(0.0);
 	}
-}
-
-void FScriptExecutionTunnelEntry::AddExitSite(const int32 ExitScriptOffset, TSharedPtr<FScriptExecutionTunnelExit> ExitSite)
-{
-	LinkedNodes.Add(ExitScriptOffset) = ExitSite;
 }
 
 TSharedPtr<FScriptExecutionTunnelExit> FScriptExecutionTunnelEntry::GetExitSite(const int32 ScriptOffset) const
@@ -584,10 +614,15 @@ void FScriptExecutionTunnelEntry::RefreshStats(const FTracePath& TracePath)
 	GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
 	// Create new trace
 	FTracePath TunnelTracePath(TracePath, SharedThis<FScriptExecutionTunnelEntry>(this));
-	// Refresh Child Links
+	// Refresh child entry points
 	for (auto ChildIter : ChildNodes)
 	{
 		ChildIter->RefreshStats(TunnelTracePath);
+	}
+	// Refresh exit points
+	for (auto ExitPoint : LinkedNodes)
+	{
+		ExitPoint.Value->RefreshStats(TunnelTracePath);
 	}
 	// Update the owning blueprint stats
 	if (BlueprintPooledStats.Num() > 0)
@@ -631,17 +666,21 @@ void FScriptExecutionTunnelExit::RefreshStats(const FTracePath& TracePath)
 	// Refresh all valid tunnel links
 	for (auto LinkIter : LinkedNodes)
 	{
-		FTracePath LinkTracePath(TracePath);
-		LinkTracePath.ExitTunnel();
-		if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::EventPin))
+		// Don't refresh any linked tunnel exits, the owning entry point will do that.
+		if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin))
 		{
-			LinkTracePath.ResetPath();
+			FTracePath LinkTracePath(TracePath);
+			LinkTracePath.ExitTunnel();
+			if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::EventPin))
+			{
+				LinkTracePath.ResetPath();
+			}
+			if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+			{
+				LinkTracePath.AddExitPin(LinkIter.Key);
+			}
+			LinkIter.Value->RefreshStats(LinkTracePath);
 		}
-		if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
-		{
-			LinkTracePath.AddExitPin(LinkIter.Key);
-		}
-		LinkIter.Value->RefreshStats(LinkTracePath);
 	}
 	// Update the owning blueprint stats
 	if (BlueprintPooledStats.Num() > 0)
@@ -677,7 +716,7 @@ TSharedRef<SWidget> FScriptExecutionTunnelExit::GetIconWidget(const uint32 Trace
 TSharedRef<SWidget> FScriptExecutionTunnelExit::GetHyperlinkWidget(const uint32 TracePath)
 {
 	return SNew(SHyperlink)
-		#if TRACEPATH_DEBUG
+		#if DISPLAY_NODENAMES_IN_TITLES
 		.Text(FText::FromName(NodeName))
 		#else
 		.Text(DisplayName)
@@ -734,7 +773,7 @@ void FScriptExecutionPureNode::RefreshStats(const FTracePath& TracePath)
 	// Refresh all pure nodes and accumulate for blueprint stat.
 	if (HasFlags(EScriptExecutionNodeFlags::PureChain))
 	{
-		//GetInstancePerfDataByTracePath
+		// Update linked pure nodes and find instances
 		TSet<FName> ValidInstances;
 		FTracePath PureTracePath(TracePath);
 		TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
@@ -745,18 +784,6 @@ void FScriptExecutionPureNode::RefreshStats(const FTracePath& TracePath)
 			PureTracePath.AddExitPin(PureIter.Key);
 			PureIter.Value->RefreshStats(PureTracePath);
 		}
-		for (auto InstanceName : ValidInstances)
-		{
-			TSharedPtr<FScriptPerfData> InstancePerfData = GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
-			InstancePerfData->Reset();
-			BlueprintPooledStats.Add(InstancePerfData);
-
-			for (auto ChildIter : ChildNodes)
-			{
-				TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter->GetPerfDataByInstanceAndTracePath(InstanceName, TracePath);
-				InstancePerfData->AddBranchData(*ChildPerfData.Get());
-			}
-		}
 	}
 	// Grab all instance stats to accumulate into the blueprint stat.
 	GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
@@ -765,97 +792,6 @@ void FScriptExecutionPureNode::RefreshStats(const FTracePath& TracePath)
 	{
 		TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
 		BlueprintData->InitialiseFromDataSet(BlueprintPooledStats);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-// FScriptExecutionBlueprint
-
-TSharedPtr<FScriptExecutionNode> FScriptExecutionBlueprint::GetInstanceByName(FName InstanceName)
-{
-	TSharedPtr<FScriptExecutionNode> Result;
-	for (auto Iter : Instances)
-	{
-		if (Iter->GetName() == InstanceName)
-		{
-			Result = Iter;
-			break;
-		}
-	}
-	return Result;
-}
-
-void FScriptExecutionBlueprint::RefreshStats(const FTracePath& TracePath)
-{
-	TArray<TSharedPtr<FScriptPerfData>> InstanceData;
-	// Update event stats
-	for (auto BlueprintEventIter : ChildNodes)
-	{
-		// This crawls through and updates all instance stats and pools the results into the blueprint node stats
-		// as an overall blueprint performance representation.
-		BlueprintEventIter->RefreshStats(TracePath);
-	}
-	// Determine if we require the hottest path's updating
-	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-	const bool bUpdateHottestPaths = ProfilerModule.GetWireHeatMapDisplayMode() != EBlueprintProfilerHeatMapDisplayMode::None;
-	// Update instance stats
-	for (auto InstanceIter : Instances)
-	{
-		TSharedPtr<FScriptPerfData> InstancePerfData = InstanceIter->GetOrAddPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
-		InstancePerfData->Reset();
-		// Update all top level instance stats now the events are up to date.
-		for (auto InstanceEventIter : InstanceIter->GetChildNodes())
-		{
-			TSharedPtr<FScriptPerfData> InstanceEventPerfData = InstanceEventIter->GetOrAddPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
-			InstancePerfData->AddData(*InstanceEventPerfData.Get());
-			// Update the hottest path stats
-			if (bUpdateHottestPaths)
-			{
-				FScriptExecutionHottestPathParams HotPathParams(InstanceIter->GetName(), InstanceEventPerfData->GetExclusiveTiming());
-				InstanceEventIter->CalculateHottestPathStats(HotPathParams);
-			}
-		}
-		// Add for consolidation at the bottom.
-		InstanceData.Add(InstancePerfData);
-	}
-	// Finally... update the root stats for the owning blueprint.
-	if (InstanceData.Num() > 0)
-	{
-		TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
-		BlueprintData->Reset();
-
-		for (auto InstanceIter : InstanceData)
-		{
-			BlueprintData->AddData(*InstanceIter.Get());
-		}
-	}
-}
-
-void FScriptExecutionBlueprint::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut)
-{
-	for (auto BlueprintEventIter : ChildNodes)
-	{
-		BlueprintEventIter->GetAllExecNodes(ExecNodesOut);
-		ExecNodesOut.Add(BlueprintEventIter->GetName()) = BlueprintEventIter;
-	}
-	for (auto InstanceIter : Instances)
-	{
-		InstanceIter->GetAllExecNodes(ExecNodesOut);
-		ExecNodesOut.Add(InstanceIter->GetName()) = InstanceIter;
-	}
-	ExecNodesOut.Add(GetName()) = AsShared();
-}
-
-void FScriptExecutionBlueprint::NavigateToObject() const
-{
-	if (IsObservedObjectValid())
-	{
-		if (const UBlueprint* Blueprint = Cast<UBlueprint>(ObservedObject.Get()))
-		{
-			TArray<FAssetData> BlueprintAssets;
-			BlueprintAssets.Add(Blueprint);
-			GEditor->SyncBrowserToObjects(BlueprintAssets);
-		}
 	}
 }
 
@@ -940,7 +876,7 @@ TSharedRef<SWidget> FScriptExecutionInstance::GetIconWidget(const uint32 /*Trace
 TSharedRef<SWidget> FScriptExecutionInstance::GetHyperlinkWidget(const uint32 /*TracePath*/)
 {
 	return SNew(SHyperlink)
-		#if TRACEPATH_DEBUG
+		#if DISPLAY_NODENAMES_IN_TITLES
 		.Text(FText::FromName(NodeName))
 		#else
 		.Text(DisplayName)
@@ -958,6 +894,193 @@ FSlateColor FScriptExecutionInstance::GetInstanceIconColor() const
 FText FScriptExecutionInstance::GetInstanceTooltip() const
 {
 	return IsObservedObjectValid() ? Tooltip : LOCTEXT("ActorInstanceInvalid_Tooltip", "Actor instance no longer exists");
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FScriptExecutionBlueprint
+
+FScriptExecutionBlueprint::FScriptExecutionBlueprint(const FScriptExecNodeParams& InitParams)
+	: FScriptExecutionNode(InitParams)
+{
+	HeatLevelMetrics = MakeShareable(new FScriptHeatLevelMetrics());
+}
+
+TSharedPtr<FScriptExecutionNode> FScriptExecutionBlueprint::GetInstanceByName(FName InstanceName)
+{
+	TSharedPtr<FScriptExecutionNode> Result;
+	for (auto Iter : Instances)
+	{
+		if (Iter->GetName() == InstanceName)
+		{
+			Result = Iter;
+			break;
+		}
+	}
+	return Result;
+}
+
+void FScriptExecutionBlueprint::RefreshStats(const FTracePath& TracePath)
+{
+	TArray<TSharedPtr<FScriptPerfData>> InstanceData;
+	// Update event stats
+	for (auto BlueprintEventIter : ChildNodes)
+	{
+		// This crawls through and updates all instance stats and pools the results into the blueprint node stats
+		// as an overall blueprint performance representation.
+		BlueprintEventIter->RefreshStats(TracePath);
+	}
+	// Determine if we require the hottest path's updating
+	const bool bUpdateHottestPaths = GetDefault<UBlueprintProfilerSettings>()->WireHeatMapDisplayMode != EBlueprintProfilerHeatMapDisplayMode::None;
+	// Update instance stats
+	for (auto InstanceIter : Instances)
+	{
+		TSharedPtr<FScriptPerfData> InstancePerfData = InstanceIter->GetOrAddPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
+		InstancePerfData->Reset();
+		// Update all top level instance stats now the events are up to date.
+		for (auto InstanceEventIter : InstanceIter->GetChildNodes())
+		{
+			TSharedPtr<FScriptPerfData> InstanceEventPerfData = InstanceEventIter->GetOrAddPerfDataByInstanceAndTracePath(InstanceIter->GetName(), TracePath);
+			InstancePerfData->AddData(*InstanceEventPerfData.Get());
+			// Update the hottest path stats
+			if (bUpdateHottestPaths)
+			{
+				FScriptExecutionHottestPathParams HotPathParams(InstanceIter->GetName(), InstanceEventPerfData->GetAverageTiming());
+				InstanceEventIter->CalculateHottestPathStats(HotPathParams);
+			}
+		}
+		// Add for consolidation at the bottom.
+		InstanceData.Add(InstancePerfData);
+	}
+	// Finally... update the root stats for the owning blueprint.
+	if (InstanceData.Num() > 0)
+	{
+		TSharedPtr<FScriptPerfData> BlueprintData = GetOrAddBlueprintPerfDataByTracePath(TracePath);
+		BlueprintData->Reset();
+
+		for (auto InstanceIter : InstanceData)
+		{
+			BlueprintData->AddData(*InstanceIter.Get());
+		}
+		
+		// Now that all stats have been updated/accumulated, update heat level metrics data.
+		UpdateHeatLevelMetrics(BlueprintData);
+
+		// Finally, calculate updated heat levels based on the current heat level metrics data.
+		CalculateHeatLevelStats(HeatLevelMetrics);
+		for (auto InstanceIter : Instances)
+		{
+			InstanceIter->CalculateHeatLevelStats(HeatLevelMetrics);
+		}
+	}
+}
+
+void FScriptExecutionBlueprint::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut)
+{
+	for (auto BlueprintEventIter : ChildNodes)
+	{
+		BlueprintEventIter->GetAllExecNodes(ExecNodesOut);
+		ExecNodesOut.Add(BlueprintEventIter->GetName()) = BlueprintEventIter;
+	}
+	for (auto InstanceIter : Instances)
+	{
+		InstanceIter->GetAllExecNodes(ExecNodesOut);
+		ExecNodesOut.Add(InstanceIter->GetName()) = InstanceIter;
+	}
+	ExecNodesOut.Add(GetName()) = AsShared();
+}
+
+void FScriptExecutionBlueprint::NavigateToObject() const
+{
+	if (IsObservedObjectValid())
+	{
+		if (const UBlueprint* Blueprint = Cast<UBlueprint>(ObservedObject.Get()))
+		{
+			TArray<FAssetData> BlueprintAssets;
+			BlueprintAssets.Add(Blueprint);
+			GEditor->SyncBrowserToObjects(BlueprintAssets);
+		}
+	}
+}
+
+void FScriptExecutionBlueprint::SortEvents()
+{
+	// Sort the events
+	const auto SortEvents = [](const TSharedPtr<FScriptExecutionNode>& A, const TSharedPtr<FScriptExecutionNode>& B)
+	{
+		if (A->HasFlags(EScriptExecutionNodeFlags::InheritedEvent))
+		{
+			if (!B->HasFlags(EScriptExecutionNodeFlags::InheritedEvent))
+			{
+				return false;
+			}
+		}
+		else if (B->HasFlags(EScriptExecutionNodeFlags::InheritedEvent))
+		{
+			return true;
+		}
+		return true;
+	};
+	ChildNodes.Sort(SortEvents);
+}
+
+void FScriptExecutionBlueprint::UpdateHeatLevelMetrics(TSharedPtr<FScriptPerfData> BlueprintData)
+{
+	const UBlueprintProfilerSettings* ProfilerSettings = GetDefault<UBlueprintProfilerSettings>();
+	check(ProfilerSettings != nullptr);
+
+	switch (ProfilerSettings->HeatLevelMetricsType)
+	{
+	case EBlueprintProfilerHeatLevelMetricsType::ClassRelative:
+	{
+		if (BlueprintData.IsValid())
+		{
+			const double AverageTiming = BlueprintData->GetAverageTiming();
+			const double InclusiveTiming = BlueprintData->GetInclusiveTiming();
+			const double MaxTiming = BlueprintData->GetMaxTiming();
+			const double TotalTiming = BlueprintData->GetTotalTiming();
+
+			HeatLevelMetrics->AveragePerformanceThreshold = AverageTiming > 0.0f ? 1.0f / AverageTiming : 0.0f;
+			HeatLevelMetrics->InclusivePerformanceThreshold = InclusiveTiming > 0.0f ? 1.0f / InclusiveTiming : 0.0f;
+			HeatLevelMetrics->MaxPerformanceThreshold = MaxTiming > 0.0f ? 1.0f / MaxTiming : 0.0f;
+			HeatLevelMetrics->TotalTimePerformanceThreshold = TotalTiming > 0.0f ? 1.0f / TotalTiming : 0.0f;
+		}
+		else
+		{
+			HeatLevelMetrics->AveragePerformanceThreshold = 0.0f;
+			HeatLevelMetrics->InclusivePerformanceThreshold = 0.0f;
+			HeatLevelMetrics->MaxPerformanceThreshold = 0.0f;
+			HeatLevelMetrics->TotalTimePerformanceThreshold = 0.0f;
+		}
+
+		HeatLevelMetrics->bUseTotalTimeWaterMark = false;
+		HeatLevelMetrics->EventPerformanceThreshold = HeatLevelMetrics->AveragePerformanceThreshold;
+	}
+		break;
+
+	case EBlueprintProfilerHeatLevelMetricsType::FrameRelative:
+	{
+		// @TODO (this type is not needed for MVP)
+		HeatLevelMetrics->EventPerformanceThreshold = 0.0f;
+		HeatLevelMetrics->AveragePerformanceThreshold = 0.0f;
+		HeatLevelMetrics->InclusivePerformanceThreshold = 0.0f;
+		HeatLevelMetrics->MaxPerformanceThreshold = 0.0f;
+		HeatLevelMetrics->bUseTotalTimeWaterMark = false;
+		HeatLevelMetrics->TotalTimePerformanceThreshold = 0.0f;
+	}
+		break;
+
+	case EBlueprintProfilerHeatLevelMetricsType::CustomThresholds:
+	default:
+	{
+		HeatLevelMetrics->EventPerformanceThreshold = ProfilerSettings->CustomEventPerformanceThreshold;
+		HeatLevelMetrics->AveragePerformanceThreshold = ProfilerSettings->CustomAveragePerformanceThreshold;
+		HeatLevelMetrics->InclusivePerformanceThreshold = ProfilerSettings->CustomInclusivePerformanceThreshold;
+		HeatLevelMetrics->MaxPerformanceThreshold = ProfilerSettings->CustomMaxPerformanceThreshold;
+		HeatLevelMetrics->bUseTotalTimeWaterMark = true;
+		HeatLevelMetrics->TotalTimePerformanceThreshold = 0.0f;	// not used for this type
+	}
+		break;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

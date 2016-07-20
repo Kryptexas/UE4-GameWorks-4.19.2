@@ -15,8 +15,8 @@ void UK2Node_EditablePinBase::AllocateDefaultPins()
 	// Add in pins based on the user defined pins in this node
 	for(int32 i = 0; i < UserDefinedPins.Num(); i++)
 	{
-		//FText DummyErrorMsg;
-		//if (!IsEditable() || CanCreateUserDefinedPin(UserDefinedPins[i]->PinType, UserDefinedPins[i]->DesiredPinDirection, DummyErrorMsg))
+		FText DummyErrorMsg;
+		if (!IsEditable() || CanCreateUserDefinedPin(UserDefinedPins[i]->PinType, UserDefinedPins[i]->DesiredPinDirection, DummyErrorMsg))
 		{
 			CreatePinFromUserDefinition(UserDefinedPins[i]);
 		}

@@ -217,6 +217,13 @@ struct COREUOBJECT_API FBlueprintDependencyData
 	FName ObjectName;
 	FName ClassPackageName;
 	FName ClassName;
+
+	FBlueprintDependencyData() {}
+
+	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageName
+		, const TCHAR* InObjectName
+		, const TCHAR* InClassPackageName
+		, const TCHAR* InClassName);
 };
 
 /**
@@ -237,4 +244,6 @@ public:
 
 	/** Get all assets paths necessary for the class with the given class name and all converted classes that dependencies. */
 	void GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const;
+
+	static void FillUsedAssetsInDynamicClass(UDynamicClass* DynamicClass, GetDependenciesNamesFunc GetUsedAssets);
 };

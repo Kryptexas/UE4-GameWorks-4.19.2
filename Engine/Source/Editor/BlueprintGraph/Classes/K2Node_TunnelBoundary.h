@@ -47,4 +47,9 @@ protected:
 	/** Determines the tunnel graph name */
 	void DetermineTunnelGraphName(UK2Node_Tunnel* TunnelInstance);
 
+	/** Build a guid map for nodes from the original graph */
+	static void BuildSourceNodeMap(UEdGraphNode* Tunnel, TMap<FGuid, const UEdGraphNode*>& SourceNodeMap);
+
+	/** Determines the true source tunnel instance */
+	static UEdGraphNode* FindTrueSourceTunnelInstance(UEdGraphNode* Tunnel, UEdGraphNode* SourceTunnelInstance);
 };

@@ -20,19 +20,7 @@ FBlueprintProfiler::FBlueprintProfiler()
 	: bProfilerActive(false)
 	, bProfilingCaptureActive(false)
 	, bPIEActive(false)
-	, GraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
-	, WireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
 {
-	// Update stat watermarks from editor settings, the callbacks should keep them in sync after this.
-	if (const UEditorExperimentalSettings* EditorSettings = GetDefault<UEditorExperimentalSettings>())
-	{
-		FScriptPerfData::EnableRecentSampleBias(EditorSettings->bEnableBlueprintProfilerRecentSampleBias);
-		FScriptPerfData::SetRecentSampleBias(EditorSettings->BlueprintProfilerRecentSampleBias);
-		FScriptPerfData::SetEventPerformanceThreshold(EditorSettings->BlueprintProfilerEventThreshold);
-		FScriptPerfData::SetExclusivePerformanceThreshold(EditorSettings->BlueprintProfilerExclNodeThreshold);
-		FScriptPerfData::SetInclusivePerformanceThreshold(EditorSettings->BlueprintProfilerInclNodeThreshold);
-		FScriptPerfData::SetMaxPerformanceThreshold(EditorSettings->BlueprintProfilerMaxNodeThreshold);
-	}
 }
 
 FBlueprintProfiler::~FBlueprintProfiler()
@@ -66,7 +54,7 @@ void FBlueprintProfiler::ToggleProfilingCapture()
 	FBlueprintCoreDelegates::OnToggleScriptProfiler.Broadcast(bProfilerActive);
 }
 
-void FBlueprintProfiler::InstrumentEvent(const EScriptInstrumentationEvent& Event)
+void FBlueprintProfiler::InstrumentEvent(const FScriptInstrumentationSignal& Event)
 {
 	#if WITH_EDITOR
 	SCOPE_CYCLE_COUNTER(STAT_ProfilerInstrumentationCost);
@@ -76,22 +64,9 @@ void FBlueprintProfiler::InstrumentEvent(const EScriptInstrumentationEvent& Even
 	#endif
 	{
 		// Handle context switching events
-		CaptureContext.UpdateContext(Event.GetContextObject(), InstrumentationEventQueue);
+		CaptureContext.UpdateContext(Event, InstrumentationEventQueue);
 		// Add instrumented event
-		int32 ScriptCodeOffset = -1;
-		FName CurrentFunctionName = Event.GetEventName();
-		if (Event.IsStackFrameValid())
-		{
-			const FFrame& StackFrame = Event.GetStackFrame();
-			ScriptCodeOffset = StackFrame.Code - StackFrame.Node->Script.GetData() - 1;
-			CurrentFunctionName = StackFrame.Node->GetFName();
-		}
-		// Handle latent suspends - set the script offset to the LinkId of the most recent latent action.
-		if (Event.GetType() == EScriptInstrumentation::ResumeEvent)
-		{
-			ScriptCodeOffset = Event.GetLatentLinkId();
-		}
-		InstrumentationEventQueue.Add(FScriptInstrumentedEvent(Event.GetType(), CurrentFunctionName, ScriptCodeOffset));
+		InstrumentationEventQueue.Add(FScriptInstrumentedEvent(Event.GetType(), Event.GetFunctionClassScope()->GetFName(), Event.GetFunctionName(), Event.GetScriptCodeOffset()));
 		// Reset context on event end
 		if (Event.GetType() == EScriptInstrumentation::Stop)
 		{
@@ -101,6 +76,14 @@ void FBlueprintProfiler::InstrumentEvent(const EScriptInstrumentationEvent& Even
 }
 
 #if WITH_EDITOR
+
+void FBlueprintProfiler::AddInstrumentedBlueprint(UBlueprint* InstrumentedBlueprint)
+{
+	if (InstrumentedBlueprint && InstrumentedBlueprint->GeneratedClass && InstrumentedBlueprint->GeneratedClass->HasInstrumentation())
+	{
+		GetBlueprintContext(InstrumentedBlueprint->GeneratedClass->GetPathName());
+	}
+}
 
 TSharedPtr<FBlueprintExecutionContext> FBlueprintProfiler::GetBlueprintContext(const FString& BlueprintClassPath)
 {
@@ -139,6 +122,19 @@ TSharedPtr<FScriptExecutionNode> FBlueprintProfiler::GetProfilerDataForNode(cons
 			{
 				Result = (*BlueprintContext)->GetProfilerDataForNode(GraphNode);
 			}
+		}
+	}
+	return Result;
+}
+
+TSharedPtr<FScriptExecutionBlueprint> FBlueprintProfiler::GetProfilerDataForBlueprint(const UBlueprint* Blueprint)
+{
+	TSharedPtr<FScriptExecutionBlueprint> Result;
+	if (Blueprint)
+	{
+		if (TSharedPtr<FBlueprintExecutionContext>* BlueprintContext = PathToBlueprintContext.Find(Blueprint->GeneratedClass->GetPathName()))
+		{
+			Result = (*BlueprintContext)->GetBlueprintExecNode();
 		}
 	}
 	return Result;
@@ -185,6 +181,7 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 		bool IsRangeValid() const { return StopIdx > StartIdx; }
 
 		TSharedPtr<FBlueprintExecutionContext> BlueprintContext;
+		FName ClassScope;
 		FName InstanceName;
 		int32 StartIdx;
 		int32 StopIdx;
@@ -207,10 +204,11 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 					if (InstanceEvent.IsNewInstance() && Event.IsEvent())
 					{
 						FEventRange NewEventRange;
-						NewEventRange.BlueprintContext = GetBlueprintContext(CurrEvent.GetObjectPath());
+						NewEventRange.BlueprintContext = GetBlueprintContext(CurrEvent.GetBlueprintClassPath());
 						if (NewEventRange.BlueprintContext.IsValid())
 						{
-							NewEventRange.InstanceName = NewEventRange.BlueprintContext->MapBlueprintInstance(InstanceEvent.GetObjectPath());
+							NewEventRange.InstanceName = NewEventRange.BlueprintContext->MapBlueprintInstance(InstanceEvent.GetInstancePath());
+							NewEventRange.ClassScope = Event.GetFunctionClassScopeName();
 							NewEventRange.StartIdx = EventIdx;
 							ScriptEventRanges.Push(NewEventRange);
 						}
@@ -221,15 +219,78 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 				}
 				break;
 			}
+			case EScriptInstrumentation::ClassScope:
+			{
+				// Class scope switch handling.
+				if (ScriptEventRanges.Num() > 0)
+				{
+					// Check against the last class scope first before adding another range.
+					FEventRange& LastEventRange = ScriptEventRanges.Last();
+					const FName NewClassScope = InstrumentationEventQueue[EventIdx].GetFunctionClassScopeName();
+					if (LastEventRange.ClassScope != NewClassScope)
+					{
+						// Override the class scope signal to be an event.
+						InstrumentationEventQueue[EventIdx].OverrideType(EScriptInstrumentation::Event);
+						// Create new sub event event range to be processed as a sub event.
+						FEventRange NewClassScopeRange;
+						NewClassScopeRange.BlueprintContext = LastEventRange.BlueprintContext;
+						NewClassScopeRange.InstanceName = LastEventRange.InstanceName;
+						NewClassScopeRange.ClassScope = NewClassScope;
+						NewClassScopeRange.StartIdx = EventIdx;
+						ScriptEventRanges.Push(NewClassScopeRange);
+						// find new class subset
+						double StartTime = MAX_dbl;
+						double StopTime = MIN_dbl;
+						int32 SubClassIdx = EventIdx+1;
+						for (; SubClassIdx < InstrumentationEventQueue.Num(); ++SubClassIdx)
+						{
+							// Check for end of scope
+							if (InstrumentationEventQueue[SubClassIdx].GetFunctionClassScopeName() != NewClassScope)
+							{
+								break;
+							}
+							// Update new event timings
+							const double EventTime = InstrumentationEventQueue[SubClassIdx].GetTime();
+							StartTime = FMath::Min<double>(StartTime, EventTime);
+							StopTime = FMath::Max<double>(StopTime, EventTime);
+						}
+						// Set event timings
+						InstrumentationEventQueue[EventIdx].OverrideTime(StartTime);
+						// Insert Stop marker
+						FScriptInstrumentedEvent StopMarker(EScriptInstrumentation::Stop, NewClassScope, InstrumentationEventQueue[EventIdx].GetFunctionName(), INDEX_NONE);
+						StopMarker.OverrideTime(StopTime);
+						InstrumentationEventQueue.Insert(StopMarker, SubClassIdx);
+						// Note: we could skip the class scope signals and jump straight to processing here - it might cause problems though.
+					}
+					else
+					{
+						// we have processed a scope switch and are now continuing with the previous scope.
+						// just remove the scope signal and adjust the processing offset ( so we process the next valid signal ).
+						InstrumentationEventQueue.RemoveAt(EventIdx, 1, false);
+						EventIdx--;
+					}
+				}
+				break;
+			}
 			case EScriptInstrumentation::Event:
 			{
 				// Nested events such as calls from event dispatchers.
 				if (ScriptEventRanges.Num() > 0)
 				{
 					FEventRange& LastEventRange = ScriptEventRanges.Last();
+					FName ActiveInstance = LastEventRange.InstanceName;
+					// Check for a different instance, update the active instance and remove the signal.
+					const int32 InstanceIdx = EventIdx - 1;
+					if (EventIdx > 0 && InstrumentationEventQueue[InstanceIdx].GetType() == EScriptInstrumentation::Instance)
+					{
+						ActiveInstance = LastEventRange.BlueprintContext->MapBlueprintInstance(InstrumentationEventQueue[InstanceIdx].GetInstancePath());
+						InstrumentationEventQueue.RemoveAt(InstanceIdx, 1, false);
+						EventIdx--;
+					}
 					FEventRange NewEventRange;
 					NewEventRange.BlueprintContext = LastEventRange.BlueprintContext;
-					NewEventRange.InstanceName = LastEventRange.InstanceName;
+					NewEventRange.InstanceName = ActiveInstance;
+					NewEventRange.ClassScope = CurrEvent.GetFunctionClassScopeName();
 					NewEventRange.StartIdx = EventIdx;
 					ScriptEventRanges.Push(NewEventRange);
 				}

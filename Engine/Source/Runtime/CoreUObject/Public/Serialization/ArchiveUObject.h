@@ -1147,6 +1147,11 @@ public:
 			// start the initial serialization
 			SerializedObjects.Add(SearchObject);
 			SerializeObject(SearchObject);
+			for (int32 Iter = 0; Iter < PendingSerializationObjects.Num(); Iter++)
+			{
+				SerializeObject(PendingSerializationObjects[Iter]);
+			}
+			PendingSerializationObjects.Reset();
 		}
 	}
 
@@ -1198,8 +1203,8 @@ public:
 				SerializedObjects.Add(Obj, &bAlreadyAdded);
 				if (!bAlreadyAdded)
 				{
-					// otherwise recurse down into the object if it is contained within the initial search object
-					SerializeObject(Obj);
+					// No recursion
+					PendingSerializationObjects.Add(Obj);
 				}
 			}
 			else if ( bNullPrivateReferences && !Obj->HasAnyFlags(RF_Public) )
@@ -1227,6 +1232,9 @@ protected:
 
 	/** List of objects that have already been serialized */
 	TSet<UObject*> SerializedObjects;
+
+	/** Object that will be serialized */
+	TArray<UObject*> PendingSerializationObjects;
 
 	/** Map of referencing objects to referencing properties */
 	TMap<UObject*, TArray<UProperty*>> ReplacedReferences;

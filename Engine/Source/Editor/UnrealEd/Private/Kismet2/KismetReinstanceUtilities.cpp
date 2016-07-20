@@ -1351,8 +1351,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 				GetObjectsOfClass(OldClass, ObjectsToReplace, bIncludeDerivedClasses);
 
 				// Then fix 'real' (non archetype) instances of the class
-				for (UObject* OldObject : ObjectsToReplace)
+				for (int32 OldObjIndex = 0; OldObjIndex < ObjectsToReplace.Num(); ++OldObjIndex)
 				{
+					UObject* OldObject = ObjectsToReplace[OldObjIndex];
 					// Skip non-archetype instances, EXCEPT for component templates
 					const bool bIsComponent = NewClass->IsChildOf(UActorComponent::StaticClass());
 					if ((!bIsComponent && OldObject->IsTemplate()) || OldObject->IsPendingKill())
@@ -1361,13 +1362,27 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						continue;
 					}
 
-					UBlueprint* CorrespondingBlueprint = Cast<UBlueprint>(OldObject->GetClass()->ClassGeneratedBy);
-					UObject*    OldBlueprintDebugObject = nullptr;
-					// If this object is being debugged, cache it off so we can preserve the 'object being debugged' association
-					if ((CorrespondingBlueprint != nullptr) && (CorrespondingBlueprint->GetObjectBeingDebugged() == OldObject))
+					UBlueprint* DebuggingBlueprint = nullptr;
+					// ObjectsToReplace is not in any garunteed order; so below there may be a 
+					// scenario where one object in ObjectsToReplace needs to come before another; 
+					// in that scenario we swap the two in ObjectsToReplace and finish the loop 
+					// with a new OldObject - to support that we need to re-cache info about the 
+					// (new) old object before it is destroyed (hence why this is all in a lambda,  
+					// for reuse).
+					auto CacheOldObjectState = [&DebuggingBlueprint](UObject* Replacee)
 					{
-						OldBlueprintDebugObject = OldObject;
-					}
+						// clear in case it has already been set, and we're re-executing this
+						DebuggingBlueprint = nullptr;
+
+						if (UBlueprint* OldObjBlueprint = Cast<UBlueprint>(Replacee->GetClass()->ClassGeneratedBy))
+						{
+							if (OldObjBlueprint->GetObjectBeingDebugged() == Replacee)
+							{
+								DebuggingBlueprint = OldObjBlueprint;
+							}
+						}
+					};
+					CacheOldObjectState(OldObject);
 
 					AActor*  OldActor = Cast<AActor>(OldObject);
 					UObject* NewUObject = nullptr;
@@ -1475,14 +1490,47 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					}
 					else
 					{
-						auto OldFlags = OldObject->GetFlags();
-
 						// If the old object was spawned from an archetype (i.e. not the CDO), we must use the new version of that archetype as the template object when constructing the new instance.
 						UObject* OldArchetype = OldObject->GetArchetype();
 						UObject* NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
 
+						bool bArchetypeReinstanced = (OldArchetype == OldClass->GetDefaultObject()) || (NewArchetype != nullptr);
+						// if we don't have a updated archetype to spawn from, we need to update/reinstance it
+						while (!bArchetypeReinstanced)
+						{
+							int32 ArchetypeIndex = ObjectsToReplace.Find(OldArchetype);
+							if (ArchetypeIndex != INDEX_NONE)
+							{
+								if (ensure(ArchetypeIndex > OldObjIndex))
+								{
+									// if this object has an archetype, but it hasn't been 
+									// reinstanced yet (but is queued to) then we need to swap out 
+									// the two, and reinstance the archetype first
+									ObjectsToReplace.Swap(ArchetypeIndex, OldObjIndex);
+									OldObject = ObjectsToReplace[OldObjIndex];
+									check(OldObject == OldArchetype);
+
+									// update any info that we stored regarding the previous OldObject
+									CacheOldObjectState(OldObject);
+									
+									OldArchetype = OldObject->GetArchetype();
+									NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
+									bArchetypeReinstanced = (OldArchetype == OldClass->GetDefaultObject()) || (NewArchetype != nullptr);
+								}
+								else
+								{
+									break;
+								}
+							}
+							else
+							{
+								break;
+							}
+						}
 						// Check that either this was an instance of the class directly, or we found a new archetype for it
-						check(OldArchetype == OldClass->GetDefaultObject() || NewArchetype);
+						ensureMsgf(bArchetypeReinstanced, TEXT("Reinstancing non-actor (%s); failed to resolve archetype object - property values may be lost."), *OldObject->GetPathName());
+
+						EObjectFlags OldFlags = OldObject->GetFlags();
 
 						FName OldName(OldObject->GetFName());
 						OldObject->Rename(NULL, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
@@ -1579,9 +1627,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					}
 
 					// If this original object came from a blueprint and it was in the selected debug set, change the debugging to the new object.
-					if ((CorrespondingBlueprint) && (OldBlueprintDebugObject) && (NewUObject))
+					if (DebuggingBlueprint && NewUObject)
 					{
-						CorrespondingBlueprint->SetObjectBeingDebugged(NewUObject);
+						DebuggingBlueprint->SetObjectBeingDebugged(NewUObject);
 					}
 
 					if (bLogConversions)

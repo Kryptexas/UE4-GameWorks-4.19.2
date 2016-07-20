@@ -1009,10 +1009,18 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 					return CustomConstructor;
 				}
 
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s{};"), *LocalStructNativeName, *StructName)); // TODO: ?? should "::GetDefaultValue()" be called here?
-				for (auto LocalProperty : TFieldRange<const UProperty>(StructType))
 				{
-					FEmitDefaultValueHelper::OuterGenerate(EmitterContext, LocalProperty, LocalStructNativeName, StructOnScope.GetStructMemory(), nullptr, FEmitDefaultValueHelper::EPropertyAccessOperator::Dot);
+					const FString StructOnScopeName = EmitterContext.GenerateUniqueLocalName();
+					EmitterContext.AddLine(FString::Printf(TEXT("FStructOnScope %s(%s::StaticStruct());"), *StructOnScopeName, *StructName));
+					EmitterContext.AddLine(FString::Printf(TEXT("%s& %s = *((%s*)%s.GetStructMemory());"), *StructName, *LocalStructNativeName, *StructName, *StructOnScopeName));  // TODO: ?? should "::GetDefaultValue()" be called here?
+				}
+
+				{
+					FStructOnScope DefaultStructOnScope(StructType);
+					for (auto LocalProperty : TFieldRange<const UProperty>(StructType))
+					{
+						FEmitDefaultValueHelper::OuterGenerate(EmitterContext, LocalProperty, LocalStructNativeName, StructOnScope.GetStructMemory(), DefaultStructOnScope.GetStructMemory(), FEmitDefaultValueHelper::EPropertyAccessOperator::Dot);
+					}
 				}
 			}
 			return LocalStructNativeName;
@@ -1183,17 +1191,6 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 
 	FString InnerTypeName = PinTypeToNativeTypeInner(Type);
 	return Type.bIsArray ? FString::Printf(TEXT("TArray<%s>"), *InnerTypeName) : InnerTypeName;
-}
-
-FString FEmitHelper::DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type)
-{
-	if (Type.bIsArray)
-	{
-		const FString InnerTypeName = PinTypeToNativeType(Type);
-		return FString::Printf(TEXT("%s{}"), *InnerTypeName);
-	}
-
-	return LiteralTerm(EmitterContext, Type, FString(), nullptr, &FText::GetEmpty());
 }
 
 UFunction* FEmitHelper::GetOriginalFunction(UFunction* Function)

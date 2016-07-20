@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "BlueprintProfilerSettings.h"
+
 //////////////////////////////////////////////////////////////////////////
 // EScriptPerfDataType
 
@@ -12,84 +14,112 @@ enum EScriptPerfDataType
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FScriptHeatLevelMetrics
+
+struct KISMET_API FScriptHeatLevelMetrics
+{
+	/** Event performance threshold */
+	float EventPerformanceThreshold;
+	/** Average performance threshold */
+	float AveragePerformanceThreshold;
+	/** Inclusive performance threshold */
+	float InclusivePerformanceThreshold;
+	/** Node max performance threshold */
+	float MaxPerformanceThreshold;
+	/** Total time performance threshold */
+	float TotalTimePerformanceThreshold;
+	/** Whether or not to use total time watermark when calculating total time heat level */
+	bool bUseTotalTimeWaterMark;
+	/** Total time watermark (note: this is intentionally global) */
+	static float NodeTotalTimeWaterMark;
+
+	/** Default constructor */
+	FScriptHeatLevelMetrics()
+		: EventPerformanceThreshold(0.0f)
+		, AveragePerformanceThreshold(0.0f)
+		, InclusivePerformanceThreshold(0.0f)
+		, MaxPerformanceThreshold(0.0f)
+		, TotalTimePerformanceThreshold(0.0f)
+		, bUseTotalTimeWaterMark(false)
+	{
+
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptPerfData
 
 class KISMET_API FScriptPerfData : public TSharedFromThis<FScriptPerfData>
 {
 public:
 
-	FScriptPerfData(const EScriptPerfDataType StatTypeIn)
+	FScriptPerfData(const EScriptPerfDataType StatTypeIn, const int32 SampleFrequencyIn = 1)
 		: StatType(StatTypeIn)
-		, ExclusiveTiming(0.0)
+		, SampleFrequency(SampleFrequencyIn)
+		, AverageTiming(0.0)
 		, InclusiveTiming(0.0)
 		, MaxTiming(-MAX_dbl)
 		, MinTiming(MAX_dbl)
-		, TotalTiming(0.0)
+		, AverageTimingHeatLevel(0.f)
+		, InclusiveTimingHeatLevel(0.f)
+		, MaxTimingHeatLevel(0.f)
+		, TotalTimingHeatLevel(0.f)
 		, HottestPathHeatValue(0.f)
-		, NumSamples(0)
+		, RawSamples(0)
 	{
 	}
 
 	/** Add a single event node timing into the dataset */
-	void AddEventTiming(const double ExclusiveTimingIn);
+	void AddEventTiming(const double AverageTimingIn);
 
 	/** Add a inclusive timing into the dataset */
-	void AddInclusiveTiming(const double InclusiveNodeTimingIn, const bool bIncrementSamples, const bool bDiscreteTiming);
+	void AddInclusiveTiming(const double InclusiveNodeTimingIn, const bool bIncrementSamples);
 
 	/** Add data */
 	void AddData(const FScriptPerfData& DataIn);
-
-	/** Add branch data */
-	void AddBranchData(const FScriptPerfData& DataIn);
 
 	/** Initialise from data set */
 	void InitialiseFromDataSet(const TArray<TSharedPtr<FScriptPerfData>>& DataSet);
 
 	/** Increments sample count without affecting data */
-	void TickSamples() { NumSamples++; }
+	void TickSamples() { RawSamples++; }
 
 	/** Reset the current data buffer and all derived data stats */
 	void Reset();
 
 	// Returns if this data structure has any valid data
-	bool IsDataValid() const { return NumSamples > 0; }
+	bool IsDataValid() const { return RawSamples > 0; }
 
 	// Updates the various thresholds that control stats calcs and display.
-	static void SetNumberFormattingForStats(const FNumberFormattingOptions& FormatIn) { StatNumberFormat = FormatIn; }
+	static void SetNumberFormattingForStats(const FNumberFormattingOptions& StatFormatIn, const FNumberFormattingOptions& TimeFormatIn);
 	static void EnableBlueprintStatAverage(const bool bEnable);
-	static void EnableRecentSampleBias(const bool bEnable);
-	static void SetRecentSampleBias(const float RecentSampleBiasIn);
-	static void SetEventPerformanceThreshold(const float EventPerformanceThresholdIn);
-	static void SetExclusivePerformanceThreshold(const float ExclusivePerformanceThresholdIn);
-	static void SetInclusivePerformanceThreshold(const float InclusivePerformanceThresholdIn);
-	static void SetMaxPerformanceThreshold(const float MaxPerformanceThresholdIn);
 
 	// Returns the various stats this container holds
-	double GetExclusiveTiming() const;
-	double GetInclusiveTiming() const { return GetExclusiveTiming() + InclusiveTiming; }
+	double GetAverageTiming() const;
+	double GetInclusiveTiming() const;
 	double GetMaxTiming() const { return MaxTiming; }
 	double GetMinTiming() const { return MinTiming; }
-	double GetTotalTiming() const { return TotalTiming; }
-	int32 GetSampleCount() const { return NumSamples; }
+	double GetTotalTiming() const { return AverageTiming; }
+	int32 GetSampleCount() const { return RawSamples / SampleFrequency; }
+	void OverrideSampleCount(const int32 NewSampleCount) { RawSamples = NewSampleCount; }
 
-	// Returns various performance heat levels for visual display
-	float GetNodeHeatLevel() const;
-	float GetInclusiveHeatLevel() const;
-	float GetMaxTimeHeatLevel() const;
-	float GetTotalHeatLevel() const;
+	// Returns performance heat levels for visual display
+	float GetAverageHeatLevel() const { return AverageTimingHeatLevel; }
+	float GetInclusiveHeatLevel() const { return InclusiveTimingHeatLevel; }
+	float GetMaxTimeHeatLevel() const { return MaxTimingHeatLevel; }
+	float GetTotalHeatLevel() const { return TotalTimingHeatLevel; }
+
+	// Calculate performance heat levels for visual display
+	void SetHeatLevels(TSharedPtr<FScriptHeatLevelMetrics> HeatLevelMetrics);
 
 	// Hottest path interface
 	float GetHottestPathHeatLevel() const { return HottestPathHeatValue; }
 	void SetHottestPathHeatLevel(const float HottestPathValue) { HottestPathHeatValue = HottestPathValue; }
 
-	// Hottest endpoint interface
-	float GetHottestEndpointHeatLevel() const { return HottestEndpointHeatValue; }
-	void SetHottestEndpointHeatLevel(const float HottestEndpointValue) { HottestEndpointHeatValue = HottestEndpointValue; }
-
 	// Returns the various stats this container holds in FText format
 	FText GetTotalTimingText() const;
 	FText GetInclusiveTimingText() const;
-	FText GetExclusiveTimingText() const;
+	FText GetAverageTimingText() const;
 	FText GetMaxTimingText() const;
 	FText GetMinTimingText() const;
 	FText GetSamplesText() const;
@@ -97,44 +127,36 @@ public:
 private:
 
 	/** The stat type for performance threshold comparisons */
-	EScriptPerfDataType StatType;
-	/** Exclusive timing */
-	double ExclusiveTiming;
-	/** Inclusive timing, pure and node timings */
+	const EScriptPerfDataType StatType;
+	/** The sample frequency */
+	const int32 SampleFrequency;
+
+	/** Average timing */
+	double AverageTiming;
+	/** Inclusive timing */
 	double InclusiveTiming;
-	/** Max exclusive timing */
+	/** Max average timing */
 	double MaxTiming;
-	/** Min exclusive timing */
+	/** Min average timing */
 	double MinTiming;
-	/** Total time accrued */
-	double TotalTiming;
+	/** Average timing heat level */
+	float AverageTimingHeatLevel;
+	/** Inclusive timing heat level */
+	float InclusiveTimingHeatLevel;
+	/** Max timing heat level */
+	float MaxTimingHeatLevel;
+	/** Total timing heat level */
+	float TotalTimingHeatLevel;
 	/** Hottest path value */
 	float HottestPathHeatValue;
-	/** Hottest endpoint value */
-	float HottestEndpointHeatValue;
-	/** The current inclusive sample count */
-	int32 NumSamples;
+	/** The current raw average sample count */
+	int32 RawSamples;
 
-	/** Number formatting options */
+	/** Stat number formatting options */
 	static FNumberFormattingOptions StatNumberFormat;
+	/** Time number formatting options */
+	static FNumberFormattingOptions TimeNumberFormat;
 
 	/** Sets blueprint level stats as averaged */
 	static bool bAverageBlueprintStats;
-	/** Enables the sample biasing */
-	static bool bUseRecentSampleBias;
-	/** Controls the bias between new and older samples */
-	static float RecentSampleBias;
-	/** Historical Sample Bias */
-	static float HistoricalSampleBias;
-	/** Event performance threshold */
-	static float EventPerformanceThreshold;
-	/** Exclusive performance threshold */
-	static float ExclusivePerformanceThreshold;
-	/** Node inclusive performance threshold */
-	static float InclusivePerformanceThreshold;
-	/** Node max performance threshold */
-	static float MaxPerformanceThreshold;
-	/** Total time watermark */
-	static float NodeTotalTimeWaterMark;
-
 };

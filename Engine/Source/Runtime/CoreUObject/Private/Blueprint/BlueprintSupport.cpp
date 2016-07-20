@@ -2051,6 +2051,14 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubClassObjects(UClass* Supe
 // don't want other files ending up with this internal define
 #undef DEFERRED_DEPENDENCY_CHECK
 
+FBlueprintDependencyData::FBlueprintDependencyData(const TCHAR* InPackageName
+	, const TCHAR* InObjectName, const TCHAR* InClassPackageName, const TCHAR* InClassName) 
+	: PackageName(InPackageName)
+	, ObjectName(InObjectName)
+	, ClassPackageName(InClassPackageName)
+	, ClassName(InClassName)
+{}
+
 FConvertedBlueprintsDependencies& FConvertedBlueprintsDependencies::Get()
 {
 	static FConvertedBlueprintsDependencies ConvertedBlueprintsDependencies;
@@ -2074,6 +2082,23 @@ void FConvertedBlueprintsDependencies::GetAssets(FName PackageName, TArray<FBlue
 		Func(OutDependencies);
 	}
 }
+
+void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClass* DynamicClass, GetDependenciesNamesFunc GetUsedAssets)
+{
+	check(DynamicClass && GetUsedAssets);
+	ensure(DynamicClass->UsedAssets.Num() == 0);
+
+	TArray<FBlueprintDependencyData> UsedAssetdData;
+	GetUsedAssets(UsedAssetdData);
+
+	for (FBlueprintDependencyData& ItData : UsedAssetdData)
+	{
+		const FString PathToObj = FString::Printf(TEXT("%s.%s"), *ItData.PackageName.ToString(), *ItData.ObjectName.ToString());
+		UObject* TheAsset = LoadObject<UObject>(nullptr, *PathToObj);
+		DynamicClass->UsedAssets.Add(TheAsset);
+	}
+}
+
 
 #if WITH_EDITOR
 

@@ -94,6 +94,11 @@ public:
 	FBacktrackMap FinalNodeBackToMacroSourceMap;
 	TMultiMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> MacroSourceToMacroInstanceNodeMap;
 
+	// Used to track node generatation from tunnels, added in addition to existing code avoid causing any fallout.
+	// This will be refactored after blueprint profiler MVP.
+	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> SourceNodeToTunnelInstanceNodeMap;
+	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelNodeToSourceNodeMap;
+
 	// Minimum event time (ms) for inclusion into the final summary log
 	int EventDisplayThresholdMs;
 

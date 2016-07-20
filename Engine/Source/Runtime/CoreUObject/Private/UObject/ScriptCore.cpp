@@ -144,7 +144,7 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	}
 }
 
-void FBlueprintCoreDelegates::InstrumentScriptEvent(const EScriptInstrumentationEvent& Info)
+void FBlueprintCoreDelegates::InstrumentScriptEvent(const FScriptInstrumentationSignal& Info)
 {
 	OnScriptProfilingEvent.Broadcast(Info);
 }
@@ -449,6 +449,47 @@ FString FFrame::GetStackTrace() const
 	return Result;
 }
 
+//////////////////////////////////////////////////////////////////////////
+// FScriptInstrumentationSignal
+
+FScriptInstrumentationSignal::FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame)
+	: EventType(InEventType)
+	, ContextObject(InContextObject)
+	, Function(InStackFrame.Node)
+	, StackFramePtr(&InStackFrame)
+	, LatentLinkId(INDEX_NONE)
+{
+}
+
+const UClass* FScriptInstrumentationSignal::GetClass() const
+{
+	return ContextObject ? ContextObject->GetClass() : nullptr;
+}
+
+const UClass* FScriptInstrumentationSignal::GetFunctionClassScope() const
+{
+	return Function->GetOuterUClass();
+}
+
+FName FScriptInstrumentationSignal::GetFunctionName() const
+{
+	return Function->GetFName();
+}
+
+int32 FScriptInstrumentationSignal::GetScriptCodeOffset() const
+{
+	int32 CodeOffset = INDEX_NONE;
+	if (EventType == EScriptInstrumentation::ResumeEvent)
+	{
+		// Resume events require the link id rather than script code offset
+		CodeOffset = LatentLinkId;
+	}
+	else if (StackFramePtr != nullptr)
+	{
+		CodeOffset = StackFramePtr->Code - StackFramePtr->Node->Script.GetData() - 1;
+	}
+	return CodeOffset;
+}
 
 /*-----------------------------------------------------------------------------
 	Global script execution functions.
@@ -1150,7 +1191,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 			if (Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent))
 			{
 				// Don't handle latent actions here, let the latent action manager handle them.
-				EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function->GetFName());
+				FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function);
 				FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 				bInstrumentScriptEvent = true;
 			}
@@ -1287,7 +1328,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (bInstrumentScriptEvent)
 	{
-		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Stop, this, NAME_None);
+		FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Stop, this, Function);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 	}
 #if WITH_EDITORONLY_DATA
@@ -1579,7 +1620,7 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 		}
 	}
 #endif
-	EScriptInstrumentationEvent InstrumentationEventInfo(EventType, this, Stack);
+	FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
 	FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
 	Stack.SkipCode(1);
 #endif

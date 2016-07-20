@@ -924,12 +924,15 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 
 		if (!Conditions.IsEmpty())
 		{
-			const FString DefaultValueConstructor = FEmitHelper::DefaultValue(EmitterContext, Term->Type);
 			const FString DefaultValueVariable = EmitterContext.GenerateUniqueLocalName();
 			const uint32 PropertyExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
 			const FString CppType = Term->AssociatedVarProperty 
 				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, true)
 				: FEmitHelper::PinTypeToNativeType(Term->Type);
+
+			const FString DefaultValueConstructor = (!Term->Type.bIsArray)
+				? FEmitHelper::LiteralTerm(EmitterContext, Term->Type, FString(), nullptr, &FText::GetEmpty())
+				: FString::Printf(TEXT("%s{}"), *CppType);
 
 			EmitterContext.AddLine(*FString::Printf(TEXT("%s %s = %s;"), *CppType, *DefaultValueVariable, *DefaultValueConstructor));
 			return FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *DefaultValueVariable);

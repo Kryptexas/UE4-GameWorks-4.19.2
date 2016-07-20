@@ -160,9 +160,6 @@ public:
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 
 	virtual bool IsInteractable() const override;
-// @HSL_BEGIN - ngreen@hardsuitlabs.com - 5/25/2016 - Need to release the button when we invalidate this button from being a cursor captor, otherwise we won't be able to press it again until we release it
-	virtual void OnMouseCaptureLost() override;
-// @HSL_END - ngreen@hardsuitlabs.com - 5/25/2016
 
 protected:
 

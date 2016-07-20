@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "BlueprintProfilerModule.h"
+#include "BlueprintProfilerSettings.h"
 
 /** Blueprint performance view type */
 namespace EBlueprintPerfViewType
@@ -44,18 +44,13 @@ public:
 		ScopeToDebugInstance		= 0x00000002,	// Scope stats to current debug instance
 		GraphFilter					= 0x00000004,	// Filter to current graph
 		DisplayPure					= 0x00000008,	// Display pure stats
-		AutoExpand					= 0x00000010,	// Auto expand stats
+		DisplayInheritedEvents		= 0x00000010,	// Display inherited events
 		AverageBlueprintStats		= 0x00000020,	// Average blueprint stats ( Rather than sum )
 		Modified					= 0x10000000,	// Display state was changed
-		Default						= DisplayByInstance|DisplayPure|AverageBlueprintStats|Modified
 	};
 
-	FBlueprintProfilerStatOptions()
-		: ActiveInstance(NAME_None)
-		, ActiveGraph(NAME_None)
-		, Flags(Default)
-	{
-	}
+	/** Default constructor */
+	FBlueprintProfilerStatOptions();
 
 	/** Marks display state as modified */
 	void SetStateModified() { Flags |= Modified; }
@@ -68,6 +63,9 @@ public:
 
 	/** Clear flags */
 	void ClearFlags(const uint32 FlagsIn) { Flags &= ~FlagsIn; }
+
+	/** Set flags */
+	void SetFlags(const uint32 FlagsIn) { Flags = FlagsIn; }
 
 	/** Returns true if any flags match */
 	bool HasFlags(const uint32 FlagsIn) const { return (Flags & FlagsIn) != 0U; }
@@ -83,9 +81,6 @@ public:
 
 	/** Set active graph name */
 	void SetActiveGraph(const FName GraphName);
-
-	/** Create toolbar widget */
-	TSharedRef<SWidget> CreateToolbar();
 
 	/** Create combo content */
 	TSharedRef<SWidget> CreateComboContent();
@@ -160,49 +155,42 @@ protected:
 	/** Returns the active heat map display mode button foreground color */
 	FSlateColor GetHeatMapDisplayModeButtonForegroundColor(const EHeatmapControlId::Type ControlId) const;
 
+	/** Returns whether or not the given heat level metrics type is selected */
+	ECheckBoxState IsHeatLevelMetricsTypeSelected(const EBlueprintProfilerHeatLevelMetricsType InHeatLevelMetricsType) const;
+
+	/** Called when the heat level metrics type checkbox state is changed */
+	void OnHeatLevelMetricsTypeChanged(ECheckBoxState InCheckedState, const EBlueprintProfilerHeatLevelMetricsType NewHeatLevelMetricsType);
+
+	/** Returns text label color for heat level metrics type toggle buttons */
+	FSlateColor GetHeatLevelMetricsTypeTextColor(const EBlueprintProfilerHeatLevelMetricsType InHeatLevelMetricsType) const;
+
 	/** Returns whether or not the given heat map display mode is selected */
-	bool IsHeatMapDisplayModeSelected(const EHeatmapControlId::Type ControlId, const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const;
+	bool IsHeatMapDisplayModeSelected(const EHeatmapControlId::Type ControlId, const EBlueprintProfilerHeatMapDisplayMode InHeatMapDisplayMode) const;
 
 	/** Called when the heat map display mode is changed */
-	void OnHeatMapDisplayModeChanged(const EHeatmapControlId::Type ControlId, const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
+	void OnHeatMapDisplayModeChanged(const EHeatmapControlId::Type ControlId, const EBlueprintProfilerHeatMapDisplayMode NewHeatMapDisplayMode);
 
-	/** Create the heat threshold combo menu content */
-	TSharedRef<SWidget> CreateHeatThresholdsMenuContent();
+	/** Returns whether or not the custom heat thresholds combo button should be enabled */
+	bool IsCustomHeatThresholdsMenuEnabled() const;
+
+	/** Create the custom heat thresholds combo menu content */
+	TSharedRef<SWidget> CreateCustomHeatThresholdsMenuContent();
 
 private:
+	/** Custom performance thresholds */
+	enum ECustomPerformanceThreshold
+	{
+		Event,
+		Average,
+		Inclusive,
+		Max
+	};
 
-	/** Recent sample bias helpers */
-	EVisibility GetRecentSampleBiasVisibility() const;
-	ECheckBoxState GetRecentSampleBiasChecked() const;
-	void OnRecentSampleBiasChecked(ECheckBoxState NewState);
-	TOptional<float> GetRecentSampleBiasValue() const;
-	void SetRecentSampleBiasValue(const float NewValue);
-	EVisibility IsRecentSampleBiasDefaultButtonVisible() const;
-	FReply ResetRecentSampleBias();
-
-	/** Get/Set event performance threshold helpers */
-	TOptional<float> GetEventThreshold() const;
-	void SetEventThreshold(const float NewValue);
-	EVisibility IsEventDefaultButtonVisible() const;
-	FReply ResetEventThreshold();
-
-	/** Get/Set node exclusive performance threshold helpers */
-	TOptional<float> GetNodeExclusiveThreshold() const;
-	void SetNodeExclusiveThreshold(const float NewValue);
-	EVisibility IsNodeExclDefaultButtonVisible() const;
-	FReply ResetNodeExclThreshold();
-
-	/** Get/Set node inclusive performance threshold helpers */
-	TOptional<float> GetNodeInclusiveThreshold() const;
-	void SetNodeInclusiveThreshold(const float NewValue);
-	EVisibility IsNodeInclDefaultButtonVisible() const;
-	FReply ResetNodeInclThreshold();
-
-	/** Get/Set node max performance threshold helpers */
-	TOptional<float> GetNodeMaxThreshold() const;
-	void SetNodeMaxThreshold(const float NewValue);
-	EVisibility IsNodeMaxDefaultButtonVisible() const;
-	FReply ResetNodeMaxThreshold();
+	/** Get/Set custom performance threshold helpers */
+	TOptional<float> GetCustomPerformanceThreshold(ECustomPerformanceThreshold InType) const;
+	void SetCustomPerformanceThreshold(const float NewValue, ECustomPerformanceThreshold InType);
+	EVisibility IsCustomPerformanceThresholdDefaultButtonVisible(ECustomPerformanceThreshold InType) const;
+	FReply ResetCustomPerformanceThreshold(ECustomPerformanceThreshold InType);
 
 protected:
 
@@ -221,12 +209,12 @@ protected:
 	/** View combo button widget */
 	TSharedPtr<SComboButton> ViewComboButton;
 
-	/** Heat threshold combo button widget */
-	TSharedPtr<SComboButton> HeatThresholdComboButton;
-
 	/** Heat map display mode combo button widget */
 	TSharedPtr<SComboButton> HeatMapDisplayModeComboButton;
 
 	/** Heat map display mode combo button widget */
 	TSharedPtr<SComboButton> WireHeatMapDisplayModeComboButton;
+
+	/** Custom heat threshold combo button widget */
+	TSharedPtr<SComboButton> CustomHeatThresholdComboButton;
 };

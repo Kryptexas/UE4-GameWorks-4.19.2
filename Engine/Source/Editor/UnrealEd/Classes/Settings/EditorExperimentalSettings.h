@@ -67,30 +67,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
 	bool bBlueprintPerformanceAnalysisTools;
 
-	/** Recent sample bias state. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Enable Blueprint Profiler Sample Bias"))
-	bool bEnableBlueprintProfilerRecentSampleBias;
-
-	/** Bias to weight prominance of newer samples against hositorical samples. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Sample Bias", ClampMin=0.01, ClampMax=1.0))
-	float BlueprintProfilerRecentSampleBias;
-
-	/** Blueprint profiler performance threshold for events in ms. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Event Timing Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
-	float BlueprintProfilerEventThreshold;
-
-	/** Blueprint profiler performance threshold for exclusive node timings in ms. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Exclusive Node Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
-	float BlueprintProfilerExclNodeThreshold;
-
-	/** Blueprint profiler performance threshold for inclusive node timings in ms. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Inclusive Node Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
-	float BlueprintProfilerInclNodeThreshold;
-
-	/** Blueprint profiler performance threshold for max node timings in ms. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Profiler Max Node Performance Threshold", ClampMin=0.0001, ClampMax=20.0))
-	float BlueprintProfilerMaxNodeThreshold;
-
 	/** Enables the visual diff tool for widget blueprints. WARNING: changes to the widget hierarchy will not be detected */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use the Diff Tool for Widget Blueprints"))
 	bool bEnableWidgetVisualDiff;
