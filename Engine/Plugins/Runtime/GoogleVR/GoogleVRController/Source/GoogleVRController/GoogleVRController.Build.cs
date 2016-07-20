@@ -52,6 +52,12 @@ namespace UnrealBuildTool.Rules
 			if (UEBuildConfiguration.bBuildEditor == true)
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
+				if(Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+				{	
+					PublicIncludePaths.Add("Developer/Android/AndroidDeviceDetection/Public");
+					PublicIncludePaths.Add("Developer/Android/AndroidDeviceDetection/Public/Interfaces");
+					PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
+				}
 			}
 
 			if (Target.Platform == UnrealTargetPlatform.Android)

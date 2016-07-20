@@ -19,7 +19,25 @@ public class GoogleVR : ModuleRules
 
 		string GoogleVRBaseLibPath = GoogleVRSDKDir + "lib/";
 
-		if (Target.Platform == UnrealTargetPlatform.Android)
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PublicAdditionalLibraries.Add(GoogleVRBaseLibPath+"mac/libgvr.a");
+			PublicAdditionalLibraries.Add(GoogleVRBaseLibPath+"mac/libgvraux.a");
+		}
+
+		else if (Target.Platform == UnrealTargetPlatform.Win32)
+		{
+			PublicAdditionalLibraries.Add(GoogleVRBaseLibPath+"win32/libgvr.lib");
+			PublicAdditionalLibraries.Add(GoogleVRBaseLibPath+"win32/libgvraux.lib");
+		}
+
+		else if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicAdditionalLibraries.Add(GoogleVRBaseLibPath+"win64/libgvr.lib");
+			PublicAdditionalLibraries.Add(GoogleVRBaseLibPath+"win64/libgvraux.lib");
+		}
+
+		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			string GoogleVRArmLibPath = GoogleVRBaseLibPath + "android_arm/";
 			string GoogleVRArm64LibPath = GoogleVRBaseLibPath + "android_arm64/";

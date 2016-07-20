@@ -48,7 +48,7 @@ class FGoogleVRController : public IInputDevice, public IMotionController
 {
 public:
 
-	FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
+	FGoogleVRController(gvr::ControllerApi* pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
 	virtual ~FGoogleVRController();
 
 public:
@@ -144,6 +144,7 @@ private:
 	/** Button mappings */
 	FGamepadKeyNames::Type Buttons[CONTROLLERS_PER_PLAYER][EGoogleVRControllerButton::TotalButtonCount];
 #endif
+	bool bControllerReadyToPollState;
 
 	/** handler to send all messages to */
 	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;
