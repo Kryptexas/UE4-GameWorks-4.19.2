@@ -397,7 +397,7 @@ public:
 	 * Get the display name of the object with the specified identifier.
 	 *
 	 * @param ObjectId The object identifier.
-	 * @result The object's display name.
+	 * @return The object's display name.
 	 */
 	FText GetObjectDisplayName(const FGuid& ObjectId);
 
@@ -430,7 +430,7 @@ public:
 	 * Get the display name of the object with the specified identifier.
 	 *
 	 * @param ObjectId The object identifier.
-	 * @result The object's display name.
+	 * @return The object's display name.
 	 */
 	void SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName);
 

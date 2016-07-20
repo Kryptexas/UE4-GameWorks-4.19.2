@@ -53,11 +53,11 @@ void FSequencerCommands::RegisterCommands()
 	UI_COMMAND( TrimSectionRight, "Trim Section Right", "Trim section at current time to the right (keeps the left)", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::Period) );
 	UI_COMMAND( SplitSection, "Split Section", "Split section at current time", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::Slash) );
 
-	UI_COMMAND( SetAutoKeyModeAll, "Auto-key All", "Enables auto keying for all properties.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( SetAutoKeyModeAnimated, "Auto-key Animated", "Enables auto keying for properties with existing animations.", EUserInterfaceActionType::ToggleButton, FInputChord());
+	UI_COMMAND( SetAutoKeyModeAll, "Auto-key All", "Auto-key all channels/properties when they change.", EUserInterfaceActionType::ToggleButton, FInputChord() );
+	UI_COMMAND( SetAutoKeyModeAnimated, "Auto-key Animated", "Auto-key channels/properties when they change only if they have existing keys/animation.", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND( SetAutoKeyModeNone, "Disable Auto-key", "Disables auto keying.", EUserInterfaceActionType::ToggleButton, FInputChord());
 
-	UI_COMMAND( ToggleKeyAllEnabled, "Key All", "Enables and disables key all", EUserInterfaceActionType::ToggleButton, FInputChord());
+	UI_COMMAND( ToggleKeyAllEnabled, "Key All", "Key all channels/properties when only one of them changes. ie. Keys all translation, rotation, scale channels when only translation Y changes", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	UI_COMMAND( ToggleAutoScroll, "Auto Scroll", "Toggle auto-scroll: When enabled, automatically scrolls the sequencer view to keep the current time visible", EUserInterfaceActionType::ToggleButton, FInputChord(EModifierKey::Shift, EKeys::S) );
 
@@ -99,7 +99,7 @@ void FSequencerCommands::RegisterCommands()
 
 	UI_COMMAND( FixFrameTiming, "Fix Frame Timing", "Moves all time data for this sequence to a valid frame time.", EUserInterfaceActionType::Button, FInputChord() );
 
-	UI_COMMAND( RecordSelectedActors, "Record Selected Actors", "Records the selected actors into a new sub sequence of the currently active sequence in Sequencer.", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( RecordSelectedActors, "Record Selected Actors", "Records the selected actors into a new sub sequence of the currently active sequence in Sequencer.", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Alt, EKeys::R) );
 	UI_COMMAND( ExportSceneAndSequence, "Export Scene and Sequence", "Exports the current scene and sequence to an FBX file. (Shots and sub-scenes not supported)", EUserInterfaceActionType::Button, FInputChord() );
 }
 

@@ -3,6 +3,7 @@
 #include "LevelSequencePCH.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
+#include "MovieSceneCommonHelpers.h"
 #include "MovieSceneSubSection.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSequenceInstance.h"
@@ -459,11 +460,21 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 		LastViewTarget = ViewTarget;
 	}
 
+	UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(CameraObject);
+
 	if (CameraObject == ViewTarget)
 	{
-		if ( bJumpCut && PC->PlayerCameraManager )
+		if ( bJumpCut )
 		{
-			PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+			if (PC->PlayerCameraManager)
+			{
+				PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+			}
+
+			if (CameraComponent)
+			{
+				CameraComponent->NotifyCameraCut();
+			}
 		}
 		return;
 	}
@@ -487,6 +498,11 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 
 	FViewTargetTransitionParams TransitionParams;
 	PC->SetViewTarget(CameraActor, TransitionParams);
+
+	if (CameraComponent)
+	{
+		CameraComponent->NotifyCameraCut();
+	}
 
 	if (PC->PlayerCameraManager)
 	{

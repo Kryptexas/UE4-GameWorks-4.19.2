@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
+#include "BoolKeyArea.h"
+#include "BoolPropertySection.h"
+#include "CommonMovieSceneTools.h"
 #include "MovieSceneBoolTrack.h"
 #include "MovieSceneBoolSection.h"
-#include "BoolPropertySection.h"
+
 
 void FBoolPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
 {

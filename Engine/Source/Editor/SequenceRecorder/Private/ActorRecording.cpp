@@ -52,9 +52,9 @@ bool UActorRecording::IsRelevantForRecording(AActor* Actor)
 	TInlineComponentArray<USceneComponent*> SceneComponents(Actor);
 	for(USceneComponent* SceneComponent : SceneComponents)
 	{
-		for (TSubclassOf<USceneComponent> ComponentClass : Settings->ComponentClassesToRecord)
+		for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->ClassesAndPropertiesToRecord)
 		{
-			if (SceneComponent->IsA(ComponentClass))
+			if (SceneComponent->IsA(PropertiesToRecordForClass.Class))
 			{
 				return true;
 			}
@@ -207,9 +207,9 @@ bool UActorRecording::ValidComponent(USceneComponent* SceneComponent) const
 	if(SceneComponent != nullptr)
 	{
 		const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
-		for (TSubclassOf<USceneComponent> ComponentClass : Settings->ComponentClassesToRecord)
+		for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->ClassesAndPropertiesToRecord)
 		{			
-			if (ComponentClass != nullptr && SceneComponent->IsA(ComponentClass))
+			if (PropertiesToRecordForClass.Class != nullptr && SceneComponent->IsA(PropertiesToRecordForClass.Class))
 			{
 				return true;
 			}
@@ -326,7 +326,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			for(USceneComponent* SceneComponent : ValidSceneComponents)
 			{
 				TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, GetActorToRecord(), CurrentSequence, CurrentSequenceTime);
-				if(!FirstAnimRecorder.IsValid() && AnimRecorder.IsValid())
+				if(!FirstAnimRecorder.IsValid() && AnimRecorder.IsValid() && GetActorToRecord()->IsA<ACharacter>())
 				{
 					FirstAnimRecorder = AnimRecorder;
 				}

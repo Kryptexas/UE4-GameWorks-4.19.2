@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Curves/RichCurve.h"
 #include "IKeyframeSection.h"
 #include "MovieSceneKeyStruct.h"
 #include "MovieSceneSection.h"
@@ -49,7 +50,7 @@ struct FMovieSceneVectorKeyStruct
 
 
 /**
- * A vector section
+ * A vector section.
  */
 UCLASS(MinimalAPI)
 class UMovieSceneVectorSection
@@ -82,7 +83,7 @@ public:
 
 public:
 
-	// UMovieSceneSection interface
+	//~ UMovieSceneSection interface
 
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
@@ -93,7 +94,7 @@ public:
 
 public:
 
-	// IKeyframeSection interface.
+	//~ IKeyframeSection interface.
 
 	virtual void AddKey(float Time, const FVectorKey& Key, EMovieSceneKeyInterpolation KeyInterpolation) override;
 	virtual bool NewKeyIsNewData(float Time, const FVectorKey& Key) const override;

@@ -223,6 +223,7 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 	// NOTE: Could fill in asset editor commands here!
 
 	BindCommands();
+	BindLevelEditorCommands();
 	ActivateSequencerEditorMode();
 
 	if( bIsEditingWithinLevelEditor )
@@ -287,6 +288,8 @@ FSequencer::~FSequencer()
 			TrackEditor->OnRelease();
 		}
 		TrackEditors.Empty();
+	
+		UnbindLevelEditorCommands();
 	}
 	SequencerWidget.Reset();
 }
@@ -328,6 +331,8 @@ void FSequencer::Close()
 			FName SettingsSectionName = *Settings->GetName();
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", SettingsSectionName);
 		}
+
+		UnbindLevelEditorCommands();
 	}
 
 	if (bIsEditingWithinLevelEditor)
@@ -1451,8 +1456,13 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime, ESnapTimeMode SnapTimeMod
 
 	if (!IsInSilentMode())
 	{
-		// Redraw
-		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+		// Redraw if not in PIE/simulate
+		const bool bIsInPIEOrSimulate = GEditor->PlayWorld != NULL || GEditor->bIsSimulatingInEditor;
+		if (!bIsInPIEOrSimulate)
+		{
+			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+		}
+		
 		OnGlobalTimeChangedDelegate.Broadcast();
 	}
 }
@@ -1743,11 +1753,21 @@ void FSequencer::PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCam
 			PrePossessionViewTargets.Add(FCachedViewTarget{ PC, ViewTarget });
 		}
 
+		UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(CameraObject);
+
 		if (CameraObject == ViewTarget)
 		{
-			if ( bJumpCut && PC->PlayerCameraManager )
+			if ( bJumpCut )
 			{
-				PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+				if (PC->PlayerCameraManager)
+				{
+					PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+				}
+
+				if (CameraComponent)
+				{
+					CameraComponent->NotifyCameraCut();
+				}
 			}
 			continue;
 		}
@@ -1775,6 +1795,11 @@ void FSequencer::PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCam
 		FViewTargetTransitionParams TransitionParams;
 		PC->SetViewTarget(CameraActor, TransitionParams);
 
+		if (CameraComponent)
+		{
+			CameraComponent->NotifyCameraCut();
+		}
+
 		if (PC->PlayerCameraManager)
 		{
 			PC->PlayerCameraManager->bClientSimulatingViewTarget = (CameraActor != nullptr);
@@ -1786,13 +1811,6 @@ void FSequencer::PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCam
 void FSequencer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut)
 {
 	OnCameraCutEvent.Broadcast(CameraObject, bJumpCut);
-
-	// tell the camera we cut
-	UCameraComponent* const CamComp = MovieSceneHelpers::CameraComponentFromRuntimeObject(CameraObject);
-	if (CamComp)
-	{
-		CamComp->NotifyCameraCut();
-	}
 
 	if (!IsPerspectiveViewportCameraCutEnabled())
 	{
@@ -2023,18 +2041,14 @@ TSharedRef<FExtender> FSequencer::GetLevelViewportExtender(const TSharedRef<FUIC
 		ActorName = FText::Format(LOCTEXT("ActorNamePlural", "{0} Actors"), FText::AsNumber(InActors.Num()));
 	}
 
-	Extender->AddMenuExtension("ActorControl", EExtensionHook::After, CommandList, FMenuExtensionDelegate::CreateLambda(
+	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
+
+	Extender->AddMenuExtension("ActorControl", EExtensionHook::After, LevelEditorCommandBindings, FMenuExtensionDelegate::CreateLambda(
 		[this, ActorName](FMenuBuilder& MenuBuilder){
 			MenuBuilder.BeginSection("SequenceRecording", LOCTEXT("SequenceRecordingHeading", "Sequence Recording"));
 
-			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("RecordSelectedActorsText", "Record {0} In Sequencer"), ActorName),
-				LOCTEXT("RecordSelectedActors_Tooltip", "Start recording the specified actors in sequencer."),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "SequenceRecorder.TabIcon"),
-				FUIAction(
-					FExecuteAction::CreateLambda([this]{ RecordSelectedActors(); })
-				)
-			);
+			MenuBuilder.AddMenuEntry(FSequencerCommands::Get().RecordSelectedActors, NAME_None, FText::Format(LOCTEXT("RecordSelectedActorsText", "Record {0} In Sequencer"), ActorName));
 
 			MenuBuilder.EndSection();
 		}
@@ -3707,7 +3721,11 @@ void FSequencer::OnPreBeginPIE(bool bIsSimulating)
 
 void FSequencer::OnEndPlayMap()
 {
+	// Update and clear any stale bindings 
 	UpdateRuntimeInstances();
+	
+	// Update for new bindings on next tick
+	bNeedInstanceRefresh = true;
 }
 
 
@@ -3765,46 +3783,53 @@ void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut(FLevelEditorViewp
 {
 	AActor* CameraActor = Cast<AActor>(InCameraObject);
 
+	bool bCameraHasBeenCut = bJumpCut;
+
 	if (CameraActor)
 	{
+		bCameraHasBeenCut = bCameraHasBeenCut || !InViewportClient.IsLockedToActor(CameraActor);
 		InViewportClient.SetViewLocation(CameraActor->GetActorLocation());
 		InViewportClient.SetViewRotation(CameraActor->GetActorRotation());
-		InViewportClient.SetIsCameraCut(!InViewportClient.IsLockedToActor(CameraActor) || bJumpCut);
 	}
 	else
 	{
 		InViewportClient.ViewFOV = InViewportClient.FOVAngle;
-		InViewportClient.SetIsCameraCut(bJumpCut);
 	}
+
+	InViewportClient.SetIsCameraCut(bCameraHasBeenCut);
+
 
 	// Set the actor lock.
 	InViewportClient.SetMatineeActorLock(CameraActor);
 	InViewportClient.bLockedCameraView = CameraActor != nullptr;
 	InViewportClient.RemoveCameraRoll();
 
-	// If viewing through a camera - enforce aspect ratio.
-	if (CameraActor)
+	UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(InCameraObject);
+	if (CameraComponent)
 	{
-		UCameraComponent* CameraComponent = Cast<UCameraComponent>(CameraActor->GetComponentByClass(UCameraComponent::StaticClass()));
-		if (CameraComponent)
+		if (bCameraHasBeenCut)
 		{
-			if (CameraComponent->AspectRatio == 0)
-			{
-				InViewportClient.AspectRatio = 1.7f;
-			}
-			else
-			{
-				InViewportClient.AspectRatio = CameraComponent->AspectRatio;
-			}
+			// tell the camera we cut
+			CameraComponent->NotifyCameraCut();
+		}
 
-			//don't stop the camera from zooming when not playing back
-			InViewportClient.ViewFOV = CameraComponent->FieldOfView;
+		// enforce aspect ratio.
+		if (CameraComponent->AspectRatio == 0)
+		{
+			InViewportClient.AspectRatio = 1.7f;
+		}
+		else
+		{
+			InViewportClient.AspectRatio = CameraComponent->AspectRatio;
+		}
 
-			// If there are selected actors, invalidate the viewports hit proxies, otherwise they won't be selectable afterwards
-			if (InViewportClient.Viewport && GEditor->GetSelectedActorCount() > 0)
-			{
-				InViewportClient.Viewport->InvalidateHitProxy();
-			}
+		//don't stop the camera from zooming when not playing back
+		InViewportClient.ViewFOV = CameraComponent->FieldOfView;
+
+		// If there are selected actors, invalidate the viewports hit proxies, otherwise they won't be selectable afterwards
+		if (InViewportClient.Viewport && GEditor->GetSelectedActorCount() > 0)
+		{
+			InViewportClient.Viewport->InvalidateHitProxy();
 		}
 	}
 
@@ -6105,14 +6130,33 @@ void FSequencer::BindCommands()
 		Commands.SelectKeysInSelectionRange,
 		FExecuteAction::CreateLambda([this]{ SelectKeysInSelectionRange(); }));
 
-	SequencerCommandBindings->MapAction(
-		Commands.RecordSelectedActors,
-		FExecuteAction::CreateLambda([this]{ RecordSelectedActors(); }));
-
 	// bind widget specific commands
 	SequencerWidget->BindCommands(SequencerCommandBindings);
 }
 
+void FSequencer::BindLevelEditorCommands()
+{
+	const FSequencerCommands& Commands = FSequencerCommands::Get();
+
+	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
+
+	LevelEditorCommandBindings->MapAction(
+		Commands.RecordSelectedActors,
+		FExecuteAction::CreateSP(this, &FSequencer::RecordSelectedActors));
+}
+
+void FSequencer::UnbindLevelEditorCommands()
+{
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
+	{
+		// unbind the commands we have bound to the level editor
+		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
+
+		LevelEditorCommandBindings->UnmapAction(FSequencerCommands::Get().RecordSelectedActors);
+	}
+}
 
 void FSequencer::BuildAddTrackMenu(class FMenuBuilder& MenuBuilder)
 {

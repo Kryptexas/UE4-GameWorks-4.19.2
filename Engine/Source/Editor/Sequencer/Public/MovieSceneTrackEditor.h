@@ -238,7 +238,7 @@ protected:
 	/**
 	 * Gets the currently focused movie scene, if any.
 	 *
-	 * @result Focused movie scene, or nullptr if no movie scene is focused.
+	 * @return Focused movie scene, or nullptr if no movie scene is focused.
 	 */
 	UMovieScene* GetFocusedMovieScene() const
 	{

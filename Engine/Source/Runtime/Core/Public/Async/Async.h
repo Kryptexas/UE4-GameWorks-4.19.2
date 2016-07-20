@@ -289,7 +289,7 @@ struct FAsyncThreadIndex
  * @param Execution The execution method to use, i.e. on Task Graph or in a separate thread.
  * @param Function The function to execute.
  * @param CompletionCallback An optional callback function that is executed when the function completed execution.
- * @result A TFuture object that will receive the return value from the function.
+ * @return A TFuture object that will receive the return value from the function.
  */
 template<typename ResultType>
 TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Function, TFunction<void()> CompletionCallback = TFunction<void()>())

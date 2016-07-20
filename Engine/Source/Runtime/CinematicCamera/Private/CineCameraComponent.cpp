@@ -80,6 +80,7 @@ void UCineCameraComponent::PostInitProperties()
 void UCineCameraComponent::PostLoad()
 {
 	RecalcDerivedData();
+	bResetInterpolation = true;
 	Super::PostLoad();
 }
 

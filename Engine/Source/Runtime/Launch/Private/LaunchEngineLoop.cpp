@@ -2193,7 +2193,8 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Load runtime client modules (which are also needed at cook-time)
 	if( !IsRunningDedicatedServer() )
 	{
-		FModuleManager::Get().LoadModule( TEXT( "GameLiveStreaming" ) );
+		FModuleManager::Get().LoadModule(TEXT("GameLiveStreaming"));
+		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
 

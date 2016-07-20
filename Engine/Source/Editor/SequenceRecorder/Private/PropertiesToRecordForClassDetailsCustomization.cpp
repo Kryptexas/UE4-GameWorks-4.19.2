@@ -11,11 +11,6 @@ void FPropertiesToRecordForClassDetailsCustomization::CustomizeHeader(TSharedRef
 	NameContent()
 	[
 		PropertyHandle->CreatePropertyNameWidget()
-	]
-	.ValueContent()
-	.MaxDesiredWidth(250.f)
-	[
-		PropertyHandle->CreatePropertyValueWidget()
 	];
 }
 

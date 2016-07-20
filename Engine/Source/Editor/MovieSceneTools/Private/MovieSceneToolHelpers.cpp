@@ -20,6 +20,9 @@
 #include "MovieSceneCaptureHelpers.h"
 #include "FbxImporter.h"
 #include "MatineeImportTools.h"
+#include "MovieSceneToolHelpers.h"
+#include "MovieSceneToolsProjectSettings.h"
+
 
 /* MovieSceneToolHelpers
  *****************************************************************************/

@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "SlateCore.h" // for ISlateViewport
+#include "Runtime/AssetRegistry/Public/AssetData.h"
+#include "TickableEditorObject.h"
+
 
 class FSlateTexture2DRHIRef;
 class FSlateTextureRenderTarget2DResource;
 
-#include "Runtime/AssetRegistry/Public/AssetData.h"
-#include "TickableEditorObject.h"
 
 namespace EThumbnailLabel
 {
@@ -18,6 +20,7 @@ namespace EThumbnailLabel
 		NoLabel
 	};
 };
+
 
 /** A struct containing details about how the asset thumbnail should behave */
 struct FAssetThumbnailConfig
@@ -46,10 +49,13 @@ struct FAssetThumbnailConfig
 	TOptional< FLinearColor > AssetTypeColorOverride;
 };
 
+
 /**
  * Interface for rendering a thumbnail in a slate viewport                   
  */
-class FAssetThumbnail : public ISlateViewport, public TSharedFromThis<FAssetThumbnail>
+class FAssetThumbnail
+	: public ISlateViewport
+	, public TSharedFromThis<FAssetThumbnail>
 {
 public:
 	/**

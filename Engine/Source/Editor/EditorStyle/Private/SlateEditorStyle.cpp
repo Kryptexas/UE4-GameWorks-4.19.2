@@ -1835,6 +1835,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		);
 
 		Set( "Sequencer.FixedFont", TTF_FONT( "Fonts/DroidSansMono", 9 ) );
+
+		Set( "Sequencer.RecordSelectedActors", new IMAGE_BRUSH( "SequenceRecorder/icon_tab_SequenceRecorder_16x", Icon16x16 ) );
 	}
 
 
@@ -5601,6 +5603,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("EditorTutorial"),
 			TEXT("EnvQuery"),
 			TEXT("ExponentialHeightFog"),
+			TEXT("FileMediaSource"),
 			TEXT("Font"),
 			TEXT("ForceFeedbackEffect"),
 			TEXT("GameMode"),
@@ -5647,6 +5650,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("PhysicsThrusterComponent"),
 			TEXT("PhysicsVolume"),
 			TEXT("PlaneReflectionCapture"),
+			TEXT("PlatformMediaSource"),
 			TEXT("PlayerController"),
 			TEXT("PlayerStart"),
 			TEXT("PointLight"),
@@ -5683,6 +5687,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("SpotLightStationary"),
 			TEXT("SpringArmComponent"),
 			TEXT("StaticMesh"),
+			TEXT("StreamMediaSource"),
 			TEXT("SubsurfaceProfile"),
 			TEXT("TargetPoint"),
 			TEXT("TextRenderActor"),

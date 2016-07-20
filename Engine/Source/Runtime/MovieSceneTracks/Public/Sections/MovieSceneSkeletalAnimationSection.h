@@ -6,14 +6,18 @@
 #include "Animation/AnimSequence.h"
 #include "MovieSceneSkeletalAnimationSection.generated.h"
 
+
 /**
  * Movie scene section that control skeletal animation
  */
 UCLASS( MinimalAPI )
-class UMovieSceneSkeletalAnimationSection : public UMovieSceneSection
+class UMovieSceneSkeletalAnimationSection
+	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
+
 public:
+
 	/** Sets the animation sequence for this section */
 	void SetAnimSequence(class UAnimSequence* InAnimSequence) { AnimSequence = InAnimSequence; }
 	
@@ -56,7 +60,10 @@ public:
 	/** Sets the anim BP slot name. */
 	void SetSlotName( FName InSlotName ) { SlotName = InSlotName; }
 
-	/** MovieSceneSection interface */
+public:
+
+	//~ MovieSceneSection interface
+
 	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles  ) override;
 	virtual UMovieSceneSection* SplitSection(float SplitTime) override;
@@ -67,14 +74,19 @@ public:
 
 private:
 
-	static FName DefaultSlotName;
+	//~ UObject interface
 
-	// UObject interface
 #if WITH_EDITOR
+
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	float PreviousPlayRate;
+
 #endif
+
+private:
+
+	static FName DefaultSlotName;
 
 	/** The animation sequence this section has */
 	UPROPERTY(EditAnywhere, Category="Animation")

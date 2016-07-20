@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "ClipboardTypes.h"
 #include "NamedKeyArea.h"
 #include "MovieSceneClipboard.h"
 #include "SequencerClipboardReconciler.h"
+
+
+struct FIntegralCurve;
+
 
 /**
  * Abstract base class for integral curve key areas.
@@ -22,7 +27,7 @@ public:
 
 public:
 
-	// IKeyArea interface
+	//~ IKeyArea interface
 
 	virtual TArray<FKeyHandle> AddKeyUnique( float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX ) override;
 	virtual TOptional<FKeyHandle> DuplicateKey(FKeyHandle KeyToDuplicate) override;

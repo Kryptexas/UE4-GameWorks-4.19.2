@@ -5,9 +5,11 @@
 #include "MovieSceneSection.h"
 #include "MovieSceneSubSection.generated.h"
 
+
 class UMovieSceneSequence;
 
 DECLARE_DELEGATE_OneParam(FOnSequenceChanged, UMovieSceneSequence* /*Sequence*/);
+
 
 /**
  * Implements a section in sub-sequence tracks.
@@ -30,6 +32,8 @@ public:
 	 * @see SetSequence
 	 */
 	UMovieSceneSequence* GetSequence() const;
+
+public:
 
 	/**
 	 * Sets the sequence played by this section.
@@ -87,6 +91,10 @@ public:
 	{
 		ActorToRecord = InActorToRecord;
 	}
+
+public:
+
+	//~ UMovieSceneSection interface
 
 	virtual UMovieSceneSection* SplitSection( float SplitTime ) override;
 	virtual void TrimSection( float TrimTime, bool bTrimLeft ) override;

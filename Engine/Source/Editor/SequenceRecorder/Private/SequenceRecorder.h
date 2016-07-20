@@ -90,6 +90,12 @@ public:
 		return TransformSectionRecorderFactory;
 	}
 
+	/** Get the name of the next sequence we are targeting */
+	const FString& GetNextSequenceName() const { return NextSequenceName; }
+
+	/** Refresh the name of the next sequence we will be recording */
+	void RefreshNextSequence();
+
 private:
 	/** Starts recording a sequence, possibly delayed */
 	bool StartRecordingInternal(UWorld* World);
@@ -121,6 +127,8 @@ private:
 
 	bool bQueuedRecordingsDirty;
 
+	bool bWasImmersive;
+
 	/** The delay we are currently waiting for */
 	float CurrentDelay;
 
@@ -144,6 +152,9 @@ private:
 
 	/** Cached sequence name to record to */
 	FString SequenceName;
+
+	/** The next sequence we will be targeting. Name can change depending on assets being deleted, moved, renamed etc. */
+	FString NextSequenceName;
 
 	/** Cached sequence path to record to */
 	FString PathToRecordTo;

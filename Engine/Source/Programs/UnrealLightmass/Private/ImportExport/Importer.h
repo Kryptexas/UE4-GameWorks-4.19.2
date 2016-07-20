@@ -24,18 +24,18 @@ public:
 	 * @param Scene Scene object to fill out
 	 * @param SceneGuid Guid of the scene to load from a swarm channel
 	 */
-	bool	ImportScene( class FScene& Scene, const FGuid& SceneGuid );
+	bool ImportScene( class FScene& Scene, const FGuid& SceneGuid );
 
 	/** Imports a buffer of raw data */
-	bool	Read( void* Data, int32 NumBytes );
+	bool Read( void* Data, int32 NumBytes );
 
 	/** Imports one object */
 	template <class DataType>
-	bool	ImportData( DataType* Data );
+	bool ImportData( DataType* Data );
 
 	/** Imports a TArray of simple elements in one bulk read. */
 	template <class ArrayType>
-	bool	ImportArray( ArrayType& Array, int32 Count );
+	bool ImportArray( ArrayType& Array, int32 Count );
 
 	/** Imports a TArray of objects, while also adding them to the specified LookupMap. */
 	template <class ObjType, class LookupMapType>
@@ -43,7 +43,7 @@ public:
 
 	/** Imports an array of GUIDs and stores the corresponding pointers into a TArray */
 	template <class ArrayType, class LookupMapType>
-	bool	ImportGuidArray( ArrayType& Array, int32 Count, const LookupMapType& LookupMap );
+	bool ImportGuidArray( ArrayType& Array, int32 Count, const LookupMapType& LookupMap );
 
 	/**
 	 * Finds existing or imports new object by Guid
@@ -51,8 +51,7 @@ public:
 	 * @param Guid Guid of object
 	 * @param Version Version of object to load
 	 * @param Extension Type of object to load (@todo UE4: This could be removed if Version could imply extension)
-	 *
-	 * @result The object that was loaded or found, or NULL if the Guid failed
+	 * @return The object that was loaded or found, or NULL if the Guid failed
 	 */
 	template <class ObjType, class LookupMapType>
 	ObjType* ConditionalImportObject(const FGuid& Guid, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap);
@@ -92,11 +91,13 @@ private:
 	float LevelScale;
 };
 
+
 template <typename DataType>
 FORCEINLINE bool FLightmassImporter::ImportData( DataType* Data )
 {
 	return Read( Data, sizeof(DataType) );
 }
+
 
 /** Imports a TArray of simple elements in one bulk read. */
 template <class ArrayType>
@@ -106,6 +107,7 @@ bool FLightmassImporter::ImportArray( ArrayType& Array, int32 Count )
 	Array.AddUninitialized( Count );
 	return Read( Array.GetData(), Count*sizeof(typename ArrayType::ElementType) );
 }
+
 
 /** Imports a TArray of objects, while also adding them to the specified LookupMap. */
 template <class ObjType, class LookupMapType>
@@ -120,6 +122,7 @@ bool FLightmassImporter::ImportObjectArray( TArray<ObjType>& Array, int32 Count,
 	}
 	return true;
 }
+
 
 /** Imports an array of GUIDs and stores the corresponding pointers into a TArray */
 template <class ArrayType, class LookupMapType>
@@ -136,14 +139,14 @@ bool FLightmassImporter::ImportGuidArray( ArrayType& Array, int32 Count, const L
 	return bOk;
 }
 
+
 /**
  * Finds existing or imports new object by Guid
  *
  * @param Guid Guid of object
  * @param Version Version of object to load
  * @param Extension Type of object to load (@todo UE4: This could be removed if Version could imply extension)
- *
- * @result The object that was loaded or found, or NULL if the Guid failed
+ * @return The object that was loaded or found, or NULL if the Guid failed
  */
 template <class ObjType, class LookupMapType>
 ObjType* FLightmassImporter::ConditionalImportObject(const FGuid& Guid, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap)

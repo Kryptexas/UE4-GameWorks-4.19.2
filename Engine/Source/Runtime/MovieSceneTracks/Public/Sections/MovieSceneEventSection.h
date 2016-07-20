@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Curves/NameCurve.h"
 #include "MovieSceneEventSection.generated.h"
 
 
@@ -11,7 +12,7 @@ class ALevelScriptActor;
 /**
  * Implements a section in movie scene event tracks.
  */
-UCLASS( MinimalAPI )
+UCLASS(MinimalAPI)
 class UMovieSceneEventSection
 	: public UMovieSceneSection
 {
@@ -32,7 +33,9 @@ public:
 	void AddKey(float Time, const FName& EventName, FKeyParams KeyParams);
 
 	/**
-	 * @return The float curve on this section
+	 * Get the section's event curve.
+	 *
+	 * @return Event curve.
 	 */
 	FNameCurve& GetEventCurve()
 	{
@@ -50,13 +53,13 @@ public:
 
 public:
 
-	// UMovieSceneSection interface
+	//~ UMovieSceneSection interface
 
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const override;
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
-	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
-	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
+	virtual TOptional<float> GetKeyTime(FKeyHandle KeyHandle) const override;
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float Time) override;
 
 protected:
 

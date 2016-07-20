@@ -12,6 +12,11 @@ public class AssetTools : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
                 "CurveAssetEditor",
 				"Engine",
                 "InputCore",

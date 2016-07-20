@@ -14,7 +14,7 @@ bool FMovieSceneMultiPropertyRecorderFactory::CanRecordObject(UObject* InObjectT
 {
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
-	for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->PropertiesToRecord)
+	for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->ClassesAndPropertiesToRecord)
 	{
 		if (*PropertiesToRecordForClass.Class == InObjectToRecord->GetClass() && PropertiesToRecordForClass.Properties.Num() > 0)
 		{
@@ -33,21 +33,21 @@ void FMovieSceneMultiPropertyRecorder::CreateSection(UObject* InObjectToRecord, 
 {
 	ObjectToRecord = InObjectToRecord;
 
+	// collect all properties to record from classes we are recording
+	TArray<FName> PropertiesToRecord;
+
 	const FPropertiesToRecordForClass* PropertiesToRecordForClassPtr = nullptr;
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
-	for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->PropertiesToRecord)
+	for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->ClassesAndPropertiesToRecord)
 	{
 		if (*PropertiesToRecordForClass.Class == InObjectToRecord->GetClass() && PropertiesToRecordForClass.Properties.Num() > 0)
 		{
-			PropertiesToRecordForClassPtr = &PropertiesToRecordForClass;
-			break;
+			PropertiesToRecord.Append(PropertiesToRecordForClass.Properties);
 		}
 	}
 
-	check(PropertiesToRecordForClassPtr);
-
 	// create a recorder for each property name
-	for (const FName& PropertyName : PropertiesToRecordForClassPtr->Properties)
+	for (const FName& PropertyName : PropertiesToRecord)
 	{
 		FTrackInstancePropertyBindings Binding(PropertyName, PropertyName.ToString());
 		Binding.UpdateBinding(InObjectToRecord);

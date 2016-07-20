@@ -164,28 +164,39 @@ void SSequenceRecorder::Construct(const FArguments& Args)
 					SNew(SOverlay)
 					+SOverlay::Slot()
 					[
-						SAssignNew(ListView, SListView<UActorRecording*>)
-						.ListItemsSource(&FSequenceRecorder::Get().GetQueuedRecordings())
-						.SelectionMode(ESelectionMode::SingleToggle)
-						.OnGenerateRow(this, &SSequenceRecorder::MakeListViewWidget)
-						.OnSelectionChanged(this, &SSequenceRecorder::OnSelectionChanged)
-						.HeaderRow
-						(
-						SNew(SHeaderRow)
-						+ SHeaderRow::Column(ActorColumnName)
-						.FillWidth(43.0f)
-						.DefaultLabel(LOCTEXT("ActorHeaderName", "Actor"))
-						+ SHeaderRow::Column(AnimationColumnName)
-						.FillWidth(43.0f)
-						.DefaultLabel(LOCTEXT("AnimationHeaderName", "Animation"))
-						+ SHeaderRow::Column(LengthColumnName)
-						.FillWidth(14.0f)
-						.DefaultLabel(LOCTEXT("LengthHeaderName", "Length"))
-						)
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
+						.FillHeight(1.0f)
+						[
+							SAssignNew(ListView, SListView<UActorRecording*>)
+							.ListItemsSource(&FSequenceRecorder::Get().GetQueuedRecordings())
+							.SelectionMode(ESelectionMode::SingleToggle)
+							.OnGenerateRow(this, &SSequenceRecorder::MakeListViewWidget)
+							.OnSelectionChanged(this, &SSequenceRecorder::OnSelectionChanged)
+							.HeaderRow
+							(
+								SNew(SHeaderRow)
+								+ SHeaderRow::Column(ActorColumnName)
+								.FillWidth(43.0f)
+								.DefaultLabel(LOCTEXT("ActorHeaderName", "Actor"))
+								+ SHeaderRow::Column(AnimationColumnName)
+								.FillWidth(43.0f)
+								.DefaultLabel(LOCTEXT("AnimationHeaderName", "Animation"))
+								+ SHeaderRow::Column(LengthColumnName)
+								.FillWidth(14.0f)
+								.DefaultLabel(LOCTEXT("LengthHeaderName", "Length"))
+							)
+						]
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(this, &SSequenceRecorder::GetTargetSequenceName)
+						]
 					]
 					+SOverlay::Slot()
 					[
-						SNew(SVerticalBox)
+						SNew(SVerticalBox)	
 						+SVerticalBox::Slot()
 						.VAlign(VAlign_Bottom)
 						.MaxHeight(2.0f)
@@ -285,7 +296,7 @@ bool SSequenceRecorder::CanRecord() const
 
 bool SSequenceRecorder::IsRecordVisible() const
 {
-	return !FAnimationRecorderManager::Get().IsRecording() && !FSequenceRecorder::Get().IsDelaying();
+	return !FSequenceRecorder::Get().IsRecording() && !FAnimationRecorderManager::Get().IsRecording() && !FSequenceRecorder::Get().IsDelaying();
 }
 
 void SSequenceRecorder::HandleStopAll()
@@ -295,12 +306,12 @@ void SSequenceRecorder::HandleStopAll()
 
 bool SSequenceRecorder::CanStopAll() const
 {
-	return FAnimationRecorderManager::Get().IsRecording() || FSequenceRecorder::Get().IsDelaying();
+	return FSequenceRecorder::Get().IsRecording() || FAnimationRecorderManager::Get().IsRecording() || FSequenceRecorder::Get().IsDelaying();
 }
 
 bool SSequenceRecorder::IsStopAllVisible() const
 {
-	return FAnimationRecorderManager::Get().IsRecording() || FSequenceRecorder::Get().IsDelaying();
+	return FSequenceRecorder::Get().IsRecording() || FAnimationRecorderManager::Get().IsRecording() || FSequenceRecorder::Get().IsDelaying();
 }
 
 void SSequenceRecorder::HandleAddRecording()
@@ -357,6 +368,11 @@ TOptional<float> SSequenceRecorder::GetDelayPercent() const
 EVisibility SSequenceRecorder::GetDelayProgressVisibilty() const
 {
 	return FSequenceRecorder::Get().IsDelaying() ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+FText SSequenceRecorder::GetTargetSequenceName() const
+{
+	return FText::Format(LOCTEXT("NextSequenceFormat", "Next Sequence: {0}"), FText::FromString(FSequenceRecorder::Get().GetNextSequenceName()));
 }
 
 #undef LOCTEXT_NAMESPACE

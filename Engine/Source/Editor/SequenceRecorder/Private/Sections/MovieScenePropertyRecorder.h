@@ -40,7 +40,7 @@ public:
 		Binding.UpdateBinding(InObjectToRecord);
 		PreviousValue = Binding.GetCurrentValue<PropertyType>(InObjectToRecord);
 
-		MovieSceneSection = AddSection(InMovieScene, InGuid, InTime);
+		MovieSceneSection = AddSection(InObjectToRecord, InMovieScene, InGuid, InTime);
 	}
 
 	virtual void Record(UObject* InObjectToRecord, float InCurrentTime) override
@@ -81,7 +81,7 @@ private:
 	bool ShouldAddNewKey(const PropertyType& InNewValue) const;
 
 	/** Helper function, specialized by type, used to add an appropriate section to the movie scene */
-	class UMovieSceneSection* AddSection(class UMovieScene* InMovieScene, const FGuid& InGuid, float InTime);
+	class UMovieSceneSection* AddSection(UObject* InObjectToRecord, class UMovieScene* InMovieScene, const FGuid& InGuid, float InTime);
 
 	/** Helper function, specialized by type, used to add keys to the movie scene section at Finalize() time */
 	void AddKeyToSection(UMovieSceneSection* InSection, const FPropertyKey<PropertyType>& InKey);

@@ -21,6 +21,7 @@
 #include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "SceneOutlinerPublicTypes.h"
+#include "TrackEditorThumbnailPool.h"
 
 #define LOCTEXT_NAMESPACE "FCameraCutTrackEditor"
 

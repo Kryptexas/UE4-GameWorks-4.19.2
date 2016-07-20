@@ -11,9 +11,16 @@ struct FPropertiesToRecordForClass
 {
 	GENERATED_BODY()
 
+	FPropertiesToRecordForClass()
+	{}
+
+	FPropertiesToRecordForClass(TSubclassOf<USceneComponent> InClass)
+		: Class(InClass)
+	{}
+
 	/** The class of the object we can record */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
-	TSubclassOf<UObject> Class;
+	TSubclassOf<USceneComponent> Class;
 
 	/** List of properties we want to record for this class */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
@@ -31,6 +38,10 @@ public:
 	/** Whether to create a level sequence when recording. Actors and animations will be inserted into this sequence */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	bool bCreateLevelSequence;
+
+	/** Whether to maximize the viewport when recording */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	bool bImmersiveMode;
 
 	/** The length of the recorded sequence */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
@@ -76,15 +87,11 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	FAnimationRecordingSettings DefaultAnimationSettings;
 
-	/** Component classes we record by default. If an actor does not contain one of these classes it will be ignored. */
-	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
-	TArray<TSubclassOf<USceneComponent>> ComponentClassesToRecord;
-
 	/** Whether to record actors that are spawned by sequencer itself (this is usually disabled as results can be unexpected) */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	bool bRecordSequencerSpawnedActors;
 
-	/** The properties to record for specified classes */
-	UPROPERTY(Config, EditAnywhere, Category = "General Property Recording")
-	TArray<FPropertiesToRecordForClass> PropertiesToRecord;
+	/** The properties to record for specified classes. Component classes specified here will be recorded. If an actor does not contain one of these classes it will be ignored. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	TArray<FPropertiesToRecordForClass> ClassesAndPropertiesToRecord;
 };

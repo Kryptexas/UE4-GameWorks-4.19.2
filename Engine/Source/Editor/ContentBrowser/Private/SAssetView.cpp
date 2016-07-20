@@ -4002,7 +4002,7 @@ EVisibility SAssetView::IsAssetShowWarningTextVisible() const
 
 FText SAssetView::GetAssetShowWarningText() const
 {
-	if (AssetShowWarningText.IsBound())
+	if (AssetShowWarningText.IsSet())
 	{
 		return AssetShowWarningText.Get();
 	}

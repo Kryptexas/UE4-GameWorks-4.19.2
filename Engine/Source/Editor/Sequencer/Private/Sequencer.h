@@ -325,6 +325,12 @@ public:
 
 	/** Get the extender for the level viewport menu */
 	TSharedRef<FExtender> GetLevelViewportExtender(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> InActors);
+	
+	/** Add level editor actions */
+	void BindLevelEditorCommands();
+	
+	/** Remove level editor actions */
+	void UnbindLevelEditorCommands();
 
 	void RecordSelectedActors();
 	

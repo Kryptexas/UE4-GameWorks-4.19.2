@@ -452,9 +452,9 @@ public:
 	virtual void AddPostRenderedActor(AActor* A);
 
 	/**
-	 * check if we should be display debug information for particular types of debug messages
-	 * @param DebugType - type of debug message
-	 * @result bool - true if it should be displayed
+	 * check if we should be display debug information for particular types of debug messages.
+	 * @param DebugType - type of debug message.
+	 * @return true if it should be displayed, false otherwise.
 	 */
 	virtual bool ShouldDisplayDebug(const FName& DebugType) const;
 

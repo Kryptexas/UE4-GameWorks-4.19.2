@@ -1,17 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AvfMediaPrivatePCH.h"
-
-#if PLATFORM_MAC
-#include "CocoaThread.h"
-#endif
+#include "AvfMediaPCH.h"
+#include "AvfMediaPlayer.h"
 
 
 /* FMediaHelper implementation
  *****************************************************************************/
+
 @implementation FMediaHelper
 @synthesize bIsPlayerItemReady;
 @synthesize MediaPlayer;
+
 
 -(FMediaHelper*) initWithMediaPlayer:(AVPlayer*)InPlayer
 {
@@ -25,13 +24,13 @@
 
 /** Listener for changes in our media classes properties. */
 - (void) observeValueForKeyPath:(NSString*)keyPath
-					ofObject:	(id)object
-					change:		(NSDictionary*)change
-					context:	(void*)context
+		ofObject:	(id)object
+		change:		(NSDictionary*)change
+		context:	(void*)context
 {
-	if( [keyPath isEqualToString:@"status"] )
+	if ([keyPath isEqualToString:@"status"])
 	{
-		if( object == [MediaPlayer currentItem] )
+		if (object == [MediaPlayer currentItem])
 		{
 			bIsPlayerItemReady = ([MediaPlayer currentItem].status == AVPlayerItemStatusReadyToPlay);
 		}
@@ -56,16 +55,62 @@ FAvfMediaPlayer::FAvfMediaPlayer()
     CurrentTime = FTimespan::Zero();
     Duration = FTimespan::Zero();
 	MediaUrl = FString();
+	ShouldLoop = false;
     
-    PlayerItem = nil;
-    MediaPlayer = nil;
 	MediaHelper = nil;
+    MediaPlayer = nil;
+	PlayerItem = nil;
 	
 	CurrentRate = 0.0f;
 }
 
 
-/* IMediaInfo interface
+/* FTickerObjectBase interface
+ *****************************************************************************/
+
+bool FAvfMediaPlayer::Tick(float DeltaTime)
+{
+	return false;
+	/*
+	if (!IsPlaying() || !IsReady() && !ReachedEnd())
+	{
+		return true;
+	}
+
+	for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
+	{
+		FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+
+		if (!AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]))
+		{
+			if (ReachedEnd())
+			{
+				MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
+
+				if (ShouldLoop)
+				{
+					Seek(FTimespan(0));
+					SetRate(CurrentRate);
+				}
+			}
+			else
+			{
+				UE_LOG(LogAvfMedia, Display, TEXT("Failed to read video track for "), *MediaUrl);
+				
+				return false;
+			}
+		}
+		else
+		{
+			CurrentTime = FTimespan::FromSeconds(CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]));
+		}
+	}
+	
+    return true;*/
+}
+
+
+/* IMediaControls interface
  *****************************************************************************/
 
 FTimespan FAvfMediaPlayer::GetDuration() const
@@ -74,24 +119,73 @@ FTimespan FAvfMediaPlayer::GetDuration() const
 }
 
 
-TRange<float> FAvfMediaPlayer::GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const
+float FAvfMediaPlayer::GetRate() const
 {
-	float MaxRate = 1.0f;
-	float MinRate = 0.0f;
-    
-	return TRange<float>(MinRate, MaxRate);
+	return CurrentRate;
 }
 
 
-FString FAvfMediaPlayer::GetUrl() const
+EMediaState FAvfMediaPlayer::GetState() const
 {
-	return MediaUrl;
+	return EMediaState::Error; // @todo AvfMedia: implement state management
 }
 
 
-bool FAvfMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
+TRange<float> FAvfMediaPlayer::GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const
 {
-    return GetSupportedRates(EMediaPlaybackDirections::Forward, true).Contains( Rate );
+	if (Direction == EMediaPlaybackDirections::Reverse)
+	{
+		return TRange<float>::Empty();
+	}
+
+	return TRange<float>(0.0f, 1.0f);
+}
+
+
+FTimespan FAvfMediaPlayer::GetTime() const
+{
+	return CurrentTime;
+}
+
+
+bool FAvfMediaPlayer::IsLooping() const
+{
+	return ShouldLoop;
+}
+
+
+bool FAvfMediaPlayer::Seek(const FTimespan& Time)
+{
+	return false;
+}
+
+
+bool FAvfMediaPlayer::SetLooping(bool Looping)
+{
+	ShouldLoop = Looping;
+
+	return true;
+}
+
+
+bool FAvfMediaPlayer::SetRate(float Rate)
+{
+	CurrentRate = Rate;
+	[MediaPlayer setRate : CurrentRate];
+
+	MediaEvent.Broadcast(
+		FMath::IsNearlyZero(Rate)
+		? EMediaEvent::PlaybackSuspended
+		: EMediaEvent::PlaybackResumed
+	);
+
+	return true;
+}
+
+
+bool FAvfMediaPlayer::SupportsRate(float Rate, bool Unthinned) const
+{
+	return GetSupportedRates(EMediaPlaybackDirections::Forward, true).Contains(Rate);
 }
 
 
@@ -112,308 +206,179 @@ bool FAvfMediaPlayer::SupportsSeeking() const
 
 void FAvfMediaPlayer::Close()
 {
-    CurrentTime = 0;
-	MediaUrl = FString();
-    
-    if( PlayerItem != nil )
-    {
-		[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
-		[PlayerItem release];
-        PlayerItem = nil;
-    }
+	// @todo trepka: return here if already closed
 
-	if( MediaHelper )
+	CurrentTime = 0;
+	MediaUrl = FString();
+
+	if (PlayerItem != nil)
+	{
+		[PlayerItem removeObserver : MediaHelper forKeyPath : @"status"];
+		[PlayerItem release];
+		PlayerItem = nil;
+	}
+
+	if (MediaHelper)
 	{
 		[MediaHelper release];
 		MediaHelper = nil;
 	}
-		
-	AudioTracks.Reset();
-	CaptionTracks.Reset();
-	VideoTracks.Reset();
 
-	MediaEvent.Broadcast(EMediaEvent::TracksChanged);  
-    Duration = CurrentTime = FTimespan::Zero();
-    
+	Tracks.Reset();
+	MediaEvent.Broadcast(EMediaEvent::TracksChanged);
+
+	Duration = CurrentTime = FTimespan::Zero();
+
 #if PLATFORM_MAC
-    GameThreadCall(^{
+	GameThreadCall(^{
 #elif PLATFORM_IOS
-    // Report back to the game thread whether this succeeded.
-    [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
+		// report back to the game thread whether this succeeded
+		[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void) {
 #endif
-        // Displatch on the gamethread that we have closed the video.
-        MediaEvent.Broadcast(EMediaEvent::MediaClosed);
-         
+		// dispatch on the game thread that we have closed the video
+			MediaEvent.Broadcast(EMediaEvent::MediaClosed);
 #if PLATFORM_IOS
-        return true;
-    }];
+			return true;
+		}];
 #elif PLATFORM_MAC
-    });
+	});
 #endif
-
 }
 
 
-const TArray<IMediaAudioTrackRef>& FAvfMediaPlayer::GetAudioTracks() const
-{
-	return AudioTracks;
-}
-
-
-const TArray<IMediaCaptionTrackRef>& FAvfMediaPlayer::GetCaptionTracks() const
-{
-	return CaptionTracks;
-}
-
-
-const IMediaInfo& FAvfMediaPlayer::GetMediaInfo() const
+IMediaControls& FAvfMediaPlayer::GetControls()
 {
 	return *this;
 }
 
 
-float FAvfMediaPlayer::GetRate() const
+FString FAvfMediaPlayer::GetInfo() const
 {
-    return CurrentRate;
+	return TEXT("AvfMedia media information not implemented yet");
 }
 
 
-FTimespan FAvfMediaPlayer::GetTime() const
+IMediaOutput& FAvfMediaPlayer::GetOutput()
 {
-    return CurrentTime;
+	return Tracks;
 }
 
 
-const TArray<IMediaVideoTrackRef>& FAvfMediaPlayer::GetVideoTracks() const
+FString FAvfMediaPlayer::GetStats() const
 {
-	return VideoTracks;
+	return TEXT("AvfMedia stats information not implemented yet");
 }
 
 
-bool FAvfMediaPlayer::IsLooping() const 
+IMediaTracks& FAvfMediaPlayer::GetTracks()
 {
-    return bLoop;
+	return Tracks;
 }
 
 
-bool FAvfMediaPlayer::IsPaused() const
+FString FAvfMediaPlayer::GetUrl() const
 {
-    return FMath::IsNearlyZero( CurrentRate );
+	return MediaUrl;
 }
 
 
-bool FAvfMediaPlayer::IsPlaying() const
+bool FAvfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 {
-	if ((AudioTracks.Num() > 0) && (CaptionTracks.Num() > 0) && (VideoTracks.Num() > 0))
+	Close();
+
+	// open media file
+	FString Ext = FPaths::GetExtension(Url);
+	FString BFNStr = FPaths::GetBaseFilename(Url);
+
+#if PLATFORM_MAC
+	NSURL* nsMediaUrl = [NSURL fileURLWithPath : Url.GetNSString()];
+#elif PLATFORM_IOS
+	NSURL* nsMediaUrl = [[NSBundle mainBundle] URLForResource:BFNStr.GetNSString() withExtension : Ext.GetNSString()];
+#endif
+
+	if (nsMediaUrl == nil)
 	{
+		UE_LOG(LogAvfMedia, Error, TEXT("Failed to open Media file:"), *Url);
+
 		return false;
 	}
 
-    return (MediaPlayer != nil) && !FMath::IsNearlyZero(CurrentRate) && !ReachedEnd();
-}
+	// create player instance
+	MediaUrl = FPaths::GetCleanFilename(Url);
+	MediaPlayer = [[AVPlayer alloc] init];
 
-
-bool FAvfMediaPlayer::IsReady() const
-{
-    // To be ready, we need the AVPlayer setup
-	if ((MediaPlayer == nil) || ([MediaPlayer status] != AVPlayerStatusReadyToPlay))
+	if (!MediaPlayer)
 	{
+		UE_LOG(LogAvfMedia, Error, TEXT("Failed to create instance of an AVPlayer"));
+
 		return false;
 	}
 
-	// A player item setup and ready to stream,
-	if ((MediaHelper == nil) || (![MediaHelper bIsPlayerItemReady]))
+	// create player item
+	MediaHelper = [[FMediaHelper alloc] initWithMediaPlayer:MediaPlayer];
+	check(MediaHelper != nil);
+
+	PlayerItem = [AVPlayerItem playerItemWithURL : nsMediaUrl];
+
+	if (PlayerItem == nil)
 	{
+		UE_LOG(LogAvfMedia, Error, TEXT("Failed to open player item with Url:"), *Url);
+
 		return false;
 	}
-    
-    // and all tracks to be setup and ready
-    for( const IMediaAudioTrackRef& AudioTrack : AudioTracks )
-    {
-        FAvfMediaTrack& AVFTrack = (FAvfMediaTrack&)AudioTrack.Get();
-		if (!AVFTrack.IsReady())
-		{
-			return false;
-        }
-    }
 
-	for( const IMediaCaptionTrackRef& CaptionTrack : CaptionTracks )
-    {
-        FAvfMediaTrack& AVFTrack = (FAvfMediaTrack&)CaptionTrack.Get();
-		if (!AVFTrack.IsReady())
-		{
-			return false;
-        }
-    }
+	// load tracks
+	[PlayerItem retain];
+	[PlayerItem addObserver : MediaHelper forKeyPath : @"status" options : 0 context : nil];
 
-	for( const IMediaVideoTrackRef& VideoTrack : VideoTracks )
-    {
-        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
-		if (!AVFTrack.IsReady())
-		{
-			return false;
-        }
-    }
+	Duration = FTimespan::FromSeconds(CMTimeGetSeconds(PlayerItem.asset.duration));
 
+	[[PlayerItem asset] loadValuesAsynchronouslyForKeys:@[@"tracks"] completionHandler:^
+	{
+		NSError* Error = nil;
+
+		if ([[PlayerItem asset] statusOfValueForKey:@"tracks" error : &Error] == AVKeyValueStatusLoaded)
+		{
+//			Tracks.Initialize(PlayerItem); // @todo trepka: fix me
+
+#if PLATFORM_MAC
+			GameThreadCall(^{
+#elif PLATFORM_IOS
+				// report back to the game thread whether this succeeded.
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void) {
+#endif
+					// dispatch on the gamethread that we have opened the video.
+					MediaEvent.Broadcast(EMediaEvent::TracksChanged);
+					MediaEvent.Broadcast(EMediaEvent::MediaOpened);
+#if PLATFORM_IOS
+					return true;
+				}];
+#elif PLATFORM_MAC
+			});
+#endif
+		}
+		else if (Error != nullptr)
+		{
+			NSDictionary *userInfo = [Error userInfo];
+			NSString *errstr = [[userInfo objectForKey : NSUnderlyingErrorKey] localizedDescription];
+
+			UE_LOG(LogAvfMedia, Warning, TEXT("Failed to load video tracks. [%s]"), *FString(errstr));
+		}
+	}];
+
+	[MediaPlayer replaceCurrentItemWithPlayerItem : PlayerItem];
+	[[MediaPlayer currentItem] seekToTime:kCMTimeZero];
+
+	MediaPlayer.rate = 0.0;
+	CurrentTime = FTimespan::Zero();
+		
 	return true;
 }
 
 
-/* FAvfMediaPlayer implementation
- *****************************************************************************/
-
-bool FAvfMediaPlayer::Open( const FString& Url )
+bool FAvfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options)
 {
-    Close();
-    
-    bool bSuccessfullyOpenedMovie = false;
-
-    FString Ext = FPaths::GetExtension(Url);
-    FString BFNStr = FPaths::GetBaseFilename(Url);
-    
-#if PLATFORM_MAC
-    NSURL* nsMediaUrl = [NSURL fileURLWithPath:Url.GetNSString()];
-#elif PLATFORM_IOS
-    NSURL* nsMediaUrl = [[NSBundle mainBundle] URLForResource:BFNStr.GetNSString() withExtension:Ext.GetNSString()];
-#endif
-    
-    if( nsMediaUrl != nil )
-    {
-        MediaUrl = FPaths::GetCleanFilename(Url);
-        
-        MediaPlayer = [[AVPlayer alloc] init];
-        if( MediaPlayer )
-        {
-			MediaHelper = [[FMediaHelper alloc] initWithMediaPlayer: MediaPlayer];
-			check( MediaHelper != nil );
-			
-            PlayerItem = [AVPlayerItem playerItemWithURL: nsMediaUrl];
-            if( PlayerItem != nil )
-            {
-				[PlayerItem retain];
-				[PlayerItem addObserver:MediaHelper forKeyPath:@"status" options:0 context:nil];
-                Duration = FTimespan::FromSeconds( CMTimeGetSeconds( PlayerItem.asset.duration ) );
-
-                [[PlayerItem asset] loadValuesAsynchronouslyForKeys: @[@"tracks"] completionHandler:^
-                {
-                    NSError* Error = nil;
-                    if( [[PlayerItem asset] statusOfValueForKey:@"tracks" error:&Error] == AVKeyValueStatusLoaded )
-                    {
-                        NSArray* AssetVideoTracks = [[PlayerItem asset] tracksWithMediaType:AVMediaTypeVideo];
-                        if( AssetVideoTracks != nullptr && AssetVideoTracks.count > 0 )
-                        {
-                            AVAssetTrack* VideoTrack = [AssetVideoTracks objectAtIndex: 0];
-							if (VideoTrack != nullptr)
-							{
-								FAvfMediaVideoTrack* NewTrack = new FAvfMediaVideoTrack(VideoTrack);
-								if (NewTrack != nullptr && NewTrack->IsReady())
-								{
-									VideoTracks.Add( MakeShareable( NewTrack ) );
-#if PLATFORM_MAC
-									GameThreadCall(^{
-#elif PLATFORM_IOS
-									// Report back to the game thread whether this succeeded.
-									[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
-#endif
-										 // Displatch on the gamethread that we have opened the video.
-										MediaEvent.Broadcast(EMediaEvent::TracksChanged);
-										MediaEvent.Broadcast(EMediaEvent::MediaOpened);
-#if PLATFORM_IOS
-										return true;
-									}];
-#elif PLATFORM_MAC
-									});
-#endif
-								}
-								else if(!NewTrack->IsReady())
-								{
-									delete NewTrack;
-								}
-							}
-                        }
-                    }
-                    else if(Error != nullptr)
-                    {
-                        NSDictionary *userInfo = [Error userInfo];
-                        NSString *errstr = [[userInfo objectForKey : NSUnderlyingErrorKey] localizedDescription];
-                        UE_LOG(LogAvfMedia, Warning, TEXT("Failed to load video tracks. [%s]"), *FString(errstr));
-                    }
-                }];
-            
-                [MediaPlayer replaceCurrentItemWithPlayerItem: PlayerItem];
-            
-                [[MediaPlayer currentItem] seekToTime:kCMTimeZero];
-                MediaPlayer.rate = 0.0;
-				CurrentTime = FTimespan::Zero();
-            
-                bSuccessfullyOpenedMovie = true;
-            }
-            else
-            {
-                UE_LOG(LogAvfMedia, Warning, TEXT("Failed to open player item with Url:"), *Url);
-            }
-        }
-        else
-        {
-            UE_LOG(LogAvfMedia, Error, TEXT("Failed to create instance of an AVPlayer"));
-        }
-    }
-    else
-    {
-        UE_LOG(LogAvfMedia, Warning, TEXT("Failed to open Media file:"), *Url);
-    }
-    
-    
-    return bSuccessfullyOpenedMovie;
-}
-
-
-bool FAvfMediaPlayer::Open( const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl )
-{
-    return false;
-}
-
-
-bool FAvfMediaPlayer::Seek( const FTimespan& Time )
-{
-    // We need to find a suitable way to seek using avplayer and AVAssetReader,
-    CurrentTime = Time;
-	
-	double TotalSeconds = CurrentTime.GetTotalSeconds();
-	CMTime CurrentTimeInSeconds = CMTimeMake(TotalSeconds, 1);
-	
-	[MediaPlayer seekToTime:CurrentTimeInSeconds];
-	[[MediaPlayer currentItem] seekToTime:CurrentTimeInSeconds];
-	
-    for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
-    {
-        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
-        AVFTrack.SeekToTime(CurrentTimeInSeconds);
-    }
-
-    return false;
-}
-
-
-bool FAvfMediaPlayer::SetLooping( bool bInLooping )
-{
-    bLoop = bInLooping;
-	return bLoop;
-}
-
-
-bool FAvfMediaPlayer::SetRate( float Rate )
-{
-    CurrentRate = Rate;
-    [MediaPlayer setRate: CurrentRate];
-
-	MediaEvent.Broadcast(
-		FMath::IsNearlyZero(Rate)
-			? EMediaEvent::PlaybackSuspended
-			: EMediaEvent::PlaybackResumed
-	);
-
-    return true;
+	return false; // not supported
 }
 
 
@@ -421,69 +386,16 @@ bool FAvfMediaPlayer::SetRate( float Rate )
  *****************************************************************************/
 
 bool FAvfMediaPlayer::ReachedEnd() const
-{
-	bool bHasReachedEnd = false;
-	for( const IMediaVideoTrackRef& VideoTrack : VideoTracks )
+{/*
+	for (const IMediaVideoTrackRef& VideoTrack : VideoTracks)
 	{
 		FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+
 		if (AVFTrack.ReachedEnd())
 		{
-			bHasReachedEnd = true;
+			return true;
 		}
-	}
-	return bHasReachedEnd;
+	}*/
+
+	return false;
 }
-
-
-bool FAvfMediaPlayer::ShouldTick() const
-{
-	return IsReady() || ReachedEnd();
-}
-
-
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FAvfMediaPlayer::Tick( float DeltaTime )
-{
-	if (!ShouldTick() || !IsPlaying())
-	{
-		return true;
-	}
-
-	for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
-	{
-		FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
-
-		if (!AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]))
-		{
-			if (ReachedEnd())
-			{
-				MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
-
-				if (bLoop)
-				{
-					Seek(FTimespan(0));
-					SetRate(CurrentRate);
-				}
-			}
-			else
-			{
-				UE_LOG(LogAvfMedia, Display, TEXT("Failed to read video track for "), *MediaUrl);
-				
-				return false;
-			}
-		}
-		else
-		{
-			CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]) );
-		}
-	}
-	
-    return true;
-}
-
-
-/* FAvfMediaPlayer implementation
- *****************************************************************************/
-

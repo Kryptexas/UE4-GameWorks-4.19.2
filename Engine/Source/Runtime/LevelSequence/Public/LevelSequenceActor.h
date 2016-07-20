@@ -75,6 +75,22 @@ public:
 
 public:
 
+	/**
+	 * Get the level sequence being played by this actor.
+	 *
+	 * @param Whether to load the sequence object if it is not already in memory.
+	 * @return Level sequence, or nullptr if not assigned or if it cannot be loaded.
+	 * @see SetSequence
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	ULevelSequence* GetSequence(bool Load = false) const;
+
+	/**
+	 * Set the level sequence being played by this actor.
+	 *
+	 * @param InSequence The sequence object to set.
+	 * @see GetSequence
+	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetSequence(ULevelSequence* InSequence);
 

@@ -4,6 +4,7 @@
 
 
 class FTrackEditorThumbnailPool;
+class UMovieSceneCinematicShotSection;
 class UMovieSceneCinematicShotTrack;
 class UMovieSceneSubSection;
 
