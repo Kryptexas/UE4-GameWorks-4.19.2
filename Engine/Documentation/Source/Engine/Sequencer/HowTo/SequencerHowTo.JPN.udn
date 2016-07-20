@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3041695
+﻿INTSourceChangelist:3051723
 Availability:Public
 Title:シーケンサーの操作ガイド
 Crumbs: %ROOT%, Engine, Engine\Sequencer
@@ -7,7 +7,7 @@ Related:Engine\Sequencer
 version:4.11
 
 
-この **シーケンサーの操作ガイド** のページでは、UE4 の様々な機能を使って **シーケンサー** エディタを使う方法を順を追って説明します。 
+この **シーケンサーの操作ガイド** では、UE4 の様々な機能を使って **シーケンサー** エディタを使う方法を順を追って説明します。 
 キャラクターのアニメート、マルチ カメラのシーケンスのセットアップ、カメラを使った作業全般について説明します。
 各ガイドで説明しているシステムとコンテンツの詳細なドキュメントへの参照リンクもあります。 
 
@@ -30,6 +30,7 @@ version:4.11
 [](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
 [](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
 [](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
+[](FANCY:Engine\Sequencer\HowTo\TriggeringSequences "%Engine\Sequencer\HowTo\TriggeringSequences:description%")
 [PUBLISH:docs]
 [](FANCY:Engine\Sequencer\HowTo\BurnIns "%Engine\Sequencer\HowTo\BurnIns:description%")
 [/PUBLISH:docs]
