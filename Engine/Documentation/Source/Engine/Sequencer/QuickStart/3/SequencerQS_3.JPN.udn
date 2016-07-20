@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3013123
+﻿INTSourceChangelist:3038380
 Availability:Public
 Title:3 - 最初のショット - キャラクター アニメーション
 Crumbs:%ROOT%
@@ -7,29 +7,14 @@ SkillLevel:Beginner
 Version:4.12
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
-checkpoint: editorqs
+checkpoint: sequencerqs
+parent:Engine/Sequencer/QuickStart
+type:sequential
+order:3
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Sequencer\QuickStart\2 "%Engine\Sequencer\QuickStart\2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine\Sequencer\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Sequencer\QuickStart\4 "%Engine\Sequencer\QuickStart\4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-前のステップでは、カメラを追加し、カメラの経路を指定しました。 
-次に、テンプレートで使用される Character ブループリントを、アニメーションを適用可能な **Skeletal Mesh** アクタに置き換えます。 
-このステップの最後まで進むと、最初のショットが完成します。 
+前のステップでは、カメラを追加し、カメラの経路を指定しました。このステップでは、テンプレートで使用される Character ブループリントを、アニメーションを適用可能な **Skeletal Mesh** アクタに置き換えて、最初のショットを完成させます。
 
 ## ステップ
 
@@ -37,13 +22,11 @@ checkpoint: editorqs
 
 	![](SequencerQS_3_1.png)
 
-1. 左のビューポートでレベル内のキャラクター上で **右クリック** し、**[Replace Selected Actors with (選択したアクタを置換)]** オプションを選択します。 
+1. 左のビューポートでレベル内のキャラクター上で **右クリック** し、**[Replace Selected Actors with (選択したアクタを置換)]** を選択します。これで、ゲームプレイに使用するデフォルトの **Character ブループリント** が **Skeletal Mesh アクタ** に置き換えられます。
 
-	![](SequencerQS_3_2.png)
+	![](SequencerQS_3_2.png) 
 
-	これで、ゲームプレイに使用するデフォルトの **Character ブループリント** が **Skeletal Mesh アクタ** に置き換えられます。 
-
-1.	左のビューポートで、**End** キーを押してそのスケルタルメッシュをグラウンドにドロップします。次に **E** キーを押して以下のように回転させます。 
+1.	左のビューポートで、**End** キーを押してそのスケルタルメッシュをグラウンドにドロップします。次に E キーを押して以下のように回転させます。次に E キーを押して以下のように回転させます。 
 
 	![](SequencerQS_3_3.png)
 
@@ -55,21 +38,17 @@ checkpoint: editorqs
 
 	![](SequencerQS_3_5a.png)
 
-1.	**ThirdPersonCharacter** トラックに対して、**[+ Animation (アニメーション追加)]** ボタンをクリックして、**ThirdPersonIdle** を探して追加します。
+1.	**ThirdPersonCharacter** トラックに対して、**[+ Animation (アニメーション追加)]** ボタンをクリックします。**ThirdPersonIdle** アニメーションを検索し、それをトラックに追加します。レベル内のスケルタルメッシュは、Idle ポーズになります。
 
-	![](SequencerQS_3_5.png)
+	![](SequencerQS_3_5.png) 
 
-	レベル内のスケルタルメッシュは、Idle ポーズになります。 
-
-1.	**左クリック** して、**ThirdPersonIdle** の終わりをドラッグして、150 フレーム全体をループし、満たすようにします。 
+1.	**左クリック** して、**ThirdPersonIdle** アニメーションの終わりをドラッグして、150 フレーム全体をループし、満たすようにします。 
 
 	![](SequencerQS_3_6.png)
 
-1.	**Camera Cuts** トラックで、**[Unlock/Lock Camera]** ボタンをクリックします。 
+1.	**Camera Cuts** トラックで、**[Unlock/Lock Camera]** ボタンをクリックします。Camera Cuts トラックのカメラをロックすると、シネマティックス ビューポートだけに影響を及ぼします。
 
-	![](SequencerQS_3_6b.png)	
-
-	Camera Cuts トラックのカメラをロックすると、シネマティックス ビューポートだけに影響を及ぼします。 
+	![](SequencerQS_3_6b.png) 
 
 1.	シネマティックス プレビュー ウィンドウで **[Preview Play]** ボタンをクリックします。 
 
@@ -94,6 +73,4 @@ vx-HlYIbpOI
 
 次のステップでは、シーンのもうひとつのショットの作業を行います。その後、両方のショットをマスター トラックに追加します。 
 
-%Steps%
-
-
+[NAV]
