@@ -1,22 +1,28 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3055871
 Availability:Public
 Title:Linux ゲームの開発
 Crumbs:%ROOT%, Platforms
 Description: Linux プラットフォーム向けのゲーム開発
 Platform:Linux
 Navigation:platform
-Version:4.9
+Version:4.11
 type:landing
 parent:Platforms
 tags:Linux
+related:Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers
+related:Platforms/Linux/GettingStarted
 
+Linux ゲーム開発の未来を開くのは、あなたの指先です！これまでにないほど、アンリアル エンジン 4 (UE4) を利用して、
+世界中の Linux ユーザーとゲームを作成し共有することができるようになりました。Linux でゲーム開発をしたことがない場合、高度なトピックスへ進む前に、
+[](Platforms/Linux/BeginnerLinuxDeveloper) ラーニング パスを一通り読んでおくことを 
+お勧めします。
 
-## はじめよう
+## ラーニング パス
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Linux")]
-
+[REGION:topics third]
+%Platforms/Linux/BeginnerLinuxDeveloper:topic%
 <!--
-## Linux のトピックス
-
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/Linux")]
+%Platforms/Linux/IntermediateLinuxDeveloper:topic%
+%Platforms/Linux/AdvancedLinuxDeveloper:topic%
 -->
+[/REGION]
