@@ -705,6 +705,10 @@ public:
 	 */
 	const FString* GetInstanceMetaData(const FName& Key) const;
 
+	/**
+	 * Invalidates the cached state of this node in all children;
+	 */
+	void InvalidateCachedState();
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );

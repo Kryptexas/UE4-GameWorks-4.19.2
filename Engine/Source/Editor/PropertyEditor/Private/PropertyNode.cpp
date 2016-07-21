@@ -1953,6 +1953,8 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	FObjectPropertyNode* ObjectNode = FindObjectItemParent();
 	if( ObjectNode )
 	{
+		ObjectNode->InvalidateCachedState();
+
 		UProperty* CurProperty = InPropertyChangedEvent.Property;
 
 		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
@@ -2034,9 +2036,6 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 			}
 		}
 	}
-
-	bUpdateEditConstState = true;
-	bUpdateDiffersFromDefault = true;
 
 	// Broadcast the change to any listeners
 	BroadcastPropertyChangedDelegates();
@@ -2205,6 +2204,17 @@ void FPropertyNode::SetInstanceMetaData(const FName& Key, const FString& Value)
 const FString* FPropertyNode::GetInstanceMetaData(const FName& Key) const
 {
 	return InstanceMetaData.Find(Key);
+}
+
+void FPropertyNode::InvalidateCachedState()
+{
+	bUpdateDiffersFromDefault = true;
+	bUpdateEditConstState = true;
+
+	for( TSharedPtr<FPropertyNode>& ChildNode : ChildNodes )
+	{
+		ChildNode->InvalidateCachedState();
+	}
 }
 
 /**
