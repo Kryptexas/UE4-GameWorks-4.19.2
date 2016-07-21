@@ -265,7 +265,7 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 
 										// If we've selected an actor with a light press, don't prevent the user from moving the actor if they
 										// press down all the way.  We only want locking when interacting with gizmos
-										InteractorData.bAllowTriggerLightPressLocking = false;
+										SetAllowTriggerLightPressLocking( false );
 
 										// If the user did a full press to select an actor that wasn't selected, allow them to drag it right away
 										const bool bOtherHandTryingToDrag =
@@ -594,4 +594,14 @@ void UViewportInteractor::SetAllowTriggerLightPressLocking( const bool bInAllow 
 bool UViewportInteractor::AllowTriggerLightPressLocking() const
 {
 	return InteractorData.bAllowTriggerLightPressLocking;
+}
+
+void UViewportInteractor::SetAllowTriggerFullPress( const bool bInAllow )
+{
+	InteractorData.bAllowTriggerFullPress = bInAllow;
+}
+
+bool UViewportInteractor::AllowTriggerFullPress() const
+{
+	return InteractorData.bAllowTriggerFullPress;
 }

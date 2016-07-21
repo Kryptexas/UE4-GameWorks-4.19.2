@@ -179,6 +179,12 @@ public:
 	/** Gets the transform gizmo actor, or returns null if we currently don't have one */
 	class ABaseTransformGizmo* GetTransformGizmoActor();
 
+	/** Sets whether the transform gizmo should be visible at all */
+	void SetTransformGizmoVisible( const bool bShouldBeVisible );
+
+	/** Returns whether the transform gizmo is visible */
+	bool IsTransformGizmoVisible() const;
+
 	/** Sets if objects are dragged with either hand since last time selecting something */
 	void SetDraggedSinceLastSelection( const bool bNewDraggedSinceLastSelection );
 
@@ -447,6 +453,9 @@ private:
 
 	/** The current Gizmo type that is used for the TransformGizmo Actor */
 	EGizmoHandleTypes CurrentGizmoType;
+
+	/** Whether the gizmo should be visible or not */
+	bool bIsTransformGizmoVisible;
 
 
 	//
