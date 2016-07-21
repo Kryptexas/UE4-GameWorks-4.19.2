@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2914106
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 오브젝트 (Object)
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
@@ -112,6 +112,7 @@ Tick (틱)이란 언리얼 엔진에서 오브젝트가 어떻게 업데이트�
 
 **Object** 에는 내장된 업데이트 기능이 없습니다만, `inherits` 클래스 지정자를 사용하여 `FTickableGameObject` 클래스를 상속받음으로써 필요에 따라 추가시킬 수는 있습니다.
 그런 다음 `Tick()` 함수를 구현하면 엔진에 의해 매 프레임마다 호출됩니다. 참고로 대부분의 게임내 오브젝트는 [](Programming/UnrealArchitecture/Actors) 일 것이므로, 프레임당 한 번이 아닌 사용자 설정 최소 간격마다 틱이 가능합니다.
+
 ## 오브젝트 소멸
 
 오브젝트 소멸 처리는 오브젝트가 엔진에 더이상 레퍼런스되지 않을 때 가비지 콜렉션 시스템에 의해 자동으로 이루어집니다. 즉 어떤 UPROPERTY 포인터나, 엔진 컨테이너나, (`TArray<UObject*>` 또는 `TWeakPtr<UObject*>` 와 같은) 스마트 포인터 클래스도 포인터를 갖지 않는 액터에 대해 일어난다는 뜻입니다. 가비지 콜렉터가 실행되면, 검색된 것 중 레퍼런스가 없는 오브젝트는 삭제될 것입니다. 추가로, `MarkPendingKill()` 함수를 오브젝트에서 바로 호출할 수 있는데, 그러면 해당 오브젝트로의 모든 포인터는 NULL 로 설정되고 글로벌 검색에서도 제거됩니다. 마찬가지로 이 오브젝트는 다음 가비지 콜렉션 패스에서 완전히 삭제될 것입니다.
