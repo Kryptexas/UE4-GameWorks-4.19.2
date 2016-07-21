@@ -23,15 +23,6 @@ public class CrashReportClientTarget : TargetRules
 		return true;
 	}
 
-    public override bool ConfigureToolchain(TargetInfo Target)
-    {
-        if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
-        {
-            WindowsPlatform.Compiler = WindowsCompiler.VisualStudio2013;
-        }
-        return true;
-    }
-
     public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
 	{
 		if( base.GetSupportedConfigurations( ref OutConfigurations, bIncludeTestAndShippingConfigs ) )

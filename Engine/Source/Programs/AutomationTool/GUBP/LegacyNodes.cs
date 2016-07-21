@@ -637,11 +637,17 @@ partial class GUBP
                 {
 					if (!BranchConfig.BranchOptions.ExcludeNodes.Contains(ProgramTarget.TargetName))
                     {
+						// Always compile CRC with VS2013 due to requiring the 2015 redist
+						string AddTargetArgs = AddArgs;
+						if(String.Compare(ProgramTarget.TargetName, "CrashReportClient", true) == 0)
+						{
+							AddTargetArgs += " -2013";
+						}
 						foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
 						{
 							foreach (var Config in ProgramTarget.Rules.GUBP_ToolConfigs(HostPlatform))
 							{
-								Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, Plat, Config, InAddArgs: AddArgs);
+								Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, Plat, Config, InAddArgs: AddTargetArgs);
 							}
 						}
 					}
