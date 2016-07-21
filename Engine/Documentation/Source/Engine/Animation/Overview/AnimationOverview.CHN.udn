@@ -84,7 +84,7 @@ Description: 骨架网格体的动画数据系统，蓝图，混合空间，动�
 
 		动画系统在 AnimGraph 中会使用动作姿势这个概念。由 AnimationSequence，Blendspace 或者最简单的混合节点输出的都是动作姿势，或者叫当前时刻的动画快照，并将这个动作赋予骨架网格体。
 
-		**组件 vs 局部空间**
+		**组件空间 vs 局部空间**
 
 		[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
 
