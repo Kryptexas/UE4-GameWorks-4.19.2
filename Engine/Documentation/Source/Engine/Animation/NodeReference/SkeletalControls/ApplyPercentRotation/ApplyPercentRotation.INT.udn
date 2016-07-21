@@ -77,6 +77,6 @@ By changing the **Rotation Axis to Refer** value we can alter which way the pack
 | [REGION:tablesection]**Input Pins**[/REGION] ||
 | **Multiplier** | A float value that represents the percentage of the source bone's Rotation to apply to the target bone. When **Multiplier** is 0, none of the source bone's Rotation is applied to the target bone, and when it is 1.0, all of the source bone's Rotation is applied. |
 
-**Apply a Percentage of Rotation** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Apply a Percentage of Rotation** node.
+**Apply a Percentage of Rotation** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Apply a Percentage of Rotation** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]

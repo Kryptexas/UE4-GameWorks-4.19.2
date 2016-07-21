@@ -65,7 +65,7 @@ The **Trail Controller** can be used to affect a series of bones in a hierarchy.
 | **Component Pose** | The incoming pose. |
 | **Alpha** | The current strength of the control. |
 
-**Trail Controller** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Trail Controller** node.
+**Trail Controller** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Trail Controller** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 

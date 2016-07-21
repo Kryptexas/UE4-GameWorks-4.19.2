@@ -84,7 +84,7 @@ By adjusting these values we can determine how the character holds the weapon wi
 | **Effector Location** | A Vector specifying the location effector in the Effector Location Space. |
 | **Joint Target Location** | A Vector specifying the location joint target in the Joint Target Location Space. |
 
-**Two Bone IK** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Two Bone IK** node.
+**Two Bone IK** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Two Bone IK** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
