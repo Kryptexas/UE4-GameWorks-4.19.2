@@ -73,7 +73,7 @@ The scale of our character is also driven by a float variable (**Scale Multiplie
 | **Rotation** | A Rotator specifying the Rotation to apply to the target bone. |
 | **Scale** | A Vector specifying the Scale to apply to the target bone. |
 
-**Transform (Modify) Bone** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Transform (Modify) Bone** node.
+**Transform (Modify) Bone** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Transform (Modify) Bone** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 

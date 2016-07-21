@@ -112,7 +112,7 @@ To quickly get started, create an **AnimDynamics** node inside the AnimGraph of 
 | [REGION:tablesection]**Output Pins**[/REGION] ||
 | Pose (Blank) | The final pose after the Transform has been applied. |
 
-**AnimDynamics** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **AnimDynamics** node.
+**AnimDynamics** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **AnimDynamics** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 

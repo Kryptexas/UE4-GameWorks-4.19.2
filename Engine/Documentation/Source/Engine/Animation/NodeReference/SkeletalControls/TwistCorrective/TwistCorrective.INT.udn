@@ -63,7 +63,7 @@ You can add the Twist Corrective node in the **AnimGraph** of your **Animation B
 | [REGION:tablesection]**Output Pins**[/REGION] ||
 | Pose (Blank) | The final pose after the Transform has been applied. |
 
-**Twist Corrective** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Twist Corrective** node.
+**Twist Corrective** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Twist Corrective** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 

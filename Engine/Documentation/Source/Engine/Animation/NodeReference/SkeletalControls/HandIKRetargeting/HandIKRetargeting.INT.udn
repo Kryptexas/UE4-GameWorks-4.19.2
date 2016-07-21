@@ -83,6 +83,6 @@ See the **Animation** map inside the **Content Examples** project (available for
 | **Component Pose** | The incoming pose. |
 | **Alpha** | The current strength of the control. |
 
-**Hand IK Retargeting** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Hand IK Retargeting** node.
+**Hand IK Retargeting** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Hand IK Retargeting** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]

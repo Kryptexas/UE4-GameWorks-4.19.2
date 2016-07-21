@@ -78,6 +78,6 @@ Be cautious when selecting the checkboxes for Transform. For instance, if you en
 | **Copy Rotation** | A bool specifying whether to copy the Rotation component of the source bone's Transform. |
 | **Copy Scale** | A bool specifying whether to copy the Scale component of the source bone's Transform. |
 
-**Copy Bone** nodes are also affected by the **LOD Threshold** system introduced in 4.11, you can find the setting for this in the Details Panel for the **Copy Bone** node.
+**Copy Bone** nodes are also affected by the **LOD Threshold** system introduced in 4.11. You can find the setting for this in the **Details Panel** for the **Copy Bone** node.
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
