@@ -639,7 +639,7 @@ partial class GUBP
                     {
 						// Always compile CRC with VS2013 due to requiring the 2015 redist
 						string AddTargetArgs = AddArgs;
-						if(String.Compare(ProgramTarget.TargetName, "CrashReportClient", true) == 0)
+						if(String.Compare(ProgramTarget.TargetName, "CrashReportClient", true) == 0 || String.Compare(ProgramTarget.TargetName, "UnrealCEFSubProcess", true) == 0)
 						{
 							AddTargetArgs += " -2013";
 						}
