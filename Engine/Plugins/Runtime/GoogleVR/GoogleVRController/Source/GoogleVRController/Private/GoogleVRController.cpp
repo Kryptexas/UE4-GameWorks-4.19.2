@@ -29,7 +29,7 @@ class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 	gvr::ControllerApi* CreateAndInitGoogleVRControllerAPI()
 	{
 		// Get controller API
-		gvr::ControllerApi* pController = new gvr::ControllerApi();
+		ControllerApiPtr pController = new gvr::ControllerApi();
 		check(pController);
 
 		gvr::ControllerApiOptions options;
@@ -74,7 +74,7 @@ class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 	{
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 		UE_LOG(LogTemp, Warning, TEXT("Creating Input Device: GoogleVRController -- Supported"));
-		gvr::ControllerApi* pControllerAPI = CreateAndInitGoogleVRControllerAPI();
+		ControllerApi* pControllerAPI = CreateAndInitGoogleVRControllerAPI();
 		if(pControllerAPI)
 		{
 			return TSharedPtr< class IInputDevice >(new FGoogleVRController(pControllerAPI, InMessageHandler));
@@ -92,13 +92,13 @@ class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 
 IMPLEMENT_MODULE( FGoogleVRControllerPlugin, GoogleVRController)
 
-FGoogleVRController::FGoogleVRController(gvr::ControllerApi* pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
+FGoogleVRController::FGoogleVRController(ControllerApiPtr pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
 	:
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
-	pController(pControllerAPI)
+	pController(pControllerAPI),
 #endif
-	,bControllerReadyToPollState(false)
-	,MessageHandler(InMessageHandler)
+	bControllerReadyToPollState(false),
+	MessageHandler(InMessageHandler)
 {
 	UE_LOG(LogTemp, Warning, TEXT("GoogleVR Controller Created"));
 
