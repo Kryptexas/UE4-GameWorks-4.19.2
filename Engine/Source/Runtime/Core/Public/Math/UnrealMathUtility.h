@@ -1386,5 +1386,3 @@ struct FMath : public FPlatformMath
 		return Quantize8UnsignedByte(y);
 	}
 };
-
-#include "VectorRegister.h"

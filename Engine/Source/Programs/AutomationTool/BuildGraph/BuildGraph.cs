@@ -56,8 +56,8 @@ namespace AutomationTool
 	[Help("ShowNotifications", "Show notifications that will be sent for each node in the output")]
 	[Help("Trigger=<Name>[+<Name>...]", "Activates the given triggers, including all the nodes behind them in the graph")]
 	[Help("SkipTriggers", "Activate all triggers")]
-	[Help("TicketSignature=<Name>", "Specifies the signature identifying the current job, to be written to tickets for nodes that require them. Tickets are ignored if this parameter is not specified.")]
-	[Help("SkipTargetsWithoutTickets", "Excludes targets which we can't acquire tickets for, rather than failing")]
+	[Help("TokenSignature=<Name>", "Specifies the signature identifying the current job, to be written to tokens for nodes that require them. Tokens are ignored if this parameter is not specified.")]
+	[Help("SkipTargetsWithoutTokens", "Excludes targets which we can't acquire tokens for, rather than failing")]
 	[Help("Preprocess=<FileName>", "Writes the preprocessed graph to the given file")]
 	[Help("Export=<FileName>", "Exports a JSON file containing the preprocessed build graph, for use as part of a build system")]
 	[Help("PublicTasksOnly", "Only include built-in tasks in the schema, excluding any other UAT modules")]
@@ -80,12 +80,6 @@ namespace AutomationTool
 			}
 
 			string TargetNames = ParseParamValue("Target", null);
-			if(TargetNames == null)
-			{
-				LogError("Missing -Target= parameter for BuildGraph");
-				return ExitCode.Error_Unknown;
-			}
-
 			string SchemaFileName = ParseParamValue("Schema", null);
 			string ExportFileName = ParseParamValue("Export", null);
 			string PreprocessedFileName = ParseParamValue("Preprocess", null);
@@ -93,15 +87,15 @@ namespace AutomationTool
 			string SingleNodeName = ParseParamValue("SingleNode", null);
 			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
 			bool bSkipTriggers = ParseParam("SkipTriggers");
-			string TicketSignature = ParseParamValue("TicketSignature", null);
-			bool bSkipTargetsWithoutTickets = ParseParam("SkipTargetsWithoutTickets");
+			string TokenSignature = ParseParamValue("TokenSignature", null);
+			bool bSkipTargetsWithoutTokens = ParseParam("SkipTargetsWithoutTokens");
 			bool bClearHistory = ParseParam("Clean") || ParseParam("ClearHistory");
 			bool bListOnly = ParseParam("ListOnly");
 			bool bWriteToSharedStorage = ParseParam("WriteToSharedStorage") || CommandUtils.IsBuildMachine;
 			bool bPublicTasksOnly = ParseParam("PublicTasksOnly");
 			string ReportName = ParseParamValue("ReportName", null); 
 
-			GraphPrintOptions PrintOptions = 0;
+			GraphPrintOptions PrintOptions = GraphPrintOptions.ShowCommandLineOptions;
 			if(ParseParam("ShowDeps"))
 			{
 				PrintOptions |= GraphPrintOptions.ShowDependencies;
@@ -121,14 +115,8 @@ namespace AutomationTool
 				}
 			}
 
-			// Read any environment variables
-			Dictionary<string, string> DefaultProperties = new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase);
-			foreach(DictionaryEntry Entry in Environment.GetEnvironmentVariables())
-			{
-				DefaultProperties[Entry.Key.ToString()] = Entry.Value.ToString();
-			}
-
 			// Set up the standard properties which build scripts might need
+			Dictionary<string, string> DefaultProperties = new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase);
 			DefaultProperties["Branch"] = P4Enabled ? P4Env.BuildRootP4 : "Unknown";
 			DefaultProperties["EscapedBranch"] = P4Enabled ? P4Env.BuildRootEscaped : "Unknown";
 			DefaultProperties["Change"] = P4Enabled ? P4Env.Changelist.ToString() : "0";
@@ -145,7 +133,8 @@ namespace AutomationTool
 				DefaultProperties["EnginePatchVersion"] = Version.PatchVersion.ToString();
 			}
 
-			// Add any additional custom parameters from the command line (of the form -Set:X=Y)
+			// Add any additional custom arguments from the command line (of the form -Set:X=Y)
+			Dictionary<string, string> Arguments = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 			foreach (string Param in Params)
 			{
 				const string Prefix = "set:";
@@ -154,7 +143,7 @@ namespace AutomationTool
 					int EqualsIdx = Param.IndexOf('=');
 					if(EqualsIdx >= 0)
 					{
-						DefaultProperties[Param.Substring(Prefix.Length, EqualsIdx - Prefix.Length)] = Param.Substring(EqualsIdx + 1);
+						Arguments[Param.Substring(Prefix.Length, EqualsIdx - Prefix.Length)] = Param.Substring(EqualsIdx + 1);
 					}
 					else
 					{
@@ -179,7 +168,7 @@ namespace AutomationTool
 
 			// Read the script from disk
 			Graph Graph;
-			if(!ScriptReader.TryRead(new FileReference(ScriptFileName), DefaultProperties, Schema, out Graph))
+			if(!ScriptReader.TryRead(new FileReference(ScriptFileName), Arguments, DefaultProperties, Schema, out Graph))
 			{
 				return ExitCode.Error_Unknown;
 			}
@@ -198,63 +187,75 @@ namespace AutomationTool
 
 			// Convert the supplied target references into nodes 
 			HashSet<Node> TargetNodes = new HashSet<Node>();
-			foreach(string TargetName in TargetNames.Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))
+			if(TargetNames == null)
 			{
-				Node[] Nodes;
-				if(!Graph.TryResolveReference(TargetName, out Nodes))
-				{
-					LogError("Target '{0}' is not in graph", TargetName);
-					return ExitCode.Error_Unknown;
-				}
-				TargetNodes.UnionWith(Nodes);
-			}
-
-			// Try to acquire tickets for all the target nodes we want to build
-			if(TicketSignature != null)
-			{
-				// Find all the lock files
-				HashSet<FileReference> RequiredTickets = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTickets));
-
-				// Try to create all the lock files
-				List<FileReference> CreatedTickets = new List<FileReference>();
 				if(!bListOnly)
 				{
-					CreatedTickets.AddRange(RequiredTickets.Where(x => WriteTicket(x, TicketSignature)));
+					LogError("Missing -Target= parameter for BuildGraph");
+					return ExitCode.Error_Unknown;
+				}
+				TargetNodes.UnionWith(Graph.Agents.SelectMany(x => x.Nodes));
+			}
+			else
+			{
+				foreach(string TargetName in TargetNames.Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))
+				{
+					Node[] Nodes;
+					if(!Graph.TryResolveReference(TargetName, out Nodes))
+					{
+						LogError("Target '{0}' is not in graph", TargetName);
+						return ExitCode.Error_Unknown;
+					}
+					TargetNodes.UnionWith(Nodes);
+				}
+			}
+
+			// Try to acquire tokens for all the target nodes we want to build
+			if(TokenSignature != null)
+			{
+				// Find all the lock files
+				HashSet<FileReference> RequiredTokens = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTokens));
+
+				// Try to create all the lock files
+				List<FileReference> CreatedTokens = new List<FileReference>();
+				if(!bListOnly)
+				{
+					CreatedTokens.AddRange(RequiredTokens.Where(x => WriteTokenFile(x, TokenSignature)));
 				}
 
-				// Find all the tickets that we don't have
-				Dictionary<FileReference, string> MissingTickets = new Dictionary<FileReference, string>();
-				foreach(FileReference RequiredTicket in RequiredTickets)
+				// Find all the tokens that we don't have
+				Dictionary<FileReference, string> MissingTokens = new Dictionary<FileReference, string>();
+				foreach(FileReference RequiredToken in RequiredTokens)
 				{
-					string CurrentOwner = ReadTicket(RequiredTicket);
-					if(CurrentOwner != null && CurrentOwner != TicketSignature)
+					string CurrentOwner = ReadTokenFile(RequiredToken);
+					if(CurrentOwner != null && CurrentOwner != TokenSignature)
 					{
-						MissingTickets.Add(RequiredTicket, CurrentOwner);
+						MissingTokens.Add(RequiredToken, CurrentOwner);
 					}
 				}
 
 				// If we want to skip all the nodes with missing locks, adjust the target nodes to account for it
-				if(MissingTickets.Count > 0)
+				if(MissingTokens.Count > 0)
 				{
-					if(bSkipTargetsWithoutTickets)
+					if(bSkipTargetsWithoutTokens)
 					{
-						foreach(KeyValuePair<FileReference, string> Pair in MissingTickets)
+						foreach(KeyValuePair<FileReference, string> Pair in MissingTokens)
 						{
-							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTickets.Contains(Pair.Key)).ToList();
+							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTokens.Contains(Pair.Key)).ToList();
 							Log("Skipping {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
 							TargetNodes.ExceptWith(SkipNodes);
 						}
 					}
 					else
 					{
-						foreach(KeyValuePair<FileReference, string> Pair in MissingTickets)
+						foreach(KeyValuePair<FileReference, string> Pair in MissingTokens)
 						{
-							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTickets.Contains(Pair.Key)).ToList();
+							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTokens.Contains(Pair.Key)).ToList();
 							LogError("Cannot run {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
 						}
-						foreach(FileReference CreatedTicket in CreatedTickets)
+						foreach(FileReference CreatedToken in CreatedTokens)
 						{
-							CreatedTicket.Delete();
+							CreatedToken.Delete();
 						}
 						return ExitCode.Error_Unknown;
 					}
@@ -307,7 +308,15 @@ namespace AutomationTool
 				return ExitCode.Error_Unknown;
 			}
 
-			// Print out all the diagnostic messages which still apply, unless we're running a step as part of a build system. 
+			// If we just want to show the contents of the graph, do so and exit.
+			if(bListOnly)
+			{ 
+				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
+				Graph.Print(CompletedNodes, PrintOptions);
+				return ExitCode.Success;
+			}
+
+			// Print out all the diagnostic messages which still apply, unless we're running a step as part of a build system or just listing the contents of the file. 
 			if(SingleNode == null)
 			{
 				IEnumerable<GraphDiagnostic> Diagnostics = Graph.Diagnostics.Where(x => x.EnclosingTrigger == null || Triggers.Contains(x.EnclosingTrigger));
@@ -329,12 +338,7 @@ namespace AutomationTool
 			}
 
 			// Execute the command
-			if(bListOnly)
-			{ 
-				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
-				Graph.Print(CompletedNodes, PrintOptions);
-			}
-			else if(ExportFileName != null)
+			if(ExportFileName != null)
 			{
 				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
 				Graph.Print(CompletedNodes, PrintOptions);
@@ -394,19 +398,19 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads the contents of the given ticket
+		/// Reads the contents of the given token
 		/// </summary>
-		/// <returns>Contents of the ticket, or null if it does not exist</returns>
-		public string ReadTicket(FileReference Location)
+		/// <returns>Contents of the token, or null if it does not exist</returns>
+		public string ReadTokenFile(FileReference Location)
 		{
 			return Location.Exists()? File.ReadAllText(Location.FullName) : null;
 		}
 
 		/// <summary>
-		/// Attempts to write an owner to a ticket file transactionally
+		/// Attempts to write an owner to a token file transactionally
 		/// </summary>
 		/// <returns>True if the lock was acquired, false otherwise</returns>
-		public bool WriteTicket(FileReference Location, string Signature)
+		public bool WriteTokenFile(FileReference Location, string Signature)
 		{
 			// Check it doesn't already exist
 			if(Location.Exists())

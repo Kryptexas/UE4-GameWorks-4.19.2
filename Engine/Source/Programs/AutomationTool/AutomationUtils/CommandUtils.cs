@@ -17,7 +17,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Tools.DotNETCommon;
 using Tools.DotNETCommon.CaselessDictionary;
-using Tools.DotNETCommon.HarvestEnvVars;
 
 namespace AutomationTool
 {

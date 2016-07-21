@@ -594,8 +594,6 @@ namespace AutomationTool
 			{
 				case UnrealTargetPlatform.Win32:
 				case UnrealTargetPlatform.Win64:
-				case UnrealTargetPlatform.WinRT:
-				case UnrealTargetPlatform.WinRT_ARM:
 				case UnrealTargetPlatform.XboxOne:
 					return ".exe";
 				case UnrealTargetPlatform.PS4:

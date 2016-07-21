@@ -10,6 +10,7 @@ using AutomationTool;
 using System.Reflection;
 using System.Diagnostics;
 using System.Xml.Schema;
+using System.Text.RegularExpressions;
 
 namespace AutomationTool
 {
@@ -188,27 +189,30 @@ namespace AutomationTool
 		/// <summary>
 		/// Private constructor. Use ScriptReader.TryRead() to read a script file.
 		/// </summary>
-		/// <param name="Properties">Predefined property name to value mapping</param>
-		/// <param name="InSchema">Schema for the script</param>
-		private ScriptReader(IDictionary<string, string> Properties, ScriptSchema InSchema)
+		/// <param name="DefaultProperties">Default properties available to the script</param>
+		/// <param name="Schema">Schema for the script</param>
+		private ScriptReader(IDictionary<string, string> DefaultProperties, ScriptSchema Schema)
 		{
+			this.Schema = Schema;
+
 			EnterScope();
-			foreach(KeyValuePair<string, string> Pair in Properties)
+
+			foreach(KeyValuePair<string, string> Pair in DefaultProperties)
 			{
 				ScopedProperties[ScopedProperties.Count - 1].Add(Pair.Key, Pair.Value);
 			}
-			Schema = InSchema;
 		}
 
 		/// <summary>
 		/// Try to read a script file from the given file.
 		/// </summary>
 		/// <param name="File">File to read from</param>
-		/// <param name="DefaultProperties">Manually defined properties to parse the graph with</param>
-		/// <param name="InSchema">Schema for the script</param>
+		/// <param name="Arguments">Arguments passed in to the graph on the command line</param>
+		/// <param name="DefaultProperties">Default properties available to the script</param>
+		/// <param name="Schema">Schema for the script</param>
 		/// <param name="Graph">If successful, the graph constructed from the given script</param>
 		/// <returns>True if the graph was read, false if there were errors</returns>
-		public static bool TryRead(FileReference File, IDictionary<string, string> DefaultProperties, ScriptSchema Schema, out Graph Graph)
+		public static bool TryRead(FileReference File, Dictionary<string, string> Arguments, Dictionary<string, string> DefaultProperties, ScriptSchema Schema, out Graph Graph)
 		{
 			// Check the file exists before doing anything.
 			if (!File.Exists())
@@ -220,23 +224,36 @@ namespace AutomationTool
 
 			// Read the file and build the graph
 			ScriptReader Reader = new ScriptReader(DefaultProperties, Schema);
-			if (Reader.TryRead(File) && Reader.NumErrors == 0)
-			{
-				Graph = Reader.Graph;
-				return true;
-			}
-			else
+			if (!Reader.TryRead(File, Arguments) || Reader.NumErrors > 0)
 			{
 				Graph = null;
 				return false;
 			}
+
+			// Make sure all the arguments were valid
+			bool bInvalidArgument = false;
+			foreach(string InvalidArgumentName in Arguments.Keys.Except(Reader.Graph.Options.Select(x => x.Name), StringComparer.InvariantCultureIgnoreCase))
+			{
+				CommandUtils.LogWarning("Unknown argument '{0}' for '{1}'", InvalidArgumentName, File.FullName);
+				bInvalidArgument = true;
+			}
+			if(bInvalidArgument)
+			{
+				Graph = null;
+				return false;
+			}
+
+			// Return the constructed graph
+			Graph = Reader.Graph;
+			return true;
 		}
 
 		/// <summary>
 		/// Read the script from the given file
 		/// </summary>
 		/// <param name="File">File to read from</param>
-		bool TryRead(FileReference File)
+		/// <param name="Arguments">Arguments passed in to the graph on the command line</param>
+		bool TryRead(FileReference File, Dictionary<string, string> Arguments)
 		{
 			// Read the document and validate it against the schema
 			ScriptDocument Document;
@@ -247,7 +264,7 @@ namespace AutomationTool
 			}
 
 			// Read the root BuildGraph element
-			ReadGraphBody(Document.DocumentElement, File.Directory);
+			ReadGraphBody(Document.DocumentElement, File.Directory, Arguments);
 			return true;
 		}
 
@@ -256,17 +273,24 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Element">The parent element to read from</param>
 		/// <param name="BaseDirectory">Base directory to resolve includes against</param>
-		void ReadGraphBody(XmlElement Element, DirectoryReference BaseDirectory)
+		/// <param name="Arguments">Arguments passed in to the graph on the command line</param>
+		void ReadGraphBody(XmlElement Element, DirectoryReference BaseDirectory, Dictionary<string, string> Arguments)
 		{
 			foreach (ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
 			{
 				switch (ChildElement.Name)
 				{
 					case "Include":
-						ReadInclude(ChildElement, BaseDirectory);
+						ReadInclude(ChildElement, BaseDirectory, Arguments);
+						break;
+					case "Option":
+						ReadOption(ChildElement, Arguments);
 						break;
 					case "Property":
 						ReadProperty(ChildElement);
+						break;
+					case "EnvVar":
+						ReadEnvVar(ChildElement);
 						break;
 					case "Agent":
 						ReadAgent(ChildElement, null);
@@ -293,13 +317,13 @@ namespace AutomationTool
 						ReadDiagnostic(ChildElement, LogEventType.Error, null, null, null);
 						break;
 					case "Do":
-						ReadBlock(ChildElement, x => ReadGraphBody(x, BaseDirectory));
+						ReadBlock(ChildElement, x => ReadGraphBody(x, BaseDirectory, Arguments));
 						break;
-					case "Choose":
-						ReadChoice(ChildElement, x => ReadGraphBody(x, BaseDirectory));
+					case "Switch":
+						ReadSwitch(ChildElement, x => ReadGraphBody(x, BaseDirectory, Arguments));
 						break;
 					case "ForEach":
-						ReadForEach(ChildElement, x => ReadGraphBody(x, BaseDirectory));
+						ReadForEach(ChildElement, x => ReadGraphBody(x, BaseDirectory, Arguments));
 						break;
 					default:
 						LogError(ChildElement, "Invalid element '{0}'", ChildElement.Name);
@@ -342,6 +366,61 @@ namespace AutomationTool
 		{
 			ScopedProperties.RemoveAt(ScopedProperties.Count - 1);
 			ShadowProperties.RemoveAt(ShadowProperties.Count - 1);
+		}
+
+		/// <summary>
+		/// Sets a property value in the current scope
+		/// </summary>
+		/// <param name="Element">Element containing the property assignment. Used for error messages if the property is shadowed in another scope.</param>
+		/// <param name="Name">Name of the property</param>
+		/// <param name="Value">Value for the property</param>
+		void SetPropertyValue(ScriptElement Element, string Name, string Value)
+		{
+			// Find the scope containing this property, defaulting to the current scope
+			int ScopeIdx = 0;
+			while(ScopeIdx < ScopedProperties.Count - 1 && !ScopedProperties[ScopeIdx].ContainsKey(Name))
+			{
+				ScopeIdx++;
+			}
+
+			// Make sure this property name was not already used in a child scope; it likely indicates an error.
+			if(ShadowProperties[ScopeIdx].Contains(Name))
+			{
+				LogError(Element, "Property '{0}' was already used in a child scope. Move this definition before the previous usage if they are intended to share scope, or use a different name.", Name);
+			}
+			else
+			{
+				// Make sure it's added to the shadow property list for every parent scope
+				for(int Idx = 0; Idx < ScopeIdx; Idx++)
+				{
+					ShadowProperties[Idx].Add(Name);
+				}
+				ScopedProperties[ScopeIdx][Name] = Value;
+			}
+		}
+
+		/// <summary>
+		/// Tries to get the value of a property
+		/// </summary>
+		/// <param name="Name">Name of the property</param>
+		/// <param name="Value">On success, contains the value of the property. Set to null otherwise.</param>
+		/// <returns>True if the property was found, false otherwise</returns>
+		bool TryGetPropertyValue(string Name, out string Value)
+		{
+			// Check each scope for the property
+			for (int ScopeIdx = ScopedProperties.Count - 1; ScopeIdx >= 0; ScopeIdx--)
+			{
+				string ScopeValue;
+				if (ScopedProperties[ScopeIdx].TryGetValue(Name, out ScopeValue))
+				{
+					Value = ScopeValue;
+					return true;
+				}
+			}
+
+			// If we didn't find it, return false.
+			Value = null;
+			return false;
 		}
 
 		/// <summary>
@@ -424,8 +503,8 @@ namespace AutomationTool
 					case "Do":
 						ReadBlock(ChildElement, x => ReadTriggerBody(x, Trigger));
 						break;
-					case "Choose":
-						ReadChoice(ChildElement, x => ReadTriggerBody(x, Trigger));
+					case "Switch":
+						ReadSwitch(ChildElement, x => ReadTriggerBody(x, Trigger));
 						break;
 					case "ForEach":
 						ReadForEach(ChildElement, x => ReadTriggerBody(x, Trigger));
@@ -443,18 +522,83 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
 		/// <param name="BaseDir">Base directory to resolve relative include paths from </param>
-		void ReadInclude(ScriptElement Element, DirectoryReference BaseDir)
+		/// <param name="Arguments">Arguments passed in to the graph on the command line</param>
+		void ReadInclude(ScriptElement Element, DirectoryReference BaseDir, Dictionary<string, string> Arguments)
 		{
 			if (EvaluateCondition(Element))
 			{
 				FileReference Script = FileReference.Combine(BaseDir, Element.GetAttribute("Script"));
-				if (Script.Exists())
+				if (!Script.Exists())
 				{
-					TryRead(Script);
+					LogError(Element, "Cannot find included script '{0}'", Script.FullName);
 				}
 				else
 				{
-					LogError(Element, "Cannot find included script '{0}'", Script.FullName);
+					TryRead(Script, Arguments);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reads the definition of a graph option; a parameter which can be set by the user on the command-line or via an environment variable.
+		/// </summary>
+		/// <param name="Element">Xml element to read the definition from</param>
+		/// <param name="Arguments">Arguments passed in to the graph on the command line</param>
+		void ReadOption(ScriptElement Element, IDictionary<string, string> Arguments)
+		{
+			if (EvaluateCondition(Element))
+			{
+				string Name = ReadAttribute(Element, "Name");
+				if (ValidateName(Element, Name))
+				{
+					// Make sure we're at global scope
+					if(ScopedProperties.Count > 1)
+					{
+						throw new AutomationException("Incorrect scope depth for reading option settings");
+					}
+
+					// Check if the property already exists. If it does, we don't need to register it as an option.
+					string ExistingValue;
+					if(TryGetPropertyValue(Name, out ExistingValue))
+					{
+						// If there's a restriction on this definition, check it matches
+						string Restrict = ReadAttribute(Element, "Restrict");
+						if(!String.IsNullOrEmpty(Restrict) && !Regex.IsMatch(ExistingValue, "^" + Restrict + "$", RegexOptions.IgnoreCase))
+						{
+							LogError(Element, "'{0} is already set to '{1}', which does not match the given restriction ('{2}')", Name, ExistingValue, Restrict);
+						}
+					}
+					else
+					{
+						// Create a new option object to store the settings
+						string Description = ReadAttribute(Element, "Description");
+						string DefaultValue = ReadAttribute(Element, "DefaultValue");
+						GraphOption Option = new GraphOption(Name, Description, DefaultValue);
+						Graph.Options.Add(Option);
+
+						// Get the value of this property
+						string Value;
+						if(!Arguments.TryGetValue(Name, out Value))
+						{
+							Value = Option.DefaultValue;
+						}
+						SetPropertyValue(Element, Name, Value);
+
+						// If there's a restriction on it, check it's valid
+						string Restrict = ReadAttribute(Element, "Restrict");
+						if(!String.IsNullOrEmpty(Restrict))
+						{
+							string Pattern = "^" + Restrict + "$";
+							if(!Regex.IsMatch(Value, Pattern, RegexOptions.IgnoreCase))
+							{
+								LogError(Element, "'{0}' is not a valid value for '{1}' (required: '{2}')", Value, Name, Restrict);
+							}
+							if(Option.DefaultValue != Value && !Regex.IsMatch(Option.DefaultValue, Pattern, RegexOptions.IgnoreCase))
+							{
+								LogError(Element, "Default value '{0}' is not valid for '{1}' (required: '{2}')", Option.DefaultValue, Name, Restrict);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -470,52 +614,25 @@ namespace AutomationTool
 				string Name = ReadAttribute(Element, "Name");
 				if (ValidateName(Element, Name))
 				{
-					// Find the scope containing this property, defaulting to the current scope
-					int ScopeIdx = 0;
-					while(ScopeIdx < ScopedProperties.Count - 1 && !ScopedProperties[ScopeIdx].ContainsKey(Name))
-					{
-						ScopeIdx++;
-					}
+					string Value = ReadAttribute(Element, "Value");
+					SetPropertyValue(Element, Name, Value);
+				}
+			}
+		}
 
-					// Make sure this property name was not already used in a child scope; it likely indicates an error.
-					if(ShadowProperties[ScopeIdx].Contains(Name))
-					{
-						LogError(Element, "Property '{0}' was already used in a child scope. Move this definition before the previous usage if they are intended to share scope, or use a different name.", Name);
-					}
-					else
-					{
-						// Make sure it's added to the shadow property list for every parent scope
-						for(int Idx = 0; Idx < ScopeIdx; Idx++)
-						{
-							ShadowProperties[Idx].Add(Name);
-						}
-
-						// Assign the property value
-						if(Element.HasAttribute("Value"))
-						{
-							ScopedProperties[ScopeIdx][Name] = ReadAttribute(Element, "Value");
-						}
-						if(Element.HasAttribute("Default") && !ScopedProperties[ScopeIdx].ContainsKey(Name))
-						{
-							ScopedProperties[ScopeIdx][Name] = ReadAttribute(Element, "Default");
-						}
-						if(Element.HasAttribute("Restrict"))
-						{
-							// Find the valid values for this property
-							string[] Values = ReadListAttribute(Element, "Restrict");
-
-							// Get the property value, and check it matches
-							string Value;
-							if(!ScopedProperties[ScopeIdx].TryGetValue(Name, out Value))
-							{
-								LogError(Element, "Property '{0}' is not defined.", Name);
-							}
-							else if(!Values.Any(x => String.Compare(x, Value, StringComparison.InvariantCultureIgnoreCase) == 0))
-							{
-								LogError(Element, "Property '{0}' is set to an invalid value ({1}). Valid values are {2}.", Name, Value, String.Join(", ", Values));
-							}
-						}
-					}
+		/// <summary>
+		/// Reads a property assignment from an environment variable.
+		/// </summary>
+		/// <param name="Element">Xml element to read the definition from</param>
+		void ReadEnvVar(ScriptElement Element)
+		{
+			if (EvaluateCondition(Element))
+			{
+				string Name = ReadAttribute(Element, "Name");
+				if (ValidateName(Element, Name))
+				{
+					string Value = Environment.GetEnvironmentVariable(Name) ?? "";
+					SetPropertyValue(Element, Name, Value);
 				}
 			}
 		}
@@ -594,8 +711,8 @@ namespace AutomationTool
 					case "Do":
 						ReadBlock(ChildElement, x => ReadAgentBody(x, ParentAgent, ControllingTrigger));
 						break;
-					case "Choose":
-						ReadChoice(ChildElement, x => ReadAgentBody(x, ParentAgent, ControllingTrigger));
+					case "Switch":
+						ReadSwitch(ChildElement, x => ReadAgentBody(x, ParentAgent, ControllingTrigger));
 						break;
 					case "ForEach":
 						ReadForEach(ChildElement, x => ReadAgentBody(x, ParentAgent, ControllingTrigger));
@@ -679,7 +796,7 @@ namespace AutomationTool
 				string[] RequiresNames = ReadListAttribute(Element, "Requires");
 				string[] ProducesNames = ReadListAttribute(Element, "Produces");
 				string[] AfterNames = ReadListAttribute(Element, "After");
-				string[] TicketFileNames = ReadListAttribute(Element, "Ticket");
+				string[] TokenFileNames = ReadListAttribute(Element, "Token");
 				bool bNotifyOnWarnings = ReadBooleanAttribute(Element, "NotifyOnWarnings", true);
 
 				// Resolve all the inputs we depend on
@@ -700,12 +817,12 @@ namespace AutomationTool
 				}
 
 				// Remove all the lock names from the list of required names
-				HashSet<FileReference> RequiredTickets = new HashSet<FileReference>(TicketFileNames.Select(x => FileReference.Combine(CommandUtils.RootDirectory, x)));
+				HashSet<FileReference> RequiredTokens = new HashSet<FileReference>(TokenFileNames.Select(x => FileReference.Combine(CommandUtils.RootDirectory, x)));
 
 				// Recursively include all their dependencies too
 				foreach (Node InputDependency in InputDependencies.ToArray())
 				{
-					RequiredTickets.UnionWith(InputDependency.RequiredTickets);
+					RequiredTokens.UnionWith(InputDependency.RequiredTokens);
 					InputDependencies.UnionWith(InputDependency.InputDependencies);
 				}
 
@@ -756,7 +873,7 @@ namespace AutomationTool
 				if (CheckNameIsUnique(Element, Name))
 				{
 					// Add it to the node lookup
-					Node NewNode = new Node(Name, Inputs.ToArray(), ValidOutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger, RequiredTickets.ToArray());
+					Node NewNode = new Node(Name, Inputs.ToArray(), ValidOutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger, RequiredTokens.ToArray());
 					NewNode.bNotifyOnWarnings = bNotifyOnWarnings;
 					Graph.NameToNode.Add(Name, NewNode);
 
@@ -801,8 +918,8 @@ namespace AutomationTool
 					case "Do":
 						ReadBlock(ChildElement, x => ReadNodeBody(x, NewNode, ParentAgent, ControllingTrigger));
 						break;
-					case "Choose":
-						ReadChoice(ChildElement, x => ReadNodeBody(x, NewNode, ParentAgent, ControllingTrigger));
+					case "Switch":
+						ReadSwitch(ChildElement, x => ReadNodeBody(x, NewNode, ParentAgent, ControllingTrigger));
 						break;
 					case "ForEach":
 						ReadForEach(ChildElement, x => ReadNodeBody(x, NewNode, ParentAgent, ControllingTrigger));
@@ -829,15 +946,15 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads a "Choose" element 
+		/// Reads a "Switch" element 
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
 		/// <param name="ReadContents">Delegate to read the contents of the element, if the condition evaluates to true</param>
-		void ReadChoice(ScriptElement Element, Action<ScriptElement> ReadContents)
+		void ReadSwitch(ScriptElement Element, Action<ScriptElement> ReadContents)
 		{
 			foreach (ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
 			{
-				if (ChildElement.Name == "Otherwise" || EvaluateCondition(ChildElement))
+				if (ChildElement.Name == "Default" || EvaluateCondition(ChildElement))
 				{
 					ReadContents(ChildElement);
 					break;
@@ -1256,7 +1373,7 @@ namespace AutomationTool
 					LogError(Element, "Consecutive spaces in object name");
 					return false;
 				}
-				if (!Char.IsLetterOrDigit(Name[Idx]) && Name[Idx] != '_' && Name[Idx] != ' ')
+				if(Char.IsControl(Name[Idx]) || ScriptSchema.IllegalNameCharacters.IndexOf(Name[Idx]) != -1)
 				{
 					LogError(Element, "Invalid character in object name - '{0}'", Name[Idx]);
 					return false;
@@ -1417,17 +1534,8 @@ namespace AutomationTool
 				string Name = Result.Substring(Idx + 2, EndIdx - (Idx + 2));
 
 				// Find the value for it, either from the dictionary or the environment block
-				string Value = null;
-				for (int ScopeIdx = ScopedProperties.Count - 1; ScopeIdx >= 0; ScopeIdx--)
-				{
-					if (ScopedProperties[ScopeIdx].TryGetValue(Name, out Value))
-					{
-						break;
-					}
-				}
-
-				// Write a warning if the property does not exist
-				if(Value == null)
+				string Value;
+				if(!TryGetPropertyValue(Name, out Value))
 				{
 					LogWarning(Element, "Property '{0}' is not defined", Name);
 					Value = "";

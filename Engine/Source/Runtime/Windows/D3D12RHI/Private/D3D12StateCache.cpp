@@ -7,10 +7,7 @@
 //	Include Files
 //-----------------------------------------------------------------------------
 #include "D3D12RHIPrivate.h"
-#if PLATFORM_WINRT
-#else
 #include "Windows/D3D12StateCache.h"
-#endif
 #include <emmintrin.h>
 
 extern bool D3D12RHI_ShouldCreateWithD3DDebug();

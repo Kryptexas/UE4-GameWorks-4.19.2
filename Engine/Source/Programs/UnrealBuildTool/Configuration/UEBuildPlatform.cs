@@ -494,7 +494,6 @@ namespace UnrealBuildTool
 					return ":";
 				case UnrealTargetPlatform.Win32:
 				case UnrealTargetPlatform.Win64:
-				case UnrealTargetPlatform.UWP:
 					return ";";
 				default:
 					Log.TraceWarning("PATH var delimiter unknown for platform " + BuildHostPlatform.Current.Platform.ToString() + " using ';'");
@@ -1616,9 +1615,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Attempt to register a build platform, checking whether it is a valid platform in installed builds
 		/// </summary>
-		public void TryRegisterBuildPlatforms()
+		public void TryRegisterBuildPlatforms(bool bValidatingPlatforms)
 		{
-			if (InstalledPlatformInfo.Current.IsValidPlatform(TargetPlatform))
+			// We need all platforms to be registered when we run -validateplatform command to check SDK status of each
+			if (bValidatingPlatforms || InstalledPlatformInfo.Current.IsValidPlatform(TargetPlatform))
 			{
 				RegisterBuildPlatforms();
 			}

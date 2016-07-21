@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -136,16 +136,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Utilities\HashSetExtensions.cs" />
-    <Compile Include="UWP\UEBuildUWP.cs" />
-    <Compile Include="UWP\UWPDeploy.cs" />
-    <Compile Include="UWP\UWPProjectGenerator.cs" />
-    <Compile Include="UWP\UWPToolChain.cs" />
     <Compile Include="Windows\WindowsDeploy.cs" />
     <Compile Include="Windows\WinResources.cs" />
-    <Compile Include="WinRT\UEBuildWinRT.cs" />
-    <Compile Include="WinRT\WinRTToolChain.cs" />
-    <Compile Include="WinRT\WinRTDeploy.cs" />
-    <Compile Include="WinRT\WinRTProjectGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IOS\IOSProjectGenerator.cs" />
@@ -289,10 +281,6 @@
     <ProjectReference Include="..\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj">
       <Project>{5d7d66e8-8c76-4af9-b3ec-2ef03421d730}</Project>
       <Name>DotNETUtilities</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\EnvVarsToXML\EnvVarsToXML\EnvVarsToXML.csproj">
-      <Project>{66e423eb-ffa3-4ce4-bca3-75bdb6a8318d}</Project>
-      <Name>EnvVarsToXML</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -605,6 +605,24 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Returns the human-readable name of the given compiler
+		/// </summary>
+		/// <param name="Compiler">The compiler value</param>
+		/// <returns>Name of the compiler</returns>
+		public static string GetCompilerName(WindowsCompiler Compiler)
+		{
+			switch(Compiler)
+			{
+				case WindowsCompiler.VisualStudio2013:
+					return "Visual Studio 2013";
+				case WindowsCompiler.VisualStudio2015:
+					return "Visual Studio 2015";
+				default:
+					return Compiler.ToString();
+			}
+		}
+
+		/// <summary>
 		/// Returns VisualStudio common tools path for current compiler.
 		/// </summary>
 		/// <returns>Common tools path.</returns>
@@ -682,24 +700,24 @@ namespace UnrealBuildTool
                 @"Microsoft\WDExpress"					// VSExpress on 32-bit machine.
             };
 
-			string VSPath = null;
-
 			foreach (string PossibleRegPath in PossibleRegPaths)
 			{
-				VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
-
+				string VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
 				if (VSPath != null)
 				{
-					break;
+					return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
 				}
 			}
 
-			if (VSPath == null)
+			// Fall back to checking the environment variable
+			string ComnToolsPath = Environment.GetEnvironmentVariable(string.Format("VS{0}0COMNTOOLS", VSVersion));
+			if (!String.IsNullOrEmpty(ComnToolsPath))
 			{
-				return null;
+				return new DirectoryInfo(ComnToolsPath).FullName;
 			}
 
-			return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
+			// Otherwise fail
+			return null;
 		}
 
 		/// <summary>

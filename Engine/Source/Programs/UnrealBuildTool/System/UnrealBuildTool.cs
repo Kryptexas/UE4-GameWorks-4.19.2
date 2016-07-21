@@ -296,7 +296,6 @@ namespace UnrealBuildTool
 				(InPlatform == UnrealTargetPlatform.Win64) ||
 				(InPlatform == UnrealTargetPlatform.Win32) ||
 				(InPlatform == UnrealTargetPlatform.Mac) ||
-				(InPlatform == UnrealTargetPlatform.WinRT) ||
 				(InPlatform == UnrealTargetPlatform.Linux)
 				);
 		}
@@ -310,7 +309,6 @@ namespace UnrealBuildTool
 		static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
 		{
 			return (
-				(InPlatform == UnrealTargetPlatform.UWP) ||
 				(InPlatform == UnrealTargetPlatform.Win64) ||
 				(InPlatform == UnrealTargetPlatform.Win32) ||
 				(InPlatform == UnrealTargetPlatform.Linux) ||
@@ -448,7 +446,7 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false)
+		public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false, bool bValidatingPlatforms = false)
 		{
 			// Find and register all tool chains and build platforms that are present
 			Assembly UBTAssembly = Assembly.GetExecutingAssembly();
@@ -469,7 +467,7 @@ namespace UnrealBuildTool
 							{
 								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
 								UEBuildPlatformFactory TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-								TempInst.TryRegisterBuildPlatforms();
+								TempInst.TryRegisterBuildPlatforms(bValidatingPlatforms);
 							}
 						}
 					}
@@ -1259,7 +1257,7 @@ namespace UnrealBuildTool
 					}
 
 					// Find and register all tool chains, build platforms, etc. that are present
-					RegisterAllUBTClasses();
+					RegisterAllUBTClasses(bValidatingPlatforms:bValidatePlatforms);
 					ProjectFileGenerator.bGenerateProjectFiles = false;
 
 					if (BuildConfiguration.bPrintPerformanceInfo)

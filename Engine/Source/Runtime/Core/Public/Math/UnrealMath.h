@@ -10,6 +10,7 @@
 #include "IntRect.h"
 #include "Vector.h"
 #include "Vector4.h"
+#include "VectorRegister.h"
 #include "TwoVectors.h"
 #include "Edge.h"
 #include "Plane.h"

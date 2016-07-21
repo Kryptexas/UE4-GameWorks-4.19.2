@@ -551,12 +551,8 @@ namespace UnrealBuildTool
 				{
 					MasterProjectFolder ProgramsFolder = RootFolder.AddSubFolder( "Programs" );
 
-					// Add EnvVarsToXML to the master project
-					VCSharpProjectFile EnvVarsToXMLProjectFile = AddSimpleCSharpProject("EnvVarsToXML/EnvVarsToXML", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true);
-					ProgramsFolder.ChildProjects.Add(EnvVarsToXMLProjectFile);
-
 					// Add UnrealBuildTool to the master project
-					AddUnrealBuildToolProject( ProgramsFolder, new ProjectFile[] { EnvVarsToXMLProjectFile } );
+					AddUnrealBuildToolProject( ProgramsFolder, new ProjectFile[]{ } );
 
 					// Add AutomationTool to the master project
 					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
@@ -1479,10 +1475,6 @@ namespace UnrealBuildTool
 					{
 						if (UnrealBuildTool.IsValidPlatform(Platform))
 						{
-							// @todo UWP: Why would we exclude UWP from project files based on SDK install status?  We don't do this with anything else, right?
-                            if (BuildPlatform is UWPPlatform && ((UWPPlatform)BuildPlatform).HasRequiredSDKsInstalled() != SDKStatus.Valid)
-                                continue;
-
 							SupportedPlatforms.Add(Platform);
 
 							if (SupportedPlatformsString.Length > 0)

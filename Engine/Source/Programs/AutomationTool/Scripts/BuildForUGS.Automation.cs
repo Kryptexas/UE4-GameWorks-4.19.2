@@ -107,7 +107,7 @@ namespace AutomationTool
 
 					// Create a brand new one
 					P4ClientInfo Client = new P4ClientInfo();
-					Client.Owner = Environment.UserName;
+					Client.Owner = CommandUtils.P4Env.User;
 					Client.Host = Environment.MachineName;
 					Client.Stream = ArchivePath.Substring(0, ArchivePath.IndexOf('/', ArchivePath.IndexOf('/', 2) + 1));
 					Client.RootPath = Path.Combine(OutputFolder, "Perforce");
@@ -117,7 +117,7 @@ namespace AutomationTool
 					P4.CreateClient(Client, AllowSpew: false);
 
 					// Create a new P4 connection for this workspace
-					P4Connection SubmitP4 = new P4Connection(Client.Owner, Client.Name);
+					P4Connection SubmitP4 = new P4Connection(Client.Owner, Client.Name, P4Env.P4Port);
 					SubmitP4.Revert("-k //...");
 
 					// Figure out where the zip file has to go in Perforce

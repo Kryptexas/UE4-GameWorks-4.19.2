@@ -1,37 +1,33 @@
 <?xml version='1.0' ?>
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../Engine/Build/Graph/Schema.xsd" >
 
-	<!-- Directory to output Installed files to -->
-	<Property Name="LocalInstalledDir" Value="$(RootDir)\LocalBuilds\Installed\Windows"/>
-	<Property Name="LocalInstalledDirMac" Value="$(RootDir)/LocalBuilds/Installed/Mac"/>
-
-	<!-- Set base directory for output from installed builds if not already specified -->
-	<Property Name="OutputDir" Default="$(RootDir)\LocalBuilds\PublishedInstall"/>
-	<Property Name="OutputDirMac" Default="$(RootDir)/LocalBuilds/PublishedInstall"/>
+	<!-- The output directory to store zip files and full symbols -->
+	<Option Name="PublishDir" DefaultValue="$(RootDir)/LocalBuilds/Engine" Description="Root directory to contain published builds and symbols"/>
 	
-	<!-- Create Labelled Directory to place published builds if specified -->
-	<Property Name="BuildLabel" Default=""/>
-	<Property Name="LabeledBuildDir" Value="$(BuildLabel)"/>
-	<Property Name="LabeledBuildDir" Value="$(LabeledBuildDir)/" If="'$(LabeledBuildDir)' != '' And !HasTrailingSlash('$(LabeledBuildDir)')"/>
-	<Property Name="PublishedInstallDir" Value="$(OutputDir)/Engine/$(LabeledBuildDir)Windows"/>
-	<Property Name="PublishedInstallDirMac" Value="$(OutputDirMac)/Engine/$(LabeledBuildDir)Mac"/>
+	<!-- Setup default target platforms for Installed build if they haven't been specified on the commandline -->
+	<Option Name="WithWin64" Restrict="true|false" DefaultValue="true" Description="Include the Win64 target platform"/>
+	<Option Name="WithWin32" Restrict="true|false" DefaultValue="true" Description="Include the Win32 target platform"/>
+	<Option Name="WithMac" Restrict="true|false" DefaultValue="true" Description="Include the Mac target platform"/>
+	<Option Name="WithAndroid" Restrict="true|false" DefaultValue="true" Description="Include the Android target platform"/>
+	<Option Name="WithIOS" Restrict="true|false" DefaultValue="true" Description="Include the iOS target platform"/>
+	<Option Name="WithTVOS" Restrict="true|false" DefaultValue="true" Description="Include the tvOS target platform"/>
+	<Option Name="WithLinux" Restrict="true|false" DefaultValue="true" Description="Include the Linux target platform"/>
+	<Option Name="WithHTML5" Restrict="true|false" DefaultValue="true" Description="Include the HTML5 target platform"/>
+	<Option Name="WithPS4" Restrict="true|false" DefaultValue="false" Description="Include the PS4 target platform"/>
+	<Option Name="WithXboxOne" Restrict="true|false" DefaultValue="false" Description="Include the XboxOne target platform"/>
+
+	<!-- Whether to create a prebuilt DDC -->
+	<Option Name="WithDDC" Restrict="true|false" DefaultValue="true" Description="Build a standalone derived-data cache for the engine content and templates" />
+
+	<!-- The analytics type -->
+	<Option Name="AnalyticsTypeOverride" DefaultValue="" Description="Identifier for analytic events to send"/>
+
+	<!-- The local output directory -->
+	<Property Name="LocalInstalledDir" Value="$(RootDir)/LocalBuilds/Engine/Windows"/>
+	<Property Name="LocalInstalledDirMac" Value="$(RootDir)/LocalBuilds/Engine/Mac"/>
 
 	<!-- Directory for storing build products like the Compressed DDC, Stripped and Signed files -->
 	<Property Name="SavedOutput" Value="$(RootDir)/Saved"/>
-
-	<!-- Setup default target platforms for Installed build if they haven't been specified on the commandline -->
-	<Property Name="WithWin64"		Default="true"/>
-	<Property Name="WithWin32"		Default="true"/>
-	<Property Name="WithMac"		Default="true"/>
-	<Property Name="WithAndroid"	Default="true"/>
-	<Property Name="WithIOS"		Default="true"/>
-	<Property Name="WithTVOS"		Default="true"/>
-	<Property Name="WithLinux"		Default="true"/>
-	<Property Name="WithHTML5"		Default="true"/>
-	<Property Name="WithPS4"		Default="false"/>
-	<Property Name="WithXboxOne"	Default="false"/>
-
-	<Property Name="WithDDC"		Default="true"/>
 
 	<!-- Architectures that we build for Android -->
 	<Property Name="AndroidArchitectures" Value="armv7+arm64"/>
@@ -265,7 +261,7 @@
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsWin64" Default="Windows"/>
+	<Property Name="CookPlatformsWin64" Value="Windows"/>
 	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+WindowsNoEditor" If="'$(WithWin64)' == true Or '$(WithWin32)' == true"/>
 	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+Android_ATC" If="'$(WithAndroid)' == true"/>
 	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+IOS" If="'$(WithIOS)' == true"/>
@@ -308,7 +304,7 @@
 		</Node>
 	</Agent>
 
-	<Property Name="CookPlatformsMac" Default="Mac"/>
+	<Property Name="CookPlatformsMac" Value="Mac"/>
 	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+MacNoEditor" If="'$(WithMac)' == true"/>
 	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+Android_ATC" If="'$(WithAndroid)' == true"/>
 	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+IOS" If="'$(WithIOS)' == true"/>
@@ -452,7 +448,6 @@
 				<Tag Files="#UE4Game HTML5;#UE4Game HTML5 Includes" With="#Installed Win64"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyHTML5Filter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyHTML5Exceptions)"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Source/ThirdParty/HTML5/emsdk/Win64/..."/>
 			</Do>
 			<Do If="'$(WithPS4)' == true">
 				<Tag Files="#UE4Game PS4;#UE4Game PS4 Includes" With="#Installed Win64"/>
@@ -552,7 +547,7 @@
 			<Zip FromDir="$(LocalInstalledDir)" Files="#EditorOnly" ZipFile="EditorInstall.zip" Tag="#Zipped Installs"/>
 			
 			<!-- Copy the files to their final location -->
-			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishedInstallDir)"/>
+			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/WindowsZips"/>
 			<Delete Files="#Zipped Installs"/>
 		</Node>
 
@@ -568,7 +563,7 @@
 		<Node Name="Publish Installed Symbols Win64" Requires="$(SymbolRequirements)">
 			<!-- Also include all of the DotNET binaries -->
 			<Tag Files="Engine/Binaries/DotNET/...;$(SymbolRequirements)" Filter="*.pdb;*.dsym;*.map;*.exe;*.dll" Except=".../Binaries/Mac/..." With="#Symbols To Publish"/>
-			<Copy Files="#Symbols To Publish" FromDir="$(RootDir)" ToDir="$(PublishedInstallDir)Symbols"/>
+			<Copy Files="#Symbols To Publish" FromDir="$(RootDir)" ToDir="$(PublishDir)/WindowsSymbols"/>
 		</Node>
 	</Agent>
 
@@ -653,7 +648,6 @@
 				<Tag Files="#UE4Game HTML5;#UE4Game HTML5 Includes" With="#Installed Mac"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyHTML5Filter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyHTML5Exceptions)"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Source/ThirdParty/HTML5/emsdk/Mac/..."/>
 			</Do>
 
 			<!-- Tag any dependencies from all previous build products -->
@@ -733,7 +727,7 @@
 			<Zip FromDir="$(LocalInstalledDirMac)" Files="#EditorOnly" ZipFile="EditorInstall_OnMac.zip" Tag="#Zipped Installs"/>
 
 			<!-- Copy the files to their final location -->
-			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishedInstallDirMac)"/>
+			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/MacZips"/>
 			<Delete Files="#Zipped Installs"/>
 		</Node>
 
@@ -747,7 +741,7 @@
 
 		<Node Name="Publish Installed Symbols Mac" Requires="$(SymbolRequirements)">
 			<Tag Files="$(SymbolRequirements)" Filter="*.pdb;*.dsym;*.map;*.exe;*.dll" Except=".../Binaries/Win64/...;.../Binaries/Win32/..." With="#Symbols To Publish"/>
-			<Copy Files="#Symbols To Publish" FromDir="$(RootDir)" ToDir="$(PublishedInstallDirMac)Symbols"/>
+			<Copy Files="#Symbols To Publish" FromDir="$(RootDir)" ToDir="$(PublishDir)/MacSymbols"/>
 		</Node>
 	</Agent>
 

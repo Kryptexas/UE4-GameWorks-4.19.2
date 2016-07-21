@@ -19,14 +19,19 @@ namespace AutomationTool
 	enum GraphPrintOptions
 	{
 		/// <summary>
+		/// Includes a list of the graph options
+		/// </summary>
+		ShowCommandLineOptions = 0x1,
+
+		/// <summary>
 		/// Includes the list of dependencies for each node
 		/// </summary>
-		ShowDependencies = 0x1,
+		ShowDependencies = 0x2,
 
 		/// <summary>
 		/// Includes the list of notifiers for each node
 		/// </summary>
-		ShowNotifications = 0x2,
+		ShowNotifications = 0x4,
 	}
 
 	/// <summary>
@@ -62,10 +67,56 @@ namespace AutomationTool
 	}
 
 	/// <summary>
+	/// Represents a graph option. These are expanded during preprocessing, but are retained in order to display help messages.
+	/// </summary>
+	class GraphOption
+	{
+		/// <summary>
+		/// Name of this option
+		/// </summary>
+		public string Name;
+
+		/// <summary>
+		/// Description for this option
+		/// </summary>
+		public string Description;
+
+		/// <summary>
+		/// Default value for this option
+		/// </summary>
+		public string DefaultValue;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Name">The name of this option</param>
+		public GraphOption(string Name, string Description, string DefaultValue)
+		{
+			this.Name = Name;
+			this.Description = Description;
+			this.DefaultValue = DefaultValue;
+		}
+
+		/// <summary>
+		/// Returns a name of this option for debugging
+		/// </summary>
+		/// <returns>Name of the option</returns>
+		public override string ToString()
+		{
+			return Name;
+		}
+	}
+
+	/// <summary>
 	/// Definition of a graph.
 	/// </summary>
 	class Graph
 	{
+		/// <summary>
+		/// List of options, in the order they were specified
+		/// </summary>
+		public List<GraphOption> Options = new List<GraphOption>();
+
 		/// <summary>
 		/// List of agents containing nodes to execute
 		/// </summary>
@@ -499,9 +550,38 @@ namespace AutomationTool
 		/// Print the contents of the graph
 		/// </summary>
 		/// <param name="NodeToState">Mapping of node to its current state</param>
-		/// <param name="Options">Options for how to print the graph</param>
-		public void Print(HashSet<Node> CompletedNodes, GraphPrintOptions Options)
+		/// <param name="PrintOptions">Options for how to print the graph</param>
+		public void Print(HashSet<Node> CompletedNodes, GraphPrintOptions PrintOptions)
 		{
+			// Print the options
+			if((PrintOptions & GraphPrintOptions.ShowCommandLineOptions) != 0)
+			{
+				// Get the list of messages
+				List<string> Messages = new List<string>();
+				foreach(GraphOption Option in Options)
+				{
+					StringBuilder Message = new StringBuilder();
+					Message.AppendFormat("-set:{0}=... {1}", Option.Name, Option.Description);
+					if(!String.IsNullOrEmpty(Option.DefaultValue))
+					{
+						Message.AppendFormat(" (Default: {0})", Option.DefaultValue);
+					}
+					Messages.Add(Message.ToString());
+				}
+
+				// Format them to the log
+				if(Messages.Count > 0)
+				{
+					CommandUtils.Log("");
+					CommandUtils.Log("Options:");
+					CommandUtils.Log("");
+					foreach(string Line in CommandUtils.FormatParams(Messages, 4, 24))
+					{
+						CommandUtils.Log(Line);
+					}
+				}
+			}
+
 			// Get a list of all the triggers, including the null global one
 			List<ManualTrigger> AllTriggers = new List<ManualTrigger>();
 			AllTriggers.Add(null);
@@ -531,7 +611,7 @@ namespace AutomationTool
 
 				// Print the trigger name
 				CommandUtils.Log("    Trigger: {0}", (Trigger == null)? "None" : Trigger.QualifiedName);
-				if(Trigger != null && Options.HasFlag(GraphPrintOptions.ShowNotifications))
+				if(Trigger != null && PrintOptions.HasFlag(GraphPrintOptions.ShowNotifications))
 				{
 					foreach(string User in Trigger.NotifyUsers)
 					{
@@ -549,7 +629,7 @@ namespace AutomationTool
 						foreach(Node Node in Nodes)
 						{
 							CommandUtils.Log("            Node: {0}{1}", Node.Name, CompletedNodes.Contains(Node)? " (completed)" : "");
-							if(Options.HasFlag(GraphPrintOptions.ShowDependencies))
+							if(PrintOptions.HasFlag(GraphPrintOptions.ShowDependencies))
 							{
 								HashSet<Node> InputDependencies = new HashSet<Node>(Node.GetDirectInputDependencies());
 								foreach(Node InputDependency in InputDependencies)
@@ -562,7 +642,7 @@ namespace AutomationTool
 									CommandUtils.Log("                after> {0}", OrderDependency.Name);
 								}
 							}
-							if(Options.HasFlag(GraphPrintOptions.ShowNotifications))
+							if(PrintOptions.HasFlag(GraphPrintOptions.ShowNotifications))
 							{
 								string Label = Node.bNotifyOnWarnings? "warnings" : "errors";
 								foreach(string User in Node.NotifyUsers)

@@ -183,9 +183,7 @@ public class Core : ModuleRules
 		}
 
 
-        if ((Target.Platform == UnrealTargetPlatform.XboxOne) ||
-            (Target.Platform == UnrealTargetPlatform.WinRT) ||
-            (Target.Platform == UnrealTargetPlatform.WinRT_ARM))
+        if (Target.Platform == UnrealTargetPlatform.XboxOne)
         {
             Definitions.Add("WITH_DIRECTXMATH=1");
         }

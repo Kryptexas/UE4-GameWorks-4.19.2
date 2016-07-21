@@ -203,7 +203,13 @@ namespace UnrealGameSync
 					ErrorMessage = String.Format("Unexpected client path; expected '{0}' to begin with '{1}'", NewSelectedClientFileName, ExpectedPrefix);
 					return false;
 				}
-				NewSelectedProjectIdentifier = String.Format("{0}/{1}", StreamName, NewSelectedClientFileName.Substring(ExpectedPrefix.Length));
+				string StreamPrefix;
+				if(!TryGetStreamPrefix(PerforceClient, StreamName, Log, out StreamPrefix))
+				{
+					ErrorMessage = String.Format("Failed to get stream info for {0}", StreamName);
+					return false;
+				}
+				NewSelectedProjectIdentifier = String.Format("{0}/{1}", StreamPrefix, NewSelectedClientFileName.Substring(ExpectedPrefix.Length));
 			}
 			else
 			{
@@ -238,6 +244,26 @@ namespace UnrealGameSync
 			// Succeeed!
 			ErrorMessage = null;
 			return true;
+		}
+
+		bool TryGetStreamPrefix(PerforceConnection Perforce, string StreamName, TextWriter Log, out string StreamPrefix)
+		{ 
+			string CurrentStreamName = StreamName;
+			for(;;)
+			{
+				PerforceSpec StreamSpec;
+				if(!Perforce.TryGetStreamSpec(CurrentStreamName, out StreamSpec, Log))
+				{
+					StreamPrefix = null;
+					return false;
+				}
+				if(StreamSpec.GetField("Type") != "virtual")
+				{
+					StreamPrefix = CurrentStreamName;
+					return true;
+				}
+				CurrentStreamName = StreamSpec.GetField("Parent");
+			}
 		}
 	}
 }

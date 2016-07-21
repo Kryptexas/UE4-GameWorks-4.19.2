@@ -70,7 +70,7 @@ namespace UnrealBuildTool
 			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
 			if (string.IsNullOrEmpty(BaseVSToolPath))
 			{
-				throw new BuildException("Visual Studio 2015 must be installed in order to build this target.");
+				throw new BuildException(WindowsPlatform.GetCompilerName(WindowsPlatform.Compiler) + " must be installed in order to build this target.");
 			}
 
 			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, bSupportWindowsXP);
@@ -86,7 +86,7 @@ namespace UnrealBuildTool
 			VSToolPath64Bit = GetVSToolPath64Bit(BaseVSToolPath);
 
 			// Compile using 64 bit tools for 64 bit targets, and 32 for 32.
-			string CompilerVSToolPath = (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP) ? VSToolPath64Bit : VSToolPath32Bit;
+			string CompilerVSToolPath = (Platform == CPPTargetPlatform.Win64) ? VSToolPath64Bit : VSToolPath32Bit;
 
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker and can handle large linking jobs)
 			string LinkerVSToolPath = VSToolPath64Bit;
@@ -421,7 +421,7 @@ namespace UnrealBuildTool
 		string GetResourceCompilerToolPath(CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
-			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP)
+			if (Platform == CPPTargetPlatform.Win64)
 			{
 				if (WindowsPlatform.bUseWindowsSDK10)
 				{
@@ -433,7 +433,6 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// @todo UWP: Verify that Windows XP will compile using VS 2015 (it should be supported)
 			if (!bSupportWindowsXP)	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
 			{
 				if (WindowsPlatform.bUseWindowsSDK10)
@@ -635,15 +634,7 @@ namespace UnrealBuildTool
 			List<string> LibraryPaths = new List<string>();
 
 			// Add the standard Visual C++ library paths
-			if (Platform == CPPTargetPlatform.UWP && UWPPlatform.bBuildForStore)
-			{
-				string StoreLibraryDir = Path.Combine(VisualCppDir, "LIB", "amd64", "store");
-				if (Directory.Exists(StoreLibraryDir))
-				{
-					LibraryPaths.Add(StoreLibraryDir);
-				}
-			}
-			else if (Platform == CPPTargetPlatform.Win32)
+			if (Platform == CPPTargetPlatform.Win32)
 			{
 				string StdLibraryDir = Path.Combine(VisualCppDir, "LIB");
 				if (Directory.Exists(StdLibraryDir))

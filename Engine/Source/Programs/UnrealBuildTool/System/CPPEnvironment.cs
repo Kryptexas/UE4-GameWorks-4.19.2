@@ -16,13 +16,10 @@ namespace UnrealBuildTool
 	{
 		Win32,
 		Win64,
-		UWP,
 		Mac,
 		XboxOne,
 		PS4,
 		Android,
-		WinRT,
-		WinRT_ARM,
 		IOS,
 		HTML5,
 		Linux,

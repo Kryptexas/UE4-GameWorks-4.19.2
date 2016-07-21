@@ -13,7 +13,6 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using System.Management;
 using Tools.DotNETCommon.CaselessDictionary;
-using Tools.DotNETCommon.HarvestEnvVars;
 using System.Web.Script.Serialization;
 
 namespace UnrealBuildTool
@@ -291,33 +290,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Sets the environment variables from the passed in batch file
-		/// </summary>
-		/// <param name="BatchFileName">Name of the batch file to parse</param>
-		/// <param name="Parameters"> Optional command-line parameters to pass to the batch file when running it</param>
-		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName, string Parameters = "")
-		{
-			// @todo ubtmake: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
-			CaselessDictionary<string> EnvVars;
-			try
-			{
-				EnvVars = HarvestEnvVars.HarvestEnvVarsFromBatchFile(BatchFileName, Parameters, HarvestEnvVars.EPathOverride.User);
-			}
-			catch (Exception Ex)
-			{
-				throw new BuildException(Ex, "Failed to harvest environment variables");
-			}
-
-			foreach (KeyValuePair<string, string> EnvVar in EnvVars)
-			{
-				Environment.SetEnvironmentVariable(EnvVar.Key, EnvVar.Value);
-			}
-		}
-
-
-		/// <summary>
 		/// Try to launch a local process, and produce a friendly error message if it fails.
-		/// /
 		/// </summary>
 		public static int RunLocalProcess(Process LocalProcess)
 		{

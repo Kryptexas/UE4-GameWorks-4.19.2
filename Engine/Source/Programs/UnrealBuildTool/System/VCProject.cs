@@ -332,11 +332,7 @@ namespace UnrealBuildTool
 				{
 					VCIncludeSearchPaths.Append(CurPath + ";");
 				}
-				if (InPlatforms.Contains(UnrealTargetPlatform.UWP))
-				{
-					VCIncludeSearchPaths.Append(UWPToolChain.GetVCIncludePaths(CPPTargetPlatform.UWP) + ";");
-				}
-				else if (InPlatforms.Contains(UnrealTargetPlatform.Win64))
+				if (InPlatforms.Contains(UnrealTargetPlatform.Win64))
 				{
 					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win64, false) + ";");
 				}
@@ -1097,7 +1093,6 @@ namespace UnrealBuildTool
 
 					DirectoryReference BatchFilesDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Build", "BatchFiles");
 
-					// @todo UWP: For the MS toolchains, if an override was set for project generation, push that into the build strings to override the build toolchain as well
 					string BuildToolOverride = "";
 					if (UnrealBuildTool.CommandLineContains("-2013"))
 					{
@@ -1137,7 +1132,7 @@ namespace UnrealBuildTool
 				{
 					TargetRules TargetRulesObject = Combination.ProjectTarget.TargetRules;
 
-					if ((Platform == UnrealTargetPlatform.Win32) || (Platform == UnrealTargetPlatform.Win64) || (Platform == UnrealTargetPlatform.UWP))
+					if ((Platform == UnrealTargetPlatform.Win32) || (Platform == UnrealTargetPlatform.Win64))
 					{
 						VCUserFileContent.Append(
 							"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);

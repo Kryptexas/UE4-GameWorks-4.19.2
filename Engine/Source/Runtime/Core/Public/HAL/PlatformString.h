@@ -16,8 +16,6 @@
 #import "IOS/IOSPlatformString.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidString.h"
-#elif PLATFORM_WINRT
-#include "WinRT/WinRTString.h"
 #elif PLATFORM_HTML5
 #include "HTML5/HTML5PlatformString.h"
 #elif PLATFORM_LINUX

@@ -1566,9 +1566,7 @@ namespace AutomationTool
 			var UBTFiles = new List<string>(new string[] 
 					{
 						"UnrealBuildTool.exe",
-						"UnrealBuildTool.exe.config",
-						"EnvVarsToXML.exe",
-						"EnvVarsToXML.exe.config"
+						"UnrealBuildTool.exe.config"
 					});
 
 			foreach (var UBTFile in UBTFiles)

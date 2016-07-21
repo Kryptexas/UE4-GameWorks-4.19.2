@@ -25,6 +25,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Arguments;
+
+		/// <summary>
+		/// The minimum exit code which is treated as an error.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public int ErrorLevel = 1;
 	}
 
 	/// <summary>
@@ -56,8 +62,8 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			CommandUtils.Run(Parameters.Exe, Parameters.Arguments);
-			return true;
+			ProcessResult Result = CommandUtils.Run(Parameters.Exe, Parameters.Arguments);
+			return Result.ExitCode >= 0 && Result.ExitCode < Parameters.ErrorLevel;
 		}
 
 		/// <summary>

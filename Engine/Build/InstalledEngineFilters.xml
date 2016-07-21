@@ -35,8 +35,8 @@
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/MobileStarterContent/MobileStarterContent.uproject"/>
 	
 	<!-- Define Filters/Exceptions to make it easy to add to them -->
-	<Property Name="CopyEditorFilter" Default=""/>
-	<Property Name="CopyEditorExceptions" Default=""/>
+	<Property Name="CopyEditorFilter" Value=""/>
+	<Property Name="CopyEditorExceptions" Value=""/>
 
 	<!-- Tool dependencies -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/Ionic.Zip.Reduced.dll"/>
@@ -134,20 +134,20 @@
 	<!-- Target Platform Filters/Exceptions -->
 
 	<!-- Win64 -->
-	<Property Name="CopyWin64Filter" Default=""/>
-	<Property Name="CopyWin64Exceptions" Default=""/>
+	<Property Name="CopyWin64Filter" Value=""/>
+	<Property Name="CopyWin64Exceptions" Value=""/>
 
 	<!-- Win32 -->
-	<Property Name="CopyWin32Filter" Default=""/>
-	<Property Name="CopyWin32Exceptions" Default=""/>
+	<Property Name="CopyWin32Filter" Value=""/>
+	<Property Name="CopyWin32Exceptions" Value=""/>
 	
 	<!-- Mac -->
-	<Property Name="CopyMacFilter" Default=""/>
-	<Property Name="CopyMacExceptions" Default=""/>
+	<Property Name="CopyMacFilter" Value=""/>
+	<Property Name="CopyMacExceptions" Value=""/>
 
 	<!-- Android -->
-	<Property Name="CopyAndroidFilter" Default=""/>
-	<Property Name="CopyAndroidExceptions" Default=""/>
+	<Property Name="CopyAndroidFilter" Value=""/>
+	<Property Name="CopyAndroidExceptions" Value=""/>
 
 	<!-- Build Files -->
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Build/Android/..."/>
@@ -157,8 +157,8 @@
 	<Property Name="CopyAndroidExceptions" Value="$(CopyAndroidExceptions);Engine/Binaries/Android/....apk"/>
 
 	<!-- IOS -->
-	<Property Name="CopyIOSFilter" Default=""/>
-	<Property Name="CopyIOSExceptions" Default=""/>
+	<Property Name="CopyIOSFilter" Value=""/>
+	<Property Name="CopyIOSExceptions" Value=""/>
 
 	<!-- Build Files -->
 	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Build/IOS/..."/>
@@ -167,8 +167,8 @@
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/UnrealRemoteTool"/>
 	
 	<!-- TVOS -->
-	<Property Name="CopyTVOSFilter" Default=""/>
-	<Property Name="CopyTVOSExceptions" Default=""/>
+	<Property Name="CopyTVOSFilter" Value=""/>
+	<Property Name="CopyTVOSExceptions" Value=""/>
 
 	<!-- Build Files -->
 	<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Build/TVOS/..."/>
@@ -176,8 +176,8 @@
 	<Property Name="CopyTVOSExceptions" Value="$(CopyTVOSExceptions);Engine/Build/TVOS/....mobileprovision"/>
 	
 	<!-- Linux -->
-	<Property Name="CopyLinuxFilter" Default=""/>
-	<Property Name="CopyLinuxExceptions" Default=""/>
+	<Property Name="CopyLinuxFilter" Value=""/>
+	<Property Name="CopyLinuxExceptions" Value=""/>
 	
 	<!-- Content only - exclude things we only need for code projects -->
 	<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Binaries/Linux/....a"/>
@@ -187,25 +187,27 @@
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu/*.so"/>
 
 	<!-- HTML5 -->
-	<Property Name="CopyHTML5Filter" Default=""/>
-	<Property Name="CopyHTML5Exceptions" Default=""/>
+	<Property Name="CopyHTML5Filter" Value=""/>
+	<Property Name="CopyHTML5Exceptions" Value=""/>
 
 	<!-- Build Files -->
 	<Property Name="CopyHTML5Filter" Value="$(CopyHTML5Filter);Engine/Build/HTML5/..."/>
 
 	<!-- SDK -->
-	<Property Name="CopyHTML5Filter" Value="$(CopyHTML5Filter);Engine/Source/ThirdParty/HTML5/emsdk/emscripten/..."/>
+	<Property Name="CopyHTML5Filter" Value="$(CopyHTML5Filter);Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/..."/>
+	<Property Name="CopyHTML5Filter" Value="$(CopyHTML5Filter);Engine/Extras/ThirdPartyNotUE/emsdk/Win64/..." If="'$(HostPlatform)' == 'Win64'"/>
+	<Property Name="CopyHTML5Filter" Value="$(CopyHTML5Filter);Engine/Extras/ThirdPartyNotUE/emsdk/Mac/..." If="'$(HostPlatform)' == 'Mac'"/>
 
 	<!-- PS4 -->
-	<Property Name="CopyPS4Filter" Default=""/>
-	<Property Name="CopyPS4Exceptions" Default=""/>
+	<Property Name="CopyPS4Filter" Value=""/>
+	<Property Name="CopyPS4Exceptions" Value=""/>
 
 	<!-- Build Files -->
 	<Property Name="CopyPS4Filter" Value="$(CopyHTML5Filter);Engine/Build/PS4/..."/>
 
 	<!-- XboxOne -->
-	<Property Name="CopyXboxOneFilter" Default=""/>
-	<Property Name="CopyXboxOneExceptions" Default=""/>
+	<Property Name="CopyXboxOneFilter" Value=""/>
+	<Property Name="CopyXboxOneExceptions" Value=""/>
 
 	<!-- Build Files -->
 	<Property Name="CopyXboxOneFilter" Value="$(CopyHTML5Filter);Engine/Build/XboxOne/..."/>

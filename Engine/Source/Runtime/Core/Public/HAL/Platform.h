@@ -42,12 +42,6 @@
 #if !defined(PLATFORM_ANDROIDESDEFERRED)
 	#define PLATFORM_ANDROIDESDEFERRED 0
 #endif
-#if !defined(PLATFORM_WINRT)
-	#define PLATFORM_WINRT 0
-#endif
-#if !defined(PLATFORM_WINRT_ARM)
-	#define PLATFORM_WINRT_ARM	0
-#endif
 #if !defined(PLATFORM_APPLE)
 	#define PLATFORM_APPLE 0
 #endif
@@ -71,8 +65,6 @@
 	#include "IOS/IOSPlatformCompilerPreSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatformCompilerPreSetup.h"
-#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
-	#include "WinRT/WinRTPlatformCompilerPreSetup.h"
 #elif PLATFORM_HTML5
 	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
 #elif PLATFORM_LINUX
@@ -107,10 +99,6 @@
 	#include "IOS/IOSPlatform.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatform.h"
-#elif PLATFORM_WINRT_ARM
-	#include "WinRT/WinRTARMPlatform.h"
-#elif PLATFORM_WINRT
-	#include "WinRT/WinRTPlatform.h"
 #elif PLATFORM_HTML5
 	#include "HTML5/HTML5Platform.h"
 #elif PLATFORM_LINUX
@@ -736,8 +724,6 @@ namespace TypeTests
 	#include "IOS/IOSPlatformCompilerSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidCompilerSetup.h"
-#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
-	#include "WinRT/WinRTCompilerSetup.h"
 #elif PLATFORM_HTML5
 	#include "HTML5/HTML5PlatformCompilerSetup.h"
 #elif PLATFORM_LINUX

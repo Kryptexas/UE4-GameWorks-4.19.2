@@ -5,11 +5,7 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
-#if PLATFORM_WINRT
-#include "WinRT/D3D11RHIPrivateUtil.h"
-#else
 #include "Windows/D3D11RHIPrivateUtil.h"
-#endif
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"
