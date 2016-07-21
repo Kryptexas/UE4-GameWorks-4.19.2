@@ -1,11 +1,18 @@
-﻿Availability:Public
+﻿INTSourceChangelist:100
+Availability:Public
 Title: 根骨骼运动
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: 介绍了在虚幻引擎4中如何处理基于根骨骼的动画。
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Content/Tools/MayaRiggingTool
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Animation/AnimBlueprints/EventGraph
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 概述
 
 一般，在游戏动画中，角色的碰撞胶囊体(或其他形状)在场景中是通过控制器来驱动的。然后，使用该胶囊体的数据来驱动动画。比如，如果一个胶囊体正在向前移动，那么系统知道要在角色上播放一个跑动或走动的动画，来呈现出角色正在靠自己的力量移动的效果。
 
@@ -15,11 +22,21 @@ Description: 介绍了在虚幻引擎4中如何处理基于根骨骼的动画。
  
 对于这个概念的初学者来说，可能不能仅通过阅读一段介绍就能明白正确的根骨骼运动的重要性。下面，我们有个角色，它执行了预先设置好的攻击动画，向前猛击，然后向下抡动锤子。请注意，角色的向前移动的动画不是在游戏中处理的，是美术师那样设计的。
 
-[REGION:lightbox]
-[![](HammerSlamStatic.png)](HammerSlam.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TKAcNubFOH8
+[/PARAMLITERAL]
+[/OBJECT]
 
-**点击进行播放**
+[REGION:tip]
+See the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.9 for another example of Root Motion.
+[/REGION]
 
 [REGION:note]
 根骨骼运动处理需要应用 **AnimMontage** 。如果您稍微熟悉一点这个资源，那么将是有用的。请参照 [AnimMontage documentation](Engine/Animation/AnimMontage)文档获得详细信息。
@@ -44,6 +61,50 @@ Description: 介绍了在虚幻引擎4中如何处理基于根骨骼的动画。
 
 那么，这是什么意思哪？ 由于系统正在考虑角色动画的根骨骼运动，所以稍后就可以将那个同样的运动重新应用给角色的碰撞胶囊体。这意味着，角色仍然可以具有动画设计师期望的完全一致的运动效果，但是它也可以在游戏中对碰撞、其他物理及游戏事件做出正确的反应。在下面的部分中，我们将看到这个额处理的运作效果。
 
+
+(#EnablingRootMotion)
+## 启用 Root Motion
+
+Root Motion can be enabled inside the **Anim Asset Details** panel of **Persona** for your [Animation Sequence](Engine\Animation\Sequences). 
+
+![](RootMotion.png)
+
+[REGION:warning]
+Early versions of the engine (Versions previous to 4.5) required the use of an [Animation Montage](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimMontage/index.html) to define Root Motion. Since version 4.6, Root Motion is now handled per Animation Sequence and can be toggled on/off in the animation's properties in Persona.
+For networked games however, Root Motion still requires the use of an Animation Montage, see [Root Motion from Montages Only](#rootmotionfrommontagesonly) below. 
+
+[/REGION]
+
+While defining if Root Motion is enabled in done inside the Animation Sequence, you will still need to determine how that sequence is handled inside of an [Animation Blueprint]( Engine/Animation/AnimBlueprints). There are several different ways in which you can handle Root Motion within Animation Blueprints. You can define this through the **Root Motion Mode** drop down menu inside the Anim Blueprint Editor inside Persona. 
+
+![](RootMotionMode.png)
+
+[REGION:note]
+Make sure that you are setting this inside the **Edit Defaults** tab and not the **Edit Preview**.
+[/REGION]
+
+The options are as follows: 
+
+| **Property** | **Description** |
+| --- | --- |
+| **No Root Motion Extraction** | Root Motion is left as is (applied to the root bone). |
+| **Ignore Root Motion** | Root Motion is extracted (and removed from the root bone), but not applied to the character.  |
+| **Root Motion from Everything** | See Below. |
+| **Root Motion from Montages Only** | See Below. |
+
+### Root Motion from Everything
+
+When this option is set as the Root Motion Mode, each animation asset (AnimSequence, Blendspace, AnimMontage, etc.) that contributes to the final character pose has its Root Motion extracted (if it has been set as containing Root Motion). Each piece of extracted Root Motion is blended based on the weight of the source assets contributing to the pose. 
+
+For example:
+
+![](FromEverything.png)
+
+In the image above, the Root Motion of **Jog_Loop_Fwd_RM** and **Jog_Loop_Right_RM** would each be blended together with a weight of 0.5. The resulting animation in this case is a character running diagonally forwards and right across a map. 
+
+### Root Motion from Montages Only
+
+This method is intended for network games which is the reason for its more restricted functionally. Because **Root Motion from Everything** is designed to be unrestricted, it is recommended that it only be used in games where animation isn't replicated over a network.  
 
 ## 运作中的根骨骼运动
 

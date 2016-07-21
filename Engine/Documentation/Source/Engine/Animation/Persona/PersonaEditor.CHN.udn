@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2666114
+﻿INTSourceChangelist:2714483
 Availability:Public
-Title: Persona 角色动画编辑器参考
+Title: Persona 动画编辑器参考
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:用于预览及编辑动画蓝图、混合空间、动画序列及通知等这些动画资源的编辑器。
+Description: 用于预览及编辑动画蓝图、混合空间、动画序列及通知等这些动画资源的编辑器。
 version: 4.9
 
 
@@ -32,7 +32,7 @@ version: 4.9
 ![](UpdatedPersonaWindow.png)
 [/REGION]
 
-[TOC(start:2 end:3)]
+[TOC (start:2 end:3)]
 
 
 
@@ -48,11 +48,12 @@ version: 4.9
 ![](OpeningPersona.png)
 [/REGION]
 
+
 通过在 **内容浏览器** 中双击一个动画资源可以打开角色编辑器，比如双击以下这样的动画资源：
 
 * 动画蓝图
 * 骨架
-* 骨架网格物体
+* 骨架网格体
 * 动画序列
 * 混合空间
 * 动画蒙太奇
@@ -82,7 +83,7 @@ version: 4.9
 作为整合了大量独立功能的工具，如果同时展现所有相关内容的话，Persona 的界面会让人奔溃。为了解决这个问题，Persona 被拆分为四个主要部分。
 
 1. 骨架 Skeleton
-1. 网格物体 Mesh
+1. 网格体 Mesh
 1. 动画 Animation
 1. 图 Graph
 
@@ -103,7 +104,7 @@ version: 4.9
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Skeleton.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Skeleton.png)
 	[/PARAM]
 	[PARAM:title]
-		骨骼模式
+		骨架模式
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#skeletonoverview]
@@ -118,7 +119,7 @@ version: 4.9
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Mesh.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Mesh.png)
 	[/PARAM]
 	[PARAM:title]
-		网格物体模式
+		网格体模式
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#meshoverview]

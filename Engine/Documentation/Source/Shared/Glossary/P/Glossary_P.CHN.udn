@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2463968
+﻿INTSourceChangelist:2714483
 Title:P
 Crumbs:Shared/Glossary
 Description:
-Availability:Public
+Availability:NoPublish
 
 [EXCERPT:Glossary_P]
 
@@ -40,15 +40,15 @@ Pawn
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-Persona（角色编辑器）
+Persona
 	[/PARAM]
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Persona]
-**Persona** （角色编辑器）是虚幻引擎中的动画编辑工具集。这是一个健壮的系统，可用来编辑骨架，骨架网格物体，动画蓝图以及多种其它动画资源。 在虚幻引擎中，大部分（即时不是全部）动画处理工作都在这个编辑器中进行。这是一款多功能的工具，包含了用于编辑骨架 [插槽](Engine/Content\Types\SkeletalMeshes\Sockets)、预览 [动画序列](Engine/Animation/Sequences)、设置动画 [混合空间](Engine/Animation/Blendspaces) 以及 [蒙太奇](Engine/Animation/AnimMontage)、编辑 [动画蓝图](Engine/Animation/AnimBlueprints)等的面板。
+**Persona** 是虚幻引擎中的一组动画编辑工具集。这是一个健壮的系统，可用来编辑骨架，骨架网格体，动画蓝图以及多种其它动画资源。在虚幻引擎中，大部分（即时不是全部）动画处理工作都在这个编辑器中进行。这是一款多功能的工具，包含了用于编辑骨架 [插槽](Engine/Content\Types\SkeletalMeshes\Sockets)、预览 [动画序列](Engine/Animation/Sequences)、设置动画 [混合空间](Engine/Animation/Blendspaces) 以及 [蒙太奇](Engine/Animation/AnimMontage)、编辑 [动画蓝图](Engine/Animation/AnimBlueprints) 等的面板。
 [/EXCERPT:Glossary_Persona]
 
-您可以通过 **双击** 任何动画相关的资源来打开角色编辑器，例如骨架网格物体，混合空间，动画蓝图等等。
+可以通过 **双击** 任何动画相关的资源来打开 Persona，例如骨架网格物体，混合空间，动画蓝图等这样的资源。
 
 	[/PARAM]
 [/OBJECT]
