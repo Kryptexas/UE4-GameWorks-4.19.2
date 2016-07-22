@@ -1,78 +1,78 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Building for iOS on Windows
+﻿INTSourceChangelist:3051445
+Availability:Docs
+Title:Windows で iOS をビルドする
 Crumbs:%ROOT%, Platforms
-Description:How to remotely compile on a Mac from a Windows machine to create an iOS build. 
+Description:Windows マシンから Mac マシンでリモート コンパイルして iOS ビルドを作成する方法 
 Platform:iOS
 Navigation:platform
-Version: 4.9
+Version:4.9
 type:howto
 parent:Platforms/iOS
 tags:Mobile
 tags:iOS
 prereq:Platforms/iOS/QuickStart
 
-While building for iOS requires a Mac, using remote compilation means that a whole team that primarily uses Windows machines can build for iOS using one Mac. 
+IiOS 用のビルドには Mac が必要です。リモート コンパイルを使えば、Windows マシンを主に使うチーム全体で 1 つの Mac を使って iOS をビルドできるという意味です。 
 
-## Mac Setup
+## Mac の設定
 
-1. Enable Remote Compiling on the Mac using [these steps from Apple](https://support.apple.com/kb/PH18726).
+1. [these steps from Apple](https://support.apple.co\\m/kb/PH18726) を使って Mac 上で Remote Compiling を有効にします。
 
-1. Install your iOS Developer Certificates to the System keychain. If your certificates are already installed to your login keychain, just drag them to the System keychain and they will be installed there as well.
+1. iOS Developer Certificates をシステム キーチェーンにインストールします。証明書がすでにログイン キーチェーンにインストールされている場合は、それらをシステム キーチェーンにドラッグすると、そこでもインストールされます。
 
 	[REGION:note]
-	For more on creating iOS Developer Certificates, see [](Platforms/iOS/QuickStart/3).
+	IOS Developer Certificates (開発者証明書) の作成方法の詳細は、[](Platforms/iOS/QuickStart/3) をご覧ください。
 	[/REGION]
 
-1. Lastly, make sure the private keys for your certificates are set up to be accessible from any program.  This can be accessed by double-clicking on the key under the Developer Certificate. For more information, see [this Apple Support article](https://support.apple.com/kb/PH18682).
+1. 最後に、すべてのプログラムから利用できるように証明書用にプライベート キーが設定されていることを確認してください。Developer Certificate (開発者証明書) の下にあるキーをダブルクリックすると利用することができます。詳細は、[this Apple Support article](https://support.apple.com/kb/PH18682) を参照してください。
 
-## PC Setup
+##PC の設定
 
-1. Open your project in the editor, then open **Project Settings**.  
+1. エディタでプロジェクトを開き、**[Project Settings (プロジェクト設定)]** を開きます。  
 
 	![](Engine/UI/ProjectSettings/menu_project_settings.png)
 
-1. Click on **iOS** under **Platforms**.
+1. **[Platforms]** の下にある**[iOS]** をクリックします。
 
 	![](iOSsettings.png)
 
-1. Scroll to the **Build** heading, then expand **Remote Build Options**.
+1. 見出しの **[Build (ビルド)]** をスクロールして、**[Remote Build (リモート ビルド)]** オプションを展開します。
 
 	![](BuildOptions.png)
 
-1. In the **Remote Server Name** field, enter the name of the Mac you are using to build the project.
+1. **[Remote Server Name (リモートサーバー名)]** 入力フィールドに、プロジェクトのビルドに使う Mac 名を入力します。
 
-1. In the **Remote User Name** field, enter the user name that would normally log in to the remote Mac.
+1. **[Remote Server Name (リモートサーバー名)]** 入力フィールドに、リモートの Mac に通常ログインするユーザー名を入力します。
 
-1. At this point, you will need to generate the SSH key which will be used to ensure a secure connection to the remote Mac.  Press the Generate SSH Key button and follow the prompts.
+1. この時点では、リモート Mac へ安全な接続を確実にするために SSH キーを生成する必要があります。[Generate SSH (SSH を生成する)] キーボタンを押して、プロンプトに従います。
 
-### SSH Setup
+### SSH の設定
 
-For the SSH setup, you will primarily follow along with the prompts that are presented in the window that pops up. However, here are some additional steps to help guide you through this process.
+SSH 設定は、ポップアップ ウィンドウで表示されるプロンプトにほとんど従います。ただし、以下のステップの方が分かりやすいです。
 
-1. If your host can't be authenticated, enter "yes" at the prompt.
+1. ホストが認証されない場合は、「Yes」をプロンプトで選択します。
 
-1. Enter the password which belongs to the user you specified in **Remote User Name**.
+1. **[Remote User Name (リモート ユーザー名)]** 入力フィールドに指定したユーザーに属するパスワードを入力します。
 
-1. The prompts will ask you to enter a passphrase.  We recommend not specifying a passphrase so that it can be used without requiring user interaction.
+1. プロンプトがパスフレーズの入力を要求します。ユーザー インタラクションを要求せずに使用できるように、パスフレーズは指定しないことを推奨します。
 
-1. You will then be prompted to enter the password for the user name again to complete the process.
+1. プロセスを完了するために、再度ユーザー名に対するパスワードの入力を求められます。
 
-At this point, you should successfully have generated your SSH key and are ready to start building iOS games from editor on PC.
+この時点で、SSH キーは正常に作成され、PC 上のエディタから iOS ゲームのビルドを開始する準備が整いました。
 
-## Optional Team Setup
+## オプションのチーム設定
 
-If you wish to pass around this data so that it can be used for all projects in the future, then you will want to specify the **Remote Server Name** and **Remote User Name** in one or more of the `*Engine.ini` files on your computer.  
+今後すべてのプロジェクトで使用できるようにこのデータを回覧したい場合は、**[Remote Server Name (リモートサーバー名)]** と **[Remote User Name (リモートユーザー名)** をコンピュータの 1 つ以上の `*Engine.ini` ファイルで指定すると良いでしょう。  
 
-1. Select the multi-dot button next to the property.  
+1. プロパティの横にある複数ドットのボタンを選択します。  
 
 	![](ConfigFiles.png)
 
-	This will open the **Configuration Editor** 
-	
-1. Set the properties for each individual `.ini` file you wish.  
+	すると、**Configuration Editor** が開きます。 
+
+1. 使用したい`.ini` ファイルに個別にプロパティを設定します。  
 
 	![](inifileexample.png)
 
 
-Also, the SSH keys are stored in `../../../Engine/Build/SSHKeys`. Make sure to check that directory into source control to share them with your team.
+さらに、SSH キーは `../../../Engine/Build/SSHKeys` に格納されます。* チームで共有するために、そのディレクトリを必ずソース コントロールにチェックインしてください。
