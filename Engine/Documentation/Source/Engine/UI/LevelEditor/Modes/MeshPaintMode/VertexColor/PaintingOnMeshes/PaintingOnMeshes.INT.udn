@@ -2,7 +2,7 @@ Availability: Public
 Title:Painting on Meshes
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:An overview of how to lay paint strokes down on meshes using Mesh Paint Mode.
-Version: 4.9
+Version: 4.13
 SkillLevel: Intermediate
 
 [EXCERPT:Intro]
