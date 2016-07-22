@@ -1194,6 +1194,27 @@ void FFoliageMeshInfo::GetInstancesInsideSphere(const FSphere& Sphere, TArray<in
 	}
 }
 
+void FFoliageMeshInfo::GetInstanceAtLocation(const FVector& Location, int32& OutInstance, bool& bOutSucess)
+{
+	auto TempInstances = InstanceHash->GetInstancesOverlappingBox(FBox::BuildAABB(Location, FVector(KINDA_SMALL_NUMBER)));
+
+	float ShortestDistance = MAX_FLT;
+	OutInstance = -1;
+
+	for (int32 Idx : TempInstances)
+	{
+		FVector InstanceLocation = Instances[Idx].Location;
+		float DistanceSquared = FVector::DistSquared(InstanceLocation, Location);
+		if (DistanceSquared < ShortestDistance)
+		{
+			ShortestDistance = DistanceSquared;
+			OutInstance = Idx;
+		}
+	}
+
+	bOutSucess = OutInstance != -1;
+}
+
 // Returns whether or not there is are any instances overlapping the sphere specified
 bool FFoliageMeshInfo::CheckForOverlappingSphere(const FSphere& Sphere)
 {

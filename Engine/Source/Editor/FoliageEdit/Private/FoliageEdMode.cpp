@@ -509,16 +509,8 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 		// Consume both full press and light press
 		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
 		{
-			static bool bIsLightlyPressed = false;
-			static bool bIsLightlyReleased = false;
-			static bool bIsFullyPressed = false;
-			static bool bIsFullyReleased = false;
-
 			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI())
 			{
-				bIsLightlyPressed = Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed;
-				bIsFullyPressed = Action.ActionType == ViewportWorldActionTypes::SelectAndMove;
-
 				// Go ahead and paint immediately
 				FVector LaserPointerStart, LaserPointerEnd;
 				if (FoliageInteractor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
@@ -536,7 +528,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 						}
 
 						// Fill a static mesh with foliage brush
-						else if (UISettings.GetPaintBucketToolSelected())
+						else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
 						{
 							FHitResult HitResult = FoliageInteractor->GetHitResultFromLaserPointer();
 
@@ -544,7 +536,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 							{
 								GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 
-								if (IsInputForRemovingBrushOn(&ViewportClient))
+								if (IsModifierButtonPressed(&ViewportClient))
 								{
 									ApplyPaintBucket_Remove(HitResult.Actor.Get());
 								}
@@ -558,14 +550,26 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 						}
 						else if (UISettings.GetSelectToolSelected())
 						{
-							if (IsInputForRemovingBrushOn(&ViewportClient))
+							FHitResult HitResult = FoliageInteractor->GetHitResultFromLaserPointer();
+							
+							GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
+
+							if (HitResult.GetActor() != nullptr)
 							{
-								RemoveSelectedInstances(GetWorld());
+								// Clear all currently selected instances
+								SelectInstances(ViewportClient.GetWorld(), false);
+								for (auto& FoliageMeshUI : FoliageMeshList)
+								{
+									UFoliageType* Settings = FoliageMeshUI->Settings;
+									SelectInstanceAtLocation(ViewportClient.GetWorld(), Settings, HitResult.ImpactPoint, !IsModifierButtonPressed(&ViewportClient));
+								}
 							}
-							else
-							{
-								SnapSelectedInstancesToGround(GetWorld());
-							}
+
+							GEditor->EndTransaction();
+
+							// @todo vreditor: we currently don't have a key mapping scheme to snap selected instances to ground 
+							// SnapSelectedInstancesToGround(GetWorld());
+
 						}
 					}
 				}
@@ -574,18 +578,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 			// Stop current tracking if the user is no longer painting
 			else if (Action.Event == IE_Released && bIsPainting && FoliageInteractor && FoliageInteractor == Interactor)
 			{
-				bIsLightlyReleased = Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed;
-				bIsFullyReleased = Action.ActionType == ViewportWorldActionTypes::SelectAndMove;
-
-				if ((bIsLightlyPressed && bIsLightlyReleased) || (bIsFullyPressed && bIsFullyReleased))
-				{
-					EndFoliageBrushTrace();
-					bIsLightlyPressed = false;
-					bIsLightlyReleased = false;
-					bIsFullyPressed = false;
-					bIsFullyReleased = false;
-
-				}
+				EndFoliageBrushTrace();
 			}
 		}
 	}
@@ -1463,6 +1456,26 @@ void FEdModeFoliage::RemoveInstancesForBrush(UWorld* InWorld, const UFoliageType
 	}
 }
 
+
+void FEdModeFoliage::SelectInstanceAtLocation(UWorld* InWorld, const UFoliageType* Settings, const FVector& Location, bool bSelect)
+{
+	for (FFoliageMeshInfoIterator It(InWorld, Settings); It; ++It)
+	{
+		FFoliageMeshInfo* MeshInfo = (*It);
+		AInstancedFoliageActor* IFA = It.GetActor();
+
+		int32 Instance;
+		bool bResult;
+		MeshInfo->GetInstanceAtLocation(Location, Instance, bResult);
+		if (bResult)
+		{
+		        TArray<int32> Instances;
+			Instances.Add(Instance);
+			MeshInfo->SelectInstances(IFA, bSelect, Instances);
+		}
+	}
+}
+
 void FEdModeFoliage::SelectInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, bool bSelect)
 {
 	for (FFoliageMeshInfoIterator It(InWorld, Settings); It; ++It)
@@ -2173,7 +2186,7 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 
 		if (UISettings.GetLassoSelectToolSelected())
 		{
-			SelectInstancesForBrush(World, Settings, BrushSphere, !IsInputForRemovingBrushOn(ViewportClient));
+			SelectInstancesForBrush(World, Settings, BrushSphere, !IsModifierButtonPressed(ViewportClient));
 		}
 		else if (UISettings.GetReapplyToolSelected())
 		{
@@ -2182,7 +2195,7 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 		}
 		else if (UISettings.GetPaintToolSelected())
 		{
-			if (IsInputForRemovingBrushOn(ViewportClient))
+			if (IsModifierButtonPressed(ViewportClient))
 			{
 				int32 DesiredInstanceCount = FMath::RoundToInt(BrushArea * Settings->Density * UISettings.GetUnpaintDensity() / (1000.f*1000.f));
 					
@@ -2816,7 +2829,7 @@ bool FEdModeFoliage::CanPaint(const UFoliageType* FoliageType, const ULevel* InL
 	return false;
 }
 
-bool FEdModeFoliage::IsInputForRemovingBrushOn(const FEditorViewportClient* ViewportClient) const
+bool FEdModeFoliage::IsModifierButtonPressed(const FEditorViewportClient* ViewportClient) const
 {
 	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
 	const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(FoliageInteractor);
@@ -3241,7 +3254,7 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 		{
 			GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 			
-			if (IsInputForRemovingBrushOn(InViewportClient))
+			if (IsModifierButtonPressed(InViewportClient))
 			{
 				ApplyPaintBucket_Remove(((HActor*)HitProxy)->Actor);
 			}

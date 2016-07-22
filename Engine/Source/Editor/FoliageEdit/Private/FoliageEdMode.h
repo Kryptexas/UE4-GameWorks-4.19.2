@@ -369,8 +369,8 @@ public:
 	/** Whether specified FoliageType can be painted into level */
 	static bool CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel);
 
-	/** Should remove brushes based on user input (shift or modifier button pressed) */
-	bool IsInputForRemovingBrushOn(const FEditorViewportClient* ViewportClient) const;
+	/** Shift or modifier button pressed */
+	bool IsModifierButtonPressed(const FEditorViewportClient* ViewportClient) const;
 
 	/** Add a new asset (FoliageType or StaticMesh) */
 	UFoliageType* AddFoliageAsset(UObject* InAsset);
@@ -467,6 +467,9 @@ private:
 	/** Select instances inside the brush. */
 	void SelectInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, bool bSelect);
 	
+	/** Select instance closest to the brush. */
+	void SelectInstanceAtLocation(UWorld* InWorld, const UFoliageType* Settings, const FVector& BrushLocation, bool bSelect);
+
 	/** Set/Clear selection for all foliage instances */
 	void SelectInstances(UWorld* InWorld, bool bSelect);
 	
