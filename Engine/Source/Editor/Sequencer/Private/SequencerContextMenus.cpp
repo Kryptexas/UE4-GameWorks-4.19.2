@@ -20,6 +20,7 @@
 #include "IntegralKeyDetailsCustomization.h"
 #include "MovieSceneSubSection.h"
 #include "MovieSceneCinematicShotSection.h"
+#include "Curves/IntegralCurve.h"
 
 #define LOCTEXT_NAMESPACE "SequencerContextMenus"
 

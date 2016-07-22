@@ -2,6 +2,7 @@
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieSceneToolsProjectSettingsCustomization.h"
+#include "MovieSceneToolsProjectSettings.h"
 
 #include "PropertyEditorModule.h"
 #include "DetailLayoutBuilder.h"
