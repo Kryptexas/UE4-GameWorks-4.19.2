@@ -16,7 +16,7 @@ FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
 : CommandList(CmdList)
 , FrontFacingWinding(MTLWindingClockwise)
 , CullMode(MTLCullModeNone)
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 , DepthClipMode(MTLDepthClipModeClip)
 #endif
 , FillMode(MTLTriangleFillModeFill)
@@ -120,7 +120,7 @@ void FMetalCommandEncoder::Reset(void)
 	
 	FrontFacingWinding = MTLWindingClockwise;
 	CullMode = MTLCullModeNone;
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 	DepthClipMode = MTLDepthClipModeClip;
 #endif
 	FillMode = MTLTriangleFillModeFill;
@@ -337,7 +337,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	[RenderCommandEncoder setViewport:Viewport];
 	[RenderCommandEncoder setFrontFacingWinding:FrontFacingWinding];
 	[RenderCommandEncoder setCullMode:CullMode];
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthClipMode))
 	{
 		[RenderCommandEncoder setDepthClipMode:DepthClipMode];
@@ -696,7 +696,7 @@ void FMetalCommandEncoder::SetCullMode(MTLCullMode const InCullMode)
 	}
 }
 
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 void FMetalCommandEncoder::SetDepthClipMode(MTLDepthClipMode const InDepthClipMode)
 {
 	DepthClipMode = InDepthClipMode;

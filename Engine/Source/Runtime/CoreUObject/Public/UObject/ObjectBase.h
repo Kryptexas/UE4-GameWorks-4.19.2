@@ -455,7 +455,7 @@ enum EObjectFlags
 
 	// The group of flags tracks the stages of the lifetime of a uobject
 	RF_NeedLoad					=0x00000400,	///< During load, indicates object needs loading.
-	//RF_Unused				=0x00000800,	///
+	RF_KeepForCooker			=0x00000800,	///< Keep this object during garbage collection because it's still being used by the cooker
 	RF_NeedPostLoad				=0x00001000,	///< Object needs to be postloaded.
 	RF_NeedPostLoadSubobjects	=0x00002000,	///< During load, indicates that the object still needs to instance subobjects and fixup serialized component references
 	//RF_Unused				=0x00004000,	///

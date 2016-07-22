@@ -266,15 +266,14 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
         Texture = [Source.Texture newTextureViewWithPixelFormat:MetalFormat textureType:Source.Texture.textureType levels:MipRange slices:Slices];
 		TRACK_OBJECT(STAT_MetalTextureCount, Texture);
     }
+#if PLATFORM_MAC // Currently only required on Mac as iOS uses separate textures
     else if (Source.PixelFormat == PF_DepthStencil && Format == PF_X24_G8 && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesStencilView))
     {
         switch (Source.Texture.pixelFormat)
         {
-#if PLATFORM_MAC
             case MTLPixelFormatDepth24Unorm_Stencil8:
                 MetalFormat = MTLPixelFormatX24_Stencil8;
                 break;
-#endif
             case MTLPixelFormatDepth32Float_Stencil8:
                 MetalFormat = MTLPixelFormatX32_Stencil8;
                 break;
@@ -286,6 +285,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
         Texture = [Source.Texture newTextureViewWithPixelFormat:MetalFormat textureType:Source.Texture.textureType levels:MipRange slices:Slices];
         TRACK_OBJECT(STAT_MetalTextureCount, Texture);
     }
+#endif
     else
 #endif
 	if(Source.PixelFormat == PF_DepthStencil && Format == PF_X24_G8)

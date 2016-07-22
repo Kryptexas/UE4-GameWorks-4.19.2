@@ -1162,6 +1162,18 @@ protected:
 			expr->operands[0]->accept(this);
 			ralloc_asprintf_append(buffer, ")");
 		}
+		else if (op == ir_unop_sqrt && numOps == 1)
+		{
+			glsl_type const* Type = expr->operands[0]->type;
+			print_type_pre(Type);
+			ralloc_asprintf_append(buffer, "(precise::sqrt(");
+			print_type_pre(PromoteHalfToFloatType(ParseState, Type));
+			ralloc_asprintf_append(buffer, "(max(");
+			print_type_pre(Type);
+			ralloc_asprintf_append(buffer, "(0.0),");
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, "))))");
+		}
 		else if (numOps < 4)
 		{
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);

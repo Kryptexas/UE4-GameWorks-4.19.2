@@ -2289,3 +2289,11 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
 	ECVF_RenderThreadSafe);  
+
+static TAutoConsoleVariable<int32> CVarDisableThreadedRendering(
+	TEXT("r.AndroidDisableThreadedRendering"),
+	0,
+	TEXT("Sets whether or not to allow threaded rendering for a particular Android device profile.\n")
+	TEXT("	0 = Allow threaded rendering [default]\n")
+	TEXT("	1 = Disable creation of render thread on startup"),
+	ECVF_ReadOnly);

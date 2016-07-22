@@ -443,7 +443,7 @@ struct FCookerTimer
 	const int MaxNumPackagesToSave; // maximum packages to save before exiting tick (this should never really hit unless we are not using realtime mode)
 	int NumPackagesSaved;
 
-	FCookerTimer(const float &InTimeSlice, bool bInIsRealtimeMode, int InMaxNumPackagesToSave = 30) :
+	FCookerTimer(const float &InTimeSlice, bool bInIsRealtimeMode, int InMaxNumPackagesToSave = 50) :
 		bIsRealtimeMode(bInIsRealtimeMode), StartTime(FPlatformTime::Seconds()), TimeSlice(InTimeSlice),
 		MaxNumPackagesToSave(InMaxNumPackagesToSave), NumPackagesSaved(0)
 	{
@@ -660,6 +660,22 @@ const UCookOnTheFlyServer::FCachedPackageFilename& UCookOnTheFlyServer::Cache(co
 
 const FName* UCookOnTheFlyServer::GetCachedPackageFilenameToPackageFName(const FName& StandardPackageFilename) const
 {
+	const FName* Result = PackageFilenameToPackageFNameCache.Find(StandardPackageFilename);
+	if ( Result )
+	{
+		return Result;
+	}
+
+	FName PackageName = StandardPackageFilename;
+	FString PotentialLongPackageName = StandardPackageFilename.ToString();
+	if (FPackageName::IsValidLongPackageName(PotentialLongPackageName) == false)
+	{
+		PotentialLongPackageName = FPackageName::FilenameToLongPackageName(PotentialLongPackageName);
+		PackageName = FName(*PotentialLongPackageName);
+	}
+
+	Cache(PackageName);
+
 	return PackageFilenameToPackageFNameCache.Find(StandardPackageFilename);
 }
 
@@ -679,6 +695,7 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer),
 	CurrentCookMode(ECookMode::CookOnTheFly),
 	CookByTheBookOptions(NULL),
+	NumPackagesSavedSinceLastPartialGC(0),
 	CookFlags(ECookInitializationFlags::None),
 	bIsInitializingSandbox(false),
 	bIsSavingPackage(false)
@@ -1354,7 +1371,7 @@ UCookOnTheFlyServer::FReentryData& UCookOnTheFlyServer::GetReentryData(const UPa
 	{
 		CurrentReentryData.FileName = Package->GetFName();
 		GetObjectsWithOuter(Package, CurrentReentryData.CachedObjectsInOuter);	
-	}
+}
 	return CurrentReentryData;
 }
 
@@ -1708,6 +1725,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		{
 			COOK_STAT(FScopedDurationTimer DurationTimer(DetailedCookStats::TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec));
 
+#if DEBUG_COOKONTHEFLY 
+			UE_LOG(LogCook, Display, TEXT("Caching objects for package %s"), *Package->GetFName().ToString());
+#endif
 			auto& CurrentReentryData = GetReentryData(Package);
 
 			if ( CurrentReentryData.bBeginCacheFinished )
@@ -1769,6 +1789,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				// this doesn't ever happen for cook in editor or cook on the fly mode
 				if (CurrentCookMode == ECookMode::CookByTheBook)
 				{
+					check( !IsCookingInEditor() );
 					// this might be run multiple times for a single object
 					Obj->WillNeverCacheCookedPlatformDataAgain();
 				}
@@ -1830,7 +1851,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				else
 				{
 					//was gonna quit but didn't
-					UE_LOG(LogCook, Display, TEXT("Was gonna exit out but didn't num packages to save %d"), PackagesToSave.Num());
+					// UE_LOG(LogCook, Display, TEXT("Was gonna exit out but didn't num packages to save %d"), PackagesToSave.Num());
 
 					// reque the current task and process it next tick
 					/*
@@ -1980,7 +2001,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					{
 						// add to back of queue
 						PackagesToSave.Add(Package);
-						UE_LOG(LogCook, Display, TEXT("Delaying save for package %s"), *PackageFName.ToString());
+						// UE_LOG(LogCook, Display, TEXT("Delaying save for package %s"), *PackageFName.ToString());
 						continue;
 					}
 				}
@@ -2033,6 +2054,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						}
 					}
 					Timer.SavedPackage();
+					++NumPackagesSavedSinceLastPartialGC;
 				}
 
 				if ( IsCookingInEditor() == false )
@@ -2113,7 +2135,26 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			break;
 		}
 	}
-	
+		
+	if ( IsCookByTheBookMode() && !IsCookingInEditor() && IsCookFlagSet(ECookInitializationFlags::MarkupInUsePackages) )
+	{
+		SCOPE_TIMER(MarkUpPackagesToKeep);
+
+		if (NumPackagesSavedSinceLastPartialGC > MaxNumPackagesBeforePartialGC)
+		{
+			NumPackagesSavedSinceLastPartialGC = 0;
+			const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
+
+			uint64 TotalUsed = MemStats.UsedVirtual + MemStats.UsedPhysical;
+			if (TotalUsed > MinMemoryBeforeGC)
+			{
+				// if we are waiting for packages to cache then we can gc
+				MarkGCPackagesToKeepForCooker();
+				Result |= COSR_MarkedUpKeepPackages;
+			}
+		}
+	}
+
 	bool bHasRunStringAssetReferenceResolve = false;
 	bool bTriedToRunStringAssetReferenceResolve = false;
 	if ((CookRequests.HasItems() == false) && IsCookByTheBookRunning() && (!(Result&COSR_WaitingOnChildCookers)))
@@ -2477,6 +2518,95 @@ uint64 UCookOnTheFlyServer::GetMaxMemoryAllowance() const
 	return MaxMemoryAllowance;
 }
 
+const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName& PackageName ) const
+{
+	TArray<FName>* PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
+	if ( !PackageDependencies )
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+		CachedFullPackageDependencies.Add(PackageName);
+
+		TArray<FName> ChildDependencies;
+		check( AssetRegistry.GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::All) );
+
+		TArray<FName> Dependencies = ChildDependencies;
+		Dependencies.AddUnique(PackageName);
+		for ( const auto& ChildDependency : ChildDependencies)
+		{
+			const TArray<FName>& ChildPackageDependencies = GetFullPackageDependencies(ChildDependency);
+			for ( const auto& ChildPackageDependency : ChildPackageDependencies )
+			{
+				Dependencies.AddUnique(ChildPackageDependency);
+			}
+		}
+
+		PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
+		check(PackageDependencies);
+		Swap(*PackageDependencies, Dependencies);
+	}
+	return *PackageDependencies;
+}
+
+void UCookOnTheFlyServer::MarkGCPackagesToKeepForCooker()
+{
+	// just saved this package will the cooker need this package again this cook?
+	for (TObjectIterator<UObject> It; It; ++It)
+	{
+		UObject* Object = *It;
+		Object->ClearFlags(RF_KeepForCooker);
+	}
+
+	TSet<FName> KeepPackages;
+	// first see if the package is in the required to be saved list
+	// then see if the package is needed by any of the packages which are required to be saved
+
+	TMap<FName, int32> PackageDependenciesCount;
+	for (const auto& QueuedPackage : CookRequests.GetQueue())
+	{
+		const FName* PackageName = GetCachedPackageFilenameToPackageFName(QueuedPackage);
+		if ( !PackageName )
+		{
+			PackageDependenciesCount.Add(QueuedPackage, 0);
+			continue;
+		}
+		const TArray<FName>& NeededPackages = GetFullPackageDependencies(*PackageName);
+		const FName StandardFName = QueuedPackage;
+		PackageDependenciesCount.Add(StandardFName, NeededPackages.Num());
+		KeepPackages.Append(NeededPackages);
+	}
+
+	TSet<FName> LoadedPackages;
+	for ( TObjectIterator<UPackage> It; It; ++It )
+	{
+		UPackage* Package = (UPackage*)(*It);
+		if ( KeepPackages.Contains(Package->GetFName()) )
+		{
+			LoadedPackages.Add( GetCachedStandardPackageFileFName(Package->GetFName()) );
+			const auto& ReentryData = GetReentryData(Package);
+			Package->SetFlags(RF_KeepForCooker);
+			for (auto& Obj : ReentryData.CachedObjectsInOuter)
+			{
+				Obj->SetFlags(RF_KeepForCooker);
+			}
+		}
+	}
+
+	// sort the cook requests by the packages which are loaded first
+	// then sort by the number of dependencies which are referenced by the package
+	// we want to process the packages with the highest dependencies so that they can be evicted from memory and are likely to be able to be released on next gc pass
+	CookRequests.Sort([=, &PackageDependenciesCount,&LoadedPackages](const FName& A, const FName& B)
+		{
+			int32 ADependencies = PackageDependenciesCount.FindChecked(A);
+			int32 BDependencies = PackageDependenciesCount.FindChecked(B);
+			bool ALoaded = LoadedPackages.Contains(A);
+			bool BLoaded = LoadedPackages.Contains(B);
+			return (ALoaded == BLoaded) ? (ADependencies > BDependencies) : ALoaded > BLoaded;
+		}
+	);
+}
+
 void UCookOnTheFlyServer::BeginDestroy()
 {
 	EndNetworkFileServer();
@@ -2773,7 +2903,7 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 		}
 	}
 
-	PackagesPerGC = 50;
+	PackagesPerGC = 500;
 	int32 ConfigPackagesPerGC = 0;
 	if (GConfig->GetInt( TEXT("CookSettings"), TEXT("PackagesPerGC"), ConfigPackagesPerGC, GEditorIni ))
 	{
@@ -2786,13 +2916,26 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 
 	int32 MaxMemoryAllowanceInMB = 8 * 1024;
 	GConfig->GetInt( TEXT("CookSettings"), TEXT("MaxMemoryAllowance"), MaxMemoryAllowanceInMB, GEditorIni );
-	MaxMemoryAllowanceInMB = FMath::Min(MaxMemoryAllowanceInMB, 0);
+	MaxMemoryAllowanceInMB = FMath::Max(MaxMemoryAllowanceInMB, 0);
 	MaxMemoryAllowance = MaxMemoryAllowanceInMB * 1024LL * 1024LL;
 	
+
+	int32 MinMemoryBeforeGCInMB = 0; // 6 * 1024;
+	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinMemoryBeforeGC"), MinMemoryBeforeGCInMB, GEditorIni);
+	MinMemoryBeforeGCInMB = FMath::Max(MinMemoryBeforeGCInMB, 0);
+	MinMemoryBeforeGC = MinMemoryBeforeGCInMB * 1024LL * 1024LL;
+
+
 	int32 MinFreeMemoryInMB = 0;
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinFreeMemory"), MinFreeMemoryInMB, GEditorIni);
-	MinFreeMemoryInMB = FMath::Min(MinFreeMemoryInMB, 0);
+	MinFreeMemoryInMB = FMath::Max(MinFreeMemoryInMB, 0);
 	MinFreeMemory = MinFreeMemoryInMB * 1024LL * 1024LL;
+
+
+	MaxNumPackagesBeforePartialGC = 400;
+	GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxNumPackagesBeforePartialGC"), MaxNumPackagesBeforePartialGC, GEditorIni);
+	
+
 
 	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb min free memory %dmb"), MaxMemoryAllowanceInMB, MinFreeMemoryInMB);
 
@@ -4223,6 +4366,11 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	CookByTheBookOptions->bRunning = false;
 
+	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
+
+
+	UE_LOG(LogCook, Display, TEXT("Peak Used virtual %u Peak Used phsical %u"), MemStats.PeakUsedVirtual / 1024 / 1024, MemStats.PeakUsedPhysical / 1024 / 1024 );
+
 	OUTPUT_HIERARCHYTIMERS();
 }
 
@@ -5038,6 +5186,8 @@ void UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 	}
 
 	FName StandardName = GetCachedStandardPackageFileFName(Package);
+
+	// UE_LOG(LogCook, Display, TEXT("Loading package %s"), *StandardName.ToString());
 
 	bool bShouldMarkAsAlreadyProcessed = false;
 

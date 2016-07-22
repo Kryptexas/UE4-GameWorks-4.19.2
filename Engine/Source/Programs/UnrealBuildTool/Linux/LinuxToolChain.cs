@@ -308,6 +308,10 @@ namespace UnrealBuildTool
 				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
 			}
 
+			Result += " -nostdinc++";
+			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/";
+			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/c++/v1";
+
 			Result += " -Wall -Werror";
 			// test without this next line?
 			Result += " -funwind-tables";               // generate unwind tables as they seem to be needed for stack tracing (why??)
@@ -1059,7 +1063,23 @@ namespace UnrealBuildTool
 			}
 			LinkAction.CommandArguments += " -lrt"; // needed for clock_gettime()
 			LinkAction.CommandArguments += " -lm"; // math
-			LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
+
+			// libc++ and its abi lib
+			LinkAction.CommandArguments += " -stdlib=libc++";
+			LinkAction.CommandArguments += " -nodefaultlibs";
+			LinkAction.CommandArguments += " -L" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/";
+			LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++.a";
+			LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++abi.a";
+			LinkAction.CommandArguments += " -lm";
+			LinkAction.CommandArguments += " -lc";
+			LinkAction.CommandArguments += " -lgcc_s";
+			LinkAction.CommandArguments += " -lgcc";
+			LinkAction.CommandArguments += " -Wl,--end-group";
+
+			// these can be helpful for understanding the order of libraries or library search directories
+			//LinkAction.CommandArguments += " -Wl,--verbose";
+			//LinkAction.CommandArguments += " -Wl,--trace";
+			//LinkAction.CommandArguments += " -v";
 
 			// Add the additional arguments specified by the environment.
 			LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
@@ -1202,8 +1222,6 @@ namespace UnrealBuildTool
 				}
 				FixDepsScript.Close();
 			}
-
-			//LinkAction.CommandArguments += " -v";
 
 			// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
 			if (CrossCompiling())

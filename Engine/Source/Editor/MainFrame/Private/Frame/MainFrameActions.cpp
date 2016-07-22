@@ -298,21 +298,12 @@ const TCHAR* GetUATCompilationFlags()
 FString GetCookingOptionalParams()
 {
 	FString OptionalParams;
-	/*const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-	if (PackagingSettings->bCookAll)
-	{
-		OptionalParams += TEXT(" -CookAll");
-		// maps only flag only affects cook all
-		if (PackagingSettings->bCookMapsOnly)
-		{
-			OptionalParams += TEXT(" -CookMapsOnly");
-		}
-	}
-
+	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+	
 	if (PackagingSettings->bSkipEditorContent)
 	{
 		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
-	}*/
+	}
 	return OptionalParams;
 }
 

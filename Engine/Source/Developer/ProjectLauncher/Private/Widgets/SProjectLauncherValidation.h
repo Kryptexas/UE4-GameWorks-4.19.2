@@ -129,7 +129,7 @@ public:
 			+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly", "Shipping doesn't support commandline options can't use cook on the fly").ToString(), ELauncherProfileValidationErrors::ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly)
+					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly", "Shipping doesn't support commandline options and can't use cook on the fly").ToString(), ELauncherProfileValidationErrors::ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly)
 				]
 
 			+ SVerticalBox::Slot()

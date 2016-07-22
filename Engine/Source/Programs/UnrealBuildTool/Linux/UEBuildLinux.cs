@@ -149,7 +149,8 @@ namespace UnrealBuildTool
                 UEBuildConfiguration.bCompileSimplygonSSF = false;
 			}
 
-			if (InBuildTarget.TargetType == TargetRules.TargetType.Server)
+			// Do not compile ICU for any Linux build at the moment until it is rebuilt against libc++
+			//if (InBuildTarget.TargetType == TargetRules.TargetType.Server)
 			{
 				// Localization shouldn't be needed on servers by default, and ICU is pretty heavy
 				UEBuildConfiguration.bCompileICU = false;

@@ -253,6 +253,7 @@ namespace AutomationTool
 			this.CookOnTheFly = InParams.CookOnTheFly;
             this.CookOnTheFlyStreaming = InParams.CookOnTheFlyStreaming;
             this.UnversionedCookedContent = InParams.UnversionedCookedContent;
+			this.EncryptIniFiles = InParams.EncryptIniFiles;
             this.SkipCookingEditorContent = InParams.SkipCookingEditorContent;
             this.NumCookersToSpawn = InParams.NumCookersToSpawn;
 			this.FileServer = InParams.FileServer;
@@ -369,6 +370,7 @@ namespace AutomationTool
             bool? CookOnTheFly = null,
             bool? CookOnTheFlyStreaming = null,
             bool? UnversionedCookedContent = null,
+			bool? EncryptIniFiles = null,
             bool? SkipCookingEditorContent = null,
             int? NumCookersToSpawn = null,
             string AdditionalCookerOptions = null,
@@ -542,7 +544,8 @@ namespace AutomationTool
             }
             this.CookOnTheFlyStreaming = GetParamValueIfNotSpecified(Command, CookOnTheFlyStreaming, this.CookOnTheFlyStreaming, "cookontheflystreaming");
             this.UnversionedCookedContent = GetParamValueIfNotSpecified(Command, UnversionedCookedContent, this.UnversionedCookedContent, "UnversionedCookedContent");
-            this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
+			this.EncryptIniFiles = GetParamValueIfNotSpecified(Command, EncryptIniFiles, this.EncryptIniFiles, "EncryptIniFiles");
+			this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
             if (NumCookersToSpawn.HasValue)
             {
                 this.NumCookersToSpawn = NumCookersToSpawn.Value;
@@ -1255,10 +1258,15 @@ namespace AutomationTool
         /// </summary>
         public bool Compressed;
 
-        /// <summary>
-        /// put -debug on the editorexe commandline
-        /// </summary>
-        public bool UseDebugParamForEditorExe;
+		/// <summary>
+		/// Encrypt ini files which are packaged into the pak file.  Only valid when encryption keys and building pak file specified. 
+		/// </summary>
+		public bool EncryptIniFiles;
+
+		/// <summary>
+		/// put -debug on the editorexe commandline
+		/// </summary>
+		public bool UseDebugParamForEditorExe;
 
         /// <summary>
         /// Cook: Do not include a version number in the cooked content
@@ -2267,6 +2275,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("CookOnTheFly={0}", CookOnTheFly);
 				CommandUtils.LogLog("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
 				CommandUtils.LogLog("UnversionedCookedContent={0}", UnversionedCookedContent);
+				CommandUtils.LogLog("EncryptIniFiles={0}", EncryptIniFiles);
 				CommandUtils.LogLog("SkipCookingEditorContent={0}", SkipCookingEditorContent);
                 CommandUtils.LogLog("NumCookersToSpawn={0}", NumCookersToSpawn);
                 CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);

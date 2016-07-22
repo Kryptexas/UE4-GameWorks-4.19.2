@@ -146,7 +146,7 @@ public:
 	 */
 	void SetCullMode(MTLCullMode const CullMode);
 
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 	/*
 	 * Controls what is done with fragments outside of the near or far planes.
 	 * @param DepthClipMode the clip mode.

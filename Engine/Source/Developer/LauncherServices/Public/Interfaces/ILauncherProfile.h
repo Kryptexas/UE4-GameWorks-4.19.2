@@ -710,6 +710,20 @@ public:
 	virtual bool IsCompressed( ) const = 0;
 
 	/**
+	 * Checks if encrypting ini files is enabled
+	 * 
+	 * @return true if encrypting ini files is enabled
+	 */
+	virtual bool IsEncryptingIniFiles() const = 0;
+
+	/**
+	 * Checks if encrypting ini files is enabled
+	 *
+	 * @return true if encrypting ini files is enabled
+	 */
+	virtual bool IsForDistribution() const = 0;
+
+	/**
 	 * Checks whether unversioned cooking is enabled.
 	 *
 	 * @return true if cooking unversioned, false otherwise.
@@ -1060,6 +1074,24 @@ public:
 	 * @see IsCompressed
 	 */
 	virtual void SetCompressed( bool Enable ) = 0;
+
+
+	/**
+	 * Set encrypt ini files
+	 *
+	 * @param Enable encrypt ini files
+	 * @see IsEncryptIniFiles
+	 */
+	virtual void SetEncryptingIniFiles(bool Enabled) = 0;
+
+	/**
+	* Set this build is for distribution to the public
+	*
+	* @param enable for distribution
+	* @see IsForDistribution
+	*/
+	virtual void SetForDistribution(bool Enabled) = 0;
+	
 
 	/**
 	 * Sets incremental deploying.

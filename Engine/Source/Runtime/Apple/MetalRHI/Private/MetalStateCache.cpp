@@ -846,38 +846,34 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 			//    If we switch to Clear, we have to always switch to a new RT to force the clear
 			//    If we switch to DontCare, there's definitely no need to switch
 			//    If we switch *from* Clear then we must change target as we *don't* want to clear again.
-			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear || PreviousRenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
-			{
-				bAllChecksPassed = false;
-				break;
-			}
-			// StoreAction - this matters what the previous one was **In Spirit**
-			//    If we come from Store, we need to switch to a new RT to force the store
-			//    If we come from DontCare, then there's no need to switch
-			//    @todo metal: However, we basically only use Store now, and don't
-			//        care about intermediate results, only final, so we don't currently check the value
-//			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
-//			{
-//				bAllChecksPassed = false;
-//				break;
-//			}
-		}
-		
-		if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture)
-		{
-			if ((InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear)
-				|| (InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear || RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
-			{
-				bAllChecksPassed = false;
-			}
-
+            if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
+            {
+                bAllChecksPassed = false;
+                break;
+            }
+            // StoreAction - this matters what the previous one was **In Spirit**
+            //    If we come from Store, we need to switch to a new RT to force the store
+            //    If we come from DontCare, then there's no need to switch
+            //    @todo metal: However, we basically only use Store now, and don't
+            //        care about intermediate results, only final, so we don't currently check the value
+            //			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
+            //			{
+            //				bAllChecksPassed = false;
+            //				break;
+            //			}
+        }
+        
+        if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture && (InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
+        {
+            bAllChecksPassed = false;
+        }
+        
 #if PLATFORM_MAC
-			if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
-			{
-				bAllChecksPassed = false;
-			}
+        if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
+        {
+            bAllChecksPassed = false;
+        }
 #endif
-		}
 	}
 
 	// if we are setting them to nothing, then this is probably end of frame, and we can't make a framebuffer

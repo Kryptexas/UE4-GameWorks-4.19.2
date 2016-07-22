@@ -117,6 +117,8 @@ UITextFieldDelegate>
 
 static void interruptionListener(void* ClientData, UInt32 Interruption);
 
+-(UIWindow*)window;
+
 @end
 
 void InstallSignalHandlers();

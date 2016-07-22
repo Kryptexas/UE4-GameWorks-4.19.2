@@ -78,6 +78,24 @@ void SProjectLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 											.OnClicked(this, &SProjectLauncherPackagingSettings::HandleBrowseButtonClicked)
 									]
 							]
+
+						// don't include editor content
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+							[
+
+								SNew(SCheckBox)
+								.IsChecked(this, &SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxIsChecked)
+							.OnCheckStateChanged(this, &SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxCheckStateChanged)
+							.Padding(FMargin(4.0f, 0.0f))
+							.ToolTipText(LOCTEXT("ForDistributionCheckBoxTooltip", "If checked the build will be marked as for release to the public (distribution)."))
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("ForDistributionCheckBoxText", "Is this build for distribution to the public"))
+							]
+							]
 					]
 			]
 	];
@@ -93,6 +111,31 @@ void SProjectLauncherPackagingSettings::UpdateDirectoryPathText()
 
 /* SProjectLauncherPackagingSettings callbacks
  *****************************************************************************/
+
+void SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxCheckStateChanged(ECheckBoxState NewState)
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetForDistribution(NewState == ECheckBoxState::Checked);
+	}
+}
+
+
+ECheckBoxState SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxIsChecked() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsForDistribution())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+	return ECheckBoxState::Unchecked;
+}
+
+
 
 FText SProjectLauncherPackagingSettings::HandleDirectoryTitleText() const
 {

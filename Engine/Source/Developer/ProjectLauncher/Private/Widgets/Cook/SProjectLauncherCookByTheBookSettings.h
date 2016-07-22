@@ -74,8 +74,13 @@ private:
 	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
 	void HandleCompressedCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	void HandleEncryptIniFilesCheckBoxCheckStateChanged(ECheckBoxState NewState );
 
 	ECheckBoxState HandleCompressedCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleEncryptIniFilesCheckBoxIsChecked() const;
+	
+	
+	
 	
 	/** Handles generating a row widget in the map list view. */
 	TSharedRef<ITableRow> HandleMapListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );

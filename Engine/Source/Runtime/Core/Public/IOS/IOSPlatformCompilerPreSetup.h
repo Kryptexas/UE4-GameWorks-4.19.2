@@ -103,4 +103,4 @@
 // since they cannot be caught by all compilers that we support. They are deemed to be relatively safe to be ignored, at least until all SDKs/toolchains start supporting them.
 #pragma clang diagnostic warning "-Wreorder"
 #pragma clang diagnostic warning "-Wparentheses-equality"
-#pragma clang diagnostic warning "-Wdelete-non-virtual-dtor"
+#pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"

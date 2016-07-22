@@ -193,7 +193,7 @@ static bool CompressSliceToASTC(
 		*CompressionParameters
 	);
 
-	UE_LOG(LogTextureFormatASTC, Display, TEXT("Compressing to ASTC (%s)..."), *CompressionParameters);
+	UE_LOG(LogTextureFormatASTC, Display, TEXT("Compressing to ASTC (options = '%s')..."), *CompressionParameters);
 
 	// Start Compressor
 #if PLATFORM_MAC
@@ -273,12 +273,16 @@ static bool CompressSliceToASTC(
 		check(sizeof(FASTCHeader) == 16);
 		check(ASTCData.Num() == (sizeof(FASTCHeader) + MipSize));
 		FMemory::Memcpy(MipData, ASTCData.GetData() + sizeof(FASTCHeader), MipSize);
+
+		// Delete intermediate files
+		IFileManager::Get().Delete(*InputFilePath);
+		IFileManager::Get().Delete(*OutputFilePath);
 	}
 	else
 	{
-		UE_LOG(LogTextureFormatASTC, Error, TEXT("ASTC encoder failed with return code %d, mip size (%d, %d)"), ReturnCode, SizeX, SizeY);
-		IFileManager::Get().Delete(*InputFilePath);
-		IFileManager::Get().Delete(*OutputFilePath);
+		UE_LOG(LogTextureFormatASTC, Error, TEXT("ASTC encoder failed with return code %d, mip size (%d, %d). Leaving '%s' for testing."), ReturnCode, SizeX, SizeY, *InputFilePath);
+// 		IFileManager::Get().Delete(*InputFilePath);
+// 		IFileManager::Get().Delete(*OutputFilePath);
 		return false;
 	}
 		

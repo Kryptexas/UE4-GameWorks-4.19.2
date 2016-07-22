@@ -65,7 +65,7 @@ public partial class Project : CommandUtils
 	/// </summary>
 	/// <param name="Filename"></param>
 	/// <param name="ResponseFile"></param>
-	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed)
+	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed, bool EncryptIniFiles)
 	{
 		using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
 		{
@@ -75,6 +75,11 @@ public partial class Project : CommandUtils
 				if (Compressed)
 				{
 					Line += " -compress";
+				}
+				
+				if (Path.GetExtension(Entry.Key).Contains(".ini") && EncryptIniFiles)
+				{
+					Line += " -encrypt";
 				}
 				Writer.WriteLine(Line);
 			}
@@ -93,7 +98,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed, String PatchSourceContentPath)
+    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, String PatchSourceContentPath)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -101,7 +106,7 @@ public partial class Project : CommandUtils
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed);
+		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed, EncryptIniFiles);
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
 
@@ -901,6 +906,10 @@ public partial class Project : CommandUtils
             PatchSourceContentPath = SC.StageTargetPlatform.GetReleasePakFilePath(SC, Params, PakFilename);
         }
 
+		ConfigCacheIni PlatformGameConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.IniPlatformType, "Game", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
+		bool PackageSettingsEncryptIniFiles = false;
+		PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptIniFiles", out PackageSettingsEncryptIniFiles);
+
 		if (!bCopiedExistingPak)
 		{
 			if (File.Exists(OutputLocation))
@@ -913,7 +922,7 @@ public partial class Project : CommandUtils
 			}
 			if (!bCopiedExistingPak)
 			{
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, EncryptionKeys, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, PatchSourceContentPath);
+				RunUnrealPak(UnrealPakResponseFile, OutputLocation, EncryptionKeys, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, PatchSourceContentPath);
 			}
 		}
 

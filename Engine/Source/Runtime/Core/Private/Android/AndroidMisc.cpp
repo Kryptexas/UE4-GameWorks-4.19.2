@@ -378,6 +378,14 @@ bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
 
 bool FAndroidMisc::AllowRenderThread()
 {
+	// Check for DisableThreadedRendering CVar from DeviceProfiles config
+	// Any devices in the future that need to disable threaded rendering should be given a device profile and use this CVar
+	const IConsoleVariable *const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AndroidDisableThreadedRendering"));
+	if (CVar && CVar->GetInt() != 0)
+	{
+		return false;
+	}
+
 	if (FAndroidMisc::ShouldUseVulkan())
 	{
 		// @todo vulkan: stop forcing no RT!

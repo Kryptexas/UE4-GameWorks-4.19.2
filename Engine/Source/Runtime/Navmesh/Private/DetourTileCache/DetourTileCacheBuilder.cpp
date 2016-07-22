@@ -1715,7 +1715,7 @@ static dtStatus removeVertex(dtTileCacheLogContext* ctx, dtTileCachePolyMesh& me
 	}
 	
 	// Remove vertex.
-	for (int i = (int)rem; i < mesh.nverts; ++i)
+	for (int i = (int)rem; i < (mesh.nverts - 1); ++i)
 	{
 		mesh.verts[i*3+0] = mesh.verts[(i+1)*3+0];
 		mesh.verts[i*3+1] = mesh.verts[(i+1)*3+1];

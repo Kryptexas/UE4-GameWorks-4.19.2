@@ -194,6 +194,14 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private int DesiredHolderWidth = 0;
 	private int DesiredHolderHeight = 0;
 	
+	enum EAlertDialogType
+	{
+		None,
+		Console,
+		Keyboard
+	}
+	private EAlertDialogType CurrentDialogType = EAlertDialogType.None;
+	
 	/** Access singleton activity for game. **/
 	public static GameActivity Get()
 	{
@@ -621,12 +629,14 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				nativeConsoleCommand(message);
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		})
 		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		});
 		consoleAlert = builder.create();
@@ -665,6 +675,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				nativeVirtualKeyboardResult(true, message);
 				virtualKeyboardInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		})
 		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -673,6 +684,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				nativeVirtualKeyboardResult(false, " ");
 				virtualKeyboardInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		});
 		virtualKeyboardAlert = builder.create();
@@ -794,6 +806,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	protected void onPause()
 	{
 		super.onPause();
+		if(CurrentDialogType != EAlertDialogType.None)
+		{
+			//	If an AlertDialog is showing when the application is paused, it can cause our main window to be terminated
+			//	Hide the dialog here. It will be shown again via AndroidThunkJava_ShowHiddenAlertDialog called from native code
+			_activity.runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					switch(CurrentDialogType)
+					{
+						case Keyboard:
+							virtualKeyboardAlert.hide(); 
+							break;
+						case Console:
+							consoleAlert.hide(); 
+							break;
+						default:
+							Log.debug("ERROR: Unknown EAlertDialogType!");
+							break;
+					}
+				}
+			});
+		}
 //$${gameActivityOnPauseAdditions}$$
 		Log.debug("==============> GameActive.onPause complete!");
 	}
@@ -840,6 +875,34 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		else
 		{
 			super.surfaceChanged(holder, format, width, height);
+		}
+	}
+
+	public void AndroidThunkJava_ShowHiddenAlertDialog()
+	{
+		if(CurrentDialogType != EAlertDialogType.None)
+		{
+			Log.debug("==============> [JAVA] AndroidThunkJava_ShowHiddenAlertDialog() - Showing " + CurrentDialogType);
+		
+			//	If an AlertDialog was showing onPause and we hid it, show it again
+			_activity.runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					switch(CurrentDialogType)
+					{
+						case Keyboard:
+							virtualKeyboardAlert.show(); 
+							break;
+						case Console:
+							consoleAlert.show(); 
+							break;
+						default:
+							Log.debug("ERROR: Unknown EAlertDialogType!");
+							break;
+					}
+				}
+			});
 		}
 	}
 
@@ -958,6 +1021,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					Log.debug("Console not showing yet");
 					consoleAlert.show(); 
+					CurrentDialogType = EAlertDialogType.Console;
 				}
 			}
 		});
@@ -988,6 +1052,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					Log.debug("Virtual keyboard not showing yet");
 					virtualKeyboardAlert.show(); 
+					CurrentDialogType = EAlertDialogType.Keyboard;
 				}
 			}
 		});

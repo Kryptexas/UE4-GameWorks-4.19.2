@@ -367,7 +367,6 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	CookFlags |= bIterativeCooking ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
-
 	CookOnTheFlyServer->Initialize( ECookMode::CookOnTheFly, CookFlags );
 
 	bool BindAnyPort = InstanceId.IsValid();
@@ -790,6 +789,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bUseSerializationForGeneratingPackageDependencies = Switches.Contains(TEXT("UseSerializationForGeneratingPackageDependencies"));
 	bCookSinglePackage = Switches.Contains(TEXT("cooksinglepackage"));
 	bVerboseCookerWarnings = Switches.Contains(TEXT("verbosecookerwarnings"));
+	bPartialGC = Switches.Contains(TEXT("Partialgc"));
 	if (bLeakTest)
 	{
 		for (FObjectIterator It; It; ++It)
@@ -1307,6 +1307,9 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookFlags |= bUseSerializationForGeneratingPackageDependencies ? ECookInitializationFlags::UseSerializationForPackageDependencies : ECookInitializationFlags::None;
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
 	CookFlags |= bVerboseCookerWarnings ? ECookInitializationFlags::OutputVerboseCookerWarnings : ECookInitializationFlags::None;
+	CookFlags |= bPartialGC ? ECookInitializationFlags::MarkupInUsePackages : ECookInitializationFlags::None;
+	bool bTestCook = FParse::Param(*Params, TEXT("Testcook"));
+	CookFlags |= bTestCook ? ECookInitializationFlags::TestCook : ECookInitializationFlags::None;
 
 	TArray<UClass*> FullGCAssetClasses;
 	if (FullGCAssetClassNames.Num())
@@ -1507,111 +1510,143 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			DetailedCookStats::TargetPlatforms.RemoveFromEnd(TEXT("+"));
 		}
 	});
+	
+	do
 	{
-		COOK_STAT(FScopedDurationTimer StartCookByTheBookTimer(DetailedCookStats::StartCookByTheBookTimeSec));
-		CookOnTheFlyServer->StartCookByTheBook(StartupOptions);
-	}
-
-	// Garbage collection should happen when either
-	//	1. We have cooked a map (configurable asset type)
-	//	2. We have cooked non-map packages and...
-	//		a. we have accumulated 50 (configurable) of these since the last GC.
-	//		b. we have been idle for 20 (configurable) seconds.
-	bool bShouldGC = false;
-	FString GCReason;
-
-	// megamoth
-	uint32 NonMapPackageCountSinceLastGC = 0;
-
-	const uint32 PackagesPerGC = CookOnTheFlyServer->GetPackagesPerGC();
-	const double IdleTimeToGC = CookOnTheFlyServer->GetIdleTimeToGC();
-	const uint64 MaxMemoryAllowance = CookOnTheFlyServer->GetMaxMemoryAllowance();
-
-	double LastCookActionTime = FPlatformTime::Seconds();
-
-	FDateTime LastConnectionTime = FDateTime::UtcNow();
-	bool bHadConnection = false;
-
-	while (CookOnTheFlyServer->IsCookByTheBookRunning())
-	{
-		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "NewCook.MainLoop" ), STAT_CookOnTheFly_MainLoop, STATGROUP_LoadTime );
 		{
-			uint32 TickResults = 0;
-			static const float CookOnTheSideTimeSlice = 10.0f;
-			TickResults = CookOnTheFlyServer->TickCookOnTheSide( CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC );
+			COOK_STAT(FScopedDurationTimer StartCookByTheBookTimer(DetailedCookStats::StartCookByTheBookTimeSec));
+			CookOnTheFlyServer->StartCookByTheBook(StartupOptions);
+		}
 
-			if (TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
+		// Garbage collection should happen when either
+		//	1. We have cooked a map (configurable asset type)
+		//	2. We have cooked non-map packages and...
+		//		a. we have accumulated 50 (configurable) of these since the last GC.
+		//		b. we have been idle for 20 (configurable) seconds.
+		bool bShouldGC = false;
+		FString GCReason;
+
+		// megamoth
+		uint32 NonMapPackageCountSinceLastGC = 0;
+
+		const uint32 PackagesPerGC = CookOnTheFlyServer->GetPackagesPerGC();
+		const double IdleTimeToGC = CookOnTheFlyServer->GetIdleTimeToGC();
+		const uint64 MaxMemoryAllowance = CookOnTheFlyServer->GetMaxMemoryAllowance();
+
+		double LastCookActionTime = FPlatformTime::Seconds();
+
+		FDateTime LastConnectionTime = FDateTime::UtcNow();
+		bool bHadConnection = false;
+
+		while (CookOnTheFlyServer->IsCookByTheBookRunning())
+		{
+			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "NewCook.MainLoop" ), STAT_CookOnTheFly_MainLoop, STATGROUP_LoadTime );
 			{
-				LastCookActionTime = FPlatformTime::Seconds();
-			}
+				uint32 TickResults = 0;
+				static const float CookOnTheSideTimeSlice = 10.0f;
+				TickResults = CookOnTheFlyServer->TickCookOnTheSide( CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC );
 
+				{
+					COOK_STAT(FScopedDurationTimer ShaderProcessAsyncTimer(DetailedCookStats::TickLoopShaderProcessAsyncResultsTimeSec));
+					GShaderCompilingManager->ProcessAsyncResults(true, false);
+				}
 
-			{
-				COOK_STAT(FScopedDurationTimer ShaderProcessAsyncTimer(DetailedCookStats::TickLoopShaderProcessAsyncResultsTimeSec));
-				GShaderCompilingManager->ProcessAsyncResults(true, false);
-			}
-
-			if (NonMapPackageCountSinceLastGC > 0 && !bShouldGC)
-			{
+				const bool bHasExceededMaxMemory = CookOnTheFlyServer->HasExceededMaxMemory();
 				// We should GC if we have packages to collect and we've been idle for some time.
 				const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
-				const bool bExceededIdleTimeToGC = (IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-				if (bExceededPackagesPerGC)
+				const bool bWaitingOnObjectCache = ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0);
+
+
+				if ( !bWaitingOnObjectCache && bExceededPackagesPerGC ) // if we are waiting on things to cache then ignore the exceeded packages per gc
 				{
-					GCReason = TEXT("ExceededPackagesPerGC");
+					bShouldGC = true;
+					GCReason = TEXT("Exceeded packages per GC");
+				}
+				else if ( bHasExceededMaxMemory ) // if we are exceeding memory then we need to gc (this can cause thrashing if the cooker loads the same stuff into memory next tick
+				{
+					bShouldGC = true;
+					GCReason = TEXT("Exceeded Max Memory");
+				}
+				else if ((TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0) // cooker loaded some object which needs to be cleaned up before the cooker can proceed so force gc
+				{
+					GCReason = TEXT("COSR_RequiresGC");
 					bShouldGC = true;
 				}
-				else if (bExceededIdleTimeToGC)
+
+
+				bShouldGC |= bTestCook; // testing cooking / gc path
+				
+				auto DumpMemStats = []()
 				{
-					GCReason = TEXT("ExceededIdleTimeToGC");
-					bShouldGC = true;
+					FGenericMemoryStats MemStats;
+					GMalloc->GetAllocatorStats(MemStats);
+					for (const auto& Item : MemStats.Data)
+					{
+						UE_LOG(LogCookCommandlet, Display, TEXT("Item %s = %d"), *Item.Key, Item.Value);
+					}
+				};
+
+				if ( bPartialGC && (TickResults & UCookOnTheFlyServer::COSR_MarkedUpKeepPackages))
+				{
+					COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
+					UE_LOG(LogCookCommandlet, Display, TEXT("GarbageCollection... partial gc"));
+
+					DumpMemStats();
+
+					int32 NumObjectsBeforeGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+					int32 NumObjectsAvailableBeforeGC = GUObjectArray.GetObjectArrayNum();
+					CollectGarbage(RF_KeepForCooker, true);
+
+					int32 NumObjectsAfterGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+					int32 NumObjectsAvailableAfterGC = GUObjectArray.GetObjectArrayNum();
+					UE_LOG(LogCookCommandlet, Display, TEXT("Partial GC before %d available %d after %d available %d"), NumObjectsBeforeGC, NumObjectsAvailableBeforeGC, NumObjectsAfterGC, NumObjectsAvailableAfterGC);
+
+					DumpMemStats();
+				
+				}
+				else if (bShouldGC) // don't clean up if we are waiting on cache of cooked data
+				{
+					bShouldGC = false;
+					NonMapPackageCountSinceLastGC = 0;
+
+					int32 NumObjectsBeforeGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+					int32 NumObjectsAvailableBeforeGC = GUObjectArray.GetObjectArrayNum();
+
+					UE_LOG( LogCookCommandlet, Display, TEXT( "GarbageCollection... (%s)" ), *GCReason);
+					GCReason = FString();
+
+
+					DumpMemStats();
+
+					COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
+					CollectGarbage(RF_NoFlags);
+
+					int32 NumObjectsAfterGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+					int32 NumObjectsAvailableAfterGC = GUObjectArray.GetObjectArrayNum();
+					UE_LOG(LogCookCommandlet, Display, TEXT("Full GC before %d available %d after %d available %d"), NumObjectsBeforeGC, NumObjectsAvailableBeforeGC, NumObjectsAfterGC, NumObjectsAvailableAfterGC);
+
+					DumpMemStats();
+				}
+				else
+				{
+					COOK_STAT(FScopedDurationTimer RecompileTimer(DetailedCookStats::TickLoopRecompileShaderRequestsTimeSec));
+					CookOnTheFlyServer->TickRecompileShaderRequests();
+
+					FPlatformProcess::Sleep( 0.0f );
+				}
+
+				{
+					COOK_STAT(FScopedDurationTimer ProcessDeferredCommandsTimer(DetailedCookStats::TickLoopProcessDeferredCommandsTimeSec));
+					ProcessDeferredCommands();
 				}
 			}
 
-			if (!bShouldGC && (TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0)
 			{
-				GCReason = TEXT("COSR_RequiresGC");
-				bShouldGC = true;
-			}
-
-			if (!bShouldGC && HasExceededMaxMemory(MaxMemoryAllowance))
-			{
-				GCReason = TEXT("ExceededMaxMemory");
-				bShouldGC = true;
-			}
-
-
-			// don't clean up if we are waiting on cache of cooked data
-			if (bShouldGC && ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0))
-			{
-				bShouldGC = false;
-				NonMapPackageCountSinceLastGC = 0;
-
-				UE_LOG( LogCookCommandlet, Display, TEXT( "GarbageCollection... (%s)" ), *GCReason);
-				GCReason = FString();
-
-				COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
-				CollectGarbage(RF_NoFlags);
-			}
-			else
-			{
-				COOK_STAT(FScopedDurationTimer RecompileTimer(DetailedCookStats::TickLoopRecompileShaderRequestsTimeSec));
-				CookOnTheFlyServer->TickRecompileShaderRequests();
-
-				FPlatformProcess::Sleep( 0.0f );
-			}
-
-			{
-				COOK_STAT(FScopedDurationTimer ProcessDeferredCommandsTimer(DetailedCookStats::TickLoopProcessDeferredCommandsTimeSec));
-				ProcessDeferredCommands();
+				COOK_STAT(FScopedDurationTimer TickCommandletStatsTimer(DetailedCookStats::TickLoopTickCommandletStatsTimeSec));
+				FStats::TickCommandletStats();
 			}
 		}
-
-		{
-			COOK_STAT(FScopedDurationTimer TickCommandletStatsTimer(DetailedCookStats::TickLoopTickCommandletStatsTimeSec));
-			FStats::TickCommandletStats();
-		}
-	}
+	} while (bTestCook);
 
 	return true;
 }

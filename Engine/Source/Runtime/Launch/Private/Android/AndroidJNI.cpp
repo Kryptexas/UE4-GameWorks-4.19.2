@@ -61,6 +61,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_GetMetaDataBoolean = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataBoolean", "(Ljava/lang/String;)Z", bIsOptional);
 	AndroidThunkJava_GetMetaDataInt = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataInt", "(Ljava/lang/String;)I", bIsOptional);
 	AndroidThunkJava_GetMetaDataString = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataString", "(Ljava/lang/String;)Ljava/lang/String;", bIsOptional);
+	AndroidThunkJava_ShowHiddenAlertDialog = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowHiddenAlertDialog", "()V", bIsOptional);
 
 	// this is optional - only inserted if GearVR plugin enabled
 	AndroidThunkJava_IsGearVRApplication = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", true);
@@ -210,6 +211,7 @@ jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataBoolean;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataInt;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataString;
 jmethodID FJavaWrapper::AndroidThunkJava_IsGearVRApplication;
+jmethodID FJavaWrapper::AndroidThunkJava_ShowHiddenAlertDialog;
 
 jclass FJavaWrapper::InputDeviceInfoClass;
 jfieldID FJavaWrapper::InputDeviceInfo_VendorId;
@@ -395,6 +397,14 @@ FString AndroidThunkCpp_GetMetaDataString(const FString& Key)
 		}
 	}
 	return Result;
+}
+
+void AndroidThunkCpp_ShowHiddenAlertDialog()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_ShowHiddenAlertDialog);
+	}
 }
 
 // call out to JNI to see if the application was packaged for GearVR

@@ -18,7 +18,7 @@
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define GAME_THREAD_STACK_SIZE 1024 * 1024
 #else
-#define GAME_THREAD_STACK_SIZE 4 * 1024 * 1024
+#define GAME_THREAD_STACK_SIZE 8 * 1024 * 1024
 #endif
 
 DEFINE_LOG_CATEGORY(LogIOSAudioSession);
@@ -915,6 +915,11 @@ CORE_API bool IOSShowAchievementsUI()
 	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowAchievements) withObject:nil waitUntilDone : NO];
 
 	return true;
+}
+
+-(UIWindow*)window
+{
+	return Window;
 }
 
 @end

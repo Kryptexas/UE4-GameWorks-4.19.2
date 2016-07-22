@@ -441,6 +441,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 				UATCommand += TEXT(" -unversionedcookedcontent");
 			}
 
+			if (InProfile->IsEncryptingIniFiles())
+			{
+				UATCommand += TEXT(" -encryptinifiles");
+			}
+
 			FString additionalOptions = InProfile->GetCookOptions();
 			if (!additionalOptions.IsEmpty())
 			{
@@ -552,6 +557,13 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	case ELauncherProfileCookModes::DoNotCook:
 		UATCommand += TEXT(" -skipcook");
 		break;
+	}
+
+
+
+	if ( InProfile->IsForDistribution() )
+	{
+		UATCommand += TEXT(" -distribution");
 	}
 
 	if (InProfile->IsCookingIncrementally())

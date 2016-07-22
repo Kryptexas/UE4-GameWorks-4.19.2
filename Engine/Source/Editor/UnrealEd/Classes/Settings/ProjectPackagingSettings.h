@@ -167,6 +167,13 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Create compressed cooked packages"))
 	bool bCompressed;
+
+	/**
+	* Encrypt ini files inside of the pak file
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt ini files inside pak files"))
+	bool bEncryptIniFiles;
+
 	
 	/**
 	* Skip editor content

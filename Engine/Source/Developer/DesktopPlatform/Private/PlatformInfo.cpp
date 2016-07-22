@@ -114,7 +114,7 @@ static const FPlatformInfo PlatformInfoArray[] = {
 
 	BuildPlatformInfo(TEXT("AllDesktop"),					TEXT("AllDesktop"),			LOCTEXT("DesktopTargetPlatDisplay", "Desktop (Win+Mac+Linux)"),	EPlatformType::Game,	EPlatformFlags::None,			FPlatformIconPaths(TEXT("Launcher/DesktopTarget/Platform_Desktop_24x"), TEXT("Launcher/DesktopTarget/Platform_Desktop_128x")),						TEXT(""),												TEXT(""),			EPlatformSDKStatus::Unknown,	TEXT(""),																							false/*  see SProjectTargetPlatformSettings::Construct !!!! IsAvailableOnWindows || IsAvailableOnMac || IsAvailableOnLinux*/,	TEXT(""), false, true),
 
-	BuildPlatformInfo(TEXT("TVOS"),					TEXT("TVOS"),			LOCTEXT("TVOSTargetPlatDisplay", "AppleTV"),	EPlatformType::Game,	EPlatformFlags::None,			FPlatformIconPaths(TEXT("Launcher/TVOSTarget/Platform_TVOS_24x"), TEXT("Launcher/TVOSTarget/Platform_TVOS_128x")),						TEXT(""),												TEXT(""),			EPlatformSDKStatus::Unknown,	TEXT(""),																							IsAvailableOnWindows || IsAvailableOnMac,	TEXT("TVOS"), false, true),
+	BuildPlatformInfo(TEXT("TVOS"),					TEXT("TVOS"),			LOCTEXT("TVOSTargetPlatDisplay", "tvOS"),	EPlatformType::Game,	EPlatformFlags::None,			FPlatformIconPaths(TEXT("Launcher/TVOSTarget/Platform_TVOS_24x"), TEXT("Launcher/TVOSTarget/Platform_TVOS_128x")),						TEXT(""),												TEXT(""),			EPlatformSDKStatus::Unknown,	TEXT(""),																							IsAvailableOnWindows || IsAvailableOnMac,	TEXT("TVOS"), false, true),
 };
 
 } // anonymous namespace

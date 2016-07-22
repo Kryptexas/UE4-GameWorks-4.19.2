@@ -239,7 +239,31 @@ namespace UnrealBuildTool
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "VersionInfo", out BundleShortVersion);
 
 			// required capabilities
-			string RequiredCaps = "\t\t<string>armv7</string>\n";
+            string RequiredCaps = "";
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bSupported);
+            RequiredCaps += bSupported ? "\t\t<string>armv7</string>\n" : "";
+            if (!bSupported)
+            {
+                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bSupported);
+                RequiredCaps += bSupported ? "\t\t<string>armv7</string>\n" : "";
+            }
+
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bSupported);
+            RequiredCaps += bSupported ? "\t\t<string>arm64</string>\n" : "";
+            if (!bSupported)
+            {
+                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bSupported);
+                RequiredCaps += bSupported ? "\t\t<string>arm64</string>\n" : "";
+            }
+
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bSupported);
+            RequiredCaps += bSupported ? "\t\t<string>armv7s</string>\n" : "";
+            if (!bSupported)
+            {
+                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bSupported);
+                RequiredCaps += bSupported ? "\t\t<string>armv7s</string>\n" : "";
+            }
+
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
 			if (!bSupported)
@@ -518,7 +542,7 @@ namespace UnrealBuildTool
 				XDoc.DocumentType.InternalSubset = "";
 				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
                 string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString().Replace("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"[]>", "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
-                File.WriteAllText(PListFile, result);
+				File.WriteAllText(PListFile, result);
 			}
 			else
 			{

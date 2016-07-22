@@ -196,7 +196,7 @@ FString FIOSPlatformMisc::GetDefaultLocale()
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
-#if PLATFORM_TVOS
+#if UE_BUILD_SHIPPING || PLATFORM_TVOS
 	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 #else
 	NSString* CocoaText = (NSString*)FPlatformString::TCHARToCFString(Text);
@@ -867,10 +867,7 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 	else
 	{
         
-#ifdef __IPHONE_8_0
-        UIUserNotificationSettings * settings = [UIUserNotificationSettings settingsForTypes : (UIUserNotificationTypeBadge | UIUserNotificationTypeAlert) categories:nil];
-        [application registerUserNotificationSettings : settings];
-#else
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
 		UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
 		[application registerForRemoteNotificationTypes : myTypes];
 #endif

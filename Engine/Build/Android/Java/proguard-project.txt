@@ -45,6 +45,15 @@
 -keep class com.epicgames.ue4.GameActivity$JavaAchievement {
    public *;
 }
+-keep class com.epicgames.ue4.MediaPlayer14$AudioTrackInfo {
+	public *;
+}
+-keep class com.epicgames.ue4.MediaPlayer14$CaptionTrackInfo {
+	public *;
+}
+-keep class com.epicgames.ue4.MediaPlayer14$VideoTrackInfo {
+	public *;
+}
 
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface

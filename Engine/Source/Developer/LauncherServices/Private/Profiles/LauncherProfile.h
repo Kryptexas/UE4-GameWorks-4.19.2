@@ -21,7 +21,8 @@ enum ELauncherVersion
 	LAUNCHERSERVICES_SHAREABLEPROJECTPATHS = 21,
 	LAUNCHERSERVICES_FILEFORMATCHANGE = 22,
 	LAUNCHERSERVICES_ADDARCHIVE = 23,
-
+	LAUNCHERSERVICES_ADDEDENCRYPTINIFILES = 24,
+	
 	//ADD NEW STUFF HERE
 
 
@@ -651,6 +652,16 @@ public:
 		return Compressed;
 	}
 
+	virtual bool IsEncryptingIniFiles() const override
+	{
+		return EncryptIniFiles;
+	}
+
+	virtual bool IsForDistribution() const override
+	{
+		return ForDistribution;
+	}
+
 	virtual bool IsCookingUnversioned( ) const override
 	{
 		return CookUnversioned;
@@ -803,6 +814,11 @@ public:
 		if (Version >= LAUNCHERSERVICES_FIXCOMPRESSIONSERIALIZE)
 		{
 			Archive << Compressed;
+		}
+		if ( Version>= LAUNCHERSERVICES_ADDEDENCRYPTINIFILES)
+		{
+			Archive << EncryptIniFiles;
+			Archive << ForDistribution;
 		}
 		if (Version >= LAUNCHERSERVICES_ADDEDDEFAULTDEPLOYPLATFORM)
 		{
@@ -969,6 +985,8 @@ public:
 		Writer.WriteValue("ForceClose", ForceClose);
 		Writer.WriteValue("Timeout", (int32)Timeout);
 		Writer.WriteValue("Compressed", Compressed);
+		Writer.WriteValue("EncryptIniFiles", EncryptIniFiles);
+		Writer.WriteValue("ForDistribution", ForDistribution);
 		Writer.WriteValue("DeployPlatform", DefaultDeployPlatform.ToString());
 		Writer.WriteValue("NumCookersToSpawn", NumCookersToSpawn);
 		Writer.WriteValue("SkipCookingEditorContent", bSkipCookingEditorContent);
@@ -1250,6 +1268,8 @@ public:
 		Writer.WriteValue("iterativecooking", IsCookingIncrementally());
 		Writer.WriteValue("skipcookingeditorcontent", GetSkipCookingEditorContent());
 		Writer.WriteValue("compressed", IsCompressed());
+		Writer.WriteValue("EncryptIniFiles", IsEncryptingIniFiles());
+		Writer.WriteValue("ForDistribution", IsForDistribution());
 
 		// stage/package/deploy
 		if (GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy)
@@ -1574,6 +1594,8 @@ public:
 		ForceClose = Object.GetBoolField("ForceClose");
 		Timeout = (uint32)Object.GetNumberField("Timeout");
 		Compressed = Object.GetBoolField("Compressed");
+		EncryptIniFiles = Object.GetBoolField("EncryptIniFiles");
+		ForDistribution = Object.GetBoolField("ForDistribution");
 		DefaultDeployPlatform = *(Object.GetStringField("DeployPlatform"));
 		NumCookersToSpawn = (int32)Object.GetNumberField("NumCookersToSpawn");
 		bSkipCookingEditorContent = Object.GetBoolField("SkipCookingEditorContent");
@@ -1669,6 +1691,8 @@ public:
 		CookIncremental = false;
 		CookUnversioned = true;
 		Compressed = true;
+		EncryptIniFiles = false;
+		ForDistribution = false;
 		CookedCultures.Reset();
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
@@ -1682,7 +1706,7 @@ public:
 		{
 			CookedPlatforms.Add(GetTargetPlatformManager()->GetRunningTargetPlatform()->PlatformName());
 		}*/	
-		
+
 		bArchive = false;
 		ArchiveDir = TEXT("");
 
@@ -1949,6 +1973,26 @@ public:
 		if (Compressed != Enabled)
 		{
 			Compressed = Enabled;
+
+			Validate();
+		}
+	}
+
+	virtual void SetForDistribution(bool Enabled)override
+	{
+		if (ForDistribution != Enabled)
+		{
+			ForDistribution = Enabled;
+
+			Validate();
+		}
+	}
+
+	virtual void SetEncryptingIniFiles(bool Enabled) override
+	{
+		if (EncryptIniFiles != Enabled)
+		{
+			EncryptIniFiles = Enabled;
 
 			Validate();
 		}
@@ -2402,6 +2446,10 @@ private:
 	// Generate compressed content
 	bool Compressed;
 
+	// encrypt ini files in the pak file
+	bool EncryptIniFiles;
+	// is this build for distribution
+	bool ForDistribution;
 	// Holds a flag indicating whether only modified content should be cooked.
 	bool CookIncremental;
 

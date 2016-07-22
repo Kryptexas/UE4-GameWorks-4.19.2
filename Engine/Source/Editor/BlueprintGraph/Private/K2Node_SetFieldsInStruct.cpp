@@ -71,18 +71,19 @@ public:
 
 		UEdGraphPin* InputPin = Node->FindPinChecked(SetFieldsInStructHelper::StructRefPinName());
 		UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(InputPin);
-		FBPTerminal** InputTerm = Context.NetMap.Find(InputPinNet);
-
-		if (InputTerm == nullptr)
+		FBPTerminal** InputTermRef = Context.NetMap.Find(InputPinNet);
+		
+		if (InputTermRef == nullptr)
 		{
 			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoTerm_Error", "Failed to generate a term for the @@ pin; was it a struct reference that was left unset?").ToString(), InputPin);
 		}
 		else
 		{
-			if ((*InputTerm)->bPassedByReference) //InputPinNet->PinType.bIsReference)
+			FBPTerminal* InputTerm = *InputTermRef;
+			if (InputTerm->bPassedByReference) //InputPinNet->PinType.bIsReference)
 			{
 				// Forward the net to the output pin because it's being passed by-ref and this pin is a by-ref pin
-				Context.NetMap.Add(ReturnStructNet, *InputTerm);
+				Context.NetMap.Add(ReturnStructNet, InputTerm);
 			}
 		}
 	}

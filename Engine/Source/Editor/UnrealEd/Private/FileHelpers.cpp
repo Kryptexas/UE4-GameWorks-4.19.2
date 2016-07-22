@@ -2839,11 +2839,17 @@ static bool InternalSavePackages(TArray<UPackage*>& PackagesToSave, int32 NumPac
 						bool bPackageLocallyWritable;
 						const int32 SaveStatus = InternalSavePackage(CurPackage, bPackageLocallyWritable, SaveErrors);
 
+						if ( SaveStatus == EAppReturnType::Cancel)
+						{
+							// we don't want to pop up a message box about failing to save packages if they cancel
+							// instead warn here so there is some trace in the log and also unattended builds can find it
+							UE_LOG(LogFileHelpers, Warning, TEXT("Cancelled saving package %s"), *CurPackage->GetName());
+						}
+
 						if (SaveStatus == EAppReturnType::No)
 						{
 							// The package could not be saved so add it to the failed array 
 							FailedPackages.Add(CurPackage);
-
 						}
 					}
 				}

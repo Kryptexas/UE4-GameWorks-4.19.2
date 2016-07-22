@@ -53,7 +53,7 @@ namespace AutomationTool
 		/// Creates a new process and adds it to the tracking list.
 		/// </summary>
 		/// <returns>New Process objects</returns>
-		public static ProcessResult CreateProcess(string AppName, bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console)
+		public static ProcessResult CreateProcess(string AppName, bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
 		{
 			var NewProcess = HostPlatform.Current.CreateProcess(LogName);
 			if (Env != null)
@@ -70,7 +70,7 @@ namespace AutomationTool
 					}
 				}
 			}
-			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, LogName, SpewVerbosity: SpewVerbosity);
+			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, LogName, SpewVerbosity: SpewVerbosity, InSpewFilterCallback: SpewFilterCallback);
 			AddProcess(Result);
 			return Result;
 		}
@@ -212,18 +212,21 @@ namespace AutomationTool
 	/// </summary>
 	public class ProcessResult : IProcess
 	{
+		public delegate string SpewFilterCallbackType(string Message);
+
 		private string Source = "";
 		private int ProcessExitCode = -1;
 		private StringBuilder ProcessOutput = new StringBuilder();
 		private bool AllowSpew = true;
 		private UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console;
+		private SpewFilterCallbackType SpewFilterCallback = null;
 		private string AppName = String.Empty;
 		private Process Proc = null;
 		private AutoResetEvent OutputWaitHandle = new AutoResetEvent(false);
 		private AutoResetEvent ErrorWaitHandle = new AutoResetEvent(false);
 		private object ProcSyncObject;
 
-		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, string LogName, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console)
+		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, string LogName, UnrealBuildTool.LogEventType SpewVerbosity = UnrealBuildTool.LogEventType.Console, SpewFilterCallbackType InSpewFilterCallback = null)
 		{
 			AppName = InAppName;
 			ProcSyncObject = new object();
@@ -231,6 +234,7 @@ namespace AutomationTool
 			Source = LogName;
 			AllowSpew = bAllowSpew;
 			this.SpewVerbosity = SpewVerbosity;
+			SpewFilterCallback = InSpewFilterCallback;
 			if (Proc != null)
 			{
 				Proc.EnableRaisingEvents = false;
@@ -288,7 +292,18 @@ namespace AutomationTool
 			{
 				if (AllowSpew)
 				{
-					LogOutput(SpewVerbosity, e.Data);
+					if (SpewFilterCallback != null)
+					{
+						string FilteredSpew = SpewFilterCallback(e.Data);
+						if (FilteredSpew != null)
+						{
+							LogOutput(SpewVerbosity, FilteredSpew);
+						}
+					}
+					else
+					{
+						LogOutput(SpewVerbosity, e.Data);
+					}
 				}
 
 				ProcessOutput.Append(e.Data);
@@ -309,9 +324,17 @@ namespace AutomationTool
 		{
 			if (e.Data != null)
 			{
-				if (AllowSpew)
+				if (SpewFilterCallback != null)
 				{
-                    LogOutput(SpewVerbosity, e.Data);
+					string FilteredSpew = SpewFilterCallback(e.Data);
+					if (FilteredSpew != null)
+					{
+						LogOutput(SpewVerbosity, FilteredSpew);
+					}
+				}
+				else
+				{
+					LogOutput(SpewVerbosity, e.Data);
 				}
 
 				ProcessOutput.Append(e.Data);
@@ -682,8 +705,9 @@ namespace AutomationTool
 		/// <param name="Input">Optional Input for the program (will be provided as stdin)</param>
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
 		/// <param name="Env">Environment to pass to program.</param>
+		/// <param name="FilterCallback">Callback to filter log spew before output.</param>
 		/// <returns>Object containing the exit code of the program as well as it's stdout output.</returns>
-		public static ProcessResult Run(string App, string CommandLine = null, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> Env = null)
+		public static ProcessResult Run(string App, string CommandLine = null, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> Env = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
 
@@ -726,7 +750,7 @@ namespace AutomationTool
             {
                 LogWithVerbosity(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
-			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), LogName, Env, SpewVerbosity:SpewVerbosity);
+			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), LogName, Env, SpewVerbosity:SpewVerbosity, SpewFilterCallback: SpewFilterCallback);
 			Process Proc = Result.ProcessObject;
 
 			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;			
@@ -806,9 +830,10 @@ namespace AutomationTool
 		/// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
 		/// <param name="Input">Optional Input for the program (will be provided as stdin)</param>
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
-		public static void RunAndLog(CommandEnvironment Env, string App, string CommandLine, string LogName = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null)
+		/// <param name="FilterCallback">Callback to filter log spew before output.</param>
+		public static void RunAndLog(CommandEnvironment Env, string App, string CommandLine, string LogName = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
 		{
-            RunAndLog(App, CommandLine, GetRunAndLogOnlyName(Env, App, LogName), MaxSuccessCode, Input, Options, EnvVars);
+			RunAndLog(App, CommandLine, GetRunAndLogOnlyName(Env, App, LogName), MaxSuccessCode, Input, Options, EnvVars, SpewFilterCallback);
 		}
 
 		/// <summary>
@@ -833,9 +858,10 @@ namespace AutomationTool
 		/// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
 		/// <param name="Input">Optional Input for the program (will be provided as stdin)</param>
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
-		public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null)
+		/// <param name="FilterCallback">Callback to filter log spew before output.</param>
+		public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
         {
-            ProcessResult Result = Run(App, CommandLine, Input, Options, EnvVars);
+			ProcessResult Result = Run(App, CommandLine, Input, Options, EnvVars, SpewFilterCallback);
             if (Result.Output.Length > 0 && Logfile != null)
             {
                 WriteToFile(Logfile, Result.Output);
@@ -861,16 +887,17 @@ namespace AutomationTool
             return "";
         }
 
-        /// <summary>
-        /// Runs external program and writes the output to a logfile.
-        /// </summary>
-        /// <param name="App">Executable to run</param>
-        /// <param name="CommandLine">Commandline to pass on to the executable</param>
-        /// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
-        /// <returns>Whether the program executed successfully or not.</returns>
-        public static string RunAndLog(string App, string CommandLine, out int SuccessCode, string Logfile = null, Dictionary<string, string> EnvVars = null)
+		/// <summary>
+		/// Runs external program and writes the output to a logfile.
+		/// </summary>
+		/// <param name="App">Executable to run</param>
+		/// <param name="CommandLine">Commandline to pass on to the executable</param>
+		/// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
+		/// <param name="FilterCallback">Callback to filter log spew before output.</param>
+		/// <returns>Whether the program executed successfully or not.</returns>
+		public static string RunAndLog(string App, string CommandLine, out int SuccessCode, string Logfile = null, Dictionary<string, string> EnvVars = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
         {
-            ProcessResult Result = Run(App, CommandLine, Env: EnvVars);
+			ProcessResult Result = Run(App, CommandLine, Env: EnvVars, SpewFilterCallback: SpewFilterCallback);
             SuccessCode = Result.ExitCode;
             if (Result.Output.Length > 0 && Logfile != null)
             {
@@ -883,17 +910,18 @@ namespace AutomationTool
             return "";
         }
 
-        /// <summary>
-        /// Runs external program and writes the output to a logfile.
-        /// </summary>
-        /// <param name="Env">Environment to use.</param>
-        /// <param name="App">Executable to run</param>
-        /// <param name="CommandLine">Commandline to pass on to the executable</param>
-        /// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
-        /// <returns>Whether the program executed successfully or not.</returns>
-        public static string RunAndLog(CommandEnvironment Env, string App, string CommandLine, out int SuccessCode, string LogName = null, Dictionary<string, string> EnvVars = null)
+		/// <summary>
+		/// Runs external program and writes the output to a logfile.
+		/// </summary>
+		/// <param name="Env">Environment to use.</param>
+		/// <param name="App">Executable to run</param>
+		/// <param name="CommandLine">Commandline to pass on to the executable</param>
+		/// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
+		/// <param name="FilterCallback">Callback to filter log spew before output.</param>
+		/// <returns>Whether the program executed successfully or not.</returns>
+		public static string RunAndLog(CommandEnvironment Env, string App, string CommandLine, out int SuccessCode, string LogName = null, Dictionary<string, string> EnvVars = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
         {
-            return RunAndLog(App, CommandLine, out SuccessCode, GetRunAndLogOnlyName(Env, App, LogName), EnvVars);
+			return RunAndLog(App, CommandLine, out SuccessCode, GetRunAndLogOnlyName(Env, App, LogName), EnvVars, SpewFilterCallback);
         }
 
 		/// <summary>

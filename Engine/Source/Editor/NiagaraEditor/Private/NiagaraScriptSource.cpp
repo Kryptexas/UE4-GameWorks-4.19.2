@@ -13,7 +13,7 @@
 #include "NiagaraNodeWriteDataSet.h"
 #include "NiagaraNodeReadDataSet.h"
 
-#include "EdgraphSchema_Niagara.h"
+#include "EdGraphSchema_Niagara.h"
 
 //////////////////////////////////////////////////////////////////////////
 // NiagaraGraph

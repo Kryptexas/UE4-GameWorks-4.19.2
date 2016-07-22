@@ -23,6 +23,13 @@
 #ifndef __ATMOSPHERE_COMMON__
 #define __ATMOSPHERE_COMMON__
 
+
+
+
+
+
+
+
 const static float AverageGroundRelectance = 0.1f; // Simple approximation ground reflection light
 
 /** Magic numbers are based on paper (http://hal.inria.fr/docs/00/28/87/58/PDF/article.pdf) */
@@ -295,13 +302,13 @@ float3 TransmittanceWithDistance(float Radius, float Mu, float3 V, float3 X0)
 float OpticalDepthWithDistance(float H, float Radius, float Mu, float D) 
 {
 	float ParticleDensity = 6.2831; // REK 04, Table 2
-    float A = sqrt(abs((0.5/H)*Radius));
+    float A = sqrt((0.5/H)*Radius);
     float2 A01 = A * float2(Mu, Mu + D / Radius);
     float2 A01Sign = sign(A01);
     float2 A01Squared = A01*A01;
     float X = A01Sign.y > A01Sign.x ? exp(A01Squared.x) : 0.0;
-    float2 Y = A01Sign / (2.3193*abs(A01) + sqrt(abs(1.52*A01Squared + 4.0))) * float2(1.0, exp(-D/H*(D/(2.0*Radius)+Mu)));
-    return sqrt(abs((ParticleDensity*H)*Radius)) * exp((RadiusGround-Radius)/H) * (X + dot(Y, float2(1.0, -1.0)));
+    float2 Y = A01Sign / (2.3193*abs(A01) + sqrt(1.52*A01Squared + 4.0)) * float2(1.0, exp(-D/H*(D/(2.0*Radius)+Mu)));
+    return sqrt((ParticleDensity*H)*Radius) * exp((RadiusGround-Radius)/H) * (X + dot(Y, float2(1.0, -1.0)));
 }
 
 float3 Irradiance(Texture2D Texture, SamplerState TextureSampler, float r, float muS) 
@@ -555,7 +562,7 @@ float4 GetAtmosphericFog(float3 ViewPosition, float3 ViewVector, float SceneDept
 
 	float Mu = dot(ViewPosition, V) / Radius;
 
-	float T = -Radius * Mu - sqrt(abs(Radius * Radius * (Mu * Mu - 1.0) + RadiusGround * RadiusGround));
+	float T = -Radius * Mu - sqrt(Radius * Radius * (Mu * Mu - 1.0) + RadiusGround * RadiusGround);
 
 	float DepthThreshold = 100.f * View.AtmosphericFogDistanceScale; // 100km limit
 	SceneDepth *= Scale;

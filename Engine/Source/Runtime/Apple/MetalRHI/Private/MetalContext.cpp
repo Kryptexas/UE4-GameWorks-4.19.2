@@ -56,15 +56,23 @@ FCriticalSection* GetClassCountsMutex()
 void TrackMetalObject(NSObject* Obj)
 {
 	check(Obj);
-	FScopeLock Lock(GetClassCountsMutex());
-	ClassCounts.FindOrAdd([Obj class])++;
+	
+	if (GIsRHIInitialized)
+	{
+		FScopeLock Lock(GetClassCountsMutex());
+		ClassCounts.FindOrAdd([Obj class])++;
+	}
 }
 
 void UntrackMetalObject(NSObject* Obj)
 {
 	check(Obj);
-	FScopeLock Lock(GetClassCountsMutex());
-	ClassCounts.FindOrAdd([Obj class])--;
+	
+	if (GIsRHIInitialized)
+	{
+		FScopeLock Lock(GetClassCountsMutex());
+		ClassCounts.FindOrAdd([Obj class])--;
+	}
 }
 
 #endif
@@ -235,17 +243,11 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 
 #if PLATFORM_TVOS
-		Features |= EMetalFeaturesDepthClipMode;
 		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
 		{
 			Features |= EMetalFeaturesStencilView;
 		}
 #else
-		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1])
-		{
-			Features |= EMetalFeaturesDepthClipMode;
-		}
-		
 		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
 		{
 			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;
@@ -999,10 +1001,10 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 			
 			if (bCanChangeRT)
 			{
+				// Force submit if there's enough outstanding commands to prevent the GPU going idle.
 				SubmitCommandsHint();
 				
-				// Force submit if there's enough outstanding commands to prevent the GPU going idle.
-				ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(CurrentRenderTargets), true);
+                StateCache.ConditionalSwitchToRender();
 				
 				if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
 				{
