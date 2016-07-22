@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
 #include "ShowFlags.h"
