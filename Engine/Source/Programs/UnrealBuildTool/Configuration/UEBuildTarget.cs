@@ -2048,8 +2048,12 @@ namespace UnrealBuildTool
 							{
 								foreach (RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
 								{
-									string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
-									Receipt.PrecompiledRuntimeDependencies.Add(SourcePath);
+									// Ignore project-relative dependencies when we're compiling targets without projects - we won't be able to resolve them.
+									if(ProjectFile != null || RuntimeDependency.Path.IndexOf("$(ProjectDir)", StringComparison.InvariantCultureIgnoreCase) == -1)
+									{
+										string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+										Receipt.PrecompiledRuntimeDependencies.Add(SourcePath);
+									}
 								}
 							}
 						}
