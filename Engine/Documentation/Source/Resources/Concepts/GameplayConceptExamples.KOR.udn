@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3057921
 Availability: Public
 Title:게임플레이 컨셉 예제
 Crumbs:%ROOT%
@@ -64,7 +64,7 @@ resources
 	블루프린트 스플라인 트랙
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
-	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
+	PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	wR0fH6O9jD8
@@ -79,6 +79,9 @@ resources
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	언리얼 스틱 피겨 2D
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	qWUEkTd2Xu8
@@ -112,7 +115,7 @@ resources
 	턴 기반 전략
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
-	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
+	PLZlv_N0_O1gYuWkyTSbfcuyPNOQsK_8bu
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	mI7eYXMJ5eI
