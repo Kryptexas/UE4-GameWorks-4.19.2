@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3052189
+﻿INTSourceChangelist:3061520
 Availability:Docs
 Title:アクタのマージ
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
 Description:Actor の Merge ツールを使って、UE4 で複数のスタティックメッシュをひとつに結合します。
+Related: Engine/Actors/StaticMeshActor
 Version:4.12
 
 
