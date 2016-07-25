@@ -39,6 +39,11 @@ UWmfFileMediaSourceFactory::UWmfFileMediaSourceFactory(const FObjectInitializer&
 
 bool UWmfFileMediaSourceFactory::FactoryCanImport(const FString& Filename)
 {
+	FString FileExtension = FPaths::GetExtension(Filename);
+	if (FileExtension.ToUpper() == FString("WAV"))
+	{
+		return false;
+	}
 	return true;
 }
 
