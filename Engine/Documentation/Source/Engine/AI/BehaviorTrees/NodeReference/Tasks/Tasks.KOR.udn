@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2755897
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 비헤이비어 트리 노드 참고서: 태스크
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -92,3 +92,7 @@ Wait, 대기 노드는 대기 시간이 다할 때까지 비헤이비어 트리�
 | -------- | ----------- |
 | **Blackboard Key** | 블랙보드 키 - 얼마나 기다릴지를 나타내는 블랙보드 키 실수값입니다. |
 | **Node Name** | 노드 이름 - 비헤이비어 트리 그래프에서 노드에 표시할 이름입니다. |
+
+
+
+

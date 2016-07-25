@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3059681
 Availability: Public
 Title:볼륨 사용 안내서
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -164,7 +164,8 @@ Physics Volume 에서 할당 가능한 프로퍼티 이외에 Pain Causing Volum
 
 ### Level Streaming Volume
 
-레벨 스트리밍 볼륨은 레벨 스트리밍 프로세스를 보조하는 데 사용됩니다. 레벨 캡슐화는 물론, 플레이어의 볼륨 출입에 따라 메모리에서의 레벨 스트림 인/아웃 시기 제어를 간단한 방법으로 처리할 수 있습니다. 
+[EXCERPT:LSV]
+레벨 스트리밍 볼륨은 [레벨 스트리밍](Engine/LevelStreaming) 프로세스를 보조하는 데 사용됩니다. 레벨 캡슐화는 물론, 플레이어의 볼륨 출입에 따라 메모리에서의 레벨 스트림 인/아웃 시기 제어를 간단한 방법으로 처리할 수 있습니다. 
 
 아래 그림처럼 **디테일** 패널에서 프로퍼티를 조절하여 Level Streaming Volume 의 레벨 스트리밍 처리 방식을 조절할 수 있습니다.
 
@@ -177,6 +178,9 @@ Physics Volume 에서 할당 가능한 프로퍼티 이외에 Pain Causing Volum
 | Disabled | 꺼짐 - True 면 이 스트리밍 볼륨은 스트리밍 볼륨 코드에 무시됩니다. <br> 또한 레벨에 할당된 상태를 유지하면서 Level Streaming Volume 을 끄거나, 블루프린트와 볼륨 스트리밍 사이의 레벨 스트리밍 제어를 토글하는 데도 사용됩니다. |
 | Streaming Usage | 스트리밍 용도 - 볼륨의 용도를 로딩만, 로딩과 표시여부, 표시여부만 (로드시 블록) 제어하는데 사용할 것인지를 나타냅니다. |
 
+[/EXCERPT]
+
+Level Streaming Volume 관련 상세 정보는 [](Engine/LevelStreaming/StreamingVolumes) 문서를 참고하세요.
 
 ### Cull Distance Volume
 

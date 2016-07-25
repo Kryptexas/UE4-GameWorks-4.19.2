@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2782951
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 11. 서비스 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -1909,6 +1909,7 @@ Default Values 카테고리에 아무것도 표시되지 않는다면, 블루프
 	   NodeGuid=59E5C0E248297E2662F5CE9F9ACEEC93
 	End Object
 [/VAR]
+
 
 
 

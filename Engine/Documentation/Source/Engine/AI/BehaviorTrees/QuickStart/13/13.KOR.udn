@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2757241
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 13. 데코레이터 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -603,3 +603,7 @@ version: 4.9
 	   NodeGuid=7E75B438413B960D40E5A68DECD346A2
 	End Object
 [/VAR]
+
+
+
+

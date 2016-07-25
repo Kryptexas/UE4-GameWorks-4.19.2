@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2774060
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 9. 캐릭터 배치
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -37,6 +37,7 @@ version: 4.9
 [/EXCERPT:s9]
 
 %Steps%
+
 
 
 

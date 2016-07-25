@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2757171
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 4. 캐릭터 블루프린트 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -69,7 +69,7 @@ version: 4.9
 
 	![](AI_con.png)
 
-1. 컴파일 후 ![](save_button.png) 저장 합니다.
+1. 컴파일 후 저장 합니다.
 
 
 %Steps%

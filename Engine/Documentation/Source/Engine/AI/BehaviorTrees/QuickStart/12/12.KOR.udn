@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2757227
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 12. 태스크 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -601,3 +601,7 @@ Task, 태스크란 AI 이동, 블랙보드 값 조정 등 무언가를 하는 �
 	   NodeGuid=F90931054D514458FE3DDA997BE5C7C2
 	End Object
 [/VAR]
+
+
+
+
