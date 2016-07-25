@@ -370,6 +370,7 @@ namespace AutomationTool.Tasks
 				switch(OutputType)
 				{
 					case "Exe":
+					case "WinExe":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".exe"));
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
                         FileReference ExeConfig = FileReference.Combine(OutputDir, AssemblyName + ".exe.config");
