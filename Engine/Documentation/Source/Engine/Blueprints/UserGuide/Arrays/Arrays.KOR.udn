@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title:블루프린트 배열
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Scripting
 Description:블루프린트 배열의 생성, 편집, 사용 관련 문서입니다.
 version: 4.9
 parent:Engine/Blueprints/Scripting
-tags:배열과 구조체
+tags:Arrays and Structures
 order:1
 
 ![](Arrays.png)

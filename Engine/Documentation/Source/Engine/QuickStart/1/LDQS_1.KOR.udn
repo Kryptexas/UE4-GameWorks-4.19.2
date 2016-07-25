@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3014339
 Availability: Public
 Title:1. 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -27,8 +27,10 @@ checkpoint: editorqs
 
 %Steps%
 
-시작하기에 앞서, 먼저 이 안내서에서 사용할 [프로젝트](Engine/Basics/Projects) 를 만들어 줘야 합니다. 다음 부분에서는 언리얼 엔진 4 의 [프로젝트 브라우저](Engine/Basics/Projects/Browser) 를 사용하여 프로젝트를 만듭니다.
+시작하기에 앞서, 먼저 이 안내서에서 사용할 [프로젝트](Engine/Basics/Projects) 를 만들어 줘야 합니다. 
+다음 부분에서는 언리얼 엔진 4 의 [프로젝트 브라우저](Engine/Basics/Projects/Browser) 를 사용하여 프로젝트를 만듭니다.
 이 단계를 완료하고 나면 앞으로 만들 프로젝트의 기반이 되는 템플릿이 생길 것입니다.
+
 
 ## 단계
 

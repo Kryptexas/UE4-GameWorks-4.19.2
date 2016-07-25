@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title:이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -152,8 +152,7 @@ _이 블루프린트 액터가 Player Actor 변수에 저장된 액터를 제외
 충돌에 관련된 액터 중 하나가 콜리전 세팅에 **Simulation Generates Hit Events** 옵션이 True 설정된 경우에만 실행되는 이벤트입니다.
 
 [REGION:note]
-Sweep 을 사용해서 무브먼트를 
-If you are creating movement using Sweeps, you will get this event even if you don't have the flag selected. This occurs as long as the Sweep stops you from moving past the blocking object.
+Sweep 을 사용해서 무브먼트를 생성하는 경우, 플래그가 선택되어 있지 않더라도 이 이벤트가 생길 것입니다. 이는 Sweep 가 막는 오브젝트를 지나 이동하지 못하도록 하는 경우에만 발생합니다.
 [/REGION]
 
 | 항목 | 설명 |
