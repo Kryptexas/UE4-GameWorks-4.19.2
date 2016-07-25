@@ -215,8 +215,8 @@ void UEditorEngine::EndPlayMap()
 	// clean up any previous Play From Here sessions
 	if ( GameViewport != NULL && GameViewport->Viewport != NULL )
 	{
-		// Remove on focus handler binding
-		GameViewport->OnFocusReceived().Unbind();
+		// Remove debugger commands handler binding
+		GameViewport->OnGameViewportInputKey().Unbind();
 
 		// Remove close handler binding
 		GameViewport->OnCloseRequested().Unbind();
@@ -828,19 +828,6 @@ void UEditorEngine::PlaySessionPaused()
 	FEditorDelegates::PausePIE.Broadcast(bIsSimulatingInEditor);
 }
 
-void UEditorEngine::PlaySessionResumedOnViewportClientFocusReceived()
-{
-	if(GUnrealEd->PlayWorld != NULL && GUnrealEd->PlayWorld->bDebugPauseExecution == true)
-	{
-		GUnrealEd->PlayWorld->bDebugPauseExecution = false;
-
-		// Tell the application to stop ticking in this stack frame
-		FSlateApplication::Get().LeaveDebuggingMode(FKismetDebugUtilities::IsSingleStepping());
-
-		FEditorDelegates::ResumePIE.Broadcast(bIsSimulatingInEditor);
-	}
-}
-
 void UEditorEngine::PlaySessionResumed()
 {
 	FEditorDelegates::ResumePIE.Broadcast(bIsSimulatingInEditor);
@@ -849,6 +836,11 @@ void UEditorEngine::PlaySessionResumed()
 void UEditorEngine::PlaySessionSingleStepped()
 {
 	FEditorDelegates::SingleStepPIE.Broadcast(bIsSimulatingInEditor);
+}
+
+bool UEditorEngine::ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState)
+{
+	return FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKey, ModifierKeyState, false);
 }
 
 /* fits the window position to make sure it falls within the confines of the desktop */
@@ -3002,11 +2994,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 		GameViewport->bIsPlayInEditorViewport = true;
 		PieWorldContext->GameViewport = ViewportClient;
 
+		// Add a handler for game client input key
+		ViewportClient->OnGameViewportInputKey().BindUObject(this, &UEditorEngine::ProcessDebuggerCommands);
+
 		// Add a handler for viewport close requests
 		ViewportClient->OnCloseRequested().BindUObject(this, &UEditorEngine::OnViewportCloseRequested);
-
-		// Add a handler for viewport on focus received
-		ViewportClient->OnFocusReceived().BindUObject(this, &UEditorEngine::PlaySessionResumedOnViewportClientFocusReceived);
 			
 		FSlatePlayInEditorInfo& SlatePlayInEditorSession = SlatePlayInEditorMap.Add(PieWorldContext->ContextHandle, FSlatePlayInEditorInfo());
 		SlatePlayInEditorSession.DestinationSlateViewport = RequestedDestinationSlateViewport;	// Might be invalid depending how pie was launched. Code below handles this.

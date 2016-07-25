@@ -1661,11 +1661,11 @@ public:
 	/** Called when the debugger has resumed the active PIE or SIE session */
 	void PlaySessionResumed();
 
-	/** Called when the debugger has resumed the active PIE or SIE session when viewport client receives focus */
-	void PlaySessionResumedOnViewportClientFocusReceived();
-
 	/** Called when the debugger has single-stepped the active PIE or SIE session */
 	void PlaySessionSingleStepped();
+
+	/** Called when game client received input key */
+	bool ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState);
 
 	/**
 	 * Kicks off a "Play From Here" request that was most likely made during a transaction

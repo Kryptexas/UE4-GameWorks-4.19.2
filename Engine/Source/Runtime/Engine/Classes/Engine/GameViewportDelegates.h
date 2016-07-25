@@ -42,4 +42,4 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportTick, float);
 *
 * @see UGameViewportClient
 */
-DECLARE_DELEGATE(FOnFocusReceived);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnGameViewportInputKey, FKey, FModifierKeysState);

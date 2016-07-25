@@ -358,8 +358,20 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
 
+#if WITH_EDITOR
+	// Give debugger commands a chance to process key binding
+	if (GameViewportInputKeyDelegate.IsBound())
+	{
+		if ( GameViewportInputKeyDelegate.Execute(Key, FSlateApplication::Get().GetModifierKeys()) )
+		{
+			return true;
+		}
+	}
+#endif
+
 	// route to subsystems that care
-	bool bResult = (ViewportConsole ? ViewportConsole->InputKey(ControllerId, Key, EventType, AmountDepressed, bGamepad) : false);
+	bool bResult = ( ViewportConsole ? ViewportConsole->InputKey(ControllerId, Key, EventType, AmountDepressed, bGamepad) : false );
+
 	if (!bResult)
 	{
 		ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
@@ -1406,9 +1418,6 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 		GEngine->GetAudioDeviceManager()->SetActiveDevice(AudioDeviceHandle);
 		bHasAudioFocus = true;
 	}
-	
-	// broadcast focus received to anyone that registered an interest
-	FocusReceivedDelegate.ExecuteIfBound();
 }
 
 bool UGameViewportClient::IsFocused(FViewport* InViewport)
