@@ -1,95 +1,95 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3058682
 Availability:NoPublish
 Title:EAlphaBlendOption
 Crumbs:
-Description: Enum describing the type of blending curve to use for an FAlphaBlend
+Description: FAlphaBlend 에 사용할 커브 블렌딩 유형을 설명하는 열거형입니다.
 
 [EXCERPT:Linear]
 
-Blend using a linear curve.
+선형 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:Linear]
 
 [EXCERPT:Cubic]
 
-Blend using a cubic curve.
+큐브형 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:Cubic]
 
 [EXCERPT:HermiteCubic]
 
-Blend using a Hermite cubic curve (see FMath::SmoothStep).
+에르미트(Hermite) 큐브형 커브를 사용한 블렌딩입니다 (FMath::SmoothStep 참고).
 
 [/EXCERPT:HermiteCubic]
 
 [EXCERPT:Sinusoidal]
 
-Blend using a sinusoidal curve.
+사인 곡선을 사용한 블렌딩입니다.
 
 [/EXCERPT:Sinusoidal]
 
 [EXCERPT:QuadraticInOut]
 
-Blend using a quadratic in/out curve.
+2차 입/출 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:QuadraticInOut]
 
 [EXCERPT:CubicInOut]
 
-Blend using a cubic in/out curve.
+큐브형 입/출 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:CubicInOut]
 
 [EXCERPT:QuarticInOut]
 
-Blend using a quartic in/out curve.
+4차 입/출 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:QuarticInOut]
 
 [EXCERPT:QuinticInOut]
 
-Blend using a quintic in/out curve.
+5차 입/출 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:QuinticInOut]
 
 [EXCERPT:CircularIn]
 
-Blend using a circular in curve.
+원형 입력 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:CircularIn]
 
 [EXCERPT:CircularOut]
 
-Blend using a circular out curve.
+원형 출력 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:CircularOut]
 
 [EXCERPT:CircularInOut]
 
-Blend using a circular in/out curve.
+원형 입/출 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:CircularInOut]
 
 [EXCERPT:ExpIn]
 
-Blend using a exponential in curve.
+지수형 입력 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:ExpIn]
 
 [EXCERPT:ExpOut]
 
-Blend using a exponential out curve.
+지수형 출력 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:ExpOut]
 
 [EXCERPT:ExpInOut]
 
-Blend using a exponential in/out curve.
+지수형 입/출 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:ExpInOut]
 
 [EXCERPT:Custom]
 
-Blend using a custom curve.
+커스텀 커브를 사용한 블렌딩입니다.
 
 [/EXCERPT:Custom]
