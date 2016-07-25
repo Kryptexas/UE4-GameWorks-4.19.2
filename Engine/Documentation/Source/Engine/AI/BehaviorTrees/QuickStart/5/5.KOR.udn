@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2757172
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 5. 블랙보드 애셋 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -41,6 +41,7 @@ version: 4.9
 
 
 %Steps%
+
 
 
 
