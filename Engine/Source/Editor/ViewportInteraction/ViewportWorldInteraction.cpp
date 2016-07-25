@@ -215,7 +215,6 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	LastDragGizmoStartTransform( FTransform::Identity ),
 	TrackingTransaction( FTrackingTransaction() ),
 	AppTimeEntered( FTimespan::Zero() ),
-	EditorViewportClient( nullptr ),
 	LastFrameNumberInputWasPolled( 0 ),
 	MotionControllerID( 0 ),	// @todo ViewportInteraction: We only support a single controller, and we assume the first controller are the motion controls
 	LastWorldToMetersScale( 100.0f ),
@@ -236,7 +235,12 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 {
 }
 
-void UViewportWorldInteraction::Init( FEditorViewportClient* InEditorViewportClient )
+UViewportWorldInteraction::~UViewportWorldInteraction()
+{
+	Shutdown();
+}
+
+void UViewportWorldInteraction::Init( const TSharedPtr<FEditorViewportClient>& InEditorViewportClient )
 {
 	InputProcessor = MakeShareable( new FViewportInteractionInputProcessor( *this ) );
 	FSlateApplication::Get().SetInputPreProcessor( true, InputProcessor );
@@ -244,7 +248,6 @@ void UViewportWorldInteraction::Init( FEditorViewportClient* InEditorViewportCli
 	// Find out about selection changes
 	USelection::SelectionChangedEvent.AddUObject( this, &UViewportWorldInteraction::OnActorSelectionChanged ); //@todo viewportinteraction
 
-																											   // Setting up colors
 	Colors.SetNumZeroed( (int32)EColors::TotalCount );
 	{
 		Colors[ (int32)EColors::DefaultColor ] = FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f );;
@@ -294,13 +297,16 @@ void UViewportWorldInteraction::Shutdown()
 	}
 	Interactors.Empty();
 
+	EditorViewportClient.Reset();
+	DraggedInteractable = nullptr;
+
 	USelection::SelectionChangedEvent.RemoveAll( this );
 }
 
 void UViewportWorldInteraction::Tick( FEditorViewportClient* ViewportClient, const float DeltaTime )
 {
 	// Only if this is our viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if ( ViewportClient != EditorViewportClient )
+	if ( !EditorViewportClient.IsValid() || ViewportClient != EditorViewportClient.Get() )
 	{
 		return;
 	}
@@ -429,12 +435,16 @@ float UViewportWorldInteraction::GetWorldScaleFactor() const
 
 UWorld* UViewportWorldInteraction::GetViewportWorld() const
 {
-	return EditorViewportClient->GetWorld();
+	if ( EditorViewportClient.IsValid() )
+	{
+		return EditorViewportClient->GetWorld();
+	}
+	return nullptr;
 }
 
 FEditorViewportClient* UViewportWorldInteraction::GetViewportClient() const
 {
-	return EditorViewportClient;
+	return EditorViewportClient.Get();
 }
 
 void UViewportWorldInteraction::Undo()
@@ -506,23 +516,22 @@ void UViewportWorldInteraction::HoverTick( FEditorViewportClient* ViewportClient
 			InteractorData.HoveringOverTransformGizmoComponent = nullptr;
 			InteractorData.HoverLocation = FVector::ZeroVector;
 
-			FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-			if ( HitResult.Actor.IsValid() )
+			if ( HitHoverResult.Actor.IsValid() )
 			{
-				USceneComponent* HoveredActorComponent = HitResult.GetComponent();
-				AActor* Actor = HitResult.Actor.Get();
+				USceneComponent* HoveredActorComponent = HitHoverResult.GetComponent();
+				AActor* Actor = HitHoverResult.Actor.Get();
 
 				if ( HoveredActorComponent && IsInteractableComponent( HoveredActorComponent ) )
 				{
 					HoveredObjects.Add( FViewportHoverTarget( Actor ) );
 
-					InteractorData.HoverLocation = HitResult.ImpactPoint;
+					InteractorData.HoverLocation = HitHoverResult.ImpactPoint;
 
 					if ( Actor == TransformGizmoActor )
 					{
 						NewHoveredActorComponent = HoveredActorComponent;
 						InteractorData.HoveringOverTransformGizmoComponent = HoveredActorComponent;
-						InteractorData.HoverHapticCheckLastHoveredGizmoComponent = HitResult.GetComponent();
+						InteractorData.HoverHapticCheckLastHoveredGizmoComponent = HitHoverResult.GetComponent();
 					}
 					else
 					{
@@ -534,7 +543,7 @@ void UViewportWorldInteraction::HoverTick( FEditorViewportClient* ViewportClient
 							// Check if the current hovered component of the interactor is different from the hitresult component
 							if ( NewHoveredActorComponent != InteractorData.HoveredActorComponent && !IsOtherInteractorHoveringOverComponent( Interactor, NewHoveredActorComponent ) )
 							{
-								Interactable->OnHoverEnter( Interactor, HitResult );
+								Interactable->OnHoverEnter( Interactor, HitHoverResult );
 							}
 
 							Interactable->OnHover( Interactor );
@@ -567,8 +576,6 @@ void UViewportWorldInteraction::HoverTick( FEditorViewportClient* ViewportClient
 			//Update the hovered actor component with the new component
 			InteractorData.HoveredActorComponent = NewHoveredActorComponent;
 		}
-
-		
 	}
 }
 
@@ -2387,7 +2394,7 @@ void UViewportWorldInteraction::PollInputIfNeeded()
 
 void UViewportWorldInteraction::OnActorSelectionChanged( UObject* ChangedObject )
 {
-	if ( EditorViewportClient != nullptr )
+	if ( EditorViewportClient.IsValid() )
 	{
 		const bool bNewObjectsSelected = true;
 		const bool bAllHandlesVisible = true;
@@ -2767,19 +2774,20 @@ AActor* UViewportWorldInteraction::SpawnTransientSceneActor( TSubclassOf<AActor>
 
 void UViewportWorldInteraction::DestroyTransientActor( AActor* Actor ) const
 {
-	if ( Actor != nullptr )
+	UWorld* World = GetViewportWorld();
+	if (Actor != nullptr && World != nullptr)
 	{
-		const bool bWasWorldPackageDirty = GetViewportWorld()->GetOutermost()->IsDirty();
+		const bool bWasWorldPackageDirty = World->GetOutermost()->IsDirty();
 
 		const bool bNetForce = false;
 		const bool bShouldModifyLevel = false;	// Don't modify level for transient actor destruction
-		GetViewportWorld()->DestroyActor( Actor, bNetForce, bShouldModifyLevel );
+		World->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
 		Actor = nullptr;
 
 		// Don't dirty the level file after destroying a transient actor
-		if ( !bWasWorldPackageDirty )
+		if (!bWasWorldPackageDirty)
 		{
-			GetViewportWorld()->GetOutermost()->SetDirtyFlag( false );
+			World->GetOutermost()->SetDirtyFlag(false);
 		}
 	}
 }

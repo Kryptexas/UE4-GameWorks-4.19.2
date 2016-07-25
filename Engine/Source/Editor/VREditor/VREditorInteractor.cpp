@@ -90,6 +90,7 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 	}
 
 	ObjectsInFrontOfGizmo->Add( AVREditorButton::StaticClass() );
+	ObjectsInFrontOfGizmo->Add( AVREditorFloatingUI::StaticClass() );
 	ObjectsInFrontOfGizmo->Add( AVREditorDockableWindow::StaticClass() );
 
 	return UViewportInteractor::GetHitResultFromLaserPointer( OptionalListOfIgnoredActors, bIgnoreGizmos, ObjectsInFrontOfGizmo, bEvenIfBlocked, LaserLengthOverride );
