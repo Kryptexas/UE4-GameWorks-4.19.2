@@ -19,6 +19,9 @@ Refer to the table below for more information and click each link to view its co
 ## Intermediate
 [REGION:wrapper transparent]
 [](FANCY:Engine\UMG\HowTo\Create3DWidgets "%Engine\UMG\HowTo\Create3DWidgets:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\UMG\HowTo\DragAndDrop "%Engine\UMG\HowTo\DragAndDrop:description%")
+[/PUBLISH:docs]
 [](FANCY:Engine\UMG\HowTo\ScalingUI "%Engine\UMG\HowTo\ScalingUI:description%")
 [/REGION]
 
