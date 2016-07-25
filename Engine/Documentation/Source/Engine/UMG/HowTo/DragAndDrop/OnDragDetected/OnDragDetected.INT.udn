@@ -1,0 +1,62 @@
+Availability: Docs
+Title:3. On Drag Detected
+Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
+Description:In this step we set up what happens when drag is detected.
+Related: Engine/UMG
+Related: Engine/UMG/UserGuide
+Version: 4.12
+SkillLevel: Intermediate
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine\UMG\HowTo\DragAndDrop\WidgetSetup "%Engine\UMG\HowTo\DragAndDrop\WidgetSetup:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine\UMG\HowTo\DragAndDrop\OnDrop "%Engine\UMG\HowTo\DragAndDrop\OnDrop:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+In this step we determine what happens when the player is in fact dragging the HealthBar around on screen. 
+
+## Steps
+
+1.	Open the **OnDragDetected** function, then **Right-click** and add a **Create Drag Drop Operation** node set to use **WidgetDrag**. 
+
+	![](DragDrop9.png)
+
+	UMG supplies a default class for drag and drop operations however we have created a custom class that has additional variables in it that we will pass through as part of the process.
+
+1.	**Right-click** in the graph and **Get Reference to Self** and connect as shown and set the **Pivot** drop-down to **Mouse Down**. 
+	
+	![](DragDrop10.png)
+
+	Pivot determines where the Drag Widget Visual will appear when being dragged relative to the pointer performing the drag operation. 
+
+1.	From the **MyBlueprint** panel, drag in the **Drag Offset** variable and connect it and the pins shown below. 
+
+	![](DragDrop11.png)
+
+	Here we are passing through that vector 2D information of where the player clicked on the widget which we will use as part of the OnDrop operation. 
+
+1.	**Right-click** in the graph and add a **Remove from Parent** node and connect as shown. 
+
+	![](DragDrop12.png)
+
+	Before we complete the On Drag Detected process, we remove the widget we are dragging from display.
+	If we don't remove the original HealthBar widget from display, it would remain in the default position while we are dragging a copy around onscreen. 
+	The widget itself is being passed through as part of the process so we are not creating a "new" version of the widget. 
+
+The last few things we need to do is determine what happens when the player releases the Left Mouse Button and performs the OnDrop function. 
+We also need to add the HealthBar Widget to our Main HUD Widget Blueprint and tell that to be displayed before testing everything out.  
+
+%Steps%
+
