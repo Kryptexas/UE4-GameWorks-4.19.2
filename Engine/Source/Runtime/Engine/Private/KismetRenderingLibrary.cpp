@@ -73,11 +73,11 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 	}
 	else if (!Material)
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidMaterial", "DrawMaterialToRenderTarget: Material must be non-null."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidMaterial", "DrawMaterialToRenderTarget: Material must be non-null."));
 	}
 	else if (!TextureRenderTarget)
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "DrawMaterialToRenderTarget: TextureRenderTarget must be non-null."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidTextureRenderTarget", "DrawMaterialToRenderTarget: TextureRenderTarget must be non-null."));
 	}
 }
 
@@ -105,21 +105,21 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 		}
 		else
 		{
-			FMessageLog("Blueprint").Warning(LOCTEXT("FileWriterFailedToCreate", "ExportRenderTarget: FileWrite failed to create."));
+			FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_FileWriterFailedToCreate", "ExportRenderTarget: FileWrite failed to create."));
 		}
 	}
 
     else if (!TextureRenderTarget)
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "ExportRenderTarget: TextureRenderTarget must be non-null."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidTextureRenderTarget", "ExportRenderTarget: TextureRenderTarget must be non-null."));
 	}
 	if (!PathError.IsEmpty())
 	{
-		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("InvalidFilePath", "ExportRenderTarget: Invalid file path provided: '{0}'"), PathError));
+		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("ExportRenderTarget_InvalidFilePath", "ExportRenderTarget: Invalid file path provided: '{0}'"), PathError));
 	}
 	if (FileName.IsEmpty())
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
 	}
 }
 
@@ -147,21 +147,21 @@ void UKismetRenderingLibrary::ExportTexture2D(UObject* WorldContextObject, UText
 		}
 		else
 		{
-			FMessageLog("Blueprint").Warning(LOCTEXT("FileWriterFailedToCreate", "ExportTexture2D: FileWrite failed to create."));
+			FMessageLog("Blueprint").Warning(LOCTEXT("ExportTexture2D_FileWriterFailedToCreate", "ExportTexture2D: FileWrite failed to create."));
 		}
 	}
 
 	else if (!Texture)
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "ExportTexture2D: TextureRenderTarget must be non-null."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportTexture2D_InvalidTextureRenderTarget", "ExportTexture2D: TextureRenderTarget must be non-null."));
 	}
 	if (!PathError.IsEmpty())
 	{
-		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("InvalidFilePath", "ExportTexture2D: Invalid file path provided: '{0}'"), PathError));
+		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("ExportTexture2D_InvalidFilePath", "ExportTexture2D: Invalid file path provided: '{0}'"), PathError));
 	}
 	if (FileName.IsEmpty())
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidFileName", "ExportTexture2D: FileName must be non-empty."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportTexture2D_InvalidFileName", "ExportTexture2D: FileName must be non-empty."));
 	}
 }
 
@@ -211,7 +211,7 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 	}
 	else if (!TextureRenderTarget)
 	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("InvalidTextureRenderTarget", "BeginDrawCanvasToRenderTarget: TextureRenderTarget must be non-null."));
+		FMessageLog("Blueprint").Warning(LOCTEXT("BeginDrawCanvasToRenderTarget_InvalidTextureRenderTarget", "BeginDrawCanvasToRenderTarget: TextureRenderTarget must be non-null."));
 	}
 }
 
@@ -249,7 +249,7 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 		}
 		else if (!Context.RenderTarget)
 		{
-			FMessageLog("Blueprint").Warning(LOCTEXT("InvalidContext", "EndDrawCanvasToRenderTarget: Context must be valid."));
+			FMessageLog("Blueprint").Warning(LOCTEXT("EndDrawCanvasToRenderTarget_InvalidContext", "EndDrawCanvasToRenderTarget: Context must be valid."));
 		}
 	}
 }

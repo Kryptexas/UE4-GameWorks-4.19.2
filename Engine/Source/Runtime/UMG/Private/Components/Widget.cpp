@@ -739,6 +739,7 @@ void UWidget::Deselect()
 }
 
 #undef LOCTEXT_NAMESPACE
+#define LOCTEXT_NAMESPACE "UMG"
 #endif
 
 bool UWidget::Modify(bool bAlwaysMarkDirty)

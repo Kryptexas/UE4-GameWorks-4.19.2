@@ -427,7 +427,7 @@ bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLong
 		{
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("IllegalNameCharacters"), FText::FromString(MatchedInvalidChars) );
-			*OutReason = FText::Format( NSLOCTEXT("Core", "NameContainsInvalidCharacters", "Name may not contain the following characters: {IllegalNameCharacters}"), Args );
+			*OutReason = FText::Format( NSLOCTEXT("Core", "PackageNameContainsInvalidCharacters", "Name may not contain the following characters: {IllegalNameCharacters}"), Args );
 		}
 		return true;
 	}

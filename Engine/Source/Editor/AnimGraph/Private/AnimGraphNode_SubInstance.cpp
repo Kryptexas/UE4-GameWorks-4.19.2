@@ -41,7 +41,7 @@ FText UAnimGraphNode_SubInstance::GetNodeTitle(ENodeTitleType::Type TitleType) c
 	}
 	if(TitleType == ENodeTitleType::ListView)
 	{
-		return FText::Format(LOCTEXT("TitleFormat", "{NodeTitle} - Target Class: {TargetClass}"), Args);
+		return FText::Format(LOCTEXT("TitleListFormat", "{NodeTitle} - Target Class: {TargetClass}"), Args);
 	}
 	else
 	{

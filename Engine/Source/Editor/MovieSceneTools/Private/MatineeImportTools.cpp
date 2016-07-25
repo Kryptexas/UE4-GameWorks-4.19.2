@@ -232,7 +232,7 @@ bool FMatineeImportTools::CopyInterpColorTrack( UInterpTrackColorProp* ColorProp
 
 bool FMatineeImportTools::CopyInterpLinearColorTrack( UInterpTrackLinearColorProp* LinearColorPropTrack, UMovieSceneColorTrack* ColorTrack )
 {
-	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeColorTrack", "Paste Matinee Linear Color Track" ) );
+	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeLinearColorTrack", "Paste Matinee Linear Color Track" ) );
 	bool bSectionCreated = false;
 
 	ColorTrack->Modify();

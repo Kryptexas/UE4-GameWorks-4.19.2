@@ -69,7 +69,7 @@ FText UAnimGraphNode_PoseByName::GetNodeTitle(ENodeTitleType::Type TitleType) co
 		UEdGraphPin* PosePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_PoseByName, PoseAsset));
 		if (PosePin && PosePin->LinkedTo.Num() > 0)
 		{
-			return LOCTEXT("EvaluateSequence_TitleVariable", "Pose");
+			return LOCTEXT("PoseByName_TitleVariable", "Pose");
 		}
 		else if (PosePin && PosePin->DefaultObject != nullptr)
 		{
