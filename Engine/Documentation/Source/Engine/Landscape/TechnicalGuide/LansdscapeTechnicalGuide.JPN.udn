@@ -1,10 +1,31 @@
-﻿INTSourceChangelist:3044531
+﻿INTSourceChangelist:3053927
 Availability:Public
 Title:ランドスケープのテクニカル ガイド
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープの技術的な設定
 version:4.9
+parent:Engine/Landscape
+order:6
 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Landscape/TechnicalGuide:title%](Engine/Landscape/Materials/LS_Technical.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/TechnicalGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/TechnicalGuide:description%
+	[/PARAM]
+	[PARAMLITERAL:path]
+		[RELATIVE:Engine/Landscape/TechnicalGuide]
+	[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -51,9 +72,9 @@ Landscape アクタは、各セクションが何を行うかが簡単にわか�
 
 ランドスケープは複数のコンポーネントに分割されます。コンポーネントは、レンダリングおよびビジビリティの計算、コリジョンにおいて、「Unreal」の基本単位となります。ランドスケープのコンポーネントは、すべて同じサイズで、常に正方形です。ランドスケープのコンポーネント サイズは、作成時に決定されます。作成するランドスケープのサイズと詳細度に合わせて選択します。
 
-各コンポーネントの高さデータは、 1 個のテクスチャに格納されます。そのため、サイズを表す頂点の数が 2 の累乗でなければなりません。2 つの隣り合うコンポーネントがお互い接するエッジ上で共有する頂点の列は、各コンポーネント内で複製されて格納されます。このため、各コンポーネント内のクワッド数について検討することが有効となります。
+各コンポーネントの高さデータは、1 個のテクスチャに格納されます。そのため、サイズを表す頂点の数が 2 の累乗でなければなりません。2 つの隣り合うコンポーネントがお互い接するエッジ上で共有する頂点の列は、各コンポーネント内で複製されて格納されます。このため、各コンポーネント内のクワッド数について検討することが有効となります。
 
-下図は非常に単純なランドスケープです。全体の輪郭が緑で示され、 4 つのコンポーネントが含まれています。各コンポーネントは 1 個のクワッドからできています。コンポーネント同士が接している部分の頂点がどのように複製されるかを示すために、1 個のコンポーネントを分離させたところです。
+下図は非常に単純なランドスケープです。全体の輪郭が緑で示され、4 つのコンポーネントが含まれています。各コンポーネントは 1 個のクワッドからできています。コンポーネント同士が接している部分の頂点がどのように複製されるかを示すために、1 個のコンポーネントを分離させたところです。
 
 ![Landscape_Components.jpg](Landscape_Components.jpg)(w:256 h:256)
 
