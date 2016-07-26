@@ -1,12 +1,33 @@
-﻿INTSourceChangelist:2746137
+﻿INTSourceChangelist:3053927
 Availability:Public
 Title:ランドスケープの編集
 Crumbs: %ROOT%, Engine, Engine/Landscape
-Description:ランドスケープのテレイン編集に使用するツールのガイド
+Description:ランドスケープ テレイン編集用ツールの操作ガイド
 Version:4.9
+parent:Engine/Landscape
+order:3
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Editing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
 	[/PARAM]
@@ -29,12 +50,12 @@ Version:4.9
 ランドスケープを作成すると、以下の操作が可能になります。
 
 * 形状を [Sculpt](Engine/Landscape\Editing\SculptMode) モードで修正します。
-* 外観を[Paint](Engine/Landscape\Editing\PaintMode) モードで修正します。
+* 外観を [Paint](Engine/Landscape\Editing\PaintMode) モードで修正します。
 * 使用する [ブラシ](Engine/Landscape\Editing\Brushes) のサイズ、形状、タイプを変更し、ランドスケープの形状と外観を修正します。
 * コンポーネントのサイズ、形状を [Manage](Engine/Landscape\Editing\ManageMode) モードで修正します。
 * ランドスケープの高さマップの部分を、 [ランドスケープ ギズモ](Engine/Landscape\Editing\Gizmos) を使用してコピー、ペースト、インポート、エクスポートします。
-* ランドスケープの [ランドスケープ マテリアル](Engine/Landscape\Materials) を修正します。
-* ランドスケープで使用したい線形の地物用に [スプライン](Engine/Landscape\Editing\Splines) を作成します。
+* ランドスケープの [マテリアル](Engine/Landscape\Materials) を修正します。
+* ランドスケープで使用したい線形機能に対する [スプライン](Engine/Landscape\Editing\Splines) を作成します。
 * 洞窟などの機能に対してランドスケープに [穴](Engine/Landscape\Materials) をつくります。
 
 ランドスケープの作成に関する詳細は、 [](Engine/Landscape\Creation) を参照してください。
