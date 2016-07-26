@@ -105,10 +105,8 @@ void FMovieScene3DTransformTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 			if (SceneComponent != nullptr)
 			{
 				if (UpdateData.UpdatePass == MSUP_PreUpdate)
-				{
-					SceneComponent->RelativeLocation = FVector(0, 0, 0);
-					SceneComponent->RelativeRotation = FRotator(0, 0, 0);
-					SceneComponent->RelativeScale3D = FVector(1.f, 1.f, 1.f);
+				{		
+					SceneComponent->ResetRelativeTransform();
 				}
 				else if (UpdateData.UpdatePass == MSUP_Update)
 				{
