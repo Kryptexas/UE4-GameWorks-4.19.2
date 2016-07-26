@@ -1,11 +1,32 @@
-﻿INTSourceChangelist:2702795
+﻿INTSourceChangelist:3053927
 Availability:Public
 Title:ランドスケープ UI のリファレンス
 Crumbs:%ROOT%, Engine, Engine/Landscape
 Description:ランドスケープツールのユーザーインターフェースの説明
 version:4.9
+parent:Engine/Landscape
+order:4
 
 [VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Landscape_UI_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/UI:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/UI:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/UI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topiccompact]
 [OBJECT:Topiccompact]
 	[PARAM:image]
 		![](Landscape_UI_topic.png)
@@ -94,7 +115,7 @@ version:4.9
 [/VAR]
 
 [VAR:FlattenPTool]
-![](Engine/Landscape\icon_Landscape_Tool_Flatten_40x.png)(convert:false) | **Flatten ツール** | ツールの開始位置から、ユーザーがなぞるところへこれらのレイヤーの重みを広げていきます。 |
+![](Engine/Landscape\icon_Landscape_Tool_Flatten_40x.png)(convert:false) | **Flatten (平坦化) ツール** | ツールの開始位置から、ユーザーがなぞるところへこれらのレイヤーの重みを広げていきます。 |
 [/VAR]
 
 [VAR:ErosionTool]
@@ -233,7 +254,7 @@ version:4.9
 
 [EXCERPT:Table0001]
 |  &nbsp;  |    |    |
-| ---- | ---- | ----- |
+| ----- | ----- | ---- |
 | ![](Engine/Landscape\icon_Landscape_Brush_Circle_linear_40x.png)(convert:false) | **Something** | words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words  |
 [/EXCERPT:Table0001]
 
