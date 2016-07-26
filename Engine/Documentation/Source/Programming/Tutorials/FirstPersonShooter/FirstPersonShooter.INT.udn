@@ -1,7 +1,7 @@
 Availability: Docs
 Title: C++ First Person Shooter Tutorial
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
-Description: How to develop a First Person Shooter.
+Description: Learn how to implement mechanics for a First Person Shooter game.
 prereq:Programming/Development/VisualStudioSetup
 SkillLevel: Beginner
 Version: 4.11
