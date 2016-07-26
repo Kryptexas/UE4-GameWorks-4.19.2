@@ -737,19 +737,18 @@ void FVREditorMode::OnSwitchBetweenPIEAndSIE( const bool bIsSimulatingInEditor )
 
 void FVREditorMode::CleanUpActorsBeforeMapChangeOrSimulate()
 {
-	// NOTE: This will be called even when this mode is not currently active!
-
-	DestroyTransientActor( AvatarActor );
-	AvatarActor = nullptr;
-	FlashlightComponent = nullptr;
-
-	if( UISystem != nullptr )
+	if ( WorldInteraction != nullptr )
 	{
-		UISystem->CleanUpActorsBeforeMapChangeOrSimulate();
-	}
+		// NOTE: This will be called even when this mode is not currently active!
+		DestroyTransientActor( AvatarActor );
+		AvatarActor = nullptr;
+		FlashlightComponent = nullptr;
 
-	if( WorldInteraction != nullptr )
-	{
+		if ( UISystem != nullptr )
+		{
+			UISystem->CleanUpActorsBeforeMapChangeOrSimulate();
+		}
+
 		WorldInteraction->Shutdown();
 	}
 }
