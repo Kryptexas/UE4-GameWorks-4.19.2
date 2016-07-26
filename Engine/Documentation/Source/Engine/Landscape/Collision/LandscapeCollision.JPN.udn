@@ -1,56 +1,85 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Landscape Collision Guide
+﻿INTSourceChangelist:3053927
+Availability:Public
+Title:ランドスケープ コリジョン ガイド
 Crumbs: %ROOT%, Engine, Engine/Landscape
-Description:Collision settings for Landscape.
-version: 4.12
+Description:ランドスケープのコリジョン設定
+version:4.12
+parent:Engine/Landscape
+order:7
 
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Collision:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:3)]
 
 
-## Landscape Collision 
+## ランドスケープ コリジョン 
 
-The Unreal Engine 4 (UE4) Landscape system enables you to specify the detail level of the geometry used for both simple and complex collisions for the entire Landscape as a whole or on a per-Component basis. In the following sections, we will go over how to use the system as well as any relevant information you must know before using this in your UE4 projects.
+アンリアル エンジン (UE4) ランドスケープ システムを使うと、単純なコリジョンと複雑なコリジョンの両方で使用しているジオメトリの詳細度を、ランドスケープ全体をコンポーネント全体あるいはコンポーネント単位として指定することができます。以下のセクションでは、このシステムの使用方法、および UE4 プロジェクトでこの機能を使う前に知っておくべき関連情報を説明します。
 
 [region:note]
-For this example, we are using the Landscape Mountains project that can be found in the Learn tab of the UE4 Launcher.
+このサンプルでは Landscape Mountains プロジェクトを使用します。UE4 ランチャーの [Learn (学習)] タブに入っています。
 [/region]
 
-### Collision Mip Level
+### コリジョン ミップ レベル
 
-If you select any Landscape Actor that has been placed in a level and go to the **Details** panel, under the **Collision** section you will find two settings called **Collision Mip Level** and **Simple Collision Mip Level**.
+レベル内に配置されているランドスケープ アクタを選択し **[Details (詳細)]** パネルの **[Collision (コリジョン)]** セクションを開きます。**[Collision Mip Level]** と **[Simple Collision Mip Level]** という 2 つの設定があります。
 
 | --- | --- |
-| **Collision Mip Level** | The Collision Mip Level sets the complexity of the **Complex** collision that is used for the Landscape. Setting Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer.  [INCLUDE:Engine\Landscape\\Collision\#VC] |
-| **Simple Collision Mip Level** | The Simple Collision Mip Level sets the complexity of the **Simple** collision that is used for the Landscape. Setting Simple Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer. [INCLUDE:Engine\Landscape\\Collision\#PC] |
+| **Collision Mip Level** | ランドスケープに使用されている **複雑な** コリジョンの複雑度を設定します。Collision Mip Level をデフォルトの **0** に設定すると、メモリ負荷は大きいですが、高精度のランドスケープ コリジョンが行われます。最大値の **5** に設定すると、ランドスケープ コリジョンの負荷は軽減されますが、コリジョンの精度は落ちます。  [INCLUDE:Engine\Landscape\\Collision\#VC] |
+| **Simple Collision Mip Level** | ランドスケープに使用されている **単純な** コリジョンの複雑度を設定します。Simple Collision Mip Level をデフォルトの **0** に設定すると、メモリ負荷は大きいですが、高精度のランドスケープ コリジョンが行われます。最大値の **5** に設定すると、ランドスケープ コリジョンの負荷は軽減されますが、コリジョンの精度は落ちます。 [INCLUDE:Engine\Landscape\\Collision\#PC] |
 
-### Viewing Collision Mip Level 
+### コリジョン ミップ レベルの表示 
 
-You can visualize the Landscape collision geometry using the Collision Viewmodes. To enable the collision view mode, go to the **View Mode** menu in the Editor viewport toolbar, under the **Collision** section, select either **Player Collision**  or **Visibility Collision**.
+コリジョン ビューモードを使って、ランドスケープ コリジョン ジオメトリを可視化することができます。ビューポートでコリジョン ビュー モードを有効にするには、エディタ ビューポート ツールバーの **[View Mode (ビューモード メニュー)]** メニューの **[Collision (コリジョン)]** セクションから **[Player Collision]** または **[Visibility Collision]** オプションを選びます。
 
 ![](LSC_00.png)(convert:false)
 
 | --- | --- |
-| **Player Collision** | The **Player Collision** view mode displays the Simple Collision Mip Level. ![](CML_Player_Collision.png)(w:640) |
-| **Visibility Collision** | The **Visibility Collision** view mode displays the Collision Mip Level. ![](CML_Vis_Collision.png)(w:640) |
+| **Player Collision** | **[Player Collision]** ビュー モードでは、Simple Collision Mip Level の見え方を表示します。 ![](CML_Player_Collision.png)(w:640) |
+| **Visibility Collision** | **[Visibility Collision]** ビュー モードでは、Collision Mip Level の見え方を表示します。 ![](CML_Vis_Collision.png)(w:640) |
 
-### Adjusting the Landscape Collision Mip Level
+### Landscape Collision Mip Level の調整
 
-To set the complexity for both simple and complex Landscape collision you will need to do the following:
+シンプルおよび複雑なランドスケープ コリジョンの複雑度を設定するには、以下の手順に従います。
 
-1. Select your Landscape Terrain in the Editor viewport. In the **Details** panel, expand the **Collision** section.
+1. エディタ ビューポートでランドスケープ テレインを選択します。**[Details (詳細)]** パネルで **[Collision (コリジョン)]** セクションを展開します。
 
 	[REGION:lightbox]
 	[![](LSC_01.png)(convert:false)](LSC_01.png)
 	[/REGION]
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
-1. Under the **Collision** section, find the **Collision Mip Level** option. Set the value  from **0** to **5** and then press the **Enter** key to apply the change. The gray collision mesh in the level updates automatically to reflect the changes.
+1. **[Collision]** セクションで、**[Collision Mip Level]** オプションを選択します。値を **「0」** から **「5」** に変更し **[Enter]** キーを押して変更を適用します。レベル内のグレーのコリジョン メッシュに変更が反映されて、自動的にアップデートされるのが分かります。
 
 	[OBJECT:ComparisonSlider]
 		[PARAM:before]
@@ -62,24 +91,24 @@ To set the complexity for both simple and complex Landscape collision you will n
 	[/OBJECT]
 
 
-### Mixing Collision Mip Level Options 
+### Mixing Collision Mip Level オプション 
 
-You can set the complexity of both the simple and complex Landscape collision meshes to provide a better balance between performance and accuracy. To set the simple and complex collision levels independently in your project you will need to do the following:
+シンプルあるいは複雑なランドスケープ コリジョン メッシュの複雑度は、パフォーマンスと精度がちょうどよいバランスになるように個別に設定することができます。プロジェクトでこの操作を行うには、以下の手順に従います。
 
-1. Select your Landscape and in the **Details** panel and expand the **Collision** section.
+1. ランドスケープを選択して **[Details (詳細)]** パネルで **[Collision (コリジョン)]** セクションを展開します。
 
 	[REGION:lightbox]
 	[![](LSC_01.png)(convert:false)](LSC_01.png)
 	[/REGION]
 	[REGION:caption]
-	Click for full image.
+	クリックしてフルサイズで表示
 	[/REGION]
 
-1. Set the **Collision Mip Level** to a value of **0** and **Simple Collision Mip Level** to a value of **2**.
+1. **[Collision Mip Level]** の値は **0** のままにして、**[Simple Collision Mip Level]** を **2** にします。
 
 	![](LSC_04.png)
 
-In the following image comparison, you can see what happens to the Landscape collision when the Collision Mip Level and Simple Collision Mip Level are set to different values.
+Collision Mip Level と Simple Collision Mip Level の値を別の値にするとランドスケープ コリジョンがどうなるのか、以下の比較画面を見るとわかります。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -91,42 +120,42 @@ In the following image comparison, you can see what happens to the Landscape col
 [/OBJECT]
 
 [region:note]
-For most cases, you will want to leave the **Collision Mip Level** at 0 and then use 1 or 2 for the **Simple Collision Mip Level**. Using any higher numbers will start to show inaccuracies between the player and collision.
+**[Collision Mip Level]** の値は 0 のままにして、**[Simple Collision Mip Level]** には 1 か 2 を設定します。設定値を高くすると、プレイヤーとコリジョン間に不一致が見え始めます。
 [/region]
 
 
-### Setting Collision Mip Level Per Landscape Components
+### Collision Mip Level Per Landscape コンポーネントの設定
 
-You can set the Collision Mip Level collision for individual Landscape Components which enables you to reduce the Landscape collision complexity even further in non-playable areas of the level.
+ランドスケープ コンポーネントに個別に Collision Mip Level collision 設定を行うと、プレイ不可能なレベルのエリアでランドスケープ コリジョンの複雑度をもっと下げることができます。
 
 
- To set the Collision Mip Level for an individual component in your project, you will need to do the following:
+ プロジェクトでこの操作を行うには、以下の手順に従います。
 
-1. From the **Modes** panel, click on the Landscape option and select **Manage** mode.
+1. **[Modes (モード)]** パネルで [Landscape] オプションをクリックして **[Manage]** モードが選択されていることを確認してください。
 
 	![](CC_01.png)
 
-1. Select a few Landscape components by clicking on them with the **Left Mouse Button**. The selected Landscape Components are highlighted in red.
+1. **マウスの左ボタン** でランドスケープ コンポーネントをいくつかクリックして選択します。選択されたランドスケープ コンポーネントが赤く強調表示されます。
 
 	![](CC_02.png)
 
-1. In the **Details** panel, expand the **Landscape Component** section and change both the **Collision Mip Level** and **Simple Collision Mip Level** to **5**.
+1. **[Details (詳細)]** パネルの **[Landscape Component]** セクションを展開して、**[Collision Mip Level]** と **[Simple Collision Mip Level]** を両方とも **5** に変更します。
 
 	![](CC_03.png)
 
-1. In the Landscape **Manage** section under **Tool Settings**, press the **Clear Component Selection** button to deselect any currently selected Landscape components.  
+1. ランドスケープの **Manage** セクションの **[Tool Settings (ツール設定)]** の **[Clear Component Selection (コンポーネントの選択を解除)]** ボタンを押して現在選択中のランドスケープ コンポーネントの選択を解除します。  
 
 	![](Clear_Selected_Comps.png)
 
-1. Select a few more Landscape components and this time set both Collision Mip levels to a value of 2.
+1. ランドスケープ コンポーネントをいくつか選択して、今度は両方のコリジョン ミップ レベルを 2 に設定します。
 
 	![](CC_04.png)
 
-In the following image, the Collision Mip level for each of the four outlined Landscape Component has been set to a different level. 
+以下の画像では、描かれた 4 つのランドスケープ コンポーネントのそれぞれのコリジョン ミップ レベルに対して異なるレベルが設定されています。 
 
 ![](CC_05.png)
 
-|Number| Collision Mip Level|
+|数字| コリジョン ミップ レベル|
 |----------|-------------------------|
 |1|3|
 |2|4|
@@ -148,7 +177,7 @@ In the following image, the Collision Mip level for each of the four outlined La
 	VC
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Drag the slider to adjust the Collision Mip Level from 0 to 5**
+	**スライダーをドラッグすると、Collision Mip Level を 0 から 5 に調整します。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](VC_1.png)(w:780)
@@ -175,7 +204,7 @@ In the following image, the Collision Mip level for each of the four outlined La
 	PC
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Drag the slider to adjust the Simple Collision Mip Level from 0 to 5**
+	**スライダーをドラッグすると、Simple Collision Mip Level を 0 から 5 に調整します。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](PC_1.png)(w:780)
