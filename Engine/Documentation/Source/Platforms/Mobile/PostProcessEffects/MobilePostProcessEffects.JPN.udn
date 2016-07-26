@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3041566
+﻿INTSourceChangelist:3053629
 Availability:Public
 Title:モバイル プラットフォーム上でのポストプロセス エフェクト
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -33,7 +33,11 @@ tags:mobile
 
 
 ### コンソールを使ってトーンマッパ フィルムを有効にする
-トーンマッパを有効にするには、まず **Backtick key(`)** を押してコンソールを開いてから、**r.tonemapperfilm 1** と入力してトーンマッパを有効にします。トーンマッパを無効にするには、コンソールを開いて **r.tonemapperfilm 0** と入力します。 
+トーンマッパを有効にするには、まず **Backtick key(`)** を押してコンソールを開いてから、トーンマッパを有効にする以下のコマンドを入力します。
+* **r.tonemapperfilm 1** 
+
+トーンマッパを無効にするには、コンソールを開いてトーンマッパを無効にする以下のコマンドを入力します。
+*  **r.tonemapperfilm 0**. 
 
 [region:note]
 このメソッドでは、このセッションのみにトーンマッパを有効にします。常にトーンマッパを有効にしておきたい場合は、使用したいトーンマッパ設定を DefaultEngine.INI に追加する必要があります。
@@ -195,6 +199,7 @@ tags:mobile
 |Sky Distance|無|n/a|
 |Vignette Size|無|n/a|
 
+
 ### その他
 |ポストプロセス プロパティ| サポートの有無|R.tonemapperfilm 値| 
 |--------------------|-----------|--------------|
@@ -217,7 +222,7 @@ tags:mobile
 * 最高のパフォーマンスと品質のためには、ブルームとテンポラル AA を使用してください。
 
 [REGION:note]
-よりよりパフォーマンスのために、コンソール変数 r.RenderTargetSwitchWorkaround で制御される特別なワークアラウンドを実装しています。**BaseDeviceProfiles.ini** で、
+パフォーマンス向上のために、コンソール変数 r.RenderTargetSwitchWorkaround で制御される特別なワークアラウンドを実装しています。**BaseDeviceProfiles.ini** で、
 これが幾つかのデバイスに対して有効になっていることが分かります。一定のパフォーマンス特性をもつデバイスでは、ブルーム エフェクトの外見に若干変化が生じることにご注意ください。コンソール変数ヘルプ テキストで詳細が説明されています。
 
 	r.RenderTargetSwitchWorkaround
