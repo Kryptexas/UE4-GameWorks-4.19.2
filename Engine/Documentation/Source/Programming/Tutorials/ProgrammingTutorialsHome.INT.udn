@@ -145,6 +145,25 @@ programming
 	[/PARAMLITERAL]
 [/OBJECT]
 
+<!--TO DO: Uncomment the following block when ready for publication.
+[OBJECT:Role]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Tutorials/FirstPersonShooter:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Tutorials/FirstPersonShooter]
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Tutorials/FirstPersonShooter:description%
+	[/PARAM]
+	[PARAMLITERAL:id]
+		cppfps
+	[/PARAMLITERAL]
+[/OBJECT]
+-->
 [/REGION]
 
 ## Intermediate
