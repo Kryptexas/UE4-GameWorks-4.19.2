@@ -191,7 +191,7 @@
 			<Compile Target="UE4Game" Platform="IOS" Configuration="Shipping" Tag="#UE4Game IOS" Arguments="-precompile"/>
 
 			<Tag Files="#UE4Game IOS" Filter="$(IOSStripFilter)" With="#UE4Game IOS Unstripped"/>
-			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="IOS" Files="##UE4Game IOS Unstripped" Tag="#UE4Game IOS Stripped"/>
+			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="IOS" Files="#UE4Game IOS Unstripped" Tag="#UE4Game IOS Stripped"/>
 
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/IOS/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/IOS/UE4/Inc/..." With="#UE4Game IOS Includes"/>
