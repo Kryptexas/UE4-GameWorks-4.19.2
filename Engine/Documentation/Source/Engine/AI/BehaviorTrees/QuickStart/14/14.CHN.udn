@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:2774060
 Availability:Public
-Title:14.构建行为树
+Title: 14.构建行为树
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:第十四步。构建行为树
+Description: 第十四步。构建行为树
 version:4.9
 
 [VAR:Steps]
@@ -46,7 +46,7 @@ version:4.9
 
 该指南第八部分中应该已经执行过此操作，以防您未保存，再次梳理一遍创建行为树基础架构的步骤。
 
-1. 如行为树未开放编辑，在 **内容浏览器** 中 **双击** 打开进行编辑。
+1. 如果行为树资源还没有打开并处于编辑状态，在 **内容浏览器** 中 **双击** 打开进行编辑。
 1. 切换至行为树模式
 
 	![](btMode.png)
