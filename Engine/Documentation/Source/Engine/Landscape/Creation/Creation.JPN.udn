@@ -1,14 +1,35 @@
-﻿INTSourceChangelist:2697291
+﻿INTSourceChangelist:3053927
 Availability:Public
 Title:ランドスケープの作成
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープ テレインの新規作成ガイド
 version:4.9
+parent:Engine/Landscape
+order:2
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](Engine/Landscape/Creation/landscape_create_topic.png)
+		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/landscape_icon.png)(convert:false)
@@ -31,7 +52,7 @@ version:4.9
 **Landscape (ランドスケープ)** ツールは、複数のデバイスでプレイ可能なフレームレートを維持しながら壮大なテレイン ベースのワールドを作成します。 
 ランドスケープ システムはフレキシブルであるため、以下のいずれかの方法を用いてランドスケープを作成することができます。 
 
-* エンジン内のLandscape ツールを用いて新規ランドスケープ高さマップをゼロから作成できます。
+* エンジン内の Landscape ツールを用いて新規ランドスケープ高さマップをゼロから作成できます。
 * アンリアル エディタもしくは外部ツールであらかじめ作成されたランドスケープの高さマップのインポートが可能です。高さマップのインポートの操作の詳しい情報については、
 	[カスタムの高さマップとレイヤーを作成する](Engine/Landscape/Custom) のドキュメントをご覧ください。
 
@@ -129,7 +150,7 @@ og7fnKaqYdI
 [/REGION]
 
 
-作成する前にマテリアルをランドスケープに割り当てることも可能です。これを行うには **コンテンツ ブラウザ** で適切なマテリアルを選択し、 **Material** の隣にある **[New Landscape (新規ランドスケープ)]** セクションに Assign 矢印アイコンをクリックして割り当てます。
+作成する前にマテリアルをランドスケープに割り当てることも可能です。これを行うには **コンテンツ ブラウザ** で適切なマテリアルを選択し、**Material** の隣にある **[New Landscape (新規ランドスケープ)]** セクションに Assign 矢印アイコンをクリックして割り当てます。
 
 ![](Landscape_Assign_Material.png)
 
@@ -146,7 +167,7 @@ og7fnKaqYdI
 [/REGION]
 
 
-**[Create]** ボタンを押すと、以下のようになります。 
+**[Create (作成)]** ボタンを押すと、以下のようになります。 
 
 ![Landscape_NewTerrain.png](Landscape_NewTerrain.png)(w:600)
 
