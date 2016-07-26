@@ -53,7 +53,7 @@ different variable types, working with those variables, and execution of nodes w
 Variables can be created in a variety of different types, including data types such as Boolean, integer, and float. They are color-coded for easy identification within your Blueprint.
 Blueprint variables can also be reference types for holding things like Objects, Actors, and Classes.
 
-[DIR(output:"listbutton" tags:"Data Types")]
+[DIR(output:"listbutton" parent:"Engine/Blueprints" tags:"Data Types" org:"flat")]
 
 ## Execution Flow
 
