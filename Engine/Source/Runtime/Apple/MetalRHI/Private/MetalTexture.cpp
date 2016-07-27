@@ -465,7 +465,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 				}
 				else
 				{
-					UE_LOG(LogMetal, Display, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
+					UE_LOG(LogMetal, Error, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
 				}
 				break;
 			default:
@@ -1462,6 +1462,31 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 	MTLRegion Region = MTLRegionMake2D(UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.Width, UpdateRegion.Height);
 	
 #if PLATFORM_MAC
+	// Expand R8_sRGB into RGBA8_sRGB for Mac.
+	TArray<uint8> Data;
+	if (Texture->GetFormat() == PF_G8 && (Texture->GetFlags() & TexCreate_SRGB))
+	{
+		uint32 BytesPerImage = SourcePitch * UpdateRegion.Height;
+		Data.AddZeroed(BytesPerImage * 4);
+		uint8* Dest = Data.GetData();
+		
+		for(uint y = 0; y < UpdateRegion.Height; y++)
+		{
+			uint8* RowDest = Dest;
+			for(uint x = 0; x < UpdateRegion.Width; x++)
+			{
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+			}
+			Dest = (Dest + SourcePitch);
+		}
+		
+		SourceData = Data.GetData();
+		SourcePitch *= 4;
+	}
+	
 	if(Tex.storageMode == MTLStorageModePrivate)
 	{
 		SCOPED_AUTORELEASE_POOL;
@@ -1512,6 +1537,7 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 	MTLRegion Region = MTLRegionMake3D(UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ, UpdateRegion.Width, UpdateRegion.Height, UpdateRegion.Depth);
 	
 #if PLATFORM_MAC
+	checkf(!(Texture->GetFormat() == PF_G8 && (Texture->GetFlags() & TexCreate_SRGB)), TEXT("MetalRHI does not support PF_G8_sRGB on 3D, array or cube textures as it requires manual, CPU-side expansion to RGBA8_sRGB which is expensive!"));
 	if(Tex.storageMode == MTLStorageModePrivate)
 	{
 		SCOPED_AUTORELEASE_POOL;
