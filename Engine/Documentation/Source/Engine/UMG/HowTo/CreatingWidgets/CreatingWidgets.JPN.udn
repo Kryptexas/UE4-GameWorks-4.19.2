@@ -1,133 +1,133 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Creating and Displaying UI
+﻿INTSourceChangelist:3061435
+Availability:Public
+Title:UI を作成し、表示する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:An example of how to create, display and remove UI elements from the screen during gameplay. 
+Description:ゲームプレイ中に画面に UI エレメントを作成、表示、除去する方法の例です。 
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.12
-SkillLevel: Beginner
+Version:4.12
+SkillLevel:Beginner
 
-Typically in most games you will want to communicate some information to your players through your game's User Interface. 
-This can range from things like Main Menus, in-game Pause Menus, Health or Experience, Inventory Items or help text to instruct players what to do in a given situation. 
+通常、ほとんどのゲームでは、ユーザー インターフェース (UI) を通してプレイヤーに何らかの情報を伝えます。 
+UI には、メイン メニュー、インゲームの一時停止メニュー、ヘルス、経験値、インベントリ アイテム、または任意の状況でプレイヤーに何をすべきか指示するヘルプ テキストがあります。 
 
-With **Unreal Motion Graphics (UMG)**, you can create a [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) to handle the display of UI elements in your project. 
-The Widget Blueprint uses [](Engine/Blueprints) to design the layout as well as script functionality for the UI element such as what happens when a button is clicked or if a value changes, etc. 
+**Unreal Motion Graphics (UMG)** を使用すると、 [Widget ブループリント](Engine/UMG/UserGuide/WidgetBlueprints) を作成してプロジェクトで UI エレメントの表示を処理することができます。 
+Widget ブループリントでは、[](Engine/Blueprints) を使ってレイアウトをデザインし、UI エレメントの機能をスクリプトします。例えば、ボタンがクリックされると何が起こるか、値が変化するかなどの機能です。 
 
-In this how-to we will create a Widget Blueprint, add some Text to it, then through the Level Blueprint display it when a key is pressed. 
+この操作ガイドでは、Widget ブループリントを作成して、それにテキストを追加して、キーが押されると Level ブループリントを通してそれを表示させます。 
 
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template**. However, you can use any project you wish. 
+この操作ガイドでは **Blueprint Third Person Template** を使います。ただし、必要に応じて他のプロジェクトを使用することもできます。 
 [/REGION]
 
-1.	In the [](Engine/Content/Browser/) click the **Add New** button, then under **User Interface** select **Widget Blueprint**. 
+1.	[](Engine/Content/Browser/) で、 **[Add New]** ボタンをクリックし、 **User Interface** で **Widget ブループリント** を選択します。 
 
 	![](CreatingWidgets01.png)
 
-	Regardless of the type of UI element you wish to create in UMG, you will need to do so inside a Widget Blueprint. 
+	UMG でどのタイプの HUD エレメントを作成するかに関係なく、Widget ブループリント内で作業する必要があります。 
 
-1.	Enter the name **SampleUI** for the name of the Widget Blueprint, then **Double-click** and open it. 
+1.	Widget ブループリントの名前に、名前 **SampleUI** を入力し、 **ダブルクリック** して開きます。 
 
 	![](CreatingWidgets02.png)
 
-	Upon opening a Widget Blueprint you will be presented with the UMG Editor Interface
+	Widget ブループリントを開くと、UMG のエディタ インターフェースが表示されます。
 
 	[REGION:lightbox]
 	[![](CreatingWidgets03.png)](CreatingWidgets03.png)
 	[/REGION:lightbox]
 
 	[REGION:caption]
-	Click for full view. 
+	クリックしてフルサイズで表示 
 	[/REGION]
 
-	The Widget Blueprint opens by default to the **Designer** tab which is where you perform your visual layout of your UI elements. To script functionality for the Widget Bluperint you can click the **Graph** button in the top right corner of the editor. 
+	Widget ブループリントはデフォルトで **[Designer]** タブで開きます。ここで、UI エレメントの視覚的レイアウトを行います。Widget ブループリントの機能をスクリプトするには、エディタの右上隅にある **[グラフ]** ボタンをクリックします。 
 
-1.	Inside the **Palette** window, **Left-click** and drag a **Text** widget into the **Visual Designer** graph. 
+1.	**[Palette (パレット)]** ウィンドウ内で **左クリック** し、**Text** ウィジェットを **[Visual Designer (ビジュアル デザイナー)]** グラフにドラッグします。 
 
 	![](CreatingWidgets04.png)
 
-	The Palette window contains several different types of widgets that you can use to construct your UI elements. 
+	[パレット] ウィンドウには、複数種類のウィジェットがあり、これらを使って UI エレメントを作成することができます。 
 
-1.	In the **Details** panel for the Text Widget, click the [](Engine/UMG/UserGuide/Anchors) dropdown and select to Anchor to the Center. 
+1.	Text Widget の **[Details (詳細)]** パネルで、[](Engine/UMG/UserGuide/Anchors) ドロップダウンをクリックして、中央に固定するオプションを選択します。 
 
 	![](CreatingWidgets05.png)
 
-	This will ensure that as the viewport size changes, the Text will stay anchored relative to the center of the screen. 
+	これでビューポート サイズが変わっても、Text ウィジェットが画面中央に相対的に固定されます。 
 
-1.	In the **Details** panel click the **Size to Content** option, change the **Text**, **Color and Opacity** and **Font Size** options. 
+1.	**[Details (詳細)]** パネルで、**[Size to Content]** オプションをクリックして、**Text**、 **Color and Opacity**、および **Font Size** のオプションを変更します。 
 
 	![](CreatingWidgets06.png)
 
-	The Size to Content option as the name suggests will adjust the size of the widget to fit its content. We also changed the text to "Hello World!", changed the color of the text to Green and set the Font Size to 56.
+	名前が示すとおり、[Size to Content] オプションは、ウィジェットのサイズを調整して、そのコンテンツに合わせます。さらに、テキストを "Hello World!" に変更し、その色を緑にし、フォントサイズを 56 にしました。
 
-1.	Click the **Compile** button then **Save** and close the Widget Blueprint. 
+1.	**[Compile]** ボタンをクリックします。**[Save]** をクリックして、Widget ブループリントを閉じます。 
 
 	![](CreatingWidgets09.png)
 
-1.	From the Main Toolbar, click the **Blueprints** button then select **Open Level Blueprint**. 
+1.	メイン ツールバー で **[ブループリント]** ボタンをクリックして、次に **[Open Level Blueprint (Level ブループリントを開く)]** を選択します。 
 
 	![](CreatingWidgets10.png)
 
-	We are now going to determine when to display the SampleUI Widget Blueprint we created. 
+	これから、作成した SampleUI Widget ブループリントをいつ表示するかを指定します。 
 
-1.	**Right-click** in the graph and search for and add the **Create Widget** node. 
+1.	グラフ内で **右クリック** して、**Create Widget** ノードを探して追加します。 
 
 	![](CreatingWidgets11.png)
 
-1.	On the node, click the **Class** drop-down menu and search for and add our Widget Blueprint **SampleUI**. 
+1.	このノードで、 **[Class]** ドロップダウン メニューをクリックして Widget ブループリントの **SampleUI** を探して追加します。 
 
 	![](CreatingWidgets12.png)
 
-1.	**Right-click** on the **Return Value** pin and select **Promote to Variable** and call it **SampleUI**. 
+1.	**Return Value** ピンを **右クリック** して、**Promote To Variable** を選択して、**SampleUI** と名前を付けます。 
 
 	![](CreatingWidgets13.png)
 
-	Whenever you create the Widget Blueprint (your UI), it's a good idea to promote that to a variable so you can access it later through Blueprint Script. 
+	Widget ブループリント (UI) を作成するたびに、それを変数に昇格し、後でブループリント スクリプトを通してアクセスできるようにするとよいでしょう。 
 
-1.	Drag off the out pin on the **Set** node and search for and add the **Add to Viewport** node. 
+1.	 **Set** ノードの出力ピンからドラッグして、**Add to Viewport** ノードを探して追加します。 
 
 	![](CreatingWidgets14.png)
 
-	This is how we tell the Widget Blueprint to be displayed in-game. 
+	Widget ブループリントをインゲームで表示するように指示する方法です。 
 
-1.	**Right-click** in the graph and search for and add the **Enter** Keyboard Event. 
+1.	グラフ内を **右クリック** して、**Enter** Keyboard Event を探して追加します。 
 
 	![](CreatingWidgets15.png)
 
-1.	Connect the **Pressed** pin to the executable pin of the **Create Sample UI Widget** node. 
+1.	**Pressed** ピンを **Create Sample UI Widget** ノードの実行ピンに接続します。 
 
 	![](CreatingWidgets16.png)
 
-	At this point we have stated that when we press Enter, create the widget and store it as a variable before displaying it. 
+	ここまでで、Enter を押すと、そのウィジェットを作成し、表示する前に変数として保存するように指示しています。 
 
-1.	Hold **Ctrl** and drag in the **SampleUI** variable into the graph from the **My Blueprint** panel.
+1.	**Ctrl** キーを押しながら、**SampleUI** 変数を **[My Blueprint]** パネルからグラフにドラッグします。
 
 	![](CreatingWidgets17.png)
 
-1.	Drag off the pin of the new node and search for and add the **Remove from Parent** node. 
+1.	新しいノードのピンをドラッグして、 **Remove from Parent** ノードを探して追加します。 
 
 	![](CreatingWidgets18.png)
 
-	The Remove from Parent node is how we tell Widget Blueprints to be removed from the viewport. 
+	Remove from Parent ノードは、Widget ブループリントをビューポートから取り除く指示をします。 
 
-1.	Connect the **Release** pin of the **Enter** node to the **Remove from Parent** executable in pin. 
+1.	**Enter** ノードの **Release** ピンを **Remove from Parent** 実行入力ピンに接続します。 
 
 	![](CreatingWidgets19.png)
 
-	Now when we press **Enter** the text will be displayed and when we release Enter, the text will be removed. 
+	**Enter** キーを押すと、テキストが表示されて、キーを放すとテキストが取り除かれます。 
 
-1.	Close the **Level Blueprint**, then click the **Play** button from the Main Toolbar. 
+1.	**Level ブループリント** を閉じて、メイン ツールバーで **Play** ボタンをクリックします。 
 
 	![](CreatingWidgets20.png)
 
 
 
-## End Result
+## 最終結果
 
-When you play in the editor you should have something similar to below whenever you press/release the **Enter** key. 
+エディタでプレイすると、**Enter** キーを押したり、放したりするたびに以下のようになります。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
