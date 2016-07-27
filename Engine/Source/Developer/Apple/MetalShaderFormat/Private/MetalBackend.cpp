@@ -1124,7 +1124,7 @@ protected:
 			ralloc_asprintf_append(buffer, "ERRROR_MulMatrix()");
 			check(0);
 		}
-		else if (op == ir_ternop_clamp && expr->type->base_type == GLSL_TYPE_FLOAT)
+		else if ((op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq) && expr->type->base_type == GLSL_TYPE_FLOAT)
 		{
 			ralloc_asprintf_append(buffer, "precise::%s", MetalExpressionTable[op][0]);
 			for (int i = 0; i < numOps; ++i)
@@ -1133,16 +1133,47 @@ protected:
 				ralloc_asprintf_append(buffer, MetalExpressionTable[op][i+1]);
 			}
 		}
-		else if (numOps == 2 && (op == ir_binop_max || op == ir_binop_min) && expr->type->is_integer())
+		else if (numOps == 2 && (op == ir_binop_max || op == ir_binop_min))
 		{
 			// Convert fmax/fmin to max/min when dealing with integers
 			auto* OpString = MetalExpressionTable[op][0];
 			check(OpString[0] == 'f');
-			ralloc_asprintf_append(buffer, OpString + 1);
+			
+			if(expr->type->is_integer())
+			{
+				OpString = (OpString + 1);
+			}
+			else if(expr->type->base_type == GLSL_TYPE_FLOAT)
+			{
+				ralloc_asprintf_append(buffer, "precise::");
+			}
+			
+			ralloc_asprintf_append(buffer, OpString);
 			expr->operands[0]->accept(this);
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
 			expr->operands[1]->accept(this);
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+		}
+		else if (numOps == 2 && op == ir_binop_dot)
+		{
+			auto* OpString = MetalExpressionTable[op][0];
+			
+			if (expr->operands[0]->type->is_scalar() && expr->operands[1]->type->is_scalar())
+			{
+				ralloc_asprintf_append(buffer, "(");
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, "*");
+				expr->operands[1]->accept(this);
+				ralloc_asprintf_append(buffer, ")");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, OpString);
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
+				expr->operands[1]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+			}
 		}
 		else if (op == ir_unop_lsb && numOps == 1)
 		{
@@ -1161,18 +1192,6 @@ protected:
 			ralloc_asprintf_append(buffer, "popcount(");
 			expr->operands[0]->accept(this);
 			ralloc_asprintf_append(buffer, ")");
-		}
-		else if (op == ir_unop_sqrt && numOps == 1)
-		{
-			glsl_type const* Type = expr->operands[0]->type;
-			print_type_pre(Type);
-			ralloc_asprintf_append(buffer, "(precise::sqrt(");
-			print_type_pre(PromoteHalfToFloatType(ParseState, Type));
-			ralloc_asprintf_append(buffer, "(max(");
-			print_type_pre(Type);
-			ralloc_asprintf_append(buffer, "(0.0),");
-			expr->operands[0]->accept(this);
-			ralloc_asprintf_append(buffer, "))))");
 		}
 		else if (numOps < 4)
 		{
@@ -2045,6 +2064,35 @@ protected:
 			}
 		}
 
+        if (call->return_deref && call->return_deref->type && call->return_deref->type->is_scalar())
+        {
+            if (!strcmp(call->callee_name(), "length"))
+            {
+                bool bIsVector = true;
+                foreach_iter(exec_list_iterator, iter, *call)
+                {
+                    ir_instruction *const inst = (ir_instruction *) iter.get();
+                    ir_rvalue* const val = inst->as_rvalue();
+                    if (val && val->type->is_scalar())
+                    {
+                        bIsVector &= val->type->is_vector();
+                    }
+                }
+                
+                if (!bIsVector)
+                {
+                    ralloc_asprintf_append(buffer, "(");
+                    foreach_iter(exec_list_iterator, iter, *call)
+                    {
+                        ir_instruction *const inst = (ir_instruction *) iter.get();
+                        inst->accept(this);
+                    }
+                    ralloc_asprintf_append(buffer, ")");
+                    return;
+                }
+            }
+        }
+        
 		if (!strcmp(call->callee_name(), "packHalf2x16"))
 		{
 			ralloc_asprintf_append(buffer, "as_type<uint>(half2(");
