@@ -51,6 +51,8 @@ void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const T
 			]
 		];
 	}
+
+	UpdateDiffersFromDefaultState();
 }
 
 void SResetToDefaultPropertyEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
