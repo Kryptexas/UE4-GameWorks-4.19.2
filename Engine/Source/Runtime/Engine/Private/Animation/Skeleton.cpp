@@ -1238,7 +1238,8 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 			else
 			{
 				// this is only case where we add new one
-				Mapping->FindOrAddSmartName(InOutSmartName.DisplayName, InOutSmartName);
+				ensureAlways(Mapping->AddSmartName(InOutSmartName));
+				Modify();
 				return true;
 			}
 		}
