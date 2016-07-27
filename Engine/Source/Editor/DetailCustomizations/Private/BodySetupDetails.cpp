@@ -157,6 +157,24 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		return true;
 	}));
 
+	auto CurrentProfileTextLambda = [ObjectsCustomizedLocal]() -> FText
+	{
+		for (TWeakObjectPtr<UObject> WeakObj : ObjectsCustomizedLocal)
+		{
+			if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(WeakObj.Get()))
+			{
+				return FText::FromName(BS->GetCurrentPhysicalAnimationProfileName());
+			}
+		}
+
+		return FText::FromName(NAME_None);
+	};
+
+	TAttribute<FText> CreateProfileLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([CurrentProfileTextLambda]()
+	{
+		return FText::Format(LOCTEXT("CreatePhysAnimLabel", "Add to profile: <RichTextBlock.Bold>{0}</>"), CurrentProfileTextLambda());
+	}));
+
 	Cat.AddCustomRow(LOCTEXT("NewPhysAnim", "NewPhysicalAnimationProfile"))
 	.Visibility(NewPhysAnimButtonVisible)
 	[
@@ -166,7 +184,7 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		.Padding(0, 10, 0, 10)
 		[
 			SNew(SBox)
-			.WidthOverride(160)
+			.MinDesiredWidth(180)
 			.HeightOverride(32)
 			[
 				SNew(SButton)
@@ -174,8 +192,9 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 				.IsEnabled(PhysAnimButtonEnabled)
 				.OnClicked_Lambda(AddProfileLambda)
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("NewPhysAnimButton", "Add To Current Profile"))
+					SNew(SRichTextBlock)
+					.Text(CreateProfileLabel)
+					.DecoratorStyleSet(&FEditorStyle::Get())
 					.ToolTipText(LOCTEXT("NewPhysAnimButtonToolTip", "Add to current physical animation profile."))
 				]
 			]	
@@ -206,6 +225,11 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		}
 	}
 
+	TAttribute<FText> DeleteProfileLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([CurrentProfileTextLambda]()
+	{
+		return FText::Format(LOCTEXT("DeletePhysAnimLabel", "Remove from profile: <RichTextBlock.Bold>{0}</>"), CurrentProfileTextLambda());
+	}));
+
 	Cat.AddCustomRow(LOCTEXT("DeletePhysAnim", "DeletePhysicalAnimationProfile"))
 	.Visibility(PhysAnimVisible)
 	[
@@ -215,14 +239,15 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		.HAlign(HAlign_Center)
 		[
 			SNew(SBox)
-			.WidthOverride(180)
+			.MinDesiredWidth(180)
 			[
 				SNew(SButton)
 				.HAlign(HAlign_Center)
 				.OnClicked_Lambda(DeleteProfileLambda)
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("DeletePhysAnimButton", "Remove From Current Profile"))
+					SNew(SRichTextBlock)
+					.Text(DeleteProfileLabel)
+					.DecoratorStyleSet(&FEditorStyle::Get())
 					.ToolTipText(LOCTEXT("DeletePhysAnimButtonToolTip", "Removes the selected body from the current physical animation profile."))
 				]
 			]
