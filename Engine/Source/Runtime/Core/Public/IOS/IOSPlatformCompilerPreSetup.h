@@ -104,3 +104,9 @@
 #pragma clang diagnostic warning "-Wreorder"
 #pragma clang diagnostic warning "-Wparentheses-equality"
 #pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"
+
+// We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
+#if __clang_major__ >= 7 && __clang_minor__ >= 3
+#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
+#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
+#endif
