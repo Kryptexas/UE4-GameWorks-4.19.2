@@ -302,8 +302,10 @@ void USkeletalMeshComponent::UpdateClothTickRegisteredState()
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance() const
 {
 	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
-	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimClassInterface != NULL) &&
-		(SkeletalMesh != NULL) && (SkeletalMesh->Skeleton->IsCompatible(AnimClassInterface->GetTargetSkeleton())))
+	const USkeleton* AnimSkeleton = (AnimClassInterface) ? AnimClassInterface->GetTargetSkeleton() : nullptr;
+	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimSkeleton != nullptr) &&
+		(SkeletalMesh != nullptr) && (SkeletalMesh->Skeleton->IsCompatible(AnimSkeleton)
+		&& AnimSkeleton->IsCompatibleMesh(SkeletalMesh)))
 	{
 		if ( (AnimScriptInstance == NULL) || (AnimScriptInstance->GetClass() != AnimClass) )
 		{
@@ -366,7 +368,7 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 {
 	// a lot of places just call InitAnim without checking Mesh, so 
 	// I'm moving the check here
-	if ( SkeletalMesh != NULL && IsRegistered() )
+	if ( SkeletalMesh != nullptr && IsRegistered() )
 	{
 		if (SkeletalMesh->MorphTargets.Num() > 0 && MorphTargetWeights.Num() == 0)
 		{
@@ -383,9 +385,12 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		bool bBlueprintMismatch = (AnimClass != NULL) &&
 			(AnimScriptInstance != NULL) && (AnimScriptInstance->GetClass() != AnimClass);
 
-		bool bSkeletonMismatch = AnimScriptInstance && AnimScriptInstance->CurrentSkeleton && (AnimScriptInstance->CurrentSkeleton!=SkeletalMesh->Skeleton);
+		const USkeleton* AnimSkeleton = (AnimScriptInstance)? AnimScriptInstance->CurrentSkeleton : nullptr;
 
-		if (bBlueprintMismatch || bSkeletonMismatch )
+		bool bSkeletonMismatch = AnimSkeleton && (AnimScriptInstance->CurrentSkeleton!=SkeletalMesh->Skeleton);
+		bool bSkeletonNotCompatible = AnimSkeleton && (AnimSkeleton->IsCompatibleMesh(SkeletalMesh) == false);
+
+		if (bBlueprintMismatch || bSkeletonMismatch || bSkeletonNotCompatible)
 		{
 			ClearAnimScriptInstance();
 		}
