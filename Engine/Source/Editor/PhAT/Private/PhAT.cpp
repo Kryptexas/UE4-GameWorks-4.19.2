@@ -278,7 +278,7 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 						.Padding(10, 10, 10, 10)
 						[
 							SNew(SBox)
-							.WidthOverride(160)
+							.MinDesiredWidth(180)
 							.HeightOverride(20)
 							.Visibility(NewConstraintButtonVisible)
 							[
@@ -298,7 +298,7 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 						[
 							SNew(SBox)
 							.Visibility(DeleteConstraintButtonVisible)
-							.WidthOverride(180)
+							.MinDesiredWidth(180)
 							.HeightOverride(20)
 							[
 								SNew(SButton)
@@ -972,6 +972,7 @@ void FPhAT::ExtendToolbar()
 						FUIAction Action;
 						Action.ExecuteAction = FExecuteAction::CreateLambda( [SharedData, ProfileName]()
 						{
+							FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);	//Ensure focus is removed because the menu has already closed and the cached value (the one the user has typed) is going to apply to the new profile
 							SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName = ProfileName;
 							for(USkeletalBodySetup* BS : SharedData->PhysicsAsset->SkeletalBodySetups)
 							{
@@ -1065,6 +1066,7 @@ void FPhAT::ExtendToolbar()
 						FUIAction Action;
 						Action.ExecuteAction = FExecuteAction::CreateLambda([SharedData, ProfileName]()
 						{
+							FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);	//Ensure focus is removed because the menu has already closed and the cached value (the one the user has typed) is going to apply to the new profile
 							SharedData->PhysicsAsset->CurrentConstraintProfileName = ProfileName;
 							for (UPhysicsConstraintTemplate* CS : SharedData->PhysicsAsset->ConstraintSetup)
 							{
