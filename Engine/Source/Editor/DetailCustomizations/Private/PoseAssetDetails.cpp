@@ -2,11 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "PoseAssetDetails.h"
-#include "AnimMontageSegmentDetails.h"
-#include "AnimPreviewInstance.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
-#include "AnimationEditorUtils.h"
+#include "Runtime/Engine/Classes/Animation/AnimSequence.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE	"PoseAssetDetails"
@@ -105,7 +101,6 @@ void FPoseAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	];
 
 	DetailBuilder.HideProperty(RetargetSourceNameHandler);
-
 	/////////////////////////////////////////////////////////////////////////////
 	// Additive settings category
 	/////////////////////////////////////////////////////////////////////////////
@@ -228,6 +223,8 @@ void FPoseAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		]
 	];
 
+	/////////////////////////////////
+	// Source Animation filter for skeleton
 	IDetailCategoryBuilder& SourceCategory = DetailBuilder.EditCategory("Source");
 	SourceAnimationPropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPoseAsset, SourceAnimation));
 
@@ -245,7 +242,10 @@ void FPoseAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SourceAnimationPropertyHandle->CreatePropertyValueWidget()
+			SNew(SObjectPropertyEntryBox)
+			.AllowedClass(UAnimSequence::StaticClass())
+			.OnShouldFilterAsset(this, &FPoseAssetDetails::ShouldFilterAsset)
+			.PropertyHandle(SourceAnimationPropertyHandle)
 		]
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -264,6 +264,23 @@ void FPoseAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 			]
 		]
 	];
+}
+
+void FPoseAssetDetails::OnSourceAnimationChanged(const FAssetData& AssetData)
+{
+	ensureAlways(SourceAnimationPropertyHandle->SetValue(AssetData) == FPropertyAccess::Result::Success);;
+}
+
+bool FPoseAssetDetails::ShouldFilterAsset(const FAssetData& AssetData)
+{
+	if (TargetSkeleton.IsValid())
+	{
+		FString SkeletonString = FAssetData(TargetSkeleton.Get()).GetExportTextName();
+		const FString* Value = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
+		return (!Value || SkeletonString != *Value);
+	}
+
+	return true;
 }
 
 FText FPoseAssetDetails::GetButtonText() const
