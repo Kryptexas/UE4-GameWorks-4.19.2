@@ -73,10 +73,13 @@ class UAnimCompress_RemoveLinearKeys : public UAnimCompress
 
 protected:
 	//~ Begin UAnimCompress Interface
+#if WITH_EDITOR
 	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
 	virtual void PopulateDDCKey(FArchive& Ar) override;
+#endif // WITH_EDITOR
 	//~ Begin UAnimCompress Interface
 
+#if WITH_EDITOR
 	/**
 	 * Pre-filters the tracks before running the main key removal algorithm
 	 */
@@ -176,6 +179,8 @@ protected:
 		TArray<FTranslationTrack>& PositionTracks,
 		TArray<FRotationTrack>& RotationTracks, 
 		TArray<FScaleTrack>& ScaleTracks);
+
+#endif // WITH_EDITOR
 };
 
 

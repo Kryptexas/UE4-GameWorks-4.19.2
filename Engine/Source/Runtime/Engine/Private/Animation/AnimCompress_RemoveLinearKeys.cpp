@@ -100,6 +100,7 @@ template <> FTransform UpdateBoneAtom<FQuat>(int32 BoneIndex, const FTransform& 
 	return FTransform(Component, Atom.GetTranslation(), FVector(1.0f));
 }
 
+#if WITH_EDITOR
 /**
  * Template function to reduce the keys of a given data type.
  * Used to reduce both Translation and Rotation keys using the corresponding
@@ -301,7 +302,6 @@ void FilterLinearKeysTemplate(
 	}
 }
 
-
 void UAnimCompress_RemoveLinearKeys::UpdateWorldBoneTransformTable(
 	UAnimSequence* AnimSeq, 
 	const TArray<FBoneData>& BoneData, 
@@ -364,7 +364,6 @@ void UAnimCompress_RemoveLinearKeys::UpdateWorldBoneTransformTable(
 		}
 	}
 }
-
 
 void UAnimCompress_RemoveLinearKeys::FilterBeforeMainKeyRemoval(
 	UAnimSequence* AnimSeq, 
@@ -1016,7 +1015,6 @@ void UAnimCompress_RemoveLinearKeys::CompressUsingUnderlyingCompressor(
 	AnimationFormat_SetInterfaceLinks(*AnimSeq);
 }
 
-
 void UAnimCompress_RemoveLinearKeys::DoReduction(UAnimSequence* AnimSeq, const TArray<FBoneData>& BoneData)
 {
 #if WITH_EDITORONLY_DATA
@@ -1107,3 +1105,5 @@ void UAnimCompress_RemoveLinearKeys::PopulateDDCKey(FArchive& Ar)
 					MakeBitForFlag(bActuallyFilterLinearKeys, 1);
 	Ar << Flags;
 }
+
+#endif // WITH_EIDOT

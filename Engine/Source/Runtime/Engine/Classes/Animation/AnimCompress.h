@@ -86,7 +86,7 @@ class UAnimCompress : public UObject
 	UPROPERTY()
 	TEnumAsByte<AnimationCompressionFormat> ScaleCompressionFormat;
 
-
+#if WITH_EDITOR
 public:
 	/**
 	 * Reduce the number of keyframes and bitwise compress the specified sequence.
@@ -105,8 +105,9 @@ public:
 	 * @return					false if a skeleton was needed by the algorithm but not provided.
 	 */
 	ENGINE_API bool Reduce(class UAnimSequence* AnimSeq, FAnimCompressContext& Context);
-
+#endif // WITH_EDITOR
 protected:
+#if WITH_EDITOR
 	/**
 	 * Implemented by child classes, this function reduces the number of keyframes in
 	 * the specified sequence, given the specified skeleton (if needed).
@@ -114,7 +115,7 @@ protected:
 	 * @return		true if the keyframe reduction was successful.
 	 */
 	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) PURE_VIRTUAL(UAnimCompress::DoReduction,);
-
+#endif // WITH_EDITOR
 	/**
 	 * Common compression utility to remove 'redundant' position keys based on the provided delta threshold
 	 *
@@ -318,10 +319,12 @@ public:
 		const TArray<FScaleTrack>& ScaleData,
 		bool IncludeKeyTable = false);
 
+#if WITH_EDITOR
 	FString MakeDDCKey();
 
 protected:
 	virtual void PopulateDDCKey(FArchive& Ar);
+#endif // WITH_EDITOR
 };
 
 
