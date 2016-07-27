@@ -10,6 +10,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Misc/ScopeExit.h"
+#include "PropertyHandleImpl.h"
 
 FPropertySettings& FPropertySettings::Get()
 {
@@ -1516,6 +1517,8 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		// Whether or not an edit inline new was reset as a result of this reset to default
 		bool bEditInlineNewWasReset = false;
 
+		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
+
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
 			TWeakObjectPtr<UObject> ObjectWeakPtr = ObjectNode->GetUObject( ObjIndex );
@@ -1659,6 +1662,9 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 						// restore the original (editor) GWorld
 						RestoreEditorWorld( OldGWorld );
 					}
+
+					ArrayIndicesPerObject.Add(TMap<FString, int32>());
+					FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[ObjIndex], this);
 				}
 			}
 		}
@@ -1668,6 +1674,8 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
 			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet );
+			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+
 			NotifyPostChange( ChangeEvent, InNotifyHook );
 		}
 
