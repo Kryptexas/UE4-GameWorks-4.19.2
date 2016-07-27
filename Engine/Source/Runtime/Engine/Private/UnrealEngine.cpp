@@ -1209,6 +1209,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	// start at now minus a bit so we don't get a zero delta.
 	static double LastTime = FPlatformTime::Seconds() - 0.0001;
 	static bool bTimeWasManipulated = false;
+	bool bTimeWasManipulatedDebug = bTimeWasManipulated;	//Just used for logging of previous frame
 
 	// Figure out whether we want to use real or fixed time step.
 	const bool bUseFixedTimeStep = FApp::IsBenchmarking() || FApp::UseFixedTimeStep();
@@ -1245,7 +1246,8 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
 #else
 			// AMD dual-core systems are a known issue that require AMD CPU drivers to be installed. Installer will take care of this for shipping.
-			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html"));
+			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html - DeltaTime:%f, bUseFixedFrameRate:%d, bTimeWasManipulatedDebug:%d, FixedFrameRate:%f"), 
+				DeltaTime, bUseFixedFrameRate, bTimeWasManipulatedDebug, FixedFrameRate);
 #endif
 			DeltaTime = 0.01;
 		}
