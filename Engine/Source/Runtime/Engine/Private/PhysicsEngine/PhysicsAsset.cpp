@@ -85,7 +85,6 @@ void USkeletalBodySetup::RemovePhysicalAnimationProfile(FName ProfileName)
 
 void USkeletalBodySetup::UpdatePhysicalAnimationProfiles(const TArray<FName>& Profiles)
 {
-	//TODO: rename code. At the moment just deletes
 	for(int32 ProfileIdx = 0; ProfileIdx < PhysicalAnimationData.Num(); ++ProfileIdx)
 	{
 		if(Profiles.Contains(PhysicalAnimationData[ProfileIdx].ProfileName) == false)
@@ -94,6 +93,18 @@ void USkeletalBodySetup::UpdatePhysicalAnimationProfiles(const TArray<FName>& Pr
 		}
 	}
 }
+
+void USkeletalBodySetup::RenamePhysicalAnimationProfile(FName CurrentName, FName NewName)
+{
+	for(FPhysicalAnimationProfile& ProfileHandle : PhysicalAnimationData)
+	{
+		if(ProfileHandle.ProfileName == CurrentName)
+		{
+			ProfileHandle.ProfileName = NewName;
+		}
+	}
+}
+
 #endif
 
 void UPhysicsAsset::UpdateBodySetupIndexMap()
@@ -458,30 +469,99 @@ void UPhysicsAsset::PostEditUndo()
 	UpdateBoundsBodiesArray();
 }
 
-void UPhysicsAsset::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UPhysicsAsset::PreEditChange(UProperty* PropertyThatWillChange)
+{
+	PreConstraintProfiles = ConstraintProfiles;
+	PrePhysicalAnimationProfiles = PhysicalAnimationProfiles;
+}
+
+template <typename T>
+void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName>& PreProfiles, TArray<FName>& PostProfiles, FPropertyChangedEvent& PropertyChangedEvent, const FName PropertyName, FName& CurrentProfileName, TFunctionRef<void (T*, FName, FName)> RenameFunc, TFunctionRef<void(T*, const TArray<FName>& )> UpdateFunc)
+{
+	const int32 ArrayIdx = PropertyChangedEvent.GetArrayIndex(PropertyName.ToString());
+
+	if (ArrayIdx != INDEX_NONE)
+	{
+		if(PropertyChangedEvent.ChangeType != EPropertyChangeType::Unspecified)
+		{
+			int32 CollisionCount = 0;
+			FName NewName = PostProfiles[ArrayIdx] == NAME_None ? FName(TEXT("New")) : PostProfiles[ArrayIdx];
+			const FString NewNameNoNumber = NewName.ToString();
+			while(PreProfiles.Contains(NewName))
+			{
+				FString NewNameStr = NewNameNoNumber;
+				NewNameStr.Append("_").AppendInt(++CollisionCount);
+				NewName = FName(*NewNameStr);
+			}
+
+			PostProfiles[ArrayIdx] = NewName;
+		}
+	}
+	
+
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet)
+	{
+		if (ArrayIdx != INDEX_NONE)	//INDEX_NONE can come when emptying the array, so just ignore it
+		{
+			for (T* SetupInstance : SetupInstances)
+			{
+				RenameFunc(SetupInstance, PreProfiles[ArrayIdx], PostProfiles[ArrayIdx]);
+			}
+
+			if (CurrentProfileName == PreProfiles[ArrayIdx])
+			{
+				CurrentProfileName = PostProfiles[ArrayIdx];
+			}
+		}
+	}
+
+	//array events like empty currently do not get an Empty type so we need to do this final sanitization every time something changes just in case
+	{
+		//delete requires removing old profiles
+		for (T* SetupInstance : SetupInstances)
+		{
+			UpdateFunc(SetupInstance, PostProfiles);
+		}
+
+		if (PostProfiles.Find(CurrentProfileName) == INDEX_NONE)
+		{
+			CurrentProfileName = NAME_None;
+		}
+	}
+}
+
+void UPhysicsAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(UProperty* Property = PropertyChangedEvent.Property)
 	{
-		//physical animation
-		if(PhysicalAnimationProfiles.Find(CurrentPhysicalAnimationProfileName) == INDEX_NONE)
+		const FName PropertyName = Property->GetFName();
+		if(PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, PhysicalAnimationProfiles))
 		{
-			CurrentPhysicalAnimationProfileName = NAME_None;
-		}
+			auto RenameFunc = [](USkeletalBodySetup* BS, FName PreName, FName NewName)
+			{
+				BS->RenamePhysicalAnimationProfile(PreName, NewName);
+			};
 
-		for(USkeletalBodySetup* BS : SkeletalBodySetups)
-		{
-			BS->UpdatePhysicalAnimationProfiles(PhysicalAnimationProfiles);
-		}
+			auto UpdateFunc = [](USkeletalBodySetup* BS, const TArray<FName>& NewProfiles)
+			{
+				BS->UpdatePhysicalAnimationProfiles(NewProfiles);
+			};
 
-		//constraints
-		if (ConstraintProfiles.Find(CurrentConstraintProfileName) == INDEX_NONE)
-		{
-			CurrentConstraintProfileName = NAME_None;
+			SanitizeProfilesHelper<USkeletalBodySetup>(SkeletalBodySetups, PrePhysicalAnimationProfiles, PhysicalAnimationProfiles, PropertyChangedEvent, PropertyName, CurrentPhysicalAnimationProfileName, RenameFunc, UpdateFunc);
 		}
-
-		for (UPhysicsConstraintTemplate* CS : ConstraintSetup)
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, ConstraintProfiles))
 		{
-			CS->UpdateConstraintProfiles(ConstraintProfiles);
+			auto RenameFunc = [](UPhysicsConstraintTemplate* CS, FName PreName, FName NewName)
+			{
+				CS->RenameConstraintProfile(PreName, NewName);
+			};
+
+			auto UpdateFunc = [](UPhysicsConstraintTemplate* CS, const TArray<FName>& NewProfiles)
+			{
+				CS->UpdateConstraintProfiles(NewProfiles);
+			};
+
+			SanitizeProfilesHelper<UPhysicsConstraintTemplate>(ConstraintSetup, PreConstraintProfiles, ConstraintProfiles, PropertyChangedEvent, PropertyName, CurrentConstraintProfileName, RenameFunc, UpdateFunc);
 		}
 	}
 

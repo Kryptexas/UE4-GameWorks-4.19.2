@@ -96,7 +96,9 @@ public:
 		return ConstraintProfiles;
 	}
 
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
 #endif
 	//~ End UObject Interface
 
@@ -153,6 +155,14 @@ public:
 	ENGINE_API void BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constraints);
 
 private:
+
+#if WITH_EDITORONLY_DATA
+	/** Editor only arrays that are used for rename operations in pre/post edit change*/
+	TArray<FName> PrePhysicalAnimationProfiles;
+	TArray<FName> PreConstraintProfiles;
+#endif
+
+
 	UPROPERTY(instanced)
 	TArray<class UBodySetup*> BodySetup_DEPRECATED;
 };
@@ -202,6 +212,8 @@ public:
 	ENGINE_API void RemovePhysicalAnimationProfile(FName ProfileName);
 
 	ENGINE_API void UpdatePhysicalAnimationProfiles(const TArray<FName>& Profiles);
+
+	ENGINE_API void RenamePhysicalAnimationProfile(FName CurrentName, FName NewName);
 #endif
 
 #if WITH_EDITORONLY_DATA
