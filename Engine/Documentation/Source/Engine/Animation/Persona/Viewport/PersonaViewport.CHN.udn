@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:0
 Availability:Public
-Title:角色视口
+Title: Persona 窗口
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description: 关于角色动画编辑器中的视口预览的用户指南。
 version: 4.9
@@ -29,103 +29,99 @@ version: 4.9
 
 
 [EXCERPT:Overview]
-![](ViewportPanel.png)(w:720)
-
-**视口** 面板允许在特定的骨架网格物体上预览动画序列、混合空间及 _动画蓝图_ 的其他方面内容 
-。所使用的网格物体通过[动画预览设置面板](Engine/Animation/Persona/Viewport#动画预览设置面板)进行指定。
-该面板由一个3D透视口和一个工具条组成，工具条内包含了用于控制该预览的动画播放的按钮。
+**视口** 面板允许在特定的骨架网格物体上预览动画序列、混合空间及动画蓝图的其他方面内容。该面板由一个3D透视口和一个工具条组成，工具条内包含了用于控制该预览的动画播放的按钮。
 [/EXCERPT:Overview]
 
 ![Viewport Panel with Callouts](ViewportPanel.png)(w:720)
 
-1. Movement Toolbar
-1. View Options Toolbar 
-1. Viewport 
-1. Timeline and Control Bar
+1. 移动工具栏
+1. 显示选项工具栏
+1. 视口
+1. 时间进度条及控制工具栏
 
-## Movement Toolbar
+## 移动工具栏
 [EXCERPT:movement]
-The **Movement Toolbar** contains a collection of tools for moving, rotating, or scaling bones as well as how they are moved, rotated, or scaled with Grid Snapping. This toolbar also has an option for setting the relative coordinate system for movement or rotation as well as an option to set the camera movement speed when moving around in the viewport. 
+**移动工具栏** 包含了一组工具，用于对骨骼的移动、旋转或缩放，并通过步进或网格吸附的设置来定义如何移动旋转缩放。工具栏内还提供了一个用于选择使用世界坐标系还是相对坐标系的选项，并还有一个用于设置摄像机在这个窗口中移动速度的选项。
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| ![](Persona_Translate.png)| Translates skeletal bones. |
-| ![](Persona_Rotate.png)| Rotates skeletal bones. |
-| ![](Persona_Scale.png) | The last option scales skeletal bones (if applicable, grayed out by default).  |
-| ![](button_Persona_Local.png) ![](Persona_World.png)| Sets the relative coordinate system for moving and rotating the mesh (**World** or **Local**).|
-| ![](Persona_GridSnap.png) | Enables or disables snapping to the grid when dragging objects around and the Position Grid Snap value. |
-| ![](Persona_RotationSnap.png)| Enables or disables snapping to the grid when rotating objects around and the Rotation Grid Snap value.  |
-| ![](Persona_ScaleSnapping.png) | Enables or disables snapping to the grid when scaling objects and the Scale Grid Snap value.  |
-| ![](Persona_CameraMoveSpeed.png) | Adjust the speed of the camera while moving around in the viewport.|
+| ![](Persona_Translate.png)| 移动骨架中的骨骼。 |
+| ![](Persona_Rotate.png)| 旋转骨架中的骨骼。 |
+| ![](Persona_Scale.png) | 最后一个选项是缩放骨架中的骨骼。（仅在可用时，默认灰度禁用）。 |
+| ![](button_Persona_Local.png) ![](Persona_World.png)| 设置移动或旋转时使用的相对坐标系（**世界坐标** 或 **局部坐标**）。 |
+| ![](Persona_GridSnap.png) | 启用或禁用移动位置时的吸附功能，以及设置吸附步进的数值。 |
+| ![](Persona_RotationSnap.png)| 启用或禁用旋转角度时的吸附功能，以及设置吸附步进的数值。 |
+| ![](Persona_ScaleSnapping.png) | 启用或禁用缩放时的吸附功能，以及设置吸附步进的数值。 |
+| ![](Persona_CameraMoveSpeed.png) | 调整摄像机在本窗口内的移动速度。 |
 
 [/EXCERPT:movement]
 
-## View Options Toolbar
+## 显示选项工具栏
 
 [EXCERPT:viewoptions]
-The **View Options Toolbar** contains a series of buttons that hold options for what is displayed in the viewport.
+**显示选项工具栏** 包含了一系列按钮，涵盖了各种用于控制如何窗口如何显示内容的选项。
 
-### Preview Mode
+### 预览模式
 
-The **Preview** Mode Button ![](Persona_PreviewMode1.png) provides the following options: 
+**预览** 模式按钮 ![](Persona_PreviewMode1.png) 提供以下选项：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **Auto** | Previews whatever is active in the viewport. |
-| **Lock** | Locks the viewport to what is currently being previewed. This allows you to preview one item while viewing or editing another. |
-| **Camera Follow** | Follow the bounds of the mesh. |
-| **In-game Bound** | Uses in-game bounds on the preview mesh. |
+| **Auto** | 预览当前处于激活状态的内容。 |
+| **Lock** | 锁定当前窗口的预览。该选项能够提供预览一个内容的同时编辑或检查其他内容。 |
+| **Camera Follow** | 跟随模型的范围。 |
+| **In-game Bound** | 使用预览模型的游戏内的边界设置。 |
 
-### Perspective
+### 透视
 
-The **Perspective** Button ![](Persona_Perspective.png) provides the following options: 
+**透视** 按钮 ![](Persona_Perspective.png) 提供以下选项：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **Perspective** | Switches the viewport to perspective view (this is the default setting). |
-| **Top** | Switches the viewport to top view. |
-| **Side** | Switches the viewport to side view. |
-| **Front** | Switches the viewport to front view. |
+| **Perspective** | 将视口切换到透视视图（这也是默认设置）。 |
+| **Top** | 将视口切换到顶视图。 |
+| **Side** | 将视口切换到侧视图。 |
+| **Front** | 将视口切换到前视图。 |
 
 
-### View Mode
+### 视图模式
 
-The **View** Mode Button ![](Persona_LitOptions.png) provides the following options: 
+**视图** 模式按钮 ![](Persona_LitOptions.png) 提供以下选项：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **Lit** | Renders the scene with normal lighting (this is the default setting). |
-| **Unlit** | Renders the scene with no lighting. |
-| **Wireframe** | Renders the scene in brush wireframe. |
-| **Detail Lighting** | Renders the scene with detail lighting only. |
-| **Lighting Only** | Renders the scene with lights only, no textures. |
-| **Light Complexity** | Renders the scene with light complexity visualization. |
-| **Shader Complexity** | Renders the scene with shader complexity visualization. |
-| **Stationary Light Overlap** | Visualizes overlap of stationary lights. |
-| **Lightmap Density** | Renders the scene with lightmap density visualization. |
-| **Reflections** | Renders the scene with reflections only. |
-| **Exposure** | Use automatic exposure or set a fixed exposure value.  |
+| **Lit** | 以正常光照渲染画面（默认模式）。 |
+| **Unlit** | 以无光模式渲染画面 |
+| **Wireframe** | 以线框模式渲染画面。 |
+| **Detail Lighting** | 仅用默认光照渲染画面。 |
+| **Lighting Only** | 仅用光照，无贴图信息的渲染画面。 |
+| **Light Complexity** | 用光照复杂度的可视化效果渲染画面。 |
+| **Shader Complexity** | 以着色器复杂度的可视化效果来渲染画面。 |
+| **Stationary Light Overlap** | 对固定光照的光源可视化重叠度。 |
+| **Lightmap Density** | 用光照贴图密度的可视化效果渲染画面。 |
+| **Reflections** | 仅用反射来渲染画面。 |
+| **Exposure** | 应用自动曝光或者手动设置固定曝光参数。 |
 
 
-### Show
+### 显示
 
-The **Show** Button ![](Persona_Show.png) provides the following options: 
+**显示** 按钮 ![](Persona_Show.png) 提供以下选项：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **Field of View** | Adjust the viewports field of view. |
-| **Mute Audio** | Mutes audio from the preview. |
-| **Reference Pose** | Shows the reference pose on the preview mesh. |
-| **Bound** | Shows bounds on the preview mesh. |
-| **Mesh** | Shows the preview mesh. |
-| **Uncompressed Animation** | Displays the skeleton with uncompressed animation data. |
-| **NonRetargeted Animation** | Displays the skeleton with non-retargeted animation data.|
-| **Additive Base** | Displays the skeleton in an additive base pose. |
-| **Sockets** | Display socket hitpoints. |
-| **Bones** | Display skeleton in viewport. |
-| **Bone Names** | Display Bone Names of the skeleton in the viewport. |
-| **View Selected Bone Weight** | Displays the weights of the selected bones in the viewport. |
-| **Display Info** | Displays information about the mesh in the viewport. |
+| **Field of View** | 调整视口的 FOV 值。 |
+| **Mute Audio** | 对预览窗口静音。 |
+| **Reference Pose** | 用预览模型显示参考姿势。 |
+| **Bound** | 显示预览模型的边界框。 |
+| **Mesh** | 显示预览模型 |
+| **Uncompressed Animation** | 用未压缩动画数据展示模型。 |
+| **NonRetargeted Animation** | 用未重定向的动画数据展示模型。 |
+| **Additive Base** | 在一个附加姿势上显示骨架。 |
+| **Sockets** | 显示插糟位置。 |
+| **Bones** | 在视窗中显示骨架。 |
+| **Bone Names** | 在视窗的骨架上显示每个骨骼的名称。 |
+| **View Selected Bone Weight** | 在视窗中显示选中骨骼的权重。 |
+| **Display Info** | 在视窗中显示当前模型的信息。 |
 
 **Scene Setup**
 
