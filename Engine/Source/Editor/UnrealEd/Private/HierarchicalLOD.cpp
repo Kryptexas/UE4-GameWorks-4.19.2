@@ -468,34 +468,37 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
 
-			UPackage* AssetsOuter = Utilities->CreateOrRetrieveLevelHLODPackage(LevelIter);
-
-			if (AssetsOuter)
+			// Retrieve LOD actors from the level
+			uint32 NumLODActors = 0;
+			for (int32 ActorId = 0; ActorId < LevelIter->Actors.Num(); ++ActorId)
 			{
-				uint32 NumLODActors = 0;
-				for (int32 ActorId = 0; ActorId < LevelIter->Actors.Num(); ++ActorId)
+				AActor* Actor = LevelIter->Actors[ActorId];
+				if (Actor && Actor->IsA<ALODActor>())
 				{
-					AActor* Actor = LevelIter->Actors[ActorId];
-					if (Actor && Actor->IsA<ALODActor>())
-					{
-						ALODActor* LODActor = CastChecked<ALODActor>(Actor);
+					ALODActor* LODActor = CastChecked<ALODActor>(Actor);
 						
-						if (LODActor->IsDirty() && LODActor->HasValidSubActors())
-						{
-							LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
-							NumLODActors++;
-						}
+					if (LODActor->IsDirty() && LODActor->HasValidSubActors())
+					{
+						LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
+						NumLODActors++;
 					}
-				}		
-			
-				bool bBuildSuccesfull = true;
+				}
+			}		
+
+			// If there are any available process them
+			bool bBuildSuccesfull = true;
+			if (NumLODActors)
+			{
+				// Only create the outer package if we are going to save something to it (otherwise we end up with an empty HLOD folder)
+				UPackage* AssetsOuter = Utilities->CreateOrRetrieveLevelHLODPackage(LevelIter);
+				checkf(AssetsOuter != nullptr, TEXT("Failed to created outer for generated HLOD assets"));
 				const int32 NumLODLevels = LODLevelActors.Num();
-				
+
 				for (int32 LODIndex = 0; LODIndex < NumLODLevels; ++LODIndex)
 				{
 					int32 CurrentLODLevel = LODIndex;
 					int32 LODActorIndex = 0;
-					TArray<ALODActor*>& LODLevel = LODLevelActors[CurrentLODLevel];					
+					TArray<ALODActor*>& LODLevel = LODLevelActors[CurrentLODLevel];
 					for (ALODActor* Actor : LODLevel)
 					{
 						bBuildSuccesfull &= Utilities->BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel]);
@@ -503,9 +506,9 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 						++LODActorIndex;
 					}
 				}
-				
-				check(bBuildSuccesfull);				
 			}
+						
+			check(bBuildSuccesfull);
 		}		
 	}
 
