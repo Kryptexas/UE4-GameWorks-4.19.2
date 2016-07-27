@@ -803,15 +803,15 @@ public:
 	/**
 	 * Create Animation Sequence from Reference Pose of the Mesh
 	 */
-	bool CreateAnimation(class USkeletalMesh * Mesh);
+	bool CreateAnimation(class USkeletalMesh* Mesh);
 	/**
 	 * Create Animation Sequence from the Mesh Component's current bone transform
 	 */
-	bool CreateAnimation(class USkeletalMeshComponent * MeshComponent);
+	bool CreateAnimation(class USkeletalMeshComponent* MeshComponent);
 	/**
 	 * Create Animation Sequence from the given animation
 	 */
-	bool CreateAnimation(class UAnimSequence * Sequence);
+	bool CreateAnimation(class UAnimSequence* Sequence);
 
 	/**
 	 * Crops the raw anim data either from Start to CurrentTime or CurrentTime to End depending on
