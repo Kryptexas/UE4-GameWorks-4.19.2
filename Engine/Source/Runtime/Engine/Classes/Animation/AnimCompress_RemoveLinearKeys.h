@@ -155,7 +155,7 @@ protected:
 	 * @param RotationData		Rotation Tracks  to convert to relative space
 	 *
 	 */
-	void ConvertToRelativeSpace(UAnimSequence* AnimSeq, TArray<FTranslationTrack>& TranslationData, TArray<FRotationTrack>& RotationData);
+	void ConvertToRelativeSpace(UAnimSequence* AnimSeq, TArray<FTranslationTrack>& TranslationData, TArray<FRotationTrack>& RotationData, TArray<FScaleTrack>& ScaleData);
 
 
 	/**

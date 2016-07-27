@@ -164,6 +164,8 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 											CompressContext.Get()->MaxAnimations,
 											AAC,
 											OutputStr);
+
+		AnimToOperateOn->TemporaryAdditiveBaseAnimationData.Empty();
 	}
 
 	//Our compression scheme may change so copy the new one back
