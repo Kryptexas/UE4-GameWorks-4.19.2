@@ -78,8 +78,10 @@ struct ENGINE_API FSmartNameMapping
 	int32 GetNumNames() const;
 
 	// Find Or Add Smart Names
+#if WITH_EDITOR
 	bool FindOrAddSmartName(FName Name, FSmartName& OutName);
 	bool AddSmartName(FSmartName& OutName);
+#endif // WITH_EDITOR
 	bool FindSmartName(FName Name, FSmartName& OutName) const;
 	bool FindSmartNameByUID(FSmartNameMapping::UID UID, FSmartName& OutName) const;
 
@@ -132,23 +134,36 @@ struct ENGINE_API FSmartName
 	// UID - for faster access
 	FSmartNameMapping::UID	UID;
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FGuid	Guid;
+#endif // WITH_EDITORONLY_DATA
 
 	FSmartName()
 		: DisplayName(NAME_None)
 		, UID(FSmartNameMapping::MaxUID)
 	{}
 
+#if WITH_EDITORONLY_DATA
 	FSmartName(const FName& InDisplayName, FSmartNameMapping::UID InUID, const FGuid& InGuid)
 		: DisplayName(InDisplayName)
 		, UID(InUID)
 		, Guid(InGuid)
 	{}
+#else
+	FSmartName(const FName& InDisplayName, FSmartNameMapping::UID InUID)
+		: DisplayName(InDisplayName)
+		, UID(InUID)
+	{}
+#endif // WITH_EDITORONLY_DATA
 
 	bool operator==(FSmartName const& Other) const
 	{
+#if WITH_EDITORONLY_DATA
 		return (DisplayName == Other.DisplayName && UID == Other.UID && Guid == Other.Guid);
+#else
+		return (DisplayName == Other.DisplayName && UID == Other.UID);
+#endif // WITH_EDITORONLY_DATA
 	}
 	bool operator!=(const FSmartName& Other) const
 	{
@@ -171,7 +186,11 @@ struct ENGINE_API FSmartName
 
 	bool IsValid() const
 	{
+#if WITH_EDITORONLY_DATA
 		return UID != FSmartNameMapping::MaxUID && Guid.IsValid(); 
+#else
+		return UID != FSmartNameMapping::MaxUID;
+#endif  // WITH_EDITORONLY_DATA
 	}
 };
 

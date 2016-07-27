@@ -7,6 +7,7 @@
 #include "FrameworkObjectVersion.h"
 
 // utility function 
+#if WITH_EDITOR
 FSmartName GetUniquePoseName(USkeleton* Skeleton)
 {
 	check(Skeleton);
@@ -27,7 +28,7 @@ FSmartName GetUniquePoseName(USkeleton* Skeleton)
 
 	return NewPoseName;
 }
-
+#endif 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // FPoseDataContainer
@@ -715,6 +716,7 @@ bool UPoseAsset::ContainsPose(const FName& InPoseName) const
 	return false;
 }
 
+#if WITH_EDITOR
 void UPoseAsset::AddOrUpdatePoseWithUniqueName(USkeletalMeshComponent* MeshComponent)
 {
 	AddOrUpdatePose(GetUniquePoseName(GetSkeleton()), MeshComponent);
@@ -779,6 +781,7 @@ void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, TArray<FName> Track
 		}
 	}
 }
+#endif // WITH_EDITOR
 
 void UPoseAsset::CombineTracks(const TArray<FName>& NewTracks)
 {

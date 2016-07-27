@@ -184,11 +184,11 @@ public:
 	ENGINE_API bool ContainsPose(const FSmartName& InPoseName) const { return PoseContainer.Contains(InPoseName); }
 	ENGINE_API bool ContainsPose(const FName& InPoseName) const;
 
+#if WITH_EDITOR
 	ENGINE_API void AddOrUpdatePose(const FSmartName& PoseName, USkeletalMeshComponent* MeshComponent);
 	ENGINE_API void AddOrUpdatePoseWithUniqueName(USkeletalMeshComponent* MeshComponent);
 	ENGINE_API void AddOrUpdatePose(const FSmartName& PoseName, TArray<FName> TrackNames, TArray<FTransform>& LocalTransform);
 
-#if WITH_EDITOR
 	ENGINE_API void CreatePoseFromAnimation(class UAnimSequence* AnimSequence, const TArray<FSmartName>* InPoseNames = nullptr);
 	ENGINE_API void UpdatePoseFromAnimation(class UAnimSequence* AnimSequence);
 
