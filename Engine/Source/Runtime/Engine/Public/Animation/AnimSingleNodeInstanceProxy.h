@@ -114,6 +114,11 @@ public:
 		return bCanProcessAdditiveAnimations;
 	}
 #endif
+
+#if WITH_EDITORONLY_DATA
+	void PropagatePreviewCurve(FPoseContext& Output);
+#endif // WITH_EDITORONLY_DATA
+
 	void SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero);
 
 private:
