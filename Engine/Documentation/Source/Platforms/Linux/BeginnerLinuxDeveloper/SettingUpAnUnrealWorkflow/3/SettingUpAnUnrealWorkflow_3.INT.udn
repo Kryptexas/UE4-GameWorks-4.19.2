@@ -9,3 +9,24 @@ order: 3
 tags:Linux
 SkillLevel:Beginner
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/4 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+%Steps%
