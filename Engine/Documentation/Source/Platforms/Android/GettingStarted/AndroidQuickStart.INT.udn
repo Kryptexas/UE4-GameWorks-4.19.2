@@ -78,7 +78,7 @@ The focus of the Android Quick start is to walk you through the basics of settin
 [/OBJECT]
 
 [region:note]
-Unreal Engine 4 (UE4) now uses a special version of the Android SDK called **Android Works**. This version of Android works was designed specifically for use with UE4 Android based projects. If you have other versions of the Android SDK installed, it is **highly recommend** that you uninstall them and then re-install the Android SDK using the Android Works installer that is bundled with UE4. This way you can ensure that the Android SDK you are using will be compatible with UE4.
+Unreal Engine 4 (UE4) now uses a special version of the Android SDK called **CodeWorks for Android 1R4**. This version of CodeWorks for Android was designed specifically for use with UE4 Android based projects. If you have other versions of the Android SDK installed, it is **highly recommend** that you uninstall them and then re-install CodeWorks for Android using theCodeWorks for Android 1R4 installer that is bundled with UE4. This way you can ensure that the Android SDK you are using will be compatible with UE4.
 [/region]
 
 
