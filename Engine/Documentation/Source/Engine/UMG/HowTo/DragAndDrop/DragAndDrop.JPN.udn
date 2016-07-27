@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Creating Drag and Drop UI
+﻿INTSourceChangelist:3063666
+Availability:Docs
+Title:ドラッグ＆ドロップの UI を作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Shows how you can create draggable and droppable UI widgets with UMG. 
-Version: 4.12
-SkillLevel: Intermediate
+Description:UMG を使って、ドラッグ可能、ドロップ可能な UI ウィジェットを作成する方法を説明します。 
+Version:4.12
+SkillLevel:Intermediate
 
-There may be instances in your project where you want your players to be able to interact with UI elements by dragging and dropping them onscreen. 
-This could be to customize interface layouts (positioning health bars or unit frames) or interacting with gameplay systems like inventory screens (adding/removing items around). 
-With UMG you can create these types of interactions with the **DragAndDropOperation** node and overriding some of the inherited Blueprint Functions based on your method of interaction. 
+プロジェクトでプレイヤーが画面上で UI エレメントをドラッグ＆ドロップできるようにしたい場合があるかもしれません。 
+これには、インターフェースのレイアウトをカスタマイズしたり (ヘルスバーやユニット フレームを配置)、インベントリ画面 (アイテムを追加したり、取り除いたりします) でゲームプレイ システムとインタラクションするなどが考えられます。 
+UMG を使って、**DragAndDropOperation** ノードを使ってこうしたタイプのインタラクションを作成し、インタラクションのメソッドに応じて継承されたブループリント関数のいくつかをオーバーライドすることができます。 
 
-In this example, we take a look at how a player can drag and reposition a health bar on screen with the Left Mouse Button.
+この例では、プレイヤーが左マウスボタンを使って画面上のヘルスバーをドラッグして再配置する方法を示します。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -24,14 +24,14 @@ qUDIkWcQChI
 [/PARAMLITERAL]
 [/OBJECT]
 
-_At the end of this guide, you will have a UI widget that you can drag around inside the viewport and drop at a new location._
+_このガイドの最後まで進むと、ビューポート内でドラッグして、新しい場所にドロップできる UI ウィジェットを作成することができます。_
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -44,6 +44,6 @@ _At the end of this guide, you will have a UI widget that you can drag around in
 [/OBJECT]
 
 [REGION:call_to_action]
-	[Click to Start](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")
+	[クリックして開始](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")
 [/REGION]
 
