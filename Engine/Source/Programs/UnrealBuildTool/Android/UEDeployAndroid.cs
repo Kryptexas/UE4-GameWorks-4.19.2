@@ -822,11 +822,8 @@ namespace UnrealBuildTool
 
 				// make sure each library has a build.xml - --subprojects doesn't create build.xml files, but it will create project.properties
 				// and later code needs each lib to have a build.xml
-				if (!File.Exists(Path.Combine(Lib, "build.xml")))
-				{
-					RunCommandLineProgramWithException(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(ToolChain), "");
-				}
-				RunCommandLineProgramWithException(UE4BuildPath, AndroidCommandPath, LocalUpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
+				RunCommandLineProgramWithException(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(ToolChain), "");
+				RunCommandLineProgramWithException(UE4BuildPath, AndroidCommandPath, LocalUpdateCommandLine, "Updating project.properties, local.properties, and build.xml for " + Path.GetFileName(Lib) + "...");
 			}
 
 		}
@@ -1853,7 +1850,11 @@ namespace UnrealBuildTool
 			List<string> NDKArches = new List<string>();
 			foreach (var Arch in Arches)
 			{
-				NDKArches.Add(GetNDKArch(Arch));
+				string NDKArch = GetNDKArch(Arch);
+				if (!NDKArches.Contains(NDKArch))
+				{
+					NDKArches.Add(NDKArch);
+				}
 			}
 			UPL.Init(NDKArches, bForDistribution, EngineDirectory, UE4BuildPath);
 
@@ -1921,7 +1922,7 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-			else // try to remove the file it we aren't packaing inside the APK
+			else // try to remove the file it we aren't packaging inside the APK
 			{
 				string ObbFileDestination = UE4BuildPath + "/assets";
 				var DestFileName = Path.Combine(ObbFileDestination, "main.obb.png");
@@ -1942,6 +1943,9 @@ namespace UnrealBuildTool
 			CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
+
+			//Extract AAR and Jar files with dependencies
+			ExtractAARAndJARFiles(EngineDirectory, UE4BuildPath, NDKArches);
 
 			//Now validate GooglePlay app_id if enabled
 			ValidateGooglePlay(UE4BuildPath);
@@ -2299,6 +2303,69 @@ namespace UnrealBuildTool
                 Log.TraceInformation("\n==== Writing new GameActivity.java file to {0} ====", DestFilename);
 				File.WriteAllLines(DestFilename, TemplateSrc);
 			}
+		}
+
+		private void ExtractAARAndJARFiles(string EngineDir, string UE4BuildPath, List<string> NDKArches)
+		{
+			AndroidAARHandler AARHandler = new AndroidAARHandler();
+			string ImportList = "";
+
+			// Get some common paths
+			string AndroidHome = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%").TrimEnd('/', '\\');
+			EngineDir = EngineDir.TrimEnd('/', '\\');
+
+			// Add the AARs from the default aar-imports.txt
+			// format: Package,Name,Version
+			string ImportsFile = Path.Combine(UE4BuildPath, "aar-imports.txt");
+			if (File.Exists(ImportsFile))
+			{
+				ImportList = File.ReadAllText(ImportsFile);
+			}
+
+			// Run the UPL imports section for each architecture and add any new imports (duplicates will be removed)
+			foreach (string NDKArch in NDKArches)
+			{
+				ImportList = UPL.ProcessPluginNode(NDKArch, "AARImports", ImportList);
+			}
+
+			// Add the final list of imports and get dependencies
+			foreach (string Line in ImportList.Split('\n'))
+			{
+				string Trimmed = Line.Trim(' ', '\r');
+
+				if (Trimmed.StartsWith("repository "))
+				{
+					string DirectoryPath = Trimmed.Substring(11).Trim(' ').TrimEnd('/', '\\');
+					DirectoryPath = DirectoryPath.Replace("$(ENGINEDIR)", EngineDir);
+					DirectoryPath = DirectoryPath.Replace("$(ANDROID_HOME)", AndroidHome);
+					DirectoryPath = DirectoryPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+					AARHandler.AddRepository(DirectoryPath);
+				}
+				else if (Trimmed.StartsWith("repositories "))
+				{
+					string DirectoryPath = Trimmed.Substring(13).Trim(' ').TrimEnd('/', '\\');
+					DirectoryPath = DirectoryPath.Replace("$(ENGINEDIR)", EngineDir);
+					DirectoryPath = DirectoryPath.Replace("$(ANDROID_HOME)", AndroidHome);
+					DirectoryPath = DirectoryPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+					AARHandler.AddRepositories(DirectoryPath, "m2repository");
+				}
+				else
+				{
+					string[] Sections = Trimmed.Split(',');
+					if (Sections.Length == 3)
+					{
+						string PackageName = Sections[0].Trim(' ');
+						string BaseName = Sections[1].Trim(' ');
+						string Version = Sections[2].Trim(' ');
+						Log.TraceInformation("AARImports: {0}, {1}, {2}", PackageName, BaseName, Version);
+						AARHandler.AddNewAAR(PackageName, BaseName, Version);
+					}
+				}
+			}
+
+			// Finally, extract the AARs and copy the JARs
+			AARHandler.ExtractAARs(UE4BuildPath);
+			AARHandler.CopyJARs(UE4BuildPath);
 		}
     }
 }

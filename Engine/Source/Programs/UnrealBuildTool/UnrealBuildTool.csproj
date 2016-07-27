@@ -130,6 +130,7 @@
     <Compile Include="TVOS\UEDeployTVOS.cs" />
     <Compile Include="Android\UEBuildAndroid.cs" />
     <Compile Include="Android\UEDeployAndroid.cs" />
+    <Compile Include="Android\AndroidAARHandler.cs" />
     <Compile Include="Android\AndroidToolChain.cs" />
     <Compile Include="Android\AndroidProjectGenerator.cs" />
     <Compile Include="System\UnrealPluginLanguage.cs" />

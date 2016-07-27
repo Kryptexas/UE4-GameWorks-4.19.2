@@ -104,3 +104,5 @@ Ocean\Binaries\Win64\*-LootTables*
 Ocean\Binaries\Win32\*-LootTables*
 Ocean\Binaries\Mac\Ocean.app\Contents\MacOS\*-LootTables.dylib
 Engine\Intermediate\Build\Win64\UE4Editor\Inc\SimplygonUtilities\*
+Engine\Build\Android\Java\JavaLibs\google-play-services_lib_rev19
+Engine\Intermediate\Build\Android\JavaLibs\google-play-services_lib_rev19

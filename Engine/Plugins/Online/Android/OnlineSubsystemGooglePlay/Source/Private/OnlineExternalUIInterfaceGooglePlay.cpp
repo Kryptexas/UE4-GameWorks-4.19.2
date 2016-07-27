@@ -41,7 +41,7 @@ bool FOnlineExternalUIGooglePlay::ShowAchievementsUI(int32 LocalUserNum)
 		return false;
 	}
 
-	Subsystem->GetGameServices()->Achievements().ShowAllUI();
+	Subsystem->GetGameServices()->Achievements().ShowAllUI(nullptr);
 	return true;
 }
 
@@ -64,7 +64,7 @@ bool FOnlineExternalUIGooglePlay::ShowLeaderboardUI(const FString& LeaderboardNa
 		if(Mapping.Name == LeaderboardName)
 		{
 			auto ConvertedId = FOnlineSubsystemGooglePlay::ConvertFStringToStdString(Mapping.LeaderboardID);
-			Subsystem->GetGameServices()->Leaderboards().ShowUI(ConvertedId);
+			Subsystem->GetGameServices()->Leaderboards().ShowUI(ConvertedId, nullptr);
 
 			return true;
 		}
