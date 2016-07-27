@@ -15,7 +15,8 @@ In the following section we will cover how you can use the 3Ds Max Animation Tim
 	* **Radius:** 70.0
 	* **Segments:** 5
 	
-	![](VAT_Teapot_Setup_00.png)
+	[![](VAT_Teapot_Setup_00.png)
+
 
 1. Next from the Modifier List, apply a **Bend** Modifier to the Teapot and then set the **Direction** to **90**. 
 	
@@ -98,6 +99,7 @@ Open up this Texture by **Double-Clicking** on it in the Content Browser with th
 * Change the Texture Group to **UI**.
 * Make sure that **SRGB** has been disabled.
 * Set the Compression Settings to **TC_HDR**.
+* Set the Filter to **Nearest**.
 
 	![](VAT_EXR_Texture_Setup.png)
 
@@ -107,6 +109,7 @@ Next open up the Normal Map Texture and make sure that the following options are
 * Change the Texture Group to **UI**.
 * Make sure that **SRGB** has been disabled.
 * Set the Compression Settings to **TC_Vector Displacement Map**.
+* Set the Filter to **Nearest**.
 	
 	![](VAT_Normal_Texture_Setup.png)
 
