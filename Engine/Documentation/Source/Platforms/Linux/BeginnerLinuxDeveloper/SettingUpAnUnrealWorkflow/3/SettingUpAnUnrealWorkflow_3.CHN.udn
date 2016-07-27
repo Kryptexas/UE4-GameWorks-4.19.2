@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: 3 - Building Unreal Engine
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+Description:Learn how to build Unreal Engine from source.
+Version: 4.11
+type:HowTo
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+order: 3
+tags:Linux
+SkillLevel:Beginner
+
