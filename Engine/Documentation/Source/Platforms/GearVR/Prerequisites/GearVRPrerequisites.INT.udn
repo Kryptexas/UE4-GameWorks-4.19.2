@@ -45,7 +45,7 @@ The USB cord is of vital importance as this is how you transfer data between you
 
 * Download Unreal Engine version **4.7.4** or later from the **[UE4 Launcher](https://www.unrealengine.com/)** or **[Github](https://www.unrealengine.com/ue4-on-github)**. 
 
-* Install the **Tegra Android Development Pack** which can be found in **Engine\Extras\Android**.  
+* Install the **CodeWorks for Android 1R4** which can be found in **Engine\Extras\Android**.  
 
 * Check to see if **[Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html )** has been enabled on your Samsung Galaxy Note 4 Smartphone and if not, enable it. 
 

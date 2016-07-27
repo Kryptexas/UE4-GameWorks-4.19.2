@@ -34,19 +34,43 @@ This can be any kind of application, download or compiled.
 
 1. First on your Samsung Galaxy Note 4 Smartphone go to **Settings** > **Application Manager** > **Gear VR Service**.
 	
-	![](T_GearVR_Dev_Mode_01.png)
+	[REGION:lightbox]
+	[![](T_GearVR_Dev_Mode_01.png)(w:600 h:355)](T_GearVR_Dev_Mode_01.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Next tap on the **Manage Storage** option.
   
-	![](T_GearVR_Dev_Mode_02.png)
+	[REGION:lightbox]
+	[![](T_GearVR_Dev_Mode_02.png)(w:250 h:444)](T_GearVR_Dev_Mode_02.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Then tap on the **VR Service Version** **6** times.
 
-	![](T_GearVR_Dev_Mode_03.png)
+	[REGION:lightbox]
+	[![](T_GearVR_Dev_Mode_03.png)(w:250 h:225)](T_GearVR_Dev_Mode_03.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. You should now see a scan process happen and when completed you should see the **Developer Mode** toggle on the screen.
 
-	![](T_GearVR_Dev_Mode_04.png)
+	[REGION:lightbox]
+	[![](T_GearVR_Dev_Mode_04.png)(w:250 h:225)](T_GearVR_Dev_Mode_04.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Now you should be able to launch your Gear VR Project and have it display without having to use the Gear VR Headset.
 
@@ -67,26 +91,56 @@ You can get a full list of available console commands by entering **DumpConsoleC
 1. First make sure that you have enabled Gear VR Developer mode on your phone. 
 	This way you can launch your project and see it without having to use the Gear VR Headset which, if used, would prevent you from being able to touch your phone's screen.
 	
-	![](T_GearVR_Dev_Mode_04.png)
+	[REGION:lightbox]
+	[![](T_GearVR_Dev_Mode_04.png)(w:250 h:225)](T_GearVR_Dev_Mode_04.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Next launch your Gear VR project by tapping on the projects icon to launch it. 
 	When the project has been launched, you should see something looking like this on your phone.
 	
-	![](T_App_On_Phone.png)
+	[REGION:lightbox]
+	[![](T_App_On_Phone.png)(w:500 h:281)](T_App_On_Phone.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. With your Gear VR project now running, tap the phone's screen with **Four (4)** fingers at once to open up the Unreal Engine Console. 
 	If done correctly you should see something like this on your phone's screen. 
 
-	![](T_GearR_Open_Console.png)
+	[REGION:lightbox]
+	[![](T_GearR_Open_Console.png)(w:500 h:281)](T_GearR_Open_Console.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Now input a console command you wish to use in the input box and then press the **Ok** button. 
 	For this example we will use the **Stat Memory** command to see how much memory the project is using. 
 
-	![](T_GearR_Input_Command.png)
+	[REGION:lightbox]
+	[![](T_GearR_Input_Command.png)(w:500 h:281)](T_GearR_Input_Command.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Once the **Ok** button has been pressed, your project should now be displaying how much memory is being used and by what.
 
-	![](T_GearR_Displaying_Memory.png)
+	[REGION:lightbox]
+	[![](T_GearR_Displaying_Memory.png)(w:500 h:281)](T_GearR_Displaying_Memory.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. When you are done debugging or if you just wish to clear the screen of debug information, you can input **Stat None** to clear the screen off all debug information.
 
@@ -112,11 +166,23 @@ Check out the official Android documentation for much more detailed information 
 
 1. Once the **OK** button has been toggled a Windows Command Line window like the following should now be displayed.
 	
-	![](T_Windows_CMD.png)
+	[REGION:lightbox]
+	[![](T_Windows_CMD.png)(w:422 h:269)](T_Windows_CMD.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Now check to make sure that your PC can see your Smartphone by entering **ADB Devices** into the command line window and then press the **Enter** key to display devices attached to your PC.
 	
-	![](T_Windows_ADB_Devices.png)
+	[REGION:lightbox]
+	[![](T_Windows_ADB_Devices.png)(w:422 h:269)](T_Windows_ADB_Devices.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 	[region:tip]
 	If you enter **ADB Devices** but do not see anything show up, make sure that you have gone through the [](Platforms/GearVR) setup section and installed / setup everything that is listed there and then try this step again. 
@@ -127,18 +193,39 @@ Check out the official Android documentation for much more detailed information 
 	To clear the log enter the following command.
 
 		adb logcat -c
-	![](T_ADB_Clear_Log.png)
+	[REGION:lightbox]
+	[![](T_ADB_Clear_Log.png)(w:422 h:269)](T_ADB_Clear_Log.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. With the log now cleared of old data, launch the application on your Smartphone and enter the following command to get the log information.
 	
 		adb logcat -s UE4 OVR VrApi VrLib VRSVC HmdInfo >logoutput.txt
-	![](T_ADB_Get_Log.png)
+
+	[REGION:lightbox]
+	[![](T_ADB_Get_Log.png)(w:422 h:269)](T_ADB_Get_Log.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
  [region:note]
  To see the live output of the log, omit the **>logoutput.txt** part and all log updates will happen in the command line window.
  [/region]
 
 1. To complete the log capture press **CTRL + C** on the keyboard and when completed you should now have a log file named,** logoutput.txt**, that is saved to your **Users** folder in Windows.
-	![](T_ADB_Log_Location.png)
+
+	[REGION:lightbox]
+	[![](T_ADB_Log_Location.png)(w:381 h:338)](T_ADB_Log_Location.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 	[region:note]
 	Data will still continue to be output to the log file while the command line window is open and running the ADB logcat command. To stop this all you have to do is press **CTRL + C** and data will stop being written to the log file.
@@ -148,7 +235,13 @@ Check out the official Android documentation for much more detailed information 
 	When you look at the log file that was created and search for anyone of those terms you will find all debug information related to those terms. 
 	You can see an example of this in the image below, some of the terms used, OVR, UE4, Vrapi, and VrApi all show up in the log with information that is related to those terms.
 	
-	![](T_ADB_Log_Info.png)
+	[REGION:lightbox]
+	[![](T_ADB_Log_Info.png)(w:516 h:349)](T_ADB_Log_Info.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 If your Gear VR Project is not starting up for some reason, using the logcat command is a great way to see exactly where your project is failing and why. 
 It also provides you with detailed information about the problem that can then be posted to the UE4 Forums or Answer Hub so that you can get help with the issue.
@@ -166,23 +259,48 @@ Please note that in order for this to work you have to have your development PC 
 1. Next open up a Windows Command Shell by first pressing the **Windows Key + R** and then entering **CMD** in the **Run** dialogue box that is opened.
 	Then press either the **Enter** key on your keyboard or just click on the **OK** button with your mouse. 
 	 
-	 ![](T_Open_CMD_Prompt.png)
+	[REGION:lightbox]
+	[![](T_Open_CMD_Prompt.png)(w:427 h:269)](T_Open_CMD_Prompt.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Once the **OK** button has been toggled a Windows Command Line window like the following should now be displayed.
 	
-	![](T_Windows_CMD.png)
+	[REGION:lightbox]
+	[![](T_Windows_CMD.png)(w:427 h:269)](T_Windows_CMD.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
 
 1. Now enter the following command to see what your Smartphone's IP address is and make sure to take note of it. The IP address you want to use is the one that comes after **inet**.
 	
 		adb shell ip -f inet addr show wlan0
 	
-	![](T_ADB_Phone_IP.png)
+	[REGION:lightbox]
+	[![](T_ADB_Phone_IP.png)(w:427 h:269)](T_ADB_Phone_IP.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Next enter the following command to change the network connection to **TCP** and set the port to listen to.
 
 		adb tcpip 5555
 	
-	![](T_ADB_Set_Port.png)
+	[REGION:lightbox]
+	[![](T_ADB_Set_Port.png)(w:427 h:269)](T_ADB_Set_Port.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Once the port has been set, it is now time to connect to the Smartphone. To do this all you need to do is enter the following command and press the Enter key.
 	
@@ -194,7 +312,14 @@ Please note that in order for this to work you have to have your development PC 
 
 1. To make sure you are connected over Wifi, enter **adb devices** into the command line window and press the Enter key and you will now see that in the **List of devices attached** the IP Address used above is now the only attached device.
 
-	![](T_ADB_Attached_IP.png)
+	[REGION:lightbox]
+	[![](T_ADB_Attached_IP.png)(w:427 h:269)](T_ADB_Attached_IP.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
 
 With your Smartphone and PC now connected to one another via the network you can now begin to get debug information from your Smartphone or even deploy projects to your phone without having to use the USB cable. 
 However keep in mind that deploying to your Smartphone from your PC over the network is four to five times slower than using the USB cable.
@@ -204,7 +329,13 @@ However keep in mind that deploying to your Smartphone from your PC over the net
 	
 		adb usb
 
-	![](T_ADB_Detached.png)
+	[REGION:lightbox]
+	[![](T_ADB_Detached.png)(w:427 h:269)](T_ADB_Detached.png)
+	[/REGION]
+	
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 
 

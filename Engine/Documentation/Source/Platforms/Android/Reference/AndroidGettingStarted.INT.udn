@@ -51,7 +51,7 @@ Here is what we currently require for Android game development:
 
 There are several methods for getting the components. If you have already installed one of these, look in the corresponding section for additional requirements:
 
-### TADP (Tegra Android Development Pack)
+### CodeWorks for Android 1R4
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -84,11 +84,11 @@ There are several methods for getting the components. If you have already instal
 <!--
 [EXCERPT:TADPWindowsSetup]
 
-TADP is the Tegra Android Development Pack, by Nvidia. This is a one-stop shop for Android development. If you install TADP, all of our requirements will be met.
+CodeWorks for Android 1R4, by Nvidia is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
 
-The installer for TADP is included with Unreal Engine 4 for Windows. It can be found here: 
+The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Windows. It can be found here: 
 
-	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\tadp-2.0r8-windows.exe 
+	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R4-windows.exe
 
 The important pieces are:
 * SDK
@@ -99,7 +99,7 @@ The important pieces are:
 	
 If you use the default installation set, a pretty minimal set of components will be installed. If you customize the install, you can add more items (like profilers, etc). Note that during installation, 
 one or two of the sub-installers may appear to hang, but they will eventually finish. The install could take as long as 30 to 45 minutes. If you never plan to write code, you may want to 
-select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of TADP is used for debugging an Android game on a device. 
+select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R4 is used for debugging an Android game on a device. 
 It is not required to compile C++ code.
 
 ![](TADPSetup.png)
@@ -107,11 +107,11 @@ It is not required to compile C++ code.
 [/EXCERPT:TADPWindowsSetup]
 
 [EXCERPT:TADPMacOSSetup]
-TADP is the Tegra Android Development Pack, by Nvidia. This is a one-stop shop for Android development. If you install TADP, all of our requirements will be met.
+CodeWorks for Android 1R4, by Nvidia is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
 
-The installer for TADP is included with Unreal Engine 4 for Mac. It can be found here: 
+The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Mac and can be found here: 
 
-	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/tadp-3.0r4-osx.dmg
+	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R1-osx.dmg
 
 The important pieces are:
 
@@ -123,7 +123,7 @@ If you use the default installation set, a pretty minimal set of components will
 If you customize the install, you can add more items (like profilers, etc). Note that during installation, one or two of the sub-installers may appear to hang, but they will eventually finish. 
 The install could take as long as 30 to 45 minutes on some computers. 
 If you never plan to write code, you may want to select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation.
-The Nsight portion of TADP is used for debugging an Android game on a device so it is not required to compile C++ code.
+The Nsight portion of CodeWorks for Android 1R4 is used for debugging an Android game on a device so it is not required to compile C++ code.
 
 ![](TADP_Mac_OS.png)
 
@@ -194,10 +194,10 @@ For code projects only, you will need to install the NDK:
 <!--
 [EXCERPT:ENVWindowsSetup]
 
-Unless you installed TADP, you will need to verify that some environment variables are set properly. 
+Unless you installed CodeWorks for Android 1R4 from the provided UE4 installer, you will need to verify that some environment variables are set properly. 
 
 [REGION:note]
-Once you have completed the installation (either by setting environment variables in the System Control Panel, or by installing TADP), you will need to restart both the Editor and Launcher 
+Once you have completed the installation (either by setting environment variables in the System Control Panel, or by installing CodeWorks for Android 1R4), you will need to restart both the Editor and Launcher 
 applications. This is due to how Windows applications store environment variables and then pass the old versions along to applications they start. 
 
 If you continue seeing the message about the Android SDK not being installed properly, it is recommended that you reboot your computer.
@@ -237,10 +237,10 @@ Here are the variables that we depend on, and where they should point:
 [/EXCERPT:ENVWindowsSetup]
 
 [EXCERPT:ENVMacOSSetup]
-Unless you installed TADP, you will need to verify that some environment variables are set properly. 
+Unless you installed CodeWorks for Android 1R4, you will need to verify that some environment variables are set properly. 
 
 [region:note]
-Once you have completed the installation (either by editing your .bash_profile file, or by installing TADP), you will need to restart both the Editor and Launcher applications.
+Once you have completed the installation (either by editing your .bash_profile file, or by installing CodeWorks for Android 1R4), you will need to restart both the Editor and Launcher applications.
 [/region]
 
 To set an environment variable you need to edit your **.bash_profile** file in your home directory. 
@@ -338,7 +338,7 @@ If your device shows up in the **Launch menu**, but gets stuck deploying to the 
 If you click on the **Show Log** line in the progress bar, and see that the last line indicates that it is calling adb uninstall try the following.
 * Open up the Terminal app and run the adb devices command. 
 * If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the Mac. 
-* It is recommended you check the **Always allow** checkbox to always allow your Mac to talk to this device.
+* It is recommended you check the **Always allow** check box to always allow your Mac to talk to this device.
 
 [/EXCERPT:ATTMacOSSetup]
 

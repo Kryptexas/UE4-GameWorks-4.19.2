@@ -81,7 +81,7 @@ Version: 4.9
 	You can find the needed folders in the location where you installed the Tegra files. 
 	
 	[Region:note]
-	If you have already installed TADP this information should be already filled in for you. The only reason that you should change something here is if the information is missing or point to the wrong location.
+	If you have already installed CodeWorks for Android 1R4 this information should be already filled in for you. The only reason that you should change something here is if the information is missing or point to the wrong location.
 	[/region]
 
 	![](GVR_Android_SDK_Setup.png)
