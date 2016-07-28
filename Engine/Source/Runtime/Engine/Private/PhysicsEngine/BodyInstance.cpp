@@ -3854,7 +3854,9 @@ void FBodyInstance::AddAngularImpulse(const FVector& AngularImpulse, bool bVelCh
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
+		// If we don't have a PxScene yet do not continue, this can happen with deferred bodies such as
+		// destructible chunks that are not immediately placed in a scene
+		if(PRigidBody->getScene() && !IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
 			PRigidBody->addTorque(U2PVector(AngularImpulse), Mode, true);
