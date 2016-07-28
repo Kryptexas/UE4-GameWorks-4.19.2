@@ -52,3 +52,10 @@ Data pins are actually properties like any other and are exposed in the **Detail
 between being used as a data pin on the node in the graph and being a simple property. When exposed as a data 
 pin, the property is only modifiable in the graph by linking a value to it. When not exposed as a data pin, 
 properties can only be modified through the **Details** panel.
+
+![](AsPin.png)
+
+Above a Blendspace Player node has properties in the **Details** panel that can be set as pins. 
+The X and Y coordinate pins which make up the **Speed** property of our Blendspace as well as Play Rate and Loop are exposed on the node since they are checked inside the **Details** panel. 
+
+

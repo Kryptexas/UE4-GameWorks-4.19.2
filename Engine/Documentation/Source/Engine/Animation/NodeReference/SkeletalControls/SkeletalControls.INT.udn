@@ -12,7 +12,7 @@ version: 4.12
 **SkeletalControls** (also called **SkelControls**) allow direct control of bones within a Skeleton. These can be 
 used within Animation Blueprints to control an individual bone, create IK chains, and more. This direct control of the 
 underlying Skeleton provides the ability to create procedural, dynamically-driven animation. The **Transform** of 
-one bone can be used to drive another or traces can be used to conform the feet of a character to the ground while 
+one bone can be used to drive another or can be used to conform the feet of a character to the ground while 
 playing a generic walk animation. Any sort of modification can be used to tweak or completely override the bone 
 Transforms applied by AnimationSequences.
 [/EXCERPT:Intro]
