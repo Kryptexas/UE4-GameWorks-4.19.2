@@ -307,8 +307,13 @@ struct FMeshMergingSettings
 	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
 	FMaterialProxySettings MaterialSettings;
 
-	UPROPERTY(EditAnywhere, Category = MaterialSettings)
-	bool bBakeVertexData;
+	/** Whether or not vertex data such as vertex colours should be baked into the resulting mesh */
+	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	bool bBakeVertexDataToMesh;
+
+	/** Whether or not vertex data such as vertex colours should be used when baking out materials */
+	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
+	bool bUseVertexDataForBakingMaterial;
 
 	UPROPERTY(EditAnywhere, Category = MeshSettings)
 	bool bCalculateCorrectLODModel;
@@ -345,7 +350,7 @@ struct FMeshMergingSettings
 		, bPivotPointAtZero(false)
 		, bMergePhysicsData(false)
 		, bMergeMaterials(false)
-		, bBakeVertexData(false)
+		, bBakeVertexDataToMesh(false)
 		, bCalculateCorrectLODModel(false)
 		, ExportSpecificLOD(0)
 		, bUseLandscapeCulling(false)

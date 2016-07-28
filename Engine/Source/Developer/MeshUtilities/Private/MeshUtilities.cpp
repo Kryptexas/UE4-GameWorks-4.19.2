@@ -5401,8 +5401,8 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 		SourceMeshes,
 		GlobalMaterialMap,
 		InMeshProxySettings.MaterialSettings,
-		true,
-		true,
+		true, // Always need vertex data for baking materials
+		true, // Always want to merge materials
 		MeshShouldBakeVertexData,
 		NewGlobalMaterialMap,
 		NewGlobalUniqueMaterialList);
@@ -7111,12 +7111,12 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		// Retrieve and construct raw mesh from source meshes
 		SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh = new FRawMesh();
 		FRawMesh* RawMeshLOD = SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh;		
-		if (ConstructRawMesh(StaticMeshComponent, LODIndex, InSettings.bBakeVertexData, *RawMeshLOD, UniqueMaterials, MeshMaterialMap))
+		if (ConstructRawMesh(StaticMeshComponent, LODIndex, InSettings.bBakeVertexDataToMesh || InSettings.bUseVertexDataForBakingMaterial, *RawMeshLOD, UniqueMaterials, MeshMaterialMap))
 		{
 			MaterialMap.Add(FMeshIdAndLOD(MeshId, LODIndex), MeshMaterialMap);
 
 			// Check if vertex colours should be propagated
-			if (InSettings.bBakeVertexData)
+			if (InSettings.bBakeVertexDataToMesh)
 			{
 				// Whether at least one of the meshes has vertex colors
 				bWithVertexColors[LODIndex] |= (RawMeshLOD->WedgeColors.Num() != 0);
@@ -7161,7 +7161,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		SourceMeshes,
 		MaterialMap,
 		InSettings.MaterialSettings,
-		InSettings.bBakeVertexData,
+		InSettings.bUseVertexDataForBakingMaterial,
 		InSettings.bMergeMaterials,
 		MeshShouldBakeVertexData,
 		NewMaterialMap,
@@ -7333,7 +7333,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 		// Deal with vertex colors
 		// Some meshes may have it, in this case merged mesh will be forced to have vertex colors as well
-		if (bWithVertexColors[ExportLODIndex])
+		if (bWithVertexColors[ExportLODIndex] && InSettings.bBakeVertexDataToMesh)
 		{
 			if (SourceRawMesh.WedgeColors.Num())
 			{

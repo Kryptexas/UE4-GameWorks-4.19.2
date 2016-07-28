@@ -61,7 +61,7 @@ void FMeshMergingSettings::PostLoadDeprecated()
 	FMeshMergingSettings DefaultObject;
 	if (bImportVertexColors_DEPRECATED != DefaultObject.bImportVertexColors_DEPRECATED)
 	{
-		bBakeVertexData = bImportVertexColors_DEPRECATED;
+		bBakeVertexDataToMesh = bImportVertexColors_DEPRECATED;
 	}
 
 	if (bExportNormalMap_DEPRECATED != DefaultObject.bExportNormalMap_DEPRECATED)
