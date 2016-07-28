@@ -492,6 +492,9 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsInstancing = true;
 		bSupportsTextureFloat = true;
 		bSupportsTextureHalfFloat = true;
+		
+		// According to https://www.khronos.org/registry/gles/extensions/EXT/EXT_color_buffer_float.txt
+		bSupportsColorBufferHalfFloat = (bSupportsColorBufferHalfFloat || bSupportsColorBufferFloat);
 	}
 
 	if (bES31Support)

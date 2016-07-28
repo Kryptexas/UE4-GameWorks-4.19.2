@@ -112,7 +112,11 @@ private:
 			TargetPlatformNames.Add(TEXT("Android"));
 
 	#endif
-			bSupportsFloatingPointRenderTargets = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
+			bSupportsFloatingPointRenderTargets = 
+				ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float")) 
+				// According to https://www.khronos.org/registry/gles/extensions/EXT/EXT_color_buffer_float.txt
+				|| (bES30Support && ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_float")));
+
 			bSupportsFrameBufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
 		}
 		GAndroidGPUInfoReady = true;
