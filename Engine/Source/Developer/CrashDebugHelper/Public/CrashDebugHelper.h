@@ -140,6 +140,9 @@ public:
 	/** Product version, based on FEngineVersion. */
 	FString EngineVersion;
 
+	/** Build version string. */
+	FString BuildVersion;
+
 	/** CL built from. */
 	int32 BuiltFromCL;
 
