@@ -370,10 +370,6 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 	// I'm moving the check here
 	if ( SkeletalMesh != nullptr && IsRegistered() )
 	{
-		if (SkeletalMesh->MorphTargets.Num() > 0 && MorphTargetWeights.Num() == 0)
-		{
-			MorphTargetWeights.AddZeroed(SkeletalMesh->MorphTargets.Num());
-		}
 
 		// We may be doing parallel evaluation on the current anim instance
 		// Calling this here with true will block this init till that thread completes
@@ -475,7 +471,7 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		}		
 
 		// refresh morph targets - this can happen when re-registration happens
-		RefreshActiveMorphTargets();
+		InitializeAnimationMorphTargets();
 	}
 	return bCalledInitialize;
 }
@@ -733,9 +729,10 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	ActiveMorphTargets.Reset();
 	if (SkeletalMesh)
 	{
+		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
+
 		if (SkeletalMesh->MorphTargets.Num() > 0)
 		{
-			check(MorphTargetWeights.Num() == SkeletalMesh->MorphTargets.Num());
 			FMemory::Memzero(MorphTargetWeights.GetData(), MorphTargetWeights.GetAllocatedSize());
 		}
 
@@ -743,6 +740,10 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 		{
 			FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
 		}
+	}
+	else
+	{
+		MorphTargetWeights.Reset();
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -2300,8 +2301,10 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 	}
 }
 
-void USkeletalMeshComponent::RefreshActiveMorphTargets()
+void USkeletalMeshComponent::InitializeAnimationMorphTargets()
 {
+	ActiveMorphTargets.Empty();
+
 	if (SkeletalMesh && AnimScriptInstance)
 	{
 		// as this can be called from any worker thread (i.e. from CreateRenderState_Concurrent) we cant currently be doing parallel evaluation
@@ -2314,10 +2317,6 @@ void USkeletalMeshComponent::RefreshActiveMorphTargets()
 		{
 			MasterSMC->AnimScriptInstance->RefreshCurves(this);
 		}
-	}
-	else
-	{
-		ActiveMorphTargets.Empty();
 	}
 }
 

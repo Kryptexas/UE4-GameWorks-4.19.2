@@ -963,7 +963,7 @@ private:
 	/**
 	 * Gets called when register, verifies all ActiveMorphTargets is still valid 
 	 */
-	virtual void RefreshActiveMorphTargets() {};
+	virtual void InitializeAnimationMorphTargets() {};
 
 	// Animation update rate control.
 public:

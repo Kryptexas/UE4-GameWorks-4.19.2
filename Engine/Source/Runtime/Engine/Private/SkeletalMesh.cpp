@@ -2647,6 +2647,22 @@ void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh)
 }
 
 #if WITH_EDITOR
+void RefreshSkelMeshOnMorphtargetChange(const USkeletalMesh* InSkeletalMesh)
+{
+	if (InSkeletalMesh)
+	{
+		for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
+		{
+			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(*Iter);
+			if (SkeletalMeshComponent->SkeletalMesh == InSkeletalMesh)
+			{
+				SkeletalMeshComponent->InitAnim(false);
+			}
+		}
+		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+	}
+}
+
 void USkeletalMesh::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	Super::PreEditChange(PropertyAboutToChange);
@@ -3462,6 +3478,10 @@ void USkeletalMesh::UnregisterMorphTarget(UMorphTarget* MorphTarget)
 				MarkPackageDirty();
 				// need to refresh the map
 				InitMorphTargets();
+#if WITH_EDITOR
+				// refresh from all morphtarget
+				RefreshSkelMeshOnMorphtargetChange(this);
+#endif// WITH_EDITOR
 				return;
 			}
 		}

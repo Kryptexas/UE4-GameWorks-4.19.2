@@ -432,7 +432,6 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 			ActiveMorphTargets.Empty();
 		}
 
-		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
 		MeshObject->Update(UseLOD,this,ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
 		MeshObject->bHasBeenUpdatedAtLeastOnce = true;
 		
