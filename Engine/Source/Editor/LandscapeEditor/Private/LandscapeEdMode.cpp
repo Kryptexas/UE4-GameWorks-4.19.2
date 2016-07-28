@@ -2629,6 +2629,147 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 	}
 }
 
+void FEdModeLandscape::DeleteLandscapeComponents(ULandscapeInfo* LandscapeInfo, TSet<ULandscapeComponent*> ComponentsToDelete)
+{
+	LandscapeInfo->Modify();
+	ALandscapeProxy* Proxy = LandscapeInfo->GetLandscapeProxy();
+	Proxy->Modify();
+
+	for (ULandscapeComponent* Component : ComponentsToDelete)
+	{
+		Component->Modify();
+		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
+		if (CollisionComp)
+		{
+			CollisionComp->Modify();
+		}
+	}
+
+	int32 ComponentSizeVerts = LandscapeInfo->ComponentNumSubsections * (LandscapeInfo->SubsectionSizeQuads + 1);
+	int32 NeedHeightmapSize = 1 << FMath::CeilLogTwo(ComponentSizeVerts);
+
+	TSet<ULandscapeComponent*> HeightmapUpdateComponents;
+	// Need to split all the component which share Heightmap with selected components
+	// Search neighbor only
+	for (ULandscapeComponent* Component : ComponentsToDelete)
+	{
+		int32 SearchX = Component->HeightmapTexture->Source.GetSizeX() / NeedHeightmapSize;
+		int32 SearchY = Component->HeightmapTexture->Source.GetSizeY() / NeedHeightmapSize;
+		FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
+
+		for (int32 Y = 0; Y < SearchY; ++Y)
+		{
+			for (int32 X = 0; X < SearchX; ++X)
+			{
+				// Search for four directions...
+				for (int32 Dir = 0; Dir < 4; ++Dir)
+				{
+					int32 XDir = (Dir >> 1) ? 1 : -1;
+					int32 YDir = (Dir % 2) ? 1 : -1;
+					ULandscapeComponent* Neighbor = LandscapeInfo->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(XDir*X, YDir*Y));
+					if (Neighbor && Neighbor->HeightmapTexture == Component->HeightmapTexture && !HeightmapUpdateComponents.Contains(Neighbor))
+					{
+						Neighbor->Modify();
+						HeightmapUpdateComponents.Add(Neighbor);
+					}
+				}
+			}
+		}
+	}
+
+	// Changing Heightmap format for selected components
+	for (ULandscapeComponent* Component : HeightmapUpdateComponents)
+	{
+		ALandscape::SplitHeightmap(Component, false);
+	}
+
+	// Remove attached foliage
+	for (ULandscapeComponent* Component : ComponentsToDelete)
+	{
+		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
+		if (CollisionComp)
+		{
+			AInstancedFoliageActor::DeleteInstancesForComponent(Proxy->GetWorld(), CollisionComp);
+		}
+	}
+
+	// Check which ones are need for height map change
+	for (ULandscapeComponent* Component : ComponentsToDelete)
+	{
+		// Reset neighbors LOD information
+		FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
+		FIntPoint NeighborKeys[8] =
+		{
+			ComponentBase + FIntPoint(-1, -1),
+			ComponentBase + FIntPoint(+0, -1),
+			ComponentBase + FIntPoint(+1, -1),
+			ComponentBase + FIntPoint(-1, +0),
+			ComponentBase + FIntPoint(+1, +0),
+			ComponentBase + FIntPoint(-1, +1),
+			ComponentBase + FIntPoint(+0, +1),
+			ComponentBase + FIntPoint(+1, +1)
+		};
+
+		for (const FIntPoint& NeighborKey : NeighborKeys)
+		{
+			ULandscapeComponent* NeighborComp = LandscapeInfo->XYtoComponentMap.FindRef(NeighborKey);
+			if (NeighborComp && !ComponentsToDelete.Contains(NeighborComp))
+			{
+				NeighborComp->Modify();
+				NeighborComp->InvalidateLightingCache();
+
+				// is this really needed? It can happen multiple times per component!
+				FComponentReregisterContext ReregisterContext(NeighborComp);
+			}
+		}
+
+		// Remove Selected Region in deleted Component
+		for (int32 Y = 0; Y < Component->ComponentSizeQuads; ++Y)
+		{
+			for (int32 X = 0; X < Component->ComponentSizeQuads; ++X)
+			{
+				LandscapeInfo->SelectedRegion.Remove(FIntPoint(X, Y) + Component->GetSectionBase());
+			}
+		}
+
+		if (Component->HeightmapTexture)
+		{
+			Component->HeightmapTexture->SetFlags(RF_Transactional);
+			Component->HeightmapTexture->Modify();
+			Component->HeightmapTexture->MarkPackageDirty();
+			Component->HeightmapTexture->ClearFlags(RF_Standalone); // Remove when there is no reference for this Heightmap...
+		}
+
+		for (int32 i = 0; i < Component->WeightmapTextures.Num(); ++i)
+		{
+			Component->WeightmapTextures[i]->SetFlags(RF_Transactional);
+			Component->WeightmapTextures[i]->Modify();
+			Component->WeightmapTextures[i]->MarkPackageDirty();
+			Component->WeightmapTextures[i]->ClearFlags(RF_Standalone);
+		}
+
+		if (Component->XYOffsetmapTexture)
+		{
+			Component->XYOffsetmapTexture->SetFlags(RF_Transactional);
+			Component->XYOffsetmapTexture->Modify();
+			Component->XYOffsetmapTexture->MarkPackageDirty();
+			Component->XYOffsetmapTexture->ClearFlags(RF_Standalone);
+		}
+
+		ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
+		if (CollisionComp)
+		{
+			CollisionComp->DestroyComponent();
+		}
+		Component->DestroyComponent();
+	}
+
+	// Remove Selection
+	LandscapeInfo->ClearSelectedRegion(true);
+	//EdMode->SetMaskEnable(Landscape->SelectedRegion.Num());
+	GEngine->BroadcastLevelActorListChanged();
+}
+
 ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32 NumComponentsY, int32 NumSubsections, int32 SubsectionSizeQuads, bool bResample)
 {
 	check(NumComponentsX > 0);
@@ -2657,6 +2798,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			TArray<uint16> HeightData;
 			TArray<FLandscapeImportLayerInfo> ImportLayerInfos;
 			FVector LandscapeOffset = FVector::ZeroVector;
+			FIntPoint LandscapeOffsetQuads = FIntPoint::ZeroValue;
 			float LandscapeScaleFactor = 1.0f;
 
 			int32 NewMinX, NewMinY, NewMaxX, NewMaxY;
@@ -2736,6 +2878,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 				// offset landscape to component boundary
 				LandscapeOffset = FVector(NewMinX, NewMinY, 0) * OldLandscapeProxy->GetActorScale();
+				LandscapeOffsetQuads = FIntPoint(NewMinX, NewMinY);
 				NewMinX = 0;
 				NewMinY = 0;
 				NewMaxX = NewVertsX - 1;
@@ -2817,10 +2960,43 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 						}
 					}
 				}
+
+				// delete any components that were deleted in the original
+				TSet<ULandscapeComponent*> ComponentsToDelete;
+				for (const TPair<FIntPoint, ULandscapeComponent*>& Entry : NewLandscapeInfo->XYtoComponentMap)
+				{
+					if (!LandscapeInfo->XYtoComponentMap.Contains(Entry.Key))
+					{
+						ComponentsToDelete.Add(Entry.Value);
+					}
+				}
+				if (ComponentsToDelete.Num() > 0)
+				{
+					DeleteLandscapeComponents(NewLandscapeInfo, ComponentsToDelete);
+				}
 			}
 			else
 			{
 				// TODO: remap foliage when not resampling (i.e. when there isn't a 1:1 mapping between old and new component)
+
+				// delete any components that are in areas that were entirely deleted in the original
+				ULandscapeInfo* NewLandscapeInfo = Landscape->GetLandscapeInfo();	
+				TSet<ULandscapeComponent*> ComponentsToDelete;
+				for (const TPair<FIntPoint, ULandscapeComponent*>& Entry : NewLandscapeInfo->XYtoComponentMap)
+				{
+					float OldX = Entry.Key.X * NewComponentSizeQuads + LandscapeOffsetQuads.X;
+					float OldY = Entry.Key.Y * NewComponentSizeQuads + LandscapeOffsetQuads.Y;
+					TSet<ULandscapeComponent*> OverlapComponents;
+					LandscapeInfo->GetComponentsInRegion(OldX, OldY, OldX + NewComponentSizeQuads, OldY + NewComponentSizeQuads, OverlapComponents, false);
+					if (OverlapComponents.Num() == 0)
+					{
+						ComponentsToDelete.Add(Entry.Value);
+					}
+				}
+				if (ComponentsToDelete.Num() > 0)
+				{
+					DeleteLandscapeComponents(NewLandscapeInfo, ComponentsToDelete);
+				}
 			}
 
 			// Delete the old Landscape and all its proxies
