@@ -1377,7 +1377,7 @@ protected:
 public:
 	bool HasNormalConnected() const { return Normal.IsConnected(); }
 
-	void NotifyCompilationFinished(FMaterialResource* CompiledResource);
+	static void NotifyCompilationFinished(UMaterialInterface* Material);
 
 	DECLARE_EVENT_OneParam( UMaterial, FMaterialCompilationFinished, UMaterialInterface* );
 	ENGINE_API static FMaterialCompilationFinished& OnMaterialCompilationFinished();

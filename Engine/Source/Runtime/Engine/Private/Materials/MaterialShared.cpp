@@ -1061,7 +1061,7 @@ int32 FMaterialResource::GetBlendableLocation() const
 
 void FMaterialResource::NotifyCompilationFinished()
 {
-	Material->NotifyCompilationFinished(this);
+	UMaterial::NotifyCompilationFinished(MaterialInstance ? (UMaterialInterface*)MaterialInstance : (UMaterialInterface*)Material);
 }
 
 /**

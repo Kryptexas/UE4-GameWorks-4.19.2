@@ -4005,10 +4005,9 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 }
 #endif // WITH_EDITOR
 
-void UMaterial::NotifyCompilationFinished(FMaterialResource* CompiledResource)
+void UMaterial::NotifyCompilationFinished(UMaterialInterface* Material)
 {
-	// we don't know if it was actually us or one of our MaterialInstances (with StaticPermutationResources)...
-	UMaterial::OnMaterialCompilationFinished().Broadcast(this);
+	UMaterial::OnMaterialCompilationFinished().Broadcast(Material);
 }
 
 void UMaterial::ForceRecompileForRendering()
