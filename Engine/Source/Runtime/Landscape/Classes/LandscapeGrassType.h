@@ -87,6 +87,10 @@ struct FGrassVariety
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Grass)
 	FLightingChannels LightingChannels;
 
+	/** Whether the grass instances should receive decals. */
+	UPROPERTY(EditAnywhere, Category = Grass)
+	bool bReceivesDecals;
+
 	FGrassVariety()
 		: GrassMesh(nullptr)
 		, GrassDensity(400)
@@ -102,6 +106,7 @@ struct FGrassVariety
 		, RandomRotation(true)
 		, AlignToSurface(true)
 		, bUseLandscapeLightmap(false)
+		, bReceivesDecals(true)
 	{
 	}
 };
