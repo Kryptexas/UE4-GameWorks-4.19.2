@@ -309,8 +309,7 @@ FReply SToolBarButtonBlock::OnClicked()
 	const bool ClosingMenu = MultiBox->ShouldCloseWindowAfterMenuSelection();
 	if( ClosingMenu )
 	{
-		TSharedRef<SWindow> ParentContextMenuWindow = FSlateApplication::Get().FindWidgetWindow( AsShared() ).ToSharedRef();
-		FSlateApplication::Get().RequestDestroyWindow( ParentContextMenuWindow );
+		FSlateApplication::Get().DismissMenuByWidget(AsShared());
 	}
 
 	return FReply::Handled();

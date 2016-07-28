@@ -61,7 +61,7 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		if (!LandscapeInfo)
 		{
@@ -69,7 +69,7 @@ public:
 		}
 
 		// Get list of verts to update
-		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 		if (!BrushInfo)
 		{
 			return;
@@ -293,7 +293,7 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		if (!LandscapeInfo)
 		{
@@ -301,7 +301,7 @@ public:
 		}
 
 		// Get list of verts to update
-		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 		if (!BrushInfo)
 		{
 			return;

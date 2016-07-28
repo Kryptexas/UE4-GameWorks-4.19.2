@@ -14,6 +14,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 // Forward declarations
 class ULandscapeLayerInfoObject;
 class FLandscapeToolSplines;
+class UViewportInteractor;
+struct FViewportActionKeyInput;
 
 struct FHeightmapToolTarget;
 template<typename TargetType> class FLandscapeToolCopyPaste;
@@ -398,6 +400,9 @@ public:
 	bool LandscapePlaneTrace(FEditorViewportClient* ViewportClient, const FPlane& Plane, FVector& OutHitLocation);
 	bool LandscapePlaneTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation);
 
+	/** Trace under the specified laser start and direction and return the landscape hit and the hit location (in landscape quad space) */
+	bool LandscapeTrace(const FEditorViewportClient* ViewportClient, const FVector& InRayOrigin, const FVector& InRayEnd, FVector& OutHitLocation);
+
 	void SetCurrentToolMode(FName ToolModeName, bool bRestoreCurrentTool = true);
 
 	/** Change current tool */
@@ -420,6 +425,14 @@ public:
 
 	DECLARE_EVENT(FEdModeLandscape, FTargetsListUpdated);
 	static FTargetsListUpdated TargetsListUpdated;
+
+	/** Called when an editor mode is entered or exited */
+	void OnEditorModeChanged(FEdMode* EditorMode, bool bEntered);
+
+	/** Called when the user presses a button on their motion controller device */
+	void OnVRAction(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
+
+	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	void OnWorldChange();
 
@@ -454,4 +467,6 @@ private:
 
 	FDelegateHandle OnWorldChangeDelegateHandle;
 	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;
+
+	bool bIsPainting;
 };

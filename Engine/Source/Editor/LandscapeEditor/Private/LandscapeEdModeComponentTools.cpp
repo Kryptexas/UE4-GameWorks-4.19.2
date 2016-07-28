@@ -34,19 +34,19 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		if (LandscapeInfo)
 		{
 			LandscapeInfo->Modify();
 
 			// Invert when holding Shift
-			bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
+			bool bInvert = InteractorPositions[InteractorPositions.Num() - 1].bModifierPressed;
 
 			if (Brush->GetBrushType() == ELandscapeBrushType::Component)
 			{
 				// TODO - only retrieve bounds as we don't need the data
-				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 				if (!BrushInfo)
 				{
 					return;
@@ -62,8 +62,8 @@ public:
 				if (!bInitializedComponentInvert)
 				{
 					// Get the component under the mouse location. Copied from FLandscapeBrushComponent::ApplyBrush()
-					const float MouseX = MousePositions[0].Position.X;
-					const float MouseY = MousePositions[0].Position.Y;
+					const float MouseX = InteractorPositions[0].Position.X;
+					const float MouseY = InteractorPositions[0].Position.Y;
 					const int32 MouseComponentIndexX = (MouseX >= 0.0f) ? FMath::FloorToInt(MouseX / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseX / LandscapeInfo->ComponentSizeQuads);
 					const int32 MouseComponentIndexY = (MouseY >= 0.0f) ? FMath::FloorToInt(MouseY / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseY / LandscapeInfo->ComponentSizeQuads);
 					ULandscapeComponent* MouseComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(MouseComponentIndexX, MouseComponentIndexY));
@@ -107,7 +107,7 @@ public:
 			}
 			else // Select various shape regions
 			{
-				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 				if (!BrushInfo)
 				{
 					return;
@@ -218,13 +218,13 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		if (LandscapeInfo)
 		{
 			LandscapeInfo->Modify();
 			// Get list of verts to update
-			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 			if (!BrushInfo)
 			{
 				return;
@@ -234,7 +234,7 @@ public:
 			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
 
 			// Invert when holding Shift
-			bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
+			bool bInvert = InteractorPositions[InteractorPositions.Num() - 1].bModifierPressed;
 
 			// Tablet pressure
 			float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
@@ -280,7 +280,7 @@ public:
 	{
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		ALandscapeProxy* Proxy = InTarget.LandscapeInfo->GetLandscapeProxy();
 		UMaterialInterface* HoleMaterial = Proxy->GetLandscapeHoleMaterial();
@@ -318,7 +318,7 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		ALandscape* Landscape = LandscapeInfo ? LandscapeInfo->LandscapeActor.Get() : nullptr;
 
@@ -357,7 +357,7 @@ public:
 			{
 				// Get list of verts to update
 				// TODO - only retrieve bounds as we don't need the data
-				FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 				if (!BrushInfo)
 				{
 					return;
@@ -773,7 +773,7 @@ public:
 		XYOffsetCache.Flush();
 	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		ALandscapeProxy* Landscape = LandscapeInfo ? LandscapeInfo->GetCurrentLevelLandscapeProxy(true) : nullptr;
 		if (Landscape && EdMode->LandscapeRenderAddCollision)
@@ -782,7 +782,7 @@ public:
 
 			// Get list of verts to update
 			// TODO - only retrieve bounds as we don't need the data
-			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 			if (!BrushInfo)
 			{
 				return;
@@ -973,7 +973,7 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		if (LandscapeInfo)
 		{
@@ -984,7 +984,7 @@ public:
 			{
 				// Get list of components to delete from brush
 				// TODO - only retrieve bounds as we don't need the vert data
-				FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 				if (!BrushInfo)
 				{
 					return;
@@ -1174,7 +1174,7 @@ public:
 		float Data;
 	};
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		//ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo;
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -1184,7 +1184,7 @@ public:
 
 			// Get list of verts to update
 			// TODO - only retrieve bounds as we don't need the data
-			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 			if (!BrushInfo)
 			{
 				return;
@@ -1488,7 +1488,7 @@ public:
 		return ELandscapeToolTargetTypeMask::FromType(ToolTarget::TargetType);
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		this->EdMode->GizmoBrush->Tick(ViewportClient, 0.1f);
 
@@ -1523,7 +1523,7 @@ public:
 	{
 	}
 
-	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
 	{
 		//ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo;
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -1563,7 +1563,7 @@ public:
 			//LandscapeInfo->Modify();
 
 			// Get list of verts to update
-			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
 			if (!BrushInfo)
 			{
 				return;
@@ -1809,7 +1809,7 @@ public:
 		return ELandscapeToolTargetTypeMask::FromType(ToolTarget::TargetType);
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		this->EdMode->GizmoBrush->Tick(ViewportClient, 0.1f);
 
@@ -1955,7 +1955,7 @@ public:
 		EdMode->NewLandscapePreviewMode = ENewLandscapePreviewMode::None;
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		// does nothing
 		return false;
@@ -2019,7 +2019,7 @@ public:
 	{
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		// does nothing
 		return false;
