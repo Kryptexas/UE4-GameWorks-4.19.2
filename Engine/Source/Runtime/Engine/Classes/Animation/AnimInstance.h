@@ -687,6 +687,10 @@ private:
 
 	/** Used to guard against recursive calls to UpdateAnimation */
 	bool bUpdatingAnimation;
+
+	/** Used to guard against recursive calls to UpdateAnimation */
+	bool bPostUpdatingAnimation;
+
 #if WITH_EDITOR
 	/** Delegate for custom animation curve addition */
 	TArray<FOnAddCustomAnimationCurves> OnAddAnimationCurves;
@@ -696,6 +700,9 @@ public:
 	void RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
 #endif // editor only for now
 public:
+
+	/** Is this animation currently running post update */
+	bool IsPostUpdatingAnimation() const { return bPostUpdatingAnimation; }
 
 	/** 
 	 * NOTE: Derived anim getters

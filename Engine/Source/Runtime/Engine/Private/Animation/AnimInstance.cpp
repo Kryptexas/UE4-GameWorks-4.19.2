@@ -88,6 +88,7 @@ extern TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate;
 UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bUpdatingAnimation(false)
+	, bPostUpdatingAnimation(false)
 {
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	RootNode = nullptr;
@@ -422,6 +423,11 @@ void UAnimInstance::PreUpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::PostUpdateAnimation()
 {
+#if DO_CHECK
+	checkf(!bPostUpdatingAnimation, TEXT("PostUpdateAnimation already in progress, recursion detected for SkeletalMeshComponent [%s], AnimInstance [%s]"), *GetNameSafe(GetOwningComponent()), *GetName());
+	TGuardValue<bool> CircularGuard(bPostUpdatingAnimation, true);
+#endif
+
 	SCOPE_CYCLE_COUNTER(STAT_PostUpdateAnimation);
 	check(!IsRunningParallelEvaluation());
 
