@@ -1007,7 +1007,7 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 	}
 }
 
-bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component) const
+bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component)
 {
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if ( PrimComp && PrimComp->IsVisible() && !PrimComp->bHiddenInGame )
