@@ -876,6 +876,12 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 		}
 
+		if (GetLightingChannelMaskForStruct(Component->LightingChannels) != GetLightingChannelMaskForStruct(FoliageType->LightingChannels))
+		{
+			Component->LightingChannels = FoliageType->LightingChannels;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
 		UFoliageInstancedStaticMeshComponent* FoliageComponent = Cast<UFoliageInstancedStaticMeshComponent>(Component);
 
 		if (FoliageComponent && FoliageComponent->FoliageHiddenEditorViews != InSettings->HiddenEditorViews)
@@ -883,7 +889,7 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			FoliageComponent->FoliageHiddenEditorViews = InSettings->HiddenEditorViews;
 			bNeedsMarkRenderStateDirty = true;
 		}
-		
+	
 		const UFoliageType_InstancedStaticMesh* FoliageType_ISM = Cast<UFoliageType_InstancedStaticMesh>(FoliageType);
 		if (FoliageType_ISM)
 		{

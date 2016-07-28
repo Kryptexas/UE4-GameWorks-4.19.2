@@ -2109,7 +2109,8 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->bDisableCollision = true;
 										HierarchicalInstancedStaticMeshComponent->SetCanEverAffectNavigation(false);
 										HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed = FolSeed;
-
+										HierarchicalInstancedStaticMeshComponent->LightingChannels = GrassVariety.LightingChannels;
+											
 										if (GrassVariety.bUseLandscapeLightmap
 											&& GrassVariety.GrassMesh->GetNumLODs() > 0
 											&& Component->LightMap.IsValid())

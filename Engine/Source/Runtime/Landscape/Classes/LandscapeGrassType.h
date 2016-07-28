@@ -80,6 +80,13 @@ struct FGrassVariety
 	UPROPERTY(EditAnywhere, Category = Grass)
 	bool bUseLandscapeLightmap;
 
+	/**
+	 * Lighting channels that the grass will be assigned. Lights with matching channels will affect the grass.
+	 * These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Grass)
+	FLightingChannels LightingChannels;
+
 	FGrassVariety()
 		: GrassMesh(nullptr)
 		, GrassDensity(400)

@@ -288,6 +288,13 @@ public:
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(HideObjectType=true))
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> CustomNavigableGeometry;
 
+	/**
+	 * Lighting channels that placed foliage will be assigned. Lights with matching channels will affect the foliage.
+	 * These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings)
+	FLightingChannels LightingChannels;
+
 #if WITH_EDITORONLY_DATA
 	/** Bitflag to represent in which editor views this foliage mesh is hidden. */
 	UPROPERTY(transient)
