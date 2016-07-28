@@ -451,7 +451,7 @@ private:
 
 	UMaterialInterface* CachedLandscapeMaterial;
 
-	bool bToolActive;
+	const FViewport* ToolActiveViewport;
 
 	FDelegateHandle OnWorldChangeDelegateHandle;
 	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;

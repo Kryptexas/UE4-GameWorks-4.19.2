@@ -173,7 +173,7 @@ FEdModeLandscape::FEdModeLandscape()
 	, SplinesTool(nullptr)
 	, LandscapeRenderAddCollision(nullptr)
 	, CachedLandscapeMaterial(nullptr)
-	, bToolActive(false)
+	, ToolActiveViewport(nullptr)
 {
 	GLayerDebugColorMaterial = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterial>(nullptr, TEXT("/Engine/EditorLandscapeResources/LayerVisMaterial.LayerVisMaterial")));
 	GSelectionColorMaterial  = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_Selected.SelectBrushMaterial_Selected")));
@@ -549,7 +549,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 
 	FViewport* const Viewport = ViewportClient->Viewport;
 
-	if (bToolActive && ensure(CurrentTool))
+	if (ToolActiveViewport && ToolActiveViewport == Viewport && ensure(CurrentTool))
 	{
 		// Require Ctrl or not as per user preference
 		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
@@ -559,7 +559,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 		{
 			CurrentTool->EndTool(ViewportClient);
 			Viewport->CaptureMouse(false);
-			bToolActive = false;
+			ToolActiveViewport = nullptr;
 		}
 	}
 
@@ -607,17 +607,20 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 /** FEdMode: Called when the mouse is moved over the viewport */
 bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
-	if (bToolActive && ensure(CurrentTool))
+	// due to mouse capture this should only ever be called on the active viewport
+	// if it ever gets called on another viewport the mouse has been released without us picking it up
+	if (ToolActiveViewport && ensure(CurrentTool))
 	{
 		// Require Ctrl or not as per user preference
 		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
 
-		if (!Viewport->KeyState(EKeys::LeftMouseButton) ||
+		if (ToolActiveViewport != Viewport ||
+			!Viewport->KeyState(EKeys::LeftMouseButton) ||
 			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && !IsCtrlDown(Viewport)))
 		{
 			CurrentTool->EndTool(ViewportClient);
 			Viewport->CaptureMouse(false);
-			bToolActive = false;
+			ToolActiveViewport = nullptr;
 		}
 	}
 
@@ -641,7 +644,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 bool FEdModeLandscape::DisallowMouseDeltaTracking() const
 {
 	// We never want to use the mouse delta tracker while painting
-	return bToolActive;
+	return (ToolActiveViewport != nullptr);
 }
 
 /**
@@ -1224,11 +1227,11 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
 			// When debugging it's possible to miss the "mouse released" event, if we get a "mouse pressed" event when we think it's already pressed then treat it as release first
-			if (bToolActive)
+			if (ToolActiveViewport)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				Viewport->CaptureMouse(false);
-				bToolActive = false;
+				ToolActiveViewport = nullptr;
 			}
 
 			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
@@ -1259,9 +1262,14 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 						else
 						{
 							Viewport->CaptureMouse(true);
-							bToolActive = CurrentTool->BeginTool(ViewportClient, CurrentToolTarget, HitLocation);
-							if (!bToolActive)
+							bool bToolActive = CurrentTool->BeginTool(ViewportClient, CurrentToolTarget, HitLocation);
+							if (bToolActive)
 							{
+								ToolActiveViewport = Viewport;
+							}
+							else
+							{
+								ToolActiveViewport = nullptr;
 								Viewport->CaptureMouse(false);
 							}
 							ViewportClient->Invalidate(false, false);
@@ -1276,13 +1284,13 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		if (Key == EKeys::LeftMouseButton ||
 			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && (Key == EKeys::LeftControl || Key == EKeys::RightControl)))
 		{
-			if (Event == IE_Released && CurrentTool && bToolActive)
+			if (Event == IE_Released && CurrentTool && ToolActiveViewport)
 			{
 				//Set the cursor position to that of the slate cursor so it wont snap back
 				Viewport->SetPreCaptureMousePosFromSlateCursor();
 				CurrentTool->EndTool(ViewportClient);
 				Viewport->CaptureMouse(false);
-				bToolActive = false;
+				ToolActiveViewport = nullptr;
 				return true;
 			}
 		}
@@ -1339,14 +1347,14 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			return true;
 		}
 
-		// Prev tool 
+		// Prev tool
 		if (Event == IE_Pressed && Key == EKeys::Comma)
 		{
-			if (CurrentTool && bToolActive)
+			if (CurrentTool && ToolActiveViewport)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				Viewport->CaptureMouse(false);
-				bToolActive = false;
+				ToolActiveViewport = nullptr;
 			}
 
 			int32 OldToolIndex = CurrentToolMode->ValidTools.Find(CurrentTool->GetToolName());
@@ -1356,14 +1364,14 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			return true;
 		}
 
-		// Next tool 
+		// Next tool
 		if (Event == IE_Pressed && Key == EKeys::Period)
 		{
-			if (CurrentTool && bToolActive)
+			if (CurrentTool && ToolActiveViewport)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				Viewport->CaptureMouse(false);
-				bToolActive = false;
+				ToolActiveViewport = nullptr;
 			}
 
 			int32 OldToolIndex = CurrentToolMode->ValidTools.Find(CurrentTool->GetToolName());
