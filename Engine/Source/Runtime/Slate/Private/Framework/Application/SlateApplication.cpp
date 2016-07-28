@@ -2832,12 +2832,15 @@ TSharedPtr<SWindow> FSlateApplication::FindWidgetWindow( TSharedRef< const SWidg
 TSharedPtr<SWindow> FSlateApplication::FindWidgetWindow( TSharedRef< const SWidget > InWidget, FWidgetPath& OutWidgetPath ) const
 {
 	// If the user wants a widget path back populate it instead
-	const bool bWasFound = FSlateWindowHelper::FindPathToWidget(SlateWindows, InWidget, OutWidgetPath, EVisibility::All);
-	if( bWasFound )
+	if ( !FSlateWindowHelper::FindPathToWidget(SlateWindows, InWidget, OutWidgetPath, EVisibility::All) )
 	{
-		return OutWidgetPath.TopLevelWindow;
+		if ( !FSlateWindowHelper::FindPathToWidget(SlateVirtualWindows, InWidget, OutWidgetPath, EVisibility::All) )
+		{
+			return nullptr;
+		}
 	}
-	return nullptr;
+
+	return OutWidgetPath.TopLevelWindow;
 }
 
 
@@ -4816,16 +4819,14 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 		)
 	)
 	{
-		bool bFocusCandidateFound = false;
-		for ( int32 WidgetIndex = WidgetsUnderPointer.Widgets.Num() - 1; !bFocusCandidateFound && WidgetIndex >= 0; --WidgetIndex )
+		for ( int32 WidgetIndex = WidgetsUnderPointer.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex )
 		{
 			FArrangedWidget& CurWidget = WidgetsUnderPointer.Widgets[WidgetIndex];
 			if ( CurWidget.Widget->SupportsKeyboardFocus() )
 			{
-				bFocusCandidateFound = true;
 				FWidgetPath NewFocusedWidgetPath = WidgetsUnderPointer.GetPathDownTo(CurWidget.Widget);
-
 				SetUserFocus(PointerEvent.GetUserIndex(), NewFocusedWidgetPath, EFocusCause::Mouse);
+				break;
 			}
 		}
 

@@ -271,13 +271,22 @@ void FHittestGrid::ClearGridForNewFrame( const FSlateRect& HittestArea )
 
 int32 FHittestGrid::InsertWidget(const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect, int32 LayerId)
 {
-	if ( ensureMsgf( ParentHittestIndex < WidgetsCachedThisFrame->Num(), TEXT("Widget '%s' being drawn before its parent."), *Widget.ToString() ) )
+	if ( ensureMsgf(ParentHittestIndex < WidgetsCachedThisFrame->Num(), TEXT("Widget '%s' being drawn before its parent."), *Widget.ToString()) )
 	{
 		// Update the FGeometry to transform into desktop space.
 		FArrangedWidget WindowAdjustedWidget(Widget);
 		WindowAdjustedWidget.Geometry.AppendTransform(FSlateLayoutTransform(InWindowOffset));
 		const FSlateRect WindowAdjustedRect = InClippingRect.OffsetBy(InWindowOffset);
 
+#if 0
+		// Enable this code if you're trying to make sure a widget is only ever added to the hit test grid once.
+		const FCachedWidget* ExistingCachedWidget = 
+			WidgetsCachedThisFrame->FindByPredicate([Widget] (const FCachedWidget& CachedWidget) {
+				return CachedWidget.WidgetPtr.Pin() == Widget.Widget;
+			});
+
+		ensure(ExistingCachedWidget == nullptr);
+#endif
 
 		// Remember this widget, its geometry, and its place in the logical hierarchy.
 		const int32 WidgetIndex = WidgetsCachedThisFrame->Add(FCachedWidget(ParentHittestIndex, WindowAdjustedWidget, WindowAdjustedRect, LayerId));

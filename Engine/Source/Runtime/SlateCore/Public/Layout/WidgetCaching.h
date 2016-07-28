@@ -16,6 +16,8 @@ public:
 
 public:
 
+	void RecordHittestGeometryInternal(FHittestGrid& Grid, int32 LastHittestIndex, int32 LayerId);
+
 	TArray< FCachedWidgetNode*, TInlineAllocator<4> > Children;
 
 	TWeakPtr<SWidget> Widget;

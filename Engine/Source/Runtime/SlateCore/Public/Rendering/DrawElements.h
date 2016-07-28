@@ -1147,8 +1147,8 @@ public:
 
 	bool ShouldResolveDeferred() const { return bNeedsDeferredResolve; }
 
-	void BeginDeferredGroup();
-	void EndDeferredGroup();
+	SLATECORE_API void BeginDeferredGroup();
+	SLATECORE_API void EndDeferredGroup();
 
 	TArray< TSharedPtr<FDeferredPaint> > GetDeferredPaintList() const { return DeferredPaintList; }
 

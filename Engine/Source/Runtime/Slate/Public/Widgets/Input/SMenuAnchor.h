@@ -130,13 +130,6 @@ protected:
 	TWeakPtr<SWindow> PopupWindowPtr;
 
 	/**
-	 * A pointer to the window presenting this popup.
-	 * Can be the window created to hold a menu or the window containing this anchor if the menu is drawn as a child of the this anchor.
-	 * Pointer is null when a popup is not visible.
-	 */
-	mutable TWeakPtr<SWindow> DrawnWindowPtr;
-
-	/**
 	 * An interface pointer to the menu object presenting this popup.
 	 * Pointer is null when a popup is not visible.
 	 */

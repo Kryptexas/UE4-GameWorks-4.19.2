@@ -6,7 +6,7 @@ class ISlate3DRenderer;
 class FHittestGrid;
 class SWindow;
 
-class SVirtualWindow : public SWindow
+class UMG_API SVirtualWindow : public SWindow
 {
 	SLATE_BEGIN_ARGS(SVirtualWindow)
 		: _Size(FVector2D(100, 100))
@@ -19,16 +19,27 @@ class SVirtualWindow : public SWindow
 public:
 	void Construct(const FArguments& InArgs);
 
+	/**
+	 * We allow users to control the resolve policy for deferred content.  When a virtual window is used in a retainer, we don't want it trying to resolve
+	 * the deferred content, we instead need it to pass that content up to the non-retained window drawing the retainer.  If a virtual window is used in 
+	 * a case like the WidgetComponent, we always want to resolve the deferred content because there won't be another opportunity since the 3D widget has
+	 * no owner window that can draw it.
+	 */
+	void SetShouldResolveDeferred(bool bResolve);
+
+	/**  */
 	void SetIsFocusable(bool bFocusable);
 	
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent) override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
 	virtual bool SupportsKeyboardFocus() const override;
 
 private:
 	TSharedPtr<class STooltipPresenter> TooltipPresenter;
 	bool bIsFocusable;
+	bool bShouldResolveDeferred;
 };
 
 /**

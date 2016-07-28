@@ -213,8 +213,6 @@ FChildren* SMenuAnchor::GetChildren()
 
 int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	DrawnWindowPtr = OutDrawElements.GetWindow();
-
 	FArrangedChildren ArrangedChildren( EVisibility::Visible );
 	ArrangeChildren( AllottedGeometry, ArrangedChildren );
 	
@@ -398,15 +396,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 							// We are re-using the current window instead of creating a new one.
 							// The popup will be presented as a child of this widget.
 							ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
-							//TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-							if ( DrawnWindowPtr.IsValid() )
-							{
-								PopupWindowPtr = DrawnWindowPtr;
-							}
-							else
-							{
-								PopupWindowPtr = MyWidgetPath.GetWindow();
-							}
+							PopupWindowPtr = MyWidgetPath.GetWindow();
 
 							if (bFocusMenu)
 							{
@@ -497,15 +487,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 							// We are re-using the current window instead of creating a new one.
 							// The popup will be presented as a child of this widget.
 							ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
-							//TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-							if ( DrawnWindowPtr.IsValid() )
-							{
-								PopupWindowPtr = DrawnWindowPtr;
-							}
-							else
-							{
-								PopupWindowPtr = MyWidgetPath.GetWindow();
-							}
+							PopupWindowPtr = MyWidgetPath.GetWindow();
 
 							if (bFocusMenu)
 							{

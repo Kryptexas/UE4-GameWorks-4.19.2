@@ -119,6 +119,7 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	SurfaceBrush.SetResourceObject(RenderTarget);
 
 	Window = SNew(SVirtualWindow);
+	Window->SetShouldResolveDeferred(false);
 	HitTestGrid = MakeShareable(new FHittestGrid());
 
 	WidgetRenderer.SetIsPrepassNeeded(false);

@@ -627,6 +627,13 @@ void UUserWidget::AddToScreen(ULocalPlayer* Player, int32 ZOrder)
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
+		if ( UPanelWidget* ParentPanel = GetParent() )
+		{
+			FMessageLog("PIE").Error(FText::Format(LOCTEXT("WidgetAlreadyHasParent", "The widget '{0}' already has a parent widget.  It can't also be added to the viewport!"),
+				FText::FromString(GetClass()->GetName())));
+			return;
+		}
+
 		// First create and initialize the variable so that users calling this function twice don't
 		// attempt to add the widget to the viewport again.
 		TSharedRef<SConstraintCanvas> FullScreenCanvas = SNew(SConstraintCanvas);

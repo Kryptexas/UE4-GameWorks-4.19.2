@@ -15,12 +15,33 @@ UWidgetInteractionComponent::UWidgetInteractionComponent(const FObjectInitialize
 	, VirtualUserIndex(0)
 	, PointerIndex(0)
 	, InteractionDistance(500)
-	, bAutomaticHitTesting(true)
-	, bSimulatePointerMovement(true)
+	, InteractionSource(EWidgetInteractionSource::World)
+	, bEnableHitTesting(true)
 	, bShowDebug(false)
 	, DebugColor(FLinearColor::Red)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+#if WITH_EDITORONLY_DATA
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+
+	if ( ArrowComponent && !IsTemplate() )
+	{
+		ArrowComponent->ArrowColor = DebugColor.ToFColor(true);
+		ArrowComponent->AttachToComponent(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
+	}
+#endif
+}
+
+void UWidgetInteractionComponent::OnComponentCreated()
+{
+#if WITH_EDITORONLY_DATA
+	if ( ArrowComponent )
+	{
+		ArrowComponent->ArrowColor = DebugColor.ToFColor(true);
+		ArrowComponent->SetVisibility(bEnableHitTesting);
+	}
+#endif
 }
 
 void UWidgetInteractionComponent::BeginPlay()
@@ -69,26 +90,75 @@ void UWidgetInteractionComponent::SetCustomHitResult(const FHitResult& HitResult
 
 bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 {
-	if ( bAutomaticHitTesting )
+	switch( InteractionSource )
 	{
-		const FVector WorldLocation = GetComponentLocation();
-		const FTransform WorldTransform = GetComponentTransform();
-		const FVector Direction = WorldTransform.GetUnitAxis(EAxis::X);
+		case EWidgetInteractionSource::World:
+		{
+			const FVector WorldLocation = GetComponentLocation();
+			const FTransform WorldTransform = GetComponentTransform();
+			const FVector Direction = WorldTransform.GetUnitAxis(EAxis::X);
 
-		TArray<UPrimitiveComponent*> PrimitiveChildren;
-		GetRelatedComponentsToIgnoreInAutomaticHitTesting(PrimitiveChildren);
+			TArray<UPrimitiveComponent*> PrimitiveChildren;
+			GetRelatedComponentsToIgnoreInAutomaticHitTesting(PrimitiveChildren);
 
-		FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
-		Params.AddIgnoredComponents(PrimitiveChildren);
+			FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
+			Params.AddIgnoredComponents(PrimitiveChildren);
 
-		FCollisionObjectQueryParams Everything(FCollisionObjectQueryParams::AllObjects);
-		return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldLocation, WorldLocation + (Direction * InteractionDistance), Everything, Params);
+			FCollisionObjectQueryParams Everything(FCollisionObjectQueryParams::AllObjects);
+			return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), Everything, Params);
+		}
+		case EWidgetInteractionSource::Mouse:
+		case EWidgetInteractionSource::CenterScreen:
+		{
+			TArray<UPrimitiveComponent*> PrimitiveChildren;
+			GetRelatedComponentsToIgnoreInAutomaticHitTesting(PrimitiveChildren);
+
+			FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
+			Params.AddIgnoredComponents(PrimitiveChildren);
+
+			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+
+			ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
+			bool bHit = false;
+			if ( LocalPlayer && LocalPlayer->ViewportClient )
+			{
+				if ( InteractionSource == EWidgetInteractionSource::Mouse )
+				{
+					FVector2D MousePosition;
+					if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
+					{
+						bHit = PlayerController->GetHitResultAtScreenPosition(MousePosition, ECC_Visibility, Params, HitResult);
+					}
+				}
+				else if ( InteractionSource == EWidgetInteractionSource::CenterScreen )
+				{
+					FVector2D ViewportSize;
+					LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
+
+					bHit = PlayerController->GetHitResultAtScreenPosition(ViewportSize * 0.5f, ECC_Visibility, Params, HitResult);
+				}
+
+				// Don't allow infinite distance hit testing.
+				if ( bHit )
+				{
+					if ( HitResult.Distance > InteractionDistance )
+					{
+						HitResult = FHitResult();
+						bHit = false;
+					}
+				}
+			}
+			
+			return bHit;
+		}
+		case EWidgetInteractionSource::Custom:
+		{
+			HitResult = CustomHitResult;
+			return HitResult.bBlockingHit;
+		}
 	}
-	else
-	{
-		HitResult = CustomHitResult;
-		return HitResult.bBlockingHit;
-	}
+
+	return false;
 }
 
 void UWidgetInteractionComponent::GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives)
@@ -121,7 +191,11 @@ void UWidgetInteractionComponent::GetRelatedComponentsToIgnoreInAutomaticHitTest
 
 void UWidgetInteractionComponent::SimulatePointerMovement()
 {
-	if ( !bSimulatePointerMovement )
+	bIsHoveredWidgetInteractable = false;
+	bIsHoveredWidgetFocusable = false;
+	bIsHoveredWidgetHitTestVisible = false;
+
+	if ( !bEnableHitTesting )
 	{
 		return;
 	}
@@ -134,41 +208,39 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 	LocalHitLocation = FVector2D(0, 0);
 	FWidgetPath WidgetPathUnderFinger;
 	
-	FHitResult HitResult;
-	const bool bHit = PerformTrace(HitResult);
+	const bool bHit = PerformTrace(LastHitResult);
 
-	UWidgetComponent* OldHoveredWidget = HoveredWidget;
+	UWidgetComponent* OldHoveredWidget = HoveredWidgetComponent;
 	
-	HoveredWidget = nullptr;
-	LastImpactPoint = FVector(0, 0, 0);
+	HoveredWidgetComponent = nullptr;
 
 	if (bHit)
 	{
-		HoveredWidget = Cast<UWidgetComponent>(HitResult.GetComponent());
-		if ( HoveredWidget )
+		HoveredWidgetComponent = Cast<UWidgetComponent>(LastHitResult.GetComponent());
+		if ( HoveredWidgetComponent )
 		{
-			LastImpactPoint = HitResult.ImpactPoint;
-			
-			HoveredWidget->GetLocalHitLocation( HitResult.ImpactPoint, LocalHitLocation );
-			WidgetPathUnderFinger = FWidgetPath(HoveredWidget->GetHitWidgetPath(HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false));
+			HoveredWidgetComponent->GetLocalHitLocation(LastHitResult.ImpactPoint, LocalHitLocation );
+			WidgetPathUnderFinger = FWidgetPath(HoveredWidgetComponent->GetHitWidgetPath(LastHitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false));
 		}
 	}
 
-	if ( bShowDebug && bAutomaticHitTesting )
+	if ( bShowDebug )
 	{
-		const FVector WorldLocation = GetComponentLocation();
-
-		FTransform WorldTransform = GetComponentTransform();
-		const FVector Direction = WorldTransform.GetUnitAxis(EAxis::X);
-
-		if ( HoveredWidget )
+		if ( HoveredWidgetComponent )
 		{
-			UKismetSystemLibrary::DrawDebugSphere(this, LastImpactPoint, 5, 15, DebugColor, 0, 2);
-			UKismetSystemLibrary::DrawDebugLine(this, WorldLocation, LastImpactPoint, DebugColor, 0, 2);
+			UKismetSystemLibrary::DrawDebugSphere(this, LastHitResult.ImpactPoint, 2.5f, 12, DebugColor, 0, 2);
 		}
-		else
+
+		if ( InteractionSource == EWidgetInteractionSource::World || InteractionSource == EWidgetInteractionSource::Custom )
 		{
-			UKismetSystemLibrary::DrawDebugLine(this, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), DebugColor, 0, 2);
+			if ( HoveredWidgetComponent )
+			{
+				UKismetSystemLibrary::DrawDebugLine(this, LastHitResult.TraceStart, LastHitResult.ImpactPoint, DebugColor, 0, 1);
+			}
+			else
+			{
+				UKismetSystemLibrary::DrawDebugLine(this, LastHitResult.TraceStart, LastHitResult.TraceEnd, DebugColor, 0, 1);
+			}
 		}
 	}
 	
@@ -184,7 +256,7 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 	
 	if (WidgetPathUnderFinger.IsValid())
 	{
-		check(HoveredWidget);
+		check(HoveredWidgetComponent);
 		LastWigetPath = WidgetPathUnderFinger;
 		
 		FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
@@ -197,21 +269,44 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 		LastWigetPath = FWeakWidgetPath();
 	}
 
-	if ( HoveredWidget )
+	if ( HoveredWidgetComponent )
 	{
-		HoveredWidget->RequestRedraw();
+		HoveredWidgetComponent->RequestRedraw();
 	}
 
 	LastLocalHitLocation = LocalHitLocation;
 
-	if ( HoveredWidget != OldHoveredWidget )
+	if ( WidgetPathUnderFinger.IsValid() )
+	{
+		const FArrangedChildren::FArrangedWidgetArray& AllArrangedWidgets = WidgetPathUnderFinger.Widgets.GetInternalArray();
+		for ( const FArrangedWidget& ArrangedWidget : AllArrangedWidgets )
+		{
+			const TSharedRef<SWidget>& Widget = ArrangedWidget.Widget;
+			if ( Widget->IsInteractable() )
+			{
+				bIsHoveredWidgetInteractable = true;
+			}
+
+			if ( Widget->SupportsKeyboardFocus() )
+			{
+				bIsHoveredWidgetFocusable = true;
+			}
+
+			if ( Widget->GetVisibility().IsHitTestVisible() )
+			{
+				bIsHoveredWidgetHitTestVisible = true;
+			}
+		}
+	}
+
+	if ( HoveredWidgetComponent != OldHoveredWidget )
 	{
 		if ( OldHoveredWidget )
 		{
 			OldHoveredWidget->RequestRedraw();
 		}
 
-		OnHoveredWidgetChanged.Broadcast();
+		OnHoveredWidgetChanged.Broadcast(HoveredWidgetComponent, OldHoveredWidget);
 	}
 }
 
@@ -246,11 +341,6 @@ void UWidgetInteractionComponent::PressPointerKey(FKey Key)
 	// @TODO Something about double click, expose directly, or automatically do it if key press happens within
 	// the double click timeframe?
 	//Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent( WidgetPathUnderFinger, PointerEvent );
-
-	if ( HoveredWidget )
-	{
-		HoveredWidget->RequestRedraw();
-	}
 }
 
 void UWidgetInteractionComponent::ReleasePointerKey(FKey Key)
@@ -280,11 +370,6 @@ void UWidgetInteractionComponent::ReleasePointerKey(FKey Key)
 		ModifierKeys);
 		
 	FReply Reply = FSlateApplication::Get().RoutePointerUpEvent(WidgetPathUnderFinger, PointerEvent);
-
-	if ( HoveredWidget )
-	{
-		HoveredWidget->RequestRedraw();
-	}
 }
 
 bool UWidgetInteractionComponent::PressKey(FKey Key, bool bRepeat)
@@ -339,22 +424,24 @@ bool UWidgetInteractionComponent::PressAndReleaseKey(FKey Key)
 	return PressResult || ReleaseResult;
 }
 
-bool UWidgetInteractionComponent::SendKeyChar(FString Character, bool bRepeat)
+bool UWidgetInteractionComponent::SendKeyChar(FString Characters, bool bRepeat)
 {
 	if ( !CanSendInput() )
 	{
 		return false;
 	}
 
-	if ( Character.Len() == 0 )
+	bool bProcessResult = false;
+
+	for ( int32 CharIndex = 0; CharIndex < Characters.Len(); CharIndex++ )
 	{
-		return false;
+		TCHAR CharKey = Characters[CharIndex];
+
+		FCharacterEvent CharacterEvent(CharKey, ModifierKeys, VirtualUser->GetUserIndex(), bRepeat);
+		bProcessResult |= FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
 	}
 
-	TCHAR CharKey = Character[0];
-
-	FCharacterEvent CharacterEvent(CharKey, ModifierKeys, VirtualUser->GetUserIndex(), bRepeat);
-	return FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
+	return bProcessResult;
 }
 
 void UWidgetInteractionComponent::ScrollWheel(float ScrollDelta)
@@ -377,21 +464,36 @@ void UWidgetInteractionComponent::ScrollWheel(float ScrollDelta)
 		ModifierKeys);
 
 	FSlateApplication::Get().RouteMouseWheelOrGestureEvent(WidgetPathUnderFinger, MouseWheelEvent, nullptr);
-
-	if ( HoveredWidget )
-	{
-		HoveredWidget->RequestRedraw();
-	}
 }
 
-UWidgetComponent* UWidgetInteractionComponent::GetHoveredWidget()
+UWidgetComponent* UWidgetInteractionComponent::GetHoveredWidgetComponent() const
 {
-	return HoveredWidget;
+	return HoveredWidgetComponent;
 }
 
-FVector UWidgetInteractionComponent::GetLastImpactPoint()
+bool UWidgetInteractionComponent::IsOverInteractableWidget() const
 {
-	return LastImpactPoint;
+	return bIsHoveredWidgetInteractable;
+}
+
+bool UWidgetInteractionComponent::IsOverFocusableWidget() const
+{
+	return bIsHoveredWidgetFocusable;
+}
+
+bool UWidgetInteractionComponent::IsOverHitTestVisibleWidget() const
+{
+	return bIsHoveredWidgetHitTestVisible;
+}
+
+const FWeakWidgetPath& UWidgetInteractionComponent::GetHoveredWidgetPath() const
+{
+	return LastWigetPath;
+}
+
+const FHitResult& UWidgetInteractionComponent::GetLastHitResult() const
+{
+	return LastHitResult;
 }
 
 #undef LOCTEXT_NAMESPACE
