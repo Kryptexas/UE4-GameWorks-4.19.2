@@ -228,6 +228,7 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	StartDragAngleOnRotation( ),
 	StartDragHandleDirection( ),
 	CurrentGizmoType( EGizmoHandleTypes::All ),
+	bIsTransformGizmoVisible( true ),
 	SnapGridActor( nullptr ),
 	SnapGridMeshComponent( nullptr ),
 	SnapGridMID( nullptr ),
@@ -2620,11 +2621,25 @@ void UViewportWorldInteraction::SpawnTransformGizmoIfNeeded()
 		check( TransformGizmoActor != nullptr );
 		TransformGizmoActor->SetOwnerWorldInteraction( this );
 
-		if ( VI::ShowTransformGizmo->GetInt() == 0 )
+		if ( VI::ShowTransformGizmo->GetInt() == 0 || !bIsTransformGizmoVisible )
 		{
 			TransformGizmoActor->SetIsTemporarilyHiddenInEditor( true );
 		}
 	}
+}
+
+void UViewportWorldInteraction::SetTransformGizmoVisible( const bool bShouldBeVisible )
+{
+	bIsTransformGizmoVisible = bShouldBeVisible;
+	if( TransformGizmoActor != nullptr )
+	{
+		TransformGizmoActor->SetIsTemporarilyHiddenInEditor( VI::ShowTransformGizmo->GetInt() == 0 || !bIsTransformGizmoVisible );
+	}
+}
+
+bool UViewportWorldInteraction::IsTransformGizmoVisible() const
+{
+	return bIsTransformGizmoVisible;
 }
 
 void UViewportWorldInteraction::ApplyVelocityDamping( FVector& Velocity, const bool bVelocitySensitive )
