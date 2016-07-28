@@ -1071,6 +1071,8 @@ void USkinnedMeshComponent::SetPhysicsAsset(class UPhysicsAsset* InPhysicsAsset,
 
 void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* NewMasterBoneComponent)
 {
+	USkinnedMeshComponent* OldMasterPoseComponent = MasterPoseComponent.Get();
+
 	MasterPoseComponent = NewMasterBoneComponent;
 
 	// now add to slave components list, 
@@ -1099,6 +1101,18 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 		{
 			MasterPoseComponent->SlavePoseComponents.Add(this);
 		}
+	}
+
+	if(OldMasterPoseComponent != nullptr)
+	{
+		// remove tick dependency between master & slave components
+		PrimaryComponentTick.RemovePrerequisite(OldMasterPoseComponent, OldMasterPoseComponent->PrimaryComponentTick);
+	}
+
+	if (MasterPoseComponent.IsValid())
+	{
+		// set up tick dependency between master & slave components
+		PrimaryComponentTick.AddPrerequisite(MasterPoseComponent.Get(), MasterPoseComponent->PrimaryComponentTick);
 	}
 
 	AllocateTransformData();
