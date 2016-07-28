@@ -896,6 +896,21 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
+	if (GEditor)
+	{
+		// Don't allow hot reloading if we're running networked PIE instances
+		// The reason, is it's fairly complicated to handle the re-wiring that needs to happen when we re-instance objects like player controllers, possessed pawns, etc...
+		const TIndirectArray<FWorldContext>& WorldContextList = GEditor->GetWorldContexts();
+
+		for (const FWorldContext& WorldContext : WorldContextList)
+		{
+			if (WorldContext.World() && WorldContext.World()->WorldType == EWorldType::PIE && WorldContext.World()->NetDriver)
+			{
+				return false;
+			}
+		}
+	}
+
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	// If there is at least one loaded game module, source code actions should be available.
 	return HotReloadSupport.IsAnyGameModuleLoaded();
