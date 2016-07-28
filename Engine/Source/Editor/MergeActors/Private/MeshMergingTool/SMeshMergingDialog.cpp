@@ -183,7 +183,7 @@ void SMeshMergingDialog::SetReplaceSourceActors(ECheckBoxState NewValue)
 
 bool SMeshMergingDialog::GetContentEnabledState() const
 {
-	return (GetNumSelectedMeshComponents() > 1);
+	return (GetNumSelectedMeshComponents() >= 1);
 }
 
 void SMeshMergingDialog::UpdateSelectedStaticMeshComponents()
