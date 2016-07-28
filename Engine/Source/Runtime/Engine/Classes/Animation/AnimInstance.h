@@ -38,6 +38,15 @@ enum class EAnimCurveType : uint8
 	MaxAnimCurveType
 };
 
+UENUM()
+enum class EMontagePlayReturnType : uint8
+{
+	//Return value is the length of the montage (in seconds)
+	MontageLength,
+	//Return value is the play duration of the montage (length / play rate, in seconds)
+	Duration,
+};
+
 DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
 DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, UAnimMontage*, bool /*bInterrupted*/)
@@ -513,7 +522,7 @@ public:
 public:
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f);
+	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f, EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength);
 
 	/** Stops the animation montage. If reference is NULL, it will stop ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
