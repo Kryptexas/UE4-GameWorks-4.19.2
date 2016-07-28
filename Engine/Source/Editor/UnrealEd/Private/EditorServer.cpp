@@ -2102,7 +2102,7 @@ UWorld* UEditorEngine::NewMap()
 	Factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
 	UPackage* Pkg = CreatePackage( NULL, NULL );
 	EObjectFlags Flags = RF_Public | RF_Standalone;
-	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));
+	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("Untitled"), Flags, NULL, GWarn));
 	Context.SetCurrentWorld(NewWorld);
 	GWorld = NewWorld;
 	NewWorld->AddToRoot();

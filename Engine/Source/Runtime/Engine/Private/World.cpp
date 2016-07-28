@@ -1231,7 +1231,7 @@ UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngi
 	}
 
 	// Create new UWorld, ULevel and UModel.
-	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("NewWorld");
+	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("Untitled");
 	UWorld* NewWorld = NewObject<UWorld>(WorldPackage, *WorldNameString);
 	NewWorld->SetFlags(RF_Transactional);
 	NewWorld->WorldType = InWorldType;
