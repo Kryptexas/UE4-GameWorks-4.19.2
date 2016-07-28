@@ -1379,6 +1379,11 @@ float UAnimInstance::GetCurveValue(FName CurveName)
 	return 0.f;
 }
 
+void UAnimInstance::SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value)
+{
+	RootMotionMode = Value;
+}
+
 float UAnimInstance::GetAnimAssetPlayerLength(class UAnimationAsset* AnimAsset)
 {
 	if (AnimAsset)

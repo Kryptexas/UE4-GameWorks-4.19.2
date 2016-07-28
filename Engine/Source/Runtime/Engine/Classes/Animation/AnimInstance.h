@@ -704,6 +704,10 @@ public:
 	/** Is this animation currently running post update */
 	bool IsPostUpdatingAnimation() const { return bPostUpdatingAnimation; }
 
+	/** Set RootMotionMode */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value);
+
 	/** 
 	 * NOTE: Derived anim getters
 	 *
