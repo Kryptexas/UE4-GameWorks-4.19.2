@@ -222,6 +222,7 @@ public:
 						->Split
 						(
 							FTabManager::NewStack()
+							->AddTab(FPersonaTabs::AdvancedPreviewSceneSettingsID, ETabState::OpenedTab)
 							->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )	//@TODO: FPersonaTabs::AnimPropertiesID
 						)
 					)

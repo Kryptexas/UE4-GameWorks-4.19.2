@@ -176,7 +176,8 @@ void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, con
 				->Split
 				(
 					FTabManager::NewStack()
-					->SetSizeCoefficient(0.7f)
+					->SetSizeCoefficient(0.7f)					
+					->AddTab(PreviewSceneSettingsTabId, ETabState::OpenedTab)
 					->AddTab(PropertiesTabId, ETabState::OpenedTab)
 				)
 				->Split
