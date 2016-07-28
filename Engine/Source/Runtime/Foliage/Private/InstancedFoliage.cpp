@@ -1130,8 +1130,10 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 {
 	if (Component != nullptr)
 	{
-		Component->UnregisterComponent();
-		Component->bAutoRegister = false;
+		Component->ClearInstances();
+		Component->SetFlags(RF_Transactional);
+		Component->Modify();
+		Component->DestroyComponent();
 		Component = nullptr;
 	}
 
@@ -1946,7 +1948,11 @@ void AInstancedFoliageActor::RemoveFoliageType(UFoliageType** InFoliageTypes, in
 		{
 			if (MeshInfo->Component)
 			{
-				MeshInfo->Component->bAutoRegister = false;
+				MeshInfo->Component->ClearInstances();
+				MeshInfo->Component->SetFlags(RF_Transactional);
+				MeshInfo->Component->Modify();
+				MeshInfo->Component->DestroyComponent();
+				MeshInfo->Component = nullptr;
 			}
 
 			FoliageMeshes.Remove(FoliageType);

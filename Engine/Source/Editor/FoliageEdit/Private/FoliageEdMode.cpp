@@ -2954,6 +2954,16 @@ void FEdModeFoliage::ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageTy
 		IFA->Modify();
 		TUniqueObj<FFoliageMeshInfo> OldMeshInfo;
 		IFA->FoliageMeshes.RemoveAndCopyValue(OldSettings, OldMeshInfo);
+		
+		// Old component needs to go
+		if (OldMeshInfo->Component != nullptr)
+		{
+			OldMeshInfo->Component->ClearInstances();
+			OldMeshInfo->Component->SetFlags(RF_Transactional);
+			OldMeshInfo->Component->Modify();
+			OldMeshInfo->Component->DestroyComponent();
+			OldMeshInfo->Component = nullptr;
+		}
 
 		// Append instances if new foliage type is already exists in this actor
 		// Otherwise just replace key entry for instances
@@ -2961,12 +2971,6 @@ void FEdModeFoliage::ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageTy
 		if (NewMeshInfo)
 		{
 			(*NewMeshInfo)->Instances.Append(OldMeshInfo->Instances);
-			// Old component needs to go
-			if (OldMeshInfo->Component != nullptr)
-			{
-				OldMeshInfo->Component->bAutoRegister = false;
-				OldMeshInfo->Component = nullptr;
-			}
 			(*NewMeshInfo)->ReallocateClusters(IFA, NewSettings);
 		}
 		else
