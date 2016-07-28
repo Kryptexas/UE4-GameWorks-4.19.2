@@ -1357,6 +1357,10 @@ void FPersona::CreateDefaultCommands()
 	FIsActionChecked::CreateSP(this, &FPersona::IsPreviewAssetEnabled)
 	);
 
+	ToolkitCommands->MapAction(FPersonaCommands::Get().TogglePlay,
+		FExecuteAction::CreateSP(this, &FPersona::TogglePlayback)
+	);
+
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
 		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanRemoveBones )
@@ -3764,6 +3768,14 @@ float FPersona::GetCurrentRecordingTime() const
 	float RecordingTime = 0.0f;
 	PersonaModule.OnGetCurrentRecordingTime().ExecuteIfBound(PreviewComponent, RecordingTime);
 	return RecordingTime;
+}
+
+void FPersona::TogglePlayback()
+{
+	if (PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		PreviewComponent->PreviewInstance->SetPlaying(!PreviewComponent->PreviewInstance->IsPlaying());
+	}
 }
 
 static class FMeshHierarchyCmd : private FSelfRegisteringExec

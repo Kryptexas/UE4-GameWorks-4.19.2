@@ -187,6 +187,9 @@ public:
 	/** Get the currently recording animation time */
 	float GetCurrentRecordingTime() const;
 
+	/** Toggle playback of the current animation */
+	void TogglePlayback();
+
 public:
 	//~ Begin IToolkit Interface
 	virtual FName GetToolkitContextFName() const override;
