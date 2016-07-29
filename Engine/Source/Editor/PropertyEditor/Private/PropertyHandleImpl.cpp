@@ -2082,8 +2082,6 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 		{
 			FString EnumValueName;
 
-			static const FName Hidden("Hidden");
-
 			// Ignore hidden enums
 			bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
 			if (!bShouldBeHidden && ValidEnumValues.Num() != 0)
