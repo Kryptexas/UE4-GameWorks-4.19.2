@@ -206,7 +206,7 @@ void MainPS(
 	float2 TileJitter = ( float2( Random, Random2 ) - 0.5 ) * 0.5;
 	float2 TileUV = min( ( PixelPos - ViewportRect.xy + 0.5 ) / 16.0 + TileJitter, ViewportRect.zw ) * PostprocessInput3Size.zw;
 
-	float4 MinMaxVelocity = PostprocessInput3.SampleLevel( PostprocessInput3Sampler, TileUV, 0 );
+	float4 MinMaxVelocity = PostprocessInput3.SampleLevel(PostprocessInput3Sampler, TileUV, 0);
 	//float4 MinMaxVelocity = PostprocessInput3[ ( PixelPos - ViewportRect.xy ) / 16 ];
 
 	float2 MinVelocityPixels = MinMaxVelocity.xy * MotionBlurParameters.y;
@@ -214,7 +214,7 @@ void MainPS(
 
 	float MinVelocityLengthSqrPixels = dot( MinVelocityPixels, MinVelocityPixels );
 	float MaxVelocityLengthSqrPixels = dot( MaxVelocityPixels, MaxVelocityPixels );
-	
+
 	// TODO expose cvars
 	bool bSkipPath = MaxVelocityLengthSqrPixels < 0.25;
 	bool bFastPath = MinVelocityLengthSqrPixels > 0.4 * MaxVelocityLengthSqrPixels;
@@ -230,19 +230,18 @@ void MainPS(
 
 #if 0
 	float4 SearchVectorPixels = float4( MaxVelocityPixels, -MaxVelocityPixels );
-	float4 SearchVector = SearchVectorPixels * PostprocessInput0Size.zwzw;
 #else
 	// Clip MaxVelocity to screen rect
-	float2 InvVelocityScreen = ScreenPosToPixel.x * rcp( MaxVelocityPixels );
+	float2 InvVelocityScreen = ScreenPosToPixel.x * rcp( MaxVelocityPixels + 0.00001f );
 	float2 MinIntersect = -InvVelocityScreen - ScreenSpacePos * InvVelocityScreen;
 	float2 MaxIntersect =  InvVelocityScreen - ScreenSpacePos * InvVelocityScreen;
 	float4 FarIntersect = float4( max( MinIntersect, MaxIntersect ), max( -MinIntersect, -MaxIntersect ) );
-	float2 Intersect = saturate( min( FarIntersect.xz, FarIntersect.yw ) );
+	float2 Intersect = saturate(min(FarIntersect.xz, FarIntersect.yw) );
 
 	// +/-
 	float4 SearchVectorPixels = MaxVelocityPixels.xyxy * float4( Intersect.xx, -Intersect.yy );
-	float4 SearchVector = SearchVectorPixels * PostprocessInput0Size.zwzw;
 #endif
+	float4 SearchVector = SearchVectorPixels * PostprocessInput0Size.zwzw;
 
 	// converts pixel length to sample steps
 	float PixelToSampleScale = StepCount * rsqrt( dot( MaxVelocityPixels, MaxVelocityPixels ) );
@@ -443,7 +442,7 @@ void VisualizeMotionBlurPS(
 
 			// points into the movement direction
 			VelocityAtTileCenter = ScreenPosAtTileCenter - PrevScreen;
-		}
+		} 
 	}
 
 	// tint yellow if velocity data is stored in texture
