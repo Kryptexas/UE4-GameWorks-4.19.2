@@ -8,6 +8,7 @@
 #include "VREditorFloatingUI.h"
 #include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"	// For Simulate toggle
+#include "ImageUtils.h"
 
 
 #define LOCTEXT_NAMESPACE "VREditorQuickMenu"
@@ -358,25 +359,50 @@ bool UVREditorQuickMenu::IsLightVisible() const
 void UVREditorQuickMenu::OnScreenshotButtonClicked()
 {
 	// @todo vreditor: update after direct buffer grab changes
-	if ((GetOwner()->GetOwner().GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift))
-	{	
-		TSharedRef<SWidget> WindowRef = GetOwner()->GetOwner().GetOwner().GetLevelViewportPossessedForVR().AsWidget();
-		TArray<FColor> OutImageData;
-		FIntVector OutImageSize;
-		FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize);
-		float ScreenPercentAdjust = (2048.0f / OutImageSize.X) * 100.0f;
-		GEngine->DeferredCommands.Add(FString::Printf(TEXT("HMD SP %3.0f"), ScreenPercentAdjust));
-	}
-	else if(GetOwner()->GetOwner().GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR)
+	
+	FString GeneratedFilename = TEXT("");
+	FString Filename = TEXT("");
+	FScreenshotRequest::CreateViewportScreenShotFilename(GeneratedFilename);
+	const bool bRemovePath = false;
+	GeneratedFilename = FPaths::GetBaseFilename(GeneratedFilename, bRemovePath);
+	FFileHelper::GenerateNextBitmapFilename(GeneratedFilename, TEXT("png"), Filename);
+
+	FViewport* Viewport = GetOwner()->GetOwner().GetOwner().GetLevelViewportPossessedForVR().GetActiveViewport();
+	TSharedRef<SWidget> WindowRef = GetOwner()->GetOwner().GetOwner().GetLevelViewportPossessedForVR().AsWidget();
+
+
+	TArray<FColor> OutImageData;
+	FIntVector OutImageSize;
+
+	if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
 	{
-		GEngine->DeferredCommands.Add(FString::Printf(TEXT("r.screenpercentage 100")));
+		int32 Width = OutImageSize.X;
+		int32 Height = OutImageSize.Y;
+
+		TArray<FColor> ScaledBitmap;
+
+
+		ScaledBitmap = OutImageData;
+		//Clear the alpha channel before saving
+		for (int32 Index = 0; Index < Width*Height; Index++)
+		{
+			ScaledBitmap[Index].A = 255;
+		}
+
+
+		TArray<uint8> CompressedBitmap;
+		FImageUtils::CompressImageArray(Width, Height, ScaledBitmap, CompressedBitmap);
+
+
+		//Save locally
+		const bool bTree = true;
+		const FString FinalFileName = Filename;
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(FinalFileName), bTree);
+		FFileHelper::SaveArrayToFile(CompressedBitmap, *FinalFileName);
+
 	}
 
-	// Take a screenshot from the HMD, left eye + right eye undistorted
-	// @todo vreditor: verify an option to make hands visible
-	const bool bShowUI = false;
-	const bool bUseCustomFilename = true;
-	FScreenshotRequest::RequestScreenshot(FString(), bShowUI, bUseCustomFilename);
+
 }
 
 void UVREditorQuickMenu::OnPlayButtonClicked()
