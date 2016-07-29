@@ -3,6 +3,7 @@
 #include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "ProceduralMeshComponent.h"
 #include "DynamicMeshBuilder.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 DECLARE_CYCLE_STAT(TEXT("Create ProcMesh Proxy"), STAT_ProcMesh_CreateSceneProxy, STATGROUP_ProceduralMesh);
 DECLARE_CYCLE_STAT(TEXT("Create Mesh Section"), STAT_ProcMesh_CreateMeshSection, STATGROUP_ProceduralMesh);
@@ -749,6 +750,13 @@ bool UProceduralMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionDat
 {
 	int32 VertexBase = 0; // Base vertex index for current section
 
+	// See if we should copy UVs
+	bool bCopyUVs = UPhysicsSettings::Get()->bSupportUVFromHitResults; 
+	if (bCopyUVs)
+	{
+		CollisionData->UVs.AddZeroed(1); // only one UV channel
+	}
+
 	// For each section..
 	for (int32 SectionIdx = 0; SectionIdx < ProcMeshSections.Num(); SectionIdx++)
 	{
@@ -760,6 +768,12 @@ bool UProceduralMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionDat
 			for (int32 VertIdx = 0; VertIdx < Section.ProcVertexBuffer.Num(); VertIdx++)
 			{
 				CollisionData->Vertices.Add(Section.ProcVertexBuffer[VertIdx].Position);
+
+				// Copy UV if desired
+				if (bCopyUVs)
+				{
+					CollisionData->UVs[0].Add(Section.ProcVertexBuffer[VertIdx].UV0);
+				}
 			}
 
 			// Copy triangle data
@@ -773,7 +787,7 @@ bool UProceduralMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionDat
 				Triangle.v2 = Section.ProcIndexBuffer[(TriIdx * 3) + 2] + VertexBase;
 				CollisionData->Indices.Add(Triangle);
 
-				// Also store matrial info
+				// Also store material info
 				CollisionData->MaterialIndices.Add(SectionIdx);
 			}
 
@@ -809,6 +823,7 @@ void UProceduralMeshComponent::CreateProcMeshBodySetup()
 
 		ProcMeshBodySetup->bGenerateMirroredCollision = false;
 		ProcMeshBodySetup->bDoubleSidedGeometry = true;
+		ProcMeshBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
 	}
 }
 

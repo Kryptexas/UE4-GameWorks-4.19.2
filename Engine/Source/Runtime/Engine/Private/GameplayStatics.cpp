@@ -884,12 +884,16 @@ bool UGameplayStatics::FindCollisionUV(const struct FHitResult& Hit, int32 UVCha
 	}
 	else
 	{
-		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Hit.Component.Get());
-		if (StaticMeshComp && StaticMeshComp->StaticMesh && StaticMeshComp->StaticMesh->BodySetup)
+		UPrimitiveComponent* HitPrimComp = Hit.Component.Get();
+		if (HitPrimComp)
 		{
-			const FVector LocalHitPos = StaticMeshComp->GetComponentToWorld().InverseTransformPosition(Hit.Location);
+			UBodySetup* BodySetup = HitPrimComp->GetBodySetup();
+			if (BodySetup)
+			{
+				const FVector LocalHitPos = HitPrimComp->GetComponentToWorld().InverseTransformPosition(Hit.Location);
 
-			bSuccess = StaticMeshComp->StaticMesh->BodySetup->CalcUVAtLocation(LocalHitPos, Hit.FaceIndex, UVChannel, UV);
+				bSuccess = BodySetup->CalcUVAtLocation(LocalHitPos, Hit.FaceIndex, UVChannel, UV);
+			}
 		}
 	}
 
