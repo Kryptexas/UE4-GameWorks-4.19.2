@@ -145,7 +145,6 @@ programming
 	[/PARAMLITERAL]
 [/OBJECT]
 
-<!--TO DO: Uncomment the following block when ready for publication.
 [OBJECT:Role]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -163,7 +162,7 @@ programming
 		cppfps
 	[/PARAMLITERAL]
 [/OBJECT]
--->
+
 [/REGION]
 
 ## Intermediate
