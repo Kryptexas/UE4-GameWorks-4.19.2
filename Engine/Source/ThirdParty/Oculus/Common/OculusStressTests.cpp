@@ -3,7 +3,7 @@
 #include "Engine.h"
 
 #include "HeadMountedDisplayCommon.h"
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 
 #include "GlobalShader.h"
 #include "UniformBuffer.h"
@@ -340,4 +340,4 @@ void FPixelShaderDeclaration::UnbindBuffers(FRHICommandList& RHICmdList)
 IMPLEMENT_SHADER_TYPE(, FVertexShader, TEXT("OculusStressTestShader"), TEXT("MainVertexShader"), SF_Vertex);
 IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("OculusStressTestShader"), TEXT("MainPixelShader"), SF_Pixel);
 
-#endif // OCULUS_RIFT_SUPPORTED_PLATFORMS
+#endif // #if OCULUS_STRESS_TESTS_ENABLED

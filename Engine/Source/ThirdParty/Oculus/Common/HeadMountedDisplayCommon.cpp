@@ -3,7 +3,7 @@
 #include "Engine.h"
 #include "HeadMountedDisplayCommon.h"
 
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
 #endif
 
@@ -169,16 +169,16 @@ FHeadMountedDisplay::FHeadMountedDisplay()
 
 	CurrentFrameNumber.Set(1);
 
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 	StressTester = nullptr;
-#endif // #if !UE_BUILD_SHIPPING
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 }
 
 FHeadMountedDisplay::~FHeadMountedDisplay()
 {
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 	delete StressTester;
-#endif
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 }
 
 bool FHeadMountedDisplay::IsInitialized() const
@@ -243,12 +243,12 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 {
 	check(IsInGameThread());
 
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 	if (StressTester)
 	{
 		StressTester->TickCPU_GameThread(this);
 	}
-#endif
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 
 	if( !WorldContext.World() || ( !( GEnableVREditorHacks && WorldContext.WorldType == EWorldType::Editor ) && !WorldContext.World()->IsGameWorld() ) )	// @todo vreditor: (Also see OnEndGameFrame()) Kind of a hack here so we can use VR in editor viewports.  We need to consider when running GameWorld viewports inside the editor with VR.
 	{
@@ -890,6 +890,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 			Settings->PositionOffset.Z = FCString::Atof(*StrZ);
 		}
 	}
+#if OCULUS_STRESS_TESTS_ENABLED
 	else if (FParse::Command(&Cmd, TEXT("STRESS")))
 	{
 		if (!StressTester)
@@ -947,6 +948,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 
 		return true;
 	}
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 #endif //!UE_BUILD_SHIPPING
 	else if (FParse::Command(&Cmd, TEXT("HMDPOS")))
 	{

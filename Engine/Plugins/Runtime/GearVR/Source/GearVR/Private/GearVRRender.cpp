@@ -12,7 +12,9 @@
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
 
-#if !UE_BUILD_SHIPPING
+#define OCULUS_STRESS_TESTS_ENABLED	0
+
+#if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
 #endif
 
@@ -390,7 +392,7 @@ void FGearVR::RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdL
 
 	pGearVRBridge->UpdateLayers(RHICmdList);
 
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 	if (StressTester)
 	{
 		//StressTester->TickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);
