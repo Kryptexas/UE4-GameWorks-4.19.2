@@ -559,6 +559,18 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 	
+	MenuBuilder.BeginSection("AnimViewportFloorOffset", LOCTEXT("Viewport_FloorOffsetLabel", "Floor Height Offset"));
+	{
+		TSharedPtr<SWidget> FloorOffsetWidget = SNew(SNumericEntryBox<float>)
+			.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+			.Value(this, &SAnimViewportToolBar::OnGetFloorOffset)
+			.OnValueChanged(this, &SAnimViewportToolBar::OnFloorOffsetChanged)
+			.ToolTipText(LOCTEXT("FloorOffsetToolTip", "Height offset for the floor mesh (stored per-mesh)"));
+
+		MenuBuilder.AddWidget(FloorOffsetWidget.ToSharedRef(), FText());
+	}
+	MenuBuilder.EndSection();
+
 	MenuBuilder.BeginSection("AnimViewportGrid", LOCTEXT("Viewport_GridLabel", "Grid"));
 	{
 		MenuBuilder.AddMenuEntry(Actions.ToggleGrid);

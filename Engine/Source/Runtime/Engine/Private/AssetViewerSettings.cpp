@@ -25,6 +25,12 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 	return DefaultSettings;
 }
 
+void UAssetViewerSettings::Save()
+{
+	SaveConfig();
+	UpdateDefaultConfigFile();
+}
+
 #if WITH_EDITOR
 void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -42,9 +48,6 @@ void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	}
 	
 	OnAssetViewerSettingsChangedEvent.Broadcast(PropertyName);
-
-	SaveConfig();
-	UpdateDefaultConfigFile();
 }
 
 void UAssetViewerSettings::PostInitProperties()
