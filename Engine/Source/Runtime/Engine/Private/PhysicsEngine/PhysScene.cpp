@@ -245,9 +245,11 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 		return 1;
 	}
 };
-#endif
 
 TSharedPtr<ISimEventCallbackFactory> FPhysScene::SimEventCallbackFactory;
+
+#endif // WITH_PHYSX
+
 
 /** Exposes creation of physics-engine scene outside Engine (for use with PhAT for example). */
 FPhysScene::FPhysScene()
