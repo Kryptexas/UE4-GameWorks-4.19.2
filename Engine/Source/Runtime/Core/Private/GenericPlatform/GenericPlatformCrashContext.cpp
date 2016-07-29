@@ -88,7 +88,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
 	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
 	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
-	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetForLogging() : TEXT("");
+	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetOriginalForLogging() : TEXT(""); 
 
 	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
 	NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::Default;
