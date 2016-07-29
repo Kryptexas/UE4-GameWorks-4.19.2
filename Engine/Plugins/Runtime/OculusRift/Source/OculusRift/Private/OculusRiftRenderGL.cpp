@@ -310,7 +310,7 @@ FTexture2DSetProxyPtr FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 	FResourceBulkDataInterface* BulkData = nullptr;
 
 	const bool bSRGB = true; //(InFlags & TexCreate_SRGB) != 0;
-	const EPixelFormat Format = PF_B8G8R8A8;
+	const EPixelFormat Format = PF_R8G8B8A8;
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
 	if (GLFormat.InternalFormat[bSRGB] == GL_NONE)
 	{
@@ -331,7 +331,7 @@ FTexture2DSetProxyPtr FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 	desc.Height = InSizeY;
 	// Override the format to be sRGB so that the compositor always treats eye buffers
 	// as if they're sRGB even if we are sending in linear formatted textures
-	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
+	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_R8G8B8A8_UNORM : OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
 	desc.MiscFlags = 0;
 	desc.BindFlags = 0;
 	if (desc.MipLevels != 1)
@@ -441,11 +441,6 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 			TexCreate_RenderTargetable);
 		bNeedReAllocateMirrorTexture = false;
 	}
-}
-
-void FOculusRiftHMD::OGLBridge::Shutdown()
-{
-	Reset();
 }
 
 #endif // #ifdef OVR_GL

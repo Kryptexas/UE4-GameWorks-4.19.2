@@ -575,7 +575,6 @@ public:
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual bool IsUsingGraphicsAdapter(const ovrGraphicsLuid& luid) override;
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
-		virtual void Shutdown() override;
 
 		// Create and destroy textureset from a texture.
 		virtual FTexture2DSetProxyPtr CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags) override;
