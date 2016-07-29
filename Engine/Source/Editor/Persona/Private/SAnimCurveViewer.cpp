@@ -54,7 +54,7 @@ TSharedRef< SWidget > SAnimCurveListRow::GenerateWidgetForColumn( const FName& C
 					.ColorAndOpacity(this, &SAnimCurveListRow::GetItemTextColor)
 					.IsSelected(this, &SAnimCurveListRow::IsSelected)
 					.Text(this, &SAnimCurveListRow::GetItemName)
-					.HighlightText(AnimCurveViewer->GetFilterText())
+					.HighlightText(this, &SAnimCurveListRow::GetFilterText)
 				];
 		}
 		else
@@ -188,6 +188,20 @@ FText SAnimCurveListRow::GetItemName() const
 
 	return FText::FromName(ItemName);
 }
+
+FText SAnimCurveListRow::GetFilterText() const
+{
+	TSharedPtr<SAnimCurveViewer> AnimCurveViewer = AnimCurveViewerPtr.Pin();
+	if (AnimCurveViewer.IsValid())
+	{
+		return AnimCurveViewer->GetFilterText();
+	}
+	else
+	{
+		return FText::GetEmpty();
+	}
+}
+
 
 bool SAnimCurveListRow::GetActiveWeight(float& OutWeight) const
 {
