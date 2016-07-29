@@ -2228,6 +2228,21 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 			write(LogDst, Data, Bytes);
 		}
 		
+		// If present, include the crash report config file to pass config values to the CRC
+		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashConfigFileNameA);
+		int ConfigSrc = open(TCHAR_TO_ANSI(GetCrashConfigFilePath()), O_RDONLY);
+		int ConfigDst = open(FilePath, O_CREAT | O_WRONLY, 0766);
+
+		while ((Bytes = read(ConfigSrc, Data, PATH_MAX)) > 0)
+		{
+			write(ConfigDst, Data, Bytes);
+		}
+
+		close(ConfigDst);
+		close(ConfigSrc);
+
 		// Copy the system log to capture GPU restarts and other nasties not reported by our application
 		if ( !GMacAppInfo.bIsSandboxed && GMacAppInfo.SystemLogSize >= 0 && access("/var/log/system.log", R_OK|F_OK) == 0 )
 		{

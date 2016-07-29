@@ -91,6 +91,9 @@ struct FCrashReportClientConfig
 	void SetAllowToBeContacted( bool bNewValue );
 	void SetSendLogFile( bool bNewValue );
 
+	/** Set config values that are determined by the crashing application saving a config file to the crash folder */
+	void SetProjectConfigOverrides(const FConfigFile& InConfigFile);
+
 	/**
 	 * @return location for full crash dump for the specified branch.
 	 */

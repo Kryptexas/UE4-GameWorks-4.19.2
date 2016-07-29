@@ -433,6 +433,15 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		FPaths::NormalizeDirectoryName(LogDstAbsolute);
 		static_cast<void>(IFileManager::Get().Copy(*LogDstAbsolute, *LogSrcAbsolute));	// best effort, so don't care about result: couldn't copy -> tough, no log
 
+		// If present, include the crash report config file to pass config values to the CRC
+		const TCHAR* CrashConfigFilePath = GetCrashConfigFilePath();
+		if (IFileManager::Get().FileExists(CrashConfigFilePath))
+		{
+			FString CrashConfigFilename = FPaths::GetCleanFilename(CrashConfigFilePath);
+			FString CrashConfigDstAbsolute = FPaths::Combine(*CrashInfoAbsolute, *CrashConfigFilename);
+			static_cast<void>(IFileManager::Get().Copy(*CrashConfigDstAbsolute, CrashConfigFilePath));	// best effort, so don't care about result
+		}
+
 		// try launching the tool and wait for its exit, if at all
 		const TCHAR * RelativePathToCrashReporter = TEXT("../../../Engine/Binaries/Linux/CrashReportClient");	// FIXME: painfully hard-coded
 		if (!FPaths::FileExists(RelativePathToCrashReporter))

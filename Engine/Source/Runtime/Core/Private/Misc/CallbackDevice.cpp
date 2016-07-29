@@ -91,3 +91,5 @@ FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreat
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PreRenderingThreadDestroyed;
 FSimpleMulticastDelegate FCoreDelegates::OnFEngineLoopInitComplete;
 FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelegate FCoreDelegates::ApplicationReceivedScreenOrientationChangedNotificationDelegate;
+
+FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;

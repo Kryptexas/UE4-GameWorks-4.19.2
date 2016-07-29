@@ -151,6 +151,14 @@ FPlatformErrorReport LoadErrorReport()
 
 		if (NameMatch && GUIDMatch)
 		{
+			FString ConfigFilename;
+			if (ErrorReport.FindFirstReportFileWithExtension(ConfigFilename, *FGenericCrashContext::CrashConfigExtension))
+			{
+				FConfigFile CrashConfigFile;
+				CrashConfigFile.Read(ReportDirectoryAbsolutePath / ConfigFilename);
+				FCrashReportClientConfig::Get().SetProjectConfigOverrides(CrashConfigFile);
+			}
+
 			return ErrorReport;
 		}
 #endif

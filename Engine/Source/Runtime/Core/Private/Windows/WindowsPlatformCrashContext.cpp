@@ -343,6 +343,13 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 					WerReportAddFile(ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
 				}
 
+				// If present, include the crash report config file to pass config values to the CRC
+				const TCHAR* CrashConfigFilePath = FWindowsPlatformCrashContext::GetCrashConfigFilePath();
+				if (IFileManager::Get().FileExists(CrashConfigFilePath))
+				{
+					WerReportAddFile(ReportHandle, CrashConfigFilePath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
+				}
+
 				const FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
 				WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );		
 			}
