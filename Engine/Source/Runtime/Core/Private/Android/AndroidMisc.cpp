@@ -1241,6 +1241,8 @@ bool FAndroidMisc::ShouldUseVulkan()
 
 			// does commandline override (using GL or ES2 for legacy commandlines)
 			bool bForceOpenGL = FParse::Param(FCommandLine::Get(), TEXT("GL")) || FParse::Param(FCommandLine::Get(), TEXT("OpenGL")) || FParse::Param(FCommandLine::Get(), TEXT("ES2"));
+			static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
+			bForceOpenGL = bForceOpenGL || CVarDisableVulkan->GetValueOnAnyThread() == 1;
 			if (!bForceOpenGL)
 			{
 				// check for libvulkan.so

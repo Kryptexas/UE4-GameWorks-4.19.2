@@ -281,9 +281,9 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES2"))
 	bool bBuildForES2;
 
-	// Enable ES3 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES3"))
-	bool bBuildForES3;
+	// Enable ES3.1 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES3.1"))
+	bool bBuildForES31;
 
 	// Enable ES Deferred shading support? [CURRENTLY FOR FULL SOURCE GAMES ONLY. SUPPORTED BY NVIDIA K-1 AND X-1 ONLY.]
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES Deferred Shading Renderer"))

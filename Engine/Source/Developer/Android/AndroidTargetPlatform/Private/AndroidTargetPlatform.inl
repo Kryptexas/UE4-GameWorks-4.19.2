@@ -18,12 +18,12 @@ static bool SupportsES2()
 	return bBuildForES2;
 }
 
-static bool SupportsES3()
+static bool SupportsES31()
 {
 	// default to support ES3
-	bool bBuildForES3 = false;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES3"), bBuildForES3, GEngineIni);
-	return bBuildForES3;
+	bool bBuildForES31 = false;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
+	return bBuildForES31;
 }
 
 static bool SupportsAEP()
@@ -149,7 +149,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETarge
 			
 		case ETargetPlatformFeatures::LowQualityLightmaps:
 		case ETargetPlatformFeatures::MobileRendering:
-			return SupportsES3() || SupportsES2() || SupportsVulkan();
+			return SupportsES31() || SupportsES2() || SupportsVulkan();
 			
 		case ETargetPlatformFeatures::HighQualityLightmaps:
 		case ETargetPlatformFeatures::Tessellation:
@@ -184,7 +184,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetAllPossibleShaderFor
 		OutFormats.AddUnique(NAME_OPENGL_ES2);
 	}
 
-	if (SupportsES3())
+	if (SupportsES31())
 	{
 		OutFormats.AddUnique(NAME_GLSL_ES3_1_ANDROID);
 	}

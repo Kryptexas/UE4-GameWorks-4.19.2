@@ -2297,3 +2297,19 @@ static TAutoConsoleVariable<int32> CVarDisableThreadedRendering(
 	TEXT("	0 = Allow threaded rendering [default]\n")
 	TEXT("	1 = Disable creation of render thread on startup"),
 	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarDisableVulkanSupport(
+	TEXT("r.Android.DisableVulkanSupport"),
+	0,
+	TEXT("Disable support for vulkan API. (Android Only)\n")
+	TEXT("  0 = vulkan API will be used (providing device and project supports it) [default]\n")
+	TEXT("  1 = vulkan will be disabled, opengl fall back will be used."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarDisableOpenGLES31Support(
+	TEXT("r.Android.DisableOpenGLES31Support"),
+	0,
+	TEXT("Disable support for OpenGLES 3.1 API. (Android Only)\n")
+	TEXT("  0 = OpenGLES 3.1 API will be used (providing device and project supports it) [default]\n")
+	TEXT("  1 = OpenGLES 3.1 will be disabled, OpenGL ES2 fall back will be used."),
+	ECVF_ReadOnly);
