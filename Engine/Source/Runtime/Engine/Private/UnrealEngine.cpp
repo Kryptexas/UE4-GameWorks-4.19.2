@@ -9896,6 +9896,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			// need to create a PIE world by duplication instead
 			if (bPackageAlreadyLoaded)
 			{
+				if (WorldContext.PIEInstance == -1)
+				{
+					// Assume if we get here, that it's safe to just give a PIE instance so that we can duplicate the world 
+					//	If we won't duplicate the world, we'll refer to the existing world (most likely the editor version, and it can be modified under our feet, which is bad)
+					// So far, the only known way to get here is when we use the console "open" command while in a client PIE instance connected to non PIE server 
+					// (i.e. multi process PIE where client is in current editor process, and dedicated server was launched as separate process)
+					WorldContext.PIEInstance = 0;
+				}
+
 				NewWorld = CreatePIEWorldByDuplication(WorldContext, NewWorld, URL.Map);
 				// CreatePIEWorldByDuplication clears GIsPlayInEditorWorld so set it again
 				GIsPlayInEditorWorld = true;
