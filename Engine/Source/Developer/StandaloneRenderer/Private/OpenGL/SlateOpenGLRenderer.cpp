@@ -268,7 +268,7 @@ FSlateUpdatableTexture* FSlateOpenGLRenderer::CreateUpdatableTexture(uint32 Widt
 
 void FSlateOpenGLRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 {
-	delete Texture;
+	Texture->Cleanup();
 }
 
 ISlateAtlasProvider* FSlateOpenGLRenderer::GetTextureAtlasProvider()

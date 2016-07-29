@@ -256,6 +256,12 @@ private:
 	 */
 	void DrawWindows_Private( FSlateDrawBuffer& InWindowDrawBuffer );
 
+	/**
+	 * Delete the updateable textures we've marked for delete that have already had their GPU resources released, but may
+	 * have already been used on the game thread at the time they were released.
+	 */
+	void CleanUpdatableTextures();
+
 private:
 	/** A mapping of SWindows to their RHI implementation */
 	TMap< const SWindow*, FViewportInfo*> WindowToViewportInfo;

@@ -24,6 +24,8 @@ public:
 
 	void Init( DXGI_FORMAT InFormat, D3D11_SUBRESOURCE_DATA* InitalData = NULL, bool bUpdatable = false, bool bUseStagingTexture = false );
 
+	virtual void Cleanup() override { delete this; }
+
 	uint32 GetWidth() const { return SizeX; }
 	uint32 GetHeight() const { return SizeY; }
 

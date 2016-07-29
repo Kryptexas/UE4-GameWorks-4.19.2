@@ -199,7 +199,7 @@ void FSlateRHIRenderer::Destroy()
 	if (CrashTrackerResource != nullptr)
 	{
 		delete CrashTrackerResource;
-		CrashTrackerResource = NULL;
+		CrashTrackerResource = nullptr;
 	}
 
 	WindowToViewportInfo.Empty();
@@ -1182,13 +1182,12 @@ void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 	if (IsInRenderingThread())
 	{
 		Texture->GetRenderResource()->ReleaseResource();
+		delete Texture;
 	}
 	else
 	{
-		BeginReleaseResource(Texture->GetRenderResource());
-		FlushRenderingCommands();
+		Texture->Cleanup();
 	}
-	delete Texture;
 }
 
 ISlateAtlasProvider* FSlateRHIRenderer::GetTextureAtlasProvider()
