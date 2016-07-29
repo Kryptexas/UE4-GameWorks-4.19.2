@@ -1,63 +1,63 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:3. On Drag Detected
+﻿INTSourceChangelist:3063666
+Availability:Docs
+Title:3.On Drag Detected
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:In this step we set up what happens when drag is detected.
+Description:ドラッグが検知された場合に、何を起こるかを設定します。
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\UMG\HowTo\DragAndDrop\WidgetSetup "%Engine\UMG\HowTo\DragAndDrop\WidgetSetup:title%")
+		[前のステップ](Engine\UMG\HowTo\DragAndDrop\WidgetSetup "%Engine\UMG\HowTo\DragAndDrop\WidgetSetup:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
+		[ドラッグ＆ドロップのウィジェット](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\UMG\HowTo\DragAndDrop\OnDrop "%Engine\UMG\HowTo\DragAndDrop\OnDrop:title%")
+		[次のステップ](Engine\UMG\HowTo\DragAndDrop\OnDrop)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-In this step we determine what happens when the player is in fact dragging the HealthBar around on screen. 
+このステップでは、プレイヤーが実際にヘルスバーを画面上でドラッグすると何が起こるかを定義します。 
 
-## Steps
+## ステップ
 
-1.	Open the **OnDragDetected** function, then **Right-click** and add a **Create Drag Drop Operation** node set to use **WidgetDrag**. 
+1.	**OnDragDetected** 関数を開いて、**右クリック** して、**WidgetDrag** を使用するように設定した **Create Drag Drop Operation** ノードを追加します。 
 
 	![](DragDrop9.png)
 
-	UMG supplies a default class for drag and drop operations however we have created a custom class that has additional variables in it that we will pass through as part of the process.
+	UMG には、ドラッグ＆ドロップの操作用にデフォルトのクラスがありますが、プロセスの一部として渡す追加の変数を持つカスタム クラスを作成しました。
 
-1.	**Right-click** in the graph and **Get Reference to Self** and connect as shown and set the **Pivot** drop-down to **Mouse Down**. 
-	
+1.	グラフ内を **右クリック** して、**Get Reference to Self** で以下のように接続し、**Pivot** のドロップダウンを **Mouse Down** に設定します。 
+
 	![](DragDrop10.png)
 
-	Pivot determines where the Drag Widget Visual will appear when being dragged relative to the pointer performing the drag operation. 
+	Pivot は、ドラッグ操作を行っているポインタと相対的にドラッグされる場合、Drag Widget Visual が表示される場所を決定します。 
 
-1.	From the **MyBlueprint** panel, drag in the **Drag Offset** variable and connect it and the pins shown below. 
+1.	**[MyBlueprint]** パネルから **Drag Offset** 変数をドラッグして、それを以下のようにピンに接続します。 
 
 	![](DragDrop11.png)
 
-	Here we are passing through that vector 2D information of where the player clicked on the widget which we will use as part of the OnDrop operation. 
+	ここでは、プレイヤーがウィジェット上をクリックした場所のベクター 2D 情報を渡し、OnDrop 操作の一部として使用します。 
 
-1.	**Right-click** in the graph and add a **Remove from Parent** node and connect as shown. 
+1.	グラフ内を **右クリック** して、 **Remove from Parent** ノードを追加し、以下のように接続します。 
 
 	![](DragDrop12.png)
 
-	Before we complete the On Drag Detected process, we remove the widget we are dragging from display.
-	If we don't remove the original HealthBar widget from display, it would remain in the default position while we are dragging a copy around onscreen. 
-	The widget itself is being passed through as part of the process so we are not creating a "new" version of the widget. 
+	On Drag Detected プロセスを終了する前に、ドラッグしているウィジェットを表示から取り除きます。
+	オリジナルの HealthBar ウィジェットを表示から取り除かないと、画面上でコピーをドラッグしている間デフォルト位置にとどまります。 
+	このウィジェット自体は、プロセスの一部として渡されているため、このウィジェットの新規バージョンは作成しません。 
 
-The last few things we need to do is determine what happens when the player releases the Left Mouse Button and performs the OnDrop function. 
-We also need to add the HealthBar Widget to our Main HUD Widget Blueprint and tell that to be displayed before testing everything out.  
+プレイヤーが左マウスボタンを放して OnDrop を行う場合、何が起こるかを決める必要があります。 
+HealthBar ウィジェットを Main HUD Widget ブループリントに追加して、すべてをテストする前に表示するように指示する必要もあります。  
 
 %Steps%
 
