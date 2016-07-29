@@ -408,18 +408,6 @@
 				<Tag Files="#UE4Game IOS Stripped" With="#Saved Output"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyIOSFilter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyIOSExceptions)"/>
-
-				<!-- Content-only on Win64: exclude things we only need for code projects -->
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/IOS/*.a"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/IOS/.../*.a"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/IOS/UE4Game"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/IOS/UE4Game-IOS-Shipping"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Intermediate/.../IOS/..."/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Plugins/.../Binaries/IOS/..."/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Plugins/.../Intermediate/.../IOS/..."/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Source/ThirdParty/.../IOS/....a"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/ThirdParty/IOS/*"/>
 			</Do>
 			<Do If="'$(WithTVOS)' == true">
 				<Tag Files="#UE4Game TVOS;#UE4Game TVOS Includes" Except="#UE4Game TVOS Unstripped" With="#Installed Win64"/>
@@ -531,7 +519,7 @@
 			<Copy Files="#CompressedDDCWin64" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDir)" If="'$(WithDDC)' == true" Tag="#Installed Build Win64 Files"/>
 
 			<!-- List all of the platforms that we only allow for content projects -->
-			<Property Name="ContentOnlyPlatforms" Value="IOS;TVOS;Linux"/>
+			<Property Name="ContentOnlyPlatforms" Value="TVOS;Linux"/>
 
 			<!-- Create command line arguments for any platforms that were built with additional architectures -->
 			<Property Name="ArchitectureCommands" Value=""/>
@@ -632,18 +620,6 @@
 				<Tag Files="#UE4Game IOS Stripped" With="#Saved Output"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyIOSFilter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyIOSExceptions)"/>
-
-				<!-- All tools for Mac -->
-				<!-- Not sure if necessary right now -->
-				<!--<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/DeploymentServer.exe"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/DeploymentServer.exe.config"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/DeploymentInterface.dll"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/DeploymentInterface.dll.config"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/iPhonePackager.exe"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/iPhonePackager.exe.config"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/MobileDeviceInterface.dll"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/iOS/MobileDeviceInterface.dll.config"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Source/ThirdParty/Facebook/IOS/..."/>-->
 			</Do>
 			<Do If="'$(WithTVOS)' == true">
 				<Tag Files="#UE4Game TVOS;#UE4Game TVOS Includes" Except="#UE4Game TVOS Unstripped" With="#Installed Mac"/>

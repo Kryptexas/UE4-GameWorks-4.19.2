@@ -151,9 +151,10 @@
 
 	<!-- Build Files -->
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Build/Android/..."/>
-	<!--<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/cxa_demangle/..."/>
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/cxa_demangle/..."/>
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/extras/..."/>
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/GoogleVR/..."/>
-	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_0/Libs/..."/>-->
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_3/Libs/..."/>
 	<Property Name="CopyAndroidExceptions" Value="$(CopyAndroidExceptions);Engine/Binaries/Android/....apk"/>
 
 	<!-- IOS -->
@@ -166,6 +167,18 @@
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/....mobileprovision"/>
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/UnrealRemoteTool"/>
 	
+	<!-- Temporary until CsCompile includes .dll.config files -->
+	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/iOS/DeploymentInterface.dll.config"/>
+	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/iOS/MobileDeviceInterface.dll.config"/>
+	
+	<!-- Win64 specific -->
+	<Do If="'$(HostPlatform)' == 'Win64'">
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/ThirdParty/IOS/*"/>
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Build/BatchFiles/MakeAndInstallSSHKey.bat"/>
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Extras/ThirdPartyNotUE/DeltaCopy/..."/>
+	</Do>
+
 	<!-- TVOS -->
 	<Property Name="CopyTVOSFilter" Value=""/>
 	<Property Name="CopyTVOSExceptions" Value=""/>
