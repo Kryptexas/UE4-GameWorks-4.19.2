@@ -32,3 +32,10 @@ void UAnimBlueprintThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, ui
 		}
 	}
 }
+
+void UAnimBlueprintThumbnailRenderer::BeginDestroy()
+{
+	ThumbnailScenes.Clear();
+
+	Super::BeginDestroy();
+}

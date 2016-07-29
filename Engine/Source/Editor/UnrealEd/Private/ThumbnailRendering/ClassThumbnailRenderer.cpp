@@ -54,3 +54,10 @@ void UClassThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Wid
 		GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
 	}
 }
+
+void UClassThumbnailRenderer::BeginDestroy()
+{
+	ThumbnailScenes.Clear();
+
+	Super::BeginDestroy();
+}

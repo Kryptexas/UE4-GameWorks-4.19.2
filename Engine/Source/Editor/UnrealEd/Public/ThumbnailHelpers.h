@@ -236,6 +236,10 @@ protected:
 
 private:
 
+	/** Clears out any stale actors in this scene if PreviewActor enters a stale state */
+	void ClearStaleActors();
+
+	int32 NumStartingActors;
 	TWeakObjectPtr<class AActor> PreviewActor;
 };
 
@@ -318,6 +322,12 @@ public:
 		}
 
 		return ExistingThumbnailScene.ToSharedRef();
+	}
+
+	/** Clears all thumbnail scenes */
+	void Clear()
+	{
+		InstancedThumbnailScenes.Reset();
 	}
 
 private:

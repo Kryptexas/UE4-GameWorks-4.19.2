@@ -15,6 +15,10 @@ class UClassThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 	UNREALED_API virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas) override;
 	// End UThumbnailRenderer Object
 
+	// UObject Implementation
+	UNREALED_API virtual void BeginDestroy() override;
+	// End UObject Implementation
+
 private:
 	TClassInstanceThumbnailScene<FClassThumbnailScene, 400> ThumbnailScenes;
 };

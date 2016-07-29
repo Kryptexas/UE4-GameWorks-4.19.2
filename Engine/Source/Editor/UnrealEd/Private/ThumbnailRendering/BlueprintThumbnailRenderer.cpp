@@ -92,6 +92,13 @@ void UBlueprintThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32
 	}
 }
 
+void UBlueprintThumbnailRenderer::BeginDestroy()
+{
+	ThumbnailScenes.Clear();
+
+	Super::BeginDestroy();
+}
+
 void UBlueprintThumbnailRenderer::BlueprintChanged(class UBlueprint* Blueprint)
 {
 	if (Blueprint && Blueprint->GeneratedClass)
