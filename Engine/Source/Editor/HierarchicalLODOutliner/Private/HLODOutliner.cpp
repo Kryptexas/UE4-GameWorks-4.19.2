@@ -427,10 +427,7 @@ namespace HLODOutliner
 		}
 
 		FMessageLog("HLODResults").Open();
-
-		ResetLODLevelForcing();
-
-		FullRefresh();
+				
 		return FReply::Handled();
 	}
 
@@ -674,8 +671,7 @@ namespace HLODOutliner
 				}
 			}
 
-			ResetLODLevelForcing();			
-			FullRefresh();			
+			TreeView->RequestScrollIntoView(SelectedItems[0]);
 		}
 		
 		// Show message log if there was an HLOD message
@@ -707,8 +703,7 @@ namespace HLODOutliner
 				}
 			}
 
-			ResetLODLevelForcing();
-			FullRefresh();
+			TreeView->RequestScrollIntoView(SelectedItems[0]);
 		}
 
 		// Show message log if there was an HLOD message
