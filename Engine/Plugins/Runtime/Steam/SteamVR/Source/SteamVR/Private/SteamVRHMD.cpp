@@ -789,8 +789,8 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			}
 			break;
 		case vr::VREvent_TrackedDeviceUserInteractionEnded:
-			// if the event was sent by the HMD
-			if (VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)
+			// if the event was sent by the HMD. Don't change our state to "not worn" unless we are currently wearing it.
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd) && (HmdWornState == EHMDWornState::Worn)) 
 			{
 				HmdWornState = EHMDWornState::NotWorn;
 			}

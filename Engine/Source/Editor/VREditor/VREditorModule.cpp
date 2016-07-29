@@ -190,18 +190,21 @@ void FVREditorModule::Tick( float DeltaTime )
 	// You can only auto-enter VR if the setting is enabled. Other criteria are that the VR Editor is enabled in experimental settings, that you are not in PIE, and that the editor is foreground.
 	bool bCanAutoEnterVR = (GetDefault<UEditorExperimentalSettings>()->bEnableAutoVREditMode) && (GetDefault<UEditorExperimentalSettings>()->bEnableVREditing) && !(GEditor->PlayWorld) && FPlatformProcess::IsThisApplicationForeground();
 
-	// Only check whether you are wearing the HMD every second, if you are allowed to auto-enter VR, and if your HMD state has changed since the last check. 
-	if((TimeSinceHMDChecked >= 1.0f) && bCanAutoEnterVR && (HMDWornState != GEngine->HMDDevice->GetHMDWornState()))
+	if (GEngine != nullptr && GEngine->HMDDevice.IsValid())
 	{
-		TimeSinceHMDChecked = 0.0f;
-		HMDWornState = GEngine->HMDDevice->GetHMDWornState();
-		if( HMDWornState == EHMDWornState::Worn )
+		// Only check whether you are wearing the HMD every second, if you are allowed to auto-enter VR, and if your HMD state has changed since the last check. 
+		if((TimeSinceHMDChecked >= 1.0f) && bCanAutoEnterVR && (HMDWornState != GEngine->HMDDevice->GetHMDWornState()))
 		{
-			EnableVREditor(true, false);
-		}
-		else if (HMDWornState == EHMDWornState::NotWorn)
-		{
-			EnableVREditor(false , false);
+			TimeSinceHMDChecked = 0.0f;
+			HMDWornState = GEngine->HMDDevice->GetHMDWornState();
+			if( HMDWornState == EHMDWornState::Worn )
+			{
+				EnableVREditor(true, false);
+			}
+			else if (HMDWornState == EHMDWornState::NotWorn)
+			{
+				EnableVREditor(false, false);
+			}
 		}
 	}
 
