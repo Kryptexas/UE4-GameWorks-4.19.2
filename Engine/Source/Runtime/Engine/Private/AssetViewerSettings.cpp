@@ -38,7 +38,7 @@ void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 {
 	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;	
 	UObject* Outer = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetOuter() : nullptr;
-	if (Outer != nullptr && Outer->GetName() == "PostProcessSettings")
+	if (Outer != nullptr && ( Outer->GetName() == "PostProcessSettings" || Outer->GetName() == "Vector" || Outer->GetName() == "LinearColor"))
 	{
 		PropertyName = GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, PostProcessingSettings);
 	}
