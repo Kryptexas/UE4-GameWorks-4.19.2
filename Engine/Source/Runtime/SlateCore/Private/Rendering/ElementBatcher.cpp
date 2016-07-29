@@ -1305,9 +1305,9 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 		// The radius to use when checking the distance of pixels to the actual line.  Arbitrary value based on what looks the best
 		const float Radius = 1.5f;
 
-		// Thickness is given in screenspace, so convert it to local space before proceeding.
-		float RequestedThickness = FMath::Max( 1.0f, InverseLayoutTransform.GetScale() * InPayload.Thickness );
-
+		// Thickness is given in screen space, so convert it to local space before proceeding.
+		float RequestedThickness = 1;// InPayload.Thickness;
+		
 		// Compute the actual size of the line we need based on thickness.  Need to ensure pixels that are at least Thickness/2 + Sample radius are generated so that we have enough pixels to blend.
 		// The idea for the anti-aliasing technique is based on the fast prefiltered lines technique published in GPU Gems 2 
 		const float LineThickness = FMath::CeilToInt( (2.0f * Radius + RequestedThickness ) * FMath::Sqrt(2.0f) );
@@ -1338,7 +1338,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 			EndPos = Points[Point];
 			// Determine if we should check the intersection point with the next line segment.
 			// We will adjust were this line ends to the intersection
-			bool bCheckIntersection = Points.IsValidIndex( Point+1 ) ;
+			bool bCheckIntersection = Points.IsValidIndex(Point + 1);
 			uint32 IndexStart = BatchVertices.Num();
 
 			// Compute the normal to the line
@@ -1369,8 +1369,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 					IntersectUpper = IntersectionPoint;
 
 					// visualizes the intersection
-					//AddQuadElement( IntersectUpper-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor::Red);
-
+					//AddQuadElement( IntersectUpper-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor::Orange);
 				}
 
 				if( LineIntersect( StartPos - Up, EndPos - Up, EndPos - NextUp, NextEndPos - NextUp, IntersectionPoint ) )
