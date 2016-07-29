@@ -25,11 +25,13 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 	return DefaultSettings;
 }
 
+#if WITH_EDITOR
 void UAssetViewerSettings::Save()
 {
 	SaveConfig();
 	UpdateDefaultConfigFile();
 }
+#endif // WITH_EDITOR
 
 #if WITH_EDITOR
 void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
