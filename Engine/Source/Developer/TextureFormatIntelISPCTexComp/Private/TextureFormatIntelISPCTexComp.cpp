@@ -37,7 +37,7 @@ static FName GSupportedTextureFormatNames[] =
 /**
  * BC6H Compression function
  */
-static void IntelBC6HCompressScans(bc6h_enc_settings* pEncSettings, FImage* pInImage, FCompressedImage2D* pOutImage, int yStart, int yEnd)
+static void IntelBC6HCompressScans(bc6h_enc_settings* pEncSettings, FImage* pInImage, FCompressedImage2D* pOutImage, int yStart, int yEnd, int OutSliceSize)
 {
 	check(pInImage->Format == ERawImageFormat::RGBA16F);
 	check((yStart % 4) == 0);
@@ -55,7 +55,12 @@ static void IntelBC6HCompressScans(bc6h_enc_settings* pEncSettings, FImage* pInI
 	insurface.stride	= pInImage->SizeX * 8;
 
 	pOutTexels += ((yStart + 3) / 4) * ((pInImage->SizeX + 3) / 4) * 16;
-	CompressBlocksBC6H(&insurface, pOutTexels, pEncSettings);
+	for (int Slice = 0 ; Slice < pInImage->NumSlices ; Slice++)
+	{
+		CompressBlocksBC6H(&insurface, pOutTexels, pEncSettings);
+		pOutTexels += OutSliceSize;
+		insurface.ptr += 8 * pInImage->SizeX * pInImage->SizeY;
+	}
 }
 
 /**
@@ -96,6 +101,54 @@ static void IntelBC7CompressScans(bc7_enc_settings* pEncSettings, FImage* pInIma
 	CompressBlocksBC7(&insurface, pOutTexels, pEncSettings);
 }
 
+
+/** Expands any dimension to multiple of 4.  Copies the nearest row/column */
+static bool ExpandTo4PxMultiple(const FImage& InImage, FImage& OutImage)
+{	
+	// Calculate how many times to duplicate each row or column
+	const int32 FillX = InImage.SizeX % 4 > 0 ? 4 - InImage.SizeX % 4 : 0;
+	const int32 FillY = InImage.SizeY % 4 > 0 ? 4 - InImage.SizeY % 4 : 0;
+	
+	// Early out
+	if (FillX == 0 && FillY == 0)
+	{
+		return false;
+	}
+
+	const int32 NewSizeX = InImage.SizeX + FillX;
+	const int32 NewSizeY = InImage.SizeY + FillY;
+		
+	// Allocate room to fill out into
+	int32 BytesPerPixel = InImage.GetBytesPerPixel();
+	TArray<uint8> ResizedRawData;
+	ResizedRawData.SetNumUninitialized(NewSizeX * NewSizeY * InImage.NumSlices * BytesPerPixel);
+	
+	int32 SourceSliceSize = InImage.SizeX * InImage.SizeY * BytesPerPixel;
+	int32 DestSliceSize = NewSizeX * NewSizeY * BytesPerPixel;
+	for ( int32 SliceIndex=0; SliceIndex < InImage.NumSlices; ++SliceIndex )
+	{
+		uint8* SourceData = ((uint8*)InImage.RawData.GetData()) + SliceIndex * SourceSliceSize;
+		uint8* DestData = ((uint8*)ResizedRawData.GetData()) + SliceIndex * DestSliceSize;
+		for ( int32 Y = 0; Y < NewSizeY; ++Y )
+		{
+			for ( int32 X = 0; X < NewSizeX; ++X )
+			{
+				uint8* DestColor = DestData + Y*BytesPerPixel * NewSizeX + X*BytesPerPixel;
+				int32 SourceX = FMath::Min(X, InImage.SizeX-1);
+				int32 SourceY = FMath::Min(Y, InImage.SizeY-1);
+				uint8* SourceColor = SourceData + SourceY*BytesPerPixel * InImage.SizeX + SourceX*BytesPerPixel;
+				FMemory::Memcpy(DestColor, SourceColor, BytesPerPixel);
+			}
+		}
+	}
+
+	// Put the new image data into the OutImage
+	OutImage.Init(NewSizeX, NewSizeY, InImage.NumSlices, InImage.Format, InImage.GammaSpace);
+	FMemory::Memcpy(OutImage.RawData.GetData(), ResizedRawData.GetData(), NewSizeX * NewSizeY * OutImage.NumSlices * BytesPerPixel);
+
+	return true;
+}
+
 /**
  * Intel BC texture format handler.
  */
@@ -108,7 +161,7 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 
 	virtual uint16 GetVersion(FName Format) const override
 	{
-		return 0;
+		return 1;
 	}
 
 	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
@@ -135,7 +188,8 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 
 		const int iWidthInBlocks	= ((InImage.SizeX + 3) & ~ 3) / 4;
 		const int iHeightInBlocks	= ((InImage.SizeY + 3) & ~ 3) / 4;
-		const int iOutputBytes		= iWidthInBlocks * iHeightInBlocks * 16;
+		const int iOutputSliceSizeBytes = iWidthInBlocks * iHeightInBlocks * 16;
+		const int iOutputBytes		= iOutputSliceSizeBytes * InImage.NumSlices;
 		OutCompressedImage.RawData.AddUninitialized(iOutputBytes);
 
 		// When we allow async tasks to execute we do so with 4 lines of the image per task
@@ -148,7 +202,16 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 		if ( BuildSettings.TextureFormatName == GTextureFormatNameBC6H )
 		{
 			FImage Image;
-			InImage.CopyTo(Image, ERawImageFormat::RGBA16F, EGammaSpace::Linear);
+			// Expand any dimension less than 4 to 4.  Intel compressor doens't seem to do this automatically.
+			FImage ResizedImage;
+			if (ExpandTo4PxMultiple(InImage, ResizedImage))
+			{
+				ResizedImage.CopyTo(Image, ERawImageFormat::RGBA16F, EGammaSpace::Linear);
+			}
+			else
+			{
+				InImage.CopyTo(Image, ERawImageFormat::RGBA16F, EGammaSpace::Linear);
+			}
 
 			bc6h_enc_settings settings;
 			GetProfile_bc6h_basic(&settings);
@@ -158,18 +221,19 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 				class FIntelCompressWorker : public FNonAbandonableTask
 				{
 				public:
-					FIntelCompressWorker(bc6h_enc_settings* pEncSettings, FImage* pInImage, FCompressedImage2D* pOutImage, int yStart, int yEnd)
+					FIntelCompressWorker(bc6h_enc_settings* pEncSettings, FImage* pInImage, FCompressedImage2D* pOutImage, int yStart, int yEnd, int iOutputSliceSizeBytes)
 						: mpEncSettings(pEncSettings)
 						, mpInImage(pInImage)
 						, mpOutImage(pOutImage)
 						, mYStart(yStart)
 						, mYEnd(yEnd)
+						, mOutputSliceSizeBytes(iOutputSliceSizeBytes)
 					{
 					}
 
 					void DoWork()
 					{
-						IntelBC6HCompressScans(mpEncSettings, mpInImage, mpOutImage, mYStart, mYEnd);
+						IntelBC6HCompressScans(mpEncSettings, mpInImage, mpOutImage, mYStart, mYEnd, mOutputSliceSizeBytes);
 					}
 
 					FORCEINLINE TStatId GetStatId() const
@@ -182,6 +246,7 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 					FCompressedImage2D*	mpOutImage;
 					int					mYStart;
 					int					mYEnd;
+					int					mOutputSliceSizeBytes;
 				};
 				typedef FAsyncTask<FIntelCompressWorker> FIntelCompressTask;
 
@@ -190,12 +255,10 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 				CompressionTasks.Reserve(iNumTasks);
 				for ( int iTask=0; iTask < iNumTasks; ++iTask )
 				{
-					auto* AsyncTask = new(CompressionTasks) FIntelCompressTask(&settings, &Image, &OutCompressedImage, iTask * iScansPerTask, (iTask + 1) * iScansPerTask);
+					auto* AsyncTask = new(CompressionTasks) FIntelCompressTask(&settings, &Image, &OutCompressedImage, iTask * iScansPerTask, (iTask + 1) * iScansPerTask, iOutputSliceSizeBytes);
 					AsyncTask->StartBackgroundTask();
 				}
-
-				IntelBC6HCompressScans(&settings, &Image, &OutCompressedImage, iScansPerTask * iNumTasks, InImage.SizeY);
-
+				IntelBC6HCompressScans(&settings, &Image, &OutCompressedImage, iScansPerTask * iNumTasks, Image.SizeY, iOutputSliceSizeBytes);
 				// Wait completion
 				for (int32 TaskIndex = 0; TaskIndex < CompressionTasks.Num(); ++TaskIndex)
 				{
@@ -204,7 +267,7 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 			}
 			else
 			{
-				IntelBC6HCompressScans(&settings, &Image, &OutCompressedImage, 0, InImage.SizeY);
+				IntelBC6HCompressScans(&settings, &Image, &OutCompressedImage, 0, Image.SizeY, iOutputSliceSizeBytes);
 			}
 
 			CompressedPixelFormat = PF_BC6H;
@@ -212,8 +275,18 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 		}
 		else if ( BuildSettings.TextureFormatName == GTextureFormatNameBC7 )
 		{
+			check(InImage.NumSlices == 1);
 			FImage Image;
-			InImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.GetGammaSpace());
+			// Expand any dimension less than 4 to 4.  Intel compressor doesn't seem to do this automatically.
+			FImage ResizedImage;
+			if (ExpandTo4PxMultiple(InImage, ResizedImage))
+			{
+				ResizedImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.GetGammaSpace());
+			}
+			else
+			{
+				InImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.GetGammaSpace());
+			}
 
 			bc7_enc_settings settings;
 			if ( bImageHasAlphaChannel )
@@ -266,7 +339,7 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 					AsyncTask->StartBackgroundTask();
 				}
 
-				IntelBC7CompressScans(&settings, &Image, &OutCompressedImage, iScansPerTask * iNumTasks, InImage.SizeY);
+				IntelBC7CompressScans(&settings, &Image, &OutCompressedImage, iScansPerTask * iNumTasks, Image.SizeY);
 
 				// Wait completion
 				for (int32 TaskIndex = 0; TaskIndex < CompressionTasks.Num(); ++TaskIndex)
@@ -276,7 +349,7 @@ class FTextureFormatIntelISPCTexComp : public ITextureFormat
 			}
 			else
 			{
-				IntelBC7CompressScans(&settings, &Image, &OutCompressedImage, 0, InImage.SizeY);
+				IntelBC7CompressScans(&settings, &Image, &OutCompressedImage, 0, Image.SizeY);
 			}
 
 			CompressedPixelFormat = PF_BC7;
