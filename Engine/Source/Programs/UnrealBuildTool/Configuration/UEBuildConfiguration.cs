@@ -99,7 +99,14 @@ namespace UnrealBuildTool
         [XmlConfig]
         public static bool bCompileSimplygonSSF;
 
-		/// <summary>
+        /// <summary>
+        /// Whether we should compile in support for Steam OnlineSubsystem or not.
+        /// </summary>
+        [Obsolete("To use OnlineSubsystemSteam, include the OnlineSubsystemSteam uplugin in your uproject", true)]
+        [XmlConfig]
+        public static bool bCompileSteamOSS;
+
+        /// <summary>
 		/// Whether to compile lean and mean version of UE.
 		/// </summary>
 		[XmlConfig]
