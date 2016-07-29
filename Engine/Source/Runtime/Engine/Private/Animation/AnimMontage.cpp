@@ -13,6 +13,7 @@
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimStats.h"
+#include "Animation/AnimMontage.h"
 
 DEFINE_LOG_CATEGORY(LogAnimMontage);
 ///////////////////////////////////////////////////////////////////////////
@@ -1742,8 +1743,10 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 
 			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && Montage->HasRootMotion();
 			
-			float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
+			float DesiredDeltaMove = ForcedNextPosition.IsSet() ? ForcedNextPosition.GetValue() - Position : CombinedPlayRate * DeltaTime;
 			float OriginalMoveDelta = DesiredDeltaMove;
+
+			ForcedNextPosition.Reset();
 
 			DeltaMoved = 0.f;
 			PreviousPosition = Position;
@@ -2112,19 +2115,20 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 				ensure(CurrentlyPlayingMontage.IsValid());
 			}
 
-			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
+			FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
 			if(AnimMontageInst)
 			{
 				// need to set weight to be 1
 				AnimMontageInst->Blend.SetDesiredValue(1.f);
 				AnimMontageInst->Blend.SetAlpha(1.f);
 
-				float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
-				AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
-
-				// since we don't advance montage in the tick, we manually have to handle notifies
-				AnimMontageInst->HandleEvents(OldMontagePosition, InPosition, NULL);
-				AnimInst->TriggerAnimNotifies(0.f);
+				if (UAnimMontage* Montage = CurrentlyPlayingMontage.Get())
+				{
+					if (FAnimMontageInstance* MontageInst = AnimInst->GetActiveInstanceForMontage(Montage))
+					{
+						MontageInst->SetNextPositionWithEvents(InPosition);
+					}
+				}
 			}
 			else
 			{

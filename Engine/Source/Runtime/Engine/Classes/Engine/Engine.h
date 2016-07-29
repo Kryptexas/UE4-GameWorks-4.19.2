@@ -2010,6 +2010,13 @@ public:
 	virtual void StopFPSChart();
 
 	/**
+	* Pauses FPS chart data capture if in progress. Useful for omitting known-problem areas from charts.
+	 *
+	 * @param	bPause	Pause State
+	 */
+	virtual void PauseFPSChart(bool bPause);
+
+	/**
 	 * Dumps the FPS chart information to the passed in archive.
 	 *
 	 * @param	InMapName	Name of the map (Or Global)

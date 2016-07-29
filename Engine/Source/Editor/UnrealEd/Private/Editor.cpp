@@ -153,6 +153,8 @@ FEditorDelegates::FOnNewActorsDropped					FEditorDelegates::OnNewActorsDropped;
 FEditorDelegates::FOnGridSnappingChanged				FEditorDelegates::OnGridSnappingChanged;
 FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildStarted;
 FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildKept;
+FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildFailed;
+FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildSucceeded;
 FEditorDelegates::FOnApplyObjectToActor					FEditorDelegates::OnApplyObjectToActor;
 FEditorDelegates::FOnFocusViewportOnActors				FEditorDelegates::OnFocusViewportOnActors;
 FEditorDelegates::FOnMapOpened							FEditorDelegates::OnMapOpened;

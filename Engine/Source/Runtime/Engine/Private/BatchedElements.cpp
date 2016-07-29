@@ -762,6 +762,11 @@ void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMat
 
 bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
+	if (UNLIKELY(!FApp::CanEverRender()))
+	{
+		return false;
+	}
+
 	if( HasPrimsToDraw() )
 	{
 		FMatrix InvTransform = Transform.Inverse();

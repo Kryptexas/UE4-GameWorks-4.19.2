@@ -1506,7 +1506,6 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGamepl
 	{
 		if (Ability->CurrentActivationInfo.GetActivationPredictionKey().Current == PredictionKey)
 		{
-			ABILITY_LOG(Warning, TEXT("Ending Ability %s"), *Ability->GetName());
 			Ability->K2_EndAbility();
 		}
 	}

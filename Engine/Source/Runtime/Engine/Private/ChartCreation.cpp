@@ -37,6 +37,13 @@ static TAutoConsoleVariable<int32> GFPSChartExcludeIdleTime(
 	TEXT("Should we exclude idle time (i.e. one which we spent sleeping) when doing a FPS chart?\n")
 	TEXT(" default: 0"));
 
+// Should we explore to the folder that contains the .log / etc... when a dump is finished?  This can be disabled for automated testing
+static TAutoConsoleVariable<int32> GFPSChartOpenFolderOnDump(
+	TEXT("t.FPSChart.OpenFolderOnDump"),
+	1,
+	TEXT("Should we explore to the folder that contains the .log / etc... when a dump is finished?  This can be disabled for automated testing\n")
+	TEXT(" default: 1"));
+
 float GMaximumFrameTimeToConsiderForHitchesAndBinning = 1.0f;
 
 static FAutoConsoleVariableRef GMaximumFrameTimeToConsiderForHitchesAndBinningCVar(
@@ -48,7 +55,8 @@ static FAutoConsoleVariableRef GMaximumFrameTimeToConsiderForHitchesAndBinningCV
 // NOTE:  if you add any new stats make certain to update the StartFPSChart()
 
 /** Enables capturing the fps chart data */
-bool GEnableDataCapture = false;
+bool GDataCaptureStarted = false;
+bool GDataCapturePaused = false;
 
 /** Start date/time of capture */
 FString GCaptureStartTime;
@@ -56,10 +64,13 @@ FString GCaptureStartTime;
 /** User label set when starting the chart. */
 FString GFPSChartLabel;
 
-/** Start time of current FPS chart. */
+/** Time accumulated in FPS chart. */
+double GFPSAccumulatedChartTime = 0;
+
+/** Start time of current FPS chart */
 double GFPSChartStartTime = 0;
 
-/** Stop time of current FPS chart (so we don't depend on time when Dump.. is called) */
+/** Stop time of current FPS chart */
 double GFPSChartStopTime = 0;
 
 /** FPS chart information. Time spent for each bucket and count. */
@@ -697,7 +708,7 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	const float MSToSeconds = 1.0f / 1000.0f;
 
 	// early out if we aren't doing any of the captures
-	if (!GEnableDataCapture)
+	if (!GDataCaptureStarted || GDataCapturePaused)
 	{
 		return;
 	}
@@ -708,6 +719,8 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 		DeltaSeconds = CurrentTime - GLastTimeChartCreationTicked;
 	}
 	GLastTimeChartCreationTicked = CurrentTime;
+
+	GFPSAccumulatedChartTime += DeltaSeconds;
 
 #if USE_SERVER_PERF_COUNTERS
 	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
@@ -997,19 +1010,16 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 	GFPSChartLabel = Label;
 	GFPSChartRecordPerFrameTimes = bRecordPerFrameTimes;
 
-	for( int32 BucketIndex=0; BucketIndex<ARRAY_COUNT(GFPSChart); BucketIndex++ )
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GFPSChart); BucketIndex++)
 	{
-		GFPSChart[BucketIndex].Count = 0;
-		GFPSChart[BucketIndex].CummulativeTime = 0;
+		GFPSChart[BucketIndex] = FFPSChartEntry();
 	}
 	GFPSChartStartTime = FPlatformTime::Seconds();
+	GFPSAccumulatedChartTime = 0;
 
-	for( int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT( GHitchChart ); ++BucketIndex )
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GHitchChart); ++BucketIndex)
 	{
-		GHitchChart[ BucketIndex ].HitchCount = 0;
-		GHitchChart[ BucketIndex ].GameThreadBoundHitchCount = 0;
-		GHitchChart[ BucketIndex ].RenderThreadBoundHitchCount = 0;
-		GHitchChart[ BucketIndex ].GPUBoundHitchCount = 0;
+		GHitchChart[BucketIndex] = FHitchChartEntry();
 	}
 
 #if ALLOW_DEBUG_FILES
@@ -1044,7 +1054,8 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 	GTotalFramesBoundTime_RenderThread = 0;
 	GTotalFramesBoundTime_GPU = 0;
 
-	GEnableDataCapture = true;
+	GDataCaptureStarted = true;
+	GDataCapturePaused = false;
 
 	GLastTimeChartCreationTicked = 0;
 	GLastHitchTime = 0;
@@ -1074,10 +1085,29 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 	UE_LOG(LogChartCreation, Log, TEXT("Started creating FPS charts at %f seconds"), GFPSChartStartTime);
 }
 
+
+void UEngine::PauseFPSChart(bool bPause)
+{
+	if (!GDataCaptureStarted)
+	{
+		UE_LOG(LogChartCreation, Warning, TEXT("PauseFPSChart called before StartFPSChart"));
+		return;
+	}
+
+	if (bPause == GDataCapturePaused)
+	{
+		UE_LOG(LogChartCreation, Warning, TEXT("PauseFPSChart(%d) called but pause state is already %d"), bPause, GDataCapturePaused);
+		return;
+	}
+
+	GDataCapturePaused = bPause;
+	GLastTimeChartCreationTicked = FPlatformTime::Seconds();
+}
+
 void UEngine::StopFPSChart()
 {
 	GFPSChartStopTime = FPlatformTime::Seconds();
-	GEnableDataCapture = false;
+	GDataCaptureStarted = false;
 
 	UE_LOG(LogChartCreation, Log, TEXT("Stopped creating FPS charts at %f seconds"), GFPSChartStopTime);
 }
@@ -1226,7 +1256,10 @@ void UEngine::DumpFPSChartToStatsLog( float TotalTime, float DeltaTime, int32 Nu
 		UE_LOG( LogProfilingDebugging, Warning, TEXT( "FPS Chart (logfile) saved to %s" ), *AbsolutePath );
 
 #if	PLATFORM_DESKTOP
-		FPlatformProcess::ExploreFolder( *AbsolutePath );
+		if (GFPSChartOpenFolderOnDump.GetValueOnGameThread())
+		{
+			FPlatformProcess::ExploreFolder(*AbsolutePath);
+		}
 #endif // PLATFORM_DESKTOP
 	}
 #endif // ALLOW_DEBUG_FILES
@@ -1493,7 +1526,7 @@ void UEngine::DumpFPSChart( const FString& InMapName, bool bForceDump )
 {
 	// Iterate over all buckets, gathering total frame count and cumulative time.
 	float TotalTime = 0;
-	const float DeltaTime = GFPSChartStopTime - GFPSChartStartTime;
+	const float DeltaTime = GFPSAccumulatedChartTime; 
 	int32 NumFrames = 0;
 	for( int32 BucketIndex=0; BucketIndex<ARRAY_COUNT(GFPSChart); BucketIndex++ )
 	{
@@ -1524,7 +1557,7 @@ void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsE
 {
 	// Iterate over all buckets, gathering total frame count and cumulative time.
 	float TotalTime = 0;
-	const float DeltaTime = GFPSChartStopTime - GFPSChartStartTime;
+	const float DeltaTime = GFPSAccumulatedChartTime;
 	int32 NumFrames = 0;
 	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GFPSChart); BucketIndex++)
 	{
@@ -1569,6 +1602,7 @@ void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsE
 				// True adapter / driver version / etc... information
 				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUVendorID"), GRHIVendorId));
 				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDeviceID"), GRHIDeviceId));
+				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPURevisionID"), GRHIDeviceRevision));
 				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerI"), GRHIAdapterInternalDriverVersion.Trim().TrimTrailing()));
 				InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUDriverVerU"), GRHIAdapterUserDriverVersion.Trim().TrimTrailing()));
 

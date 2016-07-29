@@ -7052,20 +7052,32 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 	DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
 }
 
+
+FTransform AEmitterCameraLensEffectBase::GetAttachedEmitterTransform(AEmitterCameraLensEffectBase const* Emitter, const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
+{
+	if (Emitter)
+	{
+		// adjust for FOV
+		// base dist uses BaseFOV which is set on the indiv camera lens effect class
+		FTransform RelativeTransformAdjustedForFOV = Emitter->RelativeTransform;
+		FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
+		AdjustedRelativeLoc.X *= FMath::Tan(Emitter->BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
+		RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
+
+		FTransform const CameraToWorld(CamRot, CamLoc);
+
+		// RelativeTransform is "effect to camera"
+		FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
+
+		return EffectToWorld;
+	}
+
+	return FTransform::Identity;
+}
+
 void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
 {
-	// adjust for FOV
-	// base dist uses BaseFOV which is set on the indiv camera lens effect class
-	FTransform RelativeTransformAdjustedForFOV = RelativeTransform;
-	FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
-	AdjustedRelativeLoc.X *= FMath::Tan(BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
-	RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
-
-	FTransform const CameraToWorld(CamRot, CamLoc);
-
-	// RelativeTransform is "effect to camera"
-	FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
-
+	FTransform const EffectToWorld = GetAttachedEmitterTransform(this, CamLoc, CamRot, CamFOVDeg);
 	SetActorTransform(EffectToWorld);
 }
 

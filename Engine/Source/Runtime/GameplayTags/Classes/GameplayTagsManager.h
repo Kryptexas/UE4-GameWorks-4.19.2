@@ -49,49 +49,49 @@ struct FGameplayTagNode
 	 * 
 	 * @return Complete tag for the node
 	 */
-	GAMEPLAYTAGS_API FName GetCompleteTag() const;
+	GAMEPLAYTAGS_API FName GetCompleteTag() const { return CompleteTag; }
 
 	/**
 	 * Get the simple tag for the node (doesn't include any parent tags)
 	 * 
 	 * @return Simple tag for the node
 	 */
-	GAMEPLAYTAGS_API FName GetSimpleTag() const;
+	GAMEPLAYTAGS_API FName GetSimpleTag() const { return Tag; }
 
 	/**
 	 * Get the category description for the node
 	 * 
 	 * @return Translatable text that describes this tag category
 	 */
-	GAMEPLAYTAGS_API FText GetCategoryDescription() const;
+	GAMEPLAYTAGS_API FText GetCategoryDescription() const { return CategoryDescription; }
 
 	/**
 	 * Get the children nodes of this node
 	 * 
 	 * @return Reference to the array of the children nodes of this node
 	 */
-	GAMEPLAYTAGS_API TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes();
+	GAMEPLAYTAGS_API TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes() { return ChildTags; }
 
 	/**
 	 * Get the children nodes of this node
 	 * 
 	 * @return Reference to the array of the children nodes of this node
 	 */
-	GAMEPLAYTAGS_API const TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes() const;
+	GAMEPLAYTAGS_API const TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes() const { return ChildTags; }
 
 	/**
 	 * Get the parent tag node of this node
 	 * 
 	 * @return The parent tag node of this node
 	 */
-	GAMEPLAYTAGS_API TWeakPtr<FGameplayTagNode> GetParentTagNode() const;
+	GAMEPLAYTAGS_API TWeakPtr<FGameplayTagNode> GetParentTagNode() const { return ParentNode; }
 
 	/**
 	* Get the net index of this node
 	*
 	* @return The net index of this node
 	*/
-	GAMEPLAYTAGS_API FGameplayTagNetIndex GetNetIndex() const;
+	GAMEPLAYTAGS_API FGameplayTagNetIndex GetNetIndex() const { return NetIndex; }
 
 	/** Reset the node of all of its values */
 	GAMEPLAYTAGS_API void ResetNode();
@@ -180,6 +180,19 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 #endif //WITH_EDITOR
 
+	struct FDeveloperTags 
+	{
+		struct FDeveloperTagsItem
+		{
+			FString IniName;
+			TArray<FString> Tags;
+		};
+
+		TArray<FDeveloperTagsItem> Items;
+	};
+
+	FDeveloperTags DeveloperTags;
+
 	/** 
 	 * Loads the tag tables
 	 * 
@@ -227,6 +240,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const;
 
 	FGameplayTag RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const;
+
+	void SplitGameplayTagFName(const FGameplayTag& Tag, TArray<FName>& OutNames);
 
 	/**
 	 * Checks if the tag is allowed to be created

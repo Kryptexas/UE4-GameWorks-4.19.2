@@ -22,6 +22,12 @@ struct FFPSChartEntry
 	int32		Count;
 	/** Cumulative time spent in bucket. */
 	double	CummulativeTime;
+
+	FFPSChartEntry()
+		: Count(0)
+		, CummulativeTime(0.0)
+	{
+	}
 };
 
 //@todo this is a leftover from the old stats system, which used enums

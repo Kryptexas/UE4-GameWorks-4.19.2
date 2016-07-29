@@ -924,6 +924,8 @@ void FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.DepthOfFieldFocalLength = 50.0f;
 	ViewUniformShaderParameters.MotionBlurNormalizedToPixel = FinalPostProcessSettings.MotionBlurMax * ViewRect.Width() / 100.0f;
 
+	ViewUniformShaderParameters.EnableSubsurfaceCheckboardOutput = GCompositionLighting.IsSubsurfaceCheckerboardRequired() ? 1.0f : 0.0f;
+
 	{
 		// This is the CVar default
 		float Value = 1.0f;

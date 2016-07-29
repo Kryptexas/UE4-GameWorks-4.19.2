@@ -562,6 +562,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 
 	ResolveName( InOuter, InName, true, false );
 
+
 	UPackage* Result = NULL;
 	if ( InName.Len() == 0 )
 	{
@@ -655,6 +656,8 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 
 	// Strip off the object class.
 	ConstructorHelpers::StripObjectClass( InOutName );
+
+	InOutName = FPackageName::GetDelegateResolvedPackagePath(InOutName);
 
 	// if you're attempting to find an object in any package using a dotted name that isn't fully
 	// qualified (such as ObjectName.SubobjectName - notice no package name there), you normally call

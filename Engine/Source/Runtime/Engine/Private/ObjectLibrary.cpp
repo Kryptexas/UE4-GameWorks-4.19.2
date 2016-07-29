@@ -464,6 +464,11 @@ int32 UObjectLibrary::LoadAssetsFromAssetData()
 			LoadedObject = Data.GetAsset();
 
 			checkSlow(!LoadedObject || !ObjectBaseClass || LoadedObject->IsA(ObjectBaseClass));
+
+			if (!LoadedObject)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Failed to load %s referenced in %s"), *Data.PackageName.ToString(), ObjectBaseClass ? *ObjectBaseClass->GetName() : TEXT("Unnamed"));
+			}
 		}
 		else
 		{

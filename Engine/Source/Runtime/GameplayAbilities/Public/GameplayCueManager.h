@@ -108,8 +108,6 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Prespawns a single actor for gameplaycue notify actor classes that need prespawning (should be called by outside gamecode, such as gamestate) */
 	void UpdatePreallocation(UWorld* World);
 
-	void OnWorldCreated(UWorld* NewWorld, const UWorld::InitializationValues);
-
 	void OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 
 	void OnPreReplayScrub(UWorld* World);
@@ -234,7 +232,4 @@ protected:
 
 	UPROPERTY(transient)
 	TArray<FPreallocationInfo>	PreallocationInfoList_Internal;
-
-	UPROPERTY(transient)
-	FPreallocationInfo	PreallocationInfo_Internal;
 };

@@ -343,11 +343,11 @@ namespace AutomationTool
         {
             if (Params.IsGeneratingPatch)
             {
-                return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
+                return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC, Params.Client), PakName);
             }
             else
             {
-                return CombinePaths(Params.GetCreateReleaseVersionPath(SC), PakName);
+                return CombinePaths(Params.GetCreateReleaseVersionPath(SC, Params.Client), PakName);
             }        
         }
 

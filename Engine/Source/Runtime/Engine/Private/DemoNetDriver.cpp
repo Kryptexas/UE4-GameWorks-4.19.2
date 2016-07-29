@@ -45,6 +45,7 @@ static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.
 static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 0, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
 static TAutoConsoleVariable<int32> CVarDemoAsyncLoadWorld( TEXT( "demo.AsyncLoadWorld" ), 0, TEXT( "If 1, we will use seamless server travel to load the replay world asynchronously" ) );
 static TAutoConsoleVariable<float> CVarCheckpointUploadDelayInSeconds( TEXT( "demo.CheckpointUploadDelayInSeconds" ), 30.0f, TEXT( "" ) );
+static TAutoConsoleVariable<int32> CVarDemoLoadCheckpointGarbageCollect( TEXT( "demo.LoadCheckpointGarbageCollect" ), 1, TEXT("If nonzero, CollectGarbage will be called during LoadCheckpoint after the old actors and connection are cleaned up." ) );
 static TAutoConsoleVariable<float> CVarCheckpointSaveMaxMSPerFrame( TEXT( "demo.CheckpointSaveMaxMSPerFrame" ), 0.0f, TEXT( "Maximum time allowed each frame to spend on saving a checkpoint. If 0, it will save the checkpoint in a single frame, regardless of how long it takes." ) );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -62,14 +63,13 @@ public:
 	FScopedActorRoleSwap(AActor* InActor)
 		: Actor(InActor)
 	{
-		// We need to swap roles if:
-		//  1. the actor's remote role is authority - which is the case when recording a replay on a client that's connected to a live server, and
-		//  2. the actor isn't bTearOff.
-		// This is to ensure the roles appear correct when playing back this demo.
-		const bool bShouldSwapRoles =
-			Actor != nullptr &&
-			Actor->GetRemoteRole() == ROLE_Authority &&
-			!Actor->bTearOff;
+		// If recording a replay on a client that's connected to a live server, we need to act as a
+		// server while replicating actors to the replay stream. To do this, we need to ensure the
+		// actor's Role and RemoteRole properties are set as they would be on a server.
+		// Therefore, if an actor's RemoteRole is ROLE_Authority, we temporarily swap the values
+		// of Role and RemoteRole within the scope of replicating the actor to the replay.
+		// This will cause the Role properties to be correct when the replay is played back.
+		const bool bShouldSwapRoles = Actor != nullptr && Actor->GetRemoteRole() == ROLE_Authority;
 
 		if (bShouldSwapRoles)
 		{
@@ -1954,16 +1954,16 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		CVarDemoSkipTime.AsVariable()->Set(TEXT("0"), ECVF_SetByConsole);
 	}
 
-	if ( !ProcessReplayTasks() )
-	{
-		// We're busy processing tasks, return
-		return;
-	}
-
 	// Update total demo time
 	if ( ReplayStreamer->GetTotalDemoTime() > 0 )
 	{
 		DemoTotalTime = ( float )ReplayStreamer->GetTotalDemoTime() / 1000.0f;
+	}
+
+	if ( !ProcessReplayTasks() )
+	{
+		// We're busy processing tasks, return
+		return;
 	}
 
 	// Make sure there is data available to read
@@ -2321,6 +2321,17 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 	ServerConnection->Close();
 	ServerConnection->CleanUp();
+
+	// Optionally collect garbage after the old actors and connection are cleaned up - there could be a lot of pending-kill objects at this point.
+	if (CVarDemoLoadCheckpointGarbageCollect.GetValueOnGameThread() != 0)
+	{
+		const double GCStartTimeSeconds = FPlatformTime::Seconds();
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		const double GCEndTimeSeconds = FPlatformTime::Seconds();
+
+		UE_LOG(LogDemo, Verbose, TEXT("UDemoNetDriver::LoadCheckpoint: garbage collection for scrub took %.3fms."),
+			(GCEndTimeSeconds - GCStartTimeSeconds) * 1000.0);
+	}
 
 	FURL ConnectURL;
 	ConnectURL.Map = DemoURL.Map;

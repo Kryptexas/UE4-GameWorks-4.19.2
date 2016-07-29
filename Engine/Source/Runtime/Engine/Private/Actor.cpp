@@ -3531,15 +3531,14 @@ UNetDriver* GetNetDriver_Internal(UWorld* World, FName NetDriverName)
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
 }
 
-// Note: this is a private implementation that should not be called directly except by the public wrappers (GetNetMode()) where some optimizations are inlined.
+// Note: this is a private implementation that should no t be called directly except by the public wrappers (GetNetMode()) where some optimizations are inlined.
 ENetMode AActor::InternalGetNetMode() const
 {
 	UWorld* World = GetWorld();
 	UNetDriver* NetDriver = GetNetDriver_Internal(World, NetDriverName);
 	if (NetDriver != nullptr)
 	{
-		const bool bIsClientOnly = IsRunningClientOnly();
-		return bIsClientOnly ? NM_Client : NetDriver->GetNetMode();
+		return NetDriver->GetNetMode();
 	}
 
 	if (World != nullptr && World->DemoNetDriver != nullptr)

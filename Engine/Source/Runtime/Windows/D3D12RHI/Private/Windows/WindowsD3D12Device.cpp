@@ -400,6 +400,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* InMainDevice)
 	GRHIAdapterName = AdapterDesc->Description;
 	GRHIVendorId = AdapterDesc->VendorId;
 	GRHIDeviceId = AdapterDesc->DeviceId;
+	GRHIDeviceRevision = AdapterDesc->Revision;
 
 	UE_LOG(LogD3D12RHI, Log, TEXT("    GPU DeviceId: 0x%x (for the marketing name, search the web for \"GPU Device Id\")"),
 		AdapterDesc->DeviceId);

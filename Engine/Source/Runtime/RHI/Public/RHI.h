@@ -77,6 +77,7 @@ extern RHI_API FString GRHIAdapterInternalDriverVersion;
 extern RHI_API FString GRHIAdapterUserDriverVersion;
 extern RHI_API FString GRHIAdapterDriverDate;
 extern RHI_API uint32 GRHIDeviceId;
+extern RHI_API uint32 GRHIDeviceRevision;
 
 // 0 means not defined yet, use functions like IsRHIDeviceAMD() to access
 extern RHI_API uint32 GRHIVendorId;

@@ -1114,6 +1114,8 @@ bool VerifyClusterAssumptions(UObject* ClusterRootObject);
  */
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
+	SCOPE_TIME_GUARD(TEXT("Collect Garbage"));
+
 	CheckImageIntegrityAtRuntime();
 
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal" ), STAT_CollectGarbageInternal, STATGROUP_GC );

@@ -176,6 +176,10 @@ struct UNREALED_API FEditorDelegates
 	static FSimpleMulticastDelegate OnLightingBuildStarted;
 	/** Called when a lighting build has been kept */
 	static FSimpleMulticastDelegate OnLightingBuildKept;
+	/** Called when a lighting build has failed (maybe called twice if cancelled) */
+	static FSimpleMulticastDelegate OnLightingBuildFailed;
+	/** Called when a lighting build has succeeded */
+	static FSimpleMulticastDelegate OnLightingBuildSucceeded;
 	/** Called when when attempting to apply an object to an actor (via drag drop) */
 	static FOnApplyObjectToActor OnApplyObjectToActor;
 	/** Called when focusing viewport on a set of actors */

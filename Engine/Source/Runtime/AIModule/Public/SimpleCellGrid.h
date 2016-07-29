@@ -36,7 +36,9 @@ protected:
 public:
 	TSimpleCellGrid()
 		: CellSize(0)
+		, WorldBounds(EForceInit::ForceInitToZero)
 		, Origin(FLT_MAX)
+		, BoundsSize(0)
 		, Cells(nullptr)
 	{
 	}
@@ -73,7 +75,7 @@ public:
 
 	void UpdateWorldBounds()
 	{
-		WorldBounds = FBox(Origin - BoundsSize, Origin + BoundsSize);
+		WorldBounds = FBox(Origin - FVector(0,0,BoundsSize.Z / 2), Origin + FVector(BoundsSize.X, BoundsSize.Y, BoundsSize.Z / 2));
 	}
 
 	void Init(uint32 InCellSize, const FBox& Bounds)
@@ -84,7 +86,7 @@ public:
 			, static_cast<uint32>(FMath::CeilToInt(RealBoundsSize.Y / InCellSize)));
 		BoundsSize = FVector(GridSize.Width * InCellSize
 			, GridSize.Height * InCellSize
-			, FMath::CeilToInt(RealBoundsSize.Z*InCellSize));
+			, RealBoundsSize.Z);
 		Origin = FVector(Bounds.Min.X, Bounds.Min.Y, Bounds.Min.Z + (Bounds.Max.Z - Bounds.Min.Z) / 2);
 		UpdateWorldBounds();
 
@@ -101,6 +103,11 @@ public:
 	bool IsValid() const
 	{
 		return Cells != nullptr && CellSize > 0 && GridSize.Width > 0 && GridSize.Height > 0;
+	}
+
+	bool IsValidCellIndex(const uint32 CellIndex) const
+	{
+		return CellIndex < (GridSize.Height * GridSize.Width);
 	}
 
 	uint32 GetValuesMemorySize() const { return uint32(GridSize.Width * GridSize.Height) * sizeof(FCellType); }
@@ -146,8 +153,8 @@ public:
 
 	FBox GetWorldCellBox(uint32 LocationX, uint32 LocationY) const
 	{
-		const FBox Box(FVector(LocationX * CellSize, LocationY * CellSize, 0) + Origin
-			, FVector((LocationX + 1)*CellSize, (LocationY + 1)*CellSize, CellSize) + Origin);
+		const FBox Box(FVector(LocationX * CellSize, LocationY * CellSize, -BoundsSize.Z / 2) + Origin
+			, FVector((LocationX + 1)*CellSize, (LocationY + 1)*CellSize, BoundsSize.Z / 2) + Origin);
 		return Box;
 	}
 
@@ -161,12 +168,6 @@ public:
 	{
 		const uint32 CellIndex = WorldToCellIndex(WorldLocation);
 		return CellIndex < (GridSize.Height * GridSize.Width) ? Cells[CellIndex] : InvalidCell;
-	}
-
-	void SetClosestObjectiveGraphNodeIndex(const int32 CellIndex, const int32 ClosestObjectiveGraphNodeIndex)
-	{
-		// checking CellIndex validity is callers responsibility
-		Cells[CellIndex].ClosestObjectiveGraphNodeIndex = ClosestObjectiveGraphNodeIndex;
 	}
 
 	// gets a "column" (in practice a row from cache point of view)
@@ -207,7 +208,13 @@ public:
 		}
 	}
 
-protected:
+	void CleanUp()
+	{
+		FreeMemory();
+		CellSize = 0;
+		Origin = FVector(FLT_MAX);
+	}
+
 	void AllocateMemory()
 	{
 		FreeMemory();

@@ -552,6 +552,8 @@ static TAutoConsoleVariable<int32> CVarDebugEarlyCheat(
 
 void FConsoleManager::CallAllConsoleVariableSinks()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(ConsoleManager_CallAllConsoleVariableSinks);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	check(IsInGameThread());
 

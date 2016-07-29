@@ -57,6 +57,8 @@ float3 GetForwardDirectLighting(float4 SvPosition, float4 ScreenPosition, float3
 		LightData.LightDirection = ForwardGlobalLightData.DirectionalLightDirection;
 		LightData.DistanceFadeMAD = ForwardGlobalLightData.DirectionalLightDistanceFadeMAD;
 		LightData.bRadialLight = false;
+		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
+		LightData.MinRoughness = .04f;
 		
 		LightData.ShadowedBits = ForwardGlobalLightData.DirectionalLightShadowMapChannelMask != 0 ? 1 : 0;
 		// Static shadowing uses ShadowMapChannel, dynamic shadows are packed into light attenuation using PreviewShadowMapChannel
@@ -104,6 +106,8 @@ float3 GetForwardDirectLighting(float4 SvPosition, float4 ScreenPosition, float3
 		LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 		LightData.bRadialLight = true;
 		LightData.bSpotLight = LightData.SpotAnglesAndSourceRadius.x > -2.0f;
+		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
+		LightData.MinRoughness = .04f;
 
 		uint PackedShadowMapChannelMask = asuint(VectorValue2.w);
 		LightData.ShadowedBits = PackedShadowMapChannelMask != 0 ? 1 : 0;

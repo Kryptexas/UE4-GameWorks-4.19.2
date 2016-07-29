@@ -92,6 +92,13 @@ static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
 	TEXT("(higher values make LODs transition earlier, e.g., 2 is twice as fast / half the distance)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarHLODDistanceScale(
+	TEXT("r.HLOD.DistanceScale"),
+	1.0f,
+	TEXT("Scale factor for the distance used in computing discrete HLOD for transition for static meshes. (defaults to 1)\n")
+	TEXT("(higher values make HLODs transition farther away, e.g., 2 is twice the distance)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static int32 GOcclusionCullParallelPrimFetch = 0;
 static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	TEXT("r.OcclusionCullParallelPrimFetch"),
@@ -320,7 +327,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 					}
 
 					if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
-						DistanceSquared < Bounds.MinDrawDistanceSq ||
+						(DistanceSquared < Bounds.MinDrawDistanceSq) ||
 						(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 						(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false) ||
 						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
@@ -2940,7 +2947,9 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 	++UpdateCount;
 
 	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
-	{
+	{		
+		const float HLODDistanceScale = FMath::Max(0.0f, CVarHLODDistanceScale.GetValueOnRenderThread());
+
 		// Update persistent state on temporal dither sync frames
 		const FTemporalLODState& LODState = ViewState->GetTemporalLODState();
 		bool bSyncFrame = false;
@@ -2965,8 +2974,17 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			const int32 NodeIndex = Node.SceneInfo->GetIndex();
 			bool bIsVisible = VisibilityFlags[NodeIndex];
 
-			// Determine desired HLOD state
-			const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+			FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+			{
+				if (LastHLODDistanceScale != HLODDistanceScale)
+				{
+					// Determine desired HLOD state
+					const float MinDrawDistance = Scene->Primitives[NodeIndex]->Proxy->GetMinDrawDistance();						
+					const float AdjustedMinDrawDist = MinDrawDistance * HLODDistanceScale;
+					Bounds.MinDrawDistanceSq = AdjustedMinDrawDist * AdjustedMinDrawDist;
+				}
+			}
+
 			const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
 			const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
@@ -3047,7 +3065,8 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 				ViewRelevance.bInitializedThisFrame = true;
 			}
 		}
-	}
+		LastHLODDistanceScale = HLODDistanceScale;
+	}	
 }
 
 void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)

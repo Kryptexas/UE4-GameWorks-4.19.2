@@ -1435,7 +1435,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			{
 				if ( CmdLineParameters.GeneratePatch )
 				{
-					FString OutputPath = FPaths::GetPath(PakFilename) / FString(TEXT("TempFiles"));
+					FString OutputPath;
+					if (!FParse::Value(FCommandLine::Get(), TEXT("TempFiles="), OutputPath))
+					{
+						OutputPath = FPaths::GetPath(PakFilename) / FString(TEXT("TempFiles"));
+					}
 
 					IFileManager::Get().DeleteDirectory(*OutputPath);
 

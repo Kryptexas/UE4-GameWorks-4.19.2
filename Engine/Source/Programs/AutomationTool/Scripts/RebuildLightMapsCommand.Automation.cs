@@ -31,7 +31,7 @@ namespace AutomationScripts.Automation
 		public override void ExecuteBuild()
 		{
 			Log("********** REBUILD LIGHT MAPS COMMAND STARTED **********");
-
+			int SubmittedCL = 0;
 			try
 			{
 				var Params = new ProjectParams
@@ -52,7 +52,7 @@ namespace AutomationScripts.Automation
                 }
 				CreateChangelist(Params);
 				RunRebuildLightmapsCommandlet(Params);
-				SubmitRebuiltMaps();
+				SubmitRebuiltMaps(ref SubmittedCL);
 			}
 			catch (Exception ProcessEx)
 			{
@@ -63,7 +63,7 @@ namespace AutomationScripts.Automation
 			}
 
 			// The processes steps have completed successfully.
-			HandleSuccess();
+			HandleSuccess(SubmittedCL);
 
 			Log("********** REBUILD LIGHT MAPS COMMAND COMPLETED **********");
 		}
@@ -176,7 +176,7 @@ namespace AutomationScripts.Automation
 			}
 		}
 
-		private void SubmitRebuiltMaps()
+		private void SubmitRebuiltMaps(ref int SubmittedCL)
 		{
 			Log("Running Step:- RebuildLightMaps::SubmitRebuiltMaps");
 
@@ -184,7 +184,6 @@ namespace AutomationScripts.Automation
 			if (WorkingCL != -1)
 			{
                 Log("Running Step:- Submitting CL " + WorkingCL);
-				int SubmittedCL;
 				P4.Submit(WorkingCL, out SubmittedCL, true, true);
 				Log("INFO: Lightmaps successfully submitted in cl "+ SubmittedCL.ToString());
 			}
@@ -246,11 +245,11 @@ namespace AutomationScripts.Automation
 		/**
 		 * Perform any post completion steps needed. I.e. Notify stakeholders etc.
 		 */
-		private void HandleSuccess()
+		private void HandleSuccess(int SubmittedCL)
 		{
 			try
 			{
-				SendCompletionMessage(true, "Successfully rebuilt lightmaps.");
+				SendCompletionMessage(true, String.Format( "Successfully rebuilt lightmaps to cl {0}.", SubmittedCL ));
 			}
 			catch (Exception SendMailEx)
 			{
@@ -280,8 +279,8 @@ namespace AutomationScripts.Automation
 
 			Message.CC.Add(new MailAddress("Daniel.Lamb@epicgames.com"));
             Message.CC.Add(new MailAddress("Andrew.Grant@epicgames.com"));
-            Message.CC.Add(new MailAddress("Peter.Sauerbrei@epicgames.com"));
-			Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
+			Message.CC.Add(new MailAddress("jordan.walker@epicgames.com"));
+            Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
 			Message.Body = MessageBody;
             /*Attachment Attach = new Attachment();
             Message.Attachments.Add()*/

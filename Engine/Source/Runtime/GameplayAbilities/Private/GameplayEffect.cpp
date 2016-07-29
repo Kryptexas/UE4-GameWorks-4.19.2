@@ -163,6 +163,12 @@ void UGameplayEffect::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 
 #endif // #if WITH_EDITOR
 
+void UGameplayEffect::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	Super::PreSave(TargetPlatform);
+	HasGrantedApplicationImmunityQuery = !GrantedApplicationImmunityQuery.IsEmpty();
+}
+
 void UGameplayEffect::UpdateInheritedTagProperties()
 {
 	UGameplayEffect* Parent = Cast<UGameplayEffect>(GetClass()->GetSuperClass()->GetDefaultObject());
@@ -770,8 +776,7 @@ void FGameplayEffectSpec::CaptureAttributeDataFromTarget(UAbilitySystemComponent
 void FGameplayEffectSpec::CaptureDataFromSource()
 {
 	// Capture source actor tags
-	CapturedSourceTags.GetActorTags().RemoveAllTags();
-	EffectContext.GetOwnedGameplayTags(CapturedSourceTags.GetActorTags(), CapturedSourceTags.GetSpecTags());
+	RecaptureSourceActorTags();
 
 	// Capture source Attributes
 	// Is this the right place to do it? Do we ever need to create spec and capture attributes at a later time? If so, this will need to move.
@@ -785,6 +790,12 @@ void FGameplayEffectSpec::CaptureDataFromSource()
 	}
 
 	bCompletedSourceAttributeCapture = true;
+}
+
+void FGameplayEffectSpec::RecaptureSourceActorTags()
+{
+	CapturedSourceTags.GetActorTags().Reset();
+	EffectContext.GetOwnedGameplayTags(CapturedSourceTags.GetActorTags(), CapturedSourceTags.GetSpecTags());
 }
 
 bool FGameplayEffectSpec::AttemptCalculateDurationFromDef(OUT float& OutDefDuration) const

@@ -209,6 +209,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(const FGameplay
 {
 	check(AbilitySystemComponent);
 
+	FGameplayAbilityTargetDataHandle MutableData = Data;
 	AbilitySystemComponent->ConsumeClientReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey());
 
 	/** 
@@ -220,7 +221,6 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(const FGameplay
 	 *	explicitly, the client is basically just sending a 'confirm' and the server is now going to do the work
 	 *	in OnReplicatedTargetDataReceived.
 	 */
-	FGameplayAbilityTargetDataHandle MutableData = Data;
 	if (TargetActor && !TargetActor->OnReplicatedTargetDataReceived(MutableData))
 	{
 		Cancelled.Broadcast(MutableData);

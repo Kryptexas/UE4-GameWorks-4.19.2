@@ -342,6 +342,20 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 		return FCursorReply::Cursor(EMouseCursor::None);
 	}
 
+	// In game mode we may be using a borderless window, which needs OnCursorQuery call to handle window resize cursors
+	if (IsRunningGame() && GEngine && GEngine->GameViewport)
+	{
+		TSharedPtr<SWindow> Window = GEngine->GameViewport->GetWindow();
+		if (Window.IsValid())
+		{
+			FCursorReply Reply = Window->OnCursorQuery(MyGeometry, CursorEvent);
+			if (Reply.IsEventHandled())
+			{
+				return Reply;
+			}
+		}
+	}
+
 	EMouseCursor::Type MouseCursorToUse = EMouseCursor::Default;
 
 	// If the cursor should be hidden, use EMouseCursor::None,

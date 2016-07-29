@@ -2591,6 +2591,8 @@ public:
 		static const FName TBasePassVSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy"));
 		static const FName TBasePassPSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy"));
 		static const FName TShadowDepthVSVertexShadowDepth_OutputDepthfalse = FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse"));
+		static const FName TDepthOnly_PositionOnlyfalse = FName(TEXT("TDepthOnlyVS<false>"));
+		static const FName TDepthOnly_PositionOnlytrue = FName(TEXT("TDepthOnlyVS<true>"));
 
 		if (VertexFactoryType)
 		{
@@ -2603,7 +2605,9 @@ public:
 						ShaderType->GetFName() == TBasePassPSFNoLightMapPolicy ||
 						ShaderType->GetFName() == TBasePassVSFCachedPointIndirectLightingPolicy ||
 						ShaderType->GetFName() == TBasePassPSFCachedPointIndirectLightingPolicy ||
-						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse)
+						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse ||
+						ShaderType->GetFName() == TDepthOnly_PositionOnlyfalse ||
+						ShaderType->GetFName() == TDepthOnly_PositionOnlytrue)
 					{
 						return true;
 					}

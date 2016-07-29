@@ -442,7 +442,7 @@ static void AddEdgeIfNotPresent(TArray<int32>& Edges, int32 Edge0, int32 Edge1)
 	Edges.Add(Edge1);
 }
 
-#define LOCAL_EPS (0.01f)
+#define LOCAL_EPS SMALL_NUMBER
 
 void FKConvexElem::UpdateElemBox()
 {

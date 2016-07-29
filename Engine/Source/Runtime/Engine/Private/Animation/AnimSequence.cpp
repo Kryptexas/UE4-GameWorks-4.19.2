@@ -2136,6 +2136,14 @@ FGuid UAnimSequence::GenerateGuidFromRawData() const
 	return Guid;
 }
 
+void CopyTransformToRawAnimationData(const FTransform& BoneTransform, FRawAnimSequenceTrack& Track, int32 Frame)
+{
+	Track.PosKeys[Frame] = BoneTransform.GetTranslation();
+	Track.RotKeys[Frame] = BoneTransform.GetRotation();
+	Track.RotKeys[Frame].Normalize();
+	Track.ScaleKeys[Frame] = BoneTransform.GetScale3D();
+}
+
 void UAnimSequence::BakeOutAdditiveIntoRawData()
 {
 	if (!CanBakeAdditive())
@@ -2152,8 +2160,11 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	FBoneContainer RequiredBones;
 	RequiredBones.SetUseRAWData(true);
 
+	USkeleton* MySkeleton = GetSkeleton();
+	check(MySkeleton);
+
 	TArray<FBoneIndexType> RequiredBoneIndexArray;
-	RequiredBoneIndexArray.AddUninitialized(GetSkeleton()->GetReferenceSkeleton().GetNum());
+	RequiredBoneIndexArray.AddUninitialized(MySkeleton->GetReferenceSkeleton().GetNum());
 	for (int32 BoneIndex = 0; BoneIndex < RequiredBoneIndexArray.Num(); ++BoneIndex)
 	{
 		RequiredBoneIndexArray[BoneIndex] = BoneIndex;
@@ -2174,6 +2185,9 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		RawTrack.ScaleKeys.SetNumUninitialized(NumFrames);
 	}
 
+	// keep the same buffer size
+	TemporaryAdditiveBaseAnimationData = NewRawTracks;
+
 	TArray<FTrackToSkeletonMap> NewTrackToSkeletonMapTable;
 	NewTrackToSkeletonMapTable.SetNumUninitialized(RequiredBoneIndexArray.Num());
 
@@ -2189,9 +2203,9 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	//Pose evaluation data
 	FCompactPose Pose;
 	Pose.SetBoneContainer(&RequiredBones);
+	FCompactPose BasePose;
+	BasePose.SetBoneContainer(&RequiredBones);
 	FAnimExtractContext ExtractContext;
-	USkeleton* MySkeleton = GetSkeleton();
-	check(MySkeleton);
 
 	for (int Frame = 0; Frame < NumFrames; ++Frame)
 	{
@@ -2199,21 +2213,20 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		FBlendedCurve Curve;
 		Curve.InitFrom(&(MySkeleton->GetCachedAnimCurveMappingNameUids()));
 
+		FBlendedCurve DummyBaseCurve;
+		DummyBaseCurve.InitFrom(&(MySkeleton->GetCachedAnimCurveMappingNameUids()));
+
 		//Grab pose for this frame
 		const float CurrentFrameTime = Frame * IntervalTime;
 		ExtractContext.CurrentTime = CurrentFrameTime;
 		GetAnimationPose(Pose, Curve, ExtractContext);
+		GetAdditiveBasePose(BasePose, DummyBaseCurve, ExtractContext);
 
 		//Write out every track for this frame
 		for (FCompactPoseBoneIndex TrackIndex(0); TrackIndex < NewRawTracks.Num(); ++TrackIndex)
 		{
-			FTransform& BoneTransform = Pose[TrackIndex];
-
-			FRawAnimSequenceTrack& Track = NewRawTracks[TrackIndex.GetInt()];
-			Track.PosKeys[Frame] = BoneTransform.GetTranslation();
-			Track.RotKeys[Frame] = BoneTransform.GetRotation();
-			Track.RotKeys[Frame].Normalize();
-			Track.ScaleKeys[Frame] = BoneTransform.GetScale3D();
+			CopyTransformToRawAnimationData(Pose[TrackIndex], NewRawTracks[TrackIndex.GetInt()], Frame);
+			CopyTransformToRawAnimationData(BasePose[TrackIndex], TemporaryAdditiveBaseAnimationData[TrackIndex.GetInt()], Frame);
 		}
 
 		//Write out curve data for this frame

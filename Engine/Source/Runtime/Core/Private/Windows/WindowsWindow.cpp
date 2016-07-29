@@ -294,12 +294,27 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 	{
 		if (IsMaximized())
 		{
-			int32 WindowBorderSize = GetWindowBorderSize();
-			Region = CreateRectRgn( WindowBorderSize, WindowBorderSize, RegionWidth - WindowBorderSize, RegionHeight - WindowBorderSize );
+			if (GetDefinition().Type == EWindowType::GameWindow && !GetDefinition().HasOSWindowBorder)
+			{
+				// Windows caches the cxWindowBorders size at window creation. Even if borders are removed or resized Windows will continue to use this value when evaluating regions
+				// and sizing windows. When maximized this means that our window position will be offset from the screen origin by (-cxWindowBorders,-cxWindowBorders). We want to
+				// display only the region within the maximized screen area, so offset our upper left and lower right by cxWindowBorders.
+				WINDOWINFO WindowInfo;
+				FMemory::Memzero(WindowInfo);
+				WindowInfo.cbSize = sizeof(WindowInfo);
+				::GetWindowInfo(HWnd, &WindowInfo);
+
+				Region = CreateRectRgn(WindowInfo.cxWindowBorders, WindowInfo.cxWindowBorders, RegionWidth + WindowInfo.cxWindowBorders, RegionHeight + WindowInfo.cxWindowBorders);
+			}
+			else
+			{
+				int32 WindowBorderSize = GetWindowBorderSize();
+				Region = CreateRectRgn(WindowBorderSize, WindowBorderSize, RegionWidth - WindowBorderSize, RegionHeight - WindowBorderSize);
+			}
 		}
 		else
 		{
-			const bool bUseCornerRadius  = 
+			const bool bUseCornerRadius  = WindowMode == EWindowMode::Windowed &&
 #if ALPHA_BLENDED_WINDOWS
 				// Corner radii cause DWM window composition blending to fail, so we always set regions to full size rectangles
 				Definition->TransparencySupport != EWindowTransparency::PerPixel &&
@@ -595,11 +610,21 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		// If we're not in fullscreen, make it so
 		if (NewWindowMode == EWindowMode::WindowedFullscreen || NewWindowMode == EWindowMode::Fullscreen)
 		{
+			const bool bIsBorderlessGameWindow = Definition->Type == EWindowType::GameWindow && !Definition->HasOSWindowBorder;
+
 			::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
 
 			// Setup Win32 flags for fullscreen window
-			WindowStyle &= ~WindowedModeStyle;
-			WindowStyle |= FullscreenModeStyle;
+			if (bIsBorderlessGameWindow && !bTrueFullscreen)
+			{
+				WindowStyle &= ~FullscreenModeStyle;
+				WindowStyle |= WindowedModeStyle;
+			}
+			else
+			{
+				WindowStyle &= ~WindowedModeStyle;
+				WindowStyle |= FullscreenModeStyle;
+			}
 
 			SetWindowLong(HWnd, GWL_STYLE, WindowStyle);
 			::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
@@ -777,6 +802,14 @@ bool FWindowsWindow::IsPointInWindow( int32 X, int32 Y ) const
 
 int32 FWindowsWindow::GetWindowBorderSize() const
 {
+	if (GetDefinition().Type == EWindowType::GameWindow && !GetDefinition().HasOSWindowBorder)
+	{
+		// Our borderless game windows actually have a thick border to allow sizing, which we draw over to simulate
+		// a borderless window. We return zero here so that the game will correctly behave as if this is truly a
+		// borderless window.
+		return 0;
+	}
+
 	WINDOWINFO WindowInfo;
 	FMemory::Memzero( WindowInfo );
 	WindowInfo.cbSize = sizeof( WindowInfo );

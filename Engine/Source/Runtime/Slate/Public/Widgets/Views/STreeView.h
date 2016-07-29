@@ -72,6 +72,8 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< ItemType >::FOnExpansionChanged FOnExpansionChanged;
 
+	using FOnWidgetToBeRemoved = typename SListView<ItemType>::FOnWidgetToBeRemoved;
+
 public:
 	
 	SLATE_BEGIN_ARGS( STreeView<ItemType> )
@@ -93,6 +95,8 @@ public:
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
+
+		SLATE_EVENT( FOnWidgetToBeRemoved, OnRowReleased )
 
 		SLATE_EVENT( FOnTableViewScrolled, OnTreeViewScrolled )
 

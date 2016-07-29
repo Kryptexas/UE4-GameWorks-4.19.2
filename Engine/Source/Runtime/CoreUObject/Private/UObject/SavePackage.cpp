@@ -5071,7 +5071,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					// Delete the temporary file.
 					IFileManager::Get().Delete( *TempFilename );
 				}
-				COOK_STAT(SavePackageStats::MBWritten += TotalPackageSizeUncompressed);
+				COOK_STAT(SavePackageStats::MBWritten += ((double)TotalPackageSizeUncompressed) / 1024.0 / 1024.0);
 
 				SlowTask.EnterProgressFrame();
 			}

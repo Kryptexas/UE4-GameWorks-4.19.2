@@ -348,7 +348,11 @@ struct FFastArraySerializer
 {
 	GENERATED_USTRUCT_BODY()
 
-	FFastArraySerializer() : IDCounter(0), ArrayReplicationKey(0) { }
+	FFastArraySerializer()
+		: IDCounter(0)
+		, ArrayReplicationKey(0)
+		, CachedNumItems(INDEX_NONE)
+		, CachedNumItemsToConsiderForWriting(INDEX_NONE) { }
 
 	TMap<int32, int32>	ItemMap;
 	int32				IDCounter;
@@ -374,6 +378,15 @@ struct FFastArraySerializer
 	void MarkArrayDirty()
 	{
 		ItemMap.Reset();		// This allows to clients to add predictive elements to arrays without affecting replication.
+		IncrementArrayReplicationKey();
+
+		// Invalidate the cached item counts so that they're recomputed during the next write
+		CachedNumItems = INDEX_NONE;
+		CachedNumItemsToConsiderForWriting = INDEX_NONE;
+	}
+
+	void IncrementArrayReplicationKey()
+	{
 		ArrayReplicationKey++;
 		if (ArrayReplicationKey == INDEX_NONE)
 			ArrayReplicationKey++;
@@ -381,6 +394,25 @@ struct FFastArraySerializer
 
 	template< typename Type, typename SerializerType >
 	static bool FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer );
+
+private:
+	// Cached item counts, used for fast sanity checking when writing.
+	int32				CachedNumItems;
+	int32				CachedNumItemsToConsiderForWriting;
+
+	/**
+	 * Helper function for FastArrayDeltaSerialize to consolidate the logic of whether to consider writing an item in a fast TArray during network serialization.
+	 * For client replay recording, we don't want to write any items that have been added to the array predictively.
+	 */ 
+	static bool ShouldWriteFastArrayItem(const int32 ItemReplicationID, const bool bIsWritingOnClient)
+	{
+		if (bIsWritingOnClient)
+		{
+			return ItemReplicationID != INDEX_NONE;
+		}
+
+		return true;
+	}
 };
 
 // Struct used only in FFastArraySerializer::FastArrayDeltaSerialize, however, declaring it within the templated function
@@ -536,10 +568,28 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// See if the array changed at all. If the ArrayReplicationKey matches we can skip checking individual items
 		if (Parms.OldState && (ArraySerializer.ArrayReplicationKey == BaseReplicationKey))
 		{
-			// Double check the old map is valid and the old/new maps are the same size.
+			// Double check the old map is valid and that we will consider writing the same number of elements that are in the old map.
 			if (ensureMsgf(OldMap, TEXT("Invalid OldMap")))
 			{
-				ensureMsgf((OldMap->Num() == Items.Num()), TEXT("OldMap size (%d) does not match Items size (%d)"), OldMap->Num(), Items.Num());
+				// If the keys didn't change, only update the item count caches if necessary.
+				if (ArraySerializer.CachedNumItems == INDEX_NONE ||
+					ArraySerializer.CachedNumItems != Items.Num() ||
+					ArraySerializer.CachedNumItemsToConsiderForWriting == INDEX_NONE)
+				{
+					ArraySerializer.CachedNumItems = Items.Num();
+					ArraySerializer.CachedNumItemsToConsiderForWriting = 0;
+
+					// Count the number of items in the current array that may be written. On clients, items that were predicted will be skipped.
+					for (const Type& Item : Items)
+					{
+						if (ShouldWriteFastArrayItem(Item.ReplicationID, Parms.bIsWritingOnClient))
+						{
+							ArraySerializer.CachedNumItemsToConsiderForWriting++;
+						}
+					}
+				}
+
+				ensureMsgf((OldMap->Num() == ArraySerializer.CachedNumItemsToConsiderForWriting), TEXT("OldMap size (%d) does not match item count (%d)"), OldMap->Num(), ArraySerializer.CachedNumItemsToConsiderForWriting);
 			}
 
 			return false;
@@ -580,6 +630,11 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		for (int32 i=0; i < Items.Num(); ++i)
 		{
 			UE_LOG(LogNetFastTArray, Log, TEXT("    Array[%d] - ID %d. CL %d."), i, Items[i].ReplicationID, Items[i].ReplicationKey);
+			if (!ShouldWriteFastArrayItem(Items[i].ReplicationID, Parms.bIsWritingOnClient))
+			{
+				// On clients, this will skip items that were added predictively.
+				continue;
+			}
 			if (Items[i].ReplicationID == INDEX_NONE)
 			{
 				ArraySerializer.MarkItemDirty(Items[i]);
@@ -725,7 +780,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// Increment keys so that a client can re-serialize the array if needed, such as for client replay recording
 		if ( NumDeletes > 0 || NumChanged > 0 )
 		{
-			++ArraySerializer.ArrayReplicationKey;
+			ArraySerializer.IncrementArrayReplicationKey();
 		}
 
 		TArray<int32, TInlineAllocator<8> > DeleteIndices;
@@ -787,12 +842,14 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				UE_LOG(LogNetFastTArray, Log, TEXT("   Changed. ID: %d -> Idx: %d"), ElementID, *ElementIndexPtr);
 				ElementIndex = *ElementIndexPtr;
 				ThisElement = &Items[ElementIndex];
-				++Items[ElementIndex].ReplicationKey;
 				ChangedIndices.Add(ElementIndex);
 			}
 
 			// Update this element's most recent array replication key
 			ThisElement->MostRecentArrayReplicationKey = ArrayReplicationKey;
+
+			// Update this element's replication key so that a client can re-serialize the array for client replay recording
+			ThisElement->ReplicationKey++;
 
 			// Let package map know we want to track and know about any guids that are unmapped during the serialize call
 			Parms.Map->ResetTrackedUnmappedGuids( true );

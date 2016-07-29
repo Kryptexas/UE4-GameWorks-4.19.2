@@ -528,6 +528,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				GRHIAdapterName = AdapterDesc.Description;
 				GRHIVendorId = AdapterDesc.VendorId;
 				GRHIDeviceId = AdapterDesc.DeviceId;
+				GRHIDeviceRevision = AdapterDesc.Revision;
 
 				UE_LOG(LogD3D11RHI, Log, TEXT("    GPU DeviceId: 0x%x (for the marketing name, search the web for \"GPU Device Id\")"), 
 					AdapterDesc.DeviceId);

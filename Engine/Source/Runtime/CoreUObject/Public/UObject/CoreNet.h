@@ -377,6 +377,7 @@ struct FNetDeltaSerializeInfo
 		bOutSomeObjectsWereMapped	= false;
 		bCalledPreNetReceive		= false;
 		bOutHasMoreUnmapped			= false;
+		bIsWritingOnClient			= false;
 		Object						= NULL;
 	}
 
@@ -400,6 +401,7 @@ struct FNetDeltaSerializeInfo
 	bool							bOutSomeObjectsWereMapped;
 	bool							bCalledPreNetReceive;
 	bool							bOutHasMoreUnmapped;
+	bool							bIsWritingOnClient;
 	UObject*						Object;
 
 	// Debugging variables

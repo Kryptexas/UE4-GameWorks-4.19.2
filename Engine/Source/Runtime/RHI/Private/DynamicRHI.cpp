@@ -163,7 +163,7 @@ void RHIInit(bool bHasEditorToken)
 	{
 		GRHICommandList.LatchBypass(); // read commandline for bypass flag
 
-		if (FApp::ShouldUseNullRHI())
+		if (!FApp::CanEverRender())
 		{
 			InitNullRHI();
 		}

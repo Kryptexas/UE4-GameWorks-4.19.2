@@ -1085,15 +1085,17 @@ AEmitterCameraLensEffectBase* APlayerCameraManager::AddCameraLensEffect(TSubclas
 			SpawnInfo.Instigator = Instigator;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save these into a map
-			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnInfo);
+			
+			AEmitterCameraLensEffectBase const* const EmitterCDO = LensEffectEmitterClass->GetDefaultObject<AEmitterCameraLensEffectBase>();
+			FVector CamLoc;
+			FRotator CamRot;
+			GetCameraViewPoint(CamLoc, CamRot);
+			FTransform SpawnTransform = AEmitterCameraLensEffectBase::GetAttachedEmitterTransform(EmitterCDO, CamLoc, CamRot, GetFOVAngle());
+			
+			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnTransform, SpawnInfo);
 			if (LensEffect != NULL)
 			{
-				FVector CamLoc;
-				FRotator CamRot;
-				GetCameraViewPoint(CamLoc, CamRot);
 				LensEffect->RegisterCamera(this);
-				LensEffect->UpdateLocation(CamLoc, CamRot, GetFOVAngle());
-
 				CameraLensEffects.Add(LensEffect);
 			}
 		}

@@ -918,6 +918,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	/** Recapture attributes from source and target for cloning */
 	void RecaptureAttributeDataForClone(UAbilitySystemComponent* OriginalASC, UAbilitySystemComponent* NewASC);
 
+	/** Recaptures source actor tags of this spec without modifying anything else */
+	void RecaptureSourceActorTags();
+
 	/** Helper function to initialize all of the capture definitions required by the spec */
 	void SetupAttributeCaptureDefinitions();
 
@@ -1820,6 +1823,7 @@ public:
 	void ValidateGameplayEffect();
 
 	virtual void PostLoad() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 
 	// ----------------------------------------------
 

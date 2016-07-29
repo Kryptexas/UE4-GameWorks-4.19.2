@@ -235,6 +235,13 @@ private:
 
 	// sync group index
 	int32 SyncGroupIndex;
+
+	/**
+	 * Optional position to force next update (ignoring the real delta time).
+	 * Used by external systems that are setting animation times directly. Will fire off notifies and other events provided the animation system is ticking.
+	 */
+	TOptional<float> ForcedNextPosition;
+
 public:
 	/** Montage to Montage Synchronization.
 	 *
@@ -323,6 +330,9 @@ public:
 	 */
 	void SetPosition(float const & InPosition) { Position = InPosition; MarkerTickRecord.Reset(); }
 	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
+
+	/** Set the position of this animation as part of the next animation update tick. Will trigger events and notifies for the delta time. */
+	void SetNextPositionWithEvents(float InPosition) { ForcedNextPosition = InPosition; }
 
 	/**
 	 * Montage Tick happens in 2 phases

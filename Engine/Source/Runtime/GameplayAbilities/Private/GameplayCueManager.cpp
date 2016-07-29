@@ -54,7 +54,6 @@ UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 
 void UGameplayCueManager::OnCreated()
 {
-	FWorldDelegates::OnPostWorldInitialization.AddUObject(this, &UGameplayCueManager::OnWorldCreated);
 	FWorldDelegates::OnWorldCleanup.AddUObject(this, &UGameplayCueManager::OnWorldCleanup);
 	FWorldDelegates::OnPreWorldFinishDestroy.AddUObject(this, &UGameplayCueManager::OnWorldCleanup, true, true);
 
@@ -206,6 +205,9 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 				return SpawnedCue;
 			}
 		}
+
+		// We aren't going to use this existing cue notify actor, so clear it.
+		SpawnedCue = nullptr;
 	}
 
 	UWorld* World = GetWorld();
@@ -314,7 +316,12 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 			// Remove this now from our internal map so that it doesn't get reused like a currently active cue would
 			if (TWeakObjectPtr<AGameplayCueNotify_Actor>* WeakPtrPtr = NotifyMapActor.Find(Actor->NotifyKey))
 			{
-				WeakPtrPtr->Reset();
+				// Only remove if this is the current actor in the map!
+				// This could happen if a GC notify actor has a delayed removal and another GC event happens before the delayed removal happens (the old GC actor could replace the latest one in the map)
+				if (WeakPtrPtr->Get() == Actor)
+				{
+					WeakPtrPtr->Reset();
+				}
 			}
 
 			UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("NotifyGameplayCueActorFinished %s"), *GetNameSafe(Actor));
@@ -1166,15 +1173,11 @@ void UGameplayCueManager::CheckForPreallocation(UClass* GCClass)
 			GameplayCueClassesForPreallocation.Add(InstancedCue);
 
 			// Add it to any world specific lists
-#if WITH_EDITOR
 			for (FPreallocationInfo& Info : PreallocationInfoList_Internal)
 			{
 				ensure(Info.ClassesNeedingPreallocation.Contains(InstancedCue)==false);
 				Info.ClassesNeedingPreallocation.Push(InstancedCue);
 			}
-#else
-			PreallocationInfo_Internal.ClassesNeedingPreallocation.Push(InstancedCue);
-#endif
 		}
 	}
 }
@@ -1222,7 +1225,6 @@ void UGameplayCueManager::UpdatePreallocation(UWorld* World)
 
 FPreallocationInfo& UGameplayCueManager::GetPreallocationInfo(UWorld* World)
 {
-#if WITH_EDITOR
 	for (FPreallocationInfo& Info : PreallocationInfoList_Internal)
 	{
 		if (FObjectKey(World) == Info.OwningWorldKey)
@@ -1236,43 +1238,14 @@ FPreallocationInfo& UGameplayCueManager::GetPreallocationInfo(UWorld* World)
 
 	PreallocationInfoList_Internal.Add(NewInfo);
 	return PreallocationInfoList_Internal.Last();
-
-#else
-	return PreallocationInfo_Internal;
-#endif
-
-}
-
-void UGameplayCueManager::OnWorldCreated(UWorld* NewWorld, const UWorld::InitializationValues IV )
-{
-	// Attempting to track down rare GC error where PreallocationInfo_Internal.OwningWorld is not cleaned up.
-	ABILITY_LOG(Display, TEXT("UGameplayCueManager::OnWorldCreated %s Key 0x%X . Current PreallocationInfo_Internal: Key 0x%X"), *GetNameSafe(NewWorld), GetTypeHash(FObjectKey(NewWorld)), GetTypeHash(PreallocationInfo_Internal.OwningWorldKey));
-
-	PreallocationInfo_Internal.PreallocatedInstances.Reset();
-	PreallocationInfo_Internal.OwningWorldKey = FObjectKey(NewWorld);
 }
 
 void UGameplayCueManager::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)
 {
-	// Attempting to track down rare GC error where PreallocationInfo_Internal.OwningWorld is not cleaned up.
-	ABILITY_LOG(Display, TEXT("UGameplayCueManager::OnWorldCleanup %s Key 0x%X . Current PreallocationInfo_Internal: Key 0x%X"), *GetNameSafe(World), GetTypeHash(FObjectKey(World)), GetTypeHash(PreallocationInfo_Internal.OwningWorldKey));
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	DumpPreallocationStats(World);
 #endif
 
-	if (PreallocationInfo_Internal.OwningWorldKey == FObjectKey(World))
-	{
-		// Reset PreallocationInfo_Internal
-		OnWorldCreated(nullptr, UWorld::InitializationValues());
-		ABILITY_LOG(Display, TEXT("UGameplayCueManager::OnWorldCleanup Reset PreallocationInfo_Internal"));
-	}
-	else
-	{
-		ABILITY_LOG(Display, TEXT("UGameplayCueManager::OnWorldCleanup did NOT Reset PreallocationInfo_Internal"));
-	}
-
-#if WITH_EDITOR
 	for (int32 idx=0; idx < PreallocationInfoList_Internal.Num(); ++idx)
 	{
 		if (PreallocationInfoList_Internal[idx].OwningWorldKey == FObjectKey(World))
@@ -1282,8 +1255,6 @@ void UGameplayCueManager::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool
 			idx--;
 		}
 	}
-#endif	
-	
 }
 
 void UGameplayCueManager::DumpPreallocationStats(UWorld* World)

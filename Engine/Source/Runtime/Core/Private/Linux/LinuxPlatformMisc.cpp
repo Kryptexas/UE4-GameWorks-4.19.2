@@ -118,7 +118,7 @@ void FLinuxPlatformMisc::PlatformInit()
 
 	// do not remove the below check for IsFirstInstance() - it is not just for logging, it actually lays the claim to be first
 	bool bFirstInstance = FPlatformProcess::IsFirstInstance();
-	bool bIsNullRHI = FApp::ShouldUseNullRHI();
+	bool bIsNullRHI = !FApp::CanEverRender();
 
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
 	UE_LOG(LogInit, Log, TEXT(" - we are %sthe first instance of this executable"), bFirstInstance ? TEXT("") : TEXT("not "));

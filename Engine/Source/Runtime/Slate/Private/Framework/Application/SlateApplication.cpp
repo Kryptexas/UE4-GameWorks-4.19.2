@@ -1445,6 +1445,8 @@ extern SLATECORE_API int32 bFoldTick;
 
 void FSlateApplication::Tick()
 {
+	SCOPE_TIME_GUARD(TEXT("FSlateApplication::Tick"));
+
 	FScopeLock SlateTickAccess(&SlateTickCriticalSection);
 
 	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
@@ -1842,17 +1844,24 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 
 	TSharedRef< FGenericWindow > NewWindow = PlatformApplication->MakeWindow();
 
-	InSlateWindow->SetNativeWindow( NewWindow );
-
-	InSlateWindow->SetCachedScreenPosition( Position );
-	InSlateWindow->SetCachedSize( Size );
-
-	PlatformApplication->InitializeWindow( NewWindow, Definition, NativeParent, bShowImmediately );
-
-	ITextInputMethodSystem* const TextInputMethodSystem = PlatformApplication->GetTextInputMethodSystem();
-	if ( TextInputMethodSystem )
+	if (LIKELY(FApp::CanEverRender()))
 	{
-		TextInputMethodSystem->ApplyDefaults( NewWindow );
+		InSlateWindow->SetNativeWindow(NewWindow);
+
+		InSlateWindow->SetCachedScreenPosition( Position );
+		InSlateWindow->SetCachedSize( Size );
+
+		PlatformApplication->InitializeWindow( NewWindow, Definition, NativeParent, bShowImmediately );
+
+		ITextInputMethodSystem* const TextInputMethodSystem = PlatformApplication->GetTextInputMethodSystem();
+		if ( TextInputMethodSystem )
+		{
+			TextInputMethodSystem->ApplyDefaults( NewWindow );
+		}
+	}
+	else
+	{
+		InSlateWindow->SetNativeWindow(MakeShareable(new FGenericWindow()));
 	}
 
 	return NewWindow;
@@ -2547,6 +2556,28 @@ void FSlateApplication::ReleaseMouseCaptureForUser(int32 UserIndex)
 	MouseCaptor.InvalidateCaptureForUser(UserIndex);
 }
 
+
+FDelegateHandle FSlateApplication::RegisterOnWindowActionNotification(const FOnWindowAction& Notification)
+{
+	OnWindowActionNotifications.Add(Notification);
+	return OnWindowActionNotifications.Last().GetHandle();
+}
+
+void FSlateApplication::UnregisterOnWindowActionNotification(FDelegateHandle Handle)
+{
+	for (int32 Index = 0; Index < OnWindowActionNotifications.Num();)
+	{
+		if (OnWindowActionNotifications[Index].GetHandle() == Handle)
+		{
+			OnWindowActionNotifications.RemoveAtSwap(Index);
+		}
+		else
+		{
+			Index++;
+		}
+	}
+}
+
 TSharedPtr<SWindow> FSlateApplication::GetActiveTopLevelWindow() const
 {
 	return ActiveTopLevelWindow.Pin();
@@ -3083,6 +3114,15 @@ void FSlateApplication::UpdateCursorLockRegion()
 		{
 			LockCursorToPath(PathToWidget);
 		}
+	}
+}
+
+void FSlateApplication::SetLastUserInteractionTime(double InCurrentTime)
+{
+	if (LastUserInteractionTime != InCurrentTime)
+	{
+		LastUserInteractionTime = InCurrentTime;
+		LastUserInteractionTimeUpdateEvent.Broadcast(LastUserInteractionTime);
 	}
 }
 
@@ -4439,7 +4479,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 
 	FReply Reply = FReply::Unhandled();
 
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	
 	if (IsDragDropping() && InKeyEvent.GetKey() == EKeys::Escape)
 	{
@@ -4542,7 +4582,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 
 	FReply Reply = FReply::Unhandled();
 
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
@@ -4581,7 +4621,7 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 
 	FReply Reply = FReply::Unhandled();
 
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
@@ -4683,7 +4723,7 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 	SCOPE_CYCLE_COUNTER(STAT_ProcessMouseButtonDown);
 
 	QueueSynthesizedMouseMove();
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	
 	if (PlatformWindow.IsValid())
@@ -5248,7 +5288,7 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 	SCOPE_CYCLE_COUNTER(STAT_ProcessMouseButtonDoubleClick);
 
 	QueueSynthesizedMouseMove();
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	
 	PlatformApplication->SetCapture( PlatformWindow );
@@ -5322,7 +5362,7 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 	SCOPE_CYCLE_COUNTER(STAT_ProcessMouseButtonUp);
 
 	QueueSynthesizedMouseMove();
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	PressedMouseButtons.Remove( MouseEvent.GetEffectingButton() );
 
@@ -5385,7 +5425,7 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 		return false;
 	}
 
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	
 	// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while scrolling
 
@@ -5509,7 +5549,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		UpdateToolTip( AllowSpawningOfToolTips );
 		
 		// Guard against synthesized mouse moves and only track user interaction if the cursor pos changed
-		LastUserInteractionTime = this->GetCurrentTime();
+		SetLastUserInteractionTime(this->GetCurrentTime());
 	}
 
 	// When the event came from the OS, we are guaranteed to be over a slate window.
@@ -5738,7 +5778,7 @@ bool FSlateApplication::OnMotionDetected(const FVector& Tilt, const FVector& Rot
 void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 {
 	QueueSynthesizedMouseMove();
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	
 	if ( FSlateUser* User = GetOrCreateUser(MotionEvent.GetUserIndex()) )
 	{
@@ -5896,7 +5936,7 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 		// Only window activate by mouse is considered a user interaction
 		if (bActivatedByMouse)
 		{
-			LastUserInteractionTime = this->GetCurrentTime();
+			SetLastUserInteractionTime(this->GetCurrentTime());
 		}
 		
 		// Widgets that happen to be under the mouse need to update if activation changes
@@ -6209,7 +6249,7 @@ EDropEffect::Type FSlateApplication::OnDragEnter( const TSharedRef< SWindow >& W
 
 bool FSlateApplication::ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered, FDragDropEvent& DragDropEvent )
 {
-	LastUserInteractionTime = this->GetCurrentTime();
+	SetLastUserInteractionTime(this->GetCurrentTime());
 	
 	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( DragDropEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
 
@@ -6300,7 +6340,28 @@ EDropEffect::Type FSlateApplication::OnDragDrop( const TSharedPtr< FGenericWindo
 
 bool FSlateApplication::OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType)
 {
-	return !IsExternalUIOpened();
+	// Return false to tell the OS layer that it should ignore the action
+
+	if (IsExternalUIOpened())
+	{
+		return false;
+	}
+
+	bool bResult = true;
+
+	for (int32 Index = 0; Index < OnWindowActionNotifications.Num(); Index++)
+	{
+		if (OnWindowActionNotifications[Index].IsBound())
+		{
+			if (OnWindowActionNotifications[Index].Execute(PlatformWindow, InActionType))
+			{
+				// If the delegate returned true, it means that it wants the OS layer to stop processing the action
+				bResult = false;
+			}
+		}
+	}
+
+	return bResult;
 }
 
 void FSlateApplication::OnVirtualDesktopSizeChanged(const FDisplayMetrics& NewDisplayMetric)

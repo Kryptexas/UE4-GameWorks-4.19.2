@@ -2274,6 +2274,8 @@ void FHttpNetworkReplayStreamingFactory::Tick( float DeltaTime )
 {
 	for ( int i = HttpStreamers.Num() - 1; i >= 0; i-- )
 	{
+		check( HttpStreamers[i].IsValid() );
+
 		HttpStreamers[i]->Tick( DeltaTime );
 		
 		// We can release our hold when streaming is completely done

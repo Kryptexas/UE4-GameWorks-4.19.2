@@ -370,6 +370,12 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	TArray<struct FRawAnimSequenceTrack> SourceRawAnimationData;
 
 	/**
+	* Temporary base pose buffer for additive animation that is used by compression. Do not use this unless within compression. It is not available.
+	* This is used by remove linear key that has to rebuild to full transform in order to compress
+	*/
+	TArray<struct FRawAnimSequenceTrack> TemporaryAdditiveBaseAnimationData;
+
+	/**
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */

@@ -1421,9 +1421,12 @@ namespace UnrealBuildTool
 		public static int ExtendedErrorCode = 0;
 		private static int Main(string[] Arguments)
 		{
-			// make sure we catch any exceptions and return an appropriate error code.
-			// Some inner code already does this (to ensure the Mutex is released),
-			// but we need something to cover all outer code as well.
+            // make sure we catch any exceptions and return an appropriate error code.
+            // Some inner code already does this (to ensure the Mutex is released),
+            // but we need something to cover all outer code as well.
+
+            // Console.WriteLine("UBT Cmd Line: " + string.Join(" ", Arguments));
+
 			try
 			{
 				// Make it more explicit what startup code should not be accessing config data.

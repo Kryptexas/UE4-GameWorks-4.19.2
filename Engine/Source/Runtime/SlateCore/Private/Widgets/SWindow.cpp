@@ -1636,8 +1636,11 @@ bool PointWithinSlateRect(const FVector2D& Point, const FSlateRect& Rect)
 
 EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 {
+	const bool bIsFullscreenMode = GetWindowMode() == EWindowMode::WindowedFullscreen || GetWindowMode() == EWindowMode::Fullscreen;
+	const bool bIsBorderlessGameWindow = Type == EWindowType::GameWindow && !bHasOSWindowBorder;
+
 	// Don't allow position/resizing of window while in fullscreen mode by ignoring Title Bar/Border Zones
-	if ( GetWindowMode() == EWindowMode::WindowedFullscreen || GetWindowMode() == EWindowMode::Fullscreen )
+	if ( bIsFullscreenMode && !bIsBorderlessGameWindow )
 	{
 		return EWindowZone::ClientArea;
 	}
@@ -1646,7 +1649,7 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 	{
 		int32 Row = 1;
 		int32 Col = 1;
-		if (SizingRule == ESizingRule::UserSized)
+		if (SizingRule == ESizingRule::UserSized && !bIsFullscreenMode)
 		{
 			if (LocalMousePosition.X < (UserResizeBorder.Left + 5))
 			{

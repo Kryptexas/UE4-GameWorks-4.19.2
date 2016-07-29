@@ -606,6 +606,8 @@ void UAnimCompress::BitwiseCompressAnimationTracks(
 	}
 }
 
+#if WITH_EDITOR
+
 FString UAnimCompress::MakeDDCKey()
 {
 	FString Key;
@@ -642,7 +644,6 @@ void UAnimCompress::PopulateDDCKey(FArchive& Ar)
 
  * Tracks
  */
-
 
 bool UAnimCompress::Reduce(UAnimSequence* AnimSeq, bool bOutput)
 {
@@ -687,7 +688,7 @@ bool UAnimCompress::Reduce(class UAnimSequence* AnimSeq, FAnimCompressContext& C
 
 	return bResult;
 }
-
+#endif // WITH_EDITOR
 
 void UAnimCompress::FilterTrivialPositionKeys(
 	FTranslationTrack& Track, 

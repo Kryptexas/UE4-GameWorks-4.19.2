@@ -244,6 +244,18 @@ void FMovieSceneSkeletalAnimationTrackInstance::SetAnimPosition(USkeletalMeshCom
 	if (CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 	{
 		FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping);
+
+		// Ensure the sequence is not stopped
+		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+		UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
+		if(SingleNodeInst)
+		{
+			SingleNodeInst->SetPlaying(true);
+		}
+		else if (AnimInst && CurrentlyPlayingMontage.IsValid())
+		{
+			AnimInst->Montage_Resume(CurrentlyPlayingMontage.Get());
+		}
 	}
 }
 

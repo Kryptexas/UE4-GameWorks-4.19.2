@@ -61,7 +61,7 @@ void FNullDynamicRHI::Shutdown()
  */
 void* FNullDynamicRHI::GetStaticBuffer()
 {
-	ensureMsgf(WITH_EDITOR || !IsRunningDedicatedServer(), TEXT("NullRHI should never allocate memory on the server. Change the caller to avoid doing allocs in when FApp::ShouldUseNullRHI() is true."));
+	ensureMsgf(WITH_EDITOR || !IsRunningDedicatedServer(), TEXT("We are trying to avoid allocating RHI memory when not rendering. Consider changing the caller to avoid resource initialization when FApp::CanEverRender() is false."));
 
 	static void* Buffer = nullptr;
 	if (!Buffer)

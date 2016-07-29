@@ -120,6 +120,7 @@ namespace AutomationTool
 			DefaultProperties["Branch"] = P4Enabled ? P4Env.BuildRootP4 : "Unknown";
 			DefaultProperties["EscapedBranch"] = P4Enabled ? P4Env.BuildRootEscaped : "Unknown";
 			DefaultProperties["Change"] = P4Enabled ? P4Env.Changelist.ToString() : "0";
+			DefaultProperties["CodeChange"] = P4Enabled ? P4Env.CodeChangelist.ToString() : "0";
 			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
 			DefaultProperties["IsBuildMachine"] = IsBuildMachine ? "true" : "false";
 			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();

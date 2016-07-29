@@ -88,11 +88,13 @@ bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connectio
 
 	FNetSerializeCB NetSerializeCB( Connection->Driver );
 
-	Parms.Writer			= &OutBunch;
-	Parms.Map				= Connection->PackageMap;
-	Parms.OldState			= OldState.Get();
-	Parms.NewState			= &NewFullState;
-	Parms.NetSerializeCB	= &NetSerializeCB;
+	Parms.Writer				= &OutBunch;
+	Parms.Map					= Connection->PackageMap;
+	Parms.OldState				= OldState.Get();
+	Parms.NewState				= &NewFullState;
+	Parms.NetSerializeCB		= &NetSerializeCB;
+	Parms.bIsWritingOnClient	= (Connection->Driver && Connection->Driver->GetWorld()) ? Connection->Driver->GetWorld()->IsRecordingClientReplay() : false;
+
 
 	UScriptStruct::ICppStructOps * CppStructOps = StructProperty->Struct->GetCppStructOps();
 
@@ -582,12 +584,13 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			FNetDeltaSerializeInfo Parms;
 
 			FNetSerializeCB NetSerializeCB( OwningChannel->Connection->Driver );
-
-			Parms.DebugName			= StructProperty->GetName();
-			Parms.Struct			= InnerStruct;
-			Parms.Map				= PackageMap;
-			Parms.Reader			= &Reader;
-			Parms.NetSerializeCB	= &NetSerializeCB;
+			
+			Parms.DebugName				= StructProperty->GetName();
+			Parms.Struct				= InnerStruct;
+			Parms.Map					= PackageMap;
+			Parms.Reader				= &Reader;
+			Parms.NetSerializeCB		= &NetSerializeCB;
+			Parms.bIsWritingOnClient	= false;
 
 			// Call the custom delta serialize function to handle it
 			CppStructOps->NetDeltaSerialize( Parms, Data );
@@ -817,7 +820,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 	ConditionMap[COND_ReplayOnly] = bIsReplay;
 
 	// Make sure net field export group is registered
-	FNetFieldExportGroup* NetFieldExportGroup = OwningChannel->GetOrCreateNetFieldExportGroupForClassNetCache( ObjectClass );
+	FNetFieldExportGroup* NetFieldExportGroup = OwningChannel->GetOrCreateNetFieldExportGroupForClassNetCache( Object );
 
 	// Replicate those properties.
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )
@@ -1274,6 +1277,7 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 
 		Parms.bUpdateUnmappedObjects	= true;
 		Parms.bCalledPreNetReceive		= bSomeObjectsWereMapped;	// RepLayout used this to flag whether PreNetReceive was called
+		Parms.bIsWritingOnClient		= false;
 		Parms.Object					= Object;
 
 		// Call the custom delta serialize function to handle it

@@ -1296,7 +1296,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, TempWriter, Parms );
 
 	// Make sure net field export group is registered
-	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj->GetClass() );
+	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj );
 
 	int32 HeaderBits	= 0;
 	int32 ParameterBits	= 0;

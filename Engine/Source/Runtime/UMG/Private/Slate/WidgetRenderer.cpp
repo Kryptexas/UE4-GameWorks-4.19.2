@@ -82,7 +82,7 @@ FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	, ViewOffset(0.0f, 0.0f)
 {
 #if !UE_SERVER
-	if (!IsRunningDedicatedServer())
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
 		Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer(bUseGammaSpace);
 	}
@@ -100,7 +100,7 @@ ISlate3DRenderer* FWidgetRenderer::GetSlateRenderer()
 
 UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& Widget, FVector2D DrawSize)
 {
-	if ( !IsRunningDedicatedServer() )
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
 		UTextureRenderTarget2D* RenderTarget = FWidgetRenderer::CreateTargetFor(DrawSize, TF_Bilinear, bUseGammaSpace);
 
@@ -114,7 +114,7 @@ UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& W
 
 UTextureRenderTarget2D* FWidgetRenderer::CreateTargetFor(FVector2D DrawSize, TextureFilter InFilter, bool bUseGammaCorrection)
 {
-	if ( !IsRunningDedicatedServer() )
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
 		const bool bIsLinearSpace = !bUseGammaCorrection;
 
@@ -172,13 +172,8 @@ void FWidgetRenderer::DrawWindow(
 	float DeltaTime)
 {
 #if !UE_SERVER
-	if (!IsRunningDedicatedServer())
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
-		if ( GUsingNullRHI )
-		{
-			return;
-		}
-
 	    if ( !bFoldTick )
 	    {
 		    Window->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);

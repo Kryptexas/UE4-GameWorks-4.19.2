@@ -2974,12 +2974,19 @@ static FORCEINLINE FString GenerateClassNetCacheNetFieldExportGroupName( const U
 	return ObjectClass->GetName() + FString( TEXT( "_ClassNetCache" ) );
 }
 
-FNetFieldExportGroup* UActorChannel::GetOrCreateNetFieldExportGroupForClassNetCache( const UClass* ObjectClass )
+FNetFieldExportGroup* UActorChannel::GetOrCreateNetFieldExportGroupForClassNetCache( const UObject* Object )
 {
 	if ( !Connection->InternalAck )
 	{
 		return nullptr;
 	}
+
+	check( Object );
+
+	const UClass* ObjectClass = Object->GetClass();
+
+	checkf( ObjectClass, TEXT( "ObjectClass is null. ObjectName: %s" ), *GetNameSafe( Object ) );
+	checkf( ObjectClass->IsValidLowLevelFast(), TEXT( "ObjectClass is invalid. ObjectName: %s" ), *GetNameSafe( Object ) );
 
 	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )Connection->PackageMap );
 

@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Warning, All);
 
 UMeshComponent::UMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

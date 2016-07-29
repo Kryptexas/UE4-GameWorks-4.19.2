@@ -143,6 +143,15 @@ ANALYTICSET_API void SetAnayticsETPerfTrackingRunID(const FString& RunID)
 
 #endif
 
+/**
+ * Implementation of analytics for Epic Telemetry.
+ * Supports caching events and flushing them periodically (currently hardcoded limits).
+ * Also supports a set of default attributes that will be added to every event.
+ * For efficiency, this set of attributes is added directly into the set of cached events
+ * with a special flag to indicate its purpose. This allows the set of cached events to be used like
+ * a set of commands to be executed on flush, and allows us to inject the default attributes
+ * efficiently into many events without copying the array at all.
+ */
 class FAnalyticsProviderET :
 	public IAnalyticsProviderET,
 	public FTickerObjectBase,
@@ -171,12 +180,25 @@ public:
 	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
 	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override;
 	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override;
+	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override;
 
 	virtual ~FAnalyticsProviderET();
 
 	FString GetAPIKey() const { return APIKey; }
 
 private:
+	/** 
+	 * Determines whether we need to flush. Generally, this is only if we have cached events.
+	 * Since the first event is always a control event, and we overwrite multiple control events in a row,
+	 * we can safely say that if the array is longer than 1 item, it must have a real event in it to flush.
+	 * 
+	 * NOTE: This MUST be accessed inside a lock on CachedEventsCS!!
+	 */
+	bool ShouldFlush() const
+	{
+		return CachedEvents.Num() > 1;
+	}
+
 	bool bSessionInProgress;
 	/** ET Game API Key - Get from your account manager */
 	FString APIKey;
@@ -216,18 +238,25 @@ private:
 		/** local time when event was triggered */
 		FDateTime TimeStamp;
 		/** Whether this event was added using the Json API. */
-		bool bIsJsonEvent;
+		uint32 bIsJsonEvent : 1;
+		/** Whether this event is setting the default attributes to add to all events. Every cached event list will start with one of these, though it may be empty. */
+		uint32 bIsDefaultAttributes : 1;
 		/**
 		* Constructor. Requires rvalue-refs to ensure we move values efficiently into this struct.
 		*/
-		FAnalyticsEventEntry(FString&& InEventName, TArray<FAnalyticsEventAttribute>&& InAttributes, bool bInIsJsonEvent)
+		FAnalyticsEventEntry(FString&& InEventName, TArray<FAnalyticsEventAttribute>&& InAttributes, bool bInIsJsonEvent, bool bInIsDefaultAttributes)
 			: EventName(MoveTemp(InEventName))
 			, Attributes(MoveTemp(InAttributes))
 			, TimeStamp(FDateTime::UtcNow())
 			, bIsJsonEvent(bInIsJsonEvent)
+			, bIsDefaultAttributes(bInIsDefaultAttributes)
 		{}
 	};
-	/** List of analytic events pending a server update */
+	
+	/** 
+	 * List of analytic events pending a server update .
+	 * NOTE: This MUST be accessed inside a lock on CachedEventsCS!!
+	 */
 	TArray<FAnalyticsEventEntry> CachedEvents;
 
 	/** Critical section for updating the CachedEvents */
@@ -259,7 +288,7 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 	, APIServer(ConfigValues.APIServerET)
 	, MaxCachedNumEvents(20)
 	, MaxCachedElapsedTime(60.0f)
-	, bShouldCacheEvents(!FParse::Param(FCommandLine::Get(), TEXT("ANALYTICSDISABLECACHING")))
+	, bShouldCacheEvents(true)
 	, FlushEventsCountdown(MaxCachedElapsedTime)
 	, bInDestructor(false)
 	, UseLegacyProtocol(ConfigValues.UseLegacyProtocol)
@@ -269,11 +298,18 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 		UE_LOG(LogAnalytics, Fatal, TEXT("AnalyticsET: APIKey (%s) and APIServer (%s) cannot be empty!"), *APIKey, *APIServer);
 	}
 
-	// if we are not caching events, we are operating in debug mode. Turn on super-verbose analytics logging
-	if (!bShouldCacheEvents)
+	// force very verbose logging if we are force-disabling events.
+	bool bForceDisableCaching = FParse::Param(FCommandLine::Get(), TEXT("ANALYTICSDISABLECACHING"));
+	if (bForceDisableCaching)
 	{
 		UE_SET_LOG_VERBOSITY(LogAnalytics, VeryVerbose);
+		bShouldCacheEvents = false;
 	}
+
+	// if we are caching events, presize the array to max size. Otherwise, we will never have more than two entries in the array (one for the default attributes, one for the actual event)
+	CachedEvents.Reserve(bShouldCacheEvents ? MaxCachedNumEvents + 1 : 2);
+	// make sure that we always start with one control event in the CachedEvents array.
+	CachedEvents.Emplace(FString(), TArray<FAnalyticsEventAttribute>(), false, true);
 
 	UE_LOG(LogAnalytics, Verbose, TEXT("[%s] Initializing ET Analytics provider"), *APIKey);
 
@@ -316,7 +352,7 @@ bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 	// this is probably mostly fine for now, and simply favoring not crashing at the moment
 	FScopeLock ScopedLock(&CachedEventsCS);
 
-	if (CachedEvents.Num() > 0)
+	if (ShouldFlush())
 	{
 		// Countdown to flush
 		FlushEventsCountdown -= DeltaSeconds;
@@ -382,8 +418,8 @@ void FAnalyticsProviderET::EndSession()
 	{
 		RecordEvent(TEXT("SessionEnd"), TArray<FAnalyticsEventAttribute>());
 	}
-		FlushEvents();
-		SessionID.Empty();
+	FlushEvents();
+	SessionID.Empty();
 
 	bSessionInProgress = false;
 }
@@ -395,35 +431,49 @@ void FAnalyticsProviderET::FlushEvents()
 	FScopeLock ScopedLock(&CachedEventsCS);
 
 	// Make sure we don't try to flush too many times. When we are not caching events it's possible this can be called when there are no events in the array.
-	if (CachedEvents.Num() == 0)
+	if (!ShouldFlush())
 	{
 		return;
 	}
-
+	
 	ANALYTICS_FLUSH_TRACKING_BEGIN();
-	int EventCount = CachedEvents.Num();
+	int EventCount = 0;
 	int PayloadSize = 0;
 
 	if(ensure(FModuleManager::Get().IsModuleLoaded("HTTP")))
 	{
 		FString Payload;
-
 		FDateTime CurrentTime = FDateTime::UtcNow();
+		// Track the current set of default attributes. We move into this array instead of just referencing it
+		// because at the end we will push the latest value back onto the list of cached events.
+		// We can do this without actually copying the array this way.
+		TArray<FAnalyticsEventAttribute> CurrentDefaultAttributes;
 
 		if (!UseLegacyProtocol)
 		{
 			TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
 			JsonWriter->WriteObjectStart();
 			JsonWriter->WriteArrayStart(TEXT("Events"));
-			for (const FAnalyticsEventEntry& Entry : CachedEvents)
+			for (FAnalyticsEventEntry& Entry : CachedEvents)
 			{
-				// event entry
-				JsonWriter->WriteObjectStart();
-				JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
-				FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
-				JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
-				if (Entry.Attributes.Num() > 0)
+				if (Entry.bIsDefaultAttributes)
 				{
+					// This is the default attributes, so update the array.
+					CurrentDefaultAttributes = MoveTemp(Entry.Attributes);
+				}
+				else
+				{
+					++EventCount;
+					// event entry
+					JsonWriter->WriteObjectStart();
+					JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
+					FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
+					JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
+					// default attributes for this event
+					for (const FAnalyticsEventAttribute& Attr : CurrentDefaultAttributes)
+					{
+						JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
+					}
 					// optional attributes for this event
 					if (!Entry.bIsJsonEvent)
 					{
@@ -439,9 +489,10 @@ void FAnalyticsProviderET::FlushEvents()
 							JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValue);
 						}
 					}
+					JsonWriter->WriteObjectEnd();
 				}
-				JsonWriter->WriteObjectEnd();
 			}
+
 			JsonWriter->WriteArrayEnd();
 			JsonWriter->WriteObjectEnd();
 			JsonWriter->Close();
@@ -483,57 +534,78 @@ void FAnalyticsProviderET::FlushEvents()
 			{
 				HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestComplete);
 			}
- 			HttpRequest->ProcessRequest();
+			HttpRequest->ProcessRequest();
 		}
 		else
 		{
 			// this is a legacy pathway that doesn't accept batch payloads of cached data. We'll just send one request for each event, which will be slow for a large batch of requests at once.
-			for (const auto& Event : CachedEvents)
+			for (auto& Event : CachedEvents)
 			{
-				FString EventParams;
-				if (Event.Attributes.Num() > 0)
+				if (Event.bIsDefaultAttributes)
 				{
-					for (int Ndx = 0; Ndx<FMath::Min(Event.Attributes.Num(), 40); ++Ndx)
-					{
-						EventParams += FString::Printf(TEXT("&AttributeName%d=%s&AttributeValue%d=%s"), 
-							Ndx, 
-							*FPlatformHttp::UrlEncode(Event.Attributes[Ndx].AttrName), 
-							Ndx, 
-							*FPlatformHttp::UrlEncode(Event.Attributes[Ndx].AttrValue));
-					}
+					// This is the default attributes, so update the array.
+					CurrentDefaultAttributes = MoveTemp(Event.Attributes);
 				}
+				else
+				{
+					++EventCount;
+					FString EventParams;
+					int PayloadNdx = 0;
+					// default attributes for this event
+					for (int DefaultAttributeNdx = 0; DefaultAttributeNdx < CurrentDefaultAttributes.Num() && PayloadNdx < 40; ++DefaultAttributeNdx, ++PayloadNdx)
+					{
+						EventParams += FString::Printf(TEXT("&AttributeName%d=%s&AttributeValue%d=%s"),
+							PayloadNdx,
+							*FPlatformHttp::UrlEncode(CurrentDefaultAttributes[DefaultAttributeNdx].AttrName),
+							PayloadNdx,
+							*FPlatformHttp::UrlEncode(CurrentDefaultAttributes[DefaultAttributeNdx].AttrValue));
+					}
+					// optional attributes for this event
+					for (int AttrNdx = 0; AttrNdx < Event.Attributes.Num() && PayloadNdx < 40; ++AttrNdx, ++PayloadNdx)
+					{
+						EventParams += FString::Printf(TEXT("&AttributeName%d=%s&AttributeValue%d=%s"),
+							PayloadNdx,
+							*FPlatformHttp::UrlEncode(Event.Attributes[AttrNdx].AttrName),
+							PayloadNdx,
+							*FPlatformHttp::UrlEncode(Event.Attributes[AttrNdx].AttrValue));
+					}
 
-				// log out the un-encoded values to make reading the log easier.
-				UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:SendEvent.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&EventName=%s%s"), 
-					*APIKey,
-					*SessionID,
-					*APIKey,
-					*AppVersion,
-					*UserID,
-					*Event.EventName,
-					*EventParams);
+					// log out the un-encoded values to make reading the log easier.
+					UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:SendEvent.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&EventName=%s%s"),
+						*APIKey,
+						*SessionID,
+						*APIKey,
+						*AppVersion,
+						*UserID,
+						*Event.EventName,
+						*EventParams);
 
-				// Create/send Http request for an event
-				TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-				HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("text/plain"));
-				// Don't need to URL encode the APIServer or the EventParams, which are already encoded, and contain parameter separaters that we DON'T want encoded.
-				HttpRequest->SetURL(FString::Printf(TEXT("%sSendEvent.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&EventName=%s%s"),
-					*APIServer, 
-					*FPlatformHttp::UrlEncode(SessionID), 
-					*FPlatformHttp::UrlEncode(APIKey), 
-					*FPlatformHttp::UrlEncode(AppVersion), 
-					*FPlatformHttp::UrlEncode(UserID), 
-					*FPlatformHttp::UrlEncode(Event.EventName), 
-					*EventParams));
-				PayloadSize = HttpRequest->GetURL().Len();
-				HttpRequest->SetVerb(TEXT("GET"));
-				HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
-				HttpRequest->ProcessRequest();
+					// Create/send Http request for an event
+					TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+					HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("text/plain"));
+					// Don't need to URL encode the APIServer or the EventParams, which are already encoded, and contain parameter separaters that we DON'T want encoded.
+					HttpRequest->SetURL(FString::Printf(TEXT("%sSendEvent.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&EventName=%s%s"),
+						*APIServer,
+						*FPlatformHttp::UrlEncode(SessionID),
+						*FPlatformHttp::UrlEncode(APIKey),
+						*FPlatformHttp::UrlEncode(AppVersion),
+						*FPlatformHttp::UrlEncode(UserID),
+						*FPlatformHttp::UrlEncode(Event.EventName),
+						*EventParams));
+					PayloadSize = HttpRequest->GetURL().Len();
+					HttpRequest->SetVerb(TEXT("GET"));
+					HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
+					HttpRequest->ProcessRequest();
+				}
 			}
 		}
 
 		FlushEventsCountdown = MaxCachedElapsedTime;
-		CachedEvents.Empty();
+		// clear the array but don't reclaim the memory.
+		CachedEvents.Reset();
+		// Push the current set of default attributes back onto the events list for next time we flush.
+		// Can't call SetDefaultEventAttributes to do this because it already assumes we have one item in the array.
+		CachedEvents.Emplace(FString(), MoveTemp(CurrentDefaultAttributes), false, true);
 	}
 	ANALYTICS_FLUSH_TRACKING_END(PayloadSize, EventCount);
 }
@@ -580,7 +652,7 @@ void FAnalyticsProviderET::RecordEvent(FString EventName, TArray<FAnalyticsEvent
 	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
 	// this is probably mostly fine for now, and simply favoring not crashing at the moment
 	FScopeLock ScopedLock(&CachedEventsCS);
-	CachedEvents.Emplace(MoveTemp(EventName), MoveTemp(Attributes), false);
+	CachedEvents.Emplace(MoveTemp(EventName), MoveTemp(Attributes), false, false);
 	// if we aren't caching events, flush immediately. This is really only for debugging as it will significantly affect bandwidth.
 	if (!bShouldCacheEvents)
 	{
@@ -594,11 +666,26 @@ void FAnalyticsProviderET::RecordEventJson(FString EventName, TArray<FAnalyticsE
 	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
 	// this is probably mostly fine for now, and simply favoring not crashing at the moment
 	FScopeLock ScopedLock(&CachedEventsCS);
-	CachedEvents.Emplace(MoveTemp(EventName), MoveTemp(AttributesJson), true);
+	CachedEvents.Emplace(MoveTemp(EventName), MoveTemp(AttributesJson), true, false);
 	// if we aren't caching events, flush immediately. This is really only for debugging as it will significantly affect bandwidth.
 	if (!bShouldCacheEvents)
 	{
 		FlushEvents();
+	}
+}
+
+void FAnalyticsProviderET::SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes)
+{
+	FScopeLock ScopedLock(&CachedEventsCS);
+	// we know we always have one entry in CachedEvents, so no need to check for Num() > 0.
+	// If we are trying to add two default attribute events in a row, just overwrite the last one.
+	if (CachedEvents.Last().bIsDefaultAttributes)
+	{
+		CachedEvents.Last() = FAnalyticsEventEntry(FString(), MoveTemp(Attributes), false, true);
+	}
+	else
+	{
+		CachedEvents.Emplace(FString(), MoveTemp(Attributes), false, true);
 	}
 }
 

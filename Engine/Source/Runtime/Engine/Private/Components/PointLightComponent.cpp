@@ -55,7 +55,8 @@ public:
 		SpotAngles = FVector2D( -2.0f, 1.0f );
 		LightSourceRadius = SourceRadius;
 		LightSourceLength = SourceLength;
-		LightMinRoughness = MinRoughness;
+		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
+		LightMinRoughness = FMath::Max(MinRoughness, .04f);
 	}
 
 	virtual FSphere GetBoundingSphere() const

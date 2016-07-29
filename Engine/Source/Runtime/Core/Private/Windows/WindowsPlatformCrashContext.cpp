@@ -367,7 +367,7 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 		// Suppress the user input dialog if we're running in unattended mode
 		bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode || IsRunningDedicatedServer();
 		// Pass nullrhi to CRC when the engine is in this mode to stop the CRC attempting to initialize RHI when the capability isn't available
-		bool bNullRHI = FApp::ShouldUseNullRHI();
+		bool bNullRHI = !FApp::CanEverRender();
 
 		if (bNoDialog || bNullRHI)
 		{

@@ -27,6 +27,9 @@
 #include <cfgmgr32.h>
 #include <windowsx.h>
 
+// Platform code uses IsMaximized which is defined to IsZoomed by windowsx.h
+#pragma push_macro("IsMaximized")
+#undef IsMaximized
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
@@ -860,6 +863,50 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				// Let windows absorb this message if using the standard border
 				if ( wParam && !CurrentNativeEventWindow->GetDefinition().HasOSWindowBorder )
 				{
+					// Borderless game windows are not actually borderless, they have a thick border that we simply draw game content over (client
+					// rect contains the window border). When maximized Windows will bleed our border over the edges of the monitor. So that we
+					// don't draw content we are going to later discard, we change a maximized window's size and position so that the entire
+					// window rect (including the border) sits inside the monitor. The size adjustments here will be sent to WM_MOVE and
+					// WM_SIZE and the window will still be considered maximized.
+					if (CurrentNativeEventWindow->GetDefinition().Type == EWindowType::GameWindow && CurrentNativeEventWindow->IsMaximized())
+					{
+						// Ask the system for the window border size as this is the amount that Windows will bleed our window over the edge
+						// of our desired space. The value returned by CurrentNativeEventWindow will be incorrect for our usage here as it
+						// refers to the border of the window that Slate should consider.
+						WINDOWINFO WindowInfo;
+						FMemory::Memzero(WindowInfo);
+						WindowInfo.cbSize = sizeof(WindowInfo);
+						::GetWindowInfo(hwnd, &WindowInfo);
+
+						// A pointer to the window size data that Windows will use is passed to us in lParam
+						LPNCCALCSIZE_PARAMS ResizingRects = (LPNCCALCSIZE_PARAMS)lParam;
+						// The first rectangle contains the client rectangle of the resized window. Decrease window size on all sides by
+						// the border size.
+						ResizingRects->rgrc[0].left += WindowInfo.cxWindowBorders;
+						ResizingRects->rgrc[0].top += WindowInfo.cxWindowBorders;
+						ResizingRects->rgrc[0].right -= WindowInfo.cxWindowBorders;
+						ResizingRects->rgrc[0].bottom -= WindowInfo.cxWindowBorders;
+						// The second rectangle contains the destination rectangle for the content currently displayed in the window's
+						// client rect. Windows will blit the previous client content into this new location to simulate the move of
+						// the window until the window can repaint itself. This should also be adjusted to our new window size.
+						ResizingRects->rgrc[1].left = ResizingRects->rgrc[0].left;
+						ResizingRects->rgrc[1].top = ResizingRects->rgrc[0].top;
+						ResizingRects->rgrc[1].right = ResizingRects->rgrc[0].right;
+						ResizingRects->rgrc[1].bottom = ResizingRects->rgrc[0].bottom;
+						// A third rectangle is passed in that contains the source rectangle (client area from window pre-maximize).
+						// It's value should not be changed.
+
+						// The new window position. Pull in the window on all sides by the width of the window border so that the
+						// window fits entirely on screen. We'll draw over these borders with game content.
+						ResizingRects->lppos->x += WindowInfo.cxWindowBorders;
+						ResizingRects->lppos->y += WindowInfo.cxWindowBorders;
+						ResizingRects->lppos->cx -= 2 * WindowInfo.cxWindowBorders;
+						ResizingRects->lppos->cy -= 2 * WindowInfo.cxWindowBorders;
+
+						// Informs Windows to use the values as we altered them.
+						return WVR_VALIDRECTS;
+					}
+
 					return 0;
 				}
 			}
@@ -2286,5 +2333,7 @@ TSharedRef<FTaskbarList> FTaskbarList::Create()
 	return TaskbarList;
 }
 
+// Restore the windowsx.h macro for IsMaximized
+#pragma pop_macro("IsMaximized")
 
 #include "HideWindowsPlatformTypes.h"

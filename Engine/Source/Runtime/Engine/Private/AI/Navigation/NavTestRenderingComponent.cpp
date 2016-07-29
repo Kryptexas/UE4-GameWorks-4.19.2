@@ -450,7 +450,7 @@ FBoxSphereBounds UNavTestRenderingComponent::CalcBounds(const FTransform& LocalT
 	ANavigationTestingActor* TestActor = Cast<ANavigationTestingActor>(GetOwner());
 	if (TestActor)
 	{
-		BoundingBox = TestActor->GetComponentsBoundingBox();
+		BoundingBox = TestActor->GetComponentsBoundingBox(true);
 	
 		if (TestActor->LastPath.IsValid())
 		{

@@ -1611,6 +1611,7 @@ public:
 	FLODSceneTree(FScene* InScene)
 		: Scene(InScene)
 		, TemporalLODSyncTime(0.0f)
+		, LastHLODDistanceScale(-1.0f)
 		, UpdateCount(0)
 	{
 		PrimitiveFadingLODMap.Empty();
@@ -1690,6 +1691,7 @@ private:
 	TBitArray<> PrimitiveFadingLODMap;
 	TBitArray<>	PrimitiveFadingOutLODMap;
 	float		TemporalLODSyncTime;
+	float		LastHLODDistanceScale;
 
 	/**  Update Count. This is used to skip Child node that has been updated */
 	int32 UpdateCount;

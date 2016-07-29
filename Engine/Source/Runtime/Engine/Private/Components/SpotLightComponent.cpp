@@ -86,7 +86,8 @@ public:
 		SpotAngles = FVector2D(CosOuterCone, InvCosConeDifference);
 		LightSourceRadius = SourceRadius;
 		LightSourceLength = SourceLength;
-		LightMinRoughness = MinRoughness;
+		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
+		LightMinRoughness = FMath::Max(MinRoughness, .04f);
 	}
 
 	// FLightSceneInfo interface.

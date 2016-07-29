@@ -557,7 +557,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	if (!PackagingSettings->ApplocalPrerequisitesDirectory.Path.IsEmpty())
 	{
-		OptionalParams += FString::Printf(TEXT(" -applocaldir=\"%s\""), *(PackagingSettings->ApplocalPrerequisitesDirectory.Path));
+		OptionalParams += FString::Printf(TEXT(" -applocaldirectory=\"%s\""), *(PackagingSettings->ApplocalPrerequisitesDirectory.Path));
 	}
 
 	if (PackagingSettings->ForDistribution)

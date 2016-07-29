@@ -243,6 +243,7 @@ FString GRHIAdapterUserDriverVersion;
 FString GRHIAdapterDriverDate;
 uint32 GRHIVendorId = 0;
 uint32 GRHIDeviceId = 0;
+uint32 GRHIDeviceRevision = 0;
 bool GSupportsRenderDepthTargetableShaderResources = true;
 bool GSupportsRenderTargetFormat_PF_G8 = true;
 bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;

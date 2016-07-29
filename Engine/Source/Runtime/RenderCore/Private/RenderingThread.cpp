@@ -789,8 +789,10 @@ static FAutoConsoleVariableRef CVarTimeToBlockOnRenderFence(
  */
 static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThreadTasks = false)
 {
+	SCOPE_TIME_GUARD(TEXT("GameThreadWaitForTask"));
+
 	check(IsInGameThread());
-	check(IsValidRef(Task));
+	check(IsValidRef(Task));	
 
 	if (!Task->IsComplete())
 	{

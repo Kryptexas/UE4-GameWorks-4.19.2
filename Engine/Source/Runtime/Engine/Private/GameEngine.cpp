@@ -328,6 +328,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const FText WindowTitleVar = FText::Format(FText::FromString(TEXT("{0} {1}")), WindowTitleComponent, WindowDebugInfoComponent);
 	const FText WindowTitle = FText::Format(WindowTitleVar, Args);
 	const bool bShouldPreserveAspectRatio = GetDefault<UGeneralProjectSettings>()->bShouldWindowPreserveAspectRatio;
+	const bool bUseBorderlessWindow = GetDefault<UGeneralProjectSettings>()->bUseBorderlessWindow;
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -360,8 +361,20 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 		MaxWindowHeight = FMath::Max(DisplayMetrics.VirtualDisplayRect.Bottom - DisplayMetrics.VirtualDisplayRect.Top, ResY);
 	}
 
+	static FWindowStyle BorderlessStyle = FWindowStyle::GetDefault();
+	BorderlessStyle
+		.SetActiveTitleBrush(FSlateNoResource())
+		.SetInactiveTitleBrush(FSlateNoResource())
+		.SetFlashTitleBrush(FSlateNoResource())
+		.SetOutlineBrush(FSlateNoResource())
+		.SetBorderBrush(FSlateNoResource())
+		.SetBackgroundBrush(FSlateNoResource())
+		.SetChildBackgroundBrush(FSlateNoResource());
+
 	TSharedRef<SWindow> Window = SNew(SWindow)
-	.ClientSize(FVector2D( ResX, ResY ))
+	.Type(EWindowType::GameWindow)
+	.Style(bUseBorderlessWindow ? &BorderlessStyle : &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window"))
+	.ClientSize(FVector2D(ResX, ResY))
 	.Title(WindowTitle)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
@@ -369,8 +382,10 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.MaxHeight(MaxWindowHeight)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
-	.UseOSWindowBorder(true)
-	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio);
+	.UseOSWindowBorder(!bUseBorderlessWindow)
+	.CreateTitleBar(!bUseBorderlessWindow)
+	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio)
+	.LayoutBorder(bUseBorderlessWindow ? FMargin(0) : FMargin(5, 5, 5, 5));
 
 	const bool bShowImmediately = false;
 
@@ -928,6 +943,8 @@ float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing
 
 void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 {
+	SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick"));
+
 	SCOPE_CYCLE_COUNTER(STAT_GameEngineTick);
 	NETWORK_PROFILER(GNetworkProfiler.TrackFrameBegin());
 
@@ -972,14 +989,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			LastTimeLogsFlushed = FPlatformTime::Seconds();
 		}
 	}
-	else if (!IsRunningCommandlet())
+	else if (!IsRunningCommandlet() && FApp::CanEverRender())	// skip in case of commandlets, dedicated servers and headless games
 	{
 		// Clean up the game viewports that have been closed.
 		CleanupGameViewport();
 	}
 
-	// If all viewports closed, time to exit.
-	if(GIsClient && GameViewport == NULL )
+	// If all viewports closed, time to exit - unless we're running headless
+	if (GIsClient && (GameViewport == nullptr) && FApp::CanEverRender())
 	{
 		UE_LOG(LogEngine, Log,  TEXT("All Windows Closed") );
 		FPlatformMisc::RequestExit( 0 );

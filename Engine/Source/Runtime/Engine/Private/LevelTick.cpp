@@ -376,6 +376,8 @@ void AController::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTick
 
 void UWorld::TickNetClient( float DeltaSeconds )
 {
+	SCOPE_TIME_GUARD(TEXT("UWorld::TickNetClient"));
+
 	// If our net driver has lost connection to the server,
 	// and there isn't a PendingNetGame, throw a network failure error.
 	if( NetDriver->ServerConnection->State == USOCK_Closed )

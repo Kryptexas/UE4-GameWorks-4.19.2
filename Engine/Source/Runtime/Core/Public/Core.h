@@ -84,6 +84,7 @@
 #include "RandomStream.h"				// Random stream definitions.
 #include "OutputDevices.h"				// Output devices
 #include "CoreStats.h"
+#include "TimeGuard.h"
 #include "MemStack.h"					// Stack based memory management.
 #include "AsyncWork.h"					// Async threaded work
 #include "Archive.h"					// Utility archive classes

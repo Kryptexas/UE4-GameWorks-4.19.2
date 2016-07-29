@@ -10,6 +10,7 @@ const FVector DefaultRefVector(0);
 // FCoreDelegates
 
 TArray<FCoreDelegates::FHotFixDelegate> FCoreDelegates::HotFixDelegates;
+TArray<FCoreDelegates::FResolvePackageNameDelegate> FCoreDelegates::PackageNameResolvers;
 
 FCoreDelegates::FHotFixDelegate& FCoreDelegates::GetHotfixDelegate(EHotfixDelegates::Type HotFix)
 {

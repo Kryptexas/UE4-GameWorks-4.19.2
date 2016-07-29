@@ -1488,6 +1488,8 @@ protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 
+	virtual void BeginPlay() override;
+
 	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass);

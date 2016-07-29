@@ -1391,6 +1391,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static bool GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions);
 
 	/**
+	* Gets the list of windowed resolutions which are convenient for the current primary display size.
+	* @return true if successfully queried the device for available resolutions.
+	*/
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	static bool GetConvenientWindowedResolutions(TArray<FIntPoint>& Resolutions);
+
+	/**
 	 * Gets the smallest Y resolution we want to support in the UI, clamped within reasons
 	 * @return value in pixels
 	 */

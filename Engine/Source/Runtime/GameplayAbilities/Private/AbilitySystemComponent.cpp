@@ -167,6 +167,15 @@ void UAbilitySystemComponent::OnUnregister()
 	DestroyActiveState();
 }
 
+void UAbilitySystemComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Cache net role here as well since for map-placed actors on clients, the Role may not be set correctly yet in OnRegister.
+	CachedIsNetSimulated = IsNetSimulating();
+	ActiveGameplayEffects.OwnerIsNetAuthority = !CachedIsNetSimulated;
+}
+
 // ---------------------------------------------------------
 
 const FActiveGameplayEffect* UAbilitySystemComponent::GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const

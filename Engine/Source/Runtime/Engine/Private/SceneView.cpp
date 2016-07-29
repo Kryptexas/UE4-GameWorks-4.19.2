@@ -91,7 +91,6 @@ void FBuiltinSamplersUniformBuffer::ReleaseDynamicRHI()
 TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;
 
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT("r.SSR.MaxRoughness"),
 	-1.0f,
@@ -101,6 +100,9 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT(" 0..1: use specified max roughness (overrride PostprocessVolume setting)\n")
 	TEXT(" -1: no override (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 
 static TAutoConsoleVariable<int32> CVarShadowFreezeCamera(
 	TEXT("r.Shadow.FreezeCamera"),
@@ -1035,6 +1037,24 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(ColorGain);
 		LERP_PP(ColorOffset);
 
+		LERP_PP(ColorSaturationShadows);
+		LERP_PP(ColorContrastShadows);
+		LERP_PP(ColorGammaShadows);
+		LERP_PP(ColorGainShadows);
+		LERP_PP(ColorOffsetShadows);
+
+		LERP_PP(ColorSaturationMidtones);
+		LERP_PP(ColorContrastMidtones);
+		LERP_PP(ColorGammaMidtones);
+		LERP_PP(ColorGainMidtones);
+		LERP_PP(ColorOffsetMidtones);
+
+		LERP_PP(ColorSaturationHighlights);
+		LERP_PP(ColorContrastHighlights);
+		LERP_PP(ColorGammaHighlights);
+		LERP_PP(ColorGainHighlights);
+		LERP_PP(ColorOffsetHighlights);
+
 		LERP_PP(FilmWhitePoint);
 		LERP_PP(FilmSaturation);
 		LERP_PP(FilmChannelMixerRed);
@@ -1594,7 +1614,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 	}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		float Value = CVarSSRMaxRoughness.GetValueOnGameThread();
 
@@ -1603,7 +1622,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			FinalPostProcessSettings.ScreenSpaceReflectionMaxRoughness = Value;
 		}
 	}
-#endif
 
 	{
 		static const auto AmbientOcclusionStaticFractionCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionStaticFraction"));

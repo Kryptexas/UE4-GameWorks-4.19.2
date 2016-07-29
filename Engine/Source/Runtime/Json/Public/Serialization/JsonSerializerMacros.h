@@ -594,6 +594,11 @@ public:
 struct FJsonSerializable
 {
 	/**
+		Virtualize destructor as we provide overridable functions
+	*/
+	virtual ~FJsonSerializable() {}
+
+	/**
 	 * Used to allow serialization of a const ref
 	 *
 	 * @return the corresponding json string

@@ -193,11 +193,11 @@ class FUDPPingAsyncResult
 {
 public:
 
-	FUDPPingAsyncResult(ISocketSubsystem* InSocketSub, const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback InCallback)
+	FUDPPingAsyncResult(ISocketSubsystem* InSocketSub, const FString& TargetAddress, float Timeout, uint32 StackSize, FIcmpEchoResultCallback InCallback)
 		: FTickerObjectBase(0)
 		, SocketSub(InSocketSub)
 		, Callback(InCallback)
-		, bThreadCompleted(true)
+		, bThreadCompleted(false)
 	{
 		if (SocketSub)
 		{
@@ -208,7 +208,12 @@ public:
 				bThreadCompleted = true;
 				return Result;
 			};
-			FutureResult = Async(EAsyncExecution::ThreadPool, Task);
+
+			FutureResult = AsyncThread(Task, StackSize);
+		}
+		else
+		{
+			bThreadCompleted = true;
 		}
 	}
 
@@ -253,6 +258,18 @@ private:
 
 void FUDPPing::UDPEcho(const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback HandleResult)
 {
+	int32 StackSize = 0;
+
+#if PING_ALLOWS_CUSTOM_THREAD_SIZE
+	GConfig->GetInt(TEXT("Ping"), TEXT("StackSize"), StackSize, GEngineIni);
+
+	// Sanity clamp
+	if (StackSize != 0)
+	{
+		StackSize = FMath::Max<int32>(FMath::Min<int32>(StackSize, 2 * 1024 * 1024), 32 * 1024);
+	}
+#endif
+
 	ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-	new FUDPPingAsyncResult(SocketSub, TargetAddress, Timeout, HandleResult);
+	new FUDPPingAsyncResult(SocketSub, TargetAddress, Timeout, StackSize, HandleResult);
 }

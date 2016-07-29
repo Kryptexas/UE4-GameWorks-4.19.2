@@ -95,6 +95,7 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_WhiteTint:1;
 
+	// Color Correction controls
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_ColorSaturation:1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
@@ -105,6 +106,39 @@ struct FPostProcessSettings
 	uint32 bOverride_ColorGain:1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_ColorOffset:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorSaturationShadows : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorContrastShadows : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorGammaShadows : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorGainShadows : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorOffsetShadows : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorSaturationMidtones : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorContrastMidtones : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorGammaMidtones : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorGainMidtones : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorOffsetMidtones : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorSaturationHighlights : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorContrastHighlights : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorGammaHighlights : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorGainHighlights : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorOffsetHighlights : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_FilmWhitePoint:1;
@@ -460,16 +494,50 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=WhiteBalance, meta=(UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_WhiteTint", DisplayName = "Tint"))
 	float WhiteTint;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturation", DisplayName = "Saturation"))
-	FVector ColorSaturation;
-	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorContrast", DisplayName = "Contrast"))
-	FVector ColorContrast;
-	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGamma", DisplayName = "Gamma"))
-	FVector ColorGamma;
-	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGain", DisplayName = "Gain"))
-	FVector ColorGain;
-	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffset", DisplayName = "Offset"))
-	FVector ColorOffset;
+	// Color Correction controls
+	UPROPERTY(interp, BlueprintReadWrite, Category = ColorGrading, meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturation", DisplayName = "Saturation"))
+	FVector4 ColorSaturation;
+	UPROPERTY(interp, BlueprintReadWrite, Category = ColorGrading, meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorContrast", DisplayName = "Contrast"))
+	FVector4 ColorContrast;
+	UPROPERTY(interp, BlueprintReadWrite, Category = ColorGrading, meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGamma", DisplayName = "Gamma"))
+	FVector4 ColorGamma;
+	UPROPERTY(interp, BlueprintReadWrite, Category = ColorGrading, meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGain", DisplayName = "Gain"))
+	FVector4 ColorGain;
+	UPROPERTY(interp, BlueprintReadWrite, Category = ColorGrading, meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffset", DisplayName = "Offset"))
+	FVector4 ColorOffset;
+
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturationShadows", DisplayName = "SaturationShadows"))
+	FVector4 ColorSaturationShadows;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorContrastShadows", DisplayName = "ContrastShadows"))
+	FVector4 ColorContrastShadows;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGammaShadows", DisplayName = "GammaShadows"))
+	FVector4 ColorGammaShadows;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGainShadows", DisplayName = "GainShadows"))
+	FVector4 ColorGainShadows;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffsetShadows", DisplayName = "OffsetShadows"))
+	FVector4 ColorOffsetShadows;
+
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturationMidtones", DisplayName = "SaturationMidtones"))
+	FVector4 ColorSaturationMidtones;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorContrastMidtones", DisplayName = "ContrastMidtones"))
+	FVector4 ColorContrastMidtones;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGammaMidtones", DisplayName = "GammaMidtones"))
+	FVector4 ColorGammaMidtones;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGainMidtones", DisplayName = "GainMidtones"))
+	FVector4 ColorGainMidtones;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Midtones", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffsetMidtones", DisplayName = "OffsetMidtones"))
+	FVector4 ColorOffsetMidtones;
+
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturationHighlights", DisplayName = "SaturationHighlights"))
+	FVector4 ColorSaturationHighlights;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorContrastHighlights", DisplayName = "ContrastHighlights"))
+	FVector4 ColorContrastHighlights;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGammaHighlights", DisplayName = "GammaHighlights"))
+	FVector4 ColorGammaHighlights;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGainHighlights", DisplayName = "GainHighlights"))
+	FVector4 ColorGainHighlights;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffsetHighlights", DisplayName = "OffsetHighlights"))
+	FVector4 ColorOffsetHighlights;
 
 	UPROPERTY(interp, BlueprintReadWrite, Category=Film, meta=(editcondition = "bOverride_FilmWhitePoint", DisplayName = "Tint", HideAlphaChannel))
 	FLinearColor FilmWhitePoint;
@@ -1043,11 +1111,30 @@ struct FPostProcessSettings
 		WhiteTemp = 6500.0f;
 		WhiteTint = 0.0f;
 
-		ColorSaturation = FVector( 1.0f, 1.0f, 1.0f );
-		ColorContrast = FVector( 1.0f, 1.0f, 1.0f );
-		ColorGamma = FVector( 1.0f, 1.0f, 1.0f );
-		ColorGain = FVector( 1.0f, 1.0f, 1.0f );
-		ColorOffset = FVector( 0.0f, 0.0f, 0.0f );
+		// Color Correction controls
+		ColorSaturation = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorContrast = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGamma = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGain = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorOffset = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		ColorSaturationShadows = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorContrastShadows = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGammaShadows = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGainShadows = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorOffsetShadows = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		ColorSaturationMidtones = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorContrastMidtones = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGammaMidtones = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGainMidtones = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorOffsetMidtones = FVector4(0.f, 0.0f, 0.0f, 0.0f);
+
+		ColorSaturationHighlights = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorContrastHighlights = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGammaHighlights = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorGainHighlights = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		ColorOffsetHighlights = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 
 		// default values:
 		FilmWhitePoint = FLinearColor(1.0f,1.0f,1.0f);

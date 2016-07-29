@@ -3090,6 +3090,23 @@ bool UKismetSystemLibrary::GetSupportedFullscreenResolutions(TArray<FIntPoint>& 
 	return false;
 }
 
+bool UKismetSystemLibrary::GetConvenientWindowedResolutions(TArray<FIntPoint>& Resolutions)
+{
+	FDisplayMetrics DisplayMetrics;
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+	}
+	else
+	{
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+	}
+
+	GenerateConvenientWindowedResolutions(DisplayMetrics, Resolutions);
+
+	return true;
+}
+
 static TAutoConsoleVariable<int32> CVarMinYResolutionForUI(
 	TEXT("r.MinYResolutionForUI"),
 	720,

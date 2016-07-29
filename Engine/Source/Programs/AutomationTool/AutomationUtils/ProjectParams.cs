@@ -588,7 +588,7 @@ namespace AutomationTool
 			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
-			this.AppLocalDirectory = ParseParamValueIfNotSpecified(Command, AppLocalDirectory, "applocaldir", String.Empty, true);
+			this.AppLocalDirectory = ParseParamValueIfNotSpecified(Command, AppLocalDirectory, "applocaldirectory", String.Empty, true);
 			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -1972,10 +1972,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Get the path to the directory of the version we are basing a diff or a patch on.  
 		/// </summary>				
-		public String GetBasedOnReleaseVersionPath(DeploymentContext SC)
+		public String GetBasedOnReleaseVersionPath(DeploymentContext SC, bool bIsClientOnly)
 		{
 			String BasePath = BasedOnReleaseVersionBasePath;
-			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false);
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
                 BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
@@ -1998,10 +1998,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="SC"></param>
 		/// <returns></returns>
-		public String GetCreateReleaseVersionPath(DeploymentContext SC)
+		public String GetCreateReleaseVersionPath(DeploymentContext SC, bool bIsClientOnly)
 		{
 			String BasePath = CreateReleaseVersionBasePath;
-			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false);
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
 				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", CreateReleaseVersion, Platform);

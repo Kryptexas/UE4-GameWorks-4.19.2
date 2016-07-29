@@ -728,23 +728,30 @@ bool FGameplayCueParameters::IsInstigatorLocallyControlledPlayer(AActor* Fallbac
 		return EffectContext.IsLocallyControlledPlayer();
 	}
 	
-	// Look at instigator
-	APawn* Pawn = Cast<APawn>(Instigator.Get());
-	if (!Pawn)
+	// Look for a pawn and use its controller
 	{
-		// If no instigator, look at effect causer
-		Pawn = Cast<APawn>(EffectCauser.Get());
+		APawn* Pawn = Cast<APawn>(Instigator.Get());
 		if (!Pawn)
 		{
-			// Fallback to passed in actor
-			Pawn = Cast<APawn>(FallbackActor);
+			// If no instigator, look at effect causer
+			Pawn = Cast<APawn>(EffectCauser.Get());
+			if (!Pawn && FallbackActor != nullptr)
+			{
+				// Fallback to passed in actor
+				Pawn = Cast<APawn>(FallbackActor);
+				if (!Pawn)
+				{
+					Pawn = FallbackActor->GetInstigator<APawn>();
+				}
+			}
+		}
+
+		if (Pawn && Pawn->Controller)
+		{
+			return Pawn->Controller->IsLocalPlayerController();
 		}
 	}
 
-	if (Pawn && Pawn->Controller)
-	{
-		return Pawn->Controller->IsLocalPlayerController();
-	}
 	return false;
 }
 

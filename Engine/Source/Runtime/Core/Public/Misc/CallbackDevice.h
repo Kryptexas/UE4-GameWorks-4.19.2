@@ -276,6 +276,12 @@ public:
 
 	// Called when appInit is called.
 	static FSimpleMulticastDelegate OnFEngineLoopInitComplete;
+
+	// Callback to allow custom resolution of package names. Arguments are InRequestedName, OutResolvedName.
+	// Should return True of resolution occured.
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FResolvePackageNameDelegate, const FString&, FString&);
+	static TArray<FResolvePackageNameDelegate> PackageNameResolvers;
+
 private:
 
 	// Callbacks for hotfixes

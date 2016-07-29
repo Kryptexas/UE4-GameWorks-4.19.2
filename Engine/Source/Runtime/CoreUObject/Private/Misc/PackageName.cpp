@@ -819,10 +819,41 @@ FString FPackageName::GetNormalizedObjectPath(const FString& ObjectPath)
 	}
 }
 
-FString FPackageName::GetLocalizedPackagePath(const FString& InSourcePackagePath)
+FString FPackageName::GetDelegateResolvedPackagePath(const FString& InSourcePackagePath)
 {
-	const FName LocalizedPackageName = FPackageLocalizationManager::Get().FindLocalizedPackageName(*InSourcePackagePath);
-	return (LocalizedPackageName.IsNone()) ? InSourcePackagePath : LocalizedPackageName.ToString();
+	bool WasResolved = false;
+
+	// If the path is /Game/Path/Foo.Foo only worry about resolving the /Game/Path/Foo
+	FString PathName = InSourcePackagePath;
+	FString ObjectName;
+	PathName.Split(TEXT("."), &PathName, &ObjectName);
+
+	for (auto Delegate : FCoreDelegates::PackageNameResolvers)
+	{
+		FString ResolvedPath;
+		if (Delegate.Execute(PathName, ResolvedPath))
+		{
+			UE_LOG(LogPackageName, Display, TEXT("Package '%s' was resolved to '%s'"), *PathName, *ResolvedPath);
+			PathName = ResolvedPath;
+			WasResolved = true;
+		}
+	}
+
+	if (WasResolved)
+	{
+		// If package was passed in with an object, add that back on by deriving it from the package name
+		if (ObjectName.Len())
+		{
+			PathName.Split(TEXT("/"), nullptr, &ObjectName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+			PathName += TEXT(".");
+			PathName += ObjectName;
+		}
+
+		return PathName;
+	}
+
+	return InSourcePackagePath;
 }
 
 FString FPackageName::GetLocalizedPackagePath(const FString& InSourcePackagePath, const FString& InCultureName)

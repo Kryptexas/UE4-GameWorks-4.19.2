@@ -148,16 +148,11 @@ bool APlayerController::DestroyNetworkActorHandled()
 
 bool APlayerController::IsLocalController() const
 {
-	// Never local on dedicated server, always local on clients. IsServerOnly() and IsClientOnly() are checked at compile time and optimized out appropriately.
+	// Never local on dedicated server. IsServerOnly() is checked at compile time and optimized out appropriately.
 	if (FPlatformProperties::IsServerOnly())
 	{
 		checkSlow(!bIsLocalPlayerController);
 		return false;
-	}
-	else if (FPlatformProperties::IsClientOnly())
-	{
-		bIsLocalPlayerController = true;
-		return true;
 	}
 	
 	// Fast path if we have this bool set.

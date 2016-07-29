@@ -487,11 +487,13 @@ bool CheckerFromSceneColorUV(float2 UVSceneColor)
 void AdjustBaseColorAndSpecularForCheckerDeferredLighting(inout float3 BaseColor, inout float Specular, bool bChecker)
 {
 	// because we adjust the BaseColor here, we need StoredBaseColor
-
-	// we apply the base color later in SubsurfaceRecombinePS()
-	BaseColor = bChecker;
-	// in SubsurfaceRecombinePS() does not multiply with Specular so we do it here
-	Specular *= !bChecker;
+	if (View.EnableSubsurfaceCheckboardOutput)
+	{
+		// we apply the base color later in SubsurfaceRecombinePS()
+		BaseColor = bChecker;
+		// in SubsurfaceRecombinePS() does not multiply with Specular so we do it here
+		Specular *= !bChecker;
+	}
 }
 
 /** Populates FGBufferData */
