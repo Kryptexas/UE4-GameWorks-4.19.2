@@ -1650,7 +1650,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	
 	if (!bOverrideNonModalCreation)
 	{
-		SNew(SWindow)
+		Window = SNew(SWindow)
 			.AutoCenter(EAutoCenter::None)
 			.ScreenPosition(AdjustedSummonLocation)
 			.SupportsMaximize(false)
