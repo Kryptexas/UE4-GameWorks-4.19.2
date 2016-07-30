@@ -111,6 +111,11 @@ void ACineCameraActor::Tick(float DeltaTime)
 			::DrawDebugSolidBox(GetWorld(), FocusPoint, FVector(12.f), DebugFocusPointSolidColor);
 			::DrawDebugBox(GetWorld(), FocusPoint, FVector(12.f), DebugFocusPointOutlineColor);
 		}
+
+		if (CineCameraComponent->FocusSettings.bDrawDebugFocusPlane)
+		{
+			CineCameraComponent->UpdateDebugFocusPlane();
+		}
 	}
 	else
 	{
@@ -131,7 +136,9 @@ void ACineCameraActor::NotifyCameraCut()
 
 bool ACineCameraActor::ShouldTickForTracking() const
 {
-	return LookatTrackingSettings.bEnableLookAtTracking || CineCameraComponent->FocusSettings.TrackingFocusSettings.bDrawDebugTrackingFocusPoint;
+	return LookatTrackingSettings.bEnableLookAtTracking || 
+		CineCameraComponent->FocusSettings.TrackingFocusSettings.bDrawDebugTrackingFocusPoint ||
+		CineCameraComponent->FocusSettings.bDrawDebugFocusPlane;
 }
 
 
