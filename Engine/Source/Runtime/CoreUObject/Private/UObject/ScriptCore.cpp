@@ -1023,6 +1023,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 	for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It, NumParamsEvaluated++ )
 	{
 		UProperty* PropertyParam = *It;
+		checkSlow(PropertyParam); // Fix static analysis warning
 		if (NumParamsEvaluated == 0 && Executor)
 		{
 			UObjectPropertyBase* Op = dynamic_cast<UObjectPropertyBase*>(*It);
