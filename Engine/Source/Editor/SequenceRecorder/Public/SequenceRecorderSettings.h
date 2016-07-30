@@ -27,6 +27,20 @@ struct FPropertiesToRecordForClass
 	TArray<FName> Properties;
 };
 
+USTRUCT()
+struct FSettingsForActorClass
+{
+	GENERATED_BODY()
+
+	/** The class of the actor we want to record */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TSubclassOf<AActor> Class;
+
+	/** Whether to record to 'possessable' (i.e. level-owned) or 'spawnable' (i.e. sequence-owned) actors. */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	bool bRecordToPossessable;
+};
+
 UCLASS(config=Editor)
 class SEQUENCERECORDER_API USequenceRecorderSettings : public UObject
 {
@@ -94,4 +108,8 @@ public:
 	/** The properties to record for specified classes. Component classes specified here will be recorded. If an actor does not contain one of these classes it will be ignored. */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	TArray<FPropertiesToRecordForClass> ClassesAndPropertiesToRecord;
+
+	/** Settings applied to actors of a specified class */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TArray<FSettingsForActorClass> PerActorSettings;
 };

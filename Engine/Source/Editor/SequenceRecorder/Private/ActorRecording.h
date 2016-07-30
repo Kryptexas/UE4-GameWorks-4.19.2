@@ -42,7 +42,7 @@ public:
 	AActor* GetActorToRecord() const;
 
 	/** Set the actor to record */
-	void SetActorToRecord(AActor* InActor) { ActorToRecord = InActor; }
+	void SetActorToRecord(AActor* InActor);
 
 private:
 	/** Check component validity for recording */
@@ -66,6 +66,8 @@ private:
 	/** Sync up tracked components with the actor */
 	void SyncTrackedComponents(bool bIncludeNonCDO = true);
 
+	/** UObject interface */
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Actor Recording")
@@ -82,6 +84,10 @@ public:
 	/** The settings to apply to this actor's animation */
 	UPROPERTY(EditAnywhere, Category = "Animation Recording")
 	FAnimationRecordingSettings AnimationSettings;
+
+	/** Whether to record to 'possessable' (i.e. level-owned) or 'spawnable' (i.e. sequence-owned) actors. Defaults to the global setting. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Animation Recording")
+	bool bRecordToPossessable;
 
 	/** Whether this actor recording was triggered from an actor spawn */
 	bool bWasSpawnedPostRecord;
