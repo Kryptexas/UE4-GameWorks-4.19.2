@@ -213,6 +213,9 @@ public:
 	/** Convert the selected possessed objects to spawnables. These will be spawned and destroyed by sequencer as per object's the spawn track. */
 	TSharedPtr< FUICommandInfo > ConvertToSpawnable;
 
+	/** Convert the selected spawnable objects to possessables. The newly created possessables will be created in the current level. */
+	TSharedPtr< FUICommandInfo > ConvertToPossessable;
+
 	/** Discard all changes to the current movie scene. */
 	TSharedPtr< FUICommandInfo > DiscardChanges;
 

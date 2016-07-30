@@ -5,6 +5,7 @@
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "EditorUndoClient.h"
 #include "MovieSceneClipboard.h"
+#include "MovieScenePossessable.h"
 #include "SequencerLabelManager.h"
 #include "LevelEditor.h"
 
@@ -214,9 +215,21 @@ public:
 	void ConvertToSpawnable(TSharedRef<FSequencerObjectBindingNode> NodeToBeConverted);
 
 	/**
+	 * Converts the specified spawnable GUID to a possessable
+	 *
+	 * @param	SpawnableGuid		The guid of the spawnable to convert
+	 */
+	void ConvertToPossessable(TSharedRef<FSequencerObjectBindingNode> NodeToBeConverted);
+
+	/**
 	 * Converts all the currently selected nodes to be spawnables, if possible
 	 */
 	void ConvertSelectedNodesToSpawnables();
+
+	/**
+	 * Converts all the currently selected nodes to be possessables, if possible
+	 */
+	void ConvertSelectedNodesToPossessables();
 
 protected:
 
@@ -791,6 +804,9 @@ protected:
 
 	/** Internal conversion function that doesn't perform expensive reset/update tasks */
 	FMovieSceneSpawnable* ConvertToSpawnableInternal(FGuid PossessableGuid);
+
+	/** Internal conversion function that doesn't perform expensive reset/update tasks */
+	FMovieScenePossessable* ConvertToPossessableInternal(FGuid SpawnableGuid);
 
 	/** Internal function to render movie for a given start/end time */
 	void RenderMovieInternal(float InStartTime, float InEndTime) const;
