@@ -34,7 +34,10 @@ public:
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
 	{
-		SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
+		if (InSequencer->HasSequenceInstanceForSection(InSection))
+		{
+			SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
+		}
 	}
 
 public:

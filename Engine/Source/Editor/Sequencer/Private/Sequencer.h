@@ -375,6 +375,10 @@ public:
 	/** @return Whether or not this sequencer is used in the level editor */
 	bool IsLevelEditorSequencer() const { return bIsEditingWithinLevelEditor; }
 
+	/** @return Whether to show the curve editor or not */
+	void SetShowCurveEditor(bool bInShowCurveEditor);
+	bool GetShowCurveEditor() const { return bShowCurveEditor; }
+
 	/** Called to save the current movie scene */
 	void SaveCurrentMovieScene();
 
@@ -902,6 +906,8 @@ private:
 
 	/** True if this sequencer is being edited within the level editor */
 	bool bIsEditingWithinLevelEditor;
+
+	bool bShowCurveEditor;
 
 	/** Generic Popup Entry */
 	TWeakPtr<IMenu> EntryPopupMenu;

@@ -108,7 +108,6 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	CachedViewRange = TRange<float>::Empty();
 
 	Settings = InSequencer->GetSettings();
-	Settings->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
 	Settings->GetOnTimeSnapIntervalChanged().AddSP(this, &SSequencer::OnTimeSnapIntervalChanged);
 	if ( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() > 0 )
 	{
@@ -210,7 +209,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 		.OnViewRangeChanged(InArgs._OnViewRangeChanged)
 		.ViewRange(InArgs._ViewRange);
 
-	CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+	CurveEditor->SetAllowAutoFrame(SequencerPtr.Pin()->GetShowCurveEditor());
 	TrackArea->SetTreeView(TreeView);
 
 	const int32 Column0 = 0, Column1 = 1;
@@ -1080,7 +1079,6 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	Settings->GetOnShowCurveEditorChanged().RemoveAll(this);
 	Settings->GetOnTimeSnapIntervalChanged().RemoveAll(this);
 }
 
@@ -1463,9 +1461,9 @@ void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
 		}
 		else
 		{
-			if (Settings->GetShowCurveEditor())
+			if (SequencerPtr.Pin()->GetShowCurveEditor())
 			{
-				Settings->SetShowCurveEditor(false);
+				SequencerPtr.Pin()->SetShowCurveEditor(false);
 			}
 
 			SequencerPtr.Pin()->PopToSequenceInstance( Item.MovieSceneInstance.Pin().ToSharedRef() );
@@ -1672,7 +1670,7 @@ EVisibility SSequencer::GetBreadcrumbTrailVisibility() const
 
 EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -1697,7 +1695,7 @@ bool SSequencer::ShowFrameNumbers() const
 float SSequencer::GetOutlinerSpacerFill() const
 {
 	const float Column1Coeff = GetColumnFillCoefficient(1);
-	return Settings->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
 }
 
 
@@ -1709,13 +1707,13 @@ void SSequencer::OnColumnFillCoefficientChanged(float FillCoefficient, int32 Col
 
 EVisibility SSequencer::GetTrackAreaVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -1743,13 +1741,15 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 		}
 
 		// Only zoom horizontally if the editor is visible
-		CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+		CurveEditor->SetAllowAutoFrame(SequencerPtr.Pin()->GetShowCurveEditor());
 
 		if (CurveEditor->GetAutoFrame())
 		{
 			CurveEditor->ZoomToFit();
 		}
 	}
+
+	TreeView->UpdateTrackArea();
 }
 
 

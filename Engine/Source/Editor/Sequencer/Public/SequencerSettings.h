@@ -65,7 +65,6 @@ class SEQUENCER_API USequencerSettings
 public:
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 	DECLARE_MULTICAST_DELEGATE( FOnTimeSnapIntervalChanged );
 
 	/** Gets the current auto-key mode. */
@@ -183,11 +182,6 @@ public:
 	/** Sets whether or not auto-scroll is enabled. */
 	void SetAutoScrollEnabled(bool bInAutoScrollEnabled);
 
-	/** Gets whether or not the curve editor should be shown. */
-	bool GetShowCurveEditor() const;
-	/** Sets whether or not the curve editor should be shown. */
-	void SetShowCurveEditor(bool InbShowCurveEditor);
-
 	/** Gets whether or not to show curve tool tips in the curve editor. */
 	bool GetShowCurveEditorCurveToolTips() const;
 	/** Sets whether or not to show curve tool tips in the curve editor. */
@@ -245,9 +239,6 @@ public:
 
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
-
-	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
-	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
 	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
 	FOnTimeSnapIntervalChanged& GetOnTimeSnapIntervalChanged();
@@ -345,10 +336,6 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bAutoScrollEnabled;
 
-	/** Enable or disable the curve editor. */
-	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
-	bool bShowCurveEditor;
-
 	/** Enable or disable curve editor tooltips. */
 	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bShowCurveEditorCurveToolTips;
@@ -392,8 +379,6 @@ protected:
 	/** When enabled, sequencer is able to possess viewports that represent PIE worlds */
 	UPROPERTY(config, EditAnywhere, Category=General)
 	bool bAllowPossessionOfPIEViewports;
-
-	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 
 	FOnTimeSnapIntervalChanged OnTimeSnapIntervalChanged;
 };

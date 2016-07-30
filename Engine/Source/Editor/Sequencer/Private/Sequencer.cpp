@@ -251,6 +251,7 @@ FSequencer::FSequencer()
 	, bPerspectiveViewportPossessionEnabled( true )
 	, bPerspectiveViewportCameraCutEnabled( false )
 	, bIsEditingWithinLevelEditor( false )
+	, bShowCurveEditor( false )
 	, bNeedTreeRefresh( false )
 	, bNeedInstanceRefresh( false )
 	, StoredPlaybackState( EMovieScenePlayerStatus::Stopped )
@@ -3865,6 +3866,12 @@ void GetDescendantMovieScenes(UMovieSceneSequence* InSequence, TArray<UMovieScen
 	}
 }
 
+void FSequencer::SetShowCurveEditor(bool bInShowCurveEditor)
+{
+	bShowCurveEditor = bInShowCurveEditor; 
+	SequencerWidget->OnCurveEditorVisibilityChanged();
+}
+
 void FSequencer::SaveCurrentMovieScene()
 {
 	OnPreSaveEvent.Broadcast(*this);
@@ -5930,9 +5937,9 @@ void FSequencer::BindCommands()
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleShowCurveEditor,
-		FExecuteAction::CreateLambda( [this]{ Settings->SetShowCurveEditor(!Settings->GetShowCurveEditor()); } ),
+		FExecuteAction::CreateLambda( [this]{ SetShowCurveEditor(!GetShowCurveEditor()); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditor(); } ) );
+		FIsActionChecked::CreateLambda( [this]{ return GetShowCurveEditor(); } ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleLinkCurveEditorTimeRange,
