@@ -23,7 +23,15 @@ TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecor
 
 bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObjectToRecord) const
 {
-	return InObjectToRecord->IsA<USkeletalMeshComponent>();
+	if (InObjectToRecord->IsA<USkeletalMeshComponent>())
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(InObjectToRecord);
+		if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 FMovieSceneAnimationSectionRecorder::FMovieSceneAnimationSectionRecorder(const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InSpecifiedSequence)
