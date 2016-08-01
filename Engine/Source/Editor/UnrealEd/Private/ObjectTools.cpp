@@ -1919,7 +1919,7 @@ namespace ObjectTools
 		TArray<FSCSNodeToDelete> SCSNodesToDelete;
 		TArray<UActorComponent*> ComponentsToDelete;
 		TArray<AActor*> ActorsToDelete;
-		TArray<UObject*> ObjectsToDelete;
+		TArray<TWeakObjectPtr<UObject>> ObjectsToDelete;
 		bool bNeedsGarbageCollection = false;
 		bool bMakeWritable = false;
 		bool bSilent = false;
@@ -2075,37 +2075,27 @@ namespace ObjectTools
 		}
 
 		{
-			// Note reloading the world via ReloadEditorWorldForReferenceReplacementIfNecessary will cause a gabage collect and potentially cause entries in the ObjectsToDelete list to become invalid
-			// We refresh the list here
-			TArray< TWeakObjectPtr<UObject> > ObjectsToDeleteWeakList;
-			for(UObject* Object : ObjectsToDelete)
-			{
-				ObjectsToDeleteWeakList.Add(Object);
-			}
-
-			ObjectsToDelete.Empty();
-
 			// If the current editor world is in this list, transition to a new map and reload the world to finish the delete
-			ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToDeleteWeakList);
-
-			for(TWeakObjectPtr<UObject> WeakObject : ObjectsToDeleteWeakList)
-			{
-				if( WeakObject.IsValid() )
-				{
-					ObjectsToDelete.Add(WeakObject.Get());
-				}
-			}
+			ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToDelete);
 		}
 
 		{
 			int32 ReplaceableObjectsNum = 0;
 			{
-				TArray<UObject*> ObjectsToReplace = ObjectsToDelete;
-				for (TArray<UObject*>::TIterator ObjectItr(ObjectsToReplace); ObjectItr; ++ObjectItr)
+				TArray<UObject*> ObjectsToReplace;
+				ObjectsToReplace.Reserve(ObjectsToDelete.Num());
+
+				for(TWeakObjectPtr<UObject>& Object : ObjectsToDelete)
 				{
-					UObject* CurObject = *ObjectItr;
-					
-					UBlueprint* BlueprintObject = Cast<UBlueprint>(CurObject);
+					if(Object.IsValid())
+					{
+						ObjectsToReplace.Add(Object.Get());
+					}
+				}
+
+				for(UObject* Object : ObjectsToReplace)
+				{
+					UBlueprint* BlueprintObject = Cast<UBlueprint>(Object);
 					if (BlueprintObject)
 					{
 						// If we're a blueprint add our generated class as well
@@ -2190,9 +2180,10 @@ namespace ObjectTools
 			// Load the asset tools module to get access to the browser type maps
 			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 
-			for( TArray<UObject*>::TIterator ObjectItr(ObjectsToDelete); ObjectItr; ++ObjectItr )
+			int32 Count = 0;
+			for(TWeakObjectPtr<UObject>& Object : ObjectsToDelete)
 			{
-				UObject* CurObject = *ObjectItr; 
+				UObject* CurObject = Object.Get();
 
 				if ( !ensure(CurObject != NULL) )
 				{
@@ -2205,7 +2196,8 @@ namespace ObjectTools
 					++NumDeletedObjects;
 				}
 
-				GWarn->StatusUpdate(ObjectItr.GetIndex(), ReplaceableObjectsNum, NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingObjects", "Deleting Assets..."));
+				GWarn->StatusUpdate(Count, ReplaceableObjectsNum, NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingObjects", "Deleting Assets..."));
+				++Count;
 
 			}
 		}
