@@ -94,8 +94,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
-#define VULKAN_IGNORE_EXTENSIONS								(PLATFORM_ANDROID && 1)
-
 //#todo-rco: While validation is not fixed...
 #define VULKAN_REUSE_FENCES										(VK_HEADER_VERSION < 17)
 
