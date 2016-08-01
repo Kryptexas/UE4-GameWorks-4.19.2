@@ -693,6 +693,12 @@ void SPoseViewer::CreatePoseList(const FString& SearchText)
 				}
 
 				TSharedRef<FDisplayedPoseInfo> Info = FDisplayedPoseInfo::Make(PoseName);
+				float* Weight = OverrideCurves.Find(PoseName);
+				if (Weight)
+				{
+					Info->Weight = *Weight;
+				}
+
 				PoseList.Add(Info);
 			}
 		}
