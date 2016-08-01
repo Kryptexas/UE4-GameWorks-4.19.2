@@ -28,6 +28,7 @@ struct FPreviewSceneProfile
 		// Set up default cube map texture from editor/engine textures
 		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/MapTemplates/Sky/SunsetAmbientCubemap.SunsetAmbientCubemap"));
 		bPostProcessingEnabled = true;
+		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}
 
 	/** Name to identify the profile */
