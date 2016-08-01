@@ -8,33 +8,33 @@
 struct FSlateAtlasData
 {
 public:
-	FSlateAtlasData(UTexture2D* InAtlasTexture, FVector2D InRegionPosition, FVector2D InRegionSize)
+	FSlateAtlasData(UTexture* InAtlasTexture, FVector2D InStartUV, FVector2D InSizeUV)
 		: AtlasTexture(InAtlasTexture)
-		, RegionPosition(InRegionPosition)
-		, RegionSize(InRegionSize)
+		, StartUV(InStartUV)
+		, SizeUV(InSizeUV)
 	{
 	}
 
 public:
 	/** The texture pointer for the Atlas */
-	UTexture2D* AtlasTexture;
+	UTexture* AtlasTexture;
 
-	/** The region start position in pixels. */
-	FVector2D RegionPosition;
+	/** The region start position in UVs */
+	FVector2D StartUV;
 
-	/** The region size in pixels. */
-	FVector2D RegionSize;
+	/** The region size in UVs. */
+	FVector2D SizeUV;
 };
 
 /**  */
 UINTERFACE(meta=( CannotImplementInterfaceInBlueprint ))
-class SLATERHIRENDERER_API USlateTextureAtlasInterface : public UInterface
+class ENGINE_API USlateTextureAtlasInterface : public UInterface
 {
 	GENERATED_UINTERFACE_BODY()
 };
 
 /**  */
-class SLATERHIRENDERER_API ISlateTextureAtlasInterface
+class ENGINE_API ISlateTextureAtlasInterface
 {
 	GENERATED_IINTERFACE_BODY()
 

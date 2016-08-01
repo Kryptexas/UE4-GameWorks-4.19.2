@@ -19,7 +19,7 @@
 		{
 			"Name" : "Paper2D",
 			"Type" : "Runtime",
-			"LoadingPhase" : "PostConfigInit"
+			"LoadingPhase" : "PreDefault"
 		},
 		{
 			"Name" : "Paper2DEditor",
