@@ -10,6 +10,8 @@
 #include "SInlineEditableTextBlock.h"
 #include "STextEntryPopup.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SAnimCurveViewer"
 
@@ -874,6 +876,21 @@ void SAnimCurveViewer::OnNameCommitted(const FText& InNewName, ETextCommit::Type
 			CurrentSkeleton->RenameSmartnameAndModify(ContainerName, Item->SmartName.UID, NewName);
 			// remove it, so that it can readd it. 
 			AnimCurveList.Remove(Item);
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("InvalidName"), FText::FromName(NewName) );
+			FNotificationInfo Info(FText::Format(LOCTEXT("AnimCurveRenamed", "The name \"{InvalidName}\" is already used."), Args));
+
+			Info.bUseLargeFont = false;
+			Info.ExpireDuration = 5.0f;
+
+			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+			if (Notification.IsValid())
+			{
+				Notification->SetCompletionState(SNotificationItem::CS_Fail);
+			}
 		}
 	}
 }
