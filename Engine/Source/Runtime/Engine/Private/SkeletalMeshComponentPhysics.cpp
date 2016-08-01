@@ -1928,7 +1928,7 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 
 void USkeletalMeshComponent::UpdateBoneBodyMapping()
 {
-	if(SkeletalBodySetups.Num() > 0)	//If using per poly then there's no bodies to update indices on
+	if(Bodies.Num() > 0)	//If using per poly then there's no bodies to update indices on
 	{
 		// If we have a physics asset..
 		if (const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset())
