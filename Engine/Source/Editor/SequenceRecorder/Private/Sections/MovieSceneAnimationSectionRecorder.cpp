@@ -28,8 +28,8 @@ bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObje
 
 FMovieSceneAnimationSectionRecorder::FMovieSceneAnimationSectionRecorder(const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InSpecifiedSequence)
 	: AnimSequence(InSpecifiedSequence)
-	, AnimationSettings(InAnimationSettings)
 	, bRemoveRootTransform(true)
+	, AnimationSettings(InAnimationSettings)
 {
 }
 
