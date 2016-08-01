@@ -325,6 +325,15 @@ void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Col
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
 	Collector.AllowEliminatingReferences(true);
+
+	// it's ok for these to get GC'd, but it is not ok for the memory to be reused (after a GC), 
+	// for that reason we cannot allow these to be freed during the life of this reinstancer
+	// 
+	// for example, we saw this as a problem in UpdateBytecodeReferences() - if the GC'd function 
+	// memory was used for a new (unrelated) function, then we were replacing references to the 
+	// new function (bad), as well as any old stale references (both were using the same memory address)
+	Collector.AddReferencedObjects(FunctionMap);
+	Collector.AddReferencedObjects(PropertyMap);
 }
 
 void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
