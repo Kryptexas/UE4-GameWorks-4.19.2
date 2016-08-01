@@ -997,19 +997,15 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 	GFPSChartLabel = Label;
 	GFPSChartRecordPerFrameTimes = bRecordPerFrameTimes;
 
-	for( int32 BucketIndex=0; BucketIndex<ARRAY_COUNT(GFPSChart); BucketIndex++ )
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GFPSChart); BucketIndex++)
 	{
-		GFPSChart[BucketIndex].Count = 0;
-		GFPSChart[BucketIndex].CummulativeTime = 0;
+		GFPSChart[BucketIndex] = FFPSChartEntry();
 	}
 	GFPSChartStartTime = FPlatformTime::Seconds();
 
-	for( int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT( GHitchChart ); ++BucketIndex )
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GHitchChart); ++BucketIndex)
 	{
-		GHitchChart[ BucketIndex ].HitchCount = 0;
-		GHitchChart[ BucketIndex ].GameThreadBoundHitchCount = 0;
-		GHitchChart[ BucketIndex ].RenderThreadBoundHitchCount = 0;
-		GHitchChart[ BucketIndex ].GPUBoundHitchCount = 0;
+		GHitchChart[BucketIndex] = FHitchChartEntry();
 	}
 
 #if ALLOW_DEBUG_FILES
