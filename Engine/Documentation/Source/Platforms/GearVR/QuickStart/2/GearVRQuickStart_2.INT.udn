@@ -1,6 +1,6 @@
 Availability:Public
 Title:2. Gear VR Project Setup
-Crumbs:%ROOT%, Platforms/GearVR
+Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Description:How to setup your C++ based UE4 project to be used with the Gear VR Headset.
 Navigation:platform
 Skilllevel: Intermediate
@@ -25,15 +25,15 @@ Version: 4.9
 %Steps%
 
 
-1. Once the project has finished being created and compiled, Visual Studio 2013 will automatically open (If already installed) along with the editor.
+1. Once the project has finished being created and compiled, Visual Studio 2013 will automatically open (if already installed) along with the editor.
 
 	![](GVR_Editor_Opened.png)
 
 	[region:note]
-	If you are using Unreal Engine 4.8 or later and a Blueprint based project Visual Studio 2013 will not open up as it is not needed. 
+	If you are using Unreal Engine 4.8 or later and a Blueprint based project, Visual Studio 2013 will not open up as it is not needed. 
 	[/region]
 
-1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu item. 
+1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu. 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -47,11 +47,11 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. From the Plug-In menu go to the **Head Mounted Displays** section and **disable** the **Oculus** option and **enable** the **Gear VR** option. Then click the **Restart Now** button to re-start the editor so the changes can take place. 
+1. From the **Plugins** menu, go to the **Head Mounted Displays** section, **disable** the **Oculus** option, and **enable** the **Gear VR** option. Then, click the **Restart Now** button to re-start the editor so the changes can take place. 
 
 	![](GVR_Plugin_Options_Toggle.png)
 
-1. Once the Editor has re-started, select **Edit** from the **Main Toolbar** and then select **Project Settings**  and click the **Configure Now** button for Android support in the **APKPacking** section.
+1. Once the Editor has re-started, select **Edit** from the **Main Toolbar**, select **Project Settings** and click the **Configure Now** button for Android support in the **APKPacking** section.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -65,11 +65,11 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Next change the **Minimum SDK Version** from **9** to **19**.
+1. Next, change the **Minimum SDK Version** from **9** to **19**.
 
 	![](GVR_Android_SDK_Version.png)
 
-1. Next scroll down till you see the **Configure the Android Manifest for deployment to Gear VR** checkbox and enable it. 
+1. Next, scroll down till you see the **Configure the Android Manifest for deployment to Gear VR** checkbox and enable it. 
 
 	[Region:note]
 	This step is of vital importance as without this on your project will not be able to run on the Gear VR Headset.
@@ -77,16 +77,16 @@ Version: 4.9
 
 	![](GVR_Deployment_Checkbox.png)
 
-1. Next, under the **Android SDK** section fill, in the location of the required Android SDK files on your development PC. 
+1. Next, under the **Android SDK** section, fill-in the location of the required Android SDK files on your development PC. 
 	You can find the needed folders in the location where you installed the Tegra files. 
 	
 	[Region:note]
-	If you have already installed CodeWorks for Android 1R4 this information should be already filled in for you. The only reason that you should change something here is if the information is missing or point to the wrong location.
+	If you have already installed CodeWorks for Android 1R4, this information should be already filled in for you. The only reason that you should change something here is if the information is missing or pointing to the wrong location.
 	[/region]
 
 	![](GVR_Android_SDK_Setup.png)
 
-1. Finally under **File** > **Package Project** > **Packing Settings** un-check **Full Rebuild** to help speed up iteration times. 
+1. Finally, under **File** > **Package Project** > **Packing Settings**, un-check **Full Rebuild** to help speed up iteration times. 
 
 	[Region:note]
 	Remember to **Re-Enable** this option when your project is ready for its final publish to ensure that your project will work as intended on the Gear VR Headset. 
