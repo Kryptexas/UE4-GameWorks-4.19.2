@@ -324,6 +324,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Selects which GBuffer format should be used. Affects performance primarily via how much GPU memory bandwidth used."))
 	TEnumAsByte<EGBufferFormat::Type> GBufferFormat;
 
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.MorphTarget.Mode", DisplayName = "Use GPU for computing morph targets",
+		ToolTip = "Whether to use original CPU method (loop per morph then by vertex) or use GPU method. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+	uint32 bUseGPUMorphTargets : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
 		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
 		ToolTip="Enable instanced stereo rendering (only available for D3D SM5 or PS4).",
