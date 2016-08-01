@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:源代码控制集成
+﻿INTSourceChangelist:2714483
+Availability:Public
+Title: 版本控制
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:本文档概述了版本控制特性
-Version: 4.9
+Description:此文档为源控制功能概览。
+Version:4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -23,105 +23,99 @@ Version: 4.9
 
 
 
-## 概述
-
-Unreal Editor supports source control, allowing teams to coordinate their game development and design efforts, as well as handling version control.
+虚幻编辑器支持版本控制，便于各个团队协调游戏开发和设计工作，以及处理版本控制。
 
 [REGION:note]
-	Perforce and SVN are supported by default.
+	默认支持 Perforce 和 SVN。
 [/REGION]
 
-## Activating Source Control
+## 启用版本控制
 
-You can activate source control in one of two ways:
-* In the Level Editor's **Preferences** window.
-* In the **Content Browser**.
+可以以下两种方式启用版本控制：
+* 在关卡编辑器的 **Preferences** 窗口中启用。
+* 在 **Content Browser** 中启用。
 
-### Activating Source Control via Editor Preferences
+### 通过 Editor Preferences 启用版本控制
 
-You can activate source control via the editor's main Preferences window (**Edit > Editor Preferences > Loading & Saving**).
+可通过编辑器的主 Preferences 窗口启用版本控制（**Edit > Editor Preferences > Loading & Saving**）。
 
 ![SourceControlPreferences.png](SourceControlPreferences.png)
 
-| Item | Description |
+| 项目 | 描述 |
 | --- | --- |
-| **Automatically Checkout on Asset Modification** | When checked, this will automatically check out any asset that has been modified.  |
-| **Prompt for Checkout on Package Modification** | When checked, a prompt will appear when you make changes to a source controlled-package, asking if you would like to check out (lock) that package. |
-| **Add New Files when Modified** | This will add new files into source control when they are modified. |
-| **Use Global Settings** | Use global source control login settings, rather than per-project.  Changing this will require you to login again. |
-| **Tool for diff'ing text** | Specifies the file path to the tool to be used for diff'ing text files. |
+| **Automatically Checkout on Asset Modification** | 勾选后将自动对修改的资源进行签出。|
+| **Prompt for Checkout on Package Modification** | 勾选后，对源控制包进行修改时将弹出提示询问是否需要签出（锁定）该包。|
+| **Add New Files when Modified** | 文件被修改后，将添加新文件到源控制。|
+| **Use Global Settings** | 使用全局源控制登陆设置替代单个项目设置。修改此项后需要重新登陆。|
+| **Tool for diff'ing text** | 指定工具的文件路径，用于区分文本文件。|
 
-### Activating Source Control via the Content Browser
+### 通过 Content Browser 启用版本控制
 
-You can also activate Source Control in the **Content Browser**. To do so, **right-click** any asset or folder. At the bottom of the context menu, in the **Source Control** section, click **Connect to Source Control**. 
+也可在 **Content Browser** 中启用版本控制。操作方法为：**右键单击** 任意资源或文件夹。在快捷菜单底部的 **Source Control** 部分点击 **Connect to Source Control**。 
 
 ![Connect to Source Control](CB_SourceControl.png)
 
-This will open a log-in screen where you can select your source-control system and enter any appropriate settings and other information.
+此操作将打开一个登陆画面，可选择源控制系统并输入恰当设置和其他信息。
 
 ![Source Control Login](CB_SourceControlLogin.png)
 
-Enter the appropriate information, and click **Accept Settings**.  After source control is activated, the display of the assets in the **Content Browser** will change to reflect their source-control status, and some source-control options will be included on the **right-click** context menu.
+输入信息后点击 **Accept Settings**。版本控制启用后，**Content Browser** 中资源显示将发生变化，反映源控制状态；部分版本控制选项将出现在 **右键** 快捷菜单中。
 
 
-## Status Icons
+## 状态图标
 
-The **Content Browser** will display special icons on the **upper-right corner** of assets to give the source control status. Below are the available icons and their meanings:
+**Content Browser** 将在资源的 **右上角** 显示特殊图标，表明源控制状态。以下为图标及它们的含义：
 
 
 
 [REGION:imagetable]
 | ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![notInDepot.png](notInDepot.png)(w:178) | ![NotHadRevision.png](NotHadRevision.png)(w:178) 
 | --- | --- | --- | --- | --- |
-| Checked out by you | Checked out by another user | Marked for add | Not in depot | Newer version of file exists in source control
+| 由您签出 | 由其他用户签出 | 标记为添加 | 不在存储目录中 | 源控制中存在新版本文件
 
 [/REGION]
 
-## Source Control Actions
+## 版本控制操作
 
-While source control is active, the following context menu will be available when you **right-click** on an asset:
+启用源控制后，**右键单击** 资源将出现以下快捷菜单：
 
 ![SourceControlMenu.png](SourceControlMenu.png)
 
-| Item | Description |
+| 项目 | 描述 |
 | --- | --- |
-| **Check Out** | Checks out (locks) the asset for editing. This prevents other users from editing the asset at the same time. |
-| **Refresh** | Refreshes the source control status of the asset. |
-| **History** | Gives a revision history list of the selected asset, allowing you to see previous edits. |
-| **Diff Against Depot** | This allows you to check the asset against the version currently stored in the source control depot. |
+| **Check Out** | 签出（锁定）资源进行编辑。可防止其他用户同时编辑资源。|
+| **Refresh** | 刷新资源的源控制状态。|
+| **History** | 获取所选资源的修改历史列表，以便查看历史编辑。|
+| **Diff Against Depot** | 将资源和当前保存在源控制存储目录中的版本进行对比检查。|
 
-## Checking Out and In
+## 签出和签入
 
-To check out an asset for editing, simply **right-click** it and choose **Check Out**. However, when checking back in, there is a certain protocol which must be followed.
+**右键单击** 并选择 **Check Out**，即可签出资源进行编辑。然而，重新签入时须遵守特定协议。
 
-* **Right-click** on the asset and choose **Check In**. A dialog will appear with a required changelist description for the check-in. 
-* Enter a description, which will be added to the asset's revision history.
-* Click **OK** when finished.
+* 在资源上 **单击右键** 并选择 **Check In**。将出现一个对话，包含签入所需的变更列表描述。 
+* 输入描述，它将被添加到资源的修改历史。
+* 完成后点击 **OK**。
 
 
 
 ![ChangelistDescription.png](ChangelistDescription.png)
 
 [REGION:note]
-	A changelist description is required, so the *OK* button will not be enabled until a description is entered.
+	变更列表描述为必须，因此描述被输入之前 *OK* 按钮不会启动。
 [/REGION]
 
 
-## Deactivating Source Control
+## 停用版本控制
 
-You may find that you want to deactivate source control after activating it.
+启动版本控制后，有时可能需要将其停用。
 
 [REGION:warning]
-Only use this option if you are absolutely certain that you do not want to use source control. Deactivating source control will put your content out of sync with your source-control system, and will make it impossible to check in changes.
+建议您只在绝对肯定不需要使用源控制时使用此选项。停用源控制将使内容失去与源控制系统的同步，无法签入变更。
 [/REGION]
 
-**To deactivate source control**:
+**停用版本控制：**
 
-1. In the upper-right corner of the Level Editor window, click the green, double-arrow icon (![](icon_SourceControl.png)). This brings up the **Source Control Login** screen.
-1. Click the **Run Without Source Control** button. The green icon in the Level Editor window changes to a red circle with a slash (![](icon_CB_SourceControlOff.png)), to indicate that source control is not being used.
-
-
-
-
+1. 点击关卡编辑器窗口右上角的绿色双箭头图标 (![](icon_SourceControl.png)) 打开 **Source Control Login** 画面。
+1. 点击 **Run Without Source Control** 按钮。关卡编辑器窗口中的绿色图标将变为带斜杠的一个红圈 (![](icon_CB_SourceControlOff.png))，代表版本控制已被停用。
 
 
