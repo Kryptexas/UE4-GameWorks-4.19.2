@@ -370,6 +370,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 	// I'm moving the check here
 	if ( SkeletalMesh != nullptr && IsRegistered() )
 	{
+		// we still need this in case users doesn't call tick, but sent to renderer
+		MorphTargetWeights.SetNumZeroed(SkeletalMesh->MorphTargets.Num());
 
 		// We may be doing parallel evaluation on the current anim instance
 		// Calling this here with true will block this init till that thread completes
@@ -731,7 +733,10 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	{
 		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
 
-		if (SkeletalMesh->MorphTargets.Num() > 0)
+		// we need this code to ensure the buffer gets cleared whether or not you have morphtarget curve set
+		// the case, where you had morphtargets weight on, and when you clear the weight, you want to make sure 
+		// the buffer gets cleared and resized
+		if (MorphTargetWeights.Num() > 0)
 		{
 			FMemory::Memzero(MorphTargetWeights.GetData(), MorphTargetWeights.GetAllocatedSize());
 		}
