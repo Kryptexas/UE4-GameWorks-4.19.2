@@ -25,11 +25,11 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
+%Steps%
+
 Now that you've setup Git on your Linux machine, you're ready to download the Unreal Engine source code from our [GitHub site](http://github.com/EpicGames). There 
 are a couple of ways to download the UE4 source code, one way is to use the download feature on our GitHub page and the other way is to fork and clone the Unreal 
 Engine repository with your Git client. We'll cover both ways on this page.
-
-%Steps%
 
 ## Downloading from GitHub
 
