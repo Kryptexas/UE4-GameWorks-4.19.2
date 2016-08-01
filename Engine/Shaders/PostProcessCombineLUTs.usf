@@ -152,6 +152,16 @@ uint OutputDevice;
 uint OutputGamut;
 uint ACESInversion;
 
+uint GetOutputDevice()
+{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	return OutputDevice;
+#else
+	// Only sRGB output for Mobile
+	return 0;
+#endif 
+}
+
 // todo: Weight[0] should be used for neutral, Texture* name should start with 1, color correction should apply on top of that
 #if USE_VOLUME_LUT == 1
 void MainPS(FWriteToSliceGeometryOutput Input, out float4 OutColor : SV_Target0)
@@ -194,7 +204,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	float3 LUTEncodedColor = Neutral.rgb;
 	float3 LinearColor;
 	// Decode texture values as ST-2084 (Dolby PQ)
-	if( OutputDevice >= 3 )
+	if( GetOutputDevice() >= 3 )
 		LinearColor = ST2084ToLinear( LUTEncodedColor );
 	// Decode log values
 	else
@@ -209,12 +219,14 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	// Convert from AP1 to sRGB and clip out-of-gamut values
 	float3 FilmColor = max(0, mul( AP1_2_sRGB, FilmColorAP1 ));
 
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 // Mobile path uses separate shader for legacy tone mapper
 	BRANCH
 	if( ColorShadow_Tint2.a == 0 )
 	{
 		// Legacy tone mapper
 		FilmColor = FilmPostProcess( GradedColor );
 	}
+#endif // FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
 
 #if BLENDCOUNT > 1
 	{
@@ -223,7 +235,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 		// FIXME 
 		// LUTs are in sRGB transfer function space
 		// LUTs applied in sRGB gamut as well
-		half3 GammaColor = LinearToSrgbBranching( saturate( FilmColor ) );
+		half3 GammaColor = LinearToSrgb( saturate( FilmColor ) );
 
 		float3 UVW = GammaColor * (15.0 / 16.0) + (0.5f / 16.0);
 
@@ -264,7 +276,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	BRANCH
 
 	// sRGB, user specified gamut
-	if( OutputDevice == 0 )
+	if( GetOutputDevice() == 0 )
 	{		
 		// Convert from sRGB to specified output gamut	
 		//float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, FilmColor ) );
@@ -274,12 +286,11 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 		float3 OutputGamutColor = FilmColor;
 
 		// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-		// Branching is faster than branchless on AMD on PC.
-		OutDeviceColor = LinearToSrgbBranching( OutputGamutColor );
+		OutDeviceColor = LinearToSrgb( OutputGamutColor );
 	}
 
 	// Rec 709, user specified gamut
-	else if( OutputDevice == 1 )
+	else if( GetOutputDevice() == 1 )
 	{
 		// Convert from sRGB to specified output gamut
 		float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, FilmColor ) );
@@ -289,7 +300,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	}
 
 	// r.Tonemapper2084 1 - ACES P3 D60 transform with PQ/2084 encoding, user specified gamut 
-	else if( OutputDevice == 3 )
+	else if( GetOutputDevice() == 3 )
 	{		
 		// Use ACES_P3D60_PQ_2000nits instead of FilmToneMap, using linear GradedColor as input
 		float3 ODTColor = ACESOutputTransformsP3D60PQ2000( GradedColor );
@@ -302,7 +313,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	}
 
 	// r.Tonemapper2084 2 - PQ/2084 encoding, user specified gamut 
-	else if( OutputDevice == 4 )
+	else if( GetOutputDevice() == 4 )
 	{		
 		// Convert from sRGB to specified output gamut
 		float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, GradedColor ) );
@@ -312,7 +323,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	}
 
 	// r.Tonemapper2084 3 - Pseudo linearization of UE Tonemapped result with PQ/2084 encoding, user specified gamut 
-	else if( OutputDevice == 5 )
+	else if( GetOutputDevice() == 5 )
 	{
 		float3 pseudoLinear = lerp( aces100nitFitInverse( FilmColorAP1 ), InverseACESOutputTransformsRGBD65( FilmColor ), ACESInversion);
 

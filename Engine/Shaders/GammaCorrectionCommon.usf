@@ -29,6 +29,17 @@ half3 LinearToSrgbBranching(half3 lin)
 		LinearToSrgbBranchingChannel(lin.b));
 }
 
+half3 LinearToSrgb(half3 lin) 
+{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	// Branching is faster than branchless on AMD on PC.
+	return LinearToSrgbBranching(lin);
+#else
+	// Adreno devices(Nexus5) with Android 4.4.2 do not handle branching version well, so always use branchless on Mobile
+	return LinearToSrgbBranchless(lin);
+#endif
+}
+
 half3 sRGBToLinear( half3 Color ) 
 {
 	Color = max(6.10352e-5, Color); // minimum positive non-denormal (fixes black problem on DX11 AMD and NV)
@@ -51,7 +62,7 @@ half3 ApplyGammaCorrection(float3 LinearColor, float GammaCurveRatio)
 			// Didn't profile yet if the branching version would be faster (different linear segment).
 			CorrectedColor = LinearTo709Branchless(CorrectedColor);
 		#else
-			CorrectedColor = LinearToSrgbBranching(CorrectedColor);
+			CorrectedColor = LinearToSrgb(CorrectedColor);
 		#endif
 	#endif
 
