@@ -14,8 +14,10 @@
 	#pragma warning(pop)
 #endif
 
-// Linux needs to have those compiled statically at least until we settle on .so location for deployed/native builds
-#define NEEDS_ICU_DLLS		(IS_PROGRAM || !IS_MONOLITHIC) && PLATFORM_DESKTOP && !PLATFORM_LINUX
+// This should be defined by ICU.build.cs
+#ifndef NEEDS_ICU_DLLS
+	#define NEEDS_ICU_DLLS 0
+#endif
 
 class FICUInternationalization
 {

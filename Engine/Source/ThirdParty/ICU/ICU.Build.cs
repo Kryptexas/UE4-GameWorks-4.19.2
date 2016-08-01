@@ -16,6 +16,8 @@ public class ICU : ModuleRules
 	{
 		Type = ModuleType.External;
 
+		bool bNeedsDlls = false;
+
 		string ICUVersion = "icu4c-53_1";
 		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/" + ICUVersion + "/";
 
@@ -86,7 +88,9 @@ public class ICU : ModuleRules
 					}
 				}
 
-                break;
+				bNeedsDlls = true;
+
+				break;
             }
 		}
         else if	(Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Android)
@@ -200,16 +204,11 @@ public class ICU : ModuleRules
                             PublicAdditionalShadowFiles.Add(LibraryPath);
                             RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
                         }
-                        else if (Target.Platform == UnrealTargetPlatform.Linux)
-                        {
-                            string LibraryName = "icu" + Stem + LibraryNamePostfix;
-                            string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Linux/" + Target.Architecture + "/";
-
-                            PublicLibraryPaths.Add(LibraryPath);
-                            PublicAdditionalLibraries.Add(LibraryName);
-                        }
                     }
-                    break;
+
+					bNeedsDlls = true;
+
+					break;
             }
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
@@ -333,5 +332,7 @@ public class ICU : ModuleRules
             Definitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
             Definitions.Add("U_PLATFORM=U_PF_DURANGO");
 		}
+
+		Definitions.Add("NEEDS_ICU_DLLS=" + (bNeedsDlls ? "1" : "0"));
 	}
 }
