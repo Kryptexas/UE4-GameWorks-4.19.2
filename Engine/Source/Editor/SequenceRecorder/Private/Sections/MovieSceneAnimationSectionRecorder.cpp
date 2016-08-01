@@ -16,9 +16,9 @@ TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneAnimationSectionRecorderFactor
 	return nullptr;
 }
 
-TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UActorRecording* InActorRecording) const
+TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UActorRecording* InActorRecording, const FAnimationRecordingSettings& InAnimationSettings) const
 {
-	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InActorRecording->AnimationSettings, InActorRecording->TargetAnimation.Get()));
+	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InAnimationSettings, InActorRecording->TargetAnimation.Get()));
 }
 
 bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObjectToRecord) const
@@ -29,6 +29,7 @@ bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObje
 FMovieSceneAnimationSectionRecorder::FMovieSceneAnimationSectionRecorder(const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InSpecifiedSequence)
 	: AnimSequence(InSpecifiedSequence)
 	, AnimationSettings(InAnimationSettings)
+	, bRemoveRootTransform(true)
 {
 }
 
@@ -105,9 +106,18 @@ void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 {
 	if(AnimSequence.IsValid())
 	{
-		// enable root motion on the animation
-		AnimSequence->bEnableRootMotion = true;
-		AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
+		if (AnimationSettings.bRemoveRootAnimation)
+		{
+			// enable root motion on the animation
+			AnimSequence->bEnableRootMotion = true;
+			AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
+		}
+		else
+		{
+			// enable root motion on the animation
+			AnimSequence->bEnableRootMotion = false;
+			AnimSequence->RootMotionRootLock = ERootMotionRootLock::RefPose;
+		}
 	}
 
 	if(SkeletalMeshComponent.IsValid())

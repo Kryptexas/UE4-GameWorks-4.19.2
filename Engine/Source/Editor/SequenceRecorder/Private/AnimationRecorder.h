@@ -63,6 +63,8 @@ public:
 	uint8 bRecordLocalToWorld :1;
 	/** If true, asset will be saved to disk after recording. If false, asset will remain in mem and can be manually saved. */
 	uint8 bAutoSaveAsset : 1;
+	/** If true, the root bone transform will be removed from all bone transforms */
+	uint8 bRemoveRootTransform : 1;
 
 private:
 	void Record(USkeletalMeshComponent* Component, FTransform const& ComponentToWorld, const TArray<FTransform>& SpacesBases, const FBlendedHeapCurve& AnimationCurves, int32 FrameToAdd);
@@ -85,16 +87,16 @@ public:
 	FAnimRecorderInstance();
 	~FAnimRecorderInstance();
 
-	void Init(USkeletalMeshComponent* InComponent, const FString& InAssetPath, const FString& InAssetName, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset);
+	void Init(USkeletalMeshComponent* InComponent, const FString& InAssetPath, const FString& InAssetName, const FAnimationRecordingSettings& InSettings);
 
-	void Init(USkeletalMeshComponent* InComponent, UAnimSequence* InSequence, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset);
+	void Init(USkeletalMeshComponent* InComponent, UAnimSequence* InSequence, const FAnimationRecordingSettings& InSettings);
 
 	bool BeginRecording();
 	void Update(float DeltaTime);
 	void FinishRecording(bool bShowMessage = true);
 
 private:
-	void InitInternal(USkeletalMeshComponent* InComponent, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset);
+	void InitInternal(USkeletalMeshComponent* InComponent, const FAnimationRecordingSettings& Settings);
 
 public:
 	TWeakObjectPtr<USkeletalMeshComponent> SkelComp;
