@@ -23,17 +23,6 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 	}
 
-	public override List<string> GetExecutableNames(DeploymentContext SC, bool bIsRun = false)
-	{
-		List<string> Exes = base.GetExecutableNames(SC, bIsRun);
-		// replace the binary name to match what was staged
-		if (bIsRun && !SC.IsCodeBasedProject)
-		{
-			Exes[0] = CommandUtils.CombinePaths(SC.StageProjectRoot, "Binaries", SC.PlatformDir, SC.ShortProjectName);
-		}
-		return Exes;
-	}
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		// FIXME: use build architecture
