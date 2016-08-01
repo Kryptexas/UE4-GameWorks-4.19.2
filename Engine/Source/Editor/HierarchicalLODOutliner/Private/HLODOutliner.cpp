@@ -256,10 +256,33 @@ namespace HLODOutliner
 			/** Delegate to show all properties */
 			static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
 			{
-				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "ProxySetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MaterialSettings"))
+				if (PropertyAndParent.Property.GetFName() == GET_MEMBER_NAME_CHECKED(FMeshMergingSettings, SpecificLOD)
+					|| PropertyAndParent.Property.GetFName() == GET_MEMBER_NAME_CHECKED(FMeshMergingSettings, LODSelectionType)
+					|| PropertyAndParent.Property.GetFName() == GET_MEMBER_NAME_CHECKED(AWorldSettings, bEnableHierarchicalLODSystem))
 				{
-					return true;
+					return false;
 				}
+
+				const char* CategoryNames[5] =
+				{
+					"LODSystem",
+					"ProxySettings",
+					"LandscapeCulling",
+					"MeshSettings",
+					"MaterialSettings"
+				};
+
+				FString CategoryName = PropertyAndParent.Property.GetMetaData("Category");
+				for (uint32 CategoryIndex = 0; CategoryIndex < 5; ++CategoryIndex)
+				{
+					if (CategoryName == CategoryNames[CategoryIndex])
+					{
+
+
+						return true;
+					}
+				}
+
 				return false;
 			}
 		};
@@ -426,8 +449,8 @@ namespace HLODOutliner
 			CurrentWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
 		}
 
-		FMessageLog("HLODResults").Open();
-				
+		FMessageLog("HLODResults").Open();		
+
 		return FReply::Handled();
 	}
 
@@ -650,7 +673,7 @@ namespace HLODOutliner
 	void SHLODOutliner::BuildLODActor()
 	{
 		if (CurrentWorld)
-		{		
+		{
 			// This call came from a context menu
 			auto SelectedItems = TreeView->GetSelectedItems();
 			
@@ -670,7 +693,7 @@ namespace HLODOutliner
 					}
 				}
 			}
-
+			
 			TreeView->RequestScrollIntoView(SelectedItems[0]);
 		}
 		

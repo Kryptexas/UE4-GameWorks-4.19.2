@@ -86,6 +86,16 @@ void FMeshMergingSettings::PostLoadDeprecated()
 		MaterialSettings.TextureSize.X = MergedMaterialAtlasResolution_DEPRECATED;
 		MaterialSettings.TextureSize.Y = MergedMaterialAtlasResolution_DEPRECATED;
 	}
+	if (bCalculateCorrectLODModel_DEPRECATED != DefaultObject.bCalculateCorrectLODModel_DEPRECATED)
+	{
+		LODSelectionType = EMeshLODSelectionType::CalculateLOD;
+	}
+
+	if (ExportSpecificLOD_DEPRECATED != DefaultObject.ExportSpecificLOD_DEPRECATED)
+	{
+		SpecificLOD = ExportSpecificLOD_DEPRECATED;
+		LODSelectionType = EMeshLODSelectionType::SpecificLOD;
+	}
 }
 
 UEngineBaseTypes::UEngineBaseTypes(const FObjectInitializer& ObjectInitializer)
