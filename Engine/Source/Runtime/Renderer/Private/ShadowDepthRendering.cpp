@@ -2189,10 +2189,10 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 
 			if (ProjectedShadowInfo->CacheMode == SDCM_MovablePrimitivesOnly 
 				&& Scene->CachedShadowMaps.FindChecked(ProjectedShadowInfo->GetLightSceneInfo().Id).bCachedShadowMapHasPrimitives)
-				{
+			{
 				// Skip the clear when we'll copy from a cached shadowmap
 				bDoClear = false;
-				}
+			}
 
 			SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, Clear, bDoClear);
 			SetShadowRenderTargets(RHICmdList, bDoClear);	
@@ -2215,9 +2215,9 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 		{
 			FProjectedShadowInfo* ProjectedShadowInfo = SortedShadowsForShadowDepthPass.PreshadowCache.Shadows[ShadowIndex];
 
-			auto SetShadowRenderTargets = [this, ProjectedShadowInfo, &SceneContext](FRHICommandList& InRHICmdList, bool bPerformClear)
+			auto SetShadowRenderTargets = [this, ProjectedShadowInfo](FRHICommandList& InRHICmdList, bool bPerformClear)
 			{
-				FTextureRHIParamRef PreShadowCacheDepthZ = SceneContext.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
+				FTextureRHIParamRef PreShadowCacheDepthZ = Scene->PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
 				InRHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, &PreShadowCacheDepthZ, 1);
 
 				// Must preserve existing contents as the clear will be scissored

@@ -305,6 +305,11 @@ void ScalabilityCVarsSinkCallback()
 		bool bRecreateRenderstate = false;
 		bool bCacheResourceShaders = false;
 
+		if (LocalScalabilityCVars.DetailMode != GCachedScalabilityCVars.DetailMode)
+		{
+			bRecreateRenderstate = true;
+		}
+
 		if (LocalScalabilityCVars.MaterialQualityLevel != GCachedScalabilityCVars.MaterialQualityLevel)
 		{
 			bCacheResourceShaders = true;
@@ -2267,32 +2272,28 @@ void UEngine::GetAllLocalPlayerControllers(TArray<APlayerController*> & PlayerLi
  */
 struct FSortedTexture 
 {
-	int32		OrigSizeX;
-	int32		OrigSizeY;
-	int32		CookedSizeX;
-	int32		CookedSizeY;
+	int32		MaxAllowedSizeX;	// This is the disk size when cooked.
+	int32		MaxAllowedSizeY;
 	EPixelFormat Format;
 	int32		CurSizeX;
 	int32		CurSizeY;
 	int32		LODBias;
-	int32		MaxSize;
+	int32		MaxAllowedSize;
 	int32		CurrentSize;
-	FString Name;
+	FString		Name;
 	int32		LODGroup;
-	bool	bIsStreaming;
+	bool		bIsStreaming;
 	int32		UsageCount;
 
 	/** Constructor, initializing every member variable with passed in values. */
-	FSortedTexture(	int32 InOrigSizeX, int32 InOrigSizeY, int32 InCookedSizeX, int32 InCookedSizeY, EPixelFormat InFormat, int32 InCurSizeX, int32 InCurSizeY, int32 InLODBias, int32 InMaxSize, int32 InCurrentSize, const FString& InName, int32 InLODGroup, bool bInIsStreaming, int32 InUsageCount )
-	:	OrigSizeX( InOrigSizeX )
-	,	OrigSizeY( InOrigSizeY )
-	,	CookedSizeX( InCookedSizeX )
-	,	CookedSizeY( InCookedSizeY )
+	FSortedTexture(	int32 InMaxAllowedSizeX, int32 InMaxAllowedSizeY, EPixelFormat InFormat, int32 InCurSizeX, int32 InCurSizeY, int32 InLODBias, int32 InMaxAllowedSize, int32 InCurrentSize, const FString& InName, int32 InLODGroup, bool bInIsStreaming, int32 InUsageCount )
+	:	MaxAllowedSizeX( InMaxAllowedSizeX )
+	,	MaxAllowedSizeY( InMaxAllowedSizeY )
 	,	Format( InFormat )
 	,	CurSizeX( InCurSizeX )
 	,	CurSizeY( InCurSizeY )
 	,	LODBias( InLODBias )
-	,	MaxSize( InMaxSize )
+	,	MaxAllowedSize( InMaxAllowedSize )
 	,	CurrentSize( InCurrentSize )
 	,	Name( InName )
 	,	LODGroup( InLODGroup )
@@ -3693,17 +3694,15 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		int32				LODGroup			= Texture->LODGroup;
 		int32				LODBias				= Texture->GetCachedLODBias();
 		int32				NumMips				= Texture->GetNumMips();	
-		int32				MaxMips				= FMath::Max( 1, FMath::Min( NumMips - Texture->GetCachedLODBias(), GMaxTextureMipCount ) );
-		int32				OrigSizeX			= Texture->GetSizeX();
-		int32				OrigSizeY			= Texture->GetSizeY();
-		int32				CookedSizeX			= Texture->GetSizeX() >> LODBias;
-		int32				CookedSizeY			= Texture->GetSizeY() >> LODBias;
+		int32				MaxAllowedMips		= FMath::Max( 1, FMath::Min( NumMips - LODBias, GMaxTextureMipCount ) );
+		int32				MaxAllowedSizeX		= Texture->GetSizeX() >> LODBias;
+		int32				MaxAllowedSizeY		= Texture->GetSizeY() >> LODBias;
 		EPixelFormat		Format				= Texture->GetPixelFormat();
 		int32				DroppedMips			= Texture->GetNumMips() - Texture->ResidentMips;
 		int32				CurSizeX			= Texture->GetSizeX() >> DroppedMips;
 		int32				CurSizeY			= Texture->GetSizeY() >> DroppedMips;
 		bool			bIsStreamingTexture		= Texture->GetStreamingIndex() != INDEX_NONE;
-		int32				MaxSize				= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
+		int32				MaxAllowedSize		= Texture->CalcTextureMemorySizeEnum( TMC_AllMipsBiased );
 		int32				CurrentSize			= Texture->CalcTextureMemorySizeEnum( TMC_ResidentMips );
 		int32				UsageCount			= TextureToUsageMap.FindRef( Texture );
 		bool				bIsForced			= Texture->bForceMiplevelsToBeResident && bIsStreamingTexture;
@@ -3714,16 +3713,14 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			(!bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming && !bShouldOnlyListForced) )
 		{
 			new(SortedTextures) FSortedTexture( 
-				OrigSizeX, 
-				OrigSizeY, 
-				CookedSizeX,
-				CookedSizeY,
+				MaxAllowedSizeX,
+				MaxAllowedSizeY,
 				Format,
 				CurSizeX,
 				CurSizeY,
 				LODBias, 
-				MaxSize / 1024, 
-				CurrentSize / 1024, 
+				MaxAllowedSize,
+				CurrentSize,
 				Texture->GetPathName(), 
 				LODGroup, 
 				bIsStreamingTexture,
@@ -3738,71 +3735,88 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	TArray<FString> TextureGroupNames = UTextureLODSettings::GetTextureGroupNames();
 
 	TArray<uint64> TextureGroupCurrentSizes;
-	TArray<uint64> TextureGroupMaxSizes;
+	TArray<uint64> TextureGroupMaxAllowedSizes;
 	
 	TArray<uint64> FormatCurrentSizes;
-	TArray<uint64> FormatMaxSizes;
+	TArray<uint64> FormatMaxAllowedSizes;
 
 	TextureGroupCurrentSizes.AddZeroed(TextureGroupNames.Num());
-	TextureGroupMaxSizes.AddZeroed(TextureGroupNames.Num());
+	TextureGroupMaxAllowedSizes.AddZeroed(TextureGroupNames.Num());
 
 	FormatCurrentSizes.AddZeroed(PF_MAX);
-	FormatMaxSizes.AddZeroed(PF_MAX);
+	FormatMaxAllowedSizes.AddZeroed(PF_MAX);
 
 	// Display.
-	int32 TotalMaxSize		= 0;
+	int32 TotalMaxAllowedSize = 0;
 	int32 TotalCurrentSize	= 0;
-	Ar.Logf( TEXT(",Authored Width,Authored Height,Cooked Width,Cooked Height,Format,Current Width,Current Height,Max Size,Current Size,LODBias,LODGroup,Name,Streaming,Usage Count") );
+
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		Ar.Logf(TEXT("MaxAllowedSize: Width x Height (Size in KB, Bias from Authored), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+	}
+	else
+	{
+		Ar.Logf(TEXT("Cooked/OnDisk: Width x Height (Size in KB), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+	}
+
 	for( int32 TextureIndex=0; TextureIndex<SortedTextures.Num(); TextureIndex++ )
 	{
 		const FSortedTexture& SortedTexture = SortedTextures[TextureIndex];
 		const bool bValidTextureGroup = TextureGroupNames.IsValidIndex(SortedTexture.LODGroup);
-		Ar.Logf( TEXT(",%i,%i,%i,%i,%s,%i,%i,%i,%i,%i,%s,%s,%s,%i"),
-			SortedTexture.OrigSizeX,
-			SortedTexture.OrigSizeY,
-			SortedTexture.CookedSizeX,
-			SortedTexture.CookedSizeY,
-			GetPixelFormatString(SortedTexture.Format),
-			SortedTexture.CurSizeX,
-			SortedTexture.CurSizeY,
-			SortedTexture.MaxSize,
-			SortedTexture.CurrentSize,
-			SortedTexture.LODBias,
-			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-			*SortedTexture.Name,
-			SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-			SortedTexture.UsageCount );
+
+		if (!FPlatformProperties::RequiresCookedData())
+		{
+			Ar.Logf(TEXT("%ix%i (%i KB, %i), %ix%i (%i KB), %s, %s, %s, %s, %i"),
+				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, SortedTexture.LODBias,
+				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+				GetPixelFormatString(SortedTexture.Format),
+				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+				*SortedTexture.Name,
+				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+				SortedTexture.UsageCount);
+		}
+		else
+		{
+			Ar.Logf(TEXT("%ix%i (%i KB), %ix%i (%i KB), %s, %s, %s, %s, %i"),
+				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024,
+				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+				GetPixelFormatString(SortedTexture.Format),
+				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+				*SortedTexture.Name,
+				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+				SortedTexture.UsageCount);
+		}
 
 		if (bValidTextureGroup)
 		{
 			TextureGroupCurrentSizes[SortedTexture.LODGroup] += SortedTexture.CurrentSize;
-			TextureGroupMaxSizes[SortedTexture.LODGroup] += SortedTexture.MaxSize;
+			TextureGroupMaxAllowedSizes[SortedTexture.LODGroup] += SortedTexture.MaxAllowedSize;
 		}
 
 		if (SortedTexture.Format >= 0 && SortedTexture.Format < PF_MAX)
 		{
 			FormatCurrentSizes[SortedTexture.Format] += SortedTexture.CurrentSize;
-			FormatMaxSizes[SortedTexture.Format] += SortedTexture.MaxSize;
+			FormatMaxAllowedSizes[SortedTexture.Format] += SortedTexture.MaxAllowedSize;
 		}
 
-		TotalMaxSize		+= SortedTexture.MaxSize;
+		TotalMaxAllowedSize	+= SortedTexture.MaxAllowedSize;
 		TotalCurrentSize	+= SortedTexture.CurrentSize;
 	}
 
-	Ar.Logf(TEXT("Total size: Current= %d KB  Max= %d KB  Count=%d"), TotalCurrentSize, TotalMaxSize, SortedTextures.Num() );
+	Ar.Logf(TEXT("Total size: InMem= %.2f MB  OnDisk= %.2f MB  Count=%d"), (double)TotalCurrentSize / 1024. / 1024., (double)TotalMaxAllowedSize / 1024. / 1024., SortedTextures.Num() );
 	for (int32 i = 0; i < PF_MAX; ++i)
 	{
-		if (FormatCurrentSizes[i] > 0 || FormatMaxSizes[i] > 0)
+		if (FormatCurrentSizes[i] > 0 || FormatMaxAllowedSizes[i] > 0)
 		{
-			Ar.Logf(TEXT("Total %s size: Current= %d MB  Max= %d MB "), GetPixelFormatString((EPixelFormat)i), FormatCurrentSizes[i] / 1024, FormatMaxSizes[i] / 1024);
+			Ar.Logf(TEXT("Total %s size: InMem= %.2f MB  OnDisk= %.2f MB "), GetPixelFormatString((EPixelFormat)i), (double)FormatCurrentSizes[i] / 1024. / 1024., (double)FormatMaxAllowedSizes[i] / 1024. / 1024.);
 		}
 	}
 
 	for (int32 i = 0; i < TextureGroupCurrentSizes.Num(); ++i)
 	{
-		if (TextureGroupCurrentSizes[i] > 0 || TextureGroupMaxSizes[i] > 0)
+		if (TextureGroupCurrentSizes[i] > 0 || TextureGroupMaxAllowedSizes[i] > 0)
 		{
-			Ar.Logf(TEXT("Total %s size: Current= %d MB  Max= %d MB "), *TextureGroupNames[i], TextureGroupCurrentSizes[i] / 1024, TextureGroupMaxSizes[i] / 1024);
+			Ar.Logf(TEXT("Total %s size: InMem= %.2f MB  OnDisk= %.2f MB "), *TextureGroupNames[i], (double)TextureGroupCurrentSizes[i] / 1024. / 1024., (double)TextureGroupMaxAllowedSizes[i] / 1024. / 1024.);
 		}
 	}
 	return true;

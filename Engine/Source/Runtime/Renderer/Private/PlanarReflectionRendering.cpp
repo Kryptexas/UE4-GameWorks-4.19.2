@@ -292,16 +292,6 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 			});
 		}
 
-		FPostProcessSettings PostProcessSettings;
-		PostProcessSettings.bOverride_AntiAliasingMethod = true;
-
-		static IConsoleVariable* CVarDefaultAntiAliasing = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DefaultFeature.AntiAliasing"));
-		int32 Value = CVarDefaultAntiAliasing->GetInt();
-		if (Value >= 0 && Value < AAM_MAX)
-		{
-			PostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
-		}
-
 		FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
 		FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
 
@@ -314,6 +304,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 
 		FMatrix ProjectionMatrix;
 		BuildProjectionMatrix(DesiredPlanarReflectionTextureSize, ECameraProjectionMode::Perspective, FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, 1.0f, ProjectionMatrix);
+		FPostProcessSettings PostProcessSettings;
 
 		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
 

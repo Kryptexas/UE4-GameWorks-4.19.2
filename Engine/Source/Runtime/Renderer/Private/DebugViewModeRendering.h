@@ -10,6 +10,7 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 #include "ShaderParameterUtils.h"
 
 static const int32 NumStreamingAccuracyColors = 5;
+static const float UndefinedStreamingAccuracyIntensity = .02f;
 
 /**
  * Vertex shader for quad overdraw. Required because overdraw shaders need to have SV_Position as first PS interpolant.

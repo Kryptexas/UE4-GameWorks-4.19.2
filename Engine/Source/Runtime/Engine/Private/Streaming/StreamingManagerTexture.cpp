@@ -1104,25 +1104,25 @@ bool FStreamingManagerTexture::HandleListStreamingTexturesCommand( const TCHAR* 
 
 		int32 CurrentMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.ResidentMips, 0);
 		int32 WantedMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.GetPerfectWantedMips(), 0);
-		int32 MaxMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.MaxAllowedMips, 0);
+		int32 MaxAllowedMipIndex = FMath::Max(Texture2D->GetNumMips() - StreamingTexture.MaxAllowedMips, 0);
 		const TIndirectArray<struct FTexture2DMipMap>& Mips = Texture2D->PlatformData->Mips;
 
 		if (StreamingTexture.LastRenderTime != MAX_FLT)
 		{
-			UE_LOG(LogContentStreaming, Log,  TEXT("    Current=%dx%d Wanted=%dx%d Max=%dx%d LastRenderTime=%.3f BudgetBias=%d Group=%s"), 
+			UE_LOG(LogContentStreaming, Log,  TEXT("    Current=%dx%d Wanted=%dx%d MaxAllowed=%dx%d LastRenderTime=%.3f BudgetBias=%d Group=%s"), 
 				Mips[CurrentMipIndex].SizeX, Mips[CurrentMipIndex].SizeY, 
 				Mips[WantedMipIndex].SizeX, Mips[WantedMipIndex].SizeY, 
-				Mips[MaxMipIndex].SizeX, Mips[MaxMipIndex].SizeY, 
+				Mips[MaxAllowedMipIndex].SizeX, Mips[MaxAllowedMipIndex].SizeY,
 				StreamingTexture.LastRenderTime,
 				StreamingTexture.BudgetMipBias,
 				UTexture::GetTextureGroupString(StreamingTexture.LODGroup));
 		}
 		else
 		{
-			UE_LOG(LogContentStreaming, Log,  TEXT("    Current=%dx%d Wanted=%dx%d Max=%dx%d BudgetBias=%d Group=%s"), 
+			UE_LOG(LogContentStreaming, Log,  TEXT("    Current=%dx%d Wanted=%dx%d MaxAllowed=%dx%d BudgetBias=%d Group=%s"), 
 				Mips[CurrentMipIndex].SizeX, Mips[CurrentMipIndex].SizeY, 
 				Mips[WantedMipIndex].SizeX, Mips[WantedMipIndex].SizeY, 
-				Mips[MaxMipIndex].SizeX, Mips[MaxMipIndex].SizeY, 
+				Mips[MaxAllowedMipIndex].SizeX, Mips[MaxAllowedMipIndex].SizeY,
 				StreamingTexture.BudgetMipBias,
 				UTexture::GetTextureGroupString(StreamingTexture.LODGroup));
 		}
@@ -1424,7 +1424,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 				}
 				UE_LOG(LogContentStreaming, Log,  TEXT("  Current size:    %dx%d"), Texture2D->PlatformData->Mips[CurrentMipIndex].SizeX, Texture2D->PlatformData->Mips[CurrentMipIndex].SizeY );
 				UE_LOG(LogContentStreaming, Log,  TEXT("  Wanted size:     %dx%d"), Texture2D->PlatformData->Mips[WantedMipIndex].SizeX, Texture2D->PlatformData->Mips[WantedMipIndex].SizeY );
-				UE_LOG(LogContentStreaming, Log,  TEXT("  Max size:        %dx%d"), Texture2D->PlatformData->Mips[MaxMipIndex].SizeX, Texture2D->PlatformData->Mips[MaxMipIndex].SizeY );
+				UE_LOG(LogContentStreaming, Log,  TEXT("  MaxAllowed size: %dx%d"), Texture2D->PlatformData->Mips[MaxMipIndex].SizeX, Texture2D->PlatformData->Mips[MaxMipIndex].SizeY );
 				UE_LOG(LogContentStreaming, Log,  TEXT("  LoadOrder Priority: %d"), StreamingTexture.LoadOrderPriority );
 				UE_LOG(LogContentStreaming, Log,  TEXT("  Retention Priority: %d"), StreamingTexture.RetentionPriority );
 				UE_LOG(LogContentStreaming, Log,  TEXT("  Boost factor:    %.1f"), StreamingTexture.BoostFactor );

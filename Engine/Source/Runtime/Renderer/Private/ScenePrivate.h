@@ -1756,6 +1756,7 @@ public:
 		bool bEnableStationarySkylight;
 		bool bEnableAtmosphericFog;
 		bool bEnableLowQualityLightmaps;
+		bool bEnableVertexFoggingForOpaque;
 	};
 
 	/** An optional world associated with the scene. */
@@ -1837,9 +1838,6 @@ public:
 	 */
 	TSparseArray<FLightSceneInfoCompact> InvisibleLights;
 
-	/** Map from light id to the cached shadowmap data for that light. */
-	TMap<int32, FCachedShadowMapData> CachedShadowMaps;
-
 	/** The mobile quality level for which static draw lists have been built. */
 	bool bStaticDrawListsMobileHDR;
 	bool bStaticDrawListsMobileHDR32bpp;
@@ -1894,6 +1892,11 @@ public:
 
 	/** Distance field object scene data. */
 	FDistanceFieldSceneData DistanceFieldSceneData;
+	
+	/** Map from light id to the cached shadowmap data for that light. */
+	TMap<int32, FCachedShadowMapData> CachedShadowMaps;
+
+	TRefCountPtr<IPooledRenderTarget> PreShadowCacheDepthZ;
 
 	/** Preshadows that are currently cached in the PreshadowCache render target. */
 	TArray<TRefCountPtr<FProjectedShadowInfo> > CachedPreshadows;
@@ -1989,7 +1992,7 @@ public:
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent) override;
 	virtual void UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer) override;
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
-	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
 	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) override;
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;

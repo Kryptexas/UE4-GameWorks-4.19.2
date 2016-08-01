@@ -289,7 +289,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 // Generate a new guid to force a recapture of all reflection data
 // Note: changing this will cause saved capture data in maps to be discarded
 // A resave of those maps will be required to guarantee valid reflections when cooking for ES2
-FGuid ReflectionCaptureDDCVer(0x0c669396, 0x9cb849ae, 0x9f4120ff, 0x5812f4d2);
+FGuid ReflectionCaptureDDCVer(0x0c669396, 0x9cb849ae, 0x9f4120ff, 0x5812f4d3);
 
 FReflectionCaptureFullHDR::~FReflectionCaptureFullHDR()
 {
@@ -812,6 +812,7 @@ UReflectionCaptureComponent::UReflectionCaptureComponent(const FObjectInitialize
 
 	bCaptureDirty = false;
 	bDerivedDataDirty = false;
+	AverageBrightness = 1.0f;
 }
 
 void UReflectionCaptureComponent::CreateRenderState_Concurrent()
@@ -871,6 +872,7 @@ void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
 		if (Ar.IsSaving())
 		{
 			Ar << ReflectionCaptureDDCVer;
+			Ar << AverageBrightness;
 
 			int32 StartOffset = Ar.Tell();
 			Ar << StartOffset;
@@ -893,6 +895,11 @@ void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
 		{
 			FGuid SavedVersion;
 			Ar << SavedVersion;
+
+			if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::ReflectionCapturesStoreAverageBrightness)
+			{
+				Ar << AverageBrightness;
+			}
 
 			int32 EndOffset = 0;
 			Ar << EndOffset;
@@ -959,6 +966,8 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 		// Saving for cooking path
 		if (Ar.IsCooking())
 		{
+			Ar << AverageBrightness;
+
 			// Get all the reflection capture formats that the target platform wants
 			TArray<FName> Formats;
 			Ar.CookingTarget()->GetReflectionCaptureFormats(Formats);
@@ -1010,7 +1019,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 					else if (!IsTemplate())
 					{
 						// Temporary warning until the cooker can do scene captures itself in the case of missing DDC
-						UE_LOG(LogMaterial, Warning, TEXT("Reflection capture requires encoded HDR data but none was found in the DDC!  This reflection will be black.  Fix by loading the map in the editor once.  %s."), *GetFullName());
+						UE_LOG(LogMaterial, Warning, TEXT("Reflection capture requires encoded HDR data but none was found in the DDC!  This reflection will be black.  Fix by resaving the map in the editor.  %s."), *GetFullName());
 					}
 				}
 			}
@@ -1018,6 +1027,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 		else
 		{
 			// Loading cooked data path
+			Ar << AverageBrightness;
 
 			int32 NumFormats = 0;
 			Ar << NumFormats;
@@ -1036,15 +1046,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 					{
 						FullHDRData = new FReflectionCaptureFullHDR();
 
-						if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::CustomReflectionCaptureResolutionSupport)
-						{
-							Ar << FullHDRData->CubemapSize;
-						}
-						else
-						{
-							FullHDRData->CubemapSize = 128;
-						}
-
+						Ar << FullHDRData->CubemapSize;
 						Ar << FullHDRData->CompressedCapturedData;
 					}
 					else 
@@ -1682,6 +1684,22 @@ FReflectionCaptureProxy::FReflectionCaptureProxy(const UReflectionCaptureCompone
 	InfluenceRadius = InComponent->GetInfluenceBoundingRadius();
 	Brightness = InComponent->Brightness;
 	Guid = GetTypeHash( Component->GetPathName() );
+	AverageBrightness = 1.0f;
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		FInitReflectionProxy,
+		const float*,AverageBrightness,InComponent->GetAverageBrightnessPtr(),
+		FReflectionCaptureProxy*,ReflectionCaptureProxy,this,
+	{
+		// Only access AverageBrightness on the RT, even though they belong to the UReflectionCaptureComponent, 
+		// Because FScene::UpdateReflectionCaptureContents does not block the RT so the writes could still be in flight
+		ReflectionCaptureProxy->InitializeAverageBrightness(*AverageBrightness);
+	});
+}
+
+void FReflectionCaptureProxy::InitializeAverageBrightness(const float& InAverageBrightness)
+{
+	AverageBrightness = InAverageBrightness;
 }
 
 void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)

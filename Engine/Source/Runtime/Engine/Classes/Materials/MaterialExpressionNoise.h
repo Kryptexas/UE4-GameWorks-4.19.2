@@ -22,7 +22,7 @@ enum ENoiseFunction
 	 */
 	NOISEFUNCTION_GradientTex UMETA(DisplayName="Gradient - Texture Based"),
 
-	/** High quality for direct use, BAD for bumps
+	/** High quality for direct use, BAD for bumps; doesn't work on Mobile
 	 * ~16 instructions per level, 1 texture lookup
 	 * Always tiles with a repeat of 16, "Tiling" mode is not an option for Fast Gradient noise
 	 */

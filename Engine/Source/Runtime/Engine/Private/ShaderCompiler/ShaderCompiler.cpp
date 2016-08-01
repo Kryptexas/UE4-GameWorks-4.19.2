@@ -2565,6 +2565,11 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VertexFoggingForOpaque"));
+		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
 	if (GSupportsRenderTargetWriteMask)
 	{
 		Input.Environment.SetDefine(TEXT("PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK"), 1);
@@ -2719,6 +2724,12 @@ public:
 			// fixup uniform expressions
 			UMaterialInterface::RecacheAllMaterialUniformExpressions();
 		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND(
+			FRecreateBoundShaderStates,
+		{
+			RHIRecreateRecursiveBoundShaderStates();
+		});
 	}
 
 private:

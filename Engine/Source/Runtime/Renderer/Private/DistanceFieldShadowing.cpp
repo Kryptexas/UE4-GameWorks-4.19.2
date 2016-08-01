@@ -68,6 +68,63 @@ FIntPoint GetBufferSizeForDFShadows()
 
 TGlobalResource<FDistanceFieldObjectBufferResource> GShadowCulledObjectBuffers;
 
+/**  */
+class FClearObjectIndirectArguments : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FClearObjectIndirectArguments,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldShadowing(Platform);
+	}
+
+	FClearObjectIndirectArguments(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		ObjectIndirectArguments.Bind(Initializer.ParameterMap, TEXT("ObjectIndirectArguments"));
+	}
+
+	FClearObjectIndirectArguments()
+	{
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		FUnorderedAccessViewRHIParamRef OutUAVs[1];
+		OutUAVs[0] = GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;	
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
+
+		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		ObjectIndirectArguments.UnsetUAV(RHICmdList, GetComputeShader());
+
+		FUnorderedAccessViewRHIParamRef OutUAVs[1];
+		OutUAVs[0] = GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV;	
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << ObjectIndirectArguments;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FRWShaderParameter ObjectIndirectArguments;
+};
+
+IMPLEMENT_SHADER_TYPE(,FClearObjectIndirectArguments,TEXT("DistanceFieldShadowing"),TEXT("ClearObjectIndirectArguments"),SF_Compute);
+
 class FCullObjectsForShadowCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FCullObjectsForShadowCS,Global)
@@ -729,8 +786,23 @@ void CullDistanceFieldObjectsForLight(
 		}
 
 		{
-			uint32 ClearValues[4] = { 0 };
-			RHICmdList.ClearUAV(GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV, ClearValues);
+			// Manual compute shader clear to work around a bug on PS4 where a ClearUAV does not complete before the DrawIndexedPrimitiveIndirect read in the graphics pipe
+			bool bUseComputeShaderClear = true;
+
+			if (bUseComputeShaderClear)
+			{
+				TShaderMapRef<FClearObjectIndirectArguments> ComputeShader(View.ShaderMap);
+
+				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+				ComputeShader->SetParameters(RHICmdList, View);
+				DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
+				ComputeShader->UnsetParameters(RHICmdList);
+			}
+			else
+			{
+				uint32 ClearValues[4] = { 0 };
+				RHICmdList.ClearUAV(GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV, ClearValues);
+			}
 
 			TShaderMapRef<FCullObjectsForShadowCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -796,7 +868,7 @@ void CullDistanceFieldObjectsForLight(
 
 			TArray<FUnorderedAccessViewRHIParamRef> UAVs;
 			PixelShader->GetUAVs(View, TileIntersectionResources, UAVs);
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
+			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToGfx, UAVs.GetData(), UAVs.Num());
 			RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView *)NULL, NULL, UAVs.Num(), UAVs.GetData());
 
 			RHICmdList.SetViewport(0, 0, 0.0f, LightTileDimensions.X, LightTileDimensions.Y, 1.0f);
@@ -822,7 +894,7 @@ void CullDistanceFieldObjectsForLight(
 				0);
 
 			SetRenderTarget(RHICmdList, NULL, NULL);
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
+			RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, UAVs.GetData(), UAVs.Num());
 		}
 	}
 }

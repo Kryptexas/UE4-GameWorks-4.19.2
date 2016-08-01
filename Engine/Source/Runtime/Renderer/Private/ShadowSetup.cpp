@@ -823,11 +823,15 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 					FViewInfo& CurrentView = *Views[ViewIndex];
 
 					const float DistanceSquared = ( Bounds.Origin - CurrentView.ShadowViewMatrices.ViewOrigin ).SizeSquared();
-					const bool bDrawShadowDepth = FMath::Square( Bounds.SphereRadius ) > FMath::Square( GMinScreenRadiusForShadowCaster ) * DistanceSquared;
-					if( !bDrawShadowDepth )
+
+					if (bWholeSceneShadow)
 					{
-						// cull object if it's too small to be considered as shadow caster
-						continue;
+						const bool bDrawShadowDepth = FMath::Square( Bounds.SphereRadius ) > FMath::Square( GMinScreenRadiusForShadowCaster ) * DistanceSquared;
+						if( !bDrawShadowDepth )
+						{
+							// cull object if it's too small to be considered as shadow caster
+							continue;
+						}
 					}
 
 					// Update visibility for meshes which weren't visible in the main views or were visible with static relevance
@@ -1278,13 +1282,7 @@ void FSceneRenderer::UpdatePreshadowCache(FSceneRenderTargets& SceneContext)
 					CachedShadow->ResolutionY + CachedShadow->BorderSize * 2));
 				Scene->CachedPreshadows.RemoveAt(CachedShadowIndex);
 			}
-			else if (SceneContext.bPreshadowCacheNewlyAllocated)
-			{
-				CachedShadow->bDepthsCached = false;
-			}
 		}
-
-		SceneContext.bPreshadowCacheNewlyAllocated = false;
 
 		TArray<TRefCountPtr<FProjectedShadowInfo>, SceneRenderingAllocator> UncachedPreShadows;
 
@@ -2805,17 +2803,27 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 		AllocateCSMDepthTargets(RHICmdList, WholeSceneDirectionalShadows);
 	}
 
-	SortedShadowsForShadowDepthPass.PreshadowCache.RenderTargets.DepthTarget = SceneContext.PreShadowCacheDepthZ;
-
-	for (int32 ShadowIndex = 0; ShadowIndex < CachedPreShadows.Num(); ShadowIndex++)
+	if (CachedPreShadows.Num() > 0)
 	{
-		FProjectedShadowInfo* ProjectedShadowInfo = CachedPreShadows[ShadowIndex];
-		ProjectedShadowInfo->RenderTargets.DepthTarget = SceneContext.PreShadowCacheDepthZ.GetReference();
-
-		if (!ProjectedShadowInfo->bDepthsCached)
+		if (!Scene->PreShadowCacheDepthZ)
 		{
-			ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
-			SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.Add(ProjectedShadowInfo);
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetPreShadowCacheTextureResolution(), PF_ShadowDepth, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+			Desc.AutoWritable = false;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Scene->PreShadowCacheDepthZ, TEXT("PreShadowCacheDepthZ"));
+		}
+
+		SortedShadowsForShadowDepthPass.PreshadowCache.RenderTargets.DepthTarget = Scene->PreShadowCacheDepthZ;
+
+		for (int32 ShadowIndex = 0; ShadowIndex < CachedPreShadows.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = CachedPreShadows[ShadowIndex];
+			ProjectedShadowInfo->RenderTargets.DepthTarget = Scene->PreShadowCacheDepthZ.GetReference();
+
+			if (!ProjectedShadowInfo->bDepthsCached)
+			{
+				ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
+				SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.Add(ProjectedShadowInfo);
+			}
 		}
 	}
 

@@ -24,6 +24,13 @@ static TAutoConsoleVariable<int32> CVarGlobalClipPlane(
 	TEXT("Enables mesh shaders to support a global clip plane, needed for planar reflections, which adds about 15% BasePass GPU cost on PS4."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarVertexFoggingForOpaque(
+	TEXT("r.VertexFoggingForOpaque"),
+	0,
+	TEXT("Causes opaque materials to use per-vertex fogging, which costs less and integrates properly with MSAA.  Only supported with forward shading."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarParallelBasePass(
 	TEXT("r.ParallelBasePass"),
 	1,
@@ -133,13 +140,15 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	float& OutApplySkyLightMask, 
 	float& OutSkyMipCount, 
 	bool& bOutSkyLightIsDynamic, 
-	float& OutBlendFraction)
+	float& OutBlendFraction,
+	float& OutSkyAverageBrightness)
 {
 	OutSkyLightTextureResource = GBlackTextureCube;
 	OutSkyLightBlendDestinationTextureResource = GBlackTextureCube;
 	OutApplySkyLightMask = 0;
 	bOutSkyLightIsDynamic = false;
 	OutBlendFraction = 0;
+	OutSkyAverageBrightness = 1.0f;
 
 	if (Scene
 		&& Scene->SkyLight 
@@ -165,6 +174,7 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 		
 		OutApplySkyLightMask = 1;
 		bOutSkyLightIsDynamic = !SkyLight.bHasStaticLighting && !SkyLight.bWantsStaticShadowing;
+		OutSkyAverageBrightness = SkyLight.AverageBrightness;
 	}
 
 	OutSkyMipCount = 1;
@@ -203,7 +213,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	FMatrix BoxTransformVal = FMatrix::Identity;
 	FVector4 PositionAndRadius = FVector::ZeroVector;
 	FVector4 BoxScalesVal(0, 0, 0, 0);
-	FVector CaptureOffsetVal = FVector::ZeroVector;
+	FVector4 CaptureOffsetAndAverageBrightnessValue(0, 0, 0, 1);
 	EReflectionCaptureShape::Type CaptureShape = EReflectionCaptureShape::Box;
 	
 	if (PrimitiveSceneInfo && ReflectionProxy)
@@ -213,7 +223,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 		CaptureShape = ReflectionProxy->Shape;
 		BoxTransformVal = ReflectionProxy->BoxTransform;
 		BoxScalesVal = FVector4(ReflectionProxy->BoxScales, ReflectionProxy->BoxTransitionDistance);
-		CaptureOffsetVal = ReflectionProxy->CaptureOffset;
+		CaptureOffsetAndAverageBrightnessValue = FVector4(ReflectionProxy->CaptureOffset, ReflectionProxy->AverageBrightness);
 	}
 
 	SetTextureParameter(
@@ -229,8 +239,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionShape, (float)CaptureShape);
 	SetShaderValue(RHICmdList, PixelShaderRHI, BoxTransform, BoxTransformVal);
 	SetShaderValue(RHICmdList, PixelShaderRHI, BoxScales, BoxScalesVal);
-	SetShaderValue(RHICmdList, PixelShaderRHI, CaptureOffset, CaptureOffsetVal);
-	
+	SetShaderValue(RHICmdList, PixelShaderRHI, CaptureOffsetAndAverageBrightness, CaptureOffsetAndAverageBrightnessValue);
 }
 
 void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
@@ -367,8 +376,8 @@ public:
 					Parameters.TextureMode,
 					bRenderSkylight,
 					bRenderAtmosphericFog,
-					/* DebugViewShaderMode = */ DVSM_None,
-					/* bInAllowGlobalFog = */ false,
+					DVSM_None,
+					Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque,
 					/* bInEnableEditorPrimitiveDepthTest = */ false,
 					/* bInEnableReceiveDecalOutput = */ true
 				),
@@ -490,7 +499,7 @@ public:
 			bRenderSkylight,
 			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
-			false,
+			Scene ? Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque : false,
 			Parameters.bEditorCompositeDepthTest,
 			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);

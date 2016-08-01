@@ -229,9 +229,9 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 			GPUProfilingData.RegisterGPUWork();
 		
 			if(FeatureLevel == D3D_FEATURE_LEVEL_11_0 
-			&& DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite)
-			&& SourceTextureRHI->IsMultisampled()
-			&& !DestTextureRHI->IsMultisampled())
+				&& DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+				&& SourceTextureRHI->IsMultisampled()
+				&& !DestTextureRHI->IsMultisampled())
 			{
 				D3D11_TEXTURE2D_DESC ResolveTargetDesc;
 				

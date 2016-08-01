@@ -887,6 +887,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 					int32 TotalTexelsBeingUpdated = 0;
 
 					// Trim fully contained update regions
+					//@todo - trim overlapping regions, especially for update transforms which create update regions for previous and current bounds which are typically overlapping
 					for (int32 UpdateRegionIndex = 0; UpdateRegionIndex < Clipmap.UpdateRegions.Num(); UpdateRegionIndex++)
 					{
 						const FVolumeUpdateRegion& UpdateRegion = Clipmap.UpdateRegions[UpdateRegionIndex];

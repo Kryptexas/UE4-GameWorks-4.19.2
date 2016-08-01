@@ -144,6 +144,14 @@ class UReflectionCaptureComponent : public USceneComponent
 		return FullHDRData;
 	}
 
+	inline float GetAverageBrightness() const 
+	{ 
+		return AverageBrightness; 
+	}
+
+	inline float* GetAverageBrightnessPtr() { return &AverageBrightness; }
+	inline const float* GetAverageBrightnessPtr() const { return &AverageBrightness; }
+
 	ENGINE_API static int32 GetReflectionCaptureSize_GameThread();
 	ENGINE_API static int32 GetReflectionCaptureSize_RenderThread();
 
@@ -180,6 +188,9 @@ private:
 
 	UPROPERTY()
 	FGuid StateId;
+
+	/** Average brightness of the captured data, read back to the CPU after the capture. */
+	float AverageBrightness;
 
 	/**
 	 * The full HDR capture data to use for rendering.

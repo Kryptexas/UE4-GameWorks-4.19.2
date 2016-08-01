@@ -475,6 +475,7 @@ public:
 		SkyLightBlendDestinationCubemap.Bind(ParameterMap, TEXT("SkyLightBlendDestinationCubemap"));
 		SkyLightBlendDestinationCubemapSampler.Bind(ParameterMap, TEXT("SkyLightBlendDestinationCubemapSampler"));
 		SkyLightParameters.Bind(ParameterMap, TEXT("SkyLightParameters"));
+		SkyLightCubemapBrightness.Bind(ParameterMap, TEXT("SkyLightCubemapBrightness"));
 	}
 
 	template<typename TParamRef, typename TRHICmdList>
@@ -488,19 +489,21 @@ public:
 			float SkyMipCount = 1;
 			float BlendFraction = 0;
 			bool bSkyLightIsDynamic = false;
+			float SkyAverageBrightness = 1.0f;
 
-			GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, SkyLightBlendDestinationTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic, BlendFraction);
+			GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, SkyLightBlendDestinationTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic, BlendFraction, SkyAverageBrightness);
 
 			SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
 			SetTextureParameter(RHICmdList, ShaderRHI, SkyLightBlendDestinationCubemap, SkyLightBlendDestinationCubemapSampler, SkyLightBlendDestinationTextureResource);
 			const FVector4 SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f, BlendFraction);
 			SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
+			SetShaderValue(RHICmdList, ShaderRHI, SkyLightCubemapBrightness, SkyAverageBrightness);
 		}
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FSkyLightReflectionParameters& P)
 	{
-		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters << P.SkyLightBlendDestinationCubemap << P.SkyLightBlendDestinationCubemapSampler;
+		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters << P.SkyLightBlendDestinationCubemap << P.SkyLightBlendDestinationCubemapSampler << P.SkyLightCubemapBrightness;
 		return Ar;
 	}
 
@@ -511,6 +514,7 @@ private:
 	FShaderResourceParameter SkyLightBlendDestinationCubemap;
 	FShaderResourceParameter SkyLightBlendDestinationCubemapSampler;
 	FShaderParameter SkyLightParameters;
+	FShaderParameter SkyLightCubemapBrightness;
 
 	void GetSkyParametersFromScene(
 		const FScene* Scene, 
@@ -520,7 +524,8 @@ private:
 		float& OutApplySkyLightMask, 
 		float& OutSkyMipCount, 
 		bool& bSkyLightIsDynamic, 
-		float& OutBlendFraction);
+		float& OutBlendFraction,
+		float& OutSkyAverageBrightness);
 };
 
 /** Parameters needed for reflections, shared by multiple shaders. */
@@ -538,7 +543,7 @@ public:
 		ReflectionShape.Bind(ParameterMap, TEXT("ReflectionShape"));
 		BoxTransform.Bind(ParameterMap, TEXT("BoxTransform"));
 		BoxScales.Bind(ParameterMap, TEXT("BoxScales"));		
-		CaptureOffset.Bind(ParameterMap, TEXT("CaptureOffset"));
+		CaptureOffsetAndAverageBrightness.Bind(ParameterMap, TEXT("CaptureOffsetAndAverageBrightness"));
 		SkyLightReflectionParameters.Bind(ParameterMap);
 	}
 
@@ -557,7 +562,7 @@ public:
 		Ar << P.ReflectionShape;
 		Ar << P.BoxTransform;
 		Ar << P.BoxScales;
-		Ar << P.CaptureOffset;
+		Ar << P.CaptureOffsetAndAverageBrightness;
 		Ar << P.SkyLightReflectionParameters;
 		return Ar;
 	}
@@ -573,7 +578,7 @@ private:
 	FShaderParameter ReflectionShape;
 	FShaderParameter BoxTransform;
 	FShaderParameter BoxScales;
-	FShaderParameter CaptureOffset;
+	FShaderParameter CaptureOffsetAndAverageBrightness;
 
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
 };

@@ -1389,7 +1389,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	if (ViewFamily.Scene && ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
 	{
 		// Double buffer tonemapper output for temporal AA.
-		if(View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+		if(View.AntiAliasingMethod == AAM_TemporalAA)
 		{
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			if(ViewState) 
@@ -1830,7 +1830,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer tonemapper output for temporal AA.
-	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 

@@ -98,7 +98,7 @@ FLinearColor ComputeSSRParams(const FRenderingCompositePassContext& Context, uin
 
 	if(Context.ViewState)
 	{
-		bool bTemporalAAIsOn = Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA;
+		bool bTemporalAAIsOn = Context.View.AntiAliasingMethod == AAM_TemporalAA;
 
 		if(bTemporalAAIsOn)
 		{
@@ -493,7 +493,7 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 		Context.FinalOutput = FRenderingCompositeOutputRef( TracePass );
 	}
 
-	const bool bTemporalFilter = View.FinalPostProcessSettings.AntiAliasingMethod != AAM_TemporalAA || CVarSSRTemporal.GetValueOnRenderThread() != 0;
+	const bool bTemporalFilter = View.AntiAliasingMethod != AAM_TemporalAA || CVarSSRTemporal.GetValueOnRenderThread() != 0;
 
 	if( ViewState && bTemporalFilter )
 	{

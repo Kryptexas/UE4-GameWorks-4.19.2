@@ -775,6 +775,7 @@ FArchive& operator<<(FArchive& Ar,class FSelfContainedShaderId& Ref)
  * This still needs to initialize members to safe values since FShaderType::GenerateSerializationHistory uses this constructor.
  */
 FShader::FShader() : 
+	SerializedResource(nullptr),
 	ShaderPipeline(nullptr),
 	VFType(nullptr),
 	Type(nullptr), 
@@ -1768,6 +1769,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		if (CVar && CVar->GetValueOnAnyThread() > 0)
 		{
 			KeyString += TEXT("_FS");
+		}
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));
+		if (CVar && CVar->GetValueOnAnyThread() > 0)
+		{
+			KeyString += TEXT("_VFO");
 		}
 	}
 }

@@ -51,6 +51,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		OutEnvironment.SetDefine(TEXT("UNDEFINED_ACCURACY"), UndefinedStreamingAccuracyIntensity);
 		OutEnvironment.SetDefine(TEXT("MAX_NUM_TEX_COORD"), (uint32)FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD);
 		OutEnvironment.SetDefine(TEXT("INITIAL_GPU_SCALE"), (uint32)FMaterialTexCoordBuildInfo::INITIAL_GPU_SCALE);
 		OutEnvironment.SetDefine(TEXT("TILE_RESOLUTION"), (uint32)FMaterialTexCoordBuildInfo::TILE_RESOLUTION);

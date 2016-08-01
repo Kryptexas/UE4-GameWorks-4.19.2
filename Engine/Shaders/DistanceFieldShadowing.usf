@@ -98,6 +98,20 @@ bool ShadowConvexHullIntersectSphere(float3 SphereOrigin, float SphereRadius)
 	return true;
 }
 
+[numthreads(1, 1, 1)]
+void ClearObjectIndirectArguments(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
+	RWObjectIndirectArguments[0] = 0;
+	RWObjectIndirectArguments[1] = 0;
+	RWObjectIndirectArguments[2] = 0;
+	RWObjectIndirectArguments[3] = 0;
+	RWObjectIndirectArguments[4] = 0;
+}
+
 [numthreads(UPDATEOBJECTS_THREADGROUP_SIZE, 1, 1)]
 void CullObjectsForShadowCS(
 	uint3 GroupId : SV_GroupID,

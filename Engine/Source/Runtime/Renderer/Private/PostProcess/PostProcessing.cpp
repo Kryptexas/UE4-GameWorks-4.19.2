@@ -51,6 +51,7 @@
 #include "IHeadMountedDisplay.h"
 #include "BufferVisualizationData.h"
 #include "PostProcessLpvIndirect.h"
+#include "PostProcessStreamingAccuracyLegend.h"
 
 
 /** The global center for all post processing activities. */
@@ -429,7 +430,7 @@ static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRende
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 	
 	FRenderingCompositePass* DOFInputPass = DOFSetup;
-	if( Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
+	if( Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 	{
 		FRenderingCompositePass* HistoryInput;
 		if( ViewState->DOFHistoryRT && ViewState->bDOFHistory && !Context.View.bCameraCut )
@@ -477,7 +478,7 @@ static bool AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 
 			FRenderingCompositeOutputRef DOFInputPass = DOFSetup;
 			const bool bMobileQuality = (Context.View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1);
-			if (Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState && !bMobileQuality)
+			if (Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState && !bMobileQuality)
 			{
 				// If no history use current as history
 				FRenderingCompositeOutputRef HistoryInput = DOFSetup;
@@ -607,7 +608,7 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
 	FRenderingCompositePass* DOFInputPass = DOFSetup;
-	if( Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
+	if( Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 	{
 		FRenderingCompositePass* HistoryInput;
 		if( ViewState->DOFHistoryRT && !ViewState->bDOFHistory && !Context.View.bCameraCut )
@@ -1337,7 +1338,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			AddPostProcessMaterial(Context, BL_BeforeTonemapping, SeparateTranslucency);
 
-			EAntiAliasingMethod AntiAliasingMethod = Context.View.FinalPostProcessSettings.AntiAliasingMethod;
+			EAntiAliasingMethod AntiAliasingMethod = Context.View.AntiAliasingMethod;
 
 			if( AntiAliasingMethod == AAM_TemporalAA && ViewState)
 			{
@@ -1721,6 +1722,14 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			bResultsUpsampled = true;
 		}
 
+		if (DebugViewShaderMode == DVSM_PrimitiveDistanceAccuracy || DebugViewShaderMode == DVSM_MeshTexCoordSizeAccuracy || DebugViewShaderMode == DVSM_MaterialTexCoordScalesAccuracy)
+		{
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessStreamingAccuracyLegend(GEngine->StreamingAccuracyColors));
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+			bResultsUpsampled = true;
+		}
+
 		if(View.Family->EngineShowFlags.VisualizeLightCulling) 
 		{
 			float ComplexityScale = 1.f / (float)(GEngine->LightComplexityColors.Num() - 1) / .1f; // .1f comes from the values used in LightAccumulator_GetResult
@@ -1983,7 +1992,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		FRenderingCompositeOutputRef BloomOutput;
 		FRenderingCompositeOutputRef DofOutput;
 
-		bool bUseAa = View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA;
+		bool bUseAa = View.AntiAliasingMethod == AAM_TemporalAA;
 
 		// AA with Mobile32bpp mode requires this outside of bUsePost.
 		if(bUseAa)
@@ -2423,7 +2432,7 @@ void FPostProcessing::ProcessPlanarReflection(FRHICommandListImmediate& RHICmdLi
 		}
 
 		FSceneViewState* ViewState = Context.View.ViewState;
-		EAntiAliasingMethod AntiAliasingMethod = Context.View.FinalPostProcessSettings.AntiAliasingMethod;
+		EAntiAliasingMethod AntiAliasingMethod = Context.View.AntiAliasingMethod;
 
 		if (AntiAliasingMethod == AAM_TemporalAA && ViewState)
 		{

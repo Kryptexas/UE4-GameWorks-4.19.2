@@ -139,7 +139,9 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 static TAutoConsoleVariable<int32> CVarForwardShading(
 	TEXT("r.ForwardShading"),
 	0,
-	TEXT("Whether to use forward shading on desktop platforms.  Requires Shader Model 5 hardware.  Forward shading has lower constant cost, but fewer features supported.  0:off, 1:on"),
+	TEXT("Whether to use forward shading on desktop platforms - requires Shader Model 5 hardware.\n")
+	TEXT("Forward shading has lower constant cost, but fewer features supported. 0:off, 1:on\n")
+	TEXT("This rendering path is a work in progress with many unimplemented features, notably only a single reflection capture is applied per object and no translucency dynamic shadow receiving."),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarSupportSimpleForwardShading(
@@ -156,6 +158,17 @@ static TAutoConsoleVariable<int32> CVarSimpleForwardShading(
 	TEXT("0:off, 1:on"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
 
+static TAutoConsoleVariable<float> CVarNormalCurvatureToRoughnessBias(
+	TEXT("r.NormalCurvatureToRoughnessBias"),
+	0.0f,
+	TEXT("Biases the roughness resulting from screen space normal changes for materials with NormalCurvatureToRoughness enabled.  Valid range [-1, 1]"),
+	ECVF_RenderThreadSafe | ECVF_Scalability);
+
+static TAutoConsoleVariable<float> CVarNormalCurvatureToRoughnessScale(
+	TEXT("r.NormalCurvatureToRoughnessScale"),
+	1.0f,
+	TEXT("Scales the roughness resulting from screen space normal changes for materials with NormalCurvatureToRoughness enabled.  Valid range [0, 2]"),
+	ECVF_RenderThreadSafe | ECVF_Scalability);
 
 /*-----------------------------------------------------------------------------
 	FParallelCommandListSet
@@ -445,7 +458,6 @@ FViewInfo::~FViewInfo()
 
 void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradianceEnvironmentMap) const
 {
-
 	FScene* Scene = nullptr;
 
 	if (Family->Scene)
@@ -855,13 +867,7 @@ void FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.Random = FMath::Rand();
 	ViewUniformShaderParameters.FrameNumber = Family->FrameNumber;
 
-	// Lets not use Lightmaps if we don't allow static lighting, shall we?
-	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowStaticLighting"));
-	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
-	const bool bUseLightmaps = (AllowStaticLightingVar->GetInt() == 1) && (CVar->GetInt() == 0);
-
 	ViewUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
-	ViewUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;
 
 	uint32 StateFrameIndexMod8 = 0;
 
@@ -947,6 +953,11 @@ void FViewInfo::CreateUniformBuffer(
 		FinalPostProcessSettings.IndirectLightingColor.G * FinalPostProcessSettings.IndirectLightingIntensity,
 		FinalPostProcessSettings.IndirectLightingColor.B * FinalPostProcessSettings.IndirectLightingIntensity);
 
+	ViewUniformShaderParameters.NormalCurvatureToRoughnessScaleBias.X = FMath::Clamp(CVarNormalCurvatureToRoughnessScale.GetValueOnAnyThread(), 0.0f, 2.0f);
+	ViewUniformShaderParameters.NormalCurvatureToRoughnessScaleBias.Y = FMath::Clamp(CVarNormalCurvatureToRoughnessBias.GetValueOnAnyThread(), -1.0f, 1.0f);
+
+	ViewUniformShaderParameters.RenderingReflectionCaptureMask = bIsReflectionCapture ? 1.0f : 0.0f;
+
 	ViewUniformShaderParameters.AmbientCubemapTint = FinalPostProcessSettings.AmbientCubemapTint;
 	ViewUniformShaderParameters.AmbientCubemapIntensity = FinalPostProcessSettings.AmbientCubemapIntensity;
 
@@ -1021,6 +1032,9 @@ void FViewInfo::CreateUniformBuffer(
 
 	extern int32 GDistanceFieldAOSpecularOcclusionMode;
 	ViewUniformShaderParameters.DistanceFieldAOSpecularOcclusionMode = GDistanceFieldAOSpecularOcclusionMode;
+
+	extern FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias();
+	ViewUniformShaderParameters.ReflectionEnvironmentRoughnessMixingScaleBias = GetReflectionEnvironmentRoughnessMixingScaleBias();
 
 	ViewUniformShaderParameters.StereoPassIndex = (StereoPass != eSSP_RIGHT_EYE) ? 0 : 1;
 
@@ -1434,24 +1448,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 				{
 					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
-					// this is a helper class for FCanvas to be able to get screen size
-					class FRenderTargetTemp : public FRenderTarget
-					{
-					public:
-						FViewInfo& View;
-
-						FRenderTargetTemp(FViewInfo& InView) : View(InView)
-						{
-						}
-						virtual FIntPoint GetSizeXY() const
-						{
-							return View.ViewRect.Size();
-						};
-						virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
-						{
-							return View.Family->RenderTarget->GetRenderTargetTexture();
-						}
-					} TempRenderTarget(View);
+					FRenderTargetTemp TempRenderTarget(View);
 
 					// create a temporary FCanvas object with the temp render target
 					// so it can get the screen size

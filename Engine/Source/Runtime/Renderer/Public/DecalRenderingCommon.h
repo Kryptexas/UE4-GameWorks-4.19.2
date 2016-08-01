@@ -62,6 +62,15 @@ struct FDecalRenderingCommon
 			return RTM_SceneColor;
 		}
 	
+		// Can't modify GBuffers when forward shading, just modify scene color
+		if (IsAnyForwardShadingEnabled(Platform)
+			&& (DecalBlendMode == DBM_Translucent
+				|| DecalBlendMode == DBM_Stain
+				|| DecalBlendMode == DBM_Normal))
+		{
+			return RTM_SceneColor;
+		}
+
 		switch(DecalBlendMode)
 		{
 			case DBM_Translucent:

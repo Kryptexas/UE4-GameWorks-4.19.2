@@ -12,14 +12,16 @@ struct CORE_API FRenderingObjectVersion
 		// Added support for 3 band SH in the ILC
 		IndirectLightingCache3BandSupport,
 
-		// Allows specifying resolution for reflecture capture probes
+		// Allows specifying resolution for reflection capture probes
 		CustomReflectionCaptureResolutionSupport,
 
-		// Allows specifying resolution for reflecture capture probes
 		RemovedTextureStreamingLevelData,
 
 		// translucency is now a property which matters for materials with the decal domain
 		IntroducedMeshDecals,
+
+		// Reflection captures are no longer prenormalized
+		ReflectionCapturesStoreAverageBrightness,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

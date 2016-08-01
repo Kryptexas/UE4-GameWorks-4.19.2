@@ -1054,6 +1054,9 @@ public:
 	virtual void RHIEnqueueDecompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int CompressedSize, void* ErrorCodeBuffer) {}
 	virtual void RHIEnqueueCompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int UnCompressedSize, void* ErrorCodeBuffer) {}
 
+	// FlushType: Flush Immediate
+	virtual void RHIRecreateRecursiveBoundShaderStates() {}
+
 	/**
 	 *	Retrieve available screen resolutions.
 	 *

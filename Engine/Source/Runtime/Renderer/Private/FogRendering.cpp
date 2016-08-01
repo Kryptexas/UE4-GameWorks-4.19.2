@@ -300,7 +300,7 @@ void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& 
 
 bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput)
 {
-	if (Scene->ExponentialFogs.Num() > 0)
+	if (Scene->ExponentialFogs.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque)
 	{
 		static const FVector2D Vertices[4] =
 		{
@@ -355,8 +355,6 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 				);
 		}
 
-		//no need to resolve since we used alpha blending
-		SceneContext.FinishRenderingSceneColor(RHICmdList, false);
 		return true;
 	}
 

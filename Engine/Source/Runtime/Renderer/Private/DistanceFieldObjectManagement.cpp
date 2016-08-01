@@ -904,6 +904,8 @@ void ProcessPrimitiveUpdate(
 						const int32 InstanceIndex = PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex];
 						if (InstanceIndex >= 0)
 						{
+							// For an update transform we have to dirty the previous bounds and the new bounds, in case of large movement (teleport)
+							DistanceFieldSceneData.PrimitiveModifiedBounds.Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
 							DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere = ObjectBoundingSphere;
 						}
 					}

@@ -18,13 +18,15 @@ enum EDepthOfFieldMethod
 	DOFM_MAX,
 };
 
-/** Used by FPostProcessSettings Anti-aliasings */
+/** Used by rendering project settings. */
 UENUM()
 enum EAntiAliasingMethod
 {
 	AAM_None UMETA(DisplayName="None"),
 	AAM_FXAA UMETA(DisplayName="FXAA"),
 	AAM_TemporalAA UMETA(DisplayName="TemporalAA"),
+	/** Only supported with forward shading.  MSAA sample count is controlled by r.MSAACount. */
+	AAM_MSAA UMETA(DisplayName="MSAA"),
 	AAM_MAX,
 };
 
@@ -1016,10 +1018,6 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=Misc, AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "400.0", editcondition = "bOverride_ScreenPercentage"))
 	float ScreenPercentage;
 
-	/** TemporalAA, FXAA, ... */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=Misc, meta=(editcondition = "bOverride_AntiAliasingMethod", DisplayName = "AA Method"))
-	TEnumAsByte<enum EAntiAliasingMethod> AntiAliasingMethod;
-
 	/** Enable/Fade/disable the Screen Space Reflection feature, in percent, avoid numbers between 0 and 1 fo consistency */
 	UPROPERTY(interp, BlueprintReadWrite, Category=ScreenSpaceReflections, meta=(ClampMin = "0.0", ClampMax = "100.0", editcondition = "bOverride_ScreenSpaceReflectionIntensity", DisplayName = "Intensity"))
 	float ScreenSpaceReflectionIntensity;
@@ -1263,7 +1261,6 @@ struct FPostProcessSettings
 		MotionBlurMax = 5.0f;
 		MotionBlurPerObjectSize = 0.5f;
 		ScreenPercentage = 100.0f;
-		AntiAliasingMethod = AAM_TemporalAA;
 		ScreenSpaceReflectionIntensity = 100.0f;
 		ScreenSpaceReflectionQuality = 50.0f;
 		ScreenSpaceReflectionMaxRoughness = 0.6f;

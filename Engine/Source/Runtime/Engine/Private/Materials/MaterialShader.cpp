@@ -971,6 +971,19 @@ void FMaterialShaderMap::SaveForRemoteRecompile(FArchive& Ar, const TMap<FString
 				TMap<FShaderId, FShader*> ShaderList;
 				ShaderMap->GetShaderList(ShaderList);
 
+				// get shaders from shader pipelines
+				TArray<FShaderPipeline*> ShaderPipelineList;
+				ShaderMap->GetShaderPipelineList(ShaderPipelineList);
+
+				for (FShaderPipeline* ShaderPipeline : ShaderPipelineList)
+				{
+					for (FShader* Shader : ShaderPipeline->GetShaders())
+					{
+						FShaderId ShaderId = Shader->GetId();
+						ShaderList.Add(ShaderId, Shader);
+					}
+				}
+
 				// get the resources from the shaders
 				for (auto& KeyValue : ShaderList)
 				{
@@ -1126,6 +1139,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GetMaxSupportedFeatureLevel(ShaderPlatform), (EMaterialQualityLevel::Type)QualityLevelIndex);
 
 							MaterialResource->SetGameThreadShaderMap(LoadedShaderMap);
+							MaterialResource->RegisterInlineShaderMap();
 
 							ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 								FSetShaderMapOnMaterialResources,

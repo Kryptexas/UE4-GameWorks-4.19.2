@@ -538,7 +538,7 @@ void ApplyTemporalAA(
 	/** Output of Temporal AA for the next step in the pipeline. */
 	TRefCountPtr<IPooledRenderTarget>& HistoryOutput)
 {
-	if (View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA
+	if (View.AntiAliasingMethod == AAM_TemporalAA
 		&& HistoryState)
 	{
 		if (*HistoryState && !View.bCameraCut)
@@ -901,7 +901,7 @@ void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo&
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
-	SceneContext.FinishRenderingSceneColor(RHICmdList, true);
+	SceneContext.FinishRenderingSceneColor(RHICmdList);
 }
 
 void FSceneViewState::TrimHistoryRenderTargets(const FScene* Scene)

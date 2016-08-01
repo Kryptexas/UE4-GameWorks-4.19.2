@@ -13,6 +13,7 @@
 #include "RHIStaticStates.h"
 #include "ScenePrivate.h"
 #include "RendererInterface.h"
+#include "RenderTargetTemp.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRenderer, Log, All);
 

@@ -72,15 +72,10 @@ float RandBBSfloat(float seed)
 // ~5 ALU operations (3 %, 2 *)
 uint RandBBSuint24(uint seed)
 {
-#if (ES2_PROFILE)
-	// no integer mod in ES2
-	return BBS_PRIME24 * RandBBSfloat(float(seed));
-#else
-	uint s = seed % BBS_PRIME24;
-	s = (s * s) % BBS_PRIME24;
-	s = (s * s) % BBS_PRIME24;
+	uint s = Mod(seed, BBS_PRIME24);
+	s = Mod(s * s, BBS_PRIME24);
+	s = Mod(s * s, BBS_PRIME24);
 	return s;
-#endif
 }
 
 // BBS random number generator - 32-bit uint version
@@ -90,15 +85,10 @@ uint RandBBSuint24(uint seed)
 // ~5 ALU operations (3 %, 2 *)
 uint RandBBSuint32(uint seed)
 {
-#if (ES2_PROFILE)
-	// no integer mod in ES2
-	return BBS_PRIME32 * RandBBSfloat(float(seed));
-#else
-	uint s = seed % BBS_PRIME32;
-	s = (s * s) % BBS_PRIME32;
-	s = (s * s) % BBS_PRIME32;
+	uint s = Mod(seed, BBS_PRIME32);
+	s = Mod(s * s, BBS_PRIME32);
+	s = Mod(s * s, BBS_PRIME32);
 	return s;
-#endif
 }
 
 // 3D random number generator inspired by PCGs (permuted congruential generator)

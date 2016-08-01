@@ -651,6 +651,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ForwardShading, meta = (DisplayName = "Planar Reflections"))
 	uint32 bUsePlanarForwardReflections : 1;
 
+	/* Reduce roughness based on screen space normal changes. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ForwardShading)
+	uint32 bNormalCurvatureToRoughness : 1;
+
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
 	TEnumAsByte<enum EMaterialTessellationMode> D3D11TessellationMode;

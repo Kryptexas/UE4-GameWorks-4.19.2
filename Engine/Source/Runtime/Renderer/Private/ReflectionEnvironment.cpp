@@ -22,18 +22,11 @@
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);
 
-/** Tile size for the reflection environment compute shader, tweaked for 680 GTX. */
-const int32 GReflectionEnvironmentTileSizeX = 16;
-const int32 GReflectionEnvironmentTileSizeY = 16;
+/** Tile size for the reflection environment compute shader, tweaked for PS4. */
+const int32 GReflectionEnvironmentTileSizeX = 8;
+const int32 GReflectionEnvironmentTileSizeY = 8;
 
 extern TAutoConsoleVariable<int32> CVarLPVMixing;
-
-static TAutoConsoleVariable<int32> CVarDiffuseFromCaptures(
-	TEXT("r.DiffuseFromCaptures"),
-	0,
-	TEXT("Apply indirect diffuse lighting from captures instead of lightmaps.\n")
-	TEXT(" 0 is off (default), 1 is on"),
-	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT("r.ReflectionEnvironment"),
@@ -44,6 +37,29 @@ static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT(" 2: on and overwrite scene (only in non-shipping builds)"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
 
+int32 GReflectionEnvironmentLightmapMixing = 1;
+FAutoConsoleVariableRef CVarReflectionEnvironmentLightmapMixing(
+	TEXT("r.ReflectionEnvironmentLightmapMixing"),
+	GReflectionEnvironmentLightmapMixing,
+	TEXT("Whether to mix indirect specular from reflection captures with indirect diffuse from lightmaps for rough surfaces."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+float GReflectionEnvironmentBeginMixingRoughness = .1f;
+FAutoConsoleVariableRef CVarReflectionEnvironmentBeginMixingRoughness(
+	TEXT("r.ReflectionEnvironmentBeginMixingRoughness"),
+	GReflectionEnvironmentBeginMixingRoughness,
+	TEXT("Min roughness value at which to begin mixing reflection captures with lightmap indirect diffuse."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+float GReflectionEnvironmentEndMixingRoughness = .3f;
+FAutoConsoleVariableRef CVarReflectionEnvironmentEndMixingRoughness(
+	TEXT("r.ReflectionEnvironmentEndMixingRoughness"),
+	GReflectionEnvironmentEndMixingRoughness,
+	TEXT("Min roughness value at which to end mixing reflection captures with lightmap indirect diffuse."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
 
 static TAutoConsoleVariable<int32> CVarDoTiledReflections(
 	TEXT("r.DoTiledReflections"),
@@ -73,6 +89,24 @@ static int GetReflectionEnvironmentCVar()
 #endif
 
 	return RetVal;
+}
+
+FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias()
+{
+	float RoughnessMixingRange = 1.0f / FMath::Max(GReflectionEnvironmentEndMixingRoughness - GReflectionEnvironmentBeginMixingRoughness, .001f);
+
+	if (GReflectionEnvironmentLightmapMixing == 0)
+	{
+		RoughnessMixingRange = 0.0f;
+	}
+
+	if (GReflectionEnvironmentEndMixingRoughness == 0.0f && GReflectionEnvironmentBeginMixingRoughness == 0.0f)
+	{
+		// Make sure a Roughness of 0 results in full mixing when disabling roughness-based mixing
+		return FVector2D(0, 1);
+	}
+
+	return FVector2D(RoughnessMixingRange, -GReflectionEnvironmentBeginMixingRoughness * RoughnessMixingRange);
 }
 
 bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel)
@@ -198,7 +232,7 @@ struct FReflectionCaptureSortData
 	FVector4 CaptureProperties;
 	FMatrix BoxTransform;
 	FVector4 BoxScales;
-	FVector4 CaptureOffset;
+	FVector4 CaptureOffsetAndAverageBrightness;
 	FTexture* SM4FullHDRCubemap;
 
 	bool operator < (const FReflectionCaptureSortData& Other) const
@@ -221,7 +255,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureProperties,[GMaxNumReflectionCaptures])
 	// Stores the box transform for a box shape, other data is packed for other shapes
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix,BoxTransform,[GMaxNumReflectionCaptures])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureOffset,[GMaxNumReflectionCaptures])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureOffsetAndAverageBrightness,[GMaxNumReflectionCaptures])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
 END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
 
@@ -314,7 +348,7 @@ public:
 			SamplePositionsBuffer.PositionAndRadius[CaptureIndex] = SortData[CaptureIndex].PositionAndRadius;
 			SamplePositionsBuffer.CaptureProperties[CaptureIndex] = SortData[CaptureIndex].CaptureProperties;
 			SamplePositionsBuffer.BoxTransform[CaptureIndex] = SortData[CaptureIndex].BoxTransform;
-			SamplePositionsBuffer.CaptureOffset[CaptureIndex] = SortData[CaptureIndex].CaptureOffset;
+			SamplePositionsBuffer.CaptureOffsetAndAverageBrightness[CaptureIndex] = SortData[CaptureIndex].CaptureOffsetAndAverageBrightness;
 			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
 		}
 
@@ -622,7 +656,7 @@ public:
 		CaptureProperties.Bind(Initializer.ParameterMap, TEXT("CaptureProperties"));
 		CaptureBoxTransform.Bind(Initializer.ParameterMap, TEXT("CaptureBoxTransform"));
 		CaptureBoxScales.Bind(Initializer.ParameterMap, TEXT("CaptureBoxScales"));
-		CaptureOffset.Bind(Initializer.ParameterMap, TEXT("CaptureOffset"));
+		CaptureOffsetAndAverageBrightness.Bind(Initializer.ParameterMap, TEXT("CaptureOffsetAndAverageBrightness"));
 		CaptureArrayIndex.Bind(Initializer.ParameterMap, TEXT("CaptureArrayIndex"));
 		ReflectionEnvironmentColorTexture.Bind(Initializer.ParameterMap, TEXT("ReflectionEnvironmentColorTexture"));
 		ReflectionEnvironmentColorTextureArray.Bind(Initializer.ParameterMap, TEXT("ReflectionEnvironmentColorTextureArray"));
@@ -657,7 +691,7 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureProperties, SortData.CaptureProperties);
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxTransform, SortData.BoxTransform);
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxScales, SortData.BoxScales);
-		SetShaderValue(RHICmdList, ShaderRHI, CaptureOffset, FVector(SortData.CaptureOffset));
+		SetShaderValue(RHICmdList, ShaderRHI, CaptureOffsetAndAverageBrightness, SortData.CaptureOffsetAndAverageBrightness);
 	}
 
 	// FShader interface.
@@ -668,7 +702,7 @@ public:
 		Ar << CaptureProperties;
 		Ar << CaptureBoxTransform;
 		Ar << CaptureBoxScales;
-		Ar << CaptureOffset;
+		Ar << CaptureOffsetAndAverageBrightness;
 		Ar << CaptureArrayIndex;
 		Ar << ReflectionEnvironmentColorTexture;
 		Ar << ReflectionEnvironmentColorTextureArray;
@@ -683,7 +717,7 @@ private:
 	FShaderParameter CaptureProperties;
 	FShaderParameter CaptureBoxTransform;
 	FShaderParameter CaptureBoxScales;
-	FShaderParameter CaptureOffset;
+	FShaderParameter CaptureOffsetAndAverageBrightness;
 	FShaderParameter CaptureArrayIndex;
 	FShaderResourceParameter ReflectionEnvironmentColorTexture;
 	FShaderResourceParameter ReflectionEnvironmentColorTextureArray;
@@ -772,7 +806,7 @@ void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCapt
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, CubemapIndex, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffset = FVector4(CurrentCapture->CaptureOffset, 0);
+			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -910,7 +944,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-	const bool bUseLightmaps = (AllowStaticLightingVar->GetValueOnRenderThread() == 1) && (CVarDiffuseFromCaptures.GetValueOnRenderThread() == 0);
+	const bool bUseLightmaps = (AllowStaticLightingVar->GetValueOnRenderThread() == 1);
 
 	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 	{
@@ -1045,7 +1079,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, 0, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffset = FVector4(CurrentCapture->CaptureOffset);
+			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{

@@ -3376,6 +3376,11 @@ FORCEINLINE void* RHIGetNativeDevice()
 	return FRHICommandListExecutor::GetImmediateCommandList().GetNativeDevice();
 }
 
+FORCEINLINE void RHIRecreateRecursiveBoundShaderStates()
+{
+	FRHICommandListExecutor::GetImmediateCommandList(). ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	GDynamicRHI->RHIRecreateRecursiveBoundShaderStates();
+}
 
 
 

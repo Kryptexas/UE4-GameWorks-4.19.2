@@ -590,9 +590,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
 				SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
 
-				// Do not resolve to scene color texture, this is done lazily
-				SceneContext.FinishRenderingSceneColor(RHICmdList, false);
-
 				if (bDrawShadows)
 				{
 					INC_DWORD_STAT(STAT_NumShadowedLights);
@@ -659,9 +656,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					RenderLight(RHICmdList, &LightSceneInfo, false, true);
 				}
 			}
-
-			// Do not resolve to scene color texture, this is done lazily
-			SceneContext.FinishRenderingSceneColor(RHICmdList, false);
 
 			// Restore the default mode
 			SceneContext.SetLightAttenuationMode(true);

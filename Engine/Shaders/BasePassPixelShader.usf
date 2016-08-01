@@ -21,6 +21,15 @@
 #define PREV_FRAME_COLOR	1
 #include "ScreenSpaceRayCast.usf"
 
+float NormalCurvatureToRoughness(float3 WorldNormal)
+{
+    float3 dNdx = ddx(WorldNormal);
+    float3 dNdy = ddy(WorldNormal);
+    float x = dot(dNdx, dNdx);
+    float y = dot(dNdy, dNdy);
+    return max(x, y);
+}
+
 #if TRANSLUCENT_SELF_SHADOWING
 
 	#include "ShadowProjectionCommon.usf"
@@ -78,7 +87,7 @@ float4 ReflectionPositionAndRadius;
 float ReflectionShape;
 float4x4 BoxTransform;
 float4 BoxScales;
-float3 CaptureOffset;
+float4 CaptureOffsetAndAverageBrightness;
 
 uint MortonCode( uint x )
 {
@@ -97,10 +106,12 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	float3 RayDirection = 2 * dot( V, N ) * N - V;
 	half NoV = saturate(dot(N, V));
 
-	float4 SpecularIBL = float4(0,0,0,0.0);
+	float4 SpecularIBL = float4(0, 0, 0, 0);
 	float3 CaptureVector = MaterialParameters.AbsoluteWorldPosition - ReflectionPositionAndRadius.xyz;
 	float CaptureVectorLength = length(CaptureVector);
-	
+
+	float2 CompositedAverageBrightness = float2(0.0f, 1.0f);
+
 	BRANCH
 	if (CaptureVectorLength < ReflectionPositionAndRadius.w)
 	{
@@ -110,11 +121,11 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		float3 ProjectedCaptureVector;
 		if (ReflectionShape > 0.0f)
 		{
-			ProjectedCaptureVector = GetLookupVectorForBoxCapture(RayDirection, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, BoxTransform, BoxScales, CaptureOffset, DistanceAlpha);
+			ProjectedCaptureVector = GetLookupVectorForBoxCapture(RayDirection, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, BoxTransform, BoxScales, CaptureOffsetAndAverageBrightness.xyz, DistanceAlpha);
 		}
 		else
 		{
-			ProjectedCaptureVector = GetLookupVectorForSphereCapture(RayDirection, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, NormalizedDistanceToCapture, CaptureOffset, DistanceAlpha);
+			ProjectedCaptureVector = GetLookupVectorForSphereCapture(RayDirection, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, NormalizedDistanceToCapture, CaptureOffsetAndAverageBrightness.xyz, DistanceAlpha);
 		}
 			
 		half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);	
@@ -126,35 +137,49 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #endif
 		Sample *= DistanceAlpha;
 		SpecularIBL = Sample;
+
+		float AverageBrightness = CaptureOffsetAndAverageBrightness.w;
+		CompositedAverageBrightness.x += AverageBrightness * DistanceAlpha * CompositedAverageBrightness.y;
+		CompositedAverageBrightness.y *= 1 - DistanceAlpha;
 	}	
 
-#if ALLOW_STATIC_LIGHTING
-	FLATTEN
-	if (View.UseLightmaps > 0)
-	{
-		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
-		SpecularIBL.rgb *= IndirectIrradiance;
-	}
-#endif
+	float3 ExtraIndirectSpecular = 0;
 
 #if ENABLE_SKY_LIGHT
 	BRANCH
 	if (SkyLightParameters.y > 0 && SpecularIBL.a < .999f)
 	{
+		float SkyAverageBrightness = 1.0f;
+		float3 SkyLighting = GetSkyLightReflection(RayDirection, Roughness, SkyAverageBrightness);
+
 		// Normalize for static skylight types which mix with lightmaps
-		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps;
-		float3 SkyLighting = GetSkyLightReflection(RayDirection, Roughness, bNormalize);
+		bool bNormalize = SkyLightParameters.z < 1 && ALLOW_STATIC_LIGHTING;
 
 		FLATTEN
 		if (bNormalize)
 		{
-			SkyLighting *= IndirectIrradiance;
+			// Add in sky wherever reflection captures don't have coverage
+			SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
+			CompositedAverageBrightness.x += SkyAverageBrightness * CompositedAverageBrightness.y;
 		}
-
-		// Add in sky wherever reflection captures don't have coverage
-		SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
+		else
+		{
+			ExtraIndirectSpecular += SkyLighting;
+		}
 	}
 #endif
+
+#if ALLOW_STATIC_LIGHTING
+	// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
+	SpecularIBL.rgb *= ComputeMixingWeight(IndirectIrradiance, CompositedAverageBrightness.x, Roughness);
+#endif
+
+	SpecularIBL.rgb += (1 - SpecularIBL.a) * ExtraIndirectSpecular;
+
+	// Factors derived from EnvBRDFApprox( SpecularColor, 1, 1 ) == SpecularColor * 0.4524 - 0.0024
+	float3 SpecularBounce = 0.45f * SpecularColor * IndirectIrradiance;
+	// Replace reflection captures with indirect diffuse when we're rendering to a reflection capture, to avoid a feedback loop
+	SpecularIBL.rgb = lerp(SpecularIBL.rgb, SpecularBounce, View.RenderingReflectionCaptureMask);
 
 #if MATERIAL_SSR && !FORWARD_SHADING
 	if( View.CameraCut == 0 )
@@ -549,21 +574,8 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 	OutSubsurfaceLighting += SkySubsurfaceLighting;
 
-	BRANCH
-	if( View.UseLightmaps > 0 || !ALLOW_STATIC_LIGHTING)
-	{
-		// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
-		OutDiffuseLighting += SkyDiffuseLighting;
-	}
-	else
-	{
-	#if (TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL) && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1, View.ReflectionCubemapMaxMip);
-		float4 DiffuseIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, DiffuseDir, CubemapArrayIndex, DiffuseMip);
-		
-		OutDiffuseLighting += DiffuseIBL.rgb + (1 - DiffuseIBL.a) * SkyDiffuseLighting;
-	#endif
-	}
+	// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
+	OutDiffuseLighting += SkyDiffuseLighting;
 
 	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING || CACHED_POINT_INDIRECT_LIGHTING
 		OutIndirectIrradiance = Luminance(OutDiffuseLighting);
@@ -764,6 +776,11 @@ void FPixelShaderInOut_MainPS(
 
 	float MaterialAO = GetMaterialAmbientOcclusion(PixelMaterialInputs);
 	float Roughness = GetMaterialRoughness(PixelMaterialInputs);
+
+#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS && FORWARD_SHADING
+    float GeometricAARoughness = saturate(NormalCurvatureToRoughness(MaterialParameters.WorldNormal) * View.NormalCurvatureToRoughnessScaleBias.x + View.NormalCurvatureToRoughnessScaleBias.y);
+    Roughness = max(Roughness, GeometricAARoughness);
+#endif
 
 	// 0..1, SubsurfaceProfileId = int(x * 255)
 	float SubsurfaceProfile = 0;
@@ -1090,7 +1107,7 @@ void FPixelShaderInOut_MainPS(
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
-			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f);
+			LightAccumulator_Add(LightAccumulator, Color * VertexFog.a + VertexFog.rgb, 0, 1.0f);
 			Out.MRT[0] = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
 
 			#if SUBSURFACE_CHANNEL_MODE == 0

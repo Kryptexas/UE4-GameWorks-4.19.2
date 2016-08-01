@@ -357,7 +357,7 @@ public:
 			, CurrentDecalStage(InCurrentDecalStage)
 			, LastRenderTargetMode(FDecalRenderingCommon::RTM_Unknown)
 			, LastDecalBlendMode(EDecalBlendMode::DBM_MAX)
-			, RenderTargetManager(Context.RHICmdList, CurrentDecalStage)
+			, RenderTargetManager(Context.RHICmdList, Context.GetShaderPlatform(), CurrentDecalStage)
 		{
 		}
 
