@@ -1035,10 +1035,13 @@ namespace AbcImporterUtilities
 
 			CurveValues.Reserve(NumSamples);
 			TimeValues.Reserve(NumSamples);
+
+			// Use original number of singular values to index into the array (otherwise we would be reading incorrect data if NumUsedSingularValues != the original number
+			const uint32 OriginalNumberOfSingularValues = BasesWeights.Num() / NumSamples;
 			// Should be possible to rearrange the data so this can become a memcpy
 			for (uint32 CurveSampleIndex = 0; CurveSampleIndex < NumSamples; ++CurveSampleIndex)
 			{
-				CurveValues.Add(BasesWeights[BaseIndex + (NumUsedSingularValues* CurveSampleIndex)]);
+				CurveValues.Add(BasesWeights[BaseIndex + (OriginalNumberOfSingularValues* CurveSampleIndex)]);
 				TimeValues.Add(SampleTimeStep * CurveSampleIndex);
 			}
 		}
