@@ -31,7 +31,7 @@
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_PuzzleBP/TP_PuzzleBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_2DSideScrollerBP/TP_2DSideScrollerBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VehicleAdvBP/TP_VehicleAdvBP.uproject"/>
-	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject"/>
+	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject" If="'$(HostPlatform)' != 'Mac'"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/StarterContent/StarterContent.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/MobileStarterContent/MobileStarterContent.uproject"/>
 	
@@ -117,7 +117,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_2DSideScrollerBP/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VehicleAdv/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VehicleAdvBP/..."/>
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Mac'"/>
 	<!-- shared template resources -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TemplateResources/..."/>
 	<!-- exclude intermediates and other files not needed in installed build-->
@@ -128,6 +128,8 @@
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/Saved/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/manifest.json"/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/contents.txt"/>
+	<!-- exclude VR feature pack on Mac -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);FeaturePacks/TP_VirtualRealityBP.upack" If="'$(HostPlatform)' == 'Mac'"/>
 
 	<!-- Build files -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/Build.version"/>
