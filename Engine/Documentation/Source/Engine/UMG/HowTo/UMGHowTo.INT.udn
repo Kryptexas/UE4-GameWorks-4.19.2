@@ -28,6 +28,9 @@ Refer to the table below for more information and click each link to view its co
 ## Advanced
 [REGION:wrapper transparent]
 [](FANCY:Engine\UMG\HowTo\EventBasedUI "%Engine\UMG\HowTo\EventBasedUI:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\UMG\HowTo\VirtualKeyboards "%Engine\UMG\HowTo\VirtualKeyboards:description%")
+[/PUBLISH:docs]
 [/REGION]
 
 
