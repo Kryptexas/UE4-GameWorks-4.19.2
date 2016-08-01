@@ -84,7 +84,7 @@ There are several methods for getting the components. If you have already instal
 <!--
 [EXCERPT:TADPWindowsSetup]
 
-CodeWorks for Android 1R4, by Nvidia is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R4 (by Nvidia) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
 
 The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Windows. It can be found here: 
 
@@ -206,7 +206,7 @@ If you continue seeing the message about the Android SDK not being installed pro
 
 To set an environment variable:
 
-* **Right-click** on your **Computer** icon OR press **Windows-Break** on your keyboard.
+* Right-click on your **Computer** icon OR press **Windows-Break** on your keyboard.
 * Select **Advanced system settings** on the left.
 * Click **Environment Variables...**
 * For each variable (see below):
@@ -243,7 +243,7 @@ Unless you installed CodeWorks for Android 1R4, you will need to verify that som
 Once you have completed the installation (either by editing your .bash_profile file, or by installing CodeWorks for Android 1R4), you will need to restart both the Editor and Launcher applications.
 [/region]
 
-To set an environment variable you need to edit your **.bash_profile** file in your home directory. 
+To set an environment variable you need to edit the **.bash_profile** file in your home directory. 
 The file is hidden in Finder, so you’ll need to use Terminal to open it for editing. 
 If you’re not familiar with Unix terminal commands please do the following.
 
@@ -308,12 +308,12 @@ Here are the name of the variables that we depend on and where they should point
 [EXCERPT:ATTWindowsSetup]
 If you do not see your device listed in the **Launch** menu, here are some things to try: 
 - Wait a few seconds and look again, as the background scanning for connected devices can take a short amount of time. 
-- Check your USB debugging connection is all working. 
+- Check that your USB debugging connection is working. 
 - Open a command prompt (Press **Windows+R**, and run `cmd.exe`) 
 	- Type the following command: `adb devices`
 	- If you do not see any devices listed, your USB driver is not installed properly. How to install the driver depends on the model of your Android device. Search online for your device model and 
 	"usb driver", then install the driver. 
-	- Additionally, you will need to make sure your device has Developer mode enabled, and USB debugging is turned on. See the [Android Developer Using Hardware Devices guide](http://developer.android.com/tools/device.html) for more information (specifically items 2 and 3).  
+	- Additionally, you will need to make sure your device has Developer mode enabled with USB debugging is turned on. See the [Android Developer Using Hardware Devices guide](http://developer.android.com/tools/device.html) for more information (specifically items 2 and 3).  
 	- Afterwards, make sure the `adb devices` command works; without this, the engine will not be able to do anything with your Android device. 
 	
 If your device shows up in the Launch menu, but gets stuck deploying to the device, it is most likely because the device is not authorized for your PC to talk to it. If you click on the **Show Log** line 
@@ -327,16 +327,16 @@ in the progress bar, you may see that the last line indicates that it is calling
 [EXCERPT:ATTMacOSSetup]
 If you do not see your device listed in the Launch menu, here are some things to try: 
 * Wait a few seconds and look again, as the background scanning for connected devices can take a short amount of time to register the device. 
-* Check your USB debugging connection is all working. 
+* Check that your USB debugging connection is working.
 * Open the Terminal app and then try the following.
-	* Type the following command into the terminal **adb devices**.
+	* Type the following command into the terminal: `adb devices`.
 	* If you do not see any devices listed, your USB driver is not installed properly. How to install the driver depends on the model of your Android device. Search online for your device model and **USB driver**, then install the required driver. 
-	* Additionally, you will need to make sure your device has Developer mode enabled, and USB debugging is turned on. See the **[Android Developer Using Hardware Devices](http://developer.android.com/tools/device.html)** guide for more information (specifically items 2 and 3).
-	* Afterwards, make sure the **adb devices** command works; without this, the engine will not be able to do anything with your Android device.
+	* Additionally, you will need to make sure your device has Developer mode enabled with USB debugging is turned on. See the [Android Developer Using Hardware Devices](http://developer.android.com/tools/device.html) guide for more information (specifically items 2 and 3).
+	* Afterwards, make sure the `adb devices` command works; without this, the engine will not be able to do anything with your Android device.
 
 If your device shows up in the **Launch menu**, but gets stuck deploying to the device, it is most likely because the device is not authorized to interact with your Mac. 
-If you click on the **Show Log** line in the progress bar, and see that the last line indicates that it is calling adb uninstall try the following.
-* Open up the Terminal app and run the adb devices command. 
+If you click on the **Show Log** line in the progress bar, and see that the last line indicates that it is calling `adb uninstall`, try the following.
+* Open up the Terminal app and run the `adb devices` command. 
 * If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the Mac. 
 * It is recommended you check the **Always allow** check box to always allow your Mac to talk to this device.
 
@@ -350,7 +350,7 @@ Not all Android devices are made the same. In particular, there are 4 different 
 [EXCERPT:AndroidFormats]
 |Format | Description|
 |-------|------------|
-|DXT |This is what your desktop computer uses, and used by Tegra-based devices.|
+|DXT |This is what your desktop computer uses (also used by Tegra-based devices).|
 |ATC |This is used in Qualcomm Snapdragon based devices.|
 |PVR |This is used in ImgTec PowerVR based devices.|
 |ETC1 |This is supported on all devices, but does not support textures with an alpha channel, so those textures are uncompressed, making your game's download large and use more runtime memory.|
@@ -365,8 +365,8 @@ the best format at runtime. It will work on any device (as will **Android (ETC1)
 
 [region:note]
 Unreal Engine version 4.8 and later will now support the use of **ES31** and **AEP** rendering on Tegra K1 devices. 
-Please note that due to the limited number of devices that currently support ES31 and AEP rendering very little performance and compatibility testing has been completed at this time.
-If you are developing a project that is aimed at using one of theses devices it is highly recommended that you perform extensive performance and compatibility testing to ensure that the device delivers your project in the manner you intended. 
+Please note that due to the limited number of devices that currently support ES31 and AEP rendering, very little performance and compatibility testing has been completed at this time.
+If you are developing a project that is aimed at using one of these devices, it is highly recommended that you perform extensive performance and compatibility testing to ensure that the device delivers your project in the manner you intended. 
 [/region]
 
 ### Choosing a Format
