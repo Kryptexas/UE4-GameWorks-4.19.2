@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3039616
 Availability:Public
-Title: Planar Reflections
+Title:平面反射
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:System for capturing and displaying local glossy reflections.
-Version: 4.12
+Description:捕捉并显示局部光泽反射的系统。
+Version:4.12
 
 [TOC(start:2)]
 
-## Planar Reflections
-UE4 has support for real-time Planar Reflection that can give more accurate looking reflections than Screen Space Reflections (SSR) provide but come with a higher rendering cost. This higher rendering cost is due to how Planar Reflection works, as Planar Reflection actually renders the level again from the direction of the reflection. 
+## 平面反射（Planar Reflections）
+UE4 支持实时平面反射，它比屏幕空间反射（SSR）更加精确，但渲染开销较高。渲染开销较高的原因来自平面反射的工作原理。因为平面反射实际上将从反射方向再次对关卡进行渲染。 
 
 ![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\Planar_Reflections_00.png)
 
-### Screen Space Reflections VS Planar Reflections 
-Screen Space Reflections (SSR) are much more efficient than Planar Reflections when it comes to rendering, but are also much less reliable.The image comparison below shows the limits of SSR versus Planar Reflections. 
+### 屏幕空间反射 VS 平面反射 
+在渲染方面，屏幕空间反射（SSR）比平面反射更为高效，但可靠性较差。下图将 SSR 的缺陷和平面反射进行了对比。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -24,34 +24,34 @@ Screen Space Reflections (SSR) are much more efficient than Planar Reflections w
 	[/PARAM]
 [/OBJECT]
 
-* **Screen Space Reflections:** The image on the left shows the limitation of Screen Space Reflections. Notice the significant amount of 'leaking' that happens at the edges of the image. This happens because SSR can not reflect objects that are off-screen. 
+* **屏幕空间反射：**左图展示了屏幕空间反射的局限性。注意图像边缘出现了大量“泄露”。出现此现象的原因是 SSR 无法反射画面外的物体。 
 
-* **Planar Reflections:** The image on the right shows the same level, however, this time, Planar Reflections have been enabled. Notice how there is no leaking in the image, even at the sides. This is because Planar Reflections can reflect objects that are off-screen.
+* **平面反射：**右图为相同的关卡，启用的是平面反射。注意图像中，甚至两侧均未出现“泄露”。原因是平面反射能够反射画面外的物体。
 
-### Enabling Planar Reflections 
-To use enable and use Planar Reflections in your project you will need to do the following:
+### 启用平面反射 
+执行下列操作即可在项目中启用并使用平面反射：
 
-1. From the Main Toolbar go to **Edit**> **Project Settings** and from the Project Settings menu, go to the **Rendering** > **Optimizations** section.
+1. 在主工具栏中前往 **Edit > Project Settings**，然后前往 Project Settings 菜单下的 **Rendering > Optimizations** 部分。
 	
 	[REGION:lightbox]
 	[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)(w:502 h:322)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)
 	[/REGION]
 
-1. Click on the check box next to **Support global clip plane for Planar Reflections** and re-start the UE4 Editor when prompted. 
+1. 点击 **Support global clip plane for Planar Reflections** 旁边的勾选框，在弹出提示后重启 UE4 编辑器。 
 	
 	![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Enable_PR_00.png)
 
 	[region:warning]
-	Failing to re-start the UE4 Editor after Planar Reflections are enabled will result in Planar Reflections not working.
+	启用平面反射后如未重启 UE4 编辑器，可能导致平面反射无法使用。
 	[/region]
 
-1. Once the UE4 Editor restarts, go to the **Modes** panel and from the **Visual Effects** section, select and drag a **Planar Reflection Actor** to the level.
+1. 重启 UE4 编辑器后，前往 **Modes** 面板，从 **Visual Effects** 部分选择一个 **平面反射 Actor** 并将其拖入关卡。
 
 	[REGION:lightbox]
 	[![](Adding_Planar_Reflection_Actor.png)(w:380 h:286)](Adding_Planar_Reflection_Actor.png)
 	[/REGION]
 
-1. With the Planar Reflection Actor now placed in the level, you can now use the **G** key to hide and unhide the Actor. You can also use the **Move**, **Rotate**, and **Scale** tools to better position and size the Planar Reflection Actor to meet your levels needs. 
+1. 将平面反射 Actor 放进关卡后，即可使用 **G** 键隐藏或取消隐藏 Actor。可使用 **移动**、**旋转** 和 **缩放** 工具更佳地放置平面反射 Actor 并设置大小，满足关卡需求。 
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -66,50 +66,51 @@ To use enable and use Planar Reflections in your project you will need to do the
 	[/OBJECT]
 
 	[region:tip]
-    Any nearby reflective Materials will automatically be affected by the Planar Reflection Actor as soon as it is added to the level. Static Meshes that are placed in the level will also have their normals used to distort the reflection, allowing for the simulation of waves. 
+    平面反射 Actor 被添加到关卡后，附近的反射材质将自动受到影响。放置在关卡中的静态网格体的法线用于反射的失真，模拟波纹效果。 
 	[/region]
 
 
-### Planar Reflection Actor Properties Breakdown
-The Planar Reflection Actor has a number of properties that when adjusted can significantly affect the look of the reflection. The following table outlines these properties and how they will change the look of the Planar Reflection.
+### 平面反射 Actor 属性分解
+平面反射 Actor 拥有多个属性，调整后可对反射效果产生较大影响。下表包含这些属性，以及它们对平面发射效果产生的改变。
 
 [REGION:lightbox]
 [![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)(w:238 h:232)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)
 [/REGION]
 
-|Setting Name| Description|
+|设置名称 | 描述|
 |------------------|--------------------|
-||Normal Distortion Strength|Controls the strength of normals when distorting the planar reflection.|
-|Prefilter Roughness| The roughness value to prefilter the planar reflection texture with, useful for hiding low resolution. Larger values have larger GPU cost.|
-|Distance from Plane Fade Start|Receiving pixels at this distance from the reflection plane will begin to fade out the planar reflection.|
-|Distance from Plane Fade End|Receiving pixels at this distance from the reflection plane will have completely faded out the planar reflection.|
-|Angle from Plane Fade Start|Receiving pixels whose normal is at this angle from the reflection plane will begin to fade out the planar reflection.|
-|Angle from Plane Fade End|Receiving pixels whose normal is at this angle from the reflection plane will have completely fade out the planar reflection.|
-|Prefilter Roughness Distance|The distance at which the prefilter roughness value will be achieved.|
-|Screen Percentage|Downsample percent can be used to reduce GPU time rendering the planar reflection.|
-|Extra FOV|Additional FOV used when rendering to the reflection texture. This is useful when normal distortion is causing reads outside the reflection texture. Larger values increase rendering thread and GPU cost, as more objects and triangles have to be rendered into the planar reflection.|
+||Normal Distortion Strength|控制平面反射失真时的法线强度。|
+|Prefilter Roughness| 初滤平面反射纹理使用的粗糙系数，用于隐藏低分辨率。数值越大，GPU 开销越高。|
+|Distance from Plane Fade Start|从反射平面到该距离的接收像素将开始淡出平面反射。|
+|Distance from Plane Fade End|从反射平面到该距离的接收像素将完全淡出平面反射。|
+|Angle from Plane Fade Start|反射平面和法线形成该角度的接收像素将开始淡出平面反射。|
+|Angle from Plane Fade End|反射平面和法线形成该角度的接收像素将完全淡出平面反射。|
+|Prefilter Roughness Distance|达到初滤粗糙系数的距离。|
+|Screen Percentage|降低采样百分比可用于减少平面反射渲染的 GPU 时间。|
+|Extra FOV|渲染到反射纹理时所使用的附加视野。法线失真在反射纹理外产生读数据时此项十分实用。数值越大，渲染线程和 GPU 开销越大。因为更多物体和三角形需要被渲染到平面反射中。|
 
-## Planar Reflection Limitations
-While Planar Reflections offer some very realistic reflections, this features does have a number of limitations which are listed below.
+## 平面反射局限性
+虽然平面反射拥有真实的反射效果，但此功能也存在以下局限性。
 
-* There's no way to control what rendering features are enabled in the reflection pass.
-* Dynamic shadowing and fog are incorrect in the reflection pass.
-* Only a constant Roughness value is supported, and it's specified on the Planar Reflection Component instead of Materials.
-* If at all possible limit the amount of Planar Reflection Actors placed in the world to only one and move, rotate, or scale it to best fit the world. While you can use multiple Planar Reflection Actors, you need to exercise caution as Planar Reflection Actors don not do any sort of distance culling, only frustum, and occlusion culling. Because of this if both Planar Reflection Actors are in view at the same time your project's frame rate will suffer severely.
-* The cost to render the Planar Reflection Actor comes directly from what's currently being rendered in the level. Scenes that are triangle and draw call heavy will suffer the most performance issues when this feature is enabled. To avoid this you must ensure that you budget enough resources so that when enabled, Planar Reflections, do not make your project run slower.
+* 无法控制反射通道中启用的渲染功能。
+* 反射通道中的动态阴影不正确。
+* 为保证达到目标帧率，需计算资源是否足以使用平面反射。
+* 只支持恒定的粗糙系数，其在平面反射组件上（而非在材质上）进行指定。
+* 如可能，须尽量将世界场景中的平面反射 Actor 数量限制为 1 个，将其移动、旋转、缩放，和世界场景搭配。也可使用多个平面反射 Actor，但需多加注意，因为平面反射 Actor 不执行任何距离剔除，只进行视锥和遮蔽剔除。因此，如果画面中同时存在两个平面反射 Actor，项目的帧率将受到严重影响。
+* 渲染平面反射 Actor 的开销直接来自当前关卡中渲染的内容。启用此功能后，由三角形组成、绘制调用较大的场景将遭受严重的性能影响，因为这些开销不会随屏幕百分比变化。 
 
 
-## Planar Reflection Performance
+## 平面反射性能
 
-While enabling and using  Planar Reflections in your project will give you crisp and reasonably accurate reflections, this option will have a direct impact on the project's performance. The impact that Planar Reflections will have on  performance is not something that can quickly be determined as its impact on performance is directly related to the complexity of both the Static Meshes and Materials used in the level. Levels that use Static Meshes and Materials with high triangle and instruction counts will suffer more performances issue than projects that use less because the Planar Reflection is effectively duplicating all of these assets to make the reflection. In the following section, we will take a look at the performance impact enabling Planar Reflections will have when enabled in a high-end PC project as well as a project that geared towards mobile devices.
+在项目中启用平面反射可实现相当精确的反射，但该功能会对项目性能产生直接影响。以下部分将说明在针对高端 PC 的项目和针对移动设备的项目中启用平面反射后的性能影响。
 
 [region:note]
-To show off, the performance impact Planar Reflections have we will be using the 4.12 version of the Kite & Infinity Blade Grass Lands project that can be found in the UE4 launcher.
+此处使用 UE4 launcher 中“风筝和无尽之剑草地”项目 4.12 版本展示平面反射的性能影响。
 [/region]
 
-### Planar Reflection Performance & Kite Demo
+### 平面反射性能和风筝 Demo
 
-Due to the size and varying height of the Kite demos Landscape terrain, adding and then scaling a single Planar Reflection Actor to encompass the entire level would not work and could  lead to very poor performance. Instead, Planar Reflection Actors were strategically placed and scaled to fit areas of the level that needed them. In the following image, we can see what the visual impact Planar Reflections have on water used the Kite demo.
+由于风筝 Demo 地形地貌的大小和多变的高度，添加并缩放单个平面反射 Actor 包含整个关卡无法执行，可能导致性能极差。需要策略性地对平面反射 Actor 进行放置和缩放，使其适应关卡中需要反射的区域。下图中可以看到在风筝 Demo 中平面反射在水面上形成的视觉效果。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -120,17 +121,17 @@ Due to the size and varying height of the Kite demos Landscape terrain, adding a
 	[/PARAM]
 [/OBJECT]
 
-While the visual impact Planar Reflections have on the level is quite dramatic, so is the impact they have on performance. If you take a look at the left hand image below, **Planar Reflection Off**, you will see that the entire level is taking 31 ms to render. If you take a look at the right hand image, **Planar Reflections On**, you will see that the entire level is taking 29.19 ms to render. On top of that, Planar Reflection are adding an additional 23.07 ms of rendering time bring the total time to render the scene with Planar Reflections enabled to around 52 ms.
+平面反射对关卡的视觉效果提升十分大，但对性能的影响也极大。在下方左图 **平面反射关闭** 中可以看到，整个关卡的渲染时间为 31 ms。在下方右图 **平面反射开启** 中可以看到，整个关卡的渲染时间为 29.19 ms。此外，平面反射的渲染时间为 23.07 ms。因此带平面反射场景的整体渲染时间为 52 ms 左右。
 
 [REGION:lightbox]
 [INCLUDE:#KitePlanarReflection]
 [/REGION]
 
-The reason why Planar Reflections are taking around 31 ms to render is due to the complex nature of the level. If you were to reduce the complexity of both the Static Meshes and their Materials the cost to render the Planar Reflections would decrease.
+平面反射消耗 31 ms 进行渲染的原因是风筝 Demo 中使用了全动态光影。使用静态/预计算光影的关卡再次进行平面反射渲染时效率更高。
 
-### Planar Reflection Performance & Infinity Blade Dungeons
+### 平面反射性能和无尽之剑地牢
 
-Due to the size and layout of the Infinity Blade Elven Ruins map, only one Planar Reflection was needed and it was scaled to match the already existing water Static Mesh that was placed in the level. In the following images, we can see the visual impact adding a Planar Reflection has on the look of the water in the Elven Ruins map.
+基于无尽之剑精灵遗迹地图的规模和布局，只需要一个平面反射，将其缩放匹配关卡中放置的水面静态网格体即可。在下图中可看到精灵遗迹地图水面添加平面反射后的效果。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -141,21 +142,21 @@ Due to the size and layout of the Infinity Blade Elven Ruins map, only one Plana
 	[/PARAM]
 [/OBJECT]
 
-While adding a Planar Reflection makes the water look more lifelike, the impact it has on performance is quite small when compared to the Kite Demo. If you take a look at the image on the left hand side below, Planar Reflections Off, you can see that without Planar Reflections the scene is costing around 11 ms to render. If you take a look at the image on the right hand side, Planar Reflections On, you can see that with Planar Reflections cost around 1.67 ms to rendering bring the total time to render the level to around 13 ms. 
+添加平面反射后，水面效果更加逼真；较之于风筝 Demo，性能影响也较小。在下方左图“平面反射关闭”中可看到，不带平面反射场景的渲染时间约为 11 ms。在下方右图“平面反射开启”中可看到，平面反射的渲染时间约为 1.67 ms，关卡整体渲染时间约为 13 ms。 
 
 [REGION:lightbox]
 [INCLUDE:#ElvenRuinsReflection]
 [/REGION]
 
-The reason that Planar Reflections only cost 1.67 ms to render in the Elven Ruins map versus the 23.07 ms that it takes to render the Planar Reflections in the Kite Demo is due to how the Static Meshes and Materials that are used in the Elven Ruins were built. Since the Elven Ruins map and it's content was designed for mobile devices, close attention was paid to the amount of triangles and Material instructions each asset used. Because of this, when Planar Reflections are enabled in the Elven Ruins map, they will cost less as the assets that are used in the map are greatly reduced in complexity and size when compared to the Kite Demo assets.
+精灵遗迹地图中的平面反射渲染时间为 1.67 ms，而风筝 Demo 中的渲染时间为 23.07 ms。造成此差异的原因是静态网格体和材质的构建方式。精灵遗迹地图及其内容针对移动设备设计，每个资源使用的三角形和材质指令数量均有严格限制。因此在该地图中启用平面反射时开销较低，因为这里使用的资源复杂度和规模均低于风筝 Demo。
 
 <!--  
 [EXCERPT:KitePlanarReflection]
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_00.png)(w:400 h:200)](GPU_Profile_PR_Off_00.png)|[![](GPU_Profile_PR_On_00.png)(w:400 h:200)](GPU_Profile_PR_On_00.png) | 
 | ------ | ------ |
-| Planar Reflection Off | Planar Reflection On |
-|Click for full image |Click for full image.|
+| 平面反射关闭 | 平面反射开启 |
+|点击查看全图 |点击查看全图|
 [/REGION] 
 [/EXCERPT:KitePlanarReflection]
 -->
@@ -165,8 +166,8 @@ The reason that Planar Reflections only cost 1.67 ms to render in the Elven Ruin
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_01.png)(w:400 h:200)](GPU_Profile_PR_Off_01.png)|[![](GPU_Profile_PR_On_01.png)(w:400 h:200)](GPU_Profile_PR_On_01.png) | 
 | ------ | ------ |
-| Planar Reflection Off | Planar Reflection On |
-|Click for full image |Click for full image.|
+| 平面反射关闭 | 平面反射开启 |
+|点击查看全图 |点击查看全图|
 [/REGION] 
 [/EXCERPT:ElvenRuinsReflection]
 -->
