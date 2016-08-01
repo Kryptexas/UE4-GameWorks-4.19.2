@@ -238,7 +238,7 @@
 		<Node Name="Make Feature Packs" Requires="Update Version Files">
 			<!--Delete any pre-existing feature packs-->
 			<Delete Files="FeaturePacks/..."/>
-			<ForEach Name="TemplateName" Values="FP_FirstPerson;FP_FirstPersonBP;TP_2DSideScroller;TP_2DSideScrollerBP;TP_Flying;TP_FlyingBP;TP_Puzzle;TP_PuzzleBP;TP_Rolling;TP_RollingBP;TP_SideScroller;TP_SideScrollerBP;TP_ThirdPerson;TP_ThirdPersonBP;TP_TopDown;TP_TopDownBP;TP_TwinStick;TP_TwinStickBP;TP_Vehicle;TP_VehicleAdv;TP_VehicleAdvBP;TP_VehicleBP">
+			<ForEach Name="TemplateName" Values="FP_FirstPerson;FP_FirstPersonBP;TP_2DSideScroller;TP_2DSideScrollerBP;TP_Flying;TP_FlyingBP;TP_Puzzle;TP_PuzzleBP;TP_Rolling;TP_RollingBP;TP_SideScroller;TP_SideScrollerBP;TP_ThirdPerson;TP_ThirdPersonBP;TP_TopDown;TP_TopDownBP;TP_TwinStick;TP_TwinStickBP;TP_Vehicle;TP_VehicleAdv;TP_VehicleAdvBP;TP_VehicleBP;TP_VirtualRealityBP">
 				<PakFile Output="FeaturePacks/$(TemplateName).upack" Files="" ResponseFile="Templates/$(TemplateName)/contents.txt"/>
 			</ForEach>
 			<ForEach Name="SampleName" Values="MobileStarterContent;StarterContent">
