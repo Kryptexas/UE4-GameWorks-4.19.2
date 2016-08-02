@@ -326,8 +326,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
 		ConsoleVariable = "r.MorphTarget.Mode", DisplayName = "Use GPU for computing morph targets",
-		ToolTip = "Whether to use original CPU method (loop per morph then by vertex) or use GPU method. Changing this setting requires restarting the editor.",
-		ConfigRestartRequired = true))
+		ToolTip = "Whether to use original CPU method (loop per morph then by vertex) or use a GPU-based method on Shader Model 5 hardware."))
 	uint32 bUseGPUMorphTargets : 1;
 
 	UPROPERTY(config, EditAnywhere, Category=VR, meta=(

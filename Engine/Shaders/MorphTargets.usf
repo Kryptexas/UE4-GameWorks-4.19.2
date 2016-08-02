@@ -8,7 +8,15 @@
 
 ////////////////////////////////////////////////////////////////
 
+#ifndef USE_BYTE_BUFFER
+#define USE_BYTE_BUFFER	0
+#endif
+
+#if USE_BYTE_BUFFER
+RWByteAddressBuffer MorphVertexBuffer;
+#else
 RWBuffer<uint> MorphVertexBuffer;
+#endif
 
 // .x = NumLODVertices, .y = NumVertexInfoMorphs
 float4 MorphTargetCounts;
@@ -108,6 +116,15 @@ void GPUMorphUpdateCS(uint DispatchId : SV_DispatchThreadID)
 
 		// See FMorphGPUSkinVertex
 		const uint MorphVertexBufferStride = 3 + 3;
+#if USE_BYTE_BUFFER
+		// Equivalent to MorphVertexBuffer<FMorphGPUSkinVertex>
+		MorphVertexBuffer.Store((MorphVertexBufferStride * DestVertexIndex + 0) * 4, asuint(Position.x));
+		MorphVertexBuffer.Store((MorphVertexBufferStride * DestVertexIndex + 1) * 4, asuint(Position.y));
+		MorphVertexBuffer.Store((MorphVertexBufferStride * DestVertexIndex + 2) * 4, asuint(Position.z));
+		MorphVertexBuffer.Store((MorphVertexBufferStride * DestVertexIndex + 3) * 4, asuint(TangentZ.x));
+		MorphVertexBuffer.Store((MorphVertexBufferStride * DestVertexIndex + 4) * 4, asuint(TangentZ.y));
+		MorphVertexBuffer.Store((MorphVertexBufferStride * DestVertexIndex + 5) * 4, asuint(TangentZ.z));
+#else
 		// Equivalent to MorphVertexBuffer<FMorphGPUSkinVertex>
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 0] = asuint(Position.x);
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 1] = asuint(Position.y);
@@ -115,5 +132,6 @@ void GPUMorphUpdateCS(uint DispatchId : SV_DispatchThreadID)
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 3] = asuint(TangentZ.x);
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 4] = asuint(TangentZ.y);
 		MorphVertexBuffer[MorphVertexBufferStride * DestVertexIndex + 5] = asuint(TangentZ.z);
+#endif
 	}
 }
