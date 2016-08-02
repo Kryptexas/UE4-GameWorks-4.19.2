@@ -151,7 +151,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( EMovieSceneUpdateData& U
 
 			if ( AnimSection && AnimSection->IsActive() )
 			{
-				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
+				UAnimSequenceBase* AnimSequence = AnimSection->GetAnimSequence();
 
 				if ( AnimSequence )
 				{
@@ -239,11 +239,23 @@ bool FMovieSceneSkeletalAnimationTrackInstance::CanPlayAnimation(USkeletalMeshCo
 		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::SetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies)
+void FMovieSceneSkeletalAnimationTrackInstance::SetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies)
 {
 	if (CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 	{
-		FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping);
+		UAnimMontage* Montage = FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping);
+
+		// Ensure the sequence is not stopped
+		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+		UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
+		if(SingleNodeInst)
+		{
+			SingleNodeInst->SetPlaying(true);
+		}
+		else if (AnimInst && Montage)
+		{
+			AnimInst->Montage_Resume(Montage);
+		}
 	}
 }
 
@@ -306,11 +318,11 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewFinishAnimControl(USkelet
 	CurrentlyPlayingMontage = nullptr;
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying, bool bResetDynamics)
+void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying, bool bResetDynamics)
 {
 	if(CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 	{
-		FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping, bFireNotifies, DeltaTime);
+		UAnimMontage* Montage = FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping, bFireNotifies, DeltaTime);
 
 		// if we are not playing, make sure we dont continue (as skeletal meshes can still tick us onwards)
 		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
@@ -321,22 +333,22 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletal
 		}
 		else if (AnimInst)
 		{
-			if(CurrentlyPlayingMontage.IsValid())
+			if(Montage)
 			{
 				if(bPlaying)
 				{
-					AnimInst->Montage_Resume(CurrentlyPlayingMontage.Get());
+					AnimInst->Montage_Resume(Montage);
 				}
 				else
 				{
-					AnimInst->Montage_Pause(CurrentlyPlayingMontage.Get());
+					AnimInst->Montage_Pause(Montage);
 				}
 			}
 
 			if(bResetDynamics)
 			{
 				// make sure we reset any simulations
-				AnimInst->ResetDynamics();	
+				AnimInst->ResetDynamics();
 			}
 		}
 	}

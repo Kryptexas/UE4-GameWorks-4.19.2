@@ -3,9 +3,9 @@
 #pragma once
 
 #include "MovieSceneSection.h"
-#include "Animation/AnimSequence.h"
 #include "MovieSceneSkeletalAnimationSection.generated.h"
 
+class UAnimSequenceBase;
 
 /**
  * Movie scene section that control skeletal animation
@@ -19,10 +19,10 @@ class UMovieSceneSkeletalAnimationSection
 public:
 
 	/** Sets the animation sequence for this section */
-	void SetAnimSequence(class UAnimSequence* InAnimSequence) { AnimSequence = InAnimSequence; }
-	
+	void SetAnimSequence(UAnimSequenceBase* InAnimation) { Animation = InAnimation; }
+
 	/** Gets the animation sequence for this section */
-	class UAnimSequence* GetAnimSequence() { return AnimSequence; }
+	UAnimSequenceBase* GetAnimSequence() { return Animation; }
 	
 	/** Gets the start offset into the animation clip */
 	float GetStartOffset() const { return StartOffset; }
@@ -37,10 +37,10 @@ public:
 	void SetEndOffset(float InEndOffset) { EndOffset = InEndOffset; }
 	
 	/** Gets the animation duration, modified by play rate */
-	float GetDuration() const { return FMath::IsNearlyZero(PlayRate) || AnimSequence == nullptr ? 0.f : AnimSequence->SequenceLength / PlayRate; }
+	float GetDuration() const { return FMath::IsNearlyZero(PlayRate) || Animation == nullptr ? 0.f : Animation->SequenceLength / PlayRate; }
 
 	/** Gets the animation sequence length, not modified by play rate */
-	float GetSequenceLength() const { return AnimSequence != nullptr ? AnimSequence->SequenceLength : 0.f; }
+	float GetSequenceLength() const { return Animation != nullptr ? Animation->SequenceLength : 0.f; }
 
 	/** Sets the play rate of the animation clip */
 	float GetPlayRate() const { return PlayRate; }
@@ -72,6 +72,9 @@ public:
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 
+	/** ~UObject interface */
+	virtual void PostLoad() override;
+	
 private:
 
 	//~ UObject interface
@@ -88,9 +91,12 @@ private:
 
 	static FName DefaultSlotName;
 
-	/** The animation sequence this section has */
+	UPROPERTY()
+	class UAnimSequence* AnimSequence_DEPRECATED;
+
+	/** The animation this section plays */
 	UPROPERTY(EditAnywhere, Category="Animation")
-	class UAnimSequence* AnimSequence;
+	UAnimSequenceBase* Animation;
 
 	/** The offset into the beginning of the animation clip */
 	UPROPERTY(EditAnywhere, Category="Animation")

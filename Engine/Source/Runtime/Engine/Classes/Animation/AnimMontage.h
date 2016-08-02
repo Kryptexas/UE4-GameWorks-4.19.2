@@ -235,6 +235,13 @@ private:
 
 	// sync group index
 	int32 SyncGroupIndex;
+
+	/**
+	 * Optional position to force next update (ignoring the real delta time).
+	 * Used by external systems that are setting animation times directly. Will fire off notifies and other events provided the animation system is ticking.
+	 */
+	TOptional<float> ForcedNextPosition;
+
 public:
 	/** Montage to Montage Synchronization.
 	 *
@@ -324,6 +331,9 @@ public:
 	void SetPosition(float const & InPosition) { Position = InPosition; MarkerTickRecord.Reset(); }
 	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
 
+	/** Set the position of this animation as part of the next animation update tick. Will trigger events and notifies for the delta time. */
+	void SetNextPositionWithEvents(float InPosition) { ForcedNextPosition = InPosition; }
+
 	/**
 	 * Montage Tick happens in 2 phases
 	 *
@@ -364,8 +374,10 @@ private:
 
 public:
 	/** static functions that are used by matinee functionality */
-	ENGINE_API static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
-	ENGINE_API static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+	ENGINE_API static UAnimMontage* SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping);
+	ENGINE_API static UAnimMontage* PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+private:
+	static UAnimMontage* InitializeMatineeControl(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, bool bLooping);
 };
 
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
