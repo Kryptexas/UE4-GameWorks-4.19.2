@@ -30,7 +30,7 @@ public:
 		: _Text()
 		, _TextStyle( &FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>( "NormalText" ) )
 		, _Font()
-		, _ColorAndOpacity(FLinearColor::White)
+		, _ColorAndOpacity()
 		, _ShadowOffset()
 		, _ShadowColorAndOpacity()
 		, _HighlightColor()
