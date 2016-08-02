@@ -169,6 +169,21 @@ struct FAbcSkeletalMeshImportData
 	uint32 TotalNumSmoothingGroups;
 };
 
+/** Mesh section used for chunking the mesh data during Skeletal mesh building */
+struct FMeshSection
+{
+	FMeshSection() : MaterialIndex(0), NumFaces(0) {}
+	int32 MaterialIndex;
+	TArray<uint32> Indices;
+	TArray<uint32> OriginalIndices;
+	TArray<FVector> TangentX;
+	TArray<FVector> TangentY;
+	TArray<FVector> TangentZ;
+	TArray<FVector2D> UVs;
+	TArray<FColor> Colours;
+	uint32 NumFaces;
+};
+
 /** Structure encapsulating all the (intermediate) data retrieved from an Alembic file by the AbcImporter*/
 struct FAbcImportData
 {
