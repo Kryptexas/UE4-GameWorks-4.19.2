@@ -101,6 +101,7 @@ class UPhysicsConstraintTemplate : public UObject
 
 	ENGINE_API FName GetCurrentConstraintProfileName() const;
 	ENGINE_API void UpdateConstraintProfiles(const TArray<FName>& Profiles);
+	ENGINE_API void DuplicateConstraintProfile(FName DuplicateFromName, FName DuplicateToName);
 	ENGINE_API void RenameConstraintProfile(FName CurrentName, FName NewName);
 #endif
 

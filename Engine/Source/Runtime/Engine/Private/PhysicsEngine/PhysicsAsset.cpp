@@ -94,6 +94,19 @@ void USkeletalBodySetup::UpdatePhysicalAnimationProfiles(const TArray<FName>& Pr
 	}
 }
 
+void USkeletalBodySetup::DuplicatePhysicalAnimationProfile(FName DuplicateFromName, FName DuplicateToName)
+{
+	for (FPhysicalAnimationProfile& ProfileHandle : PhysicalAnimationData)
+	{
+		if (ProfileHandle.ProfileName == DuplicateFromName)
+		{
+			FPhysicalAnimationProfile* Duplicate = new (PhysicalAnimationData) FPhysicalAnimationProfile(ProfileHandle);
+			Duplicate->ProfileName = DuplicateToName;
+			break;
+		}
+	}
+}
+
 void USkeletalBodySetup::RenamePhysicalAnimationProfile(FName CurrentName, FName NewName)
 {
 	for(FPhysicalAnimationProfile& ProfileHandle : PhysicalAnimationData)
@@ -471,14 +484,17 @@ void UPhysicsAsset::PostEditUndo()
 
 void UPhysicsAsset::PreEditChange(UProperty* PropertyThatWillChange)
 {
+	Super::PreEditChange(PropertyThatWillChange);
+
 	PreConstraintProfiles = ConstraintProfiles;
 	PrePhysicalAnimationProfiles = PhysicalAnimationProfiles;
 }
 
 template <typename T>
-void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName>& PreProfiles, TArray<FName>& PostProfiles, FPropertyChangedEvent& PropertyChangedEvent, const FName PropertyName, FName& CurrentProfileName, TFunctionRef<void (T*, FName, FName)> RenameFunc, TFunctionRef<void(T*, const TArray<FName>& )> UpdateFunc)
+void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName>& PreProfiles, TArray<FName>& PostProfiles, FPropertyChangedEvent& PropertyChangedEvent, const FName PropertyName, FName& CurrentProfileName, TFunctionRef<void (T*, FName, FName)> RenameFunc, TFunctionRef<void(T*, FName, FName)> DuplicateFunc, TFunctionRef<void(T*, const TArray<FName>& )> UpdateFunc)
 {
 	const int32 ArrayIdx = PropertyChangedEvent.GetArrayIndex(PropertyName.ToString());
+	const FName OldName = PreProfiles.IsValidIndex(ArrayIdx) ? PreProfiles[ArrayIdx] : NAME_None;
 
 	if (ArrayIdx != INDEX_NONE)
 	{
@@ -515,6 +531,14 @@ void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName
 		}
 	}
 
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
+	{
+		for (T* SetupInstance : SetupInstances)
+		{
+			DuplicateFunc(SetupInstance, OldName, PostProfiles[ArrayIdx]);
+		}
+	}
+
 	//array events like empty currently do not get an Empty type so we need to do this final sanitization every time something changes just in case
 	{
 		//delete requires removing old profiles
@@ -542,12 +566,17 @@ void UPhysicsAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 				BS->RenamePhysicalAnimationProfile(PreName, NewName);
 			};
 
+			auto DuplicateFunc = [](USkeletalBodySetup* BS, FName DuplicateFromName, FName DuplicateToName)
+			{
+				BS->DuplicatePhysicalAnimationProfile(DuplicateFromName, DuplicateToName);
+			};
+
 			auto UpdateFunc = [](USkeletalBodySetup* BS, const TArray<FName>& NewProfiles)
 			{
 				BS->UpdatePhysicalAnimationProfiles(NewProfiles);
 			};
 
-			SanitizeProfilesHelper<USkeletalBodySetup>(SkeletalBodySetups, PrePhysicalAnimationProfiles, PhysicalAnimationProfiles, PropertyChangedEvent, PropertyName, CurrentPhysicalAnimationProfileName, RenameFunc, UpdateFunc);
+			SanitizeProfilesHelper<USkeletalBodySetup>(SkeletalBodySetups, PrePhysicalAnimationProfiles, PhysicalAnimationProfiles, PropertyChangedEvent, PropertyName, CurrentPhysicalAnimationProfileName, RenameFunc, DuplicateFunc, UpdateFunc);
 		}
 		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, ConstraintProfiles))
 		{
@@ -556,12 +585,17 @@ void UPhysicsAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 				CS->RenameConstraintProfile(PreName, NewName);
 			};
 
+			auto DuplicateFunc = [](UPhysicsConstraintTemplate* CS, FName DuplicateFromName, FName DuplicateToName)
+			{
+				CS->DuplicateConstraintProfile(DuplicateFromName, DuplicateToName);
+			};
+
 			auto UpdateFunc = [](UPhysicsConstraintTemplate* CS, const TArray<FName>& NewProfiles)
 			{
 				CS->UpdateConstraintProfiles(NewProfiles);
 			};
 
-			SanitizeProfilesHelper<UPhysicsConstraintTemplate>(ConstraintSetup, PreConstraintProfiles, ConstraintProfiles, PropertyChangedEvent, PropertyName, CurrentConstraintProfileName, RenameFunc, UpdateFunc);
+			SanitizeProfilesHelper<UPhysicsConstraintTemplate>(ConstraintSetup, PreConstraintProfiles, ConstraintProfiles, PropertyChangedEvent, PropertyName, CurrentConstraintProfileName, RenameFunc, DuplicateFunc, UpdateFunc);
 		}
 	}
 

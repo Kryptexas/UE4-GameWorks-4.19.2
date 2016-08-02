@@ -1461,7 +1461,7 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 		// 		const bool bRecurse = false;
 		// 		ParentNode->SetExpanded(bExpand, bRecurse);
 
-		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Duplicate);
 		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 		{
 			

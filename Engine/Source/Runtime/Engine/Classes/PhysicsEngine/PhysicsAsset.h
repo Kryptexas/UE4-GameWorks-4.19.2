@@ -213,6 +213,8 @@ public:
 
 	ENGINE_API void UpdatePhysicalAnimationProfiles(const TArray<FName>& Profiles);
 
+	ENGINE_API void DuplicatePhysicalAnimationProfile(FName DuplicateFromName, FName DuplicateToName);
+
 	ENGINE_API void RenamePhysicalAnimationProfile(FName CurrentName, FName NewName);
 #endif
 
