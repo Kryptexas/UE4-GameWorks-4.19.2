@@ -808,11 +808,8 @@ namespace AutomationTool
                     {
                         var ChangeString = Line.Substring(ChangeAt + MatchChange.Length, OnAt - ChangeAt - MatchChange.Length);
                         Change.CL = int.Parse(ChangeString);
-                        if (Change.CL < 1990000)
-                        {
-                            throw new AutomationException("weird CL {0} in {1}", Change.CL, Line);
-                        }
-	                    int AtAt = Line.IndexOf("@");
+
+						int AtAt = Line.IndexOf("@");
                         Change.User = Line.Substring(ByAt + MatchBy.Length, AtAt - ByAt - MatchBy.Length);
 
 						if( bSummaryIsOnSameLine )
