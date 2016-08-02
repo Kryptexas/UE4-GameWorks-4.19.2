@@ -313,6 +313,20 @@ public:
 		}
 	}
 
+	void ProxyGenerationFailed(const FGuid OutJobGUID, const FString& ErrorMessage )
+	{
+		FScopeLock Lock(&StateLock);
+		FMergeCompleteData** FindData = ProxyMeshJobs.Find(OutJobGUID);
+		if (FindData)
+		{
+			ProxyMeshJobs.Remove(OutJobGUID);
+			if (*FindData)
+			{
+				UE_LOG(LogMeshUtilities, Log, TEXT("Failed to generate proxy mesh for cluster %s, %s"), *(*FindData)->ProxyBasePackageName, *ErrorMessage);
+			}
+		}
+	}
+
 protected:
 	/** Called when the map has changed*/
 	void OnMapChange(uint32 MapFlags)
@@ -7717,6 +7731,7 @@ void FMeshUtilities::StartupModule()
 		else
 		{
 			MeshMerging->CompleteDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationComplete);
+			MeshMerging->FailedDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationFailed);
 		}
 
 		if (!DistributedMeshMerging)
@@ -7726,6 +7741,7 @@ void FMeshUtilities::StartupModule()
 		else
 		{
 			DistributedMeshMerging->CompleteDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationComplete);
+			DistributedMeshMerging->FailedDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationFailed);
 		}
 	}
 

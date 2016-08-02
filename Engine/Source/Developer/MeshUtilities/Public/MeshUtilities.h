@@ -63,7 +63,9 @@ public:
 };
 
 DECLARE_DELEGATE_ThreeParams(FProxyCompleteDelegate, struct FRawMesh&, struct FFlattenMaterial&, const FGuid);
+DECLARE_DELEGATE_TwoParams(FProxyFailedDelegate, const FGuid, const FString&);
 DECLARE_DELEGATE_TwoParams(FCreateProxyDelegate, const FGuid, TArray<UObject*>&);
+
 /** Data used for passing back the data resulting from a completed mesh merging operation*/
 struct FMergeCompleteData
 {
@@ -91,6 +93,7 @@ public:
 	virtual void AggregateLOD() {}
 
 	FProxyCompleteDelegate CompleteDelegate;
+	FProxyFailedDelegate FailedDelegate;
 };
 
 /**
