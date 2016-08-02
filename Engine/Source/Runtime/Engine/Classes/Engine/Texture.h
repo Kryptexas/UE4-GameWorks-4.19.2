@@ -352,6 +352,7 @@ class UTexture : public UObject, public IInterface_AssetUserData
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FTextureSource Source;
+#endif
 
 private:
 	/** Unique ID for this material, used for caching during distributed lighting */
@@ -359,7 +360,7 @@ private:
 	FGuid LightingGuid;
 
 public:
-	
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FString SourceFilePath_DEPRECATED;
 
@@ -777,22 +778,23 @@ public:
 		return 0;
 	}
 
-	// @todo document
+	/** Returns a unique identifier for this texture. Used by the lighting build and texture streamer. */
 	const FGuid& GetLightingGuid() const
 	{
-#if WITH_EDITORONLY_DATA
 		return LightingGuid;
-#else
-		static const FGuid NullGuid( 0, 0, 0, 0 );
-		return NullGuid; 
-#endif // WITH_EDITORONLY_DATA
 	}
 
-	// @todo document
+	/** 
+	 * Assigns a new GUID to a texture. This will be called whenever a texture is created or changes. 
+	 * In game, the GUIDs are only used by the texture streamer to link build data to actual textures,
+	 * that means new textures don't actually need GUIDs (see FStreamingTextureLevelContext)
+	 */
 	void SetLightingGuid()
 	{
 #if WITH_EDITORONLY_DATA
 		LightingGuid = FGuid::NewGuid();
+#else
+		LightingGuid = FGuid(0, 0, 0, 0);
 #endif // WITH_EDITORONLY_DATA
 	}
 
