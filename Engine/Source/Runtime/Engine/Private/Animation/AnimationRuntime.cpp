@@ -1403,6 +1403,8 @@ static int32 FindMorphTarget(const TArray<FActiveMorphTarget>& ActiveMorphTarget
 
 void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveMorphTarget>& InOutActiveMorphTargets, TArray<float>& InOutMorphTargetWeights)
 {
+	checkSlow(InSkeletalMesh);
+
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
