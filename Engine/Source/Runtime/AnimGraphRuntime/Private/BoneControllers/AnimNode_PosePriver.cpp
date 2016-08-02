@@ -1,19 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
-#include "BoneControllers/AnimNode_OrientationDriver.h"
+#include "BoneControllers/AnimNode_PoseDriver.h"
 #include "Animation/PoseAsset.h"
 
 #include "AnimInstanceProxy.h"
 
 //////////////////////////////////////////////////////////////////////////
 
-void FOrientationDriverParamSet::AddParam(const FOrientationDriverParam& InParam, float InScale)
+void FPoseDriverParamSet::AddParam(const FPoseDriverParam& InParam, float InScale)
 {
 	bool bFoundParam = false;
 
 	// Look to see if this param already exists in this set
-	for (FOrientationDriverParam& Param : Params)
+	for (FPoseDriverParam& Param : Params)
 	{
 		if (Param.ParamInfo.Name == InParam.ParamInfo.Name)
 		{
@@ -26,29 +26,29 @@ void FOrientationDriverParamSet::AddParam(const FOrientationDriverParam& InParam
 	if (!bFoundParam)
 	{
 		int32 NewParamIndex = Params.AddZeroed();
-		FOrientationDriverParam& Param = Params[NewParamIndex];
+		FPoseDriverParam& Param = Params[NewParamIndex];
 		Param.ParamInfo = InParam.ParamInfo;
 		Param.ParamValue = (InParam.ParamValue * InScale);
 	}
 }
 
-void FOrientationDriverParamSet::AddParams(const TArray<FOrientationDriverParam>& InParams, float InScale)
+void FPoseDriverParamSet::AddParams(const TArray<FPoseDriverParam>& InParams, float InScale)
 {
-	for (const FOrientationDriverParam& InParam : InParams)
+	for (const FPoseDriverParam& InParam : InParams)
 	{
 		AddParam(InParam, InScale);
 	}
 }
 
-void FOrientationDriverParamSet::ScaleAllParams(float InScale)
+void FPoseDriverParamSet::ScaleAllParams(float InScale)
 {
-	for (FOrientationDriverParam& Param : Params)
+	for (FPoseDriverParam& Param : Params)
 	{
 		Param.ParamValue *= InScale;
 	}
 }
 
-void FOrientationDriverParamSet::ClearParams()
+void FPoseDriverParamSet::ClearParams()
 {
 	Params.Empty();
 }
@@ -56,13 +56,14 @@ void FOrientationDriverParamSet::ClearParams()
 
 //////////////////////////////////////////////////////////////////////////
 
-FAnimNode_OrientationDriver::FAnimNode_OrientationDriver()
+FAnimNode_PoseDriver::FAnimNode_PoseDriver()
 {
 	RadialScaling = 0.25f;
 	bIncludeRefPoseAsNeutralPose = true;
+	Type = EPoseDriverType::SwingOnly;
 }
 
-void FAnimNode_OrientationDriver::GatherDebugData(FNodeDebugData& DebugData)
+void FAnimNode_PoseDriver::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 
@@ -71,12 +72,12 @@ void FAnimNode_OrientationDriver::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_OrientationDriver::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutCSBoneTransforms)
+void FAnimNode_PoseDriver::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutCSBoneTransforms)
 {
 
 }
 
-FVector FAnimNode_OrientationDriver::GetTwistAxisVector()
+FVector FAnimNode_PoseDriver::GetTwistAxisVector()
 {
 	switch (TwistAxis)
 	{
@@ -90,9 +91,9 @@ FVector FAnimNode_OrientationDriver::GetTwistAxisVector()
 	}
 }
 
-float FAnimNode_OrientationDriver::FindDistanceBetweenPoses(const FQuat& A, const FQuat& B)
+float FAnimNode_PoseDriver::FindDistanceBetweenPoses(const FQuat& A, const FQuat& B)
 {
-	if (Type == EOrientationDriverType::SwingAndTwist)
+	if (Type == EPoseDriverType::SwingAndTwist)
 	{
 		return A.AngularDistance(B);
 	}
@@ -107,7 +108,7 @@ float FAnimNode_OrientationDriver::FindDistanceBetweenPoses(const FQuat& A, cons
 	}
 }
 
-void FAnimNode_OrientationDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
+void FAnimNode_PoseDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
 {
 	if (PoseSource != nullptr)
 	{
@@ -130,7 +131,7 @@ void FAnimNode_OrientationDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
 			// Cache quat for source bone for each pose
 			for (int32 PoseIdx = 0; PoseIdx < NumPoses; PoseIdx++)
 			{
-				FOrientationDriverPoseInfo& PoseInfo = PoseInfos[PoseIdx];
+				FPoseDriverPoseInfo& PoseInfo = PoseInfos[PoseIdx];
 
 				FTransform BoneTransform;
 				bool bFound = PoseSource->GetLocalPoseForTrack(PoseIdx, TrackIndex, BoneTransform);
@@ -143,7 +144,7 @@ void FAnimNode_OrientationDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
 			// If we want to include ref pose, add that to end
 			if (bIncludeRefPoseAsNeutralPose)
 			{
-				FOrientationDriverPoseInfo& PoseInfo = PoseInfos.Last();
+				FPoseDriverPoseInfo& PoseInfo = PoseInfos.Last();
 
 				static FName RefPoseName = FName(TEXT("RefPose"));
 				PoseInfo.PoseName = RefPoseName;
@@ -161,7 +162,7 @@ void FAnimNode_OrientationDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
 				// Iterate over poses
 				for (int32 PoseIdx = 0; PoseIdx < NumPoseInfos; PoseIdx++)
 				{
-					FOrientationDriverPoseInfo& PoseInfo = PoseInfos[PoseIdx];
+					FPoseDriverPoseInfo& PoseInfo = PoseInfos[PoseIdx];
 					PoseInfo.NearestPoseDist = BIG_NUMBER; // init to large value
 
 					for (int32 OtherPoseIdx = 0; OtherPoseIdx < NumPoseInfos; OtherPoseIdx++)
@@ -169,7 +170,7 @@ void FAnimNode_OrientationDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
 						if (OtherPoseIdx != PoseIdx) // If not ourself..
 						{
 							// Get distance between poses
-							FOrientationDriverPoseInfo& OtherPoseInfo = PoseInfos[OtherPoseIdx];
+							FPoseDriverPoseInfo& OtherPoseInfo = PoseInfos[OtherPoseIdx];
 							float Dist = FindDistanceBetweenPoses(PoseInfo.PoseQuat, OtherPoseInfo.PoseQuat);
 							PoseInfo.NearestPoseDist = FMath::Min(Dist, PoseInfo.NearestPoseDist);
 						}
@@ -185,7 +186,7 @@ void FAnimNode_OrientationDriver::UpdateCachedPoseInfo(const FQuat& RefQuat)
 	bCachedPoseInfoUpToDate = true;
 }
 
-void FAnimNode_OrientationDriver::EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context)
+void FAnimNode_PoseDriver::EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context)
 {
 	// Do nothing if no PoseAsset, or Info doesn't match
 	if (PoseSource == nullptr)
@@ -218,7 +219,7 @@ void FAnimNode_OrientationDriver::EvaluateComponentSpaceInternal(FComponentSpace
 	// Iterate over each pose, adding its contribution
 	for (int32 PoseInfoIdx = 0; PoseInfoIdx < PoseInfos.Num(); PoseInfoIdx++)
 	{
-		FOrientationDriverPoseInfo& PoseInfo = PoseInfos[PoseInfoIdx];
+		FPoseDriverPoseInfo& PoseInfo = PoseInfos[PoseInfoIdx];
 
 		// Find distance
 		PoseInfo.PoseDistance = FindDistanceBetweenPoses(BoneQuat, PoseInfo.PoseQuat);
@@ -244,7 +245,7 @@ void FAnimNode_OrientationDriver::EvaluateComponentSpaceInternal(FComponentSpace
 				float ParamValue = PoseAssetCurveValues[CurveIdx];
 				if (FMath::Abs(ParamValue) > KINDA_SMALL_NUMBER)
 				{
-					FOrientationDriverParam NewParam;
+					FPoseDriverParam NewParam;
 
 					NewParam.ParamInfo.Name = PoseAssetCurveData[CurveIdx].Name.DisplayName;
 					NewParam.ParamInfo.UID = PoseAssetCurveData[CurveIdx].Name.UID;
@@ -268,7 +269,7 @@ void FAnimNode_OrientationDriver::EvaluateComponentSpaceInternal(FComponentSpace
 		ResultParamSet.ScaleAllParams(WeightScale);
 
 		// Also normalize each pose weight
-		for (FOrientationDriverPoseInfo& PoseInfo : PoseInfos)
+		for (FPoseDriverPoseInfo& PoseInfo : PoseInfos)
 		{
 			PoseInfo.PoseWeight *= WeightScale;
 		}
@@ -276,7 +277,7 @@ void FAnimNode_OrientationDriver::EvaluateComponentSpaceInternal(FComponentSpace
 		//	Morph target and Material parameter curves
 		USkeleton* Skeleton = Context.AnimInstanceProxy->GetSkeleton();
 
-		for (FOrientationDriverParam& Param : ResultParamSet.Params)
+		for (FPoseDriverParam& Param : ResultParamSet.Params)
 		{
 			if (Param.ParamInfo.UID != FSmartNameMapping::MaxUID)
 			{
@@ -286,13 +287,13 @@ void FAnimNode_OrientationDriver::EvaluateComponentSpaceInternal(FComponentSpace
 	}
 }
 
-bool FAnimNode_OrientationDriver::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
+bool FAnimNode_PoseDriver::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
 	// return true if at least one bone ref is valid
 	return SourceBone.IsValid(RequiredBones);
 }
 
-void FAnimNode_OrientationDriver::InitializeBoneReferences(const FBoneContainer& RequiredBones)
+void FAnimNode_PoseDriver::InitializeBoneReferences(const FBoneContainer& RequiredBones)
 {
 	// Init bone ref
 	SourceBone.Initialize(RequiredBones);
