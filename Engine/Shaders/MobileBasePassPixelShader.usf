@@ -172,6 +172,7 @@ half3 BlendReflectionCapture(FMaterialPixelParameters MaterialParameters, half R
 	// Fetch from cubemap and convert to linear HDR
 	float4 Reflection = ReflectionCube.SampleLevel(ReflectionSampler, ProjectedCaptureVector.xyz, MipLevel);
 	half3 SpecularIBL = RGBMDecode(Reflection, 16.0f) * ProjectedCaptureVector.w * BlendFactor;
+	SpecularIBL = SpecularIBL * SpecularIBL;
 
 	BlendFactor = BlendFactor * (1.0 - ProjectedCaptureVector.w);
 	return SpecularIBL;
@@ -210,8 +211,9 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
 	// Fetch from cubemap and convert to linear HDR
 	half3 SpecularIBL = RGBMDecode(ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip), 16.0f);
-#endif
 	SpecularIBL *= SpecularIBL;
+#endif
+	
 #if WEBGL
 	// need a rgb swizzle instead of the existing rgba swizzle, we should add it if another use case comes up. 
 	return SpecularIBL.bgr;
