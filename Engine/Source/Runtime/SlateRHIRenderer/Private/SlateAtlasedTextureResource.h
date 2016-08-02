@@ -3,7 +3,7 @@
 #pragma once
 
 #include "SlateUTextureResource.h"
-#include "Interfaces/SlateTextureAtlasInterface.h"
+#include "Slate/SlateTextureAtlasInterface.h"
 
 /**
  * A resource for rendering a sub-rect of a UTexture atlas object in Slate. Each 
