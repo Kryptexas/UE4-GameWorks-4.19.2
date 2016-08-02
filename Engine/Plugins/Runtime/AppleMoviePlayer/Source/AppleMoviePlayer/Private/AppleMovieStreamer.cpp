@@ -164,10 +164,12 @@ bool FAVPlayerMovieStreamer::Tick(float DeltaTime)
                 return true;
             }
         }
-        else
+		// remove this because bVideoTracksLoaded is set when [AVMovie loadValuesAsynchronouslyForKeys:] is completed, so when loadValuesAsynchronouslyForKeys is not completed before next ticking, it returns true even a movie isn't played yet.
+		/*        else
         {
             return MovieQueue.Num() == 0;
         }
+		 */
     }
 
     // Not completed.
@@ -186,6 +188,16 @@ float FAVPlayerMovieStreamer::GetAspectRatio() const
 
 void FAVPlayerMovieStreamer::Cleanup()
 {
+	// Reset variables
+	bWasActive = false;
+	SyncStatus = Default;
+
+	if( LatestSamples != NULL )
+	{
+		CFRelease( LatestSamples );
+		LatestSamples = NULL;
+	}
+	
 	MovieViewport->SetTexture(NULL);
 
 	// Schedule textures for release.
@@ -301,7 +313,14 @@ bool FAVPlayerMovieStreamer::FinishLoadingTracks()
             {
                 // Save the track for later.
                 AVVideoTrack = [nsVideoTracks objectAtIndex:0];
-
+				
+				CGSize naturalSize = [AVVideoTrack naturalSize];
+				if((int(naturalSize.width) % 16) != 0)
+				{
+					UE_LOG(LogMoviePlayer, Error, TEXT("Movie width must be a multiple of 16 pixels.") );
+					return false;
+				}
+				
                 // Initialize our video output to match the format of the texture we'll create later.
                 NSMutableDictionary* OutputSettings = [NSMutableDictionary dictionary];
                 [OutputSettings setObject: [NSNumber numberWithInt:kCVPixelFormatType_32BGRA] forKey:(NSString*)kCVPixelBufferPixelFormatTypeKey];

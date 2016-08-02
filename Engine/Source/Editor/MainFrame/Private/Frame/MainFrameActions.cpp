@@ -475,6 +475,15 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 					);
 			}
 
+			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0)
+			{
+				AddMessageLog(
+					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
+					LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field."),
+					NotInstalledTutorialLink
+					);
+			}
+
 			// report to main frame
 			bool UnrecoverableError = false;
 

@@ -1123,7 +1123,16 @@ namespace UnrealBuildTool
 							UHTResult = ((int)(UHTResult) == 130) ? ECompilationResult.Canceled : ECompilationResult.CrashOrAssert;
 						}
 
-						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int)UHTResult, UHTResult.ToString());
+						if ((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32 || 
+							BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64) && 
+							(int)(UHTResult) < 0)
+						{
+							Log.TraceInformation("Error: Failed to generate code for {0} - Prerequests may not be installed", ActualTargetName);
+						}
+						else
+						{
+							Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int)UHTResult, UHTResult.ToString());
+						}
 						return false;
 					}
 
