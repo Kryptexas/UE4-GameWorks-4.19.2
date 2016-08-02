@@ -107,6 +107,7 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 				FName ProfileName = BS->GetCurrentPhysicalAnimationProfileName();
 				if (!BS->FindPhysicalAnimationProfile(ProfileName))
 				{
+					BS->CurrentPhysicalAnimationProfile = FPhysicalAnimationProfile();
 					BS->AddPhysicalAnimationProfile(ProfileName);
 				}
 			}
