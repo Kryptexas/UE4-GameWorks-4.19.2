@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:4. On Drop
+﻿INTSourceChangelist:3063666
+Availability:Docs
+Title:4.On Drop
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:We finish by creating the script for OnDrop functionality before we test. 
+Description:テスト前に、OnDrop 機能を作成して終了します。 
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\UMG\HowTo\DragAndDrop\OnDragDetected "%Engine\UMG\HowTo\DragAndDrop\OnDragDetected:title%")
+		[前のステップ](Engine\UMG\HowTo\DragAndDrop\OnDragDetected "%Engine\UMG\HowTo\DragAndDrop\OnDragDetected:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
+		[ドラッグ＆ドロップのウィジェット](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -25,66 +25,66 @@ SkillLevel: Intermediate
 
 %Steps%
 
-To finish up, we script what happens when we "drop" the widget in our HUD as well as test everything out. 
+仕上げとして、ウィジェットを HUD にドロップすると何が起こるかをスクリプティングし、すべてをテストします。 
 
-## Steps
+## ステップ
 
-1.	Open the **HUD** Widget Blueprint, then in the **Details** panel for the **Canvas Panel**, set its **Visibility** to **Visible**. 
+1.	**HUD** Widget ブループリントを開き、**[Canvas Panel]** の **[Details]** パネルで、その **[Visibility]** を **[Visible]** に設定します。 
 
 	![](DragDrop13.png)
 
-	We are doing our drag detection inside the Health Bar widget, however when we release the Left Mouse Button we want to drop it in our HUD Widget Blueprint.
-	In order for our HUD to receive hit detection, we need to set its **Visibility** setting to **Visible**. 
+	Health Bar ウィジェット内で、ドラッグ検知を行っていますが、左マウスボタンを放したときに、それを HUD Widget ブループリントにドロップするようにします。
+	HUD がヒット検知を受け取るようにするためには、その **[Visibility]** 設定を **[Visible]** にする必要があります。 
 
-1.	From the **Palette** window, add the **Health Bar** widget to the graph in your desired location. 
+1.	**[Palette]** ウィンドウから、**Health Bar** ウィジェットをグラフの必要な場所に追加します。 
 
 	![](DragDrop14.png)
 
-1.	Go to the **Graph** Mode, then add an **OnDrop** function override from the **My Blueprint** panel. 
+1.	**グラフ** モードに進み、**OnDrop** 関数のオーバーライドを **[My Blueprint]** パネルから追加します。 
 
 	![](DragDrop15.png)
 
-1.	Inside **OnDrop** drag off **Operation** and **Cast to WidgetDrag**, then **Get Widget Reference** and **Get Drag Offset**. 
+1.	**OnDrop** 内で、**Operation** から **WidgetDrag にキャスト** します。次に **Widget Reference** と **Drag Offset** を get します。 
 
 	![](DragDrop16.png)
 
-	We cast here to check which type of operation is being performed as part of the **OnDrop** function, is it **Widget Drag**? 
-	If so, we get the **WidgetReference** (which we passed through as the widget being dragged) as well as the **DragOffset** (or position in which we started the drag from). 
+	**OnDrop** 関数の一部としてどの型の演算が行われるかをチェックするためにキャストします。**Widget Drag** でしょうか？ 
+	もしそうなら、**WidgetReference** (ドラッグされているウィジェットとして、通過) および **DragOffset** (すなわち、ドラッグを開始した位置) を get します。 
 
-1.	Off **My Geometry** and **Pointer Event**, use the **Absolute to Local** and **GetScreenSpacePosition** nodes and connect as shown.
+1.	**My Geometry** と **Pointer Event** から、**Absolute to Local** ノードと **GetScreenSpacePosition** ノードを使って、以下のように接続します。
 
 	![](DragDrop17.png)
 
-	This will tell us the position in 2D space where we released the Left Mouse Button to drop the widget. 
-	We will use this minus the **DragOffset** to determine where we should place the widget when it is dropped. 
+	これは、左マウスボタンを放して、ウィジェットをドロップする場所である 2D 空間における位置を示します。 
+	ここから、**DragOffset** を差し引いて、ドロップするときにどこにウィジェットを配置するかを決定します。 
 
-1.	Subtract the **DragOffset** from the **Return Value** of **Absolute to Local**. 
+1.	**Absolute to Local** の **Return Value** から、**DragOffset** を差し引きます。 
 
-1.	For the **Widget Reference**, use the **Add to Viewport** and **Set Position in Viewport** and connect as shown. 
+1.	**Widget Reference** に対して、**Add to Viewport** と **Set Position in Viewport** を使用して以下のように接続します。 
 
 	[REGION:lightbox]
 	[![](DragDrop18.png)](DragDrop18.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full view. 
+	クリックしてフルサイズで表示 
 	[/REGION]
 
-	Make sure to uncheck **Remove DPIScale** and check the **Return Value** checkboxes as we do not need to remove the [](Engine/UMG/UserGuide/DPIScaling) and we have handled this function so we return as true. 
-	With this script we add the widget being dragged to the viewport again and set its position based on where we clicked and started dragging. The last thing we need to do is create and display our HUD Widget Blueprint. 
+	**Remove DPIScale** のチェックを外して、**Return Value** のチェックボックスにチェックを入れます。[](Engine/UMG/UserGuide/DPIScaling) を取り除く必要はなく、この関数を true として戻すように処理したからです。 
+	このスクリプトでは、ビューポートに再度ドラッグするようにウィジェットを追加し、その位置を、クリックし、ドラッグを開始した場所に基づき設定しました。最後に行う必要があるのは、HUD Widget ブループリントを作成し、表示することです。 
 
-1.	Inside the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
+1.	「**Content/ThirdPersonBP/Blueprints** 」フォルダで **ThirdPersonCharacter** ブループリントを開きます。 
 
-1.	Create the **HUD** Widget Blueprint, **Add to Viewport** and **Get Player Controller** to **Show Mouse Cursor**. 
+1.	**HUD** Widget ブループリントを作成し、**Add to Viewport (ビューポートに追加)** し、**Get Player Controller** を **Show Mouse Cursor** にします。 
 
 	![](DragDrop19.png)
 
-1.	**Compile**, **Save** then click the **Play** button to play in the Editor. 
+1.	**コンパイル** し、 **保存** します。次に **Play** ボタンをクリックして、エディタでプレイします。 
 
 
-## End Result
+## 最終結果
 
-When you play in the Editor, you can **Left-click** and drag the health bar on screen then drop it in a new location. 
+エディタでプレイする場合、**左クリック** して画面上のヘルスバーをドラッグして、新しい位置にドロップします。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -98,7 +98,7 @@ qUDIkWcQChI
 [/PARAMLITERAL]
 [/OBJECT]
 
-This is just an example of the elements you will need to start the Drag and Drop process. 
-Additional checking may be needed to ensure that players do not drag the widget outside of Safe Zones or potentially on top of other widgets. 
+これは、ドラッグ＆ドロップのプロセスを開始するために必要な要素の一例にすぎません。 
+プレイヤーがセーフゾーンの外側にウィジェットをドラッグしないように、または他のウィジェットの上に重ならないようにさらにチェックが必要になることがあります。 
 
 %Steps%
