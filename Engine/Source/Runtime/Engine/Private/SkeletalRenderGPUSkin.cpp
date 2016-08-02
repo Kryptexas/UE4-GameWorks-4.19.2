@@ -589,7 +589,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 		MorphVertexBuffer.RecreateResourcesIfRequired(GUseGPUMorphTargets != 0);
 
-		if (GUseGPUMorphTargets)
+		if (GUseGPUMorphTargets && RHISupportsComputeShaders(GMaxRHIShaderPlatform))
 		{
 			SCOPED_DRAW_EVENTF(RHICmdList, MorphUpdate,
 				TEXT("MorphUpdate LodVertices=%d InflVerts=%d"),
