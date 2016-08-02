@@ -2232,6 +2232,14 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	// If there are any old mirrored brushes in the map with inverted polys, fix them here
 	GUnrealEd->FixAnyInvertedBrushes(World);
 
+	// Rebuild BSP if the loading process flagged it as not up-to-date
+	TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
+	ABrush::NeedsRebuild(&LevelsToRebuild);
+	if (LevelsToRebuild.Num() > 0)
+	{
+		GUnrealEd->RebuildAlteredBSP();
+	}
+
 	// Fire delegate when a new map is opened, with name of map
 	FEditorDelegates::OnMapOpened.Broadcast(InFilename, LoadAsTemplate);
 }
