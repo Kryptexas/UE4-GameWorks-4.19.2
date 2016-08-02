@@ -97,14 +97,7 @@ public:
 		PConvexMeshDesc.points.data = SrcBuffer.GetData();
 		PConvexMeshDesc.points.count = SrcBuffer.Num();
 		PConvexMeshDesc.points.stride = sizeof(FVector);
-		if (bDeformableMesh)
-		{
-			PConvexMeshDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX | PxConvexFlag::eINFLATE_CONVEX;
-		}
-		else
-		{
-			PConvexMeshDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
-		}
+		PConvexMeshDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
 
 		// Set up cooking
 		const PxCookingParams Params = PhysXCooking->getParams();
