@@ -104,23 +104,34 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 			}
 			else if (ImportSettings->ImportType == EAlembicImportType::GeometryCache)
 			{
-				ResultAssets.Add(ImportGeometryCache(Importer, InParent, Flags));
+				UObject* GeometryCache = ImportGeometryCache(Importer, InParent, Flags);
+				if (GeometryCache)
+				{
+					ResultAssets.Add(GeometryCache);
+				}				
 			}
 			else if (ImportSettings->ImportType == EAlembicImportType::Skeletal)
 			{
-				ResultAssets.Add(ImportSkeletalMesh(Importer, InParent, Flags));
+				UObject* SkeletalMesh = ImportSkeletalMesh(Importer, InParent, Flags);
+				if (SkeletalMesh)
+				{
+					ResultAssets.Add(SkeletalMesh);
+				}				
 			}
 		}		
 	}
 
 	for (UObject* Object : ResultAssets)
 	{
-		FEditorDelegates::OnAssetPostImport.Broadcast(this, Object);
-
-		Object->MarkPackageDirty();		
-		Object->PostEditChange();
+		if (Object)
+		{
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, Object);
+			Object->MarkPackageDirty();
+			Object->PostEditChange();
+		}
 	}
 
+	FAbcImportLogger::OutputMessages();
 	return (ResultAssets.Num() > 0) ? InParent : nullptr;
 }
 
@@ -136,15 +147,17 @@ TArray<UObject*> UAlembicImportFactory::ImportStaticMesh(FAbcImporter& Importer,
 
 		for (UStaticMesh* StaticMesh : StaticMeshes)
 		{
-			// Setup asset import data
-			if (!StaticMesh->AssetImportData)
+			if (StaticMesh)
 			{
-				StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
+				// Setup asset import data
+				if (!StaticMesh->AssetImportData)
+				{
+					StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
+				}
+				StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
+				Objects.Add(StaticMesh);
 			}
-			StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
 		}	
-
-		Objects.Append(StaticMeshes);
 	}
 
 	return Objects;
