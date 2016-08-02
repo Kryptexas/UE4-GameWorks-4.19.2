@@ -232,7 +232,12 @@ void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* Propert
 bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, UObject* OwnerObject, UClass* RequiredMetaClass, uint32 PortFlags, const TCHAR*& Buffer, UObject*& out_ResolvedValue )
 {
 	check(Property);
-	check(RequiredMetaClass);
+	if (!RequiredMetaClass)
+	{
+		UE_LOG(LogProperty, Error, TEXT("ParseObjectPropertyValue Error: RequiredMetaClass is null, for property: %s "), *Property->GetFullName());
+		out_ResolvedValue = nullptr;
+		return false;
+	}
 
  	const TCHAR* InBuffer = Buffer;
 

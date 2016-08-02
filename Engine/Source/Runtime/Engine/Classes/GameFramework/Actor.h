@@ -2653,8 +2653,8 @@ public:
 	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const;
 	
 	/** Script exposed version of FindComponentByClass */
-	UFUNCTION()
-	UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
+	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta = (DeterminesOutputType = "ComponentClass"))
+	UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/* Gets all the components that inherit from the given class.
 		Currently returns an array of UActorComponent which must be cast to the correct type. */

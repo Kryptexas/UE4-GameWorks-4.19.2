@@ -183,8 +183,7 @@ static void PromoteInterfaceImplementationToOverride(FBPInterfaceDescription con
 			// in the graph
 			BlueprintObj->FunctionGraphs.Add(InterfaceGraph);
 
-			// Potentially adjust variable names for any child blueprints
-			FBlueprintEditorUtils::ValidateBlueprintChildVariables(BlueprintObj, InterfaceGraph->GetFName());
+			// No validation should be necessary here. Child blueprints will have interfaces conformed during their own compilation. 
 		}
 
 		// if any graphs were moved
