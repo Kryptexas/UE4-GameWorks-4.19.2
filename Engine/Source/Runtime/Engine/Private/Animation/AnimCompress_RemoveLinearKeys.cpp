@@ -489,13 +489,6 @@ bool UAnimCompress_RemoveLinearKeys::ConvertFromRelativeSpace(UAnimSequence* Ani
 }
 
 
-FVector GetSafeScaleReciprocal(const FVector& InScale) 
-{
-	FTransform TempTransform = FTransform::Identity;
-	return TempTransform.GetSafeScaleReciprocal(InScale);
-}
-
-
 void UAnimCompress_RemoveLinearKeys::ConvertToRelativeSpace(
 	UAnimSequence* AnimSeq,
 	TArray<FTranslationTrack>& TranslationData,
@@ -549,7 +542,7 @@ void UAnimCompress_RemoveLinearKeys::ConvertToRelativeSpace(
 		// scale key
 		if (ScaleData.Num() > 0)
 		{
-			const FVector& InvRefBoneScale = GetSafeScaleReciprocal(BasePoseTrack.ScaleKeys[0]);
+			const FVector& InvRefBoneScale = FTransform::GetSafeScaleReciprocal(BasePoseTrack.ScaleKeys[0]);
 
 			// transform scale keys.
 			for (int32 ScaleIndex = 0; ScaleIndex < RawTrack.ScaleKeys.Num(); ++ScaleIndex)
