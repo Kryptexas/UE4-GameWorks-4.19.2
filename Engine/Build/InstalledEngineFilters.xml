@@ -187,12 +187,20 @@
 	<Property Name="CopyTVOSFilter" Value=""/>
 	<Property Name="CopyTVOSExceptions" Value=""/>
 
-	<!-- Build Files -->
+  <!-- Build Files -->
 	<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Build/TVOS/..."/>
 	<Property Name="CopyTVOSExceptions" Value="$(CopyTVOSExceptions);Engine/Build/TVOS/....psd"/>
 	<Property Name="CopyTVOSExceptions" Value="$(CopyTVOSExceptions);Engine/Build/TVOS/....mobileprovision"/>
-	
-	<!-- Linux -->
+
+  <!-- Win64 specific -->
+  <Do If="'$(HostPlatform)' == 'Win64'">
+    <Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
+    <Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Binaries/ThirdParty/IOS/*"/>
+    <Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Build/BatchFiles/MakeAndInstallSSHKey.bat"/>
+    <Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Extras/ThirdPartyNotUE/DeltaCopy/..."/>
+  </Do>
+
+  <!-- Linux -->
 	<Property Name="CopyLinuxFilter" Value=""/>
 	<Property Name="CopyLinuxExceptions" Value=""/>
 	

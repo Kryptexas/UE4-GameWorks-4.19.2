@@ -414,18 +414,6 @@
 				<Tag Files="#UE4Game TVOS Stripped" With="#Saved Output"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyTVOSFilter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyTVOSExceptions)"/>
-
-				<!-- Content-only on Win64: exclude things we only need for code projects -->
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/TVOS/*.a"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/TVOS/.../*.a"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/TVOS/UE4Game"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/TVOS/UE4Game-TVOS-Shipping"/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Intermediate/.../TVOS/..."/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Plugins/.../Binaries/TVOS/..."/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Plugins/.../Intermediate/.../TVOS/..."/>
-				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Source/ThirdParty/.../TVOS/....a"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/ThirdParty/IOS/*"/>
 			</Do>
 			<Do If="'$(WithLinux)' == true">
 				<Tag Files="#UE4Game Linux;#UE4Game Linux Includes" Except="#UE4Game Linux Unstripped" With="#Installed Win64"/>
@@ -519,7 +507,7 @@
 			<Copy Files="#CompressedDDCWin64" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDir)" If="'$(WithDDC)' == true" Tag="#Installed Build Win64 Files"/>
 
 			<!-- List all of the platforms that we only allow for content projects -->
-			<Property Name="ContentOnlyPlatforms" Value="TVOS;Linux"/>
+			<Property Name="ContentOnlyPlatforms" Value="Linux"/>
 
 			<!-- Create command line arguments for any platforms that were built with additional architectures -->
 			<Property Name="ArchitectureCommands" Value=""/>
