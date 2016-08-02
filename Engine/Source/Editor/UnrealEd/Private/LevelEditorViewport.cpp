@@ -2966,6 +2966,16 @@ void FLevelEditorViewportClient::RedrawAllViewportsIntoThisScene()
 	GEditor->RedrawLevelEditingViewports();
 }
 
+FWidget::EWidgetMode FLevelEditorViewportClient::GetWidgetMode() const
+{
+	if (GUnrealEd->ComponentVisManager.IsActive() && GUnrealEd->ComponentVisManager.IsVisualizingArchetype())
+	{
+		return FWidget::WM_None;
+	}
+
+	return FEditorViewportClient::GetWidgetMode();
+}
+
 FVector FLevelEditorViewportClient::GetWidgetLocation() const
 {
 	FVector ComponentVisWidgetLocation;

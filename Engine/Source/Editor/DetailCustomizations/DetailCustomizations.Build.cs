@@ -47,6 +47,7 @@ public class DetailCustomizations : ModuleRules
 				"ConfigEditor",
                 "Persona",
                 "CinematicCamera",
+                "ComponentVisualizers"
 			}
 		);
 
@@ -58,6 +59,7 @@ public class DetailCustomizations : ModuleRules
 				"LandscapeEditor",
 				"PropertyEditor",
 				"GameProjectGeneration",
+                "ComponentVisualizers"
 			}
 		);
 

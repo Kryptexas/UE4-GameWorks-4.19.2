@@ -231,6 +231,7 @@ public:
 
 	void DetermineUCSModifiedProperties();
 	void GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedProperties) const;
+	void RemoveUCSModifiedProperties(const TArray<UProperty*>& Properties);
 
 	bool IsEditableWhenInherited() const;
 
