@@ -177,10 +177,11 @@ void FSteamVRHMD::UpdateLayer(FLayer& Layer) const
     TextureBounds.vMin = Layer.LayerDesc.UVRect.Min.Y;
     TextureBounds.vMax = Layer.LayerDesc.UVRect.Max.Y;
 	OVR_VERIFY(VROverlay->SetOverlayTextureBounds(Layer.OverlayHandle, &TextureBounds));
-
 	const float WorldToMeterScale = FMath::Max(GetWorldToMetersScale(), 0.1f);
 	OVR_VERIFY(VROverlay->SetOverlayWidthInMeters(Layer.OverlayHandle, Layer.LayerDesc.QuadSize.X / WorldToMeterScale));
-	
+	OVR_VERIFY(VROverlay->SetOverlayTexelAspect(Layer.OverlayHandle, Layer.LayerDesc.QuadSize.X / Layer.LayerDesc.QuadSize.Y));
+	OVR_VERIFY(VROverlay->SetOverlaySortOrder(Layer.OverlayHandle, Layer.LayerDesc.Priority));
+
 	// Transform
 	switch (Layer.LayerDesc.Type)
 	{

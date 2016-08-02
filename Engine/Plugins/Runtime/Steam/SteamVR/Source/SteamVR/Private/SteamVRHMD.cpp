@@ -768,7 +768,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 
 	// Poll SteamVR events
 	vr::VREvent_t VREvent;
-	while (VRSystem->PollNextEvent(&VREvent))
+	while (VRSystem->PollNextEvent(&VREvent, sizeof(VREvent)))
 	{
 		switch (VREvent.eventType)
 		{
