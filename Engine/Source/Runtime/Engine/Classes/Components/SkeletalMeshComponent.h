@@ -947,15 +947,17 @@ public:
 	//~ End UObject Interface.
 
 	//~ Begin UActorComponent Interface.
+protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual bool ShouldCreatePhysicsState() const override;
-	virtual void CreatePhysicsState() override;
-	virtual void DestroyPhysicsState() override;
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
+public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 
 	//Handle registering our pre cloth tick function
 	void RegisterPostPhysicsTick(bool bRegister);

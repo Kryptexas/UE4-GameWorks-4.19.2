@@ -1472,20 +1472,20 @@ bool USkeletalMeshComponent::ShouldCreatePhysicsState() const
 	return bShouldCreatePhysicsState;
 }
 
-void USkeletalMeshComponent::CreatePhysicsState()
+void USkeletalMeshComponent::OnCreatePhysicsState()
 {
 	//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());
 	// Init physics
 	if (bEnablePerPolyCollision == false)
 	{
 		InitArticulated(GetWorld()->GetPhysicsScene());
-		USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+		USceneComponent::OnCreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
 	}
 	else
 	{
 		CreateBodySetup();
 		BodySetup->CreatePhysicsMeshes();
-		Super::CreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
+		Super::OnCreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
 	}
 
 	// Notify physics created
@@ -1493,7 +1493,7 @@ void USkeletalMeshComponent::CreatePhysicsState()
 }
 
 
-void USkeletalMeshComponent::DestroyPhysicsState()
+void USkeletalMeshComponent::OnDestroyPhysicsState()
 {
 	if (bEnablePerPolyCollision == false)
 	{
@@ -1502,7 +1502,7 @@ void USkeletalMeshComponent::DestroyPhysicsState()
 		TermArticulated();
 	}
 
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 }
 
 

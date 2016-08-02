@@ -60,6 +60,9 @@ FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return b
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentActivatedSignature, bool, bReset);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorComponentDeactivateSignature);
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentCreatePhysicsSignature, UActorComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UActorComponent*);
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -73,6 +76,11 @@ class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserDa
 {
 	GENERATED_BODY()
 public:
+
+	/** Create component physics state global delegate.*/
+	static FActorComponentCreatePhysicsSignature CreatePhysicsDelegate;
+	/** Destroy component physics state global delegate.*/
+	static FActorComponentDestroyPhysicsSignature DestroyPhysicsDelegate;
 
 	/**
 	 * Default UObject constructor that takes an optional ObjectInitializer.
@@ -299,6 +307,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetTickableWhenPaused(bool bTickableWhenPaused);
 
+	/** Create any physics engine information for this component */
+	void CreatePhysicsState();
+
+	/** Shut down any physics engine structure for this component */
+	void DestroyPhysicsState();
+
 	// Networking
 
 	/** This signifies the component can be ID'd by name over the network. This only needs to be called by engine code when constructing blueprint components. */
@@ -371,10 +385,10 @@ protected:
 	virtual bool ShouldActivate() const;
 
 private:
-	/** Calls OnUnregister, DestroyRenderState_Concurrent and DestroyPhysicsState. */
+	/** Calls OnUnregister, DestroyRenderState_Concurrent and OnDestroyPhysicsState. */
 	void ExecuteUnregisterEvents();
 
-	/** Calls OnRegister, CreateRenderState_Concurrent and CreatePhysicsState. */
+	/** Calls OnRegister, CreateRenderState_Concurrent and OnCreatePhysicsState. */
 	void ExecuteRegisterEvents();
 
 	/* Utility function for each of the PostEditChange variations to call for the same behavior */
@@ -385,12 +399,12 @@ protected:
 	friend class FComponentRecreateRenderStateContext;
 
 	/**
-	 * Called when a component is registered, after Scene is set, but before CreateRenderState_Concurrent or CreatePhysicsState are called.
+	 * Called when a component is registered, after Scene is set, but before CreateRenderState_Concurrent or OnCreatePhysicsState are called.
 	 */
 	virtual void OnRegister();
 
 	/**
-	 * Called when a component is unregistered. Called after DestroyRenderState_Concurrent and DestroyPhysicsState are called.
+	 * Called when a component is unregistered. Called after DestroyRenderState_Concurrent and OnDestroyPhysicsState are called.
 	 */
 	virtual void OnUnregister();
 
@@ -422,9 +436,10 @@ protected:
 	virtual void DestroyRenderState_Concurrent();
 
 	/** Used to create any physics engine information for this component */
-	virtual void CreatePhysicsState();
+	virtual void OnCreatePhysicsState();
+
 	/** Used to shut down and physics engine structure for this component */
-	virtual void DestroyPhysicsState();
+	virtual void OnDestroyPhysicsState();
 
 	/** Return true if CreatePhysicsState() should be called.
 	    Ideally CreatePhysicsState() should always succeed if this returns true, but this isn't currently the case */

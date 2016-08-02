@@ -1111,7 +1111,7 @@ void UInstancedStaticMeshComponent::ClearAllInstanceBodies()
 }
 
 
-void UInstancedStaticMeshComponent::CreatePhysicsState()
+void UInstancedStaticMeshComponent::OnCreatePhysicsState()
 {
 	check(InstanceBodies.Num() == 0);
 
@@ -1146,10 +1146,10 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	// Create all the bodies.
 	CreateAllInstanceBodies();
 
-	USceneComponent::CreatePhysicsState();
+	USceneComponent::OnCreatePhysicsState();
 }
 
-void UInstancedStaticMeshComponent::DestroyPhysicsState()
+void UInstancedStaticMeshComponent::OnDestroyPhysicsState()
 {
 	int32 PSceneIndex = INDEX_NONE;
 	for(const FBodyInstance* BI : InstanceBodies)
@@ -1169,7 +1169,7 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 		}
 	}
 
-	USceneComponent::DestroyPhysicsState();
+	USceneComponent::OnDestroyPhysicsState();
 
 	// Release all physics representations
 	ClearAllInstanceBodies();

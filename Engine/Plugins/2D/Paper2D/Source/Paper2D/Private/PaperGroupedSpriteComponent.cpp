@@ -196,19 +196,19 @@ bool UPaperGroupedSpriteComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
-void UPaperGroupedSpriteComponent::CreatePhysicsState()
+void UPaperGroupedSpriteComponent::OnCreatePhysicsState()
 {
 	check(InstanceBodies.Num() == 0);
 
 	// Create all the bodies.
 	CreateAllInstanceBodies();
 
-	USceneComponent::CreatePhysicsState();
+	USceneComponent::OnCreatePhysicsState();
 }
 
-void UPaperGroupedSpriteComponent::DestroyPhysicsState()
+void UPaperGroupedSpriteComponent::OnDestroyPhysicsState()
 {
-	USceneComponent::DestroyPhysicsState();
+	USceneComponent::OnDestroyPhysicsState();
 
 	// Release all physics representations
 	ClearAllInstanceBodies();

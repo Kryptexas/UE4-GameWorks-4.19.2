@@ -908,7 +908,7 @@ void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 	}
 }
 
-void USplineMeshComponent::CreatePhysicsState()
+void USplineMeshComponent::OnCreatePhysicsState()
 {
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
@@ -925,7 +925,7 @@ void USplineMeshComponent::CreatePhysicsState()
 	}
 #endif
 
-	return Super::CreatePhysicsState();
+	return Super::OnCreatePhysicsState();
 }
 
 UBodySetup* USplineMeshComponent::GetBodySetup()

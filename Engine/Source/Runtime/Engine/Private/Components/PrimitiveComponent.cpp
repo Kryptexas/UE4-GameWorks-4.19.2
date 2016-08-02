@@ -526,9 +526,9 @@ void UPrimitiveComponent::DestroyRenderState_Concurrent()
 //////////////////////////////////////////////////////////////////////////
 // Physics
 
-void UPrimitiveComponent::CreatePhysicsState()
+void UPrimitiveComponent::OnCreatePhysicsState()
 {
-	Super::CreatePhysicsState();
+	Super::OnCreatePhysicsState();
 
 	// if we have a scene, we don't want to disable all physics and we have no bodyinstance already
 	if(!BodyInstance.IsValidBodyInstance())
@@ -613,7 +613,7 @@ void UPrimitiveComponent::SendPhysicsTransform(ETeleportType Teleport)
 	BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D());
 }
 
-void UPrimitiveComponent::DestroyPhysicsState()
+void UPrimitiveComponent::OnDestroyPhysicsState()
 {
 	// we remove welding related to this component
 	UnWeldFromParent();
@@ -626,7 +626,7 @@ void UPrimitiveComponent::DestroyPhysicsState()
 		BodyInstance.TermBody();
 	}
 
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const

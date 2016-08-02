@@ -159,7 +159,9 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	//End USceneComponent Interface
 
 	//Begin UPrimitiveComponent Interface
-	virtual void CreatePhysicsState() override;
+protected:
+	virtual void OnCreatePhysicsState() override;
+public:
 	virtual class UBodySetup* GetBodySetup() override;
 #if WITH_EDITOR
 	virtual bool ShouldRenderSelected() const override

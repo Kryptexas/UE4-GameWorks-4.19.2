@@ -177,11 +177,11 @@ void UDestructibleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTrans
 #endif // #if WITH_APEX
 }
 
-void UDestructibleComponent::CreatePhysicsState()
+void UDestructibleComponent::OnCreatePhysicsState()
 {
-	// to avoid calling PrimitiveComponent, I'm just calling ActorComponent::CreatePhysicsState
+	// to avoid calling PrimitiveComponent, I'm just calling ActorComponent::OnCreatePhysicsState
 	// @todo lh - fix me based on the discussion with Bryan G
-	UActorComponent::CreatePhysicsState();
+	UActorComponent::OnCreatePhysicsState();
 	bPhysicsStateCreated = true;
 
 	// What we want to do with BodySetup is simply use it to store a PhysicalMaterial, and possibly some other relevant fields.  Set up pointers from the BodyInstance to the BodySetup and this component
@@ -202,20 +202,20 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	if( GApexModuleDestructible == NULL )
 	{
-		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::CreatePhysicsState(): APEX must be enabled to init UDestructibleComponent physics.") );
+		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::OnCreatePhysicsState(): APEX must be enabled to init UDestructibleComponent physics.") );
 		return;
 	}
 
 	if( ApexDestructibleActor != NULL )
 	{
-		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::CreatePhysicsState(): NxDestructibleActor already created.") );
+		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::OnCreatePhysicsState(): NxDestructibleActor already created.") );
 		return;
 	}
 
 	UDestructibleMesh* TheDestructibleMesh = GetDestructibleMesh();
 	if( TheDestructibleMesh == NULL || TheDestructibleMesh->ApexDestructibleAsset == NULL)
 	{
-		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::CreatePhysicsState(): No DestructibleMesh or missing ApexDestructibleAsset.") );
+		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::OnCreatePhysicsState(): No DestructibleMesh or missing ApexDestructibleAsset.") );
 		return;
 	}
 
@@ -415,7 +415,7 @@ void UDestructibleComponent::CreatePhysicsState()
 #endif	// #if WITH_APEX
 }
 
-void UDestructibleComponent::DestroyPhysicsState()
+void UDestructibleComponent::OnDestroyPhysicsState()
 {
 #if WITH_APEX
 	if(ApexDestructibleActor != NULL)
@@ -438,7 +438,7 @@ void UDestructibleComponent::DestroyPhysicsState()
 		BodyInstance.RigidActorAsync = NULL;
 	}
 #endif	// #if WITH_APEX
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 }
 
 UBodySetup* UDestructibleComponent::GetBodySetup()
