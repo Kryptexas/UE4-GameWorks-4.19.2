@@ -490,15 +490,15 @@ void SDetailsViewBase::FilterView(const FString& InFilterText)
 	UpdateFilteredDetails();
 }
 
-void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutBuilderImpl& CustomDetailLayout, UStruct* Class)
+void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutBuilderImpl& CustomDetailLayout, UClass* Class)
 {
-	CustomDetailLayout.SetCurrentCustomizationClass(CastChecked<UClass>(Class), NAME_None);
+	CustomDetailLayout.SetCurrentCustomizationClass(Class, NAME_None);
 
 	FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
 
 	// Check the instanced map first
-	FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(TWeakObjectPtr<UStruct>(Class));
+	FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
 
 	if (!Callback)
 	{
@@ -560,21 +560,27 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutBuilderImpl& CustomD
 
 	for (auto ClassIt = ClassesWithProperties.CreateConstIterator(); ClassIt; ++ClassIt)
 	{
+		// Must be a class
+		UClass* Class = Cast<UClass>(ClassIt->Get());
+		if (!Class)
+		{
+			continue;
+		}
+
 		// Check the instanced map first
-		FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(*ClassIt);
+		FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
 
 		if (!Callback)
 		{
 			// callback wasn't found in the per instance map, try the global instances instead
-			Callback = GlobalCustomLayoutNameMap.Find((*ClassIt)->GetFName());
+			Callback = GlobalCustomLayoutNameMap.Find(Class->GetFName());
 		}
 
 		if (Callback)
 		{
-			FinalCallbackMap.Add(*ClassIt, Callback);
+			FinalCallbackMap.Add(Class, Callback);
 		}
 	}
-
 
 	FinalCallbackMap.ValueSort(FCompareFDetailLayoutCallback());
 
@@ -631,20 +637,20 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutBuilderImpl& CustomD
 	{
 		UStruct* ParentStruct = (*QueriedClassIt)->GetSuperStruct();
 
-		while (ParentStruct && ParentStruct->IsA(UClass::StaticClass()) && !QueriedClasses.Contains(ParentStruct) && !ClassesWithProperties.Contains(ParentStruct))
+		while (ParentStruct && !QueriedClasses.Contains(ParentStruct) && !ClassesWithProperties.Contains(ParentStruct))
 		{
 			ParentClassesToQuery.Add(ParentStruct);
 			ParentStruct = ParentStruct->GetSuperStruct();
-
 		}
 	}
 
 	// Query extra base classes
 	for (auto ParentIt = ParentClassesToQuery.CreateConstIterator(); ParentIt; ++ParentIt)
 	{
-		if (Cast<UClass>(*ParentIt))
+		UClass* ParentClass = Cast<UClass>(*ParentIt);
+		if (ParentClass)
 		{
-			QueryLayoutForClass(CustomDetailLayout, *ParentIt);
+			QueryLayoutForClass(CustomDetailLayout, ParentClass);
 		}
 	}
 }

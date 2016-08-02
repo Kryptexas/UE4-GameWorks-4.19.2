@@ -196,7 +196,7 @@ public:
 	/**
 	 * Queries a layout for a specific class
 	 */
-	void QueryLayoutForClass(FDetailLayoutBuilderImpl& CustomDetailLayout, UStruct* Class);
+	void QueryLayoutForClass(FDetailLayoutBuilderImpl& CustomDetailLayout, UClass* Class);
 
 	/**
 	 * Calls a delegate for each registered class that has properties visible to get any custom detail layouts
