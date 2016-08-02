@@ -656,3 +656,4 @@ void FSplineComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuild
 	Category.AddCustomBuilder(SplinePointDetails);
 }
 
+#undef LOCTEXT_NAMESPACE
