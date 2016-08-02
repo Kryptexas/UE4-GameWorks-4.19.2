@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Beginner Linux Developers
+﻿INTSourceChangelist:3065645
+Availability:Docs
+Title:Linux のゲーム開発：入門レベル
 Crumbs:%ROOT%, Platforms, Platforms/Linux
-Description:Learn how to setup a typical workflow for developing games on Linux
+Description:Linux でのゲーム開発の基本的なワークフローの設定方法を学習します。
 Platform:Linux
 Navigation:platform
-Version: 4.11
+Version:4.11
 type:landing
 parent:Platforms/Linux
-order: 1
+order:1
 tags:Linux
 SkillLevel:Beginner
 
@@ -36,10 +36,46 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-If you're a fledgling developer, you'll want to start off with this learning path, where you'll setup a typical workflow for Linux game development. 
-By the end of this learning path, you'll setup an Integrated Development Environment (IDE), you'll have a thorough understanding of the Unreal Engine 4 (UE4) 
-user interface, and you'll gain some experience by developing a game on Linux.
+入門レベルのデベロッパー向けのラーニング パスです。Linux ゲーム開発を行うための基本的なワークフローを設定します。 
+パスを一通り学習すると、Integrated Development Environment (IDE) が設定され、アンリアル エンジン 4 (UE4) のユーザー インターフェース全体を理解できるようになります。 
+また、Linux でのゲーム開発も経験することができます。
 
-[REGION:topics third]
-%Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers:topic%
+[REGION:features third]
+
+[OBJECT:Role]
+	[PARAM:icon]
+		![](%ROOT%/linux_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers]
+	[/PARAM]
+	[PARAM:description]
+		%Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers:description%
+	[/PARAM]
+	[PARAMLITERAL:id]
+		supportedgfxdrivers
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:Role]
+	[PARAM:icon]
+		![](%ROOT%/linux_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow]
+	[/PARAM]
+	[PARAM:description]
+		%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:description%
+	[/PARAM]
+	[PARAMLITERAL:id]
+		supportedgfxdrivers
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [/REGION]
