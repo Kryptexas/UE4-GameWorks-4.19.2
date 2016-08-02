@@ -40,7 +40,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogAbcImporter, Verbose, All);
 
 #define OBJECT_TYPE_SWITCH(a, b, c) if (AbcImporterUtilities::IsType<a>(ObjectMetaData)) { \
 	a TypedObject = a(b, Alembic::Abc::kWrapExisting); \
-	ParseAbcObject<a>(TypedObject, c); }
+	ParseAbcObject<a>(TypedObject, c); bHandled = true; }
 
 FAbcImporter::FAbcImporter()
 	: ImportData(nullptr)
@@ -90,7 +90,7 @@ const EAbcImportError FAbcImporter::OpenAbcFileForImport(const FString InFilePat
 
 	ImportData = new FAbcImportData();
 
-	TArray<FAbcTransformObject*> AbcHierarchy;
+	TArray<TSharedPtr<FAbcTransformObject>> AbcHierarchy;
 	FGuid ZeroGuid;
 	TraverseAbcHierarchy(TopObject, AbcHierarchy, ZeroGuid);
 
@@ -123,15 +123,6 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	
 	// This will remove all poly meshes that are set not to be imported in the settings UI
 	ImportData->PolyMeshObjects.RemoveAll([=](const TSharedPtr<FAbcPolyMeshObject>& Object) {return !Object->bShouldImport; });
-
-	// Reset objects being constant if importing as skeletal mesh and baking matrix animaiton
-	if (ImportSettings->ImportType == EAlembicImportType::Skeletal && ImportSettings->CompressionSettings.bBakeMatrixAnimation)
-	{
-		for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
-		{
-			MeshObject->bConstant = false;
-		}
-	}
 
 	// Creates materials according to the face set names that were found in the Alembic file
 	if (ImportSettings->MaterialSettings.bCreateMaterials)
@@ -195,6 +186,37 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	default:
 		checkf(false, TEXT("Incorrect sampling type found in import settings (%i)"), (uint8)SamplingType);
 	}
+
+	// Reading the required transform tracks
+	ParallelFor(ImportData->TransformObjects.Num(), [&](int32 ObjectIndex)
+	{
+		TSharedPtr<FAbcTransformObject>& TransformObject = ImportData->TransformObjects[ObjectIndex];
+
+		Alembic::AbcGeom::IXform Transform = TransformObject->Transform;
+		TransformObject->MatrixSamples.SetNumZeroed(FrameSpan);
+		TransformObject->TimeSamples.SetNumZeroed(FrameSpan);
+
+		// Get schema from parent object
+		Alembic::AbcGeom::IXformSchema Schema = Transform.getSchema();
+		Alembic::AbcGeom::XformSample MatrixSample;
+		for (int32 FrameIndex = 0; FrameIndex < FrameSpan; ++FrameIndex)
+		{
+			const float SampleTime = TimeStep * (StartFrameIndex + FrameIndex);
+			Alembic::Abc::ISampleSelector SampleSelector = AbcImporterUtilities::GenerateAlembicSampleSelector<double>((double)SampleTime);
+			Schema.get(MatrixSample, SampleSelector);
+
+			// Get matrix and concatenate
+			Alembic::Abc::M44d Matrix = MatrixSample.getMatrix();
+			TransformObject->MatrixSamples[FrameIndex] = AbcImporterUtilities::ConvertAlembicMatrix(Matrix);
+
+			// Get TimeSampler for this sample's time
+			Alembic::Abc::TimeSamplingPtr TimeSampler = Schema.getTimeSampling();
+			TransformObject->TimeSamples[FrameIndex] = SampleTime;
+		}
+	});
+
+	// Now we have loaded all the transformations, cache the accumulated transforms for each used hierarchy path
+	CacheHierarchyTransforms();
 
 	// Allocating the number of meshsamples we will import for each object
 	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
@@ -332,31 +354,6 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		}
 	}
 
-	// Reading the required transform tracks
-	for (FAbcTransformObject& TransformObject : ImportData->TransformObjects)
-	{
-		Alembic::AbcGeom::IXform Transform = TransformObject.Transform;
-		TransformObject.MatrixSamples.SetNumZeroed(TransformObject.NumSamples);
-		TransformObject.TimeSamples.SetNumZeroed(TransformObject.NumSamples);
-
-		ParallelFor(TransformObject.NumSamples,
-			[&](int32 Index)
-		{
-			// Get schema from parent object
-			Alembic::AbcGeom::XformSample sample;
-			Alembic::AbcGeom::IXformSchema Schema = Transform.getSchema();
-			Schema.get(sample, Index);
-
-			// Get matrix and concatenate
-			Alembic::Abc::M44d Matrix = sample.getMatrix();
-			TransformObject.MatrixSamples[Index] = AbcImporterUtilities::ConvertAlembicMatrix(Matrix);
-			
-			// Get TimeSampler for this sample's time
-			Alembic::Abc::TimeSamplingPtr TimeSampler = Schema.getTimeSampling();
-			TransformObject.TimeSamples[Index] = (float)TimeSampler->getSampleTime(Index);
-		});
-	}
-
 	// Simple duplicate frame removal (only needs to be done if we're importing the data as a geometry cache asset
 	if (ImportData->ImportSettings->ImportType == EAlembicImportType::GeometryCache)
 	{
@@ -394,7 +391,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	return AbcImportError_NoError;
 }
 
-void FAbcImporter::TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<FAbcTransformObject*>& InObjectHierarchy, FGuid InGuid)
+void FAbcImporter::TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<TSharedPtr<FAbcTransformObject>>& InObjectHierarchy, FGuid InGuid)
 {
 	// Get Header and MetaData info from current Alembic Object
 	Alembic::AbcCoreAbstract::ObjectHeader Header = InObject.getHeader();	
@@ -405,7 +402,9 @@ void FAbcImporter::TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, T
 	{
 		ImportData->Hierarchies.Add(InGuid, InObjectHierarchy);
 	}
-	
+
+	bool bHandled = false;
+
 	OBJECT_TYPE_SWITCH(Alembic::AbcGeom::IPolyMesh, InObject, InGuid);
 	OBJECT_TYPE_SWITCH(Alembic::AbcGeom::IXform, InObject, InGuid);
 
@@ -413,15 +412,16 @@ void FAbcImporter::TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, T
 	if (NumChildren > 0)
 	{
 		// Push back this object for the Hierarchy
-		TArray<FAbcTransformObject*> NewObjectHierarchy = InObjectHierarchy;
+		TArray<TSharedPtr<FAbcTransformObject>> NewObjectHierarchy = InObjectHierarchy;
 		NewObjectHierarchy = InObjectHierarchy;
 
-		if (AbcImporterUtilities::IsType<Alembic::AbcGeom::IXform>(ObjectMetaData))
+		// Only add handled objects to ensure we have valid objects in the hierarchies
+		if (bHandled && AbcImporterUtilities::IsType<Alembic::AbcGeom::IXform>(ObjectMetaData))
 		{
-			NewObjectHierarchy.Add(&ImportData->TransformObjects.Last());
+			NewObjectHierarchy.Add(ImportData->TransformObjects.Last());
 		}
 
-		FGuid ChildGuid = (NewObjectHierarchy.Num() != InObjectHierarchy.Num() ) ? FGuid::NewGuid() : InGuid;
+		FGuid ChildGuid = (NewObjectHierarchy.Num() != InObjectHierarchy.Num()) ? FGuid::NewGuid() : InGuid;
 
 		for (uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
 		{
@@ -434,15 +434,15 @@ void FAbcImporter::TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, T
 template<>
 void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IXform& InXform, FGuid InHierarchyGuid)
 {
-	// Do something	
-	FAbcTransformObject TransformObject;
-	TransformObject.HierarchyGuid = InHierarchyGuid;	
-	TransformObject.Transform = InXform;
-	TransformObject.Name = FString(InXform.getName().c_str());
+	TSharedPtr<FAbcTransformObject> TransformObject = TSharedPtr<FAbcTransformObject>(new FAbcTransformObject());
+	TransformObject->HierarchyGuid = InHierarchyGuid;
+	TransformObject->Transform = InXform;
+	TransformObject->Name = FString(InXform.getName().c_str());
 
 	// Retrieve schema and frame information
 	Alembic::AbcGeom::IXformSchema Schema = InXform.getSchema();
-	TransformObject.NumSamples = Schema.getNumSamples();
+	TransformObject->NumSamples = Schema.getNumSamples();
+	TransformObject->bConstant = Schema.isConstant();
 
 	float MinTime, MaxTime;
 	AbcImporterUtilities::GetMinAndMaxTime(InXform.getSchema(), MinTime, MaxTime);
@@ -456,7 +456,6 @@ void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IX
 template<>
 void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom::IPolyMesh& InPolyMesh, FGuid InHierarchyGuid)
 {
-	// Do something
 	TSharedPtr<FAbcPolyMeshObject> PolyMeshObject = TSharedPtr<FAbcPolyMeshObject>( new FAbcPolyMeshObject());
 	PolyMeshObject->Mesh = InPolyMesh;
 	PolyMeshObject->Name = FString(InPolyMesh.getName().c_str());
@@ -722,9 +721,11 @@ UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFl
 		// Get Matrix samples 
 		TArray<FMatrix> Matrices;
 		TArray<float> SampleTimes;
-		GetMatrixSamplesForObject(MeshObject->Mesh, Matrices, SampleTimes);
+
+		// Retrieved cached matrix transformation for this object's hierarchy GUID
+		TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(MeshObject->HierarchyGuid);
 		// Store samples inside the track
-		Track->SetMatrixSamples(Matrices, SampleTimes);
+		Track->SetMatrixSamples(CachedHierarchyTransforms->MatrixSamples, CachedHierarchyTransforms->TimeSamples);
 
 		// Update Total material count
 		ImportData->NumTotalMaterials += Track->GetNumMaterials();
@@ -937,11 +938,11 @@ const bool FAbcImporter::CompressAnimationDataUsingPCA(const FAbcCompressionSett
 	{
 		if (PolyMeshObject->bConstantTopology)
 		{
-			if (PolyMeshObject->bConstant)
+			if (PolyMeshObject->bConstant && PolyMeshObject->bConstantTransformation)
 			{
 				ConstantPolyMeshObjects.Add(PolyMeshObject);
 			}
-			else if (!PolyMeshObject->bConstant || (InCompressionSettings.bBakeMatrixAnimation))
+			else if (!PolyMeshObject->bConstant || (InCompressionSettings.bBakeMatrixAnimation && !PolyMeshObject->bConstantTransformation))
 			{
 				PolyMeshObjectsToCompress.Add(PolyMeshObject);
 			}
@@ -1681,89 +1682,76 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 	return Material;
 }
 
-void FAbcImporter::GetMatrixSamplesForObject(const Alembic::Abc::IObject& Object, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes)
+void FAbcImporter::GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform)
 {
-	// Get Hierarchy for the current Object
-	TDoubleLinkedList<Alembic::AbcGeom::IXform> Hierarchy;
-	GetHierarchyForObject(Object, Hierarchy);
+	const TArray<TSharedPtr<FAbcTransformObject>>& TransformHierarchy = ImportData->Hierarchies.FindChecked(InGUID);
+	const uint32 HierarchyDepth = TransformHierarchy.Num();
 
-	// This is in here for safety, normally Alembic writes out same sample count for every node
-	uint32 HighestNumSamples = 0;
-	TDoubleLinkedList<Alembic::AbcGeom::IXform>::TConstIterator It(Hierarchy.GetHead());
-	while (It)
+	bool bConstantTransforms = true;
+
+	if (HierarchyDepth > 1)
 	{
-		const uint32 NumSamples = (*It).getSchema().getNumSamples();
-		if (NumSamples > HighestNumSamples)
+		const uint32 NumSamples = TransformHierarchy[0]->MatrixSamples.Num();
+		MatrixSamples.Empty(NumSamples);
+		MatrixSamples.AddZeroed(NumSamples);
+		SampleTimes.Append(TransformHierarchy[0]->TimeSamples);
+		for (int32 HierarchyIndex = HierarchyDepth - 1; HierarchyIndex >= 0; --HierarchyIndex)
 		{
-			HighestNumSamples = NumSamples;
-		}
-		It++;
-	}
+			TSharedPtr<FAbcTransformObject> Object = TransformHierarchy[HierarchyIndex];
+			bConstantTransforms &= Object->bConstant;
+			check(Object->MatrixSamples.Num() == NumSamples);
 
-	// If there are no samples available we push out one identity matrix
-	if (HighestNumSamples == 0)
-	{
-		SampleTimes.Push(0.0f);
-		MatrixSamples.Push(FMatrix(FPlane(1.0f, 0.0f, 0.0f, 0.0f), FPlane(0.0f, 1.0f, 0.0f, 0.0f), FPlane(0.0f, 0.0f, 1.0f, 0.0f), FPlane(0.0f, 0.0f, 0.0f, 1.0f)));
-	}
-
-	// For each sample in the hierarchy retrieve the world matrix for Object
-	for (uint32 SampleIndex = 0; SampleIndex < HighestNumSamples; ++SampleIndex)
-	{
-		float AverageSampleTime = 0.0f;
-		Alembic::Abc::M44d WorldMatrix;
-
-		// Traverse DLinkedList back to front		
-		It = TDoubleLinkedList<Alembic::AbcGeom::IXform>::TConstIterator(Hierarchy.GetTail());
-
-		while (It)
-		{
-			// Get schema from parent object
-			Alembic::AbcGeom::XformSample sample;
-			Alembic::AbcGeom::IXformSchema Schema = (*It).getSchema();
-			Schema.get(sample, SampleIndex);
-
-			// Get matrix and concatenate
-			Alembic::Abc::M44d Matrix = sample.getMatrix();
-			WorldMatrix *= Matrix;
-
-			// Get TimeSampler for this sample's time
-			Alembic::Abc::TimeSamplingPtr TimeSampler = Schema.getTimeSampling();
-			AverageSampleTime += (float)TimeSampler->getSampleTime(SampleIndex);
-
-			It--;
-		}
-
-		AverageSampleTime /= Hierarchy.Num();
-
-		// Store Sample data and time
-		FMatrix Matrix = AbcImporterUtilities::ConvertAlembicMatrix(WorldMatrix);
-		if (MatrixSamples.Num() > 0)
-		{
-			if (MatrixSamples.Last() == Matrix)
+			if (Object->bConstant)
 			{
-				continue;
+				if (HierarchyIndex == (HierarchyDepth - 1))
+				{
+					for (uint32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+					{
+						MatrixSamples[SampleIndex] = Object->MatrixSamples[0];
+					}
+				}
+			}
+			else
+			{
+				ParallelFor(NumSamples, [&](const int32 SampleIndex)
+				{
+					if (HierarchyIndex != (HierarchyDepth - 1))
+					{
+						MatrixSamples[SampleIndex] *= Object->MatrixSamples[SampleIndex];
+					}
+					else
+					{
+						MatrixSamples[SampleIndex] = Object->MatrixSamples[SampleIndex];
+					}
+				});
 			}
 		}
-		SampleTimes.Push(AverageSampleTime);
-		MatrixSamples.Push(Matrix);
+
 	}
+	else
+	{
+		const TSharedPtr<FAbcTransformObject> Object = TransformHierarchy[0];
+		bConstantTransforms &= Object->bConstant;
+		MatrixSamples.Append(Object->MatrixSamples);
+		SampleTimes.Append(Object->TimeSamples);
+	}
+
+	if (bConstantTransforms)
+	{
+		MatrixSamples.SetNum(1);
+		SampleTimes.SetNum(1);
+	}
+
+	OutConstantTransform = bConstantTransforms;
 }
 
-void FAbcImporter::GetHierarchyForObject(const Alembic::Abc::IObject& Object, TDoubleLinkedList<Alembic::AbcGeom::IXform>& Hierarchy)
+void FAbcImporter::CacheHierarchyTransforms()
 {
-	Alembic::Abc::IObject Parent;
-	Parent = Object.getParent();
-
-	// Traverse through parents until we reach RootNode
-	while (Parent.valid())
+	for (TSharedPtr<FAbcPolyMeshObject>& PolyMeshObject : ImportData->PolyMeshObjects)
 	{
-		// Only if the Object is of type IXform we need to store it in the hierarchy (since we only need them for matrix animation right now)
-		if (AbcImporterUtilities::IsType<Alembic::AbcGeom::IXform>(Parent.getMetaData()))
-		{
-			Hierarchy.AddHead(Alembic::AbcGeom::IXform(Parent, Alembic::Abc::kWrapExisting));
-		}
-		Parent = Parent.getParent();
+		TSharedPtr<FCachedHierarchyTransforms> CachedTransforms = TSharedPtr<FCachedHierarchyTransforms>( new FCachedHierarchyTransforms());
+		GetMatrixSamplesForGUID(PolyMeshObject->HierarchyGuid, CachedTransforms->MatrixSamples, CachedTransforms->TimeSamples, PolyMeshObject->bConstantTransformation);
+		ImportData->CachedHierarchyTransforms.Add(PolyMeshObject->HierarchyGuid, CachedTransforms);
 	}
 }
 

@@ -54,8 +54,9 @@ uint32 FAbcMeshDataImportRunnable::Run()
 	const int32 NumMeshTracks = ImportData->PolyMeshObjects.Num();	
 	const int32 FrameSpan = StopFrameIndex - StartFrameIndex;
 	const int32 FrameOffset = ImportData->ImportSettings->SamplingSettings.FrameStart;
-	const bool bApplyTransformation = ImportData->ImportSettings->StaticMeshSettings.bPropogateMatrixTransformations 
-		|| ImportData->ImportSettings->CompressionSettings.bBakeMatrixAnimation;
+	const bool bApplyTransformation = (ImportData->ImportSettings->ImportType == EAlembicImportType::StaticMesh && ImportData->ImportSettings->StaticMeshSettings.bMergeMeshes && ImportData->ImportSettings->StaticMeshSettings.bPropagateMatrixTransformations)
+		|| (ImportData->ImportSettings->ImportType == EAlembicImportType::Skeletal && ImportData->ImportSettings->CompressionSettings.bBakeMatrixAnimation);
+
 
 	for (TSharedPtr< FAbcPolyMeshObject>& PolyMeshObject : ImportData->PolyMeshObjects)
 	{		
@@ -68,7 +69,7 @@ uint32 FAbcMeshDataImportRunnable::Run()
 		for (int32 FrameIndex = StartFrameIndex; FrameIndex < StopFrameIndex; ++FrameIndex)
 		{
 			// Do not process meshes that have constant geometry beyond the first frame we need to sample
-			if (PolyMeshObject->bConstant && FrameIndex > FrameOffset)
+			if (PolyMeshObject->bConstant &&  PolyMeshObject->bConstantTransformation && FrameIndex > FrameOffset)
 			{
 				break;
 			}
@@ -89,7 +90,9 @@ uint32 FAbcMeshDataImportRunnable::Run()
 
 			if (bApplyTransformation)
 			{
-				const FMatrix Transform = AbcImporterUtilities::GetTransformationForFrame(*PolyMeshObject, Selector);
+				TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(PolyMeshObject->HierarchyGuid);
+				checkf(PolyMeshObject->bConstantTransformation || CachedHierarchyTransforms->MatrixSamples.IsValidIndex(FrameIndex - FrameOffset), TEXT("Sampling is identical for transforms as for mesh data so the number of samples should match"));
+				const FMatrix& Transform = PolyMeshObject->bConstantTransformation ? CachedHierarchyTransforms->MatrixSamples[0] : CachedHierarchyTransforms->MatrixSamples[FrameIndex - FrameOffset];
 				AbcImporterUtilities::PropogateMatrixTransformationToSample(Sample, Transform);
 			}
 			

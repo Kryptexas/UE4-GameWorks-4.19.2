@@ -172,7 +172,7 @@ struct FAbcStaticMeshSettings
 
 	FAbcStaticMeshSettings()
 		: bMergeMeshes(true),
-		bPropogateMatrixTransformations(true)
+		bPropagateMatrixTransformations(true)
 	{}
 	
 	// Whether or not to merge the static meshes on import (remember this can cause problems with overlapping UV-sets)
@@ -181,7 +181,7 @@ struct FAbcStaticMeshSettings
 
 	// This will, if applicable, apply matrix transformations to the meshes before merging
 	UPROPERTY(EditAnywhere, Category = StaticMesh, meta=(editcondition="bMergeMeshes"))
-	bool bPropogateMatrixTransformations;
+	bool bPropagateMatrixTransformations;
 };
 
 /** Class that contains all options for importing an alembic file */

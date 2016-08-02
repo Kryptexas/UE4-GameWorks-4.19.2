@@ -113,7 +113,7 @@ private:
 	template<typename T> T* CreateObjectInstance(UObject* InParent, const FString& ObjectName, const EObjectFlags Flags);
 
 	/** Recursive functionality to traverse a whole Alembic Archive and caching all the object type/data */
-	void TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<FAbcTransformObject*>& InObjectHierarchy, FGuid InGuid);
+	void TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<TSharedPtr<FAbcTransformObject>>& InObjectHierarchy, FGuid InGuid);
 
 	/** Templated function to parse a specific Alembic typed object from the archive */
 	template<typename T> void ParseAbcObject(T& InObject, FGuid InHierarchyGuid) {};
@@ -172,11 +172,14 @@ private:
 	/** Generates and populate a FRawMesh instance from the given sample*/
 	void GenerateRawMeshFromSample(FAbcMeshSample* Sample, FRawMesh& RawMesh);
 	
-	/** Temporary functionality for retrieving matrix data for a given Alembic object */
-	void GetMatrixSamplesForObject(const Alembic::Abc::IObject& Object, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes);
+	/** Retrieves matrix samples using the Hierarchy linked to the given GUID */
+	void GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform);
 
 	/** Temporary functionality for retrieving the object hierarchy for a given Alembic object */
 	void GetHierarchyForObject(const Alembic::Abc::IObject& Object, TDoubleLinkedList<Alembic::AbcGeom::IXform>& Hierarchy);
+
+	/** Caches the matrix transform samples for all the object hierarchies retrieved from the Alembic archive */
+	void CacheHierarchyTransforms();
 	
 	/** Retrieves a material according to the given name and resaves it into the parent package*/
 	UMaterial* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );
