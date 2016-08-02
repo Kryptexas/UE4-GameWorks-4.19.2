@@ -1462,6 +1462,9 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
 			Utilities->HandleActorModified(GetOwner());
+
+			// Broadcast that the static mesh has changed
+			OnStaticMeshChangedEvent.Broadcast(this);
 		}
 
 		if (PropertyThatChanged->GetName() == TEXT("overridematerials"))
@@ -1629,6 +1632,11 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 
 	// Mark cached material parameter names dirty
 	MarkCachedMaterialParameterNameIndicesDirty();
+
+#if WITH_EDITOR
+	// Broadcast that the static mesh has changed
+	OnStaticMeshChangedEvent.Broadcast(this);
+#endif
 
 	return true;
 }

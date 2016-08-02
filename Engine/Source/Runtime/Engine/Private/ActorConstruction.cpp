@@ -348,32 +348,106 @@ void AActor::RerunConstructionScripts()
 		}
 
 #if WITH_EDITOR
-		// Save the current construction script-created components by name
-		TMap<const FName, UObject*> DestroyedComponentsByName;
-		TInlineComponentArray<UActorComponent*> PreviouslyAttachedComponents;
-		GetComponents(PreviouslyAttachedComponents);
-		for (UActorComponent* Component : PreviouslyAttachedComponents)
+
+		// Return the component which was added by the construction script.
+		// It may be the same as the argument, or a parent component if the argument was a native subobject.
+		auto GetComponentAddedByConstructionScript = [](UActorComponent* Component) -> UActorComponent*
 		{
-			if (Component)
+			while (Component)
 			{
 				if (Component->IsCreatedByConstructionScript())
 				{
-
-					DestroyedComponentsByName.Add(Component->GetFName(), Component);
+					return Component;
 				}
-				else
+
+				Component = Component->GetTypedOuter<UActorComponent>();
+			}
+
+			return nullptr;
+		};
+
+		// Build a list of previously attached components which will be matched with their newly instanced counterparts.
+		// Components which will be reinstanced may be created by the SCS or the UCS.
+		// SCS components can only be matched by name, and outermost parent to resolve duplicated names.
+		// UCS components remember a serialized index which is used to identify them in the case that the UCS adds many of the same type.
+
+		TInlineComponentArray<UActorComponent*> PreviouslyAttachedComponents;
+		GetComponents(PreviouslyAttachedComponents);
+
+		struct FComponentData
+		{
+			UActorComponent* OldComponent;
+			UActorComponent* OldOuter;
+			UObject* OldArchetype;
+			FName OldName;
+			int32 UCSComponentIndex;
+		};
+
+		TArray<FComponentData> ComponentMapping;
+		ComponentMapping.Reserve(PreviouslyAttachedComponents.Num());
+		int32 IndexOffset = 0;
+
+		for (UActorComponent* Component : PreviouslyAttachedComponents)
+		{
+			// Look for the outermost component object.
+			// Normally components have their parent actor as their outer, but it's possible that a native component may construct a subobject component.
+			// In this case we need to "tunnel out" to find the parent component which has been created by the construction script.
+			if (UActorComponent* CSAddedComponent = GetComponentAddedByConstructionScript(Component))
+			{
+				// Determine if this component is an inner of a component added by the construction script
+				const bool bIsInnerComponent = (CSAddedComponent != Component);
+
+				// Poor man's topological sort - try to ensure that children are added to the list after the parents
+				// IndexOffset specifies how many items from the end new items are added.
+				const int32 Index = ComponentMapping.Num() - IndexOffset;
+				if (bIsInnerComponent)
 				{
-					UActorComponent* OuterComponent = Component->GetTypedOuter<UActorComponent>();
-					while (OuterComponent)
+					int32 OuterIndex = ComponentMapping.IndexOfByPredicate([CSAddedComponent](const FComponentData& CD) { return CD.OldComponent == CSAddedComponent; });
+					if (OuterIndex == INDEX_NONE)
 					{
-						if (OuterComponent->IsCreatedByConstructionScript())
-						{
-							DestroyedComponentsByName.Add(Component->GetFName(), Component);
-							break;
-						}
-						OuterComponent = OuterComponent->GetTypedOuter<UActorComponent>();
+						// If we find an item whose parent isn't yet in the list, we put it at the end, and then force all subsequent items to be added before.
+						// TODO: improve this, it may fail in certain circumstances, but a full topological ordering is far more complicated a problem.
+						IndexOffset++;
 					}
 				}
+
+				// Add a new item
+				ComponentMapping.Insert(FComponentData(), Index);
+				ComponentMapping[Index].OldComponent = Component;
+				ComponentMapping[Index].OldOuter = bIsInnerComponent ? CSAddedComponent : nullptr;
+				ComponentMapping[Index].OldArchetype = Component->GetArchetype();
+				ComponentMapping[Index].OldName = Component->GetFName();
+
+				// If it's a UCS-created component, store a serialized index which will be used to match it to the reinstanced counterpart later
+				int32 SerializedIndex = -1;
+				if (Component->CreationMethod == EComponentCreationMethod::UserConstructionScript)
+				{
+					bool bFound = false;
+					for (const UActorComponent* BlueprintCreatedComponent : BlueprintCreatedComponents)
+					{
+						if (BlueprintCreatedComponent)
+						{
+							if (BlueprintCreatedComponent == Component)
+							{
+								SerializedIndex++;
+								bFound = true;
+								break;
+							}
+							else if (BlueprintCreatedComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript &&
+									 BlueprintCreatedComponent->GetArchetype() == ComponentMapping[Index].OldArchetype)
+							{
+								SerializedIndex++;
+							}
+						}
+					}
+
+					if (!bFound)
+					{
+						SerializedIndex = -1;
+					}
+				}
+
+				ComponentMapping[Index].UCSComponentIndex = SerializedIndex;
 			}
 		}
 #endif
@@ -431,16 +505,100 @@ void AActor::RerunConstructionScripts()
 
 #if WITH_EDITOR
 		// Create the mapping of old->new components and notify the editor of the replacements
-		TMap<UObject*, UObject*> OldToNewComponentMapping;
-
 		TInlineComponentArray<UActorComponent*> NewComponents;
 		GetComponents(NewComponents);
-		for (UActorComponent* NewComp : NewComponents)
+
+		TMap<UObject*, UObject*> OldToNewComponentMapping;
+		OldToNewComponentMapping.Reserve(NewComponents.Num());
+
+		// Build some quick lookup maps for speedy access.
+		// The NameToNewComponent map is a multimap because names are not necessarily unique.
+		// For example, there may be two components, subobjects of components added by the construction script, which have the same name, because they are unique in their scope.
+		TMultiMap<FName, UActorComponent*> NameToNewComponent;
+		TMap<UActorComponent*, UObject*> ComponentToArchetypeMap;
+		NameToNewComponent.Reserve(NewComponents.Num());
+		ComponentToArchetypeMap.Reserve(NewComponents.Num());
+
+		for (UActorComponent* NewComponent : NewComponents)
 		{
-			const FName NewCompName = NewComp->GetFName();
-			if (DestroyedComponentsByName.Contains(NewCompName))
+			if (GetComponentAddedByConstructionScript(NewComponent))
 			{
-				OldToNewComponentMapping.Add(DestroyedComponentsByName[NewCompName], NewComp);
+				NameToNewComponent.Add(NewComponent->GetFName(), NewComponent);
+				ComponentToArchetypeMap.Add(NewComponent, NewComponent->GetArchetype());
+			}
+		}
+
+		// Now iterate through all previous construction script created components, looking for a match with reinstanced components.
+		for (const FComponentData& ComponentData : ComponentMapping)
+		{
+			if (ComponentData.OldComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript)
+			{
+				// If created by the UCS, look for a component whose class, archetype and serialized index matches
+				for (UActorComponent* NewComponent : NewComponents)
+				{
+					if (NewComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript &&
+						ComponentData.OldComponent->GetClass() == NewComponent->GetClass() &&
+						ComponentData.OldArchetype == NewComponent->GetArchetype() &&
+						ComponentData.UCSComponentIndex >= 0)
+					{
+						int32 FoundSerializedIndex = -1;
+						bool bMatches = false;
+						for (UActorComponent* BlueprintCreatedComponent : BlueprintCreatedComponents)
+						{
+							if (BlueprintCreatedComponent && BlueprintCreatedComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript)
+							{
+								UObject* BlueprintComponentTemplate = ComponentToArchetypeMap.FindChecked(BlueprintCreatedComponent);
+								if (ComponentData.OldArchetype == BlueprintComponentTemplate &&
+									++FoundSerializedIndex == ComponentData.UCSComponentIndex)
+								{
+									bMatches = (BlueprintCreatedComponent == NewComponent);
+									break;
+								}
+							}
+						}
+
+						if (bMatches)
+						{
+							OldToNewComponentMapping.Add(ComponentData.OldComponent, NewComponent);
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				// Component added by the SCS. We can't rely on serialization order as this can change.
+				// Instead look for matching names, and, if there's an outer component, look for a match there.
+				TArray<UActorComponent*> MatchedComponents;
+				NameToNewComponent.MultiFind(ComponentData.OldName, MatchedComponents);
+				if (MatchedComponents.Num() > 0)
+				{
+					UActorComponent* OuterToMatch = ComponentData.OldOuter;
+					if (OuterToMatch)
+					{
+						// The saved outer component is the previous component, hence we transform it to the new one through the OldToNewComponentMapping
+						// before comparing with the new outer to match.
+						// We can rely on this because the ComponentMapping list is ordered topologically, such that parents appear before children.
+						if (UObject** NewOuterToMatch = OldToNewComponentMapping.Find(OuterToMatch))
+						{
+							OuterToMatch = Cast<UActorComponent>(*NewOuterToMatch);
+						}
+						else
+						{
+							OuterToMatch = nullptr;
+						}
+					}
+
+					// Now look for a match within the set of possible matches
+					for (UActorComponent* MatchedComponent : MatchedComponents)
+					{
+						if (!OuterToMatch || GetComponentAddedByConstructionScript(MatchedComponent) == OuterToMatch)
+						{
+							OldToNewComponentMapping.Add(ComponentData.OldComponent, MatchedComponent);
+							break;
+						}
+					}
+				}
 			}
 		}
 

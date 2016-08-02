@@ -12,6 +12,7 @@
 #include "RawMesh.h"
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "AssetToolsModule.h"
+#include "AssetRegistryModule.h"
 #include "EditorSupportDelegates.h"
 #include "EditorReimportHandler.h"
 
@@ -162,12 +163,25 @@ void FEdModeMeshPaint::Enter()
 
 	}
 
+	// Catch when objects are replaced when a construction script is rerun
+	GEditor->OnObjectsReplaced().AddSP(this, &FEdModeMeshPaint::OnObjectsReplaced);
+
+	// Hook into pre/post world save, so that the original collision volumes can be temporarily reinstated
+	FEditorDelegates::PreSaveWorld.AddSP(this, &FEdModeMeshPaint::OnPreSaveWorld);
+	FEditorDelegates::PostSaveWorld.AddSP(this, &FEdModeMeshPaint::OnPostSaveWorld);
+
 	// Catch assets if they are about to be (re)imported
-	FEditorDelegates::OnAssetPreImport.AddSP(this, &FEdModeMeshPaint::OnPreImportAsset);
-	FReimportManager::Instance()->OnPreReimport().AddSP(this, &FEdModeMeshPaint::OnPreReimportAsset);
+	FEditorDelegates::OnAssetPostImport.AddSP(this, &FEdModeMeshPaint::OnPostImportAsset);
+	FReimportManager::Instance()->OnPostReimport().AddSP(this, &FEdModeMeshPaint::OnPostReimportAsset);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRemoved().AddSP(this, &FEdModeMeshPaint::OnAssetRemoved);
 
 	// Initialize adapter globals
 	FMeshPaintAdapterFactory::InitializeAdapterGlobals();
+
+	// Create adapters for currently selected mesh components
+	CreateGeometryAdaptersForSelectedComponents();
 
 	if (!Toolkit.IsValid())
 	{
@@ -295,8 +309,14 @@ void FEdModeMeshPaint::Exit()
 	}
 
 	// Unbind delegates
-	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);
-	FEditorDelegates::OnAssetPreImport.RemoveAll(this);
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
+	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
+	FEditorDelegates::PreSaveWorld.RemoveAll(this);
+	FEditorDelegates::PostSaveWorld.RemoveAll(this);
+	GEditor->OnObjectsReplaced().RemoveAll(this);
 
 	// Call parent implementation
 	FEdMode::Exit();
@@ -988,37 +1008,47 @@ bool FEdModeMeshPaint::PaintVertex( const FVector& InVertexPosition,
 	return false;
 }
 
-IMeshPaintGeometryAdapter* FEdModeMeshPaint::FindOrAddGeometryAdapter(UMeshComponent* MeshComponent)
+void FEdModeMeshPaint::CreateGeometryAdaptersForSelectedComponents()
+{
+	TArray<UMeshComponent*> SelectedComponents = GetSelectedMeshComponents();
+	for (UMeshComponent* SelectedComponent : SelectedComponents)
+	{
+		AddGeometryAdapter(SelectedComponent);
+	}
+}
+
+IMeshPaintGeometryAdapter* FEdModeMeshPaint::AddGeometryAdapter(UMeshComponent* MeshComponent)
+{
+	check(MeshComponent);
+	check(!ComponentToAdapterMap.Contains(MeshComponent));
+	TSharedPtr<IMeshPaintGeometryAdapter> NewAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
+	if (NewAdapter.IsValid())
+	{
+		ComponentToAdapterMap.Add(MeshComponent, NewAdapter);
+		NewAdapter->OnAdded();
+	}
+	return NewAdapter.Get();
+}
+
+void FEdModeMeshPaint::RemoveGeometryAdapter(UMeshComponent* MeshComponent)
+{
+	check(MeshComponent);
+	TSharedPtr<IMeshPaintGeometryAdapter>* MeshAdapter = ComponentToAdapterMap.Find(MeshComponent);
+	check(MeshAdapter);
+	(*MeshAdapter)->OnRemoved();
+	verify(ComponentToAdapterMap.Remove(MeshComponent) == 1);
+}
+
+IMeshPaintGeometryAdapter* FEdModeMeshPaint::FindGeometryAdapter(UMeshComponent* MeshComponent)
 {
 	TSharedPtr<IMeshPaintGeometryAdapter>* MeshAdapter = ComponentToAdapterMap.Find(MeshComponent);
 	if (!MeshAdapter)
 	{
-		// If this component hasn't yet been seen, make an adapter for it and add it to the map
-		TSharedPtr<IMeshPaintGeometryAdapter> NewAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
-		if (NewAdapter.IsValid())
-		{
-			ComponentToAdapterMap.Add(MeshComponent, NewAdapter);
-			NewAdapter->OnAdded();
-		}
-		return NewAdapter.Get();
+		return nullptr;
 	}
 	else
 	{
-		// Use existing adapter
 		return MeshAdapter->Get();
-	}
-}
-
-void FEdModeMeshPaint::CleanStaleGeometryAdapters(const TArray<UMeshComponent*>& ValidComponents)
-{
-	// Remove any stale components from the map
-	for (auto It = ComponentToAdapterMap.CreateIterator(); It; ++It)
-	{
-		if (!It.Value()->IsValid() || !ValidComponents.Contains(It.Key()))
-		{
-			It.Value()->OnRemoved();
-			It.RemoveCurrent();
-		}
 	}
 }
 
@@ -1032,24 +1062,58 @@ void FEdModeMeshPaint::RemoveAllGeometryAdapters()
 	}
 }
 
-void FEdModeMeshPaint::OnPreImportAsset(UFactory* Factory, UClass* Class, UObject* Object, const FName& Name, const TCHAR* Type)
+void FEdModeMeshPaint::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
 {
-	if (Class->IsChildOf(UStaticMesh::StaticClass()))
-	{
-		// Remove all geometry adapters to force them all to be recached next time they're required
-		RemoveAllGeometryAdapters();
-	}
+	RemoveAllGeometryAdapters();
 }
 
-void FEdModeMeshPaint::OnPreReimportAsset(UObject* Object)
+void FEdModeMeshPaint::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, bool bSuccess)
+{
+	CreateGeometryAdaptersForSelectedComponents();
+}
+
+void FEdModeMeshPaint::OnPostImportAsset(UFactory* Factory, UObject* Object)
 {
 	if (Object->IsA(UStaticMesh::StaticClass()))
 	{
-		// Remove all geometry adapters to force them all to be recached next time they're required
 		RemoveAllGeometryAdapters();
+		CreateGeometryAdaptersForSelectedComponents();
 	}
 }
 
+void FEdModeMeshPaint::OnPostReimportAsset(UObject* Object, bool bSuccess)
+{
+	if (bSuccess && Object->IsA(UStaticMesh::StaticClass()))
+	{
+		RemoveAllGeometryAdapters();
+		CreateGeometryAdaptersForSelectedComponents();
+	}
+}
+
+void FEdModeMeshPaint::OnAssetRemoved(const FAssetData& AssetData)
+{
+	RemoveAllGeometryAdapters();
+	CreateGeometryAdaptersForSelectedComponents();
+}
+
+void FEdModeMeshPaint::OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	for (const auto& OldToNew : OldToNewInstanceMap)
+	{
+		if (UMeshComponent* OldMeshComponent = Cast<UMeshComponent>(OldToNew.Key))
+		{
+			if (ComponentToAdapterMap.Contains(OldMeshComponent))
+			{
+				if (UMeshComponent* NewMeshComponent = Cast<UMeshComponent>(OldToNew.Value))
+				{
+					AddGeometryAdapter(NewMeshComponent);
+				}
+
+				RemoveGeometryAdapter(OldMeshComponent);
+			}
+		}
+	}
+}
 
 /** Paint the mesh that impacts the specified ray */
 void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
@@ -1076,7 +1140,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 
 		for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 		{
-			IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
+			IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 			if (!MeshAdapter)
 			{
 				continue;
@@ -1105,9 +1169,6 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 				}
 			}
 		}
-
-		// Remove any stale components from the map
-		CleanStaleGeometryAdapters(SelectedMeshComponents);
 
 		if (BestTraceResult.GetComponent() != NULL)
 		{
@@ -2610,6 +2671,7 @@ void FEdModeMeshPaint::PostUndo()
 	FEdMode::PostUndo();
 	bDoRestoreRenTargets = true;
 	RemoveAllGeometryAdapters();
+	CreateGeometryAdaptersForSelectedComponents();
 }
 
 /** Returns true if we need to force a render/update through based fill/copy */
@@ -2653,6 +2715,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		static TArray<FPaintRay> PaintRays;
 		PaintRays.Reset();
 		
+
 
 		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
 
@@ -2933,31 +2996,25 @@ bool FEdModeMeshPaint::Select( AActor* InActor, bool bInSelected )
 					}
 				}
 
-				GeomInfo->OnRemoved();
-				ensure(ComponentToAdapterMap.Remove(MeshComponent) == 1);
+				RemoveGeometryAdapter(MeshComponent);
 			}
 		}
 		else
 		{
 			if (!ComponentToAdapterMap.Contains(MeshComponent))
 			{
-				TSharedPtr<IMeshPaintGeometryAdapter> GeomInfo = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
-				if (GeomInfo.IsValid())
-				{
-					ComponentToAdapterMap.Add(MeshComponent, GeomInfo);
-					GeomInfo->OnAdded();
+				IMeshPaintGeometryAdapter* GeomInfo = AddGeometryAdapter(MeshComponent);
 
-					if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
+				if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
+				{
+					SetAllTextureOverrides(*GeomInfo, MeshComponent);
+				}
+				else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+				{
+					//Painting is done on LOD0 so force the mesh to render only LOD0.
+					ApplyOrRemoveForceBestLOD(*GeomInfo, MeshComponent, /*bApply=*/ true);
 					{
-						SetAllTextureOverrides(*GeomInfo.Get(), MeshComponent);
-					}
-					else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
-					{
-						//Painting is done on LOD0 so force the mesh to render only LOD0.
-						ApplyOrRemoveForceBestLOD(*GeomInfo.Get(), MeshComponent, /*bApply=*/ true);
-						{
-							FComponentReregisterContext ReregisterContext(MeshComponent);
-						}
+						FComponentReregisterContext ReregisterContext(MeshComponent);
 					}
 				}
 			}
@@ -3898,14 +3955,12 @@ void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(bool bApply)
 
 	for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 	{
-		IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
+		IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 		if (MeshAdapter)
 		{
 			ApplyOrRemoveForceBestLOD(*MeshAdapter, MeshComponent, bApply);
 		}
 	}
-
-	CleanStaleGeometryAdapters(SelectedMeshComponents);
 }
 
 void FEdModeMeshPaint::ApplyOrRemoveForceBestLOD(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* MeshComponent, bool bApply)
@@ -3924,14 +3979,12 @@ void FEdModeMeshPaint::ApplyVertexColorsToAllLODs()
 
 	for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 	{
-		IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
+		IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 		if (MeshAdapter)
 		{
 			ApplyVertexColorsToAllLODs(*MeshAdapter, MeshComponent);
 		}
 	}
-
-	CleanStaleGeometryAdapters(SelectedMeshComponents);
 }
 
 void FEdModeMeshPaint::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent)
@@ -4450,7 +4503,7 @@ void FEdModeMeshPaint::UpdateTexturePaintTargetList()
 				for (const auto& MeshComponent : MeshComponents)
 				{
 					// Get the geometry adapter
-					IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
+					IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 					if (MeshAdapter)
 					{
 						// We already know the material we are painting on, take it off the static mesh component
@@ -4841,14 +4894,12 @@ void FEdModeMeshPaint::Tick(FEditorViewportClient* ViewportClient,float DeltaTim
 
 		for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 		{
-			IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
+			IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 			if (MeshAdapter)
 			{
 				SetSpecificTextureOverrideForMesh(*MeshAdapter, GetSelectedTexture());
 			}
 		}
-
-		CleanStaleGeometryAdapters(SelectedMeshComponents);
 	}
 
 	if( bDoRestoreRenTargets && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture )
@@ -4881,6 +4932,20 @@ void FEdModeMeshPaint::Tick(FEditorViewportClient* ViewportClient,float DeltaTim
 	}
 }
 
+bool FEdModeMeshPaint::ProcessEditDelete()
+{
+	RemoveAllGeometryAdapters();
+
+	if (GUnrealEd->CanDeleteSelectedActors(GetWorld(), true, false))
+	{
+		GEditor->edactDeleteSelected(GetWorld());
+	}
+
+	CreateGeometryAdaptersForSelectedComponents();
+
+	return true;
+}
+
 void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 {
 	UTexture2D* SelectedTexture = GetSelectedTexture();
@@ -4903,7 +4968,7 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 			{
 				UMeshComponent* MeshComponent = MeshComponents[0];
 
-				IMeshPaintGeometryAdapter* MeshAdapter = FindOrAddGeometryAdapter(MeshComponent);
+				IMeshPaintGeometryAdapter* MeshAdapter = FindGeometryAdapter(MeshComponent);
 				if (!MeshAdapter)
 				{
 					return;
