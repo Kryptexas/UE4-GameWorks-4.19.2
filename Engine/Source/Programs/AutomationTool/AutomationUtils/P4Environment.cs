@@ -104,7 +104,7 @@ namespace AutomationTool
 			LabelToSync = CommandUtils.GetEnvVar(EnvVarNames.LabelToSync);
 
 			string CodeChangelistString = CommandUtils.GetEnvVar(EnvVarNames.CodeChangelist);
-			if(CodeChangelistString != null)
+			if(!String.IsNullOrEmpty(CodeChangelistString))
 			{
 				CodeChangelist = Int32.Parse(CodeChangelistString);
 			}
