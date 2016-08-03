@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "Engine/EngineBaseTypes.h"
+
 class UWorld;
 
 /**
@@ -104,5 +106,5 @@ public:
 		return nullptr;
 	}
 
-	static void TickObjects(UWorld* World, enum ELevelTick TickType, bool bIsPaused, float DeltaSeconds);
+	static void TickObjects(UWorld* World, ELevelTick TickType, bool bIsPaused, float DeltaSeconds);
 };
