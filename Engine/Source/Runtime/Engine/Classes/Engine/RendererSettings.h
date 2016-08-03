@@ -183,6 +183,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
 		ConsoleVariable="r.ForwardShading",
+		DisplayName = "Forward Shading (experimental)",
 		ToolTip="Whether to use forward shading on desktop platforms.  Requires Shader Model 5 hardware.  Forward shading has lower constant cost, but fewer features supported.  Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bForwardShading:1;
