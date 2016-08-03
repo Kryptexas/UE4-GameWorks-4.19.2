@@ -106,6 +106,7 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 
 /** Static array of tickable objects */
 TArray<FTickableGameObject*> FTickableGameObject::TickableObjects;
+bool FTickableGameObject::bIsTickingObjects = false;
 
 /*-----------------------------------------------------------------------------
 	Detailed tick stats helper classes.
@@ -1076,6 +1077,50 @@ void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
 	});
 }
 
+
+void FTickableGameObject::TickObjects(UWorld* World, ELevelTick TickType, bool bIsPaused, float DeltaSeconds)
+{
+	check(!bIsTickingObjects);
+	bIsTickingObjects = true;
+
+	bool bNeedsCleanup = false;
+
+	for( int32 i=0; i < TickableObjects.Num(); ++i )
+	{
+		if (FTickableGameObject* TickableObject = TickableObjects[i])
+		{
+			const bool bTickIt = (TickableObject->GetTickableGameObjectWorld() == World) && TickableObject->IsTickable() &&
+				(
+					(TickType != LEVELTICK_TimeOnly && !bIsPaused) ||
+					(bIsPaused && TickableObject->IsTickableWhenPaused()) ||
+					(GIsEditor && (World == nullptr || !World->IsPlayInEditor()) && TickableObject->IsTickableInEditor())
+					);
+
+			if (bTickIt)
+			{
+				STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
+				TickableObject->Tick(DeltaSeconds);
+
+				if (TickableObjects[i] == nullptr)
+				{
+					bNeedsCleanup = true;
+				}
+			}
+		}
+		else
+		{
+			bNeedsCleanup = true;
+		}
+	}
+
+	if (bNeedsCleanup)
+	{
+		TickableObjects.RemoveAll([](FTickableGameObject* Object) { return Object == nullptr; });
+	}
+
+	bIsTickingObjects = false;
+}
+
 /**
  * Update the level after a variable amount of time, DeltaSeconds, has passed.
  * All child actors are ticked after their owners have been ticked.
@@ -1278,21 +1323,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			GetTimerManager().Tick(DeltaSeconds);
 		}
 
-		for( int32 i=0; i<FTickableGameObject::TickableObjects.Num(); i++ )
-		{
-			FTickableGameObject* TickableObject = FTickableGameObject::TickableObjects[i];
-			bool bTickIt = TickableObject->IsTickable() && 
-				(
-					(TickType != LEVELTICK_TimeOnly && !bIsPaused) ||
-					(bIsPaused && TickableObject->IsTickableWhenPaused()) ||
-					(GIsEditor && !IsPlayInEditor() && TickableObject->IsTickableInEditor())
-				);
-			if (bTickIt)
-			{
-				STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
-				TickableObject->Tick(DeltaSeconds);
-			}
-		}
+		FTickableGameObject::TickObjects(this, TickType, bIsPaused, DeltaSeconds);
 	}
 	
 	// Update cameras and streaming volumes

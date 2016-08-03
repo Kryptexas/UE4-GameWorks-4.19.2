@@ -1193,6 +1193,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
 	}
 
+	bool bAWorldTicked = false;
+
 	if( bShouldTickEditorWorld )
 	{ 
 		// Tick level.
@@ -1204,12 +1206,9 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		{
 			FKismetDebugUtilities::NotifyDebuggerOfStartOfGameFrame(EditorContext.World());
 			EditorContext.World()->Tick(TickType, DeltaSeconds);
+			bAWorldTicked = true;
 			FKismetDebugUtilities::NotifyDebuggerOfEndOfGameFrame(EditorContext.World());
 		}
-	}
-	else 
-	{
-		//EditorContext.World()->FXSystem->Suspend();
 	}
 
 
@@ -1408,6 +1407,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 				// tick the level
 				PieContext.World()->Tick( LEVELTICK_All, DeltaSeconds );
+				bAWorldTicked = true;
 
 				if( bIsRecordingActive )
 				{
@@ -1435,6 +1435,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			// Pop the world
 			RestoreEditorWorld( OldGWorld );
 		}
+	}
+
+	if (bAWorldTicked)
+	{
+		const ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
+		FTickableGameObject::TickObjects(nullptr, TickType, false, DeltaSeconds);
 	}
 
 	if (bFirstTick)
