@@ -1,0 +1,128 @@
+Availability: Docs
+Title:Importing & Exporting Edit Decision Lists (EDLs)
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Illustrates how you can import and export EDLs for use in external video editing software applications. 
+Version: 4.13
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[EXCERPT:intro]
+Sequencer in Unreal Engine 4 not only allows you to render and export out your entire cinematic, but you can also export your cinematic split up into each of your shots along with an **Edit Decision List** or **EDL** which is a file that can be used with most video editing applications like Premiere, Avid or Final Cut. 
+[/EXCERPT:intro]
+
+The EDL contains an ordered list of reel and time code data representing where each video clip can be obtained in order to produce the final cut. 
+In this how-to we export a cinematic and EDL file, take it into an external program like Premiere, make edits to it and re-import the edited cinematic back into Unreal along with those changes. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project and have created a sample cinematic however you can use your own project and cinematic sequence. 
+We are also using Adobe Premiere Pro CS6 as our external editing software; however you can use any software that supports EDL importing. 
+[/REGION]
+
+1.	Make sure your cinematic you want to export includes a **Shot Track** containing your shots, then click the **Render Movie** button.
+
+1.	Define an **Output Directory** and **Filename Format** using the **{shot}** token and make sure **Write Edit Decision List** is checked. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	c2J89J3b8WA
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	Above we show the sample cinematic that we want to export along with an EDL and click the **Render Movie** button to bring up the settings dialog window. 
+	Inside the settings window, we create a new folder to export the cinematic to and prefix our {shot} token with the name of our cinematic. 
+	By using the {shot} token each of our shots will be exported as individual video files along with the full cinematic. 
+
+1.	Inside your software editing suite, **Import** the **EDL** file exported from the previous step. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	LN0OeRF0G8A
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	In Premiere Pro, you can **Right-click** in the window in the lower-left and choose **Import** then point to the EDL file. 
+	We left the EDL Information and New Sequence dialog windows with the default information. 
+
+1.	Next you'll need to link the data from the EDL to the exported media files in your editing software. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	iUJenhTwFRk
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	In Premeire Pro, **Right-click** the media folder and select **Link Media** then point each file to its corresponding media file. 
+
+1.	Modify the shots in your editing software as desired, then **Export** as an **EDL**. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	AH3Fcy9v8tQ
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	Above for our sample scene, we adjust the length of the shots as well as re-arrange their position in the sequence. 
+
+1.	Return to **Unreal Engine 4** and in your Sequence, **Right-click** your **Shot Track** and **Import EDL**. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	uI-wIYvMEiQ
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	The changes we made externally are now reflected inside our Sequence in Unreal Engine 4. 
+
+## End Result
+
+The import/export EDL option within Sequencer gives you the flexibility to determine where you want to do your editing. 
+
+You can do most of your setup inside Sequencer, then pass your sequence off to an editor who works inside an external application like Premiere to perform the final touches who can then pass it back to you to tweak in Sequencer. 
+
+By exporting your sequence as an EDL and working externally, you have the ability to add post production effects or after effects to your scene before you rendering out the final cinematic. 
+
+
+
+
+
+
+
+
+
+
