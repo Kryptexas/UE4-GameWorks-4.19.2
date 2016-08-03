@@ -129,15 +129,11 @@ public:
         }
         
         //@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
-        FSteamVRHMD::VRInitFn = (pVRInit)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Init"));
-        FSteamVRHMD::VRShutdownFn = (pVRShutdown)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Shutdown"));
         FSteamVRHMD::VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
-        FSteamVRHMD::VRGetStringForHmdErrorFn = (pVRGetStringForHmdError)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetStringForHmdError"));
         FSteamVRHMD::VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
-        FSteamVRHMD::VRExtendedDisplayFn = (pVRExtendedDisplay)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VRExtendedDisplay"));
         
         // Verify that we've bound correctly to the DLL functions
-        if (!FSteamVRHMD::VRInitFn || !FSteamVRHMD::VRShutdownFn || !FSteamVRHMD::VRIsHmdPresentFn || !FSteamVRHMD::VRGetStringForHmdErrorFn || !FSteamVRHMD::VRGetGenericInterfaceFn || !FSteamVRHMD::VRExtendedDisplayFn)
+        if (!FSteamVRHMD::VRIsHmdPresentFn || !FSteamVRHMD::VRGetGenericInterfaceFn)
         {
             UE_LOG(LogHMD, Log, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
             UnloadOpenVRModule();
@@ -212,12 +208,8 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 
 bool FSteamVRHMD::bIsQuitting = false;
 
-pVRInit FSteamVRHMD::VRInitFn = nullptr;
-pVRShutdown FSteamVRHMD::VRShutdownFn = nullptr;
 pVRIsHmdPresent FSteamVRHMD::VRIsHmdPresentFn = nullptr;
-pVRGetStringForHmdError FSteamVRHMD::VRGetStringForHmdErrorFn = nullptr;
 pVRGetGenericInterface FSteamVRHMD::VRGetGenericInterfaceFn = nullptr;
-pVRExtendedDisplay FSteamVRHMD::VRExtendedDisplayFn = nullptr;
 
 bool FSteamVRHMD::IsHMDEnabled() const
 {
@@ -366,8 +358,7 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 
 void FSteamVRHMD::GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height)
 {
-	// (vr::IVRExtendedDisplay*)vr::VRExtendedDisplay();
-	if (vr::IVRExtendedDisplay *VRExtDisplay = VRExtendedDisplayFn())
+	if (vr::IVRExtendedDisplay *VRExtDisplay = vr::VRExtendedDisplay())
 	{
 		VRExtDisplay->GetWindowBounds(X, Y, Width, Height);
 	}
@@ -1185,7 +1176,7 @@ void FSteamVRHMD::Startup()
 
 	vr::EVRInitError VRInitErr = vr::VRInitError_None;
 	// Attempt to initialize the VRSystem device
-	VRSystem = (*FSteamVRHMD::VRInitFn)(&VRInitErr, vr::VRApplication_Scene);
+	VRSystem = vr::VR_Init(&VRInitErr, vr::VRApplication_Scene);
 	if (!VRSystem || (VRInitErr != vr::VRInitError_None))
 	{
 		UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR with code %d"), (int32)VRInitErr);
@@ -1340,7 +1331,7 @@ void FSteamVRHMD::Shutdown()
 		VROverlay = nullptr;
 		VRChaperone = nullptr;
 
-		(*VRShutdownFn)();
+		vr::VR_Shutdown();
 
 		SteamVRPlugin->Reset();
 	}

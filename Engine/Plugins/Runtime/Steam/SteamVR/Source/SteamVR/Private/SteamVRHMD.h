@@ -23,12 +23,8 @@ struct FBoundingQuad
 };
 
 //@todo steamvr: remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
-typedef vr::IVRSystem*(VR_CALLTYPE *pVRInit)(vr::HmdError* peError, vr::EVRApplicationType eApplicationType);
-typedef void(VR_CALLTYPE *pVRShutdown)();
 typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
-typedef const char*(VR_CALLTYPE *pVRGetStringForHmdError)(vr::HmdError error);
 typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
-typedef vr::IVRExtendedDisplay *(VR_CALLTYPE *pVRExtendedDisplay)();
 
 
 /**
@@ -438,12 +434,8 @@ private:
 
 //@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
 public:
-	static pVRInit VRInitFn;
-	static pVRShutdown VRShutdownFn;
 	static pVRIsHmdPresent VRIsHmdPresentFn;
-	static pVRGetStringForHmdError VRGetStringForHmdErrorFn;
 	static pVRGetGenericInterface VRGetGenericInterfaceFn;
-	static pVRExtendedDisplay VRExtendedDisplayFn;
 };
 
 
