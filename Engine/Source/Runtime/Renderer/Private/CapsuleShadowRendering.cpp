@@ -14,6 +14,7 @@
 #include "PostProcessing.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "DistanceFieldLightingPost.h"
+#include "CapsuleShadowRendering.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Capsule Shadows"), Stat_GPU_CapsuleShadows, STATGROUP_GPU);
 
@@ -99,12 +100,6 @@ int32 GetCapsuleShadowDownsampleFactor()
 FIntPoint GetBufferSizeForCapsuleShadows()
 {
 	return FIntPoint::DivideAndRoundDown(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), GetCapsuleShadowDownsampleFactor());
-}
-
-bool DoesPlatformSupportCapsuleShadows(EShaderPlatform Platform)
-{
-	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5;
 }
 
 enum ECapsuleShadowingType
@@ -601,13 +596,6 @@ void AllocateCapsuleTileIntersectionCountsBuffer(FIntPoint GroupSize, FSceneView
 		ViewState->CapsuleTileIntersectionCountsBuffer.Release();
 		ViewState->CapsuleTileIntersectionCountsBuffer.Initialize(GPixelFormats[CapsuleTileIntersectionCountsBufferFormat].BlockBytes, GroupSize.X * GroupSize.Y, CapsuleTileIntersectionCountsBufferFormat);
 	}
-}
-
-bool SupportsCapsuleShadows(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform)
-{
-	return GCapsuleShadows
-		&& FeatureLevel >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportCapsuleShadows(ShaderPlatform);
 }
 
 bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(

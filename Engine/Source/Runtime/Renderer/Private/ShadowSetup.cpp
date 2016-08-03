@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
 #include "LightPropagationVolumeBlendable.h"
+#include "CapsuleShadowRendering.h"
 
 static float GMinScreenRadiusForShadowCaster = 0.03f;
 static FAutoConsoleVariableRef CVarMinScreenRadiusForShadowCaster(
@@ -467,7 +468,8 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 	BorderSize = InBorderSize;
 	MaxScreenPercent = InMaxScreenPercent;
 	bDirectionalLight = InLightSceneInfo->Proxy->GetLightType() == LightType_Directional;
-	bCapsuleShadow = InParentSceneInfo->Proxy->CastsCapsuleDirectShadow() && !bInPreShadow;
+	const ERHIFeatureLevel::Type FeatureLevel = LightSceneInfo->Scene->GetFeatureLevel();
+	bCapsuleShadow = InParentSceneInfo->Proxy->CastsCapsuleDirectShadow() && !bInPreShadow && SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]);
 	bTranslucentShadow = bInTranslucentShadow;
 	bPreShadow = bInPreShadow;
 	bSelfShadowOnly = InParentSceneInfo->Proxy->CastsSelfShadowOnly();
