@@ -751,30 +751,6 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
 	}
 
-	AActor* Owner = Primitive->GetOwner();
-
-	// If the root component of an actor is being moved, update all the actor position of the other components sharing that actor
-	if (Owner && Owner->GetRootComponent() == Primitive)
-	{
-		TInlineComponentArray<UPrimitiveComponent*> Components;
-		Owner->GetComponents(Components);
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
-
-			// Only update components that are already attached
-			if (PrimitiveComponent 
-				&& PrimitiveComponent->SceneProxy 
-				&& PrimitiveComponent != Primitive
-				// Don't bother if it is going to have its transform updated anyway
-				&& !PrimitiveComponent->IsRenderTransformDirty()
-				&& !PrimitiveComponent->IsRenderStateDirty())
-			{
-				PrimitiveComponent->SceneProxy->UpdateActorPosition(Owner->GetActorLocation());
-			}
-		}
-	}
-
 	if(Primitive->SceneProxy)
 	{
 		// Check if the primitive needs to recreate its proxy for the transform update.

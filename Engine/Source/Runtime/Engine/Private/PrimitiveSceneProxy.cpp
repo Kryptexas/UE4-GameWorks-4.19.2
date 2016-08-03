@@ -199,22 +199,6 @@ FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView*
 	return FPrimitiveViewRelevance();
 }
 
-void FPrimitiveSceneProxy::UpdateActorPosition(FVector InActorPosition)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		UpdateActorPosition,
-		FPrimitiveSceneProxy*,PrimitiveSceneProxy,this,
-		FVector,InActorPosition,InActorPosition,
-	{
-		if (PrimitiveSceneProxy->ActorPosition != InActorPosition)
-		{
-			PrimitiveSceneProxy->ActorPosition = InActorPosition;
-			PrimitiveSceneProxy->UpdateUniformBufferMaybeLazy();
-			PrimitiveSceneProxy->OnActorPositionChanged();
-		}
-	});
-}
-
 static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
 	TEXT("r.DeferUniformBufferUpdatesUntilVisible"),
 	!WITH_EDITOR,
