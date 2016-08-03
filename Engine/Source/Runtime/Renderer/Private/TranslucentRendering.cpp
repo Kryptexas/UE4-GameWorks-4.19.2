@@ -215,7 +215,10 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 				{
 					FProjectedShadowInfo* CurrentShadowInfo = VisibleLightInfo->AllProjectedShadows[ShadowIndex];
 
-					if (CurrentShadowInfo && CurrentShadowInfo->bTranslucentShadow && CurrentShadowInfo->GetParentSceneInfo() == PrimitiveSceneInfo)
+					if (CurrentShadowInfo 
+						&& CurrentShadowInfo->bTranslucentShadow 
+						&& CurrentShadowInfo->GetParentSceneInfo() == PrimitiveSceneInfo
+						&& CurrentShadowInfo->ShadowDepthView)
 					{
 						check(CurrentShadowInfo->RenderTargets.ColorTargets.Num() > 0);
 						TranslucentSelfShadow = CurrentShadowInfo;
