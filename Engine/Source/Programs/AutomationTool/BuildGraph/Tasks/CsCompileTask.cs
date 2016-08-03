@@ -381,6 +381,8 @@ namespace AutomationTool.Tasks
 					case "Library":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".dll"));
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
+						FileReference DllConfig = FileReference.Combine(OutputDir, AssemblyName + ".dll.config");
+						if (DllConfig.Exists()) { BuildProducts.Add(DllConfig); }
 						return true;
 				}
 			}

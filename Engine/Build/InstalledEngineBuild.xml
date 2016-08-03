@@ -400,7 +400,6 @@
 				<Tag Files="#UE4Game Android;#UE4Game Android Includes" Except="#UE4Game Android Unstripped" With="#Installed Win64"/>
 				<Tag Files="#UE4Game Android Stripped" With="#Saved Output"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyAndroidFilter)"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/AndroidWorks/Win64/*.exe"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyAndroidExceptions)"/>
 			</Do>
 			<Do If="'$(WithIOS)' == true">
@@ -441,40 +440,6 @@
 			<Tag Files="#Installed Win64" Filter="*.target" With="#TargetReceipts"/>
 			<TagReceipt Files="#TargetReceipts" RuntimeDependencies="true" PrecompiledBuildDependencies="true" PrecompiledRuntimeDependencies="true" With="#Installed Win64"/>
 
-			<!-- Win64-specific dependencies -->
-			<!-- Exclude Mac binaries on windows here, because previous wildcard for plugin resources matches OSX dsym resources on Windows -->
-			<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Plugins/.../Binaries/Mac/..."/>
-
-			<!-- Hopefully the following are now included by the runtime dependencies -->
-			<!--<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Win32/VS2015/*"/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2015/*"/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2015/*.dll"/>
-			<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2015/*DEBUG_x64.dll"/>
-			<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2015/*CHECKED_x64.dll"/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll"/>
-
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/LeapMotion/..."/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/OSVRClientKit/bin/Win64/..."/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/Runtime/LeapMotion/ThirdParty/LeapSDK/..."/>-->
-
-			<!-- Build batch files -->
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Build.bat"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Clean.bat"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Rebuild.bat"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/RunUAT.bat"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/GetVSComnToolsPath.bat"/>
-
-			<!-- Binaries which are explicitly staged by UAT rather than listing runtime dependencies -->
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/ThirdParty/OpenSSL/..."/>
-		
-			<!-- Extra tools -->
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/3dsMaxScripts/..."/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/VisualStudioDebugging/UE4.natvis"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/Maya_AnimationRiggingTools/MayaTools/..."/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/MayaVelocityGridExporter/..."/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/UnrealVS/..."/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/Redist/en-us/*"/>
-			
 			<!-- Confidential Exceptions - done last to ensure they never get overwritten -->
 			<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(ConfidentialExceptions)"/>
 			
@@ -594,7 +559,6 @@
 				<Tag Files="#UE4Game Android;#UE4Game Android Includes" Except="#UE4Game Android Unstripped" With="#Installed Mac"/>
 				<Tag Files="#UE4Game Android Stripped" With="#Saved Output"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyAndroidFilter)"/>
-				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/AndroidWorks/Mac/*.dmg"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyAndroidExceptions)"/>
 			</Do>
 			<Do If="'$(WithIOS)' == true">
@@ -618,33 +582,6 @@
 			<!-- Tag any dependencies from all previous build products -->
 			<Tag Files="#Installed Mac" Filter="*.target" With="#TargetReceipts"/>
 			<TagReceipt Files="#TargetReceipts" RuntimeDependencies="true" PrecompiledBuildDependencies="true" PrecompiledRuntimeDependencies="true" With="#Installed Mac"/>
-
-			<!-- Mac-specific dependencies -->
-			<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Plugins/.../Binaries/Win64/...;Engine/Plugins/.../Binaries/Win32/..."/>
-
-			<!-- Hopefully the following are now included by the runtime dependencies -->
-			<!--<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Mac/*"/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/Mono/Mac/..."/>
-			<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/CEF3/cef_binary_3.2357.1291.g47e6d4b_macosx64/Release/locale/..."/>-->
-
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/Build.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/GenerateLLDBInit.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/FixDependencyFiles.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/SetupMono.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/FixMonoFiles.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/RunMono.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/Mac/RunXBuild.sh"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/RunUAT.command"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Build/BatchFiles/RunUAT.sh"/>
-
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Binaries/ThirdParty/Mono/Mac/..."/>
-
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/LLDBDataFormatters/UE4DataFormatters.py"/>
-			<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/..."/>
-
-			<!-- Don't want these folders, even if they're part of Windows tools -->
-			<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);Engine/Binaries/Win64/...;Engine/Binaries/Win32/..."/>
 
 			<!-- Confidential Exceptions - done last to ensure they never get overwritten -->
 			<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(ConfidentialExceptions)"/>
