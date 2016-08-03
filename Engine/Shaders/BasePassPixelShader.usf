@@ -736,7 +736,7 @@ void FPixelShaderInOut_MainPS(
 		}
 	#else
 		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
+			float4 ScreenPosition = SvPositionToResolvedScreenPosition(SVPositionForComputingPositions);
 			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
 			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
 		}
