@@ -2,29 +2,19 @@ Availability:Public
 Title:4. Deploy Your Level
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Launch your level with one-click deploying.
-Version:4.9
 Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+type:sequential
+parent:Platforms/Android/GettingStarted
+order:4
+Checkpoint:AndroidQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 In the following section we will be taking a look at how you can deploy a single level from the project you are working in to your Android device for quick testing. 
 
-%Steps%
+[nav]
 
 [region:note]
 For this section to work you will need to make sure that your Android device is plugged into your development PC via USB. If you have not done this already please do this before going any further.
@@ -46,6 +36,8 @@ The chart below shows you which Texture formats work with which Android based de
 	![](Available_Texture_Formats.png)
 
 [/REGION:tip]
+
+## Steps
 
 1.	To test your current level on a Android based device you first need to make sure you have the level you want to test open. 
 	From this example we will be using the **ThirdPersonExampleMap** level from the Blueprint based project that was created in the last step.
@@ -79,6 +71,7 @@ The chart below shows you which Texture formats work with which Android based de
 
 	![](Deployed_Project_Android.png)
 
+## End Result
+When completed the UE4 project that you created will now be running on your Android based smartphone.
 
-
-%Steps%
+[nav]

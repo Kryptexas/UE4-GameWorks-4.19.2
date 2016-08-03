@@ -2,7 +2,7 @@
 Title: Android Development Reference
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:How to install different Android SDKs, set environment variables, and work with texture formats.
-Version: 4.9
+Version: 4.12
 SkillLevel: Intermediate
 Parent:Platforms/Android
 tags:Mobile
@@ -13,10 +13,11 @@ type:reference
 
 %Globals:OSSelect%
 
+## Overview
+The Android Development Reference pages contains a high level explanation of the various software components and system settings you will need to make sure you have installed and setup on the computer you are using to develop your UE4 Android project.
 
-
+## Android SDK Requirements
 Here is what we currently require for Android game development:
-
 
 |Project Type | Components | Environment Variables |
 | ------------- | ---------- | --------------------- |

@@ -83,10 +83,15 @@ To set which level (or levels) should be used for this type of interaction, you 
 
 	 ![](T_Project_Settings.png)
 
-1. Then, under **Project** in the **Maps & Modes** section, set the map in the **Default Maps** to a map that is specific to your project.
+1. Then, under **Project** in the **Maps & Modes** section look for the **Default Maps** section.
 
 	![](T_Set_Maps.png)
 
+1. Click on the arrow next to **Game Default Map** and from the asset list select the map you want to use for the games default starting level. 
+	
+	![](T_Project_Settings_Default_Game_Map.png)
+
+1. Repeat this process until you have levels setup for each required map type.
 ## Checking what Content will be Cooked
 To ensure that only the content that is related to your project is added to your APK file, you can check which content is being added to your project's APK by looking in the **Cooked** folder in your project.
 You can find the Cooked folder by going to **(ProjectName)\Saved\Cooked** and then choosing the folder with the format you cooked your project for.

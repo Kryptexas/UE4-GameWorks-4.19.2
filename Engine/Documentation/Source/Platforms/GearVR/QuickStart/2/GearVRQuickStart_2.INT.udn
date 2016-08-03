@@ -2,35 +2,25 @@ Availability:Public
 Title:2. Gear VR Project Setup
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Description:How to setup your C++ based UE4 project to be used with the Gear VR Headset.
-Navigation:platform
-Skilllevel: Intermediate
 Version: 4.9
+Skilllevel: Intermediate
+tags:VR
+tags:GearVR
+type:sequential
+parent:Platforms/GearVR/QuickStart
+order:2
+Checkpoint:GearVRQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/GearVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/GearVR/QuickStart/3 "%Platforms/GearVR/QuickStart/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-%Steps%
+## Steps
 
-
-1. Once the project has finished being created and compiled, Visual Studio 2013 will automatically open (if already installed) along with the editor.
+1. Once the project has finished being created and compiled, Visual Studio 2015 will automatically open (if already installed) along with the editor.
 
 	![](GVR_Editor_Opened.png)
 
 	[region:note]
-	If you are using Unreal Engine 4.8 or later and a Blueprint based project, Visual Studio 2013 will not open up as it is not needed. 
+	If you are using Unreal Engine 4.8 or later and a Blueprint based project, Visual Studio 2015 will not open up as it is not needed. 
 	[/region]
 
 1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu. 
@@ -114,4 +104,7 @@ Version: 4.9
 	[/region]
 	-->
 
-%Steps%
+[nav]
+
+## End Result
+When completed you will now have a UE4 project that is ready to be built, deployed and viewed on your Samsung Galaxy smartphone.

@@ -1,30 +1,19 @@
 Availability:Public
-Title:1. Install the Android SDK
+Title:1. Required Android Setup
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description: Install the CodeWorks for Android 1R4 SDK.
-Version:4.9
+Version:4.12
 Skilllevel:Intermediate
 Tags:Android
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+type:sequential
+parent:Platforms/Android/GettingStarted
+order:1
+Checkpoint:AndroidQS
 
 
-%Steps%
+[nav]
 
-
+## Steps
 The first thing we need to do to start developing for Android is to install CodeWorks for Android 1R4, which will 
 ensure that you have all the required programs and code needed to deploy to Android devices.
 In the following section, we will cover how you can get CodeWorks for Android 1R4 installed on your development PC.
@@ -95,7 +84,7 @@ It is highly recommended that you install CodeWorks for Android 1R4 while the ed
 
 	[/region]
 
-1. Double-click on the **AndroidWorks-1R1-windows.exe** file to initiate the install process.
+1. Double-click on the **CodeWorksforAndroid-1R4-windows.exe** file to initiate the install process.
 
 	![](AndroidWorks_11.png)
 
@@ -183,7 +172,7 @@ Use the links provide below to download and install the correct versions of Java
 
 	[/region]
 
-1. Double-click on the **AndroidWorks-1R1-osx.dmg** to load the CodeWorks for Android 1R4 installer.
+1. Double-click on the ** CodeWorks for Android 1R4-osx.dmg** to load the CodeWorks for Android 1R4 installer.
 	
 	![](AndroidWorks_Mac_00.png)
 
@@ -236,5 +225,8 @@ Use the links provide below to download and install the correct versions of Java
 [/EXCERPT:MacOSSetup]
 -->
 
-%Steps%
+## End Result
+When completed you will now have all of the required Android SDK's installed and ready for use in building a UE4 project that can work on Android  devices.
+
+[nav]
 

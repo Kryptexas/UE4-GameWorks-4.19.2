@@ -2,29 +2,22 @@
 Title:5. Package Your Game
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Package your game for installation.
-Version:4.9
+Version:4.12
 Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+type:sequential
+parent:Platforms/Android/GettingStarted
+order:5
+Checkpoint:AndroidQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
 In order for you to be able to share your project with others or put it on a digital store to sell, the project needs to be packaged. 
 In the following section we will take a look at how you can package your finished project for deployment inside of UE4.
 
-%Steps%
+## Steps
+
 
 %Globals:OSSelect%
 
@@ -56,6 +49,8 @@ In the following section we will take a look at how you can package your finishe
 	[INCLUDE:#MacOSSetup]
 	[/PARAM]
 [/OBJECT]
+
+
 
 <!--
 [EXCERPT:WindowsSetup]
@@ -148,4 +143,6 @@ We are currently packaging in **Development** because we are testing this game, 
 [/EXCERPT:MacOSSetup]
 -->
 
-%Steps%
+## End Result
+When completed you will now have a .APK file that contains your UE4  project that can now be deployed via the .BAT file to any Android based smartphone.
+[nav]

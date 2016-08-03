@@ -36,8 +36,9 @@ Before we can get into UE4 Gear VR development, we first must make sure that the
 The USB cord is of vital importance, as this is how you transfer data between your development PC and your Smartphone.
 
 * Only certain types of Samsung Galaxy Smartphones will work with the Gear VR Headset. 
-	The [Oculus website](https://support.oculus.com/hc/en-us/articles/204113096-Samsung-Gear-VR-Innovator-Edition-Samsung-Galaxy-Note-4-Compatibility) has a list of phone models that will work with the Gear VR Headset.
+	The [Oculus website](https://support.oculus.com/help/oculus/1099393013405406/?ref=hc_fnav) has a list of phone models that will work with the Gear VR Headset.
 	Make sure to double check that the Samsung Galaxy Note 4 Smartphone you are buying is the correct model that will work with the Gear VR Headset.
+
 
 * Make sure to download and install the specific USB drivers for your Galaxy Note 4 from the [Samsung Website](http://www.samsung.com/us/support/downloads). 
 
