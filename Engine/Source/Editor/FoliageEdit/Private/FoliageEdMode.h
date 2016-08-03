@@ -536,9 +536,6 @@ private:
 
 	FDelegateHandle OnActorSpawnedHandle;
 
-	/** Whether we're currently painting */
-	bool bIsPainting;
-
 	/** When painting in VR, this is the hand index that we're painting with.  Otherwise INDEX_NONE. */
 	class UViewportInteractor* FoliageInteractor;
 

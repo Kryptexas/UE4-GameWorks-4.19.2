@@ -175,7 +175,6 @@ FEdModeFoliage::FEdModeFoliage()
 	, bCanAltDrag(false)
 	, bAdjustBrushRadius(false)
 	, FoliageMeshListSortMode(EColumnSortMode::Ascending)
-	, bIsPainting(false)
 	, FoliageInteractor(nullptr)
 {
 	// Load resources and construct brush component
@@ -498,6 +497,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 								GEditor->EndTransaction();
 							}
 						}
+						// Select an instanced foliage
 						else if (UISettings.GetSelectToolSelected())
 						{
 							FHitResult HitResult = FoliageInteractor->GetHitResultFromLaserPointer();
@@ -526,7 +526,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 			}
 
 			// Stop current tracking if the user is no longer painting
-			else if (Action.Event == IE_Released && bIsPainting && FoliageInteractor && FoliageInteractor == Interactor)
+			else if (Action.Event == IE_Released && FoliageInteractor && FoliageInteractor == Interactor)
 			{
 				EndFoliageBrushTrace();
 			}
@@ -732,12 +732,15 @@ void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime
 					}
 					else if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 					{
+						if (!UISettings.GetLassoSelectToolSelected())
+						{
+							StartFoliageBrushTrace(ViewportClient, Interactor);
+						}
+
 						// Go ahead and paint immediately
 						FVector LaserPointerStart, LaserPointerEnd;
 						if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 						{
-							StartFoliageBrushTrace(ViewportClient, Interactor);
-
 							const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 
 							FoliageBrushTrace(ViewportClient, LaserPointerStart, LaserPointerDirection);
@@ -758,7 +761,6 @@ void FEdModeFoliage::StartFoliageBrushTrace(FEditorViewportClient* ViewportClien
 		ApplyBrush(ViewportClient);
 		bToolActive = true;
 	}
-	bIsPainting = true;
 }
 
 void FEdModeFoliage::EndFoliageBrushTrace()
@@ -767,7 +769,6 @@ void FEdModeFoliage::EndFoliageBrushTrace()
 	InstanceSnapshot.Empty();
 	LandscapeLayerCaches.Empty();
 	bToolActive = false;
-	bIsPainting = false;
 	bBrushTraceValid = false;
 }
 
