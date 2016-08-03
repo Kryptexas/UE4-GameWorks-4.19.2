@@ -305,6 +305,11 @@ void ScalabilityCVarsSinkCallback()
 		bool bRecreateRenderstate = false;
 		bool bCacheResourceShaders = false;
 
+		if (LocalScalabilityCVars.DetailMode != GCachedScalabilityCVars.DetailMode)
+		{
+			bRecreateRenderstate = true;
+		}
+
 		if (LocalScalabilityCVars.MaterialQualityLevel != GCachedScalabilityCVars.MaterialQualityLevel)
 		{
 			bCacheResourceShaders = true;
