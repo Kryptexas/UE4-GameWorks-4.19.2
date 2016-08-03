@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714483
 Availability:Public
 Title: Persona 窗口
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -123,26 +123,26 @@ version: 4.9
 | **View Selected Bone Weight** | 在视窗中显示选中骨骼的权重。 |
 | **Display Info** | 在视窗中显示当前模型的信息。 |
 
-**Scene Setup**
+**场景设置**
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **Floor** | Toggle the display of the floor.  |
-| **Sky** | Toggle the display of the sky. |
-| **Floor Height Offset** | Height offset for the floor mesh (stored per-mesh). |
-| **Grid** | Toggle the display of the grid. |
-| **Highlight Origin** | Highlight the origin lines on the grid. |
-| **Background Brightness** | Change background color and assign a brightness value. |
+| **Floor** | 地面是否显示开关。 |
+| **Sky** | 天空是否显示开关。 |
+| **Floor Height Offset** | 地面的高度偏移（基于每个模型保存）。 |
+| **Grid** | 网格是否显示开关。 |
+| **Highlight Origin** | 在网格显示中高亮原始线条。 |
+| **Background Brightness** | 修改背景颜色，并设置亮度值。 |
 
-**Advanced**
+**高级**
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **UV Visualization** | Toggles the display of the mesh's UVs for the specified channel. |
-| **Normals** | Toggles the display of vertex normals in the Preview Pane. |
-| **Tangents** | Toggles the display of vertex tangents in the Preview Pane. |
-| **Binormals** | Toggles the display of vertex binormals (orthogonal vector to normal and tangent) in the Preview Pane. |
-| **Hierarchy Local Axes** | Show or hide local bone axis (All, Selected Hierarchy or None). |
+| **UV Visualization** | 对模型上的特定通道的 UV 显示开关。 |
+| **Normals** | 在预览面板中模型的法线向量显示的开关。 |
+| **Tangents** | 在预览面板中模型的切线向量显示的开关。 |
+| **Binormals** | 在预览面板中模型的双向量（正交的法线和切线）显示开关。 |
+| **Hierarchy Local Axes** | 显示或隐藏骨骼的本地坐标轴（全部，当前选中骨骼及依赖骨骼，或者 无）。 |
 
 
 <!--
@@ -167,14 +167,14 @@ version: 4.9
 [/EXCERPT:Wireframe]
 -->
 
-### Preview LODs
+### 预览 LOD
 
-The **Preview LODs** Button ![](Persona_LODAuto.png) provides the following options: 
+**预览 LOD** 按钮 ![](Persona_LODAuto.png) 提供以下选项：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **LOD Auto** | Automatically selects the Level Of Detail (LOD) (this is the default setting). |
-| **LOD 0** | Selects LOD 0 as the LOD. |
+| **LOD Auto** | 自动选择细节等级（Level Of Detail，LOD）（此设置为默认设置）。 |
+| **LOD 0** | 选用 LOD 0 为 LOD。 |
 <!--| **Level of Detail Settings** | Opens a dialog box in where you can adjust LOD Settings (pictured below). |
 
 ![](LODSettingsMenu.png)
@@ -190,21 +190,67 @@ When an LOD is applied, either through the **Import LOD** option or through the 
 _The added LOD(s) can either be removed or an FBX asset can be imported for the LOD._
 -->
 
-### Playback Speed
+### 回放速度
 
-The **Playback Speed** Button ![](Persona_PlaybackSpeed.png) provides the following options: 
+**回放速度** 按钮 ![](Persona_PlaybackSpeed.png) 提供以下选项：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **x0.1** | Sets the playback speed to 0.1.|
-| **x0.25** | Sets the playback speed to 0.25. |
-| **x0.5** | Sets the playback speed to 0.5. |
-| **x1.0** | Sets the playback speed to 1.0 (this is the default setting). |
-| **x2.0** | Sets the playback speed to 2.0. |
-| **x5.0** | Sets the playback speed to 5.0. |
-| **x10.0** | Sets the playback speed to 10.0. |
+| **x0.1** | 将回放速度设置为 0.1。|
+| **x0.25** | 将回放速度设置为 0.25。 |
+| **x0.5** | 将回放速度设置为 0.5。 |
+| **x1.0** | 将回放速度设置为 1.0 （此设置为默认设置）。|
+| **x2.0** | 将回放速度设置为 2.0。 |
+| **x5.0** | 将回放速度设置为 5.0。 |
+| **x10.0** | 将回放速度设置为 10.0。 |
 [/EXCERPT:viewoptions]
 
+### 旋转速度表格
+
+**旋转速度** 按钮 ![](Persona_TurnTableSpeed.png) 提供以下选项：
+
+| 选项 | 描述 |
+| ------ | ----------- |
+| **Play** | 以当前选中速度播放旋转表单（转动骨架网格体） |
+| **Pause** | 以当前方向暂停旋转表单 |
+| **Stop** | 停止旋转表单，并重置角度至初始方向 |
+| **x0.1** | 将旋转表单的速度设置为 0.1。 |
+| **x0.25** | 将旋转表单的速度设置为 0.25。 |
+| **x0.5** | 将旋转表单的速度设置为 0.5。 |
+| **x1.0** | 将旋转表单的速度设置为 1.0 （这是默认设置）。 |
+| **x2.0** | 将旋转表单的速度设置为 2.0。 |
+| **x5.0** | 将旋转表单的速度设置为 5.0。 |
+| **x10.0** | 将旋转表单的速度设置为 10.0。 |
+
+## 视口
+
+**视口** 显示了骨架网格体的预览，以及当前工具栏和菜单的设置项，并播放任何当前选中的动画。
+
+![Viewport Panel](ViewportPanel_Viewport.png)
+
+## 时间轴和控制栏
+
+[EXCERPT:PreviewControls]
+**时间轴** 和 **控制栏** 包含以下功能：
+
+| 控件 | 描述|
+| ------- | ----------- |
+| ![Control bar - Timeline（控件条-时间轴）](CE_button_timeline.png) | 时间轴显示了 _动画序列_ 或 _混合空间_ 的帧，并允许滑过帧来进行预览。在当前位置显示了一个红条。**左击该红条并进行拖拽** 就可以浏览帧。|
+| ![Control bar - Skip to Beginning（控制条 - 跳转到开头）](CE_button_beginning.png) | 跳转到 _动画序列_ 或 _混合空间_ 的第一帧。|
+| ![Control bar - Step Backward（控制条 - 逐帧倒放）](CE_button_step_back.png) |跳转到  _动画序列_ 或 _混合空间_ 中的前一帧。|
+| ![Control bar - Play in Reverse(控制条- 反向播放)](CE_button_play_back.png) ![Control bar - Pause](CE_button_pause.png) | 开始反向播放 _动画序列_ 或 _混合空间_ 。当播放动画时，会显示暂停按钮。|
+| ![Control bar - Play Forward（控制条- 正向播放）](CE_button_play_forward.png) ![Control bar - Pause](CE_button_pause.png) | 开始正向播放 _动画序列_ 或 _混合空间_ 。当播放动画时，会显示暂停按钮。|
+| ![Control bar - Step Forward（控制条 - 逐帧向前播放）](CE_button_step_forward.png) | 跳转到 _动画序列_ 或 _混合空间_ 的下一帧。|
+| ![Control bar - Skip to End（控制条 -跳转到结尾处）](CE_button_end.png) | 跳转到 _动画序列_ 或 _混合空间_ 的最后一帧。|
+| ![Control bar - Enable Looping(控制条 - 启用循环)](CE_button_loop.png) ![Control bar - Disable Looping](CE_button_loop_enabled.png) | 在播放一次和循环播放之间进行切换。当启用循环播放时，该按钮变为红色。|
+
+[REGION:note]
+如果打开一个混合空间资源或者动画偏移资源，如果预览开启的话，该动画会自动播放。如果在 AnimationSequence 或是 AnimationMontage 中暂停或禁用循环播放选项并此时打开混合空间或动画偏移的话，动画将不会自动播放。如果需要自动播放的话则需启用 播放/循环 的选项。
+[/REGION]
+
+[/EXCERPT:PreviewControls]
+
+<!--
 ## 显示标志
 
 该视口包含一个具有各种选项的菜单，用于指定视口的行为。
@@ -240,3 +286,4 @@ The **Playback Speed** Button ![](Persona_PlaybackSpeed.png) provides the follow
 在预览视口中使用的预览网格物体，请在列表中选中该网格物体并点击 **用作为预览网格物体** 。
 要想删除预览视口中当前正在使用的网格物体，那么请点击 **Clear preview（清除预览）** 按钮。您可以使用骨架网格物体列表上方的文本框过滤 
 该列表。
+-->
