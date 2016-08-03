@@ -1045,12 +1045,10 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	check(IsInRenderingThread());
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
-	const float WorldToMetersScale = ViewFamily.Views[ 0 ]->WorldToMetersScale;
+	const FSceneView* MainView = ViewFamily.Views[0];
+	const float WorldToMetersScale = MainView->WorldToMetersScale;
 
-	FVector OldPosition;
-	FQuat OldOrientation;
-	GetCurrentPose(OldOrientation, OldPosition, vr::k_unTrackedDeviceIndex_Hmd);
-	const FTransform OldRelativeTransform(OldOrientation, OldPosition);
+	const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
 
 	FVector NewPosition;
 	FQuat NewOrientation;
