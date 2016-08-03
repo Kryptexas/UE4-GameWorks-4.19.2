@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title:Developer Tools
 Crumbs: %ROOT%, Engine
 Description:Descriptions of the options found under the Developer Tools file menu. 
@@ -40,7 +40,7 @@ See the table below for more information and links to additional pages.
 | **Device Manager** | Opens the Device Manager. |
 | **Device Profiles** | Opens the [**Device Profiles**](Platforms/DeviceProfiles) tool. Allows you to manage device-specific configurations inside your project. |
 | **Merge Actors** | Opens the Merge Actors tool. |
-| **Pixel Inspector** | Opens the [**Pixel Inspector**](Engine\Tools\DevTools\PixelInspector). Provides information about a specific Pixel from a viewport. |
+| **Pixel Inspector** | Opens the [**Pixel Inspector**](Engine/Tools/DevTools/PixelInspector). Provides information about a specific Pixel from a viewport. |
 | **Session Frontend** | Opens the [**Session Frontend**](Engine/Deployment/UnrealFrontend) tool. Multipurpose tool used for daily game development (prepping builds, deployment, launching). |
 | **Widget Reflector** | Opens the Widget Reflector. |
 
