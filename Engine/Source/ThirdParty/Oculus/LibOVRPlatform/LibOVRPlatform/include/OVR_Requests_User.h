@@ -23,8 +23,8 @@
 /// To protect user privacy, users have a different ovrID across different applications. If you are caching them,
 /// make sure that you're also restricting them per application.
 
-/// Retrieve the user with the given ID. This may fail if the ID is invalid or
-/// the user is blocked.
+/// Retrieve the user with the given ID. This might fail if the ID is invalid
+/// or the user is blocked.
 /// 
 /// NOTE: Users will have a unique ID per application.
 /// \param userID User ID retrieved with this application.
@@ -83,13 +83,25 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUserFriends();
 /// Extract the payload from the message handle with ::ovr_Message_GetUserArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetNextUserArrayPage(ovrUserArrayHandle handle);
 
+/// returns an ovrID which is unique per org. allows different apps within the
+/// same org to identify the user.
+/// \param userID to load the org scoped id of
+///
+/// A message with type ::ovrMessage_User_GetOrgScopedID will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrOrgScopedIDHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetOrgScopedID().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetOrgScopedID(ovrID userID);
+
 /// Part of the scheme to confirm the identity of a particular user in your
 /// backend. You can pass the result of ovr_UserProof_Generate() and
 /// ovr_GetLoggedInUserID() to your your backend. Your server can use our api
 /// to verify identity. 'https://graph.oculus.com/user_nonce_validate?nonce=USE
 /// R_PROOF&user_id=USER_ID&access_token=ACCESS_TOKEN'
 /// 
-/// NOTE: the nonce is only good for one check and then it's invalidated.
+/// NOTE: The nonce is only good for one check and then it is invalidated.
 ///
 /// A message with type ::ovrMessage_User_GetUserProof will be generated in response.
 ///

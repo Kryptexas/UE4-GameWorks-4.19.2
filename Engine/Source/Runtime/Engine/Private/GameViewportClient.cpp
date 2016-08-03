@@ -2662,10 +2662,6 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 	check(CVar);
 	auto FullScreenMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
-	{
-		FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
-	}
 
 	if (PLATFORM_WINDOWS && FullScreenMode == EWindowMode::Fullscreen)
 	{

@@ -113,10 +113,10 @@
 ///
 
 /// Requests a block of Leaderboard Entries.
-/// \param leaderboardName the name of the leaderboard whose entries to return
-/// \param limit defines the maximum number of entries to return.
-/// \param filter allows you to restrict the returned values by friends.
-/// \param startAt defines whether to center the query on the user, or start at the top of the leaderboard.
+/// \param leaderboardName The name of the leaderboard whose entries to return.
+/// \param limit Defines the maximum number of entries to return.
+/// \param filter Allows you to restrict the returned values by friends.
+/// \param startAt Defines whether to center the query on the user or start at the top of the leaderboard.
 ///
 /// A message with type ::ovrMessage_Leaderboard_GetEntries will be generated in response.
 ///
@@ -126,10 +126,10 @@
 /// Extract the payload from the message handle with ::ovr_Message_GetLeaderboardEntryArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntries(const char *leaderboardName, int limit, ovrLeaderboardFilterType filter, ovrLeaderboardStartAt startAt);
 
-/// Requests a block of Leaderboard Entries.
-/// \param leaderboardName the  name of the leaderboard whose entries to return
-/// \param limit defines the maximum number of entries to return.
-/// \param afterRank defines after which position to start at.  ex. 10 would return first with the 11th person on the leaderboard
+/// Requests a block of leaderboard Entries.
+/// \param leaderboardName The name of the leaderboard.
+/// \param limit The maximum number of entries to return.
+/// \param afterRank The position after which to start.  For example, 10 returns leaderboard results starting with the 11th user.
 ///
 /// A message with type ::ovrMessage_Leaderboard_GetEntriesAfterRank will be generated in response.
 ///
@@ -140,7 +140,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntries(const char *leaderbo
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntriesAfterRank(const char *leaderboardName, int limit, unsigned long long afterRank);
 
 /// Requests the next block of leaderboard entries.
-/// \param handle the return value from ovr_MessageGetLeaderboardEntryArray.
+/// \param handle The return value from ovr_MessageGetLeaderboardEntryArray.
 ///
 /// A message with type ::ovrMessage_Leaderboard_GetNextEntries will be generated in response.
 ///
@@ -151,7 +151,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntriesAfterRank(const char 
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetNextEntries(const ovrLeaderboardEntryArrayHandle handle);
 
 /// Requests the previous block of leaderboard entries.
-/// \param handle the return value from ovr_MessageGetLeaderboardEntryArray.
+/// \param handle The return value from ovr_MessageGetLeaderboardEntryArray.
 ///
 /// A message with type ::ovrMessage_Leaderboard_GetPreviousEntries will be generated in response.
 ///
@@ -161,12 +161,12 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetNextEntries(const ovrLeaderb
 /// Extract the payload from the message handle with ::ovr_Message_GetLeaderboardEntryArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetPreviousEntries(const ovrLeaderboardEntryArrayHandle handle);
 
-/// Writes a single entry to a leaderboard
-/// \param leaderboardName the leaderboard to write the entry to
-/// \param score the score to write
-/// \param extraData a 2KB custom data field that is associated to the leaderboard entry. This can be a game replay or anything that give more detail about the entry to the viewer
-/// \param extraDataLength the length of the extra data
-/// \param forceUpdate if true will have the score always update, even if it's not the user's personal best score that is being submitted
+/// Writes a single entry to a leaderboard.
+/// \param leaderboardName The leaderboard for which to write the entry.
+/// \param score The score to write.
+/// \param extraData A 2KB custom data field that is associated with the leaderboard entry. This can be a game replay or anything that provides more detail about the entry to the viewer.
+/// \param extraDataLength The length of the extra data.
+/// \param forceUpdate If true, the score always updates.  This happens even if it is not the user's best score.
 ///
 /// A message with type ::ovrMessage_Leaderboard_WriteEntry will be generated in response.
 ///

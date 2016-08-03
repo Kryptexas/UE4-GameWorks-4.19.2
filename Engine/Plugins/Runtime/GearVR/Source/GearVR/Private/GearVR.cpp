@@ -4,13 +4,19 @@
 #include "GearVR.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+
+#if GEARVR_SUPPORTED_PLATFORMS
+
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
+#include <android_native_app_glue.h>
+
+#endif
+
 #include "RHIStaticStates.h"
 #include "SceneViewport.h"
 #include "GearVRSplash.h"
 
-#include <android_native_app_glue.h>
 
 //---------------------------------------------------
 // GearVR Plugin Implementation
@@ -586,7 +592,7 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 FString FGearVR::GetVersionString() const
 {
 	FString VerStr = ANSI_TO_TCHAR(vrapi_GetVersionString());
-	FString s = FString::Printf(TEXT("%s, VrLib: %s, built %s, %s"), *FEngineVersion::Current().ToString(), *VerStr,
+	FString s = FString::Printf(TEXT("GearVR - %s, VrLib: %s, built %s, %s"), *FEngineVersion::Current().ToString(), *VerStr,
 		UTF8_TO_TCHAR(__DATE__), UTF8_TO_TCHAR(__TIME__));
 	return s;
 }

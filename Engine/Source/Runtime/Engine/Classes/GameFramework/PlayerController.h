@@ -872,7 +872,7 @@ public:
 	* @param	Scale					Scale between 0.0 and 1.0 on the intensity of playback
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
-	void PlayHapticEffect(class UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale = 1.f);
+	void PlayHapticEffect(class UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale = 1.f,  bool bLoop = false);
 
 	/**
 	* Stops a playing haptic feedback curve

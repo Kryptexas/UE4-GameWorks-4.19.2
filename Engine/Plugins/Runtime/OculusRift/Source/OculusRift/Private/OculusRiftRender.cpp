@@ -381,9 +381,13 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 
 			// Only clear the destination buffer if we're copying to a sub-rect of the viewport.  We don't want to see
 			// leftover pixels from a previous frame
-			const bool bClearRenderTargetToBlackFirst = ( DstViewRect != BackBufferRect );
+			if( DstViewRect != BackBufferRect )
+			{
+				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+				RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, DstViewRect);
+			}
 
-			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), FIntRect(), SrcViewRect, false, bClearRenderTargetToBlackFirst);
+			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), DstViewRect, SrcViewRect, false, false);
 		}
 	}
 #if !UE_BUILD_SHIPPING
@@ -417,9 +421,43 @@ static void DrawOcclusionMesh(FRHICommandList& RHICmdList, EStereoscopicPass Ste
 		);
 }
 
+bool FOculusRiftHMD::HasHiddenAreaMesh() const
+{
+	// Don't use hidden area mesh if it will interfere with mirror window output
+	auto RenderContext = pCustomPresent->GetRenderContext();
+
+	if (RenderContext)
+	{
+		if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed || 
+			RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill )
+		{
+			return false;
+		}
+	}
+
+	return HiddenAreaMeshes[0].IsValid() && HiddenAreaMeshes[1].IsValid();
+}
+
 void FOculusRiftHMD::DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
 {
 	DrawOcclusionMesh(RHICmdList, StereoPass, HiddenAreaMeshes);
+}
+
+bool FOculusRiftHMD::HasVisibleAreaMesh() const 
+{
+	// Don't use visible area mesh if it will interfere with mirror window output
+	auto RenderContext = pCustomPresent->GetRenderContext();
+
+	if (RenderContext)
+	{
+		if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed || 
+			RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill )
+		{
+			return false;
+		}
+	}
+
+	return VisibleAreaMeshes[0].IsValid() && VisibleAreaMeshes[1].IsValid();
 }
 
 void FOculusRiftHMD::DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
@@ -637,12 +675,15 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 // 
 // 			Y += RowHeight;
 
-			Str = FString::Printf(TEXT("PD: %.2f"), FrameSettings->PixelDensity);
-			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-			Y += RowHeight;
-
-			Str = FString::Printf(TEXT("QueueAhead: %s"), (FrameSettings->QueueAheadStatus == FSettings::EQA_Enabled) ? TEXT("ON") : 
-				((FrameSettings->QueueAheadStatus == FSettings::EQA_Default) ? TEXT("DEFLT") : TEXT("OFF")));
+			if(!FrameSettings->PixelDensityAdaptive)
+			{
+				Str = FString::Printf(TEXT("PD: %.2f"), FrameSettings->PixelDensity);
+			}
+			else
+			{
+				Str = FString::Printf(TEXT("PD: %.2f [%0.2f, %0.2f]"), FrameSettings->PixelDensity, 
+					FrameSettings->PixelDensityMin, FrameSettings->PixelDensityMax);
+			}
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 			Y += RowHeight;
 

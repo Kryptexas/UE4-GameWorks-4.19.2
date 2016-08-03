@@ -6,6 +6,7 @@
 #include "OVR_Types.h"
 #include "OVR_Platform_Defs.h"
 
+#include "OVR_MatchmakingStatApproach.h"
 #include <stdbool.h>
 
 /// \file
@@ -244,20 +245,24 @@
 /// queue. When the user has made a selection, call ovr_Matchmaking_JoinRoom on
 /// one of the rooms that was returned. If the user stops browsing, call
 /// ovr_Matchmaking_Cancel2.
-/// \param pool a matchmaking pool with type 'browse' defined for the app.
-/// \param customQueryData optional. custom query data
+/// 
+/// In addition to the list of rooms, enqueue results are also returned. Call
+/// ovr_MatchmakingBrowseResult_GetEnqueueResult to obtain them. See
+/// OVR_MatchmakingEnqueueResult.h for details.
+/// \param pool A BROWSE type matchmaking pool.
+/// \param customQueryData Optional. Custom query data.
 ///
 /// A message with type ::ovrMessage_Matchmaking_Browse will be generated in response.
 ///
 /// First call ::ovr_Message_IsError() to check if an error occurred.
 ///
-/// If no error occurred, the message will contain a payload of type ::ovrMatchmakingRoomArrayHandle.
-/// Extract the payload from the message handle with ::ovr_Message_GetMatchmakingRoomArray().
+/// If no error occurred, the message will contain a payload of type ::ovrMatchmakingBrowseResultHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetMatchmakingBrowseResult().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_Browse(const char *pool, ovrMatchmakingCustomQueryData *customQueryData);
 
 /// DEPRECATED. Use Cancel2.
-/// \param pool the pool in question
-/// \param requestHash Returned from ovr_Matchmaking_[CreateAnd]Enqueue[Room] which is used to find your entry in the queue.
+/// \param pool The pool in question.
+/// \param requestHash Returned from ovr_Matchmaking_[CreateAnd]Enqueue[Room], which is used to find your entry in the queue.
 ///
 /// A message with type ::ovrMessage_Matchmaking_Cancel will be generated in response.
 ///
@@ -285,15 +290,15 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_Cancel2();
 /// 
 /// See overview documentation above.
 /// 
-/// Create a matchmaking room using of the specified size, join it, and enqueue
-/// it. This is the preferred method, but if you do not wish to automatically
-/// enqueue the room you may call CreateRoom instead.
+/// Create a matchmaking room, join it, and enqueue it. This is the preferred
+/// method. But, if you do not wish to automatically enqueue the room, you can
+/// call CreateRoom instead.
 /// 
 /// Visit https://developer2.oculus.com/application/[YOUR_APP_ID]/matchmaking
 /// to set up pools and queries
-/// \param pool the matchmaking pool to use and is defined for the app.
-/// \param maxUsers the maximum number of users allowed in the room, including the host. NOTE: more than 2-player matchmaking is not yet supported.
-/// \param subscribeToUpdates if true will send a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
+/// \param pool The matchmaking pool to use, which is defined for the app.
+/// \param maxUsers DEPRECATED: This will not do anything.  Max Users is defined per pool.
+/// \param subscribeToUpdates If true, sends a message with type ovrMessage_RoomUpdateNotification when the room data changes, such as when users join or leave.
 /// \param customQueryData Optional.  See "Custom criteria" section above.
 ///
 /// A message with type ::ovrMessage_Matchmaking_CreateAndEnqueueRoom will be generated in response.
@@ -304,18 +309,15 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_Cancel2();
 /// Extract the payload from the message handle with ::ovr_Message_GetMatchmakingEnqueueResultAndRoom().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_CreateAndEnqueueRoom(const char *pool, unsigned int maxUsers, bool subscribeToUpdates, ovrMatchmakingCustomQueryData *customQueryData);
 
-/// Create a matchmaking room of the specified size and join it, but do not
-/// enqueue the room. After creation you may call EnqueueRoom, but generally
-/// it's preferred to call CreateAndEnqueueRoom.
-/// 
-/// After creation you may enqueue the room by calling EnqueueRoom. If you wish
-/// to automatically enqueue the room, use CreateAndEnqueueRoom instead.
+/// Create a matchmaking room and join it, but do not enqueue the room. After
+/// creation, you can call EnqueueRoom. However, Oculus recommends using
+/// CreateAndEnqueueRoom instead.
 /// 
 /// Visit https://developer2.oculus.com/application/[YOUR_APP_ID]/matchmaking
 /// to set up pools and queries
-/// \param pool the matchmaking pool to use and is defined for the app.
-/// \param maxUsers the maximum number of users allowed in the room, including the host. NOTE: more than 2-player matchmaking is not yet supported.
-/// \param subscribeToUpdates if true will send a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
+/// \param pool The matchmaking pool to use, which is defined for the app.
+/// \param maxUsers DEPRECATED: This will not do anything.  Max Users is defined per pool.
+/// \param subscribeToUpdates If true, sends a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
 ///
 /// A message with type ::ovrMessage_Matchmaking_CreateRoom will be generated in response.
 ///
@@ -329,14 +331,14 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_CreateRoom(const char *pool, un
 /// 
 /// See overview documentation above.
 /// 
-/// Enqueue yourself to await an available matchmaking room.
-/// ovrMessage_MatchmakingMatchFoundNotification gets put on the message queue
-/// when a match is found. Call ovr_Matchmaking_JoinRoom on the room that is
-/// returned. The response contains useful information to display to the user
-/// to set expectations for how long it will take to get a match.
+/// Enqueue yourself to await an available matchmaking room. The platform
+/// returns a ovrMessage_MatchmakingMatchFoundNotification message when a match
+/// is found. Call ovr_Matchmaking_JoinRoom on the returned room. The response
+/// contains useful information to display to the user to set expectations for
+/// how long it will take to get a match.
 /// 
 /// If the user stops waiting, call ovr_Matchmaking_Cancel2.
-/// \param pool the pool to enqueue in
+/// \param pool The pool to enqueue in.
 /// \param customQueryData Optional.  See "Custom criteria" section above.
 ///
 /// A message with type ::ovrMessage_Matchmaking_Enqueue will be generated in response.
@@ -349,16 +351,16 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_Enqueue(const char *pool, ovrMa
 
 /// Modes: BROWSE (for Rooms only), ROOM
 /// 
-/// See overview documentation above. Enqueue yourself to await an available
-/// matchmaking room. ovrMessage_MatchmakingMatchFoundNotification gets
-/// enqueued when a match is found.
+/// See the overview documentation above. Enqueue yourself to await an
+/// available matchmaking room. ovrMessage_MatchmakingMatchFoundNotification
+/// gets enqueued when a match is found.
 /// 
 /// The response contains useful information to display to the user to set
 /// expectations for how long it will take to get a match.
 /// 
 /// If the user stops waiting, call ovr_Matchmaking_Cancel2.
 /// \param roomID Returned either from ovrMessage_MatchmakingMatchFoundNotification or from ovr_Matchmaking_CreateRoom.
-/// \param customQueryData Optional.  See "Custom criteria" section above.
+/// \param customQueryData Optional.  See the "Custom criteria" section above.
 ///
 /// A message with type ::ovrMessage_Matchmaking_EnqueueRoom will be generated in response.
 ///
@@ -368,12 +370,29 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_Enqueue(const char *pool, ovrMa
 /// Extract the payload from the message handle with ::ovr_Message_GetMatchmakingEnqueueResult().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_EnqueueRoom(ovrID roomID, ovrMatchmakingCustomQueryData *customQueryData);
 
+/// Gets the matchmaking stats for the current user
+/// 
+/// Given a pool it will look up the current user's wins, loss, draws and skill
+/// level. The skill level return will be between 1 and maxLevel. The approach
+/// will dictate how should the skill level rise toward the max level.
+/// \param pool The pool to look in
+/// \param maxLevel The maximum skill level achievable
+/// \param approach The growth function of how the skill levels should approach to the max level.  TRAILING is recommended for displaying to users
+///
+/// A message with type ::ovrMessage_Matchmaking_GetStats will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrMatchmakingStatsHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetMatchmakingStats().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_GetStats(const char *pool, unsigned int maxLevel, ovrMatchmakingStatApproach approach);
+
 /// Modes: BOUT, BROWSE, ROOM
 /// 
 /// Joins a room returned by a previous call to ovr_Matchmaking_Enqueue or
 /// ovr_Matchmaking_Browse.
-/// \param roomID ID of a room previously returned from ovrMessage_MatchmakingMatchFoundNotification or ovr_Message_MatchmakingBrowse
-/// \param subscribeToUpdates if true will send a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
+/// \param roomID ID of a room previously returned from ovrMessage_MatchmakingMatchFoundNotification or ovr_Message_MatchmakingBrowse.
+/// \param subscribeToUpdates If true, sends a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
 ///
 /// A message with type ::ovrMessage_Matchmaking_JoinRoom will be generated in response.
 ///
@@ -385,13 +404,13 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_JoinRoom(ovrID roomID, bool sub
 
 /// Modes: BOUT, BROWSE, ROOM
 /// 
-/// See overview documentation above.
+/// See the overview documentation above.
 /// 
-/// Call only when you've called ovr_Matchmaking_StartMatch to begin a rated
-/// skill match, and then the match finishes. The service will record the
-/// result and update the skills of all players involved based on the results.
-/// This method is insecure because, as a client API, it is susceptible to
-/// tampering and therefore cheating to manipulate skill ratings.
+/// Call this after calling ovr_Matchmaking_StartMatch to begin a rated skill
+/// match and after the match finishes. The service will record the result and
+/// update the skills of all players involved, based on the results. This
+/// method is insecure because, as a client API, it is susceptible to tampering
+/// and therefore cheating to manipulate skill ratings.
 ///
 /// A message with type ::ovrMessage_Matchmaking_ReportResultInsecure will be generated in response.
 ///
@@ -404,9 +423,9 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_ReportResultInsecure(ovrID room
 /// 
 /// For pools with skill-based matching. See overview documentation above.
 /// 
-/// Call after calling ovr_Matchmaking_JoinRoom when players are present to
-/// begin a rated match for which you plan to report the results using
-/// ovr_Matchmaking_ReportResultInsecure.
+/// Call after calling ovr_Matchmaking_JoinRoom when the players are present to
+/// begin a rated match for which you plan to report the results (using
+/// ovr_Matchmaking_ReportResultInsecure).
 ///
 /// A message with type ::ovrMessage_Matchmaking_StartMatch will be generated in response.
 ///

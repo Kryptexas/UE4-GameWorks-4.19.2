@@ -12,6 +12,7 @@
 typedef struct ovrAchievementProgressArray *ovrAchievementProgressArrayHandle;
 
 OVRP_PUBLIC_FUNCTION(ovrAchievementProgressHandle) ovr_AchievementProgressArray_GetElement(const ovrAchievementProgressArrayHandle obj, size_t index);
+OVRP_PUBLIC_FUNCTION(const char *)                 ovr_AchievementProgressArray_GetNextUrl(const ovrAchievementProgressArrayHandle obj);
 OVRP_PUBLIC_FUNCTION(size_t)                       ovr_AchievementProgressArray_GetSize(const ovrAchievementProgressArrayHandle obj);
 OVRP_PUBLIC_FUNCTION(bool)                         ovr_AchievementProgressArray_HasNextPage(const ovrAchievementProgressArrayHandle obj);
 

@@ -8,10 +8,10 @@
 
 typedef struct ovrMatchmakingEnqueueResult *ovrMatchmakingEnqueueResultHandle;
 
-/// The mean amount of time that users in this user's queue have waited in the
-/// last hour or more. Whether users cancel or find a match, the time they
-/// waited is incorporated in this figure. Use this to give users an indication
-/// of how long they can expect to wait.
+/// The average amount of time (mean average) that users in this queue have
+/// waited during the last hour or more. The wait times, whether the users
+/// canceled or found a match, are used to generate this value. Use this to
+/// give users an indication of how long they can expect to wait.
 OVRP_PUBLIC_FUNCTION(unsigned int) ovr_MatchmakingEnqueueResult_GetAverageWait(const ovrMatchmakingEnqueueResultHandle obj);
 
 /// The number of matches made from the pool the user is participating in. You
@@ -19,15 +19,15 @@ OVRP_PUBLIC_FUNCTION(unsigned int) ovr_MatchmakingEnqueueResult_GetAverageWait(c
 /// wait.
 OVRP_PUBLIC_FUNCTION(unsigned int) ovr_MatchmakingEnqueueResult_GetMatchesInLastHourCount(const ovrMatchmakingEnqueueResultHandle obj);
 
-/// The 95% amount of time that users in this user's queue have waited in the
-/// last hour or more. Whether users cancel or find a match, the time they
-/// waited is incorporated in this figure. Use this to give users an indication
-/// of how long they can expect to wait.
+/// The amount of time the 95th percentile waited during the last hour or more.
+/// The wait times, whether the users canceled or found a match, are used to
+/// generate this value. Use this to give users an indication of the maximum
+/// amount of time they can expect to wait.
 OVRP_PUBLIC_FUNCTION(unsigned int) ovr_MatchmakingEnqueueResult_GetMaxExpectedWait(const ovrMatchmakingEnqueueResultHandle obj);
 
-/// 0-100 showing percentage of people in the same queue as the user who got
-/// matched. Stats are taken from the last hour or more. You can use this to
-/// give users an indication of whether they should wait.
+/// Percentage of people in the same queue as the user who got matched, from 0
+/// to 100 percent. Stats are taken from the last hour or more. You can use
+/// this to give users an indication of whether they should wait.
 OVRP_PUBLIC_FUNCTION(unsigned int) ovr_MatchmakingEnqueueResult_GetRecentMatchPercentage(const ovrMatchmakingEnqueueResultHandle obj);
 
 OVRP_PUBLIC_FUNCTION(const char *) ovr_MatchmakingEnqueueResult_GetPool(const ovrMatchmakingEnqueueResultHandle obj);

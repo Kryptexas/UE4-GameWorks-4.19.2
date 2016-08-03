@@ -577,7 +577,10 @@ public:
 	const FIntRect UnscaledViewRect;
 
 	/* Raw view size (in pixels), used for screen space calculations */
-	const FIntRect UnconstrainedViewRect;
+	FIntRect UnconstrainedViewRect;
+
+	/* If set, derive the family view size explicitly using this. */
+	FIntRect ResolutionOverrideRect;
 
 	/** Maximum number of shadow cascades to render with. */
 	int32 MaxShadowCascades;
@@ -1028,6 +1031,13 @@ public:
 
 	/** The height in screen pixels of the view family being rendered (maximum y of all viewports). */
 	uint32 FamilySizeY;
+
+	/** 
+		The width in pixels of the stereo view family being rendered. This may be different than FamilySizeX if
+		we're using adaptive resolution stereo rendering. In that case, FamilySizeX represents the maximum size of 
+		the family to ensure the backing render targets don't change between frames as the view size varies.
+	*/
+	uint32 InstancedStereoWidth;
 
 	/** The render target which the views are being rendered to. */
 	const FRenderTarget* RenderTarget;

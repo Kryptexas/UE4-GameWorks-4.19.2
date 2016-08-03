@@ -28,8 +28,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Notification_GetNextRoomInviteNotificationA
 /// Extract the payload from the message handle with ::ovr_Message_GetRoomInviteNotificationArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Notification_GetRoomInvites();
 
-/// Mark a notification as read. This will cause it to disappear from Universal
-/// Menu, Home 2D/3D store as well as in-app retrieval.
+/// Mark a notification as read. This causes it to disappear from the Universal
+/// Menu, the Oculus App, Oculus Home, and in-app retrieval.
 ///
 /// A message with type ::ovrMessage_Notification_MarkAsRead will be generated in response.
 ///

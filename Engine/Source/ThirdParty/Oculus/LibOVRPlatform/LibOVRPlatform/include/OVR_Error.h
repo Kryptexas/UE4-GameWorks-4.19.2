@@ -9,7 +9,7 @@
 typedef struct ovrError *ovrErrorHandle;
 
 /// Human readable description of the error that can be displayed to the user.
-/// May be the empty string if there is no user-appropriate description
+/// Might be the empty string if there is no user-appropriate description
 /// available. Not intended to be parsed as it might change at any time or be
 /// translated.
 OVRP_PUBLIC_FUNCTION(const char *) ovr_Error_GetDisplayableMessage(const ovrErrorHandle obj);

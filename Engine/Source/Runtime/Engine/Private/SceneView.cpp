@@ -1891,6 +1891,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	:
 	FamilySizeX(0),
 	FamilySizeY(0),
+	InstancedStereoWidth(0),
 	RenderTarget(CVS.RenderTarget),
 	bUseSeparateRenderTarget(false),
 	Scene(CVS.Scene),
@@ -1971,32 +1972,43 @@ void FSceneViewFamily::ComputeFamilySize()
 	{
 		const FSceneView* View = Views[ViewIndex];
 
-		float FinalViewMaxX = (float)View->ViewRect.Max.X;
-		float FinalViewMaxY = (float)View->ViewRect.Max.Y;
-
-		// Derive the amount of scaling needed for screenpercentage from the scaled / unscaled rect
-		const float XScale = FinalViewMaxX / (float)View->UnscaledViewRect.Max.X;
-		const float YScale = FinalViewMaxY / (float)View->UnscaledViewRect.Max.Y;
-
-		if(!bInitializedExtents)
+		if (View->ResolutionOverrideRect.Area() > 0)
 		{
-			// Note: using the unconstrained view rect to compute family size
-			// In the case of constrained views (black bars) this means the scene render targets will fill the whole screen
-			// Which is needed for ES2 paths where we render directly to the backbuffer, and the scene depth buffer has to match in size
-			MaxFamilyX = View->UnconstrainedViewRect.Max.X * XScale;
-			MaxFamilyY = View->UnconstrainedViewRect.Max.Y * YScale;
+			MaxFamilyX = FMath::Max(MaxFamilyX, static_cast<float>(View->ResolutionOverrideRect.Max.X));
+			MaxFamilyY = FMath::Max(MaxFamilyY, static_cast<float>(View->ResolutionOverrideRect.Max.Y));
 			bInitializedExtents = true;
 		}
 		else
 		{
-			MaxFamilyX = FMath::Max(MaxFamilyX, View->UnconstrainedViewRect.Max.X * XScale);
-			MaxFamilyY = FMath::Max(MaxFamilyY, View->UnconstrainedViewRect.Max.Y * YScale);
+			float FinalViewMaxX = (float)View->ViewRect.Max.X;
+			float FinalViewMaxY = (float)View->ViewRect.Max.Y;
+
+			// Derive the amount of scaling needed for screenpercentage from the scaled / unscaled rect
+			const float XScale = FinalViewMaxX / (float)View->UnscaledViewRect.Max.X;
+			const float YScale = FinalViewMaxY / (float)View->UnscaledViewRect.Max.Y;
+
+			if (!bInitializedExtents)
+			{
+				// Note: using the unconstrained view rect to compute family size
+				// In the case of constrained views (black bars) this means the scene render targets will fill the whole screen
+				// Which is needed for ES2 paths where we render directly to the backbuffer, and the scene depth buffer has to match in size
+				MaxFamilyX = View->UnconstrainedViewRect.Max.X * XScale;
+				MaxFamilyY = View->UnconstrainedViewRect.Max.Y * YScale;
+				bInitializedExtents = true;
+			}
+			else
+			{
+				MaxFamilyX = FMath::Max(MaxFamilyX, View->UnconstrainedViewRect.Max.X * XScale);
+				MaxFamilyY = FMath::Max(MaxFamilyY, View->UnconstrainedViewRect.Max.Y * YScale);
+			}
+
+			// floating point imprecision could cause MaxFamilyX to be less than View->ViewRect.Max.X after integer truncation.
+			// since this value controls rendertarget sizes, we don't want to create rendertargets smaller than the view size.
+			MaxFamilyX = FMath::Max(MaxFamilyX, FinalViewMaxX);
+			MaxFamilyY = FMath::Max(MaxFamilyY, FinalViewMaxY);
 		}
 
-		// floating point imprecision could cause MaxFamilyX to be less than View->ViewRect.Max.X after integer truncation.
-		// since this value controls rendertarget sizes, we don't want to create rendertargets smaller than the view size.
-		MaxFamilyX = FMath::Max(MaxFamilyX, FinalViewMaxX);
-		MaxFamilyY = FMath::Max(MaxFamilyY, FinalViewMaxY);
+		InstancedStereoWidth = FPlatformMath::Max(InstancedStereoWidth, static_cast<uint32>(Views[ViewIndex]->ViewRect.Max.X));
 	}
 
 	// We render to the actual position of the viewports so with black borders we need the max.

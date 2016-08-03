@@ -56,7 +56,7 @@
 /// Without A Little Unpredictability". Call ovr_Achievements_AddFields() to unlock
 /// the fields of a bitfield achievement
 
-/// Add 'count' to the achievement with the given name. Must be a COUNT
+/// Add 'count' to the achievement with the given name. This must be a COUNT
 /// achievement.
 ///
 /// A message with type ::ovrMessage_Achievements_AddCount will be generated in response.
@@ -68,8 +68,8 @@
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_AddCount(const char *name, unsigned long long count);
 
 /// Unlock fields of a BITFIELD acheivement.
-/// \param name the name of the achievement to unlock
-/// \param fields a string containing either '0' or '1' characters. Every '1' will unlock the field in the corresponding position.
+/// \param name The name of the achievement to unlock
+/// \param fields A string containing either '0' or '1' characters. Every '1' will unlock the field in the corresponding position.
 ///
 /// A message with type ::ovrMessage_Achievements_AddFields will be generated in response.
 ///
@@ -79,7 +79,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_AddCount(const char *name, uns
 /// Extract the payload from the message handle with ::ovr_Message_GetAchievementUpdate().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_AddFields(const char *name, const char *fields);
 
-/// Requests all Achievement Definitions for the app.
+/// Request all achievement definitions for the app.
 ///
 /// A message with type ::ovrMessage_Achievements_GetAllDefinitions will be generated in response.
 ///
@@ -89,7 +89,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_AddFields(const char *name, co
 /// Extract the payload from the message handle with ::ovr_Message_GetAchievementDefinitionArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetAllDefinitions();
 
-/// Requests the progress for the user on all achievements in the app.
+/// Request the progress for the user on all achievements in the app.
 ///
 /// A message with type ::ovrMessage_Achievements_GetAllProgress will be generated in response.
 ///
@@ -99,7 +99,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetAllDefinitions();
 /// Extract the payload from the message handle with ::ovr_Message_GetAchievementProgressArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetAllProgress();
 
-/// Request the Achievement Definitions that match the specified names.
+/// Request the achievement definitions that match the specified names.
 ///
 /// A message with type ::ovrMessage_Achievements_GetDefinitionsByName will be generated in response.
 ///
@@ -129,7 +129,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetNextAchievementDefinitionAr
 /// Extract the payload from the message handle with ::ovr_Message_GetAchievementProgressArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetNextAchievementProgressArrayPage(ovrAchievementProgressArrayHandle handle);
 
-/// Requests the user's progress on the specified achievements.
+/// Request the user's progress on the specified achievements.
 ///
 /// A message with type ::ovrMessage_Achievements_GetProgressByName will be generated in response.
 ///
@@ -139,7 +139,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetNextAchievementProgressArra
 /// Extract the payload from the message handle with ::ovr_Message_GetAchievementProgressArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_GetProgressByName(const char **names, int count);
 
-/// Unlock the achievement with the given name. Can be of any achievement type.
+/// Unlock the achievement with the given name. This can be of any achievement
+/// type.
 ///
 /// A message with type ::ovrMessage_Achievements_Unlock will be generated in response.
 ///

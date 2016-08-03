@@ -702,7 +702,7 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 		}
 		else
 		{
-			const uint32 MaxX = View.Family->FamilySizeX * VelocityBufferSize.X / BufferSize.X;
+			const uint32 MaxX = View.Family->InstancedStereoWidth * VelocityBufferSize.X / BufferSize.X;
 			RHICmdList.SetViewport(0, 0, 0.0f, MaxX, MaxY, 1.0f);
 		}
 	}

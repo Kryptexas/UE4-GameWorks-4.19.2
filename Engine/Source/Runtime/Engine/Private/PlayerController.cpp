@@ -3509,7 +3509,7 @@ void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration
 	}
 }
 
-void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale)
+void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale, bool bLoop)
 {
 	if (HapticEffect)
 	{
@@ -3517,11 +3517,11 @@ void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffec
 		{
 		case EControllerHand::Left:
 			ActiveHapticEffect_Left.Reset();
-			ActiveHapticEffect_Left = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale));
+			ActiveHapticEffect_Left = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
 		case EControllerHand::Right:
 			ActiveHapticEffect_Right.Reset();
-			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale));
+			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
 		default:
 			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand.GetValue(), *HapticEffect->GetName());
@@ -3616,7 +3616,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			const bool bPlaying = ActiveHapticEffect_Left->Update(DeltaTime, LeftHaptics);
 			if (!bPlaying)
 			{
-				ActiveHapticEffect_Left.Reset();
+				ActiveHapticEffect_Left->bLoop ? ActiveHapticEffect_Left->Restart() : ActiveHapticEffect_Left.Reset();
 			}
 
 			bLeftHapticsNeedUpdate = true;
@@ -3627,11 +3627,12 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			const bool bPlaying = ActiveHapticEffect_Right->Update(DeltaTime, RightHaptics);
 			if (!bPlaying)
 			{
-				ActiveHapticEffect_Right.Reset();
+				ActiveHapticEffect_Right->bLoop ? ActiveHapticEffect_Right->Restart() : ActiveHapticEffect_Right.Reset();
 			}
 
 			bRightHapticsNeedUpdate = true;
 		}
+
 	}
 
 	if (FSlateApplication::IsInitialized())
@@ -3653,6 +3654,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			{
 				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
 			}
+
 		}
 	}
 }

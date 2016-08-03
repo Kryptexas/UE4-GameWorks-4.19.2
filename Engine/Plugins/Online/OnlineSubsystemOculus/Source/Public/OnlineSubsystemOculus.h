@@ -12,7 +12,7 @@ typedef TSharedPtr<class FOnlineSessionOculus, ESPMode::ThreadSafe> FOnlineSessi
 typedef TSharedPtr<class FOnlineProfileOculus, ESPMode::ThreadSafe> FOnlineProfileOculusPtr;
 typedef TSharedPtr<class FOnlineFriendsOculus, ESPMode::ThreadSafe> FOnlineFriendsOculusPtr;
 typedef TSharedPtr<class FOnlineUserCloudOculus, ESPMode::ThreadSafe> FOnlineUserCloudOculusPtr;
-typedef TSharedPtr<class FOnlineLeaderboardsOculus, ESPMode::ThreadSafe> FOnlineLeaderboardsOculusPtr;
+typedef TSharedPtr<class FOnlineLeaderboardOculus, ESPMode::ThreadSafe> FOnlineLeaderboardsOculusPtr;
 typedef TSharedPtr<class FOnlineVoiceImpl, ESPMode::ThreadSafe> FOnlineVoiceImplPtr;
 typedef TSharedPtr<class FOnlineExternalUIOculus, ESPMode::ThreadSafe> FOnlineExternalUIOculusPtr;
 typedef TSharedPtr<class FOnlineIdentityOculus, ESPMode::ThreadSafe> FOnlineIdentityOculusPtr;
@@ -106,7 +106,7 @@ private:
 	/** Interface for achievements */
 	FOnlineAchievementsOculusPtr AchievementsInterface;
 
-	/** Interface for achievements */
+	/** Interface for leaderboards */
 	FOnlineLeaderboardsOculusPtr LeaderboardsInterface;
 
 	/** Interface for friends */

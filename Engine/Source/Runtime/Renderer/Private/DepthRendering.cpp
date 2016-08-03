@@ -808,8 +808,7 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)
 		}
 		else
 		{
-			// When rendering with instanced stereo, render the full frame.
-			RHICmdList.SetViewport(0, 0, 0, View.Family->FamilySizeX, View.ViewRect.Max.Y, 1);
+			RHICmdList.SetViewport(0, 0, 0, View.Family->InstancedStereoWidth, View.ViewRect.Max.Y, 1);
 		}
 	}
 }
