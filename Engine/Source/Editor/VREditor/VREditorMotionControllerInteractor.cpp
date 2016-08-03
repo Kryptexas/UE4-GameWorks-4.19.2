@@ -6,6 +6,7 @@
 #include "VREditorMode.h"
 #include "VREditorUISystem.h"
 #include "VREditorFloatingText.h"
+#include "VREditorDockableWindow.h"
 
 #include "IMotionController.h"
 #include "IHeadMountedDisplay.h"
@@ -349,9 +350,10 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 			// point.  Otherwise, we always want the laser to protrude through hovered objects, so that you can
 			// interact with translucent gizmo handles that are occluded by geometry
 			FVector LaserPointerImpactPoint = LaserPointerEnd;
-			if ( GetInteractorData().bIsHovering && ( GetInteractorData().DraggingMode != EViewportInteractionDraggingMode::Nothing || IsHoveringOverUI() ) )
+			if ( IsHoveringOverGizmo() || IsHoveringOverUI() || 
+				 ( GetHoverComponent() != nullptr && GetHoverComponent()->GetOwner()->IsA<AVREditorDockableWindow>() ) )
 			{
-				LaserPointerImpactPoint = GetInteractorData().HoverLocation;
+				LaserPointerImpactPoint = GetHoverLocation();
 			}
 
 			// Apply rotation offset to the laser direction

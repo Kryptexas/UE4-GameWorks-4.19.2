@@ -127,10 +127,10 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 
 							if ( IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>( Actor ) )
 							{
-								if ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove )
+								if ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 								{
 									bHandled = true;
-
+									SetAllowTriggerFullPress( false );
 									bool bResultedInInteractableDrag = false;
 									ActorInteractable->OnPressed( this, HitResult, bResultedInInteractableDrag );
 
@@ -491,10 +491,6 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 			const bool bTraceComplex = true;
 			FCollisionQueryParams TraceParams( NAME_None, bTraceComplex, nullptr );
 
-			const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam;
-
-			const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? COLLISION_GIZMO : ECC_Visibility;
-
 			if ( OptionalListOfIgnoredActors != nullptr )
 			{
 				TraceParams.AddIgnoredActors( *OptionalListOfIgnoredActors );
@@ -504,38 +500,48 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 			FHitResult HitResult;
 			if ( bOnlyEditorGizmos )
 			{
+				const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam;
+				const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? COLLISION_GIZMO : ECC_Visibility;
+
 				bHit = WorldInteraction->GetViewportWorld()->LineTraceSingleByChannel( HitResult, LaserPointerStart, LaserPointerEnd, CollisionChannel, TraceParams, ResponseParam );
+				if ( bHit )
+				{
+					BestHitResult = HitResult;
+				}
 			}
 			else
 			{
 				FCollisionObjectQueryParams EverythingButGizmos( FCollisionObjectQueryParams::AllObjects );
 				EverythingButGizmos.RemoveObjectTypesToQuery( COLLISION_GIZMO );
 				bHit = WorldInteraction->GetViewportWorld()->LineTraceSingleByObjectType( HitResult, LaserPointerStart, LaserPointerEnd, EverythingButGizmos, TraceParams );
-			}
-
-			if ( bHit )
-			{
-				bool bHitResultIsPriorityType = false;
-				if ( !bOnlyEditorGizmos && ObjectsInFrontOfGizmo )
+				
+				if ( bHit )
 				{
-					for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
+					bool bHitResultIsPriorityType = false;
+					if ( !bOnlyEditorGizmos && ObjectsInFrontOfGizmo )
 					{
-						bool bClassHasPriority = false;
-						bClassHasPriority =
-							( HitResult.GetComponent() != nullptr && HitResult.GetComponent()->IsA( CurrentClass ) ) ||
-							( HitResult.GetActor() != nullptr && HitResult.GetActor()->IsA( CurrentClass ) );
-
-						if ( bClassHasPriority )
+						for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
 						{
-							bHitResultIsPriorityType = bClassHasPriority;
-							break;
+							bool bClassHasPriority = false;
+							bClassHasPriority =
+								( HitResult.GetComponent() != nullptr && HitResult.GetComponent()->IsA( CurrentClass ) ) ||
+								( HitResult.GetActor() != nullptr && HitResult.GetActor()->IsA( CurrentClass ) );
+
+							if ( bClassHasPriority )
+							{
+								bHitResultIsPriorityType = bClassHasPriority;
+								break;
+							}
 						}
 					}
-				}
 
-				if ( BestHitResult.GetActor() == nullptr || bHitResultIsPriorityType )
-				{
-					BestHitResult = HitResult;
+					const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor();
+					if ( BestHitResult.GetActor() == nullptr ||
+						 bHitResultIsPriorityType ||
+						 bHitResultIsGizmo )
+					{
+						BestHitResult = HitResult;
+					}
 				}
 			}
 		}
@@ -560,6 +566,11 @@ FVector UViewportInteractor::GetHoverLocation() const
 bool UViewportInteractor::IsHovering() const
 {
 	return InteractorData.bIsHovering;
+}
+
+bool UViewportInteractor::IsHoveringOverGizmo()
+{
+	return InteractorData.HoveringOverTransformGizmoComponent.IsValid();
 }
 
 void UViewportInteractor::SetDraggingMode( const EViewportInteractionDraggingMode NewDraggingMode )
