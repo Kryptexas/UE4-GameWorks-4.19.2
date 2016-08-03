@@ -1078,12 +1078,13 @@ void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
 }
 
 
-void FTickableGameObject::TickObjects(UWorld* World, ELevelTick TickType, bool bIsPaused, float DeltaSeconds)
+void FTickableGameObject::TickObjects(UWorld* World, int32 InTickType, bool bIsPaused, float DeltaSeconds)
 {
 	check(!bIsTickingObjects);
 	bIsTickingObjects = true;
 
 	bool bNeedsCleanup = false;
+	ELevelTick TickType = (ELevelTick)InTickType;
 
 	for( int32 i=0; i < TickableObjects.Num(); ++i )
 	{
