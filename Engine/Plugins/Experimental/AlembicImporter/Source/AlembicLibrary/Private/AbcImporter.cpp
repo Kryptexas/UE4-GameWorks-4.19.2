@@ -519,14 +519,7 @@ T* FAbcImporter::CreateObjectInstance(UObject* InParent, const FString& ObjectNa
 		}
 	}
 
-	if (ExistingTypedObject != nullptr)
-	{
-		return ExistingTypedObject;
-	}
-	else
-	{
-		return NewObject<T>(Package, FName(*ObjectName), Flags | RF_Public);
-	}
+	return NewObject<T>(Package, FName(*ObjectName), Flags | RF_Public);
 }
 
 UStaticMesh* FAbcImporter::ImportSingleAsStaticMesh(const int32 MeshTrackIndex, UObject* InParent, EObjectFlags Flags)
