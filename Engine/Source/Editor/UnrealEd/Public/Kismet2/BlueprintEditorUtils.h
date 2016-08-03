@@ -1102,6 +1102,9 @@ public:
 	/** Makes sure that all graphs for all interfaces we implement exist, and add if not */
 	static void ConformImplementedInterfaces(UBlueprint* Blueprint);
 
+	/** Makes sure that all function graphs are flagged as bAllowDeletion=true, except for construction script and animgraph: */
+	static void ConformAllowDeletionFlag(UBlueprint* Blueprint);
+	
 	/** Makes sure that all NULL graph references are removed from SubGraphs and top-level graph arrays */
 	static void PurgeNullGraphs(UBlueprint* Blueprint);
 

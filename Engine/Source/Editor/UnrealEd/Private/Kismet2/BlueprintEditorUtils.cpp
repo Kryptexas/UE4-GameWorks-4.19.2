@@ -6232,6 +6232,17 @@ void FBlueprintEditorUtils::ConformImplementedInterfaces(UBlueprint* Blueprint)
 	}
 }
 
+void FBlueprintEditorUtils::ConformAllowDeletionFlag(UBlueprint* Blueprint)
+{
+	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	{
+		if (Graph->GetFName() != UEdGraphSchema_K2::FN_UserConstructionScript && Graph->GetFName() != UEdGraphSchema_K2::GN_AnimGraph)
+		{
+			Graph->bAllowDeletion = true;
+		}
+	}
+}
+
 /** Handle old Anim Blueprints (state machines in the wrong position, transition graphs with the wrong schema, etc...) */
 void FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(UBlueprint* InBlueprint)
 {

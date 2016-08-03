@@ -598,6 +598,13 @@ void UBlueprint::PostLoad()
 	// Make sure that all of the interfaces this BP implements have all required graphs
 	FBlueprintEditorUtils::ConformImplementedInterfaces(this);
 
+	// Make sure that there are no function graphs that are marked as bAllowDeletion=false 
+	// (possible if a blueprint was reparented prior to 4.11):
+	if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::AllowDeletionConformed)
+	{
+		FBlueprintEditorUtils::ConformAllowDeletionFlag(this);
+	}
+
 	// Update old Anim Blueprints
 	FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
 
