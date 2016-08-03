@@ -515,10 +515,6 @@ public:
 
 	/** Adds an upgrade note to this node */
 	void AddNodeUpgradeNote(FText InUpgradeNote);
-
-protected:
-	/** If true, deprecated pins will be removed and the array emptied in the PostLoad for the node. Only return false if you plan on cleaning up these nodes yourself after load. */
-	virtual bool ShouldRemoveDeprecatedPinsInPostLoad() const { return true; }
 #endif // WITH_EDITOR
 
 };

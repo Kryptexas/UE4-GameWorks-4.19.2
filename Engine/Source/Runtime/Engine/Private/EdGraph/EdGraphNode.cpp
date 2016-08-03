@@ -356,7 +356,7 @@ void UEdGraphNode::PostLoad()
 		bCommentBubbleVisible = !NodeComment.IsEmpty();
 	}
 
-	if (ShouldRemoveDeprecatedPinsInPostLoad())
+	if (DeprecatedPins.Num())
 	{
 		for (UEdGraphPin_Deprecated* LegacyPin : DeprecatedPins)
 		{

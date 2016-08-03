@@ -29,6 +29,31 @@ UK2Node::UK2Node(const FObjectInitializer& ObjectInitializer)
 
 void UK2Node::PostLoad()
 {
+#if WITH_EDITORONLY_DATA
+	// Clean up win watches for any deprecated pins we are about to remove in Super::PostLoad
+	if (DeprecatedPins.Num() && HasValidBlueprint())
+	{
+		UBlueprint* BP = GetBlueprint();
+		check(BP);
+
+		// patch DeprecatedPinWatches to WatchedPins:
+		for (int32 WatchIdx = BP->DeprecatedPinWatches.Num() - 1; WatchIdx >= 0; --WatchIdx)
+		{
+			UEdGraphPin_Deprecated* WatchedPin = BP->DeprecatedPinWatches[WatchIdx];
+			if (DeprecatedPins.Contains(WatchedPin))
+			{
+				if (UEdGraphPin* NewPin = UEdGraphPin::FindPinCreatedFromDeprecatedPin(WatchedPin))
+				{
+					BP->WatchedPins.Add(NewPin);
+				}
+
+				BP->DeprecatedPinWatches.RemoveAt(WatchIdx);
+			}
+		}
+		
+	}
+#endif // WITH_EDITORONLY_DATA
+
 	Super::PostLoad();
 
 	// fix up pin default values

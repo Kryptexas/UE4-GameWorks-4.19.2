@@ -155,7 +155,6 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual bool AllowSplitPins() const override;
 	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetPassThroughPin(const UEdGraphPin* FromPin) const override;
 	BLUEPRINTGRAPH_API virtual bool IsInDevelopmentMode() const override;
-	virtual bool ShouldRemoveDeprecatedPinsInPostLoad() const { return false; } // These are removed in UBlueprint::PostLoad instead to handle pin watch conversion
 	// End of UEdGraphNode interface
 
 	// K2Node interface
