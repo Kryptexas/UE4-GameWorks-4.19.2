@@ -978,6 +978,13 @@ void FSteamVRHMD::InitCanvasFromView(FSceneView* InView, UCanvas* Canvas)
 {
 }
 
+void FSteamVRHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
+{
+	const float HudOffset = 50.0f;
+	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.f, 0.f));
+	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RTWidth * .5, 0.f, 0.f));
+}
+
 void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
 {
 	if (Context.View.StereoPass == eSSP_LEFT_EYE)
