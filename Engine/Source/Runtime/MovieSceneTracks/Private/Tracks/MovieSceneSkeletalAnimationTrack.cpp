@@ -38,17 +38,18 @@ void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequ
 }
 
 
-UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
+TArray<UMovieSceneSection*> UMovieSceneSkeletalAnimationTrack::GetAnimSectionsAtTime(float Time)
 {
+	TArray<UMovieSceneSection*> Sections;
 	for (auto Section : AnimationSections)
 	{
 		if (Section->IsTimeWithinSection(Time))
 		{
-			return Section;
+			Sections.Add(Section);
 		}
 	}
 
-	return nullptr;
+	return Sections;
 }
 
 

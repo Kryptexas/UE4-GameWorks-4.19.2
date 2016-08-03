@@ -141,51 +141,60 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( EMovieSceneUpdateData& U
 		USkeletalMeshComponent* SkeletalMeshComponent = GetSkeletalMeshComponentFromRuntimeObjectPtr( RuntimeObjectPtr );
 		if ( SkeletalMeshComponent )
 		{
-			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>( AnimationTrack->GetAnimSectionAtTime( UpdateData.Position ) );
+			TArray<UMovieSceneSection*> AnimSections = AnimationTrack->GetAnimSectionsAtTime( UpdateData.Position );
 
 			// cbb: If there is no overlapping section, evaluate the closest section only if the current time is before it.
-			if ( AnimSection == nullptr )
+			if (AnimSections.Num() == 0)
 			{
-				AnimSection = Cast<UMovieSceneSkeletalAnimationSection>( MovieSceneHelpers::FindNearestSectionAtTime( AnimationTrack->GetAllSections(), UpdateData.Position ) );
+				UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( AnimationTrack->GetAllSections(), UpdateData.Position );
+				if (NearestSection)
+				{
+					AnimSections.Add(NearestSection);
+				}
 			}
 
-			if ( AnimSection && AnimSection->IsActive() )
+			for (int32 AnimSectionIndex = 0; AnimSectionIndex < AnimSections.Num(); ++AnimSectionIndex)
 			{
-				UAnimSequenceBase* AnimSequence = AnimSection->GetAnimSequence();
+				UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>( AnimSections[AnimSectionIndex] );
 
-				if ( AnimSequence )
+				if ( AnimSection && AnimSection->IsActive() )
 				{
-					float EvalTime = MapTimeToAnimation( UpdateData.Position, AnimSection );
+					UAnimSequenceBase* AnimSequence = AnimSection->GetAnimSequence();
 
-					int32 ChannelIndex = 0;
-
-					const bool bLooping = false;
-
-					if ( ShouldUsePreviewPlayback( Player, SkeletalMeshComponent ) )
+					if ( AnimSequence )
 					{
-						// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
-						const bool bFireNotifies = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped ? false : true;
+						float EvalTime = MapTimeToAnimation( UpdateData.Position, AnimSection );
 
-						float DeltaTime = UpdateData.Position > UpdateData.LastPosition ? UpdateData.Position - UpdateData.LastPosition : 0.f;
+						int32 ChannelIndex = 0;
 
-						// When jumping from one cut to another cut, the delta time should be 0 so that anim notifies before the current position are not evaluated. Note, anim notifies at the current time should still be evaluated.
-						if ( UpdateData.bJumpCut )
+						const bool bLooping = false;
+
+						if ( ShouldUsePreviewPlayback( Player, SkeletalMeshComponent ) )
 						{
-							DeltaTime = 0.f;
+							// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
+							const bool bFireNotifies = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped ? false : true;
+
+							float DeltaTime = UpdateData.Position > UpdateData.LastPosition ? UpdateData.Position - UpdateData.LastPosition : 0.f;
+
+							// When jumping from one cut to another cut, the delta time should be 0 so that anim notifies before the current position are not evaluated. Note, anim notifies at the current time should still be evaluated.
+							if ( UpdateData.bJumpCut )
+							{
+								DeltaTime = 0.f;
+							}
+
+							const bool bResetDynamics = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stepping ||
+								Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping ||
+								Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Scrubbing ||
+								( DeltaTime == 0.0f && Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Stopped );
+
+							PreviewSetAnimPosition( SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing, bResetDynamics );
 						}
-
-						const bool bResetDynamics = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stepping ||
-							Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping ||
-							Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Scrubbing ||
-							( DeltaTime == 0.0f && Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Stopped );
-
-						PreviewSetAnimPosition( SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing, bResetDynamics );
-					}
-					else
-					{
-						// Don't fire notifies at runtime since they will be fired through the standard animation tick path.
-						const bool bFireNotifies = false;
-						SetAnimPosition( SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies );
+						else
+						{
+							// Don't fire notifies at runtime since they will be fired through the standard animation tick path.
+							const bool bFireNotifies = false;
+							SetAnimPosition( SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies );
+						}
 					}
 				}
 			}
