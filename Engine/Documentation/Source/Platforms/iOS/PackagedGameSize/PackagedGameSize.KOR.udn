@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title:iOS 패키징된 게임 크기
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -53,4 +53,7 @@ iOS 패키지 게임 크기에 영향을 끼치는 것은, 레퍼런싱된 콘�
 
 ## 슬레이트 끄기
 
-콘텐츠 전용 프로젝트의 경우, 어떤 플러그인이나 라이브러리를 사용하게 될 지 알 수 없기 때문에 실행파일이 커지게 됩니다. 보통 C++ 로 전환을 하거나, (`EnabledPlugins` 나 `Project.Build.cs` 및 `Project.Target.cs` 파일을 통해) 컴파일 시간에 불필요한 플러그인이나 라이브러리를 꺼 줌으로써 실행파일 크기를 약간 줄일 수 있습니다. 하지만 Slate 를 사용하지 않는 콘텐츠 전용 게임의 경우, 슬레이트 애셋을 사용하지 않도록 하여 30 MB 이상의 최적화가 가능합니다. 슬레이트를 사용하지 않는 C++ 프로젝트를 만든 경우, `Project.Target.cs` 의 `TargetRules` 클래스의 생성자에 `bUsesSlate = false` 설정을 해 주면 이 공간을 줄일 수 있습니다.
+콘텐츠 전용 프로젝트의 경우, 어떤 플러그인이나 라이브러리를 사용하게 될 지 알 수 없기 때문에 실행파일이 커지게 됩니다. 보통 
+C++ 로 전환을 하거나, (`EnabledPlugins` 나 `Project.Build.cs` 및 `Project.Target.cs` 파일을 통해) 컴파일 시간에 불필요한 플러그인이나 라이브러리를 꺼 줌으로써 실행파일 크기를 약간 줄일 수 있습니다. 하지만 Slate 를 사용하지 않는 콘텐츠 전용 게임의 경우, 슬레이트 애셋을 사용하지 않도록 하여 
+30 MB 이상의 최적화가 가능합니다. 슬레이트를 사용하지 않는 C++ 프로젝트를 만든 경우, `Project.Target.cs` 의 `TargetRules` 클래스의 생성자에 
+`bUsesSlate = false` 설정을 해 주면 이 공간을 줄일 수 있습니다.

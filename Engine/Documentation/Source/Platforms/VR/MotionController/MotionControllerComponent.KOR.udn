@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2972740
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title:모션 콘트롤러 컴포넌트 셋업
 Crumbs:%ROOT%, Platforms
@@ -76,7 +76,7 @@ VR 프로젝트가 모션 콘트롤러를 사용하도록 하려면, , 폰에 �
 	또 선택한 스태틱 메시가 너무 크거나 작으면, 디테일 패널의 트랜스폼 섹션 내 스케일 부분을 사용해서 원하는 대로 조절하면 됩니다.
 	[/region]
 
-1. Add another Motion Controller Component parented to the root and set it to be the **Right Hand**. Add a Static Mesh Component parented to the new Motion Controller Component and apply the right hand mesh to it..
+1. 루트를 부모로 하는 모션 콘트롤러 컴포넌트를 또하나 추가하고, **오른손** 으로 설정합니다. 새로운 모션 콘트롤러 컴포넌트를 부모로 하여 스태틱 메시 컴포넌트를 하나 추가한 뒤, 거기에 오른손 메시를 적용합니다.
 
 	![](Finshed_MC_Setup.png)
 
