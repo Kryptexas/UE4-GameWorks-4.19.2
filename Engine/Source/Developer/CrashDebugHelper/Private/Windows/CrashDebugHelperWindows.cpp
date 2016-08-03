@@ -14,6 +14,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 {
 	const bool bSyncSymbols = FParse::Param( FCommandLine::Get(), TEXT( "SyncSymbols" ) );
 	const bool bAnnotate = FParse::Param( FCommandLine::Get(), TEXT( "Annotate" ) );
+	const bool bNoTrim = FParse::Param(FCommandLine::Get(), TEXT("NoTrimCallstack"));
 	const bool bUseSCC = bSyncSymbols || bAnnotate;
 
 	if( bUseSCC )
@@ -66,7 +67,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 			WindowsStackWalkExt.GetExceptionInfo();
 
 			// Get the callstacks for each thread
-			bHasAtLeastThreeValidFunctions = WindowsStackWalkExt.GetCallstacks() >= 3;
+			bHasAtLeastThreeValidFunctions = WindowsStackWalkExt.GetCallstacks(!bNoTrim) >= 3;
 
 			// Sync the source file where the crash occurred
 			if( CrashInfo.SourceFile.Len() > 0 )
