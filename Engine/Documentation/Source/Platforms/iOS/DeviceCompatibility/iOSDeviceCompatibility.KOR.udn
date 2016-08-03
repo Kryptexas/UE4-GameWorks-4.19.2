@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3051446
 Availability:Public
 Title:iOS 디바이스 호환성
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -19,6 +19,8 @@ type:overview
 [VAR:Unsupported]
 ![](%ROOT%/icon_error_16x.png)
 [/VAR]
+
+언리얼 엔진은 iOS 7.0 이상을 지원하며, 다음 표를 통해 엔진 기능에 대한 디바이스별 호환성 관련 정보를 확인할 수 있습니다.
 
 모든 iOS 디바이스를 테스트한 것은 아니지만, 이 표를 통해 각 디바이스에서 잘 작동할 것으로 기대되는 기능에 대한 개념을 잡을 수 있습니다. 앞으로 새 디바이스가 공개되면서 내부적으로 테스팅하는 디바이스의 폭을 넓혀감에 따라 이 부분을 확장해 다듬어 갈 계획입니다.
 
