@@ -2,32 +2,21 @@ Availability:Public
 Title:3. Gear VR Project Packaging & Deployment
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Instructions on how to deploy projects form UE4 to use with the Samsung Gear VR Headset.
-Navigation:platform
-Platform:Gear VR
+Version: 4.9
+Skilllevel: Intermediate
+tags:VR
+tags:GearVR
+type:sequential
+parent:Platforms/GearVR/QuickStart
+order:3
+Checkpoint:GearVRQS
 Related: Platforms\GearVR\Prerequisites
 Related: Platforms\GearVR\BestPractices
 Related: Platforms\GearVR\Debugging
-Skilllevel: Intermediate
-Version: 4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/GearVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-%Steps%
-
+## Steps
 
 1. First make sure that your Samsung Galaxy Note 4 Smartphone is connected to a USB cord and plugged into a USB port on the PC you are developing on.
 
@@ -63,5 +52,7 @@ Version: 4.9
 
 	![](GVR_On_Phone.png)
 
+[nav]
 
-%Steps%
+## End Result
+When completed you will be able to launch the project and view it using your  Samsung Galaxy smartphone and the Gear VR HMD.
