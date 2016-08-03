@@ -6323,20 +6323,26 @@ void FSequencer::BindLevelEditorCommands()
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 	TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
 
-	LevelEditorCommandBindings->MapAction(
-		Commands.RecordSelectedActors,
-		FExecuteAction::CreateSP(this, &FSequencer::RecordSelectedActors));
+	if (IsLevelEditorSequencer())
+	{
+		LevelEditorCommandBindings->MapAction(
+			Commands.RecordSelectedActors,
+			FExecuteAction::CreateSP(this, &FSequencer::RecordSelectedActors));
+	}
 }
 
 void FSequencer::UnbindLevelEditorCommands()
 {
-	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
+	if (IsLevelEditorSequencer())
 	{
-		// unbind the commands we have bound to the level editor
-		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-		TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
+		if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
+		{
+			// unbind the commands we have bound to the level editor
+			FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+			TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
 
-		LevelEditorCommandBindings->UnmapAction(FSequencerCommands::Get().RecordSelectedActors);
+			LevelEditorCommandBindings->UnmapAction(FSequencerCommands::Get().RecordSelectedActors);
+		}
 	}
 }
 
