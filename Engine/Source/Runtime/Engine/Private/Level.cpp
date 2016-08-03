@@ -421,31 +421,34 @@ void ULevel::SortActorList()
 	}
 
 	TArray<AActor*> NewActors;
+	TArray<AActor*> NewNetActors;
 	NewActors.Reserve(Actors.Num());
+	NewNetActors.Reserve(Actors.Num());
 
 	check(WorldSettings);
 
 	// The WorldSettings tries to stay at index 0
 	NewActors.Add(WorldSettings);
 
-	// Static not net relevant actors.
+	// Add non-net actors to the NewActors immediately, cache off the net actors to Append after
 	for (AActor* Actor : Actors)
 	{
-		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill() && !IsNetActor(Actor))
+		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill())
 		{
-			NewActors.Add(Actor);
+			if (IsNetActor(Actor))
+			{
+				NewNetActors.Add(Actor);
+			}
+			else
+			{
+				NewActors.Add(Actor);
+			}
 		}
+
 	}
 	iFirstNetRelevantActor = NewActors.Num();
 
-	// Static net relevant actors.
-	for (AActor* Actor : Actors)
-	{
-		if (Actor != nullptr && !Actor->IsPendingKill() && IsNetActor(Actor))
-		{
-			NewActors.Add(Actor);
-		}
-	}
+	NewActors.Append(MoveTemp(NewNetActors));
 
 	// Replace with sorted list.
 	Actors.AssignButKeepOwner(MoveTemp(NewActors));
@@ -462,7 +465,7 @@ void ULevel::SortActorList()
 
 		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )
 		{
-			if ( Actors[ i ] != NULL )
+			if ( Actors[ i ] != nullptr )
 			{
 				OwningWorld->AddNetworkActor( Actors[ i ] );
 			}
