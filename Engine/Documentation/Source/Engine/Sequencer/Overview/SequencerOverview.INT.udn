@@ -9,7 +9,7 @@ Version: 4.12
 Related: Engine\Sequencer\ReferenceEditor
 Related: Engine\Sequencer\HowTo
 
-The **Sequencer** Editor gives users the ability to create in-game cinematics through a specialized multi-track editor similar to [**Matinee**](Engine\Matinee\). 
+The **Sequencer** Editor gives users the ability to create in-game cinematics through a specialized multi-track editor similar to [Matinee](Engine\Matinee\). 
 By creating **Level Sequences** and adding **Tracks**, users can define the make-up of each Track which will determine the content for their scene.
 Tracks can consist of things like Animation (for animating a character), Transformation (moving things around in the scene like Camera), Audio (for including a music or sound effect), as well as several other Track types.  
 
@@ -86,7 +86,7 @@ We are "possessing" that Skeletal Mesh that exists in order to tell it what to d
 So how is this beneficial and when would I elect to use a "spawnable" object? Since Sequencer is the owner and spawns the object, it is not bound to a particular level. Anything deemed as spawnable can be used in any level, so you could create a scene and have it take place in any environment and reuse it in new levels without having to recreate it. 
 
 [REGION:note]
-Please see [**Creating Spawnables**](Engine\Sequencer\HowTo\Spawnables\) for more information. 
+Please see [Creating Spawnables](Engine\Sequencer\HowTo\Spawnables\) for more information. 
 [/REGION]
 
 
@@ -153,7 +153,7 @@ Sequencer allows you to use specialized viewports to make the editing process ea
 
 ![](SpecialViewports.png)
 
-These [**Cinematic Viewports**](Engine\Sequencer\HowTo\ViewportOptions) give a better idea of what the scene will look like and can be enabled from the **Viewport** options button. 
+These [Cinematic Viewports](Engine\Sequencer\HowTo\ViewportOptions) give a better idea of what the scene will look like and can be enabled from the **Viewport** options button. 
 
 ##Cinematic Actors
 
@@ -172,7 +172,7 @@ The Camera Rig Crane Actor can be used to simulate crane-like camera movements t
 You can attach a Camera to the Camera Rig Crane Actor then manipulate the crane's movement through the **Details** panel and **Crane Controls** values. Those values can affect the Crane Pitch, Crane Yaw and Crane Arm Length. These values can be keyframed within Sequencer which will allow you to adjust them during your cinematics as desired. 
 
 [REGION:note]
-Please see [**Shooting from a Camera Rig Crane**](Engine\Sequencer\HowTo\CameraRigCrane) for more information. 
+Please see [Shooting from a Camera Rig Crane](Engine\Sequencer\HowTo\CameraRigCrane) for more information. 
 [/REGION]
 
 ### Camera Rig Rail
@@ -184,7 +184,7 @@ The Camera Rig Rail Actor is a spline based tool that a Camera can be attached t
 You can select each spline point and alter the tangents to produce the path you want your camera to follow. The camera that is attached to the rail can be rotated independently and the position of where the camera is on the rail can be adjusted with the **Current Position on Rail** property inside the **Details** panel. This value can be keyframed allowing you to alter the value through Sequencer. 
 
 [REGION:note]
-Please see [**Shooting from a Camera Rig Rail**](Engine\Sequencer\HowTo\CameraRigRail) for more information. 
+Please see [Shooting from a Camera Rig Rail](Engine\Sequencer\HowTo\CameraRigRail) for more information. 
 [/REGION]
 
 ### Cine Camera Actor
@@ -200,7 +200,7 @@ Cine Camera Actor (black camera) and default Camera Actor (blue camera) pictured
 The Cine Camera Actor includes settings for Look at Tracking (following an Actor), Filmback Settings (16:9 DSLR, Super 8mm, 35mm VistaVision, etc.), Lens and Focus Settings as well as Current Aperture and Focus Distances. While using a normal Camera Actor is perfectly fine, to achieve a more cinematic feel and expose more camera settings it is recommended that you shoot your scenes with a Cine Camera Actor. 
 
 [REGION:note]
-Please see [**Using Cine Camera Actors**](Engine\Sequencer\HowTo\CineCameraActors) for more information. 
+Please see [Using Cine Camera Actors](Engine\Sequencer\HowTo\CineCameraActors) for more information. 
 [/REGION]
 
 
@@ -223,7 +223,7 @@ mvCPXslVb8Y
 Add a new recording, pick an Actor to record and click Record to start capturing. When stopping the recording, new Level Sequence assets will be created which you can then incorporate into your existing cinematic or you can use pieces from the recorded Level Sequence to create new sequences.
 
 [REGION:note]
-Please see [**Recording Gameplay**](Engine/Sequencer/HowTo/SequenceRecorder) for more information. 
+Please see [Recording Gameplay](Engine/Sequencer/HowTo/SequenceRecorder) for more information. 
 [/REGION]
 
 ##Render Movie Settings
@@ -238,6 +238,25 @@ This will display the **Render Movie Settings** window which you can use to defi
 
 Click the **Capture Movie** button to start the capture process of recording your scene. 
 
+### Custom Burn-ins
+
+[INCLUDE:Engine/Sequencer/HowTo/BurnIns#intro]
+
+[REGION:note]
+Please see [](Engine/Sequencer/HowTo/BurnIns) for a step-by-step guide on using burn-ins. 
+[/REGION]
+
+[PUBLISH:docs]
+### Import/Export EDLs
+
+[INCLUDE:Engine/Sequencer/HowTo/ImportExportEDLs#intro]
+
+[REGION:note]
+Please see [](Engine/Sequencer/HowTo/ImportExportEDLs) for a step-by-step guide on using EDLs.
+[/REGION]
+[/PUBLISH:docs]
+
+
 
 ## Workflow Considerations
 
@@ -245,5 +264,5 @@ Once you have a basic understanding of how the Sequencer Editor works, you may w
 
 
 [REGION:note]
-Please see [**Workflow Considerations**](Engine\Sequencer\Workflow\ToolUsage) for more information. 
+Please see [Workflow Considerations](Engine\Sequencer\Workflow\ToolUsage) for more information. 
 [/REGION]
