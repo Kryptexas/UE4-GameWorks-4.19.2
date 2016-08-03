@@ -659,19 +659,16 @@ void FMediaTextureResource::InitializeResource(FIntPoint Dimensions, EMediaTextu
 {
 	check(IsInRenderingThread());
 
-	// use existing buffers if possible
-	if ((Dimensions != BufferDimensions) || (Format != SinkFormat) || (Mode != SinkMode))
+	if ((Dimensions == OutputDimensions) && (Format == SinkFormat) && (Mode == SinkMode))
 	{
-		ReleaseDynamicRHI();
-		OutputDimensions = Dimensions;
-		SinkFormat = Format;
-		SinkMode = Mode;
-		InitDynamicRHI();
+		return; // reuse existing texture
 	}
-	else
-	{
-		State = EState::Initialized;
-	}
+
+	ReleaseDynamicRHI();
+	OutputDimensions = Dimensions;
+	SinkFormat = Format;
+	SinkMode = Mode;
+	InitDynamicRHI();
 }
 
 
