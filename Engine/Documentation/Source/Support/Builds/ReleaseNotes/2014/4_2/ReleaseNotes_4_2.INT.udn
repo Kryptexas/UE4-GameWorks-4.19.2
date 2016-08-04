@@ -559,7 +559,7 @@ In the 4.2 Preview Notes it was listed that the EndPlay event would replace the 
 * New: Added simple Look at control.
 * Made foliage snap to *all* modified landscape components when sculpting, not just those in the current level.
 * Moved **SpringArmComponent** tick into **PostPhysics** to resolve some camera jitter
-* Upgraded NVTT (nVidia Texture Tools) to v2.0.8
+* Upgraded NVTT (NVIDIA Texture Tools) to v2.0.8
 * Updated PVCT exporter to now export images with dimensions greater than 4096. Source image will come from 1st image in the mip chain where the largest dimension is <= 4096.
 * Reorganized a lot of vehicle tuning data for official release.
 	* Changed units from cm to m.
@@ -699,8 +699,8 @@ In the 4.2 Preview Notes it was listed that the EndPlay event would replace the 
 * Improved performance when mousing over the Editor on Mac OS X.
 * Enable translucent self-shadowing on ShaderModel 4 renderers for the benefit of Mac OS X particularly.
 * Improved support for Mac <= GL 3.3 drivers that don't support rendering to 3D or 2D array textures.
-	* Older GPUs such as the ATi 4xx0 series, Nvidia 9xx0/1xx/3xx and Intel HD 3000 should now render, though performance will be lower than newer GPUs. 
-* Fixed the sky light irradiance on Nvidia cards under OS X.
+	* Older GPUs such as the ATi 4xx0 series, NVIDIA 9xx0/1xx/3xx and Intel HD 3000 should now render, though performance will be lower than newer GPUs. 
+* Fixed the sky light irradiance on NVIDIA cards under OS X.
 * Fixed (via work around) an OpenGL driver regression on AMD FirePro cards introduced in Mac OS X 10.9.3 that caused incorrect rendering of skinned models.
 	* This workaround has a small but noticeable performance penalty and will be removed after the fix for the driver bug has been released.
 * Fixed various minor rendering errors on the new Mac Pro's AMD FirePro cards on Mac OS X.

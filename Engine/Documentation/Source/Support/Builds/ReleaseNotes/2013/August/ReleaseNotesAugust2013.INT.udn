@@ -219,7 +219,7 @@ Template:ReleaseNotes.html
 	* Added `IPlatformFeaturesModule`, which can return a save game class (and will be used for other things) 
 	* Added a SaveGame automation test to the Game set
 * Android builds with NDK r9 and Clang 3.3
-* Update `PhysX-3.2_EPIC` source from NVIDIAs depot
+* Update `PhysX-3.2_EPIC` source from the NVIDIA depot
 
 
 ##Upgrade Notes

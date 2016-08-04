@@ -80,7 +80,7 @@ Unreal Engine has some specific hardware and software requirements for running t
 | **Operating System** | Ubuntu 15.04  |
 | **Processor** | Quad-core Intel or AMD, 2.5 GHz or faster |
 | **Memory** | 16 GB RAM |
-| **Video Card** | 	NVIDIA GeForce 470 GTX or higher with latest NVidia binary drivers |
+| **Video Card** | 	NVIDIA GeForce 470 GTX or higher with latest NVIDIA binary drivers |
 [/EXCERPT:LinuxMinHardware]
 -->
 
@@ -280,7 +280,7 @@ Below are the typical systems used at Epic by programmers and artists. These sho
 * 24GB RAM
 * 300GB 10K SATA (OS)
 * 2X 300GB 10K SATA (RAID0 for DATA)
-* Nvidia Geforce 470 - 580
+* NVIDIA Geforce 470 - 580
 
 
 **Artist/LD:**
@@ -290,7 +290,7 @@ Below are the typical systems used at Epic by programmers and artists. These sho
 * 16GB RAM
 * 500GB SATA (OS)
 * 2X 500GB SATA (RAID0 for DATA)
-* Nvidia Geforce 580
+* NVIDIA Geforce 580
 
 
 [REGION:note]
