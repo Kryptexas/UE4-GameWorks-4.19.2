@@ -35,10 +35,10 @@ class UPhysicsAsset : public UObject
 	UPROPERTY()
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
-	UPROPERTY(EditAnywhere, Category = Profiles)
+	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
 	TArray<FName> PhysicalAnimationProfiles;
 
-	UPROPERTY(EditAnywhere, Category = Profiles)
+	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
 	TArray<FName> ConstraintProfiles;
 
 	UPROPERTY(transient)

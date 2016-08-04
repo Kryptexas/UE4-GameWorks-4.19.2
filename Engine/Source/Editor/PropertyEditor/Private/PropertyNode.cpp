@@ -2214,6 +2214,11 @@ const FString* FPropertyNode::GetInstanceMetaData(const FName& Key) const
 	return InstanceMetaData.Find(Key);
 }
 
+bool FPropertyNode::ParentOrSelfHasMetaData(const FName& MetaDataKey) const
+{
+	return (Property.IsValid() && Property->HasMetaData(MetaDataKey)) || (ParentNode && ParentNode->ParentOrSelfHasMetaData(MetaDataKey));
+}
+
 void FPropertyNode::InvalidateCachedState()
 {
 	bUpdateDiffersFromDefault = true;
