@@ -37,8 +37,6 @@ on your Linux machine.
 
 ![](built_engine.png)
 
-_Some lower-end Linux systems can take over an hour to build the engine._
-
-At this point, you should have a fully built binary of UE4 on your hard disk. Alas, the time has come to run the engine on your Linux system!
+At this point, you should have a fully built binary of UE4 on your hard disk. The time has come to run the engine on your Linux system!
 
 %Steps%

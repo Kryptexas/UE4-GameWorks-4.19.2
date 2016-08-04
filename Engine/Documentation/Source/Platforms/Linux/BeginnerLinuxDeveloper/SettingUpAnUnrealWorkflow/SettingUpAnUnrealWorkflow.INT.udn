@@ -33,9 +33,10 @@ prereq:Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers
 [/OBJECT]
 [/VAR]
 
-![](CompiledEditor_Linux.png)
-
-_At the end of this tutorial, you'll have Unreal Engine 4 (UE4) running on your Linux machine._
+[REGION:imagetable]
+![](CompiledEditor_Linux.png)(w:920)
+At the end of this tutorial, you'll have Unreal Engine 4 (UE4) running on your Linux machine.
+[/REGION]
 
 ## Goal
 
