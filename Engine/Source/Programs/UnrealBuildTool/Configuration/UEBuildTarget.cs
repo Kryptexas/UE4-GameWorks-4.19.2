@@ -1692,6 +1692,33 @@ namespace UnrealBuildTool
 
 				// delete intermediate directory of the extra files
 			}
+
+			// The engine updates the PATH environment variable to supply all valid locations for DLLs, but the Windows loader reads imported DLLs from the first location it finds them. 
+			// If modules are moved from one place to another, we have to be sure to clean up the old versions so that they're not loaded accidentally causing unintuitive import errors.
+			HashSet<FileReference> OutputFiles = new HashSet<FileReference>();
+			Dictionary<string, FileReference> OutputFileNames = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				foreach(FileReference OutputFile in Binary.Config.OutputFilePaths)
+				{
+					OutputFiles.Add(OutputFile);
+					OutputFileNames[OutputFile.GetFileName()] = OutputFile;
+				}
+			}
+
+			// Search all the output directories for files with a name matching one of our output files
+			foreach(DirectoryReference OutputDirectory in OutputFiles.Select(x => x.Directory).Distinct())
+			{
+				foreach(FileReference ExistingFile in OutputDirectory.EnumerateFileReferences())
+				{
+					FileReference OutputFile;
+					if(OutputFileNames.TryGetValue(ExistingFile.GetFileName(), out OutputFile) && !OutputFiles.Contains(ExistingFile))
+					{
+						Log.TraceInformation("Deleting '{0}' to avoid ambiguity with '{1}'", ExistingFile, OutputFile);
+						CleanFile(ExistingFile.FullName);
+					}
+				}
+			}
 		}
 
 		/// <summary>
@@ -2228,16 +2255,17 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Builds the target, appending list of output files and returns building result.
 		/// </summary>
-		public ECompilationResult Build(UEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules, out string EULAViolationWarning)
+		public ECompilationResult Build(UEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules)
 		{
 			OutputItems = new List<FileItem>();
 			UObjectModules = new List<UHTModuleInfo>();
 
 			PreBuildSetup(TargetToolChain);
 
-			EULAViolationWarning = !ProjectFileGenerator.bGenerateProjectFiles
-				? CheckForEULAViolation()
-				: null;
+			if(!ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				CheckForEULAViolation();
+			}
 
 			// Execute the pre-build steps
 			if(!ExecuteCustomPreBuildSteps())
@@ -2400,15 +2428,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Check for EULA violation dependency issues.
 		/// </summary>
-		/// <returns>EULAViolationWarning if error hasn't been thrown earlier. This behavior is controlled using BuildConfiguration.bBreakBuildOnLicenseViolation.</returns>
-		private string CheckForEULAViolation()
+		private void CheckForEULAViolation()
 		{
-			string EULAViolationWarning = null;
-
 			if (TargetType != TargetRules.TargetType.Editor && TargetType != TargetRules.TargetType.Program && Configuration == UnrealTargetConfiguration.Shipping &&
 				BuildConfiguration.bCheckLicenseViolations)
 			{
-				StringBuilder RedistributionErrorMessageBuilder = new StringBuilder();
+				bool bLicenseViolation = false;
 				foreach (UEBuildBinary Binary in AppBinaries)
 				{
 					IEnumerable<UEBuildModule> NonRedistModules = Binary.GetAllDependencyModules(true, false).Where((DependencyModule) =>
@@ -2417,25 +2442,23 @@ namespace UnrealBuildTool
 
 					if (NonRedistModules.Count() != 0)
 					{
-						RedistributionErrorMessageBuilder.Append(string.Format(
-							"{2}Binary {0} depends on: {1}.", Binary.ToString(), string.Join(", ", NonRedistModules),
-							RedistributionErrorMessageBuilder.Length > 0 ? "\n" : ""
-						));
+						string Message = string.Format("Non-editor build cannot depend on non-redistributable modules. {0} depends on '{1}'.", Binary.ToString(), string.Join("', '", NonRedistModules));
+						if(BuildConfiguration.bBreakBuildOnLicenseViolation)
+						{
+							Log.TraceError("ERROR: {0}", Message);
+						}
+						else
+						{
+							Log.TraceWarning("WARNING: {0}", Message);
+						}
+						bLicenseViolation = true;
 					}
 				}
-
-				if (RedistributionErrorMessageBuilder.Length > 0)
+				if (BuildConfiguration.bBreakBuildOnLicenseViolation && bLicenseViolation)
 				{
-					EULAViolationWarning = string.Format("Non-editor build cannot depend on non-redistributable modules. Details:\n{0}", RedistributionErrorMessageBuilder.ToString());
-
-					if (BuildConfiguration.bBreakBuildOnLicenseViolation)
-					{
-						throw new BuildException(EULAViolationWarning);
-					}
+					throw new BuildException("Non-editor build cannot depend on non-redistributable modules.");
 				}
 			}
-
-			return EULAViolationWarning;
 		}
 
 		/// <summary>

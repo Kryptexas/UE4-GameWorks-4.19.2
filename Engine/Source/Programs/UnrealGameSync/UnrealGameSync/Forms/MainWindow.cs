@@ -1007,7 +1007,7 @@ namespace UnrealGameSync
 				List<BuildData> NotifyBuilds = new List<BuildData>();
 				foreach(BuildData LastBuild in TypeToLastBuild.Values.OrderBy(x => x.BuildType))
 				{
-					if(LastBuild.Result == BuildDataResult.Failure || LastBuild.Result == BuildDataResult.Warning)
+					if((LastBuild.Result == BuildDataResult.Failure || LastBuild.Result == BuildDataResult.Warning) && LastBuild.ChangeNumber >= LastCodeChangeByCurrentUser)
 					{
 						BuildData LastSuccessfulBuild;
 						if(!TypeToLastSucceededBuild.TryGetValue(LastBuild.BuildType, out LastSuccessfulBuild) || LastSuccessfulBuild.ChangeNumber < LastCodeChangeByCurrentUser)

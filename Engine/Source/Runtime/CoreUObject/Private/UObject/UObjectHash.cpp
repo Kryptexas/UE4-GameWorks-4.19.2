@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
+#include "UObjectHash.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectHash, Log, All);
 

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UObjectBaseUtility.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
 
@@ -1182,3 +1183,14 @@ private:
 	*/
 	UObject* CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UClass* ReturnType, bool bTransient = false);
 };
+
+/**
+* Test validity of object
+*
+* @param	Test			The object to test
+* @return	Return true if the object is usable: non-null and not pending kill
+*/
+FORCEINLINE bool IsValid(const UObject *Test)
+{
+	return Test && !Test->IsPendingKill();
+}

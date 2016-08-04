@@ -651,7 +651,7 @@ namespace UnrealBuildTool
 										!IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetRules.TargetType.Program.ToString())
 									{
 										string TargetConfigurationName = SolutionConfigCombination.TargetConfigurationName;
-										if (IsProgramProject && TargetConfigurationName == TargetRules.TargetType.Game.ToString())
+										if (IsProgramProject)
 										{
 											TargetConfigurationName = TargetRules.TargetType.Program.ToString();
 										}

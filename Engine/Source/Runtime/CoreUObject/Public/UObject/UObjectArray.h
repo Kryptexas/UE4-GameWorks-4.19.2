@@ -4,8 +4,9 @@
 	UObjectArray.h: Unreal object array
 =============================================================================*/
 
-#ifndef __UOBJECTARRAY_H__
-#define __UOBJECTARRAY_H__
+#pragma once
+
+#include "UObjectBase.h"
 
 /**
 * Controls whether the number of available elements is being tracked in the ObjObjects array.
@@ -770,5 +771,3 @@ struct FIndexToObject
 		return ObjectItem ? ObjectItem->Object : nullptr;
 	}
 };
-
-#endif	// __UOBJECTARRAY_H__

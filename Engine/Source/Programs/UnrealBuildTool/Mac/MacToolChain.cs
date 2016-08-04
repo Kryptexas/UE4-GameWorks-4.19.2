@@ -12,7 +12,7 @@ using Ionic.Zip;
 
 namespace UnrealBuildTool
 {
-	class MacToolChain : AppleToolChain
+	public class MacToolChain : AppleToolChain
 	{
 		public MacToolChain(FileReference InProjectFile) 
 			: base(CPPTargetPlatform.Mac, UnrealTargetPlatform.Mac, InProjectFile)
@@ -471,7 +471,7 @@ namespace UnrealBuildTool
 		private int LoadEngineCL()
 		{
 			BuildVersion Version;
-			if (BuildVersion.TryRead("../Build/Build.version", out Version))
+			if (BuildVersion.TryRead(out Version))
 			{
 				return Version.Changelist;
 			}
@@ -483,26 +483,15 @@ namespace UnrealBuildTool
 
 		public static string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
 		{
-			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			string EngineVersionMajor = "4";
-			string EngineVersionMinor = "0";
-			string EngineVersionPatch = "0";
-			foreach (string Line in VersionHeader)
+			BuildVersion Version;
+			if (BuildVersion.TryRead(out Version))
 			{
-				if (Line.StartsWith("#define ENGINE_MAJOR_VERSION "))
-				{
-					EngineVersionMajor = Line.Split(' ')[2];
-				}
-				else if (Line.StartsWith("#define ENGINE_MINOR_VERSION "))
-				{
-					EngineVersionMinor = Line.Split(' ')[2];
-				}
-				else if (Line.StartsWith("#define ENGINE_PATCH_VERSION ") && !bIgnorePatchVersion)
-				{
-					EngineVersionPatch = Line.Split(' ')[2];
-				}
+				return String.Format("{0}.{1}.{2}", Version.MajorVersion, Version.MinorVersion, bIgnorePatchVersion? 0 : Version.PatchVersion);
 			}
-			return EngineVersionMajor + "." + EngineVersionMinor + "." + EngineVersionPatch;
+			else
+			{
+				return "4.0.0";
+			}
 		}
 
 		private string LoadLauncherDisplayVersion()
@@ -531,59 +520,32 @@ namespace UnrealBuildTool
 
 		private int LoadBuiltFromChangelistValue()
 		{
-			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			foreach (string Line in VersionHeader)
-			{
-				if (Line.StartsWith("#define BUILT_FROM_CHANGELIST "))
-				{
-					return int.Parse(Line.Split(' ')[2]);
-				}
-			}
-			return 0;
+			return LoadEngineCL();
 		}
 
 		private int LoadIsLicenseeVersionValue()
 		{
-			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			foreach (string Line in VersionHeader)
+			BuildVersion Version;
+			if (BuildVersion.TryRead(out Version))
 			{
-				if (Line.StartsWith("#define ENGINE_IS_LICENSEE_VERSION "))
-				{
-					return int.Parse(Line.Split(' ')[2]);
-				}
+				return Version.IsLicenseeVersion;
 			}
-			return 0;
+			else
+			{
+				return 0;
+			}
 		}
 
 		private string LoadEngineAPIVersion()
 		{
 			int CL = 0;
-			// @todo: Temp solution to work around a problem with parsing ModuleVersion.h updated for 4.4.1 hotfix
-			int BuiltFromChangelist = LoadBuiltFromChangelistValue();
-			if (BuiltFromChangelist > 0)
+
+			BuildVersion Version;
+			if (BuildVersion.TryRead(out Version))
 			{
-				bool bFirstApiVersionDefine = true;
-				foreach (string Line in File.ReadAllLines("../Source/Runtime/Core/Public/Modules/ModuleVersion.h"))
-				{
-					string[] Tokens = Line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-					if (Tokens.Length >= 3 && Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
-					{
-						if (!bFirstApiVersionDefine || LoadIsLicenseeVersionValue() != 0)
-						{
-							if (Tokens[2] == "BUILT_FROM_CHANGELIST")
-							{
-								CL = LoadEngineCL();
-							}
-							else
-							{
-								CL = int.Parse(Tokens[2]);
-							}
-							break;
-						}
-						bFirstApiVersionDefine = false;
-					}
-				}
+				CL = (Version.CompatibleChangelist != 0)? Version.CompatibleChangelist : Version.Changelist;
 			}
+
 			return String.Format("{0}.{1}.{2}", CL / (100 * 100), (CL / 100) % 100, CL % 100);
 		}
 

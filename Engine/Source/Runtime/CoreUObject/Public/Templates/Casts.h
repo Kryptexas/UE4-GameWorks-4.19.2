@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Templates/AndOr.h"
+#include "SubclassOf.h"
 
 COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType);
 

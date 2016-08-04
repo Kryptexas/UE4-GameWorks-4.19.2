@@ -4,8 +4,7 @@
 	PackageName.h: Unreal package name utility functions.
 =============================================================================*/
 
-#ifndef __PACKAGENAME_H__
-#define __PACKAGENAME_H__
+#pragma once
 
 class COREUOBJECT_API FPackageName
 {
@@ -409,6 +408,4 @@ private:
 	/** Event that is triggered when a new content path is removed */
 	static FOnContentPathDismountedEvent OnContentPathDismountedEvent;
 };
-
-#endif	// __PACKAGENAME_H__
 

@@ -947,6 +947,23 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Determines whether the given file is read-only
+		/// </summary>
+		/// <param name="Filename">Filename</param>
+		/// <returns>True if the file is read-only</returns>
+		public static bool IsReadOnly(string Filename)
+		{
+			Filename = ConvertSeparators(PathSeparator.Default, Filename);
+			if (!File.Exists(Filename))
+			{
+				throw new AutomationException(new FileNotFoundException("File not found.", Filename), "Unable to set attributes for a non-existing file.");
+			}
+
+			FileAttributes Attributes = File.GetAttributes(Filename);
+			return (Attributes & FileAttributes.ReadOnly) != 0;
+		}
+
+		/// <summary>
 		/// Sets file attributes. Will not change attributes that have not been specified.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
@@ -1837,6 +1854,25 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Parses the command's Params list for a parameter and reads its value. 
+		/// Ex. ParseParamValue(Args, "map=")
+		/// </summary>
+		/// <param name="Param">Param to read its value.</param>
+		/// <returns>Returns the value or Default if the parameter was not found.</returns>
+		public int? ParseParamNullableInt(string Param)
+		{
+			string Value = ParseParamValue(Params, Param, null);
+			if(Value == null)
+			{
+				return null;
+			}
+			else
+			{
+				return int.Parse(Value);
+			}
+		}
+
+		/// <summary>
 		/// Makes sure path can be used as a command line param (adds quotes if it contains spaces)
 		/// </summary>
 		/// <param name="InPath">Path to convert</param>
@@ -2120,12 +2156,12 @@ namespace AutomationTool
 		/// <returns>List of files written</returns>
 		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
 		{
-            // manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
-            // but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
-            using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
+			// manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
+			// but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
+			using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
 			{
 				List<string> OutputFileNames = new List<string>();
-				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries)
+				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries.Where(x => !x.IsDirectory))
 				{
 					string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
 					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));

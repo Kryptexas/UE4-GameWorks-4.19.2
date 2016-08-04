@@ -627,7 +627,7 @@ namespace UnrealBuildTool
 				Writer.WriteValue("BuildId", BuildId);
 
 				Writer.WriteObjectStart("Version");
-				Version.Write(Writer);
+				Version.WriteProperties(Writer);
 				Writer.WriteObjectEnd();
 
 				Writer.WriteArrayStart("BuildProducts");

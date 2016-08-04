@@ -4,8 +4,7 @@
 	FPropertyTag.
 -----------------------------------------------------------------------------*/
 
-#ifndef __UNPROPERTYTAG_H__
-#define __UNPROPERTYTAG_H__
+#pragma once
 
 #include "DebugSerializationFlags.h"
 
@@ -43,5 +42,3 @@ struct FPropertyTag
 	// Property serializer.
 	void SerializeTaggedProperty( FArchive& Ar, UProperty* Property, uint8* Value, uint8* Defaults );
 };
-
-#endif	// __UNPROPERTYTAG_H__

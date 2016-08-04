@@ -20,6 +20,12 @@ namespace AutomationTool.Tasks
 		public int Change;
 
 		/// <summary>
+		/// The engine compatible changelist to set in the version files
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public int CompatibleChange;
+
+		/// <summary>
 		/// The branch string
 		/// </summary>
 		[TaskParameter]
@@ -80,7 +86,7 @@ namespace AutomationTool.Tasks
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Update the version files
-			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.Branch, Parameters.Build, Parameters.Licensee, !Parameters.SkipWrite);
+			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.CompatibleChange, Parameters.Branch, Parameters.Build, Parameters.Licensee, !Parameters.SkipWrite);
 			List<FileReference> VersionFiles = FileNames.Select(x => new FileReference(x)).ToList();
 
 			// Apply the optional tag to them

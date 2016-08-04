@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __CoreUObject_h__
-#define __CoreUObject_h__
-
+#pragma once
 
 #include "Core.h"
 #include "ModuleManager.h"
@@ -10,11 +8,23 @@
 #include "Script.h"						// Script constants and forward declarations.
 #include "ScriptMacros.h"				// Script macro definitions
 #include "ObjectBase.h"					// Object base class.
+#include "UObjectAllocator.h"
+#include "UObjectGlobals.h"
+#include "UObjectMarks.h"
+#include "UObjectBase.h"
+#include "UObjectBaseUtility.h"
+#include "UObjectArray.h"
+#include "UObjectHash.h"
+#include "WeakObjectPtr.h"
+#include "UObject.h"
+#include "UObjectIterator.h"
 #include "CoreNet.h"					// Core networking.
 #include "ArchiveUObjectBase.h"			// UObject-related Archive classes.
 #include "GarbageCollection.h"			// Realtime garbage collection helpers
 #include "TextBuffer.h"					// UObjects for text buffers
 #include "Class.h"						// Class definition.
+#include "Templates/SubclassOf.h"
+#include "StructOnScope.h"
 #include "Casts.h"                      // Cast templates
 #include "LazyObjectPtr.h"				// Object pointer types
 #include "AssetPtr.h"					// Object pointer types
@@ -40,5 +50,3 @@
 #include "ScriptStackTracker.h"
 #include "WorldCompositionUtility.h"
 #include "StringClassReference.h"
-
-#endif	// __CoreUObject_h__

@@ -3,6 +3,7 @@
 	"MinorVersion": 14,
 	"PatchVersion": 0,
 	"Changelist": 0,
+	"CompatibleChangelist": 0,
 	"IsLicenseeVersion": 0,
 	"BranchName": ""
 }

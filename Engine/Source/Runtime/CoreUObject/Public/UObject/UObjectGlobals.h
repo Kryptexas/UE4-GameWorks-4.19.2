@@ -4,8 +4,7 @@
 	UnObjGlobals.h: Unreal object system globals.
 =============================================================================*/
 
-#ifndef __UNOBJGLOBALS_H__
-#define __UNOBJGLOBALS_H__
+#pragma once
 
 #include "Script.h"
 
@@ -1956,5 +1955,3 @@ COREUOBJECT_API TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap();
  */
 COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject);
 #endif //WITH_EDITOR
-
-#endif	// __UNOBJGLOBALS_H__

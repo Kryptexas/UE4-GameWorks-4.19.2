@@ -1584,7 +1584,6 @@ namespace UnrealBuildTool
 
 			UEToolChain ToolChain = BuildPlatformContext.CreateToolChainForDefaultCppPlatform();
 
-			string EULAViolationWarning = null;
 			Thread CPPIncludesThread = null;
 
 			try
@@ -1844,7 +1843,7 @@ namespace UnrealBuildTool
 					{
 						List<FileItem> TargetOutputItems;
 						List<UHTModuleInfo> TargetUObjectModules;
-						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules, out EULAViolationWarning);
+						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules);
 						if (BuildResult != ECompilationResult.Succeeded)
 						{
 							break;
@@ -2095,11 +2094,6 @@ namespace UnrealBuildTool
 					FlatCPPIncludeDependencyCache.Save();
 				}
 				CPPEnvironment.FlatCPPIncludeDependencyCache.Clear();
-			}
-
-			if (EULAViolationWarning != null)
-			{
-				Log.TraceWarning("WARNING: {0}", EULAViolationWarning);
 			}
 
 			// Figure out how long we took to execute.

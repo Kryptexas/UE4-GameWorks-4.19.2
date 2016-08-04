@@ -4,9 +4,9 @@
 	UObjectIterator.h: High level iterators for uobject
 =============================================================================*/
 
-#ifndef __UOBJECTITERATOR_H__
-#define __UOBJECTITERATOR_H__
+#pragma once
 
+#include "Class.h"
 
 /**
  * Class for iterating through all objects, including class default objects, unreachable objects...all UObjects
@@ -327,5 +327,3 @@ struct TObjectRange<UObject>
 	TObjectIterator<UObject> Begin;
 };
 
-
-#endif	// __UOBJECTITERATOR_H__

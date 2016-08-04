@@ -26,21 +26,12 @@ namespace UnrealBuildTool
 		public readonly string CanonicalName;
 
 		/// <summary>
-		/// Constructs a filesystem object for the given path.
+		/// Direct constructor for a path
 		/// </summary>
-		public FileSystemReference(string InPath)
+		protected FileSystemReference(string InFullName)
 		{
-			FullName = Path.GetFullPath(InPath).TrimEnd(Path.DirectorySeparatorChar);
-			CanonicalName = FullName.ToLowerInvariant();
-		}
-
-		/// <summary>
-		/// Constructs a reference from the given FileSystemInfo.
-		/// </summary>
-		public FileSystemReference(FileSystemInfo InInfo)
-		{
-			FullName = InInfo.FullName;
-			CanonicalName = FullName.ToLowerInvariant();
+			FullName = InFullName;
+			CanonicalName = InFullName.ToLowerInvariant();
 		}
 
 		/// <summary>
@@ -254,7 +245,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPath">Path to this directory.</param>
 		public DirectoryReference(string InPath)
-			: base(InPath)
+			: base(FixTrailingPathSeparator(Path.GetFullPath(InPath)))
 		{
 		}
 
@@ -263,7 +254,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InInfo">Path to this file</param>
 		public DirectoryReference(DirectoryInfo InInfo)
-			: base(InInfo)
+			: base(FixTrailingPathSeparator(InInfo.FullName))
 		{
 		}
 
@@ -275,6 +266,32 @@ namespace UnrealBuildTool
 		protected DirectoryReference(string InFullName, string InCanonicalName)
 			: base(InFullName, InCanonicalName)
 		{
+		}
+
+		/// <summary>
+		/// Ensures that the correct trailing path separator is appended. On Windows, the root directory (eg. C:\) always has a trailing path separator, but no other
+		/// path does.
+		/// </summary>
+		/// <param name="DirName">Absolute path to the directory</param>
+		/// <returns>Path to the directory, with the correct trailing path separator</returns>
+		private static string FixTrailingPathSeparator(string DirName)
+		{
+			if(DirName.Length == 2 && DirName[2] == ':')
+			{
+				return DirName + Path.DirectorySeparatorChar;
+			}
+			else if(DirName.Length == 3 && DirName[1] == ':' && DirName[2] == Path.DirectorySeparatorChar)
+			{
+				return DirName;
+			}
+			else if(DirName.Length > 1 && DirName[DirName.Length - 1] == Path.DirectorySeparatorChar)
+			{
+				return DirName.TrimEnd(Path.DirectorySeparatorChar);
+			}
+			else
+			{
+				return DirName;
+			}
 		}
 
 		/// <summary>
@@ -530,8 +547,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPath">Path to this file</param>
 		public FileReference(string InPath)
-			: base(InPath)
+			: base(Path.GetFullPath(InPath))
 		{
+			if(FullName.EndsWith("\\") || FullName.EndsWith("/"))
+			{
+				throw new ArgumentException("File names may not be terminated by a path separator character");
+			}
 		}
 
 		/// <summary>
@@ -539,7 +560,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InInfo">Path to this file</param>
 		public FileReference(FileInfo InInfo)
-			: base(InInfo)
+			: base(InInfo.FullName)
 		{
 		}
 

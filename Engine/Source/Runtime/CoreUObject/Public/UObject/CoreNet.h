@@ -3,6 +3,8 @@
 #pragma once
 
 #include "ObjectBase.h"
+#include "WeakObjectPtr.h"
+#include "UObject.h"
 
 
 DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
@@ -275,6 +277,7 @@ public:
 
 template <> struct TIsZeroConstructType<FLifetimeProperty> { enum { Value = true }; };
 
+GENERATE_MEMBER_FUNCTION_CHECK(GetLifetimeReplicatedProps, void, const, TArray<FLifetimeProperty>&)
 
 /**
  * FNetBitWriter

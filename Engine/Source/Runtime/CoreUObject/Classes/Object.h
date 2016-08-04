@@ -217,7 +217,7 @@ namespace EMouseCursor
 
 /** A set of numerical unit types supported by the engine. Mirrored from UnitConversion.h */
 UENUM(BlueprintType)
-enum class EUnit : uint8
+enum class EUnit
 {
 	/** Scalar distance/length unit. */
 
