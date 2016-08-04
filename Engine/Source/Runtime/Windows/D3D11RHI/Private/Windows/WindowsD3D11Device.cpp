@@ -47,14 +47,14 @@ static TAutoConsoleVariable<int32> CVarForceNvidiaToSM4(
 
 static TAutoConsoleVariable<int32> CVarAMDUseMultiThreadedDevice(
 	TEXT("r.AMDD3D11MultiThreadedDevice"),
-	1,
+	0,
 	TEXT("If true, creates a multithreaded D3D11 device on AMD hardware (workaround for driver bug)\n")
 	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
 	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarAMDDisableAsyncTextureCreation(
 	TEXT("r.AMDDisableAsyncTextureCreation"),
-	1,
+	0,
 	TEXT("If true, uses synchronous texture creation on AMD hardware (workaround for driver bug)\n")
 	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
 	ECVF_Default);
