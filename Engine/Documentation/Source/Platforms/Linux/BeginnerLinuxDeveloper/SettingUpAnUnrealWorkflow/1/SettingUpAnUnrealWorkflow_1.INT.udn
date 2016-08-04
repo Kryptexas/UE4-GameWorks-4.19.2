@@ -1,9 +1,9 @@
 Availability: Docs
-Title: 1 - Setting up Git for UE4
+Title: 1 - Required Setup
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 Description:Learn how to setup Git on Linux.
-Version: 4.11
-type:HowTo
+Version: 4.13
+type:QuickStart
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 1
 tags:Linux
@@ -16,7 +16,7 @@ SkillLevel:Beginner
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
+		[Linux Quick Start Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/2:title%")
@@ -30,7 +30,7 @@ Currently, we don't supply a binary installer of UE4 for Linux users. The good n
 code that we use to develop the engine. If you want to access our source code, you'll have to register for an Epic Games account, sign up for a GitHub account, 
 associate your GitHub username with your Epic Games account, and setup Git on your Linux machine.
 
-## Getting an Epic Games Account
+## Registering for an Epic Games Account
 
 If you want to create games with Unreal Engine or contribute to the future of UE4 on Linux, you'll need to have a valid Epic Games account. 
 
@@ -39,7 +39,7 @@ If you want to create games with Unreal Engine or contribute to the future of UE
 There are many benefits for having an account with us, including (but not limited to) access to the Unreal Engine community, where you'll 
 connect with other UE4 Linux developers, and where you'll be able to keep up with the latest news about Unreal Engine.
 
-## Setup Git
+## Setting up Git
 
 Now that you've registered for an Epic Games account, you're ready to work through the following steps to gain access to the UE4 source code on GitHub.
 

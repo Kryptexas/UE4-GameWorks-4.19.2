@@ -2,8 +2,8 @@ Availability: Docs
 Title: 4 - Running UE4 on Linux
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 Description:Learn how to run Unreal Engine on Linux.
-Version: 4.11
-type:HowTo
+Version: 4.13
+type:QuickStart
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 4
 tags:Linux
@@ -17,9 +17,10 @@ SkillLevel:Beginner
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper)
+		[Linux Quick Start Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
 	[/PARAM]
 	[PARAM:next]
+		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/5 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/5:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -44,7 +45,6 @@ you learned:
 &#x2713; How to build Unreal Engine from source.  
 &#x2713; How to run Unreal Engine on your Linux machine.  
 
-Throughout the course of this tutorial, you spent most of your time using the terminal. In the next tutorial, you'll learn how to setup an integrated development 
-environment (IDE), enabling you to harness the context rich features of an IDE to help you build and debug UE4 games.
+Are you ready to do some exercises on your own?
 
 %Steps%
