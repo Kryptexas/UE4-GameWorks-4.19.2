@@ -1090,7 +1090,7 @@ void FTickableGameObject::TickObjects(UWorld* World, int32 InTickType, bool bIsP
 	{
 		if (FTickableGameObject* TickableObject = TickableObjects[i])
 		{
-			const bool bTickIt = (TickableObject->GetTickableGameObjectWorld() == World) && TickableObject->IsTickable() &&
+			const bool bTickIt = TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World) &&
 				(
 					(TickType != LEVELTICK_TimeOnly && !bIsPaused) ||
 					(bIsPaused && TickableObject->IsTickableWhenPaused()) ||
