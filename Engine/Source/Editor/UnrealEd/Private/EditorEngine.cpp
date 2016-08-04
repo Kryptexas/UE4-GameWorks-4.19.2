@@ -1194,12 +1194,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	bool bAWorldTicked = false;
+	ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
 
 	if( bShouldTickEditorWorld )
 	{ 
-		// Tick level.
-		ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
-
 		//EditorContext.World()->FXSystem->Resume();
 		// Note: Still allowing the FX system to tick so particle systems dont restart after entering/leaving responsive mode
 		if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
@@ -1408,6 +1406,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				// tick the level
 				PieContext.World()->Tick( LEVELTICK_All, DeltaSeconds );
 				bAWorldTicked = true;
+				TickType = LEVELTICK_All;
 
 				if( bIsRecordingActive )
 				{
@@ -1439,7 +1438,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	if (bAWorldTicked)
 	{
-		const ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
 		FTickableGameObject::TickObjects(nullptr, TickType, false, DeltaSeconds);
 	}
 
