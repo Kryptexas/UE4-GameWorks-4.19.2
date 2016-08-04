@@ -692,7 +692,6 @@ namespace AbcImporterUtilities
 	static void ComputeTangents(FAbcMeshSample* Sample, UAbcImportSettings* ImportSettings, IMeshUtilities& MeshUtilities)
 	{
 		uint32 TangentOptions = 0x0;
-		TangentOptions |= ImportSettings->NormalGenerationSettings.bBlendOverlappingNormals ? ETangentOptions::BlendOverlappingNormals : 0;
 		TangentOptions |= ImportSettings->NormalGenerationSettings.bIgnoreDegenerateTriangles ? ETangentOptions::IgnoreDegenerateTriangles : 0;
 
 		MeshUtilities.CalculateTangents(Sample->Vertices, Sample->Indices, Sample->UVs, Sample->SmoothingGroupIndices, TangentOptions, Sample->TangentX, Sample->TangentY, Sample->Normals);
