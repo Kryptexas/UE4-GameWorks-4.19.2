@@ -6543,7 +6543,7 @@ bool UParticleSystemComponent::GetAnyVectorParameter(const FName InName,FVector&
 			}
 			if (Param.ParamType == PSPT_VectorRand)
 			{
-				check(IsInGameThread());
+				//check(IsInGameThread());
 				FVector RandValue(FMath::SRand(), FMath::SRand(), FMath::SRand());
 				OutVector = Param.Vector + (Param.Vector_Low - Param.Vector) * RandValue;
 				return true;
