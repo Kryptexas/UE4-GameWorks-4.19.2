@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3069482
 Availability: NoPublish
 Title: 소스 브랜치 참고서
 Crumbs: %ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -12,7 +12,7 @@ Version: 4.8
 
 ## 소스 코드 브랜치
 
-저장소에 접근한 이후에는, UE4 의 소스 코드가 세 가지 브랜치로 나뉘어 퍼블리싱된 것을 볼 수 있습니다.
+UE4 의 소스 코드가 세 가지 브랜치로 나뉘어 퍼블리싱된 것을 볼 수 있습니다.
 [REGION:raw]
 ![](Branches.png)
 [/REGION]
