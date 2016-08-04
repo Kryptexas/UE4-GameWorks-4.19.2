@@ -124,7 +124,11 @@ public class MediaPlayer14
 				videoTrack.BitRate = 0;
 				videoTrack.Width = mediaFormat.getInteger(MediaFormat.KEY_WIDTH);
 				videoTrack.Height = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT);
-				videoTrack.FrameRate = mediaFormat.getInteger(MediaFormat.KEY_FRAME_RATE);
+				videoTrack.FrameRate = 30.0f;
+				if (mediaFormat.containsKey(MediaFormat.KEY_FRAME_RATE))
+				{
+					videoTrack.FrameRate = mediaFormat.getInteger(MediaFormat.KEY_FRAME_RATE);
+				}
 				videoTracks.add(videoTrack);
 				numVideoTracks++;
 			}
@@ -182,6 +186,7 @@ public class MediaPlayer14
 		}
 		catch(IOException e)
 		{
+			GameActivity.Log.debug("setDataSourceURL: Exception = " + e);
 			return false;
 		}
 		return true;
@@ -221,6 +226,7 @@ public class MediaPlayer14
 		}
 		catch(IOException e)
 		{
+			GameActivity.Log.debug("setDataSource (file): Exception = " + e);
 			return false;
 		}
 		return true;
@@ -254,6 +260,7 @@ public class MediaPlayer14
 		}
 		catch(IOException e)
 		{
+			GameActivity.Log.debug("setDataSource (asset): Exception = " + e);
 			return false;
 		}
 		return true;
