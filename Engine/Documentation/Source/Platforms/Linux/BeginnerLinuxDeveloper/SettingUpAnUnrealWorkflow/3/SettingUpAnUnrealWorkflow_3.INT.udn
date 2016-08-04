@@ -2,8 +2,8 @@ Availability: Docs
 Title: 3 - Building UE4 on Linux
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 Description:Learn how to build Unreal Engine from source.
-Version: 4.11
-type:HowTo
+Version: 4.13
+type:QuickStart
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 3
 tags:Linux
@@ -17,7 +17,7 @@ SkillLevel:Beginner
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
+		[Linux Quick Start Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/4 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/4:title%")

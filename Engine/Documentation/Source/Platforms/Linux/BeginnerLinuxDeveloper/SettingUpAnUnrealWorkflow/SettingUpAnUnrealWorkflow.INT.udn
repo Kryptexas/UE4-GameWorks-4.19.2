@@ -1,16 +1,37 @@
 Availability: Docs
-Title: How to Setup your Workflow
+Title: Linux Quick Start Guide
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper
 Description:Learn how to download, build, and run UE4 on Linux.
 Platform:Linux
-Version: 4.11
-type:HowTo
+Version: 4.13
+type:QuickStart
 parent:Platforms/Linux/BeginnerLinuxDeveloper
 order: 2
 tags:Linux
 SkillLevel:Beginner
 prereq:GettingStarted/RecommendedSpecifications
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers
+
+[VAR:Params]
+[PARAM:image]
+	![%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:title%](linuxQS_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/tutorial_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:title%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
 
 ![](CompiledEditor_Linux.png)
 
