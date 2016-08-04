@@ -331,6 +331,11 @@ public:
 	void TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout);
 	void TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout);
 
+	inline bool IsEmpty() const
+	{
+		return NumAllocatedDescriptorSets == 0;
+	}
+
 private:
 	FVulkanDevice* Device;
 
@@ -339,7 +344,6 @@ private:
 	uint32 PeakAllocatedDescriptorSets;
 
 	// Tracks number of allocated types, to ensure that we are not exceeding our allocated limit
-	int32 MaxAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 NumAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 PeakAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 
@@ -359,7 +363,7 @@ private:
 	friend class FVulkanDescriptorPool;
 	friend class FVulkanPendingState;
 
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanDescriptorPool* InPool);
+	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanCommandListContext* InContext);
 	~FVulkanDescriptorSets();
 
 	FVulkanDevice* Device;

@@ -124,10 +124,8 @@ public:
 		return *PendingState;
 	}
 
-	inline FVulkanDescriptorPool* GetDescriptorPool()
-	{
-		return &DescriptorPool;
-	}
+	// OutSets must have been previously pre-allocated
+	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, VkDescriptorSet* OutSets);
 
 protected:
 	FVulkanDynamicRHI* RHI;
@@ -154,7 +152,7 @@ protected:
 
 	FVulkanCommandBufferManager* CommandBufferManager;
 
-	FVulkanDescriptorPool DescriptorPool;
+	TArray<FVulkanDescriptorPool*> DescriptorPools;
 
 	//#todo-rco: Temp!
 	FVulkanPendingState* PendingState;

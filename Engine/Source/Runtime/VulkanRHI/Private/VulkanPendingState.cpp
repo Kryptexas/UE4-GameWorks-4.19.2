@@ -421,30 +421,16 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
 {
-	check(Device != nullptr);
-
-	//#todo-rco: Get a proper/dynamic numbers
-	MaxDescriptorSets = 32 * 1024;
+	MaxDescriptorSets = 2048;
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
-	FMemory::Memzero(MaxAllocatedTypes);
 	FMemory::Memzero(NumAllocatedTypes);
 	FMemory::Memzero(PeakAllocatedTypes);
 
 	//#todo-rco: Get some initial values
-	uint32 LimitMaxUniformBuffers = 512 * 1024;
-	uint32 LimitMaxSamplers = FMath::Min(Limits.maxSamplerAllocationCount, (uint32)64 * 1024);
-	uint32 LimitMaxCombinedImageSamplers = 256 * 1024;
-	uint32 LimitMaxUniformTexelBuffers = 64 * 1024;
-
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	if (GValidationCvar.GetValueOnAnyThread() != 0)
-	{
-		LimitMaxUniformBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformBuffers);
-		LimitMaxSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxSamplers);
-		LimitMaxCombinedImageSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxCombinedImageSamplers);
-		LimitMaxUniformTexelBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformTexelBuffers);
-	}
-#endif
+	uint32 LimitMaxUniformBuffers = 2048;
+	uint32 LimitMaxSamplers = 1024;
+	uint32 LimitMaxCombinedImageSamplers = 4096;
+	uint32 LimitMaxUniformTexelBuffers = 512;
 
 	TArray<VkDescriptorPoolSize> Types;
 	VkDescriptorPoolSize* Type = new(Types) VkDescriptorPoolSize;
@@ -475,21 +461,12 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	VkDescriptorPoolCreateInfo PoolInfo;
 	FMemory::Memzero(PoolInfo);
 	PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-
-	//@TODO: Android don't support descriptor pools on device, so this doesn't matter for us yet. might for the PC IDC though.
 	PoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
 	PoolInfo.poolSizeCount = Types.Num();
 	PoolInfo.pPoolSizes = Types.GetData();
 	PoolInfo.maxSets = MaxDescriptorSets;
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), &PoolInfo, nullptr, &DescriptorPool));
-
-	for (int32 Index = 0; Index < Types.Num(); ++Index)
-	{
-		auto& Type2 = Types[Index];
-		MaxAllocatedTypes[Type2.type] = Type2.descriptorCount;
-	}
 }
 
 FVulkanDescriptorPool::~FVulkanDescriptorPool()
@@ -511,35 +488,10 @@ void FVulkanDescriptorPool::TrackAddUsage(const FVulkanDescriptorSetsLayout& Lay
 	{
 		NumAllocatedTypes[TypeIndex] +=	(int32)Layout.GetTypesUsed((VkDescriptorType)TypeIndex);
 		PeakAllocatedTypes[TypeIndex] = FMath::Max(PeakAllocatedTypes[TypeIndex], NumAllocatedTypes[TypeIndex]);
-
-		check(NumAllocatedTypes[TypeIndex] <= MaxAllocatedTypes[TypeIndex]);
 	}
 
 	NumAllocatedDescriptorSets += Layout.GetLayouts().Num();
 	PeakAllocatedDescriptorSets = FMath::Max(NumAllocatedDescriptorSets, PeakAllocatedDescriptorSets);
-
-	check(NumAllocatedDescriptorSets <= MaxDescriptorSets);
-/*
-	// Notify number of descriptor sets usage
-	// A notification is triggered on each ~10%.
-	if ((NumAllocatedDescriptorSets % (MaxDescriptorSets/10)) == 0)
-	{
-		const float CapacityPercent = (float)NumAllocatedDescriptorSets/MaxDescriptorSets*100;
-
-		if (CapacityPercent < 70.0f)
-		{
-			UE_LOG(LogVulkanRHI, Display, TEXT("DescriptorPool usage is at %2.2f%% capacity (%u/%u)"),
-				CapacityPercent,
-				NumAllocatedDescriptorSets, MaxDescriptorSets);
-		}
-		else
-		{
-			UE_LOG(LogVulkanRHI, Warning, TEXT("DescriptorPool usage is at %2.2f%% capacity (%u/%u)"),
-				CapacityPercent,
-				NumAllocatedDescriptorSets, MaxDescriptorSets);
-		}
-	}
-*/
 }
 
 void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout)

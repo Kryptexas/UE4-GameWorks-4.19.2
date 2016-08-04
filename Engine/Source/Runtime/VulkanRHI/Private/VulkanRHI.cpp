@@ -286,7 +286,6 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 	, CommandBufferManager(nullptr)
-	, DescriptorPool(InDevice)
 	, PendingState(nullptr)
 {
 	// Create CommandBufferManager, contain all active buffers
@@ -294,6 +293,10 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
 	PendingState = new FVulkanPendingState(InDevice);
+
+	// Add an initial pool
+	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
+	DescriptorPools.Add(Pool);
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -305,6 +308,12 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	delete PendingState;
 
 	TempFrameAllocationBuffer.Destroy();
+
+	for (int32 Index = 0; Index < DescriptorPools.Num(); ++Index)
+	{
+		delete DescriptorPools[Index];
+	}
+	DescriptorPools.Reset(0);
 }
 
 namespace VulkanRHI
@@ -981,24 +990,25 @@ void FVulkanDescriptorSetsLayout::Compile()
 }
 
 
-FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanDescriptorPool* InPool)
+FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanCommandListContext* InContext)
 	: Device(InDevice)
-	, Pool(InPool)
+	, Pool(nullptr)
 	, Layout(InState->GetDescriptorSetsLayout())
 {
-	Pool->TrackAddUsage(Layout);
-
 	const TArray<VkDescriptorSetLayout>& LayoutHandles = Layout.GetHandles();
 
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
 	FMemory::Memzero(DescriptorSetAllocateInfo);
 	DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
+	// Pool will be filled in by FVulkanCommandListContext::AllocateDescriptorSets
+	//DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
 	DescriptorSetAllocateInfo.descriptorSetCount = LayoutHandles.Num();
 	DescriptorSetAllocateInfo.pSetLayouts = LayoutHandles.GetData();
 
 	Sets.AddZeroed(LayoutHandles.Num());
-	VERIFYVULKANRESULT(VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, Sets.GetData()));
+
+	Pool = InContext->AllocateDescriptorSets(DescriptorSetAllocateInfo, Sets.GetData());
+	Pool->TrackAddUsage(Layout);
 }
 
 FVulkanDescriptorSets::~FVulkanDescriptorSets()
