@@ -1243,11 +1243,17 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 			{
 				ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
 			}
-			else
+			else if (InOutSmartName.IsValid())
 			{
 				// this is only case where we add new one
 				ensureAlways(Mapping->AddSmartName(InOutSmartName));
 				Modify();
+				return true;
+			}
+			else
+			{
+				// this is only case where we add new one
+				Mapping->FindOrAddSmartName(InOutSmartName.DisplayName, InOutSmartName);
 				return true;
 			}
 		}
