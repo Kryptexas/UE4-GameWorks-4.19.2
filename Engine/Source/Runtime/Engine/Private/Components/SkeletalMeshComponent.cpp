@@ -473,7 +473,7 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		}		
 
 		// refresh morph targets - this can happen when re-registration happens
-		InitializeAnimationMorphTargets();
+		RefreshMorphTargets();
 	}
 	return bCalledInitialize;
 }
@@ -712,22 +712,8 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 	}
 }
 
-static TAutoConsoleVariable<int32> CVarAnimationDelaysEndGroup(
-	TEXT("tick.AnimationDelaysEndGroup"),
-	1,
-	TEXT("If > 0, then skeletal meshes that do not rely on physics simulation will set their animation end tick group to TG_PostPhysics."));
-static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
-	TEXT("tick.HiPriSkinnedMeshes"),
-	1,
-	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
-
-
-void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void USkeletalMeshComponent::UpdateMorphTargetCurves()
 {
-	UpdatePostPhysicsTickRegisteredState();
-	UpdateClothTickRegisteredState();
-
-	// clear and add morphtarget curves that are added via SetMorphTarget
 	ActiveMorphTargets.Reset();
 	if (SkeletalMesh)
 	{
@@ -750,6 +736,25 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	{
 		MorphTargetWeights.Reset();
 	}
+}
+
+static TAutoConsoleVariable<int32> CVarAnimationDelaysEndGroup(
+	TEXT("tick.AnimationDelaysEndGroup"),
+	1,
+	TEXT("If > 0, then skeletal meshes that do not rely on physics simulation will set their animation end tick group to TG_PostPhysics."));
+static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
+	TEXT("tick.HiPriSkinnedMeshes"),
+	1,
+	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
+
+
+void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	UpdatePostPhysicsTickRegisteredState();
+	UpdateClothTickRegisteredState();
+
+	// clear and add morphtarget curves that are added via SetMorphTarget
+	UpdateMorphTargetCurves();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -2306,9 +2311,9 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 	}
 }
 
-void USkeletalMeshComponent::InitializeAnimationMorphTargets()
+void USkeletalMeshComponent::RefreshMorphTargets()
 {
-	ActiveMorphTargets.Empty();
+	UpdateMorphTargetCurves();
 
 	if (SkeletalMesh && AnimScriptInstance)
 	{

@@ -1458,7 +1458,7 @@ private:
 	bool DoAnyPhysicsBodiesHaveWeight() const;
 
 	void ClearAnimScriptInstance();
-	virtual void InitializeAnimationMorphTargets() override;
+	virtual void RefreshMorphTargets() override;
 
 #if WITH_APEX_CLOTHING
 	void GetWindForCloth_GameThread(FVector& WindVector, float& WindAdaption) const;
@@ -1566,6 +1566,12 @@ private:
 
 	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (used for FBlendedCurve::InitFrom) */
 	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
+
+	/*
+	 * Update MorphTargetCurves - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
+	 */
+	void UpdateMorphTargetCurves();
+
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */
 	UPROPERTY(Transient)
