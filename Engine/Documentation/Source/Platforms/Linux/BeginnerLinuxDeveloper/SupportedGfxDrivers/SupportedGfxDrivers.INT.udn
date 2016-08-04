@@ -45,7 +45,7 @@ make sure to update your graphics driver appropriately.
 ## NVIDIA Graphics Drivers
 
 If you're running an NVIDIA graphics driver version older than version 347.09, consider updating your graphics driver 
-to prevent your system from crashing while running the engine. Also, it's important to note that NVIDIA's 
+to prevent your system from crashing while running the engine. Also, it's important to note that the 
 latest graphics drivers aren't guaranteed to work with UE4. Please refer back to our list of supported graphics
 drivers in order to verify that your graphics driver will work properly with the engine.
 
