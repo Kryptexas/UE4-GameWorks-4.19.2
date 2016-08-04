@@ -4000,7 +4000,7 @@ bool USkeletalMeshComponent::GetClothSimulatedPosition(int32 AssetIndex, int32 V
 
 void USkeletalMeshComponent::TickClothing(float DeltaTime, FTickFunction& ThisTickFunction)
 {
-	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	if (SkeletalMesh == nullptr || CVarEnableClothPhysics.GetValueOnGameThread() == 0)
 	{
 		return;
 	}
