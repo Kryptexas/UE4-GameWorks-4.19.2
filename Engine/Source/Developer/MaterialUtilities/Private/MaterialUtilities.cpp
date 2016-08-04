@@ -1860,11 +1860,11 @@ void FMaterialUtilities::FExportErrorManager::OutputToLog()
 
 				if (CurrentMaterial == CurrentMaterial->GetMaterial())
 				{
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("Error generating scales for %s%s: %s"), *CurrentMaterial->GetName(), *SimilarCount, *TextureErrors);
+					UE_LOG(TextureStreamingBuild, Verbose, TEXT("Incomplete texcoord scale analysis for %s%s: %s"), *CurrentMaterial->GetName(), *SimilarCount, *TextureErrors);
 				}
 				else
 				{
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("Error generating scales for %s, UMaterial=%s%s: %s"), *CurrentMaterial->GetName(), *CurrentMaterial->GetMaterial()->GetName(), *SimilarCount, *TextureErrors);
+					UE_LOG(TextureStreamingBuild, Verbose, TEXT("Incomplete texcoord scale analysis for %s, UMaterial=%s%s: %s"), *CurrentMaterial->GetName(), *CurrentMaterial->GetMaterial()->GetName(), *SimilarCount, *TextureErrors);
 				}
 			}
 

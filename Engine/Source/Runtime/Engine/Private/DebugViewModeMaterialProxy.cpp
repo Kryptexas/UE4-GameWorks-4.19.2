@@ -7,8 +7,6 @@ DebugViewModeMaterialProxy.cpp : Contains definitions the debug view mode materi
 #include "EnginePrivate.h"
 #include "DebugViewModeMaterialProxy.h"
 
-DEFINE_LOG_CATEGORY_STATIC(DebugViewModeMaterialProxy, Log, All);
-
 ENGINE_API const FMaterial* GetDebugViewMaterialPS(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material)
 {
 #if WITH_EDITORONLY_DATA
@@ -90,7 +88,7 @@ void FDebugViewModeMaterialProxy::ValidateAllShaders(OUT FTexCoordScaleMap& TexC
 			if (!(DebugViewUniformExpressionSet == OrignialUniformExpressionSet))
 			{
 				// This will happen when the debug shader compiled misses logic. Usually caused by custom features in the original shader compilation not implemented in FDebugViewModeMaterialProxy.
-				UE_LOG(DebugViewModeMaterialProxy, Warning, TEXT("Uniform expression set mismatch for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
+				UE_LOG(TextureStreamingBuild, Verbose, TEXT("Uniform expression set mismatch for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
 
 				// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
 				DebugMaterial->MarkAsInvalid();
@@ -99,7 +97,7 @@ void FDebugViewModeMaterialProxy::ValidateAllShaders(OUT FTexCoordScaleMap& TexC
 		}
 		else if (DebugMaterial)
 		{
-			UE_LOG(DebugViewModeMaterialProxy, Warning, TEXT("Can't get valid shadermap for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
+			UE_LOG(TextureStreamingBuild, Verbose, TEXT("Can't get valid shadermap for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
 
 			// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
 			DebugMaterial->MarkAsInvalid();

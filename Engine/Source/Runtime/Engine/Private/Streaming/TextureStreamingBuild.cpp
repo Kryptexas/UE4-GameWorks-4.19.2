@@ -8,6 +8,8 @@ TextureStreamingBuild.cpp : Contains definitions to build texture streaming data
 #include "DebugViewModeMaterialProxy.h"
 #include "ShaderCompiler.h"
 
+DEFINE_LOG_CATEGORY(TextureStreamingBuild);
+
 bool WaitForShaderCompilation(const FText& Message, FSlowTask& BuildTextureStreamingTask)
 {
 	const int32 NumShadersToBeCompiled = GShaderCompilingManager->GetNumRemainingJobs();
@@ -151,7 +153,7 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 					const FMaterial* Material = MaterialInterface->GetMaterialResource(FeatureLevel);
 					if (!Material || Material->IsUsedWithLandscape())
 					{
-						UE_LOG(LogLevel, Warning, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
+						UE_LOG(TextureStreamingBuild, Verbose, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
 						continue;
 					}
 
@@ -183,7 +185,7 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 	}
 
 #else
-	UE_LOG(LogLevel, Fatal,TEXT("Build Texture Streaming Shaders should not be called on a console"));
+	UE_LOG(TextureStreamingBuild, Fatal,TEXT("Build Texture Streaming Shaders should not be called on a console"));
 	return false;
 #endif
 }
@@ -232,7 +234,7 @@ ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexC
 			}
 		}
 	}
-	UE_LOG(LogLevel, Display, TEXT("Update Texture Streaming Data took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+	UE_LOG(TextureStreamingBuild, Display, TEXT("Update Texture Streaming Data took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 	return true;
 #else
 	return false;
@@ -316,10 +318,10 @@ ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleM
 			Actor->MarkComponentsRenderStateDirty();
 		}
 	}
-	UE_LOG(LogLevel, Display, TEXT("Build Texture Streaming took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+	UE_LOG(TextureStreamingBuild, Display, TEXT("Build Texture Streaming took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 	return true;
 #else
-	UE_LOG(LogLevel, Fatal,TEXT("Build Texture Streaming should not be called on a console"));
+	UE_LOG(TextureStreamingBuild, Fatal,TEXT("Build Texture Streaming should not be called on a console"));
 	return false;
 #endif
 }
