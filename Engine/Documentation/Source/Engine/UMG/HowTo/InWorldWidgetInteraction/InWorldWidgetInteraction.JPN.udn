@@ -1,137 +1,136 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Creating 3D Widget Interaction
+﻿INTSourceChangelist:3072583
+Availability:Docs
+Title:3D ウィジェットのインタラクションの作成
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:An example of how to create, display and remove UI elements from the screen during gameplay. 
+Description:ゲームプレイ中に画面に UI エレメントを作成、表示、取り除く方法の例です。 
 Related: Engine\UMG\UserGuide\WidgetInteraction\
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.13
-SkillLevel: Intermediate
+Version:4.13
+SkillLevel:Intermediate
 
-Traditional UI consists in 2D space on top of a 2D or 3D world (for example menus, health bars or score displays). 
-However there may be times when you want a piece of UI to exist within your 3D environment that players can interact with (a keypad, a virtual menu, an inventory or other interactive UI element). 
-In VR projects, this is even more prevalent and UMG supports these types of interactions with the [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) component. 
+従来の UI は、2D または 3D のワールドに加えて 2D 空間で構成されます (例、メニュー、ヘルスバー、スコアの表示)。 
+ただし、3D 環境内にプレイヤーがインタラクションできる UI が必要になることがあるかもしれません (キーパッド、仮想メニュー、アイテム欄、その他のインタラクティブな UI エレメント)。 
+VR プロジェクトでは、こうしたものが多く使われ、UMG では [WidgetInteraction](Engine\UMG\UserGuide\WidgetInteraction) コンポーネントでこうしたインタラクションをサポートしています。 
 
-In this how-to we create a widget containing a button that can be placed in the level and clicked on by a player. 
+この操作ガイドでは、レベルに配置し、プレイヤーがクリックできるボタンを含むウィジェットを作成します。 
 
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this how-to, we are using the **Blueprint First Person Template** with **Starter Content** enabled. 
+この操作ガイドでは **スターター コンテンツ** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
 [/REGION]
 
-1.	Inside the **Content/FirstPersonBP/Blueprints** folder, open the **FirstPersonCharacter** Blueprint. 
+1.	**「Content/FirstPersonBP/Blueprints」** フォルダ内で **FirstPersonCharacter** ブループリントを開きます。 
 
 	![](WidgetInteraction_01.png)
 
-1.	Click the **Add Component** button and search for and add the **Widget Interaction** component. 
+1.	**[Add Component (コンポーネントを追加)]** ボタンをクリックして、 **Widget Interaction** コンポーネントを検索して追加します。 
 
 	![](WidgetInteraction_02.png)
 
-1.	**Left-click** drag and drop the Widget Interaction component on top of the **Sphere** component attached to **FP_Gun**. 
+1.	Widget Interaction コンポーネントを **左クリック** してドラッグし、**FP_Gun** にアタッチされている **Sphere** コンポーネントの上にドロップします。 
 
 	![](WidgetInteraction_03.png)
 
-	This will allow us to point the Widget Interaction component in the direction the gun is pointing. 
+	これで銃がポイントしている方向に Widget Interaction コンポーネントをポイントすることができます。 
 
-1.	In the **Details** panel for the Widget Interaction component, zero out the **Location** and check the **Show Debug** option. 
+1.	Widget Interaction コンポーネントの **[Details]** パネルで、**Location** をゼロアウトし、**[Show Debug]** オプションにチェックを入れます。 
 
 	![](WidgetInteraction_04.png)
 
-1.	Inside the **Event Graph**, add a **Right Mouse Button** Mouse Event node.
+1.	**Event Graph** 内で、**Right Mouse Button** Mouse Event ノードを追加します。
 
-1.	Drag the Widget Interaction component into the graph, then drag off it and add a **Press Pointer Key** node. 
+1.	Widget Interaction コンポーネントをグラフにドラッグします。次に、そこからドラッグして、**Press Pointer Key** ノードを追加します。 
 
 	![](WidgetInteraction_05.png)
 
-1.	Connect to the **Pressed** pin of the **Right Mouse Button** node and set the **Key** to **Left Mouse Button**. 
+1.	**Right Mouse Button** ノードの **Pressed** ピンに接続して、**Key** を **Left Mouse Button** に設定します。 
 
 	![](WidgetInteraction_06.png)
 
-	By default UMG registers click events as a result of a Left Mouse Button key press, using this node will allow us to simulate that when the Right Mouse Button is pressed. 
-	You could use any Key Input event to call this function (such as a trigger press or button press to simulate a Left Mouse Button click). 
+	デフォルトでは UMG は、click event を左マウスボタンが押されたときに登録します。このノードを使うと、右マウスボタンが押される場合にこれをシミュレートできます。 
+	任意の Key Input event を使ってこの関数を呼び出すことができます (例、トリガーやボタンを押して、左マウスボタンのクリックをシミュレート)。 
 
-1.	Add a **Release Pointer Key** node (set to **Left Mouse Button**) and connect it to the **Released** pin of the Right Mouse Button node. 
+1.	**Release Pointer Key** ノード ( **Left Mouse Button** に設定) を追加して、それを Right Mouse Button ノードの **Released** ピンに接続します。 
 
 	![](WidgetInteraction_07.png)
 
-1.	In the **Content Browser**, create a **Widget Blueprint** called **InteractiveWidget**. 
+1.	**コンテンツ ブラウザ** で、**InteractiveWidget** という **Widget ブループリント** を作成します。 
 
 	![](WidgetInteraction_08.png)
 
-1.	In the **Visual Designer**, remove the **Canvas Panel** then add a **Button** with a **Text** widget on top of the button. 
+1.	**Visual Designer** で、**Canvas Panel** を取り除きます。次に、ボタン上に **Text** ウィジェットがある **Button** を追加します。 
 
 	[REGION:lightbox]
 	[![](WidgetInteraction_09.png)](WidgetInteraction_09.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full view. 
+	クリックしてフルサイズで表示 
 	[/REGION]
 
-	For this example we are purely adding a button that can be clicked on. The text on the button we will indicate the number of times the button has been clicked by the player. 
-	You can create any type of interactive widget and interact with it using the Widget Interaction component (things like sliders, combo boxes, check boxes, etc. can be interacted with in world space). 
+	この例では、単にクリックできるボタンを追加します。ボタン上のテキストには、プレイヤーがクリックした回数を示します。 
+	どのようなタイプのインタラクティブ ウィジェットでも作成して、Widget Interaction コンポーネントを使ってインタラクションすることができます (スライダー、コンボボックス、チェックボックスなどはワールド空間でインタラクション可能)。 
 
-1.	In the **Details** panel for the **Button**, under **Style/Hovered** change the **Tint** to a different color. 
+1.	**Button** の **[Details (詳細)]** パネルの **Style/Hovered** で **Tint** を別の色に設定します。 
 
 	![](WidgetInteraction_10.png)
 
-1.	In the **Details** panel for the **Text**, change the **Text** content to **0** and increase the **Font Size** to **48**. 
+1.	**Text** の **[Details]** パネルで、**Text** contentを **0** に変更し、**Font Size** を **48** に増やします。 
 
 	![](WidgetInteraction_11.png)
 
-1.	In the **Graph**, create a **Text** Variable called **Value** then **Compile** and set **Value** to **0**. 
+1.	**Graph** で、 **Value** という **Text** 変数を作成します。次に、**Compile** して **Value** を **0** に設定します。 
 
 	![](WidgetInteraction_12.png)
 
-	This is the variable that we will update when the player clicks on the button which we will bind to our Text widget. 
+	これはプレイヤーがボタンをクリックしたときに更新する変数であり、Text ウィジェットにバインドします。 
 
-1.	On the **Designer** tab for the **Text** widget, click the **Bind** option next to **Text** and select the **Value** property.
+1.	**Text** ウィジェットの **[Designer]** タブで、**Text** の隣にある **Bind** オプションをクリックし、**Value** プロパティを選択します。
 
 	![](WidgetInteraction_13.png)
 
-1.	In the **Details** panel for the **Button** widget under **Events**, click the **+** next to **On Clicked**. 
+1.	**Button** ウィジェットの **[Details]** パネルの **Events** で、**On Clicked** の隣にある **+** をクリックします。 
 
 	![](WidgetInteraction_14.png)
 
-	This will fire whenever the button is clicked on which is called from inside our **FirstPersonCharacter** Blueprint. 
+	これでボタンがクリックされるたびに、**FirstPersonCharacter** ブループリント内から呼び出されて発行されます。 
 
-1.	On the **Graph** tab, hold **Ctrl** and drag in the **Value** variable then off it use **To String** followed by **String To Int**. 
-	
+1.	**Graph** タブで、**Ctrl** キーを押しながら、**Value** 変数をドラッグして、そこから **To String** そして、**String To Int** を使用します。 
+
 	![](WidgetInteraction_15.png)
 
-	We are converting the Text to a String, then from a String to an Int so that we can increase the value when the button is clicked. 
+	Text を String に変換しています。次に、String から Int に変換し、ボタンがクリックされたときに値が増えるようにします。 
 
-1.	Off the **String To Int** pin, use an **Integer + Integer** node set to **+ 1**. 
+1.	**String To Int** ピンから **+ 1** に設定された **Integer + Integer** ノードを使います。 
 
-1.	Hold **Alt** and drag in the **Value** variable to set it, then connect the remaining pins to the **OnClicked** event as shown. 
+1.	**Alt** キーを押しながら、 **Value** 変数をドラッグして設定し、残りのピンを以下のように **OnClicked** event に接続します。 
 
 	![](WidgetInteraction_16.png)
 
-	The **ToText(int)** node will be automatically created when you connect the out pin of **Integer + Integer** to the text input pin on **Value**. 
+	**Integer + Integer** の出力ピンを **Value** のテキスト入力ピンに接続すると **ToText(int)** ノードが自動的に作成されます。 
 
-1.	In the **Content Browser**, create a new **Blueprint** based on **Actor** called **ExampleWidget** and add a **Widget** component to it. 
+1.	**コンテンツ ブラウザ** で、**ExampleWidget** と呼ばれる **Actor** に基づき、新規 **ブループリント** を作成し、それに **Widget** コンポーネントを追加します。 
 
 	![](WidgetInteraction_18.png)
 
-	This will represent the 3D version of our **InteractiveWidget** Widget Blueprint. 
+	これは、**InteractiveWidget** Widget ブループリントの 3D バージョンを表します。 
 
-1.	In the **Details** panel of the **Widget** component under **User Interface**, change the **Widget Class** to **InteractiveWidget**. 
+1.	**Widget** コンポーネントの **[Details]** パネルの **User Interface** で **Widget Class** クラスを **InteractiveWidget** に変更します。 
 
 	![](WidgetInteraction_19.png)
 
-1.	In the **Content Browser**, drag the **ExampleWidget** Blueprint into the level and scale, rotate and position as desired. 
+1.	**コンテンツ ブラウザ** で **ExampleWidget** ブループリントをレベルへドラッグし、必要に応じてスケーリング、回転、配置します。 
 
 	![](WidgetInteraction_20.png)
 
-1.	Click **Play** to play in the editor. 
+1.	エディタでプレイするには **[Play (プレイ)]** をクリックします。 
 
-	
-## End Result
+## 最終結果
 
-When you play in the editor, you should have something similar to below:
+エディタでプレイすると、以下のようになります。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -145,11 +144,11 @@ bOZy7H9IMOI
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can use the **Left Mouse Button** to fire your weapon and when pointing at the button, you enter the **Hovered** state (causing it to change its style). 
-When you **Right Mouse Button** click on the button, the text value will increase each time it is pressed. 
+**左マウスボタン** を使って武器を発射し、ボタンをポイントしている場合、**Hovered** ステートになります (そのスタイルを変更させます)。 
+ボタン上で **Right Mouse Button** をクリックすると、押されるたびにテキスト値が増えます。 
 
-As noted during the steps, we are using the Right Mouse Button to register click events however you can use gamepad button clicks to register Pointer Key Presses/Releases or (as shown below) Motion Controller Trigger presses. 
+このステップで説明したように、右マウスボタンを使って click event を登録していますが、ゲームパッド ボタンのクリックを使って Pointer Key Presses/Releases または Motion Controller Trigger を押して (以下のように) 登録することができます。 
 
 ![](WidgetInteraction_21.png)
 
-Here we point our Right Motion Controller (with an attached Widget Interaction component) at the button and press the Right Trigger to register a button click.
+ここでは、 Right Motion Controller (アタッチされた Widget Interaction コンポーネントと共に) でボタンをポイントして、Right Trigger を押してボタン クリックを登録します。
