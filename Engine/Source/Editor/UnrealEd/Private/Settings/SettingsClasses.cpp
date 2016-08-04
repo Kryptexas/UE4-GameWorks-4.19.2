@@ -517,11 +517,28 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 	}
 	else if (Name == FName((TEXT("ApplocalPrerequisitesDirectory"))))
 	{
-		// fix up path
-		FString Path = ApplocalPrerequisitesDirectory.Path;
-		FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
-		FPaths::MakePathRelativeTo(Path, *ProjectPath);
-		ApplocalPrerequisitesDirectory.Path = Path;
+		// If a variable is already in use, assume the user knows what they are doing and don't modify the path
+		if(!ApplocalPrerequisitesDirectory.Path.Contains("$("))
+		{
+			// Try making the path local to either project or engine directories.
+			FString EngineRootedPath = ApplocalPrerequisitesDirectory.Path;
+			FString EnginePath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::EngineDir())) + "/";
+			FPaths::MakePathRelativeTo(EngineRootedPath, *EnginePath);
+			if (FPaths::IsRelative(EngineRootedPath))
+			{
+				ApplocalPrerequisitesDirectory.Path = "$(EngineDir)/" + EngineRootedPath;
+				return;
+			}
+
+			FString ProjectRootedPath = ApplocalPrerequisitesDirectory.Path;
+			FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
+			FPaths::MakePathRelativeTo(ProjectRootedPath, *ProjectPath);
+			if (FPaths::IsRelative(EngineRootedPath))
+			{
+				ApplocalPrerequisitesDirectory.Path = "$(ProjectDir)/" + ProjectRootedPath;
+				return;
+			}
+		}
 	}
 }
 

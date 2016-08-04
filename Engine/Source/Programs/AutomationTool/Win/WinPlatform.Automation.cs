@@ -277,11 +277,20 @@ public abstract class BaseWinPlatform : Platform
 		string BaseAppLocalDependenciesPath = Path.IsPathRooted(Params.AppLocalDirectory) ? CombinePaths(Params.AppLocalDirectory, PlatformDir) : CombinePaths(SC.ProjectRoot, Params.AppLocalDirectory, PlatformDir);
 		if (Directory.Exists(BaseAppLocalDependenciesPath))
 		{
-			string RelativeBinaryPath = new DirectoryReference(SC.ProjectBinariesFolder).MakeRelativeTo(new DirectoryReference(CombinePaths(SC.ProjectRoot, "..")));
+			string ProjectBinaryPath = new DirectoryReference(SC.ProjectBinariesFolder).MakeRelativeTo(new DirectoryReference(CombinePaths(SC.ProjectRoot, "..")));
+			string EngineBinaryPath = CombinePaths("Engine", "Binaries", PlatformDir);
+
+			Log("Copying AppLocal dependencies from {0} to {1} and {2}", BaseAppLocalDependenciesPath, ProjectBinaryPath, EngineBinaryPath);
+
 			foreach (string DependencyDirectory in Directory.EnumerateDirectories(BaseAppLocalDependenciesPath))
-			{
-				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, RelativeBinaryPath);
+			{	
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, ProjectBinaryPath);
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, EngineBinaryPath);
 			}
+		}
+		else
+		{
+			throw new AutomationException("Unable to deploy AppLocalDirectory dependencies. No such path: {0}", BaseAppLocalDependenciesPath);
 		}
 	}
 }
@@ -303,11 +312,11 @@ public class Win64Platform : BaseWinPlatform
 		{
 			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x64.exe", false, null, InstallerRelativePath);
+		}
 
-			if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
-			{
-				StageAppLocalDependencies(Params, SC, "Win64");
-			}
+		if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
+		{
+			StageAppLocalDependencies(Params, SC, "Win64");
 		}
 	}
 }
@@ -324,16 +333,16 @@ public class Win32Platform : BaseWinPlatform
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		base.GetFilesToDeployOrStage(Params, SC);
-		
-		if(Params.Prereqs)
+
+		if (Params.Prereqs)
 		{
 			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x86.exe", false, null, InstallerRelativePath);
+		}
 
-			if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
-			{
-				StageAppLocalDependencies(Params, SC, "Win32");
-			}
+		if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
+		{
+			StageAppLocalDependencies(Params, SC, "Win32");
 		}
 	}
 }

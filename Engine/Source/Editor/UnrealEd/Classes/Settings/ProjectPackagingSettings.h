@@ -126,7 +126,7 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
 
-	/** A directory containing prerequisite packages that should be staged in the executable directory. Relative to the project path. */
+	/** A directory containing prerequisite packages that should be staged in the executable directory. Can be relative to $(EngineDir) or $(ProjectDir) */
 	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay)
 	FDirectoryPath ApplocalPrerequisitesDirectory;
 
