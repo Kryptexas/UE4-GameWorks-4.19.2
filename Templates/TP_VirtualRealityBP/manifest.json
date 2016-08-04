@@ -27,7 +27,7 @@
 			"Language": "en",
 			"Text": "VR,Virtual,Reality,Virtual Reality"
 		}
-	]
+	],
 	"ClassTypes": "GameMode, InputComponent",
 	"Category": "BlueprintFeature",
 	"FocusAsset": "/Game/VirtualRealityBP/VirtualReality.VirtualReality",
