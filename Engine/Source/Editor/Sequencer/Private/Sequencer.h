@@ -991,6 +991,12 @@ private:
 
 	FDelegateHandle LevelViewportExtenderHandle;
 
+	/** Attribute used to retrieve the playback context for this frame */
+	TAttribute<UObject*> PlaybackContextAttribute;
+
+	/** Cached playback context for this frame */
+	UObject* CachedPlaybackContext;
+
 	/** Attribute used to retrieve event contexts */
 	TAttribute<TArray<UObject*>> EventContextsAttribute;
 

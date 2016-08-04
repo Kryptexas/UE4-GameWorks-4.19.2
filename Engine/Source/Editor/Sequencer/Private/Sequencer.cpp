@@ -109,6 +109,9 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 		CachedEventContexts = EventContextsAttribute.Get();
 	}
 
+	PlaybackContextAttribute = InitParams.PlaybackContext;
+	CachedPlaybackContext = PlaybackContextAttribute.Get(nullptr);
+
 	// If this sequencer edits the level, close out the existing active sequencer and mark this as the active sequencer.
 	if (bIsEditingWithinLevelEditor)
 	{
@@ -358,6 +361,8 @@ void FSequencer::Tick(float InDeltaTime)
 	{
 		CachedEventContexts = EventContextsAttribute.Get();
 	}
+
+	CachedPlaybackContext = PlaybackContextAttribute.Get(nullptr);
 
 	Selection.Tick();
 
@@ -686,23 +691,7 @@ FGuid FSequencer::CreateBinding(UObject& InObject, const FString& InName)
 
 UObject* FSequencer::GetPlaybackContext() const
 {
-	if (bIsEditingWithinLevelEditor)
-	{
-		if(GEditor && GEditor->PlayWorld)
-		{
-			return GEditor->PlayWorld;
-		}
-		else if(GEditor && GEditor->EditorWorld)
-		{
-			return GEditor->EditorWorld;
-		}
-		else
-		{
-			return GWorld;	
-		}
-	}
-
-	return nullptr;
+	return CachedPlaybackContext;
 }
 
 TArray<UObject*> FSequencer::GetEventContexts() const
@@ -1951,6 +1940,16 @@ void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( Settings );
 
+	if( CachedPlaybackContext )
+	{
+		Collector.AddReferencedObject( CachedPlaybackContext );
+	}
+
+	for( UObject* EventContext : CachedEventContexts )
+	{
+		Collector.AddReferencedObject( EventContext );
+	}
+
 	for( int32 MovieSceneIndex = 0; MovieSceneIndex < SequenceInstanceStack.Num(); ++MovieSceneIndex )
 	{
 		UMovieSceneSequence* Sequence = SequenceInstanceStack[MovieSceneIndex]->GetSequence();
@@ -1978,6 +1977,8 @@ void FSequencer::ResetPerMovieSceneData()
 
 void FSequencer::UpdateRuntimeInstances()
 {
+	CachedPlaybackContext = PlaybackContextAttribute.Get(nullptr);
+
 	// Refresh the current root instance
 	SequenceInstanceStack.Top()->RefreshInstance( *this );
 
