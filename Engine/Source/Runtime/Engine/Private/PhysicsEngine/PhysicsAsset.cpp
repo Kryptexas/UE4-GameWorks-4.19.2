@@ -521,6 +521,7 @@ void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName
 		{
 			for (T* SetupInstance : SetupInstances)
 			{
+				SetupInstance->Modify();
 				RenameFunc(SetupInstance, PreProfiles[ArrayIdx], PostProfiles[ArrayIdx]);
 			}
 
@@ -535,6 +536,7 @@ void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName
 	{
 		for (T* SetupInstance : SetupInstances)
 		{
+			SetupInstance->Modify();
 			DuplicateFunc(SetupInstance, OldName, PostProfiles[ArrayIdx]);
 		}
 	}
@@ -544,6 +546,7 @@ void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName
 		//delete requires removing old profiles
 		for (T* SetupInstance : SetupInstances)
 		{
+			SetupInstance->Modify();
 			UpdateFunc(SetupInstance, PostProfiles);
 		}
 
