@@ -141,6 +141,8 @@ static bool IsPixelFormatBCCompressed(EPixelFormat Format)
 		case PF_BC5:
 		case PF_BC6H:
 		case PF_BC7:
+		case PF_PVRTC2:
+		case PF_PVRTC4:
 			return true;
 		default:
 			return false;

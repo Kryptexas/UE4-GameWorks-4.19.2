@@ -44,6 +44,34 @@ static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 
 const uint32 RingBufferSize = 8 * 1024 * 1024;
 
+/** Zero-filled uniform buffer used for debugging cases where no buffer was bound. */
+class FMetalNullUniformBuffer : public FRenderResource
+{
+public:
+	FUniformBufferRHIRef UniformBuffer;
+	virtual void InitRHI() override
+	{
+		FRHIUniformBufferLayout Layout(FRHIUniformBufferLayout::Zero);
+		Layout.ConstantBufferSize = 65536;
+		
+		TArray<uint8> Data;
+		Data.AddZeroed(Layout.ConstantBufferSize);
+		
+		UniformBuffer = RHICreateUniformBuffer(Data.GetData(), Layout, UniformBuffer_MultiFrame);
+	}
+	virtual void ReleaseRHI() override
+	{
+		UniformBuffer.SafeRelease();
+	}
+	id<MTLBuffer> GetNativeBuffer()
+	{
+		check(IsValidRef(UniformBuffer));
+		FMetalUniformBuffer* UB = (FMetalUniformBuffer*)UniformBuffer.GetReference();
+		return UB->Buffer;
+	}
+};
+static TGlobalResource<FMetalNullUniformBuffer> GMetalNullUniformBuffer;
+
 #if SHOULD_TRACK_OBJECTS
 TMap<id, int32> ClassCounts;
 
@@ -870,7 +898,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	check(StateCache.GetHasValidRenderTarget());
 	
 	bool bUpdatedStrides = false;
-	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout;
+	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout.VertexDesc;
 	if(Layout && Layout.layouts)
 	{
 		for (uint32 ElementIndex = 0; ElementIndex < CurrentBoundShaderState->VertexDeclaration->Elements.Num(); ElementIndex++)
@@ -883,7 +911,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 				if (!bUpdatedStrides)
 				{
 					bUpdatedStrides = true;
-					Layout = [[CurrentBoundShaderState->VertexDeclaration->Layout copy] autorelease];
+					Layout = [[Layout copy] autorelease];
 				}
 				auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex)];
 				check(BufferLayout);
@@ -891,6 +919,8 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 			}
 		}
 	}
+	
+	FMetalHashedVertexDescriptor VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout);
 	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
 	// Other builds will just crash & burn if it is incorrect.
@@ -961,7 +991,18 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	}
 	
 	// make sure the BSS has a valid pipeline state object
-	CurrentBoundShaderState->PrepareToDraw(this, Layout, StateCache.GetRenderPipelineDesc());
+#if !UE_BUILD_SHIPPING
+	MTLRenderPipelineReflection* Reflection = nil;
+	if (CommandQueue.GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
+	{
+		CurrentBoundShaderState->PrepareToDraw(this, VertexDesc, StateCache.GetRenderPipelineDesc(), &Reflection);
+		check(Reflection);
+	}
+	else
+#endif
+	{
+		CurrentBoundShaderState->PrepareToDraw(this, VertexDesc, StateCache.GetRenderPipelineDesc());
+	}	
 	
 	if(!FShaderCache::IsPredrawCall())
 	{
@@ -1078,6 +1119,62 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 			
 			CommandEncoder.SetShaderBuffer(SF_Pixel, Buffer, Offset, CurrentBoundShaderState->PixelShader->SideTableBinding);
 		}
+		
+#if !UE_BUILD_SHIPPING
+		if (CommandQueue.GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
+		{
+			auto& VBBindings = CurrentBoundShaderState->VertexShader->Bindings;
+			for (uint32 i = 0; i < VBBindings.NumUniformBuffers; i++)
+			{
+				bool const bBoundZeroUniform = CommandEncoder.SetShaderBufferConditional(SF_Vertex, GMetalNullUniformBuffer.GetNativeBuffer(), 0, i);
+				if (bBoundZeroUniform)
+				{
+					bool bWarn = false;
+					for(MTLArgument* Arg in Reflection.vertexArguments)
+					{
+						if (Arg.type == MTLArgumentTypeBuffer && Arg.index == i)
+						{
+							UE_LOG(LogMetal, Error, TEXT("No uniform bound to index %d when required by vertex shader:\n%s"), i, *FString(CurrentBoundShaderState->VertexShader->GlslCodeNSString));
+							break;
+						}
+					}
+				}
+			}
+			
+			if (IsValidRef(CurrentBoundShaderState->PixelShader))
+			{
+				auto& PBBindings = CurrentBoundShaderState->PixelShader->Bindings;
+				for (uint32 i = 0; i < PBBindings.NumUniformBuffers; i++)
+				{
+					bool const bBoundZeroUniform = CommandEncoder.SetShaderBufferConditional(SF_Pixel, GMetalNullUniformBuffer.GetNativeBuffer(), 0, i);
+					if (bBoundZeroUniform)
+					{
+						bool bWarn = false;
+						for(MTLArgument* Arg in Reflection.fragmentArguments)
+						{
+							if (Arg.type == MTLArgumentTypeBuffer && Arg.index == i)
+							{
+								UE_LOG(LogMetal, Error, TEXT("No uniform bound to index %d when required by pixel shader:\n%s"), i, *FString(CurrentBoundShaderState->PixelShader->GlslCodeNSString));
+								break;
+							}
+						}
+					}
+				}
+			}
+			
+			if (!CommandEncoder.ValidateArgumentBindings(SF_Vertex, Reflection))
+			{
+				UE_LOG(LogMetal, Error, TEXT("Metal Validation failures for vertex shader:\n%s"), *FString(CurrentBoundShaderState->VertexShader->GlslCodeNSString));
+			}
+			if (IsValidRef(CurrentBoundShaderState->PixelShader))
+			{
+				if (!CommandEncoder.ValidateArgumentBindings(SF_Pixel, Reflection))
+				{
+					UE_LOG(LogMetal, Error, TEXT("Metal Validation failures for pixel shader:\n%s"), *FString(CurrentBoundShaderState->PixelShader->GlslCodeNSString));
+				}
+			}
+		}
+#endif
 		
 		OutstandingOpCount++;
 	}

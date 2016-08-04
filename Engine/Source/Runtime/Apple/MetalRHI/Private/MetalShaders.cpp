@@ -365,99 +365,12 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
 	CacheLink.RemoveFromCache();
 #endif
-	
-	// free all of the pipeline state objects we have made
-	for (auto It = PipelineStates.CreateIterator(); It; ++It)
-	{
-		UNTRACK_OBJECT(STAT_MetalRenderPipelineStateCount, It.Value());
-		[It.Value() release];
-	}
 }
 
-static uint64 GetHash(MTLVertexDescriptor* VertexDesc)
-{
-	uint64 Hash = 0;
-	MTLVertexBufferLayoutDescriptorArray* Layouts = VertexDesc.layouts;
-	MTLVertexAttributeDescriptorArray* Attributes = VertexDesc.attributes;
-	check(Layouts && Attributes);
-	for (uint32 i = 0; i < MaxMetalStreams; i++)
-	{
-		MTLVertexBufferLayoutDescriptor* LayoutDesc = [Layouts objectAtIndexedSubscript:(NSUInteger)i];
-		if (LayoutDesc)
-		{
-			Hash = (Hash ^ GetTypeHash(uint64(LayoutDesc.stride | (LayoutDesc.stepFunction << 8) | (LayoutDesc.stepRate << 16)))) * MaxMetalStreams;
-		}
-		
-		MTLVertexAttributeDescriptor* AttrDesc = [Attributes objectAtIndexedSubscript:(NSUInteger)i];
-		if (AttrDesc)
-		{
-			Hash = (Hash ^ GetTypeHash(uint64(AttrDesc.offset | (AttrDesc.format << 8) | (AttrDesc.bufferIndex << 16)))) * MaxMetalStreams;
-		}
-	}
-	
-	return Hash;
-}
-
-bool FMetalBoundShaderState::FMetalPipelineHash::operator==(FMetalPipelineHash const& Other) const
-{
-    bool bEqual = false;
-    if (this != &Other)
-    {
-        if (RenderPipelineHash == Other.RenderPipelineHash && VertexDescHash == Other.VertexDescHash)
-        {
-            bEqual = true;
-            if (VertexDesc != Other.VertexDesc)
-            {
-                MTLVertexBufferLayoutDescriptorArray* Layouts = VertexDesc.layouts;
-                MTLVertexAttributeDescriptorArray* Attributes = VertexDesc.attributes;
-                
-                MTLVertexBufferLayoutDescriptorArray* OtherLayouts = Other.VertexDesc.layouts;
-                MTLVertexAttributeDescriptorArray* OtherAttributes = Other.VertexDesc.attributes;
-                check(Layouts && Attributes && OtherLayouts && OtherAttributes);
-                
-                for (uint32 i = 0; bEqual && i < MaxMetalStreams; i++)
-                {
-                    MTLVertexBufferLayoutDescriptor* LayoutDesc = [Layouts objectAtIndexedSubscript:(NSUInteger)i];
-                    MTLVertexBufferLayoutDescriptor* OtherLayoutDesc = [OtherLayouts objectAtIndexedSubscript:(NSUInteger)i];
-                    
-                    bEqual &= ((LayoutDesc != nil) == (OtherLayoutDesc != nil));
-                    
-                    if (LayoutDesc && OtherLayoutDesc)
-                    {
-                        bEqual &= (LayoutDesc.stride == OtherLayoutDesc.stride);
-                        bEqual &= (LayoutDesc.stepFunction == OtherLayoutDesc.stepFunction);
-                        bEqual &= (LayoutDesc.stepRate == OtherLayoutDesc.stepRate);
-                    }
-                    
-                    MTLVertexAttributeDescriptor* AttrDesc = [Attributes objectAtIndexedSubscript:(NSUInteger)i];
-                    MTLVertexAttributeDescriptor* OtherAttrDesc = [OtherAttributes objectAtIndexedSubscript:(NSUInteger)i];
-                    
-                    bEqual &= ((AttrDesc != nil) == (OtherAttrDesc != nil));
-                    
-                    if (AttrDesc && OtherAttrDesc)
-                    {
-                        bEqual &= (AttrDesc.format == OtherAttrDesc.format);
-                        bEqual &= (AttrDesc.offset == OtherAttrDesc.offset);
-                        bEqual &= (AttrDesc.bufferIndex == OtherAttrDesc.bufferIndex);
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        bEqual = true;
-    }
-    return bEqual;
-}
-
-void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, MTLVertexDescriptor* VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc)
+void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection)
 {
 	// generate a key for the current statez
-	FMetalPipelineHash Hash;
-	Hash.RenderPipelineHash = RenderPipelineDesc.GetHash();
-	Hash.VertexDesc = VertexDesc;
-	Hash.VertexDescHash = GetHash(VertexDesc);
+	FMetalRenderPipelineHash PipelineHash = RenderPipelineDesc.GetHash();
 	
 	if(GUseRHIThread)
 	{
@@ -465,7 +378,9 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, MTLVertexDesc
 	}
 	
 	// have we made a matching state object yet?
-	id<MTLRenderPipelineState> PipelineState = PipelineStates.FindRef(Hash);
+    id<MTLRenderPipelineState> PipelineState = nil;
+	TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>& Dict = PipelineStates.FindOrAdd(PipelineHash);
+	PipelineState = Dict.FindRef(VertexDesc);
 	
 	if(GUseRHIThread)
 	{
@@ -475,15 +390,16 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, MTLVertexDesc
 	// make one if not
 	if (PipelineState == nil)
 	{
-		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc);
+		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc, Reflection);
 		check(PipelineState);
+		check(!Reflection || *Reflection);
 		
 		if(GUseRHIThread)
 		{
 			PipelineMutex.Lock();
 		}
 		
-		PipelineStates.Add(Hash, PipelineState);
+		Dict.Add(VertexDesc, PipelineState);
 		
 		if(GUseRHIThread)
 		{
@@ -494,13 +410,20 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, MTLVertexDesc
 		if (GFrameCounter > 3)
 		{
 #if PLATFORM_MAC
-			NSLog(@"Created a hitchy pipeline state for hash %llx%llx%llx (this = %p)", (uint64)Hash.RenderPipelineHash, (uint64)(Hash.RenderPipelineHash >> 64), (uint64)Hash.VertexDescHash, this);
+			NSLog(@"Created a hitchy pipeline state for hash %llx%llx vertex desc: %llx (this = %p)", (uint64)PipelineHash, (uint64)(PipelineHash >> 64), (uint64)VertexDesc.VertexDescHash, this);
 #else
-			NSLog(@"Created a hitchy pipeline state for hash %llx%llx (this = %p)", (uint64)Hash.RenderPipelineHash, (uint64)Hash.VertexDescHash, this);
+			NSLog(@"Created a hitchy pipeline state for hash %llx vertex desc: %llx (this = %p)", (uint64)PipelineHash, (uint64)VertexDesc.VertexDescHash, this);
 #endif
 		}
 #endif
 	}
+#if !UE_BUILD_SHIPPING
+	else if(Reflection)
+	{
+		*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
+		check(*Reflection);
+	}
+#endif
 	
 	// set it now
 	Context->GetCommandEncoder().SetRenderPipelineState(PipelineState);
