@@ -102,7 +102,7 @@ void UFontBulkData::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 	BulkData.Serialize(Ar, this);
 
-	if( !GIsEditor )
+	if( !GIsEditor && Ar.IsLoading() )
 	{
 		BulkData.SetBulkDataFlags( BULKDATA_SingleUse );
 	}
