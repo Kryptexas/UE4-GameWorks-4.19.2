@@ -1,7 +1,7 @@
 Availability: Public
 Title:APEX
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Creation and Import of Destructibles using the Nvidia APEX Toolset.
+Description:Creation and Import of Destructibles using the NVIDIA APEX Toolset.
 Version: 4.9
 
 [VAR:Topic]
@@ -48,8 +48,8 @@ Version: 4.9
 [/REGION]
 
 
-Nvidia produces a tool called the APEX PhysX Lab which can be used to create destructible meshes. Information on its usage can be found in the 
-Nvidia documentation over the APEX PhysX Lab tools. However, it should be noted that currently Unreal Engine 4 only supports 
+NVIDIA produces a tool called the APEX PhysX Lab which can be used to create destructible meshes. Information on its usage can be found in the 
+NVIDIA documentation over the APEX PhysX Lab tools. However, it should be noted that currently Unreal Engine 4 only supports 
 APEX Destructibles and APEX Cloth. To create APEX Cloth assets it is required to use the PhysX: 3Ds Max/Maya DCC plug-in or the standalone tool is included in the APEX SDK. 
 
 Destructible Actors can be generated within Unreal Editor 4 using Voronoi with a single depth level.  APEX Destructible assets with more than one depth 

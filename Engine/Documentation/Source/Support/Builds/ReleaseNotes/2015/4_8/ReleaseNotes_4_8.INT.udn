@@ -3927,7 +3927,7 @@ Cooked builds can use a dedicated thread for package streaming instead of using 
 
 * New: Makefile generator will now generate targets for projects outside of the engine directory.
 
-* New: Minor: a lot of performance warnings issued by NVidia drivers have been fixed.
+* New: Minor: a lot of performance warnings issued by NVIDIA drivers have been fixed.
 
 * New: Minor: Steam shared objects are now being loaded dynamically.
 

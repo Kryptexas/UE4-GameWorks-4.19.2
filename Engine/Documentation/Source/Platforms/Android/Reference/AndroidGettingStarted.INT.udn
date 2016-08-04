@@ -85,7 +85,7 @@ There are several methods for getting the components. If you have already instal
 <!--
 [EXCERPT:TADPWindowsSetup]
 
-CodeWorks for Android 1R4 (by Nvidia) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R4 (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
 
 The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Windows. It can be found here: 
 
@@ -108,7 +108,7 @@ It is not required to compile C++ code.
 [/EXCERPT:TADPWindowsSetup]
 
 [EXCERPT:TADPMacOSSetup]
-CodeWorks for Android 1R4, by Nvidia is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R4, (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
 
 The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Mac and can be found here: 
 

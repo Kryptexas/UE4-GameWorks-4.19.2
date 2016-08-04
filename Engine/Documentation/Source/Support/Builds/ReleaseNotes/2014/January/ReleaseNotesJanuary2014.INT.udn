@@ -693,7 +693,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* Made the default merge tool p4merge.app on Mac OS X. 
 	* Make the editor services 'Launch Game' use the default application to open (the project the same as double-clicking in Finder).
 	* Prevent blue flickering on AMD cards under Mac OS X when more than one UE4 instance is running.
-	* Worked around an Nvidia driver bug to avoid crashes loading some samples on Mac OS X.
+	* Worked around an NVIDIA driver bug to avoid crashes loading some samples on Mac OS X.
 * **Moblie**
 	* Added support for texture streaming on iOS.
 	* Cleaned up OpenGL TexStorage2D handling and added support for texture storage on iOS.

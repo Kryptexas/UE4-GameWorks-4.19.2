@@ -2924,7 +2924,7 @@ Other improvements include:
 
 * Changed the way the CrashReportClient is launched on Mac OS X to avoid a potential deadlock.
 
-* Disable OpenGL GPU timing on Nvidia GPUs and entirely on OS X 10.9 (Mavericks) to avoid crashes in the OpenGL drivers.
+* Disable OpenGL GPU timing on NVIDIA GPUs and entirely on OS X 10.9 (Mavericks) to avoid crashes in the OpenGL drivers.
 
 * Fix a crash when launching an external process on Mac OS X caused by over-releasing the path to the executable.
 

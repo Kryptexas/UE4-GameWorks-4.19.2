@@ -155,16 +155,16 @@ Of course Destructible Meshes have many more properties for tweaking how they fr
 
 [EXCERPT:D8]
 [VAR:StageTitle]
-Nvidia PhysX Lab
+NVIDIA PhysX Lab
 [/VAR]
 
-If you desire more than one fracture level, you will need to use Nvidia's APEX PhysX Lab tool.
+If you desire more than one fracture level, you will need to use the NVIDIA APEX PhysX Lab tool.
 
 ![](APEXtopicIcon.png)
 
 [This link will take you to the APEX developer's site.](https://developer.nvidia.com/apex-download-page)
 
-You will need to register with Nvidia to be able to download the APEX Physics Lab.
+You will need to register with NVIDIA to be able to download the APEX Physics Lab.
 
 
 [/EXCERPT:D8]
