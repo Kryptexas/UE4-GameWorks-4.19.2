@@ -1682,6 +1682,12 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 					GetVolumeName(RTSetIndex, false)
 					);
 
+				//Tests to catch UE-31578, UE-32536 and UE-22073 crash (Defferred Render Targets not being allocated)
+				ensureMsgf(TranslucencyLightingVolumeAmbient[RTSetIndex], TEXT("Failed to allocate render target %s with dimension %i and flags %i"),
+					GetVolumeName(RTSetIndex, false),
+					GTranslucencyLightingVolumeDim,
+					TranslucencyTargetFlags);
+
 				GRenderTargetPool.FindFreeElement(
 					RHICmdList,
 					FPooledRenderTargetDesc(FPooledRenderTargetDesc::CreateVolumeDesc(
@@ -1698,6 +1704,12 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 					TranslucencyLightingVolumeDirectional[RTSetIndex],
 					GetVolumeName(RTSetIndex, true)
 					);
+
+				//Tests to catch UE-31578, UE-32536 and UE-22073 crash
+				ensureMsgf(TranslucencyLightingVolumeDirectional[RTSetIndex], TEXT("Failed to allocate render target %s with dimension %i and flags %i"),
+					GetVolumeName(RTSetIndex, true),
+					GTranslucencyLightingVolumeDim,
+					TranslucencyTargetFlags);
 			}
 		}
 	}

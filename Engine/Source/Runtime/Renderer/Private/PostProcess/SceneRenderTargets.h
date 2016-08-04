@@ -635,8 +635,11 @@ private:
 	/** Allocates render targets for use with the mobile path. */
 	void AllocateMobileRenderTargets(FRHICommandList& RHICmdList);
 
+public:
 	/** Allocates render targets for use with the deferred shading path. */
+	// Temporarily Public to call from DefferedShaderRenderer to attempt recovery from a crash until cause is found.
 	void AllocateDeferredShadingPathRenderTargets(FRHICommandList& RHICmdList);
+private:
 
 	/** Allocates render targets for use with the current shading path. */
 	void AllocateRenderTargets(FRHICommandList& RHICmdList);

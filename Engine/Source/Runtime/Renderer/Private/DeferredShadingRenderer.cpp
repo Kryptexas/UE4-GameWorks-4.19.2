@@ -848,6 +848,18 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, ViewFamily.EngineShowFlags.ShaderComplexity);
 	}
 
+	//Single point to catch UE-31578, UE-32536 and UE-22073 and attempt to recover by reallocating Deferred Render Targets
+	if(!SceneContext.TranslucencyLightingVolumeAmbient[0] || !SceneContext.TranslucencyLightingVolumeDirectional[0] ||
+	   !SceneContext.TranslucencyLightingVolumeAmbient[1] || !SceneContext.TranslucencyLightingVolumeDirectional[1])
+	{
+		const char* str = SceneContext.ScreenSpaceAO ? "Allocated" : "Unallocated"; //ScreenSpaceAO is determining factor of detecting render target allocation
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeAmbient[0], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeAmbient0", str);
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeDirectional[0], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeDirectional0", str);
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeAmbient[1], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeAmbient1", str);
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeDirectional[1], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeDirectional1", str);
+		SceneContext.AllocateDeferredShadingPathRenderTargets(RHICmdList);
+	}
+
 	if (GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute)
 	{
 		ClearTranslucentVolumeLightingAsyncCompute(RHICmdList);
