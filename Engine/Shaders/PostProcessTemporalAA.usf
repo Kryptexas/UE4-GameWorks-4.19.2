@@ -280,7 +280,7 @@ void SSRTemporalAAPS(
 	float InExposureScale = InExposureScaleVignette.x;
 	#define AA_ALPHA 0
 	#define AA_CROSS 0
-	#define AA_DYNAMIC 0
+	#define AA_DYNAMIC 1
 	#define AA_LERP 8
 	#define AA_NAN 1
 	#include "PostProcessTemporalCommon.usf"

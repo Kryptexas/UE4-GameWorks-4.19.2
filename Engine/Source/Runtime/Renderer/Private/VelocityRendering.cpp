@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "SceneUtils.h"
+#include "ScreenSpaceReflections.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
@@ -844,7 +845,9 @@ bool FDeferredShadingSceneRenderer::ShouldRenderVelocities() const
 		bool bMotionBlur = IsMotionBlurEnabled(View);
 		bool bDistanceFieldAO = ShouldPrepareForDistanceFieldAO();
 
-		bNeedsVelocity |= (bMotionBlur || bTemporalAA || bDistanceFieldAO) && !View.bIsSceneCapture;
+		bool bSSRTemporal = IsSSRTemporalPassRequired(View);
+
+		bNeedsVelocity |= (bMotionBlur || bTemporalAA || bDistanceFieldAO || bSSRTemporal) && !View.bIsSceneCapture;
 	}
 
 	return bNeedsVelocity;

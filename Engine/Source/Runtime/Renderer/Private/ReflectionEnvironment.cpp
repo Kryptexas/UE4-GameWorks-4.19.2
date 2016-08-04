@@ -906,7 +906,7 @@ FReflectionEnvironmentTiledDeferredCS* SelectReflectionEnvironmentTiledDeferredC
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
@@ -935,7 +935,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		TRefCountPtr<IPooledRenderTarget> SSROutput = GSystemTextures.BlackDummy;
 		if( bSSR )
 		{
-			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
+			RenderScreenSpaceReflections(RHICmdList, View, SSROutput, VelocityRT);
 		}
 
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
@@ -1006,7 +1006,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 	check(SceneContext.GetSceneColor());
 }
 
-void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	if(!ViewFamily.EngineShowFlags.Lighting)
 	{
@@ -1100,7 +1100,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			bRequiresApply = true;
 
-			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
+			RenderScreenSpaceReflections(RHICmdList, View, SSROutput, VelocityRT);
 		}
 
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
@@ -1265,7 +1265,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
@@ -1293,11 +1293,11 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 		
 		if (bReflectionsWithCompute)
 		{
-			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO);
+			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
 		}
 		else
 		{
-			RenderStandardDeferredImageBasedReflections(RHICmdList, bReflectionEnvironment, DynamicBentNormalAO);
+			RenderStandardDeferredImageBasedReflections(RHICmdList, bReflectionEnvironment, DynamicBentNormalAO, VelocityRT);
 		}
 	}
 }

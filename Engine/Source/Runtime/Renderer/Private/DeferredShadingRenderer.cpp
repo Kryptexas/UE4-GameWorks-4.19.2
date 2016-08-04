@@ -1050,7 +1050,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.FinishRenderingSceneColor(RHICmdList, true);
 
 		// Render reflections that only operate on opaque pixels
-		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO);
+		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
 		ServiceLocalQueue();
 
 		// Post-lighting composition lighting stage
