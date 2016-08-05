@@ -11,6 +11,7 @@
 #include "Matinee/InterpTrackBoolProp.h"
 #include "Matinee/InterpTrackFloatBase.h"
 #include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpTrackSound.h"
 #include "Matinee/InterpTrackFade.h"
@@ -327,6 +328,52 @@ bool FMatineeImportTools::CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMov
 			FMatineeImportTools::SetOrAddKey( RotationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
 			SectionMin = FMath::Min( SectionMin, Point.InVal );
 			SectionMax = FMath::Max( SectionMax, Point.InVal );
+		}
+
+		for (auto SubTrack : MoveTrack->SubTracks)
+		{
+			if (SubTrack->IsA(UInterpTrackMoveAxis::StaticClass()))
+			{
+				UInterpTrackMoveAxis* MoveSubTrack = Cast<UInterpTrackMoveAxis>(SubTrack);
+				if (MoveSubTrack)
+				{
+					for (const auto& Point : MoveSubTrack->FloatTrack.Points)
+					{
+						FRichCurve* SubTrackCurve = nullptr;
+
+						if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationX)
+						{
+							SubTrackCurve = &TranslationXCurve;
+						}
+						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationY)
+						{
+							SubTrackCurve = &TranslationYCurve;
+						}
+						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationZ)
+						{
+							SubTrackCurve = &TranslationZCurve;
+						}
+						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
+						{
+							SubTrackCurve = &RotationXCurve;
+						}
+						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
+						{
+							SubTrackCurve = &RotationYCurve;
+						}
+						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationZ)
+						{
+							SubTrackCurve = &RotationZCurve;
+						}
+							
+						if (SubTrackCurve != nullptr)
+						{
+							FMatineeImportTools::SetOrAddKey( *SubTrackCurve, Point.InVal, Point.OutVal, Point.ArriveTangent, Point.LeaveTangent, Point.InterpMode );
+							SectionMax = FMath::Max( SectionMax, Point.InVal );
+						}
+					}
+				}
+			}
 		}
 
 		Section->SetStartTime( SectionMin );
