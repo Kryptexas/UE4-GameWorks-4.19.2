@@ -362,12 +362,14 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 		EditorViewportClient->EngineShowFlags.SetVertexColors(true);
 		EditorViewportClient->EngineShowFlags.SetLighting(false);
 		EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(false);
+		EditorViewportClient->SetFloorAndEnvironmentVisibility(false);
 	}
 	else
 	{
 		EditorViewportClient->EngineShowFlags.SetVertexColors(false);
 		EditorViewportClient->EngineShowFlags.SetLighting(true);
 		EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(true);
+		EditorViewportClient->SetFloorAndEnvironmentVisibility(true);
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{

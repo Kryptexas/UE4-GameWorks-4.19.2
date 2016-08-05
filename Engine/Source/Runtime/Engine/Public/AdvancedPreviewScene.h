@@ -30,9 +30,6 @@ public:
 
 	void UpdateScene(FPreviewSceneProfile& Profile, bool bUpdateSkyLight = true, bool bUpdateEnvironment = true, bool bUpdatePostProcessing = true, bool bUpdateDirectionalLight = true);
 
-	void SetFloorOffset(const float InFloorOffset);
-	void SetProfileIndex(const int32 InProfileIndex);
-
 	/* Begin FTickableEditorObject */
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override;
@@ -42,10 +39,16 @@ public:
 	const bool HandleViewportInput(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
 	const bool HandleInputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool Gamepad);
 
-	const float GetSkyRotation() const;
-	void SetSkyRotation(const float SkyRotation);	
+	void SetSkyRotation(const float SkyRotation);
+	void SetFloorVisibility(const bool bVisible);
+	void SetEnvironmentVisibility(const bool bVisible);
+	void SetFloorOffset(const float InFloorOffset);
+	void SetProfileIndex(const int32 InProfileIndex);
 
 	const UStaticMeshComponent* GetFloorMeshComponent() const;
+	const float GetSkyRotation() const;
+	const int32 GetCurrentProfileIndex() const;
+	const bool IsUsingPostProcessing() const;
 protected:
 	USkyLightComponent* SkyLightComponent;
 	UStaticMeshComponent* SkyComponent;
@@ -59,6 +62,7 @@ protected:
 	float PreviousRotation;
 
 	bool bSkyChanged;
+	bool bPostProcessing;
 
 	int32 CurrentProfileIndex;
 };

@@ -32,6 +32,8 @@
 #include "Engine/Canvas.h"
 #include "Engine/TextureCube.h"
 
+#include "AssetViewerSettings.h"
+
 #define LOCTEXT_NAMESPACE "FStaticMeshEditorViewportClient"
 
 #define HITPROXY_SOCKET	1
@@ -87,7 +89,19 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 
 	bManipulating = false;
 
+	AdvancedPreviewScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
+
 	SetPreviewMesh(InPreviewStaticMesh, InPreviewStaticMeshComponent);
+
+	// Register delegate to update the show flags when the post processing is turned on or off
+	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged);
+	// Set correct flags according to current profile settings
+	SetAdvancedShowFlagsForScene();
+}
+
+FStaticMeshEditorViewportClient::~FStaticMeshEditorViewportClient()
+{
+	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().RemoveAll(this);
 }
 
 void FStaticMeshEditorViewportClient::Tick(float DeltaSeconds)
@@ -834,8 +848,7 @@ bool FStaticMeshEditorViewportClient::InputKey(FViewport* InViewport, int32 Cont
 	// Handle viewport screenshot.
 	bHandled |= InputTakeScreenshot( InViewport, Key, Event );
 
-	FAdvancedPreviewScene* AdvancedScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
-	bHandled |= AdvancedScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, Gamepad);
+	bHandled |= AdvancedPreviewScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, Gamepad);
 
 	return bHandled;
 }
@@ -846,8 +859,7 @@ bool FStaticMeshEditorViewportClient::InputAxis(FViewport* InViewport, int32 Con
 	
 	if (!bDisableInput)
 	{
-		FAdvancedPreviewScene* AdvancedScene = (FAdvancedPreviewScene*)PreviewScene;
-		bResult = AdvancedScene->HandleViewportInput(InViewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
+		bResult = AdvancedPreviewScene->HandleViewportInput(InViewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
 		if (bResult)
 		{
 			Invalidate();
@@ -1189,6 +1201,33 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 		SetViewLocation(OldCameraLocation);
 		SetViewRotation(OldCameraRotation);
 	}
+}
+
+void FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged(const FName& InPropertyName)
+{
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled))
+	{
+		SetAdvancedShowFlagsForScene();
+	}
+}
+
+void FStaticMeshEditorViewportClient::SetAdvancedShowFlagsForScene()
+{
+	const bool bAdvancedShowFlags = UAssetViewerSettings::Get()->Profiles[AdvancedPreviewScene->GetCurrentProfileIndex()].bPostProcessingEnabled;
+	if (bAdvancedShowFlags)
+	{
+		EngineShowFlags.EnableAdvancedFeatures();
+	}
+	else
+	{
+		EngineShowFlags.DisableAdvancedFeatures();
+	}
+}
+
+void FStaticMeshEditorViewportClient::SetFloorAndEnvironmentVisibility(const bool bVisible)
+{
+	AdvancedPreviewScene->SetFloorVisibility(bVisible);
+	AdvancedPreviewScene->SetEnvironmentVisibility(bVisible);
 }
 
 void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent)

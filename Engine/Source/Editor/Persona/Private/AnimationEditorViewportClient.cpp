@@ -157,10 +157,18 @@ FAnimationViewportClient::FAnimationViewportClient(FAdvancedPreviewScene& InPrev
 		PrevWindRotation = FRotator(0, 0, 0); // roll, yaw, pitch
 		PrevWindStrength = 0.2f;
 	}
+
+	// Store direct pointer to advanced preview scene
+	AdvancedPreviewScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
+	// Register delegate to update the show flags when the post processing is turned on or off
+	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FAnimationViewportClient::OnAssetViewerSettingsChanged);
+	// Set correct flags according to current profile settings
+	SetAdvancedShowFlagsForScene();
 }
 
 FAnimationViewportClient::~FAnimationViewportClient()
 {
+	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().RemoveAll(this);
 }
 
 FLinearColor FAnimationViewportClient::GetBackgroundColor() const
@@ -698,7 +706,7 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 	if (PreviewComp)
 	{
 		// Handle updating the preview component to represent the effects of root motion
-		const UStaticMeshComponent* FloorMeshComponent = GetAdvancedPreviewScene()->GetFloorMeshComponent();
+		const UStaticMeshComponent* FloorMeshComponent = AdvancedPreviewScene->GetFloorMeshComponent();
 		FBoxSphereBounds Bounds = FloorMeshComponent->CalcBounds(FloorMeshComponent->GetRelativeTransform());
 		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
 	}	
@@ -2153,7 +2161,7 @@ void FAnimationViewportClient::UpdateCameraSetup()
 
 		SetCameraSetup(CustomOrbitLookAt, CustomOrbitRotation, CustomOrbitZoom, CustomOrbitLookAt, GetViewLocation(), GetViewRotation() );
 		
-		GetAdvancedPreviewScene()->SetFloorOffset(GetFloorOffset());
+		AdvancedPreviewScene->SetFloorOffset(GetFloorOffset());
 	}
 }
 
@@ -2427,9 +2435,25 @@ int32 FAnimationViewportClient::GetShowMeshStats() const
 	return ConfigOption->ShowMeshStats;
 }
 
-FAdvancedPreviewScene* FAnimationViewportClient::GetAdvancedPreviewScene() const
+void FAnimationViewportClient::OnAssetViewerSettingsChanged(const FName& InPropertyName)
 {
-	return static_cast<FAdvancedPreviewScene*>(PreviewScene);
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled))
+	{
+		SetAdvancedShowFlagsForScene();
+	}
+}
+
+void FAnimationViewportClient::SetAdvancedShowFlagsForScene()
+{
+	const bool bAdvancedShowFlags = UAssetViewerSettings::Get()->Profiles[AdvancedPreviewScene->GetCurrentProfileIndex()].bPostProcessingEnabled;
+	if (bAdvancedShowFlags)
+	{
+		EngineShowFlags.EnableAdvancedFeatures();
+	}
+	else
+	{
+		EngineShowFlags.DisableAdvancedFeatures();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

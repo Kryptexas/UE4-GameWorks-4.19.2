@@ -136,6 +136,7 @@ void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpd
 	{
 		PostProcessComponent->Settings = Profile.PostProcessingSettings;
 		PostProcessComponent->bEnabled = Profile.bPostProcessingEnabled;
+		bPostProcessing = Profile.bPostProcessingEnabled;
 	}
 
 	if (bUpdateDirectionalLight)
@@ -262,29 +263,37 @@ const bool FAdvancedPreviewScene::HandleInputKey(FViewport* InViewport, int32 Co
 	const bool bHideFloor = InViewport->KeyState(EKeys::O);
 	if (bHideSky)
 	{
-		UProperty* EnvironmentProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bShowEnvironment));
-		DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment = !DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment;
-
-		FPropertyChangedEvent PropertyEvent(EnvironmentProperty);
-		DefaultSettings->PostEditChangeProperty(PropertyEvent);
-
+		SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
 		bResult = true;
 	}
 
 	if (bHideFloor)
 	{
-		FName PropertyName("bShowFloor");
-
-		UProperty* FloorProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), PropertyName);
-		DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor = !DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor;
-
-		FPropertyChangedEvent PropertyEvent(FloorProperty);
-		DefaultSettings->PostEditChangeProperty(PropertyEvent);
-
+		SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
 		bResult = true;
 	}
 
 	return bResult;
+}
+
+void FAdvancedPreviewScene::SetFloorVisibility(const bool bVisible)
+{
+	FName PropertyName("bShowFloor");
+
+	UProperty* FloorProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), PropertyName);
+	DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor = bVisible;
+
+	FPropertyChangedEvent PropertyEvent(FloorProperty);
+	DefaultSettings->PostEditChangeProperty(PropertyEvent);
+}
+
+void FAdvancedPreviewScene::SetEnvironmentVisibility(const bool bVisible)
+{
+	UProperty* EnvironmentProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bShowEnvironment));
+	DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment = bVisible;
+
+	FPropertyChangedEvent PropertyEvent(EnvironmentProperty);
+	DefaultSettings->PostEditChangeProperty(PropertyEvent);
 }
 
 const float FAdvancedPreviewScene::GetSkyRotation() const
@@ -304,6 +313,16 @@ void FAdvancedPreviewScene::SetSkyRotation(const float SkyRotation)
 		ClampedSkyRotation += 360.0f;
 	}
 	DefaultSettings->Profiles[CurrentProfileIndex].LightingRigRotation = ClampedSkyRotation;
+}
+
+const bool FAdvancedPreviewScene::IsUsingPostProcessing() const
+{
+	return bPostProcessing;
+}
+
+const int32 FAdvancedPreviewScene::GetCurrentProfileIndex() const
+{
+	return CurrentProfileIndex;
 }
 
 const UStaticMeshComponent* FAdvancedPreviewScene::GetFloorMeshComponent() const
