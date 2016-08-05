@@ -994,6 +994,8 @@ void FSequencer::NotifyMapChanged( class UWorld* NewWorld, EMapChangeType MapCha
 	// @todo sequencer: We should only wipe/respawn puppets that are affected by the world that is being changed! (multi-UWorld support)
 	if( ( MapChangeType == EMapChangeType::LoadMap || MapChangeType == EMapChangeType::NewMap || MapChangeType == EMapChangeType::TearDownWorld) )
 	{
+		PlaybackContextAttribute = nullptr;
+
 		SpawnRegister->CleanUp(*this);
 
 		UpdateRuntimeInstances();
