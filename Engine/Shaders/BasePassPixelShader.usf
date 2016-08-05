@@ -615,7 +615,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 #endif	// HAS_INVERTED_Z_BUFFER
  		
 		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
+		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * ResolvedView.BufferSizeAndInvSize.zw, 0).r;
 
 		float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
@@ -800,10 +800,7 @@ void FPixelShaderInOut_MainPS(
 	#endif
 		{
 			float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-
-			// Note: We are using View and not ResolvedView here.
-			// It has the correct ScreenPositionScaleBias values for screen space compositing.
-			float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+			float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
 
 			FDBufferData DBufferData = GetDBufferData(ScreenUV);
 
