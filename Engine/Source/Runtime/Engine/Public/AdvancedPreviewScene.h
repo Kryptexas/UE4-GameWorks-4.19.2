@@ -58,6 +58,8 @@ protected:
 	float CurrentRotationSpeed;
 	float PreviousRotation;
 
+	bool bSkyChanged;
+
 	int32 CurrentProfileIndex;
 };
 
