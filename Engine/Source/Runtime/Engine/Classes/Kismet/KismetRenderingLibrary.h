@@ -24,6 +24,18 @@ UCLASS(MinimalAPI)
 class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
+	
+	/** 
+	 * Clears the specified render target with the given ClearColor.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(Keywords="ClearRenderTarget", WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
+	static ENGINE_API void ClearRenderTarget2D(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, FLinearColor ClearColor);
+
+	/**
+	 * Creates a new render target and initializes it to the specified dimensions
+	 */
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(int32 Width = 256, int32 Height = 256);
 
 	/** 
 	 * Renders a quad with the material applied to the specified render target.   

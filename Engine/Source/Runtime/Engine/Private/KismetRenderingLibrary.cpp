@@ -19,6 +19,41 @@ UKismetRenderingLibrary::UKismetRenderingLibrary(const FObjectInitializer& Objec
 {
 }
 
+void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, FLinearColor ClearColor)
+{
+	check(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	if (TextureRenderTarget
+		&& TextureRenderTarget->Resource
+		&& World)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			ClearRTCommand,
+			FTextureRenderTargetResource*,RenderTargetResource,TextureRenderTarget->GameThread_GetRenderTargetResource(),
+			FLinearColor,ClearColor,ClearColor,
+		{
+			SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
+			RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());
+		});
+	}
+}
+
+UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(int32 Width, int32 Height)
+{
+	if (Width > 0 && Height > 0)
+	{
+		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>();
+		check(NewRenderTarget2D);
+		NewRenderTarget2D->InitAutoFormat(Width, Height); 
+		NewRenderTarget2D->UpdateResourceImmediate(true);
+
+		return NewRenderTarget2D; 
+	}
+
+	return nullptr;
+}
+
 void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material)
 {
 	check(WorldContextObject);
