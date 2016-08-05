@@ -250,14 +250,13 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 	WorldMovementGridMeshComponent->SetRelativeScale3D( WorldScaleFactorVector * VREd::GridScaleMultiplier->GetFloat() );
 	WorldMovementGridMeshComponent->SetRelativeLocation( WorldScaleFactorVector * FVector( 0.0f, 0.0f, VREd::GridHeightOffset->GetFloat() ) );
 
-	// Update the user scale indicator //@todo
+	// Update the user scale indicator
 	{
 		UVREditorInteractor* LeftHandInteractor = VRMode->GetHandInteractor( EControllerHand::Left );
 		UVREditorInteractor* RightHandInteractor = VRMode->GetHandInteractor( EControllerHand::Right );
-
-		if ( LeftHandInteractor != nullptr && RightHandInteractor != nullptr &&
-			( LeftHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::World && RightHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::AssistingDrag ) ||
-			( LeftHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::AssistingDrag && RightHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::World ) )
+		if ( ( LeftHandInteractor != nullptr && RightHandInteractor != nullptr ) &&
+			 ( ( LeftHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::World && RightHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::AssistingDrag ) ||
+			 ( LeftHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::AssistingDrag && RightHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::World ) ) )
 		{
 			// Setting all components to be visible
 			CurrentScaleProgressMeshComponent->SetVisibility( true );
