@@ -130,6 +130,23 @@ static bool IsPixelFormatCompressed(EPixelFormat Format)
 	}
 }
 
+static bool IsPixelFormatBCCompressed(EPixelFormat Format)
+{
+	switch (Format)
+	{
+		case PF_DXT1:
+		case PF_DXT3:
+		case PF_DXT5:
+		case PF_BC4:
+		case PF_BC5:
+		case PF_BC6H:
+		case PF_BC7:
+			return true;
+		default:
+			return false;
+	}
+}
+
 void FMetalSurface::PrepareTextureView()
 {
 #if PLATFORM_MAC // Recreate the texture to enable MTLTextureUsagePixelFormatView which must be off unless we definitely use this feature or we are throwing ~4% performance vs. Windows on the floor.
@@ -465,7 +482,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 				}
 				else
 				{
-					UE_LOG(LogMetal, Display, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
+					UE_LOG(LogMetal, Error, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
 				}
 				break;
 			default:
@@ -1343,10 +1360,15 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 	id<MTLTexture> Tex = OldTexture->Surface.Texture;
 	[Tex retain];
 
+	// DXT/BC formats on Mac actually do have mip-tails that are smaller than the block size, they end up being uncompressed.
+	bool const bPixelFormatBC = IsPixelFormatBCCompressed(OldTexture->GetFormat());
+
 	for (uint32 MipIndex = 0; MipIndex < NumSharedMips; ++MipIndex)
 	{
-		const uint32 MipSizeX = AlignArbitrary(FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset)), BlockSizeX);
-		const uint32 MipSizeY = AlignArbitrary(FMath::Max<uint32>(1, NewSizeY >> (MipIndex + DestMipOffset)), BlockSizeY);
+		const uint32 UnalignedMipSizeX = FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset));
+		const uint32 UnalignedMipSizeY = FMath::Max<uint32>(1, NewSizeY >> (MipIndex + DestMipOffset));
+		const uint32 MipSizeX = (!bPixelFormatBC || UnalignedMipSizeX >= BlockSizeX) ? AlignArbitrary(UnalignedMipSizeX, BlockSizeX) : UnalignedMipSizeX;
+		const uint32 MipSizeY = (!bPixelFormatBC || UnalignedMipSizeY >= BlockSizeY) ? AlignArbitrary(UnalignedMipSizeY, BlockSizeY) : UnalignedMipSizeY;
 
 		// set up the copy
 		[Blitter copyFromTexture:OldTexture->Surface.Texture 
@@ -1462,6 +1484,31 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 	MTLRegion Region = MTLRegionMake2D(UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.Width, UpdateRegion.Height);
 	
 #if PLATFORM_MAC
+	// Expand R8_sRGB into RGBA8_sRGB for Mac.
+	TArray<uint8> Data;
+	if (Texture->GetFormat() == PF_G8 && (Texture->GetFlags() & TexCreate_SRGB))
+	{
+		uint32 BytesPerImage = SourcePitch * UpdateRegion.Height;
+		Data.AddZeroed(BytesPerImage * 4);
+		uint8* Dest = Data.GetData();
+		
+		for(uint y = 0; y < UpdateRegion.Height; y++)
+		{
+			uint8* RowDest = Dest;
+			for(uint x = 0; x < UpdateRegion.Width; x++)
+			{
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+				*(RowDest++) = SourceData[(y * SourcePitch) + x];
+			}
+			Dest = (Dest + SourcePitch);
+		}
+		
+		SourceData = Data.GetData();
+		SourcePitch *= 4;
+	}
+	
 	if(Tex.storageMode == MTLStorageModePrivate)
 	{
 		SCOPED_AUTORELEASE_POOL;
@@ -1512,6 +1559,7 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 	MTLRegion Region = MTLRegionMake3D(UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ, UpdateRegion.Width, UpdateRegion.Height, UpdateRegion.Depth);
 	
 #if PLATFORM_MAC
+	checkf(!(Texture->GetFormat() == PF_G8 && (Texture->GetFlags() & TexCreate_SRGB)), TEXT("MetalRHI does not support PF_G8_sRGB on 3D, array or cube textures as it requires manual, CPU-side expansion to RGBA8_sRGB which is expensive!"));
 	if(Tex.storageMode == MTLStorageModePrivate)
 	{
 		SCOPED_AUTORELEASE_POOL;

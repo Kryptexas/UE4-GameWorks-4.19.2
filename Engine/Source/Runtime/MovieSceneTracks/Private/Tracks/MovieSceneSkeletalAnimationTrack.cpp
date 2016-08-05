@@ -18,7 +18,7 @@ UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack(const FObje
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(194, 29, 194, 65);
+	TrackTint = FColor(124, 15, 124, 65);
 #endif
 }
 

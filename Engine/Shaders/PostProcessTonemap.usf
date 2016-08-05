@@ -48,6 +48,16 @@ uint ACESInversion;
 
 uint OutputDevice;
 
+uint GetOutputDevice()
+{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	return OutputDevice;
+#else
+	// Only sRGB output for Mobile
+	return 0;
+#endif 
+}
+
 // LUT for color grading
 #if USE_VOLUME_LUT == 1
 	Texture3D		ColorGradingLUT;
@@ -60,7 +70,7 @@ half3 ColorLookupTable( half3 LinearColor )
 {
 	float3 LUTEncodedColor;
 	// Encode as ST-2084 (Dolby PQ) values
-	if( OutputDevice >= 3 )
+	if( GetOutputDevice() >= 3 )
 		LUTEncodedColor = LinearToST2084( LinearColor );
 	// Encode as log values
 	else

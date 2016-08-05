@@ -162,7 +162,7 @@ const FSlateBrush* SDetailSingleItemRow::GetFavoriteButtonBrush() const
 {
 	if (Customization->GetPropertyNode().IsValid() && Customization->GetPropertyNode()->CanDisplayFavorite())
 	{
-		return FEditorStyle::GetBrush(Customization->GetPropertyNode()->IsFavorite() ? TEXT("DetailsView.PropertyIsFavorite") : bMouseHoverWidget ? TEXT("DetailsView.PropertyIsNotFavorite") : TEXT("DetailsView.NoFavoritesSystem"));
+		return FEditorStyle::GetBrush(Customization->GetPropertyNode()->IsFavorite() ? TEXT("DetailsView.PropertyIsFavorite") : IsHovered() ? TEXT("DetailsView.PropertyIsNotFavorite") : TEXT("DetailsView.NoFavoritesSystem"));
 	}
 	//Adding a transparent brush make sure all property are left align correctly
 	return FEditorStyle::GetBrush(TEXT("DetailsView.NoFavoritesSystem"));
@@ -170,7 +170,6 @@ const FSlateBrush* SDetailSingleItemRow::GetFavoriteButtonBrush() const
 
 void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
-	bMouseHoverWidget = false;
 	OwnerTreeNode = InOwnerTreeNode;
 	bAllowFavoriteSystem = InArgs._AllowFavoriteSystem;
 
@@ -340,16 +339,6 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 			.ShowSelection(false),
 		InOwnerTableView
 	);
-}
-
-void SDetailSingleItemRow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	bMouseHoverWidget = true;
-}
-
-void SDetailSingleItemRow::OnMouseLeave(const FPointerEvent& MouseEvent)
-{
-	bMouseHoverWidget = false;
 }
 
 bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )

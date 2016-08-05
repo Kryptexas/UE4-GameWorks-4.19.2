@@ -785,7 +785,8 @@ void UAnimPreviewInstance::MontagePreview_RemoveBlendOut()
 
 void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx, bool bPlay)
 {
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
+	UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
+	if (Montage && Montage->SequenceLength > 0.0f)
 	{
 		FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
 
@@ -816,7 +817,7 @@ void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx, bo
 void UAnimPreviewInstance::MontagePreview_PreviewAllSections(bool bPlay)
 {
 	UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
-	if (Montage && Montage->SequenceLength > 0.f)
+	if (Montage && Montage->SequenceLength > 0.0f)
 	{
 		FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
 

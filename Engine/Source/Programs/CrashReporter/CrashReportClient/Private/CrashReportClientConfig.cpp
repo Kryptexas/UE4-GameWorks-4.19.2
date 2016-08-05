@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "GenericPlatformCrashContext.h"
 
 FCrashReportClientConfig::FCrashReportClientConfig()
 	: DiagnosticsFilename( TEXT( "Diagnostics.txt" ) )
@@ -65,17 +66,8 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		}
 	}
 
-	if (!GConfig->GetBool(TEXT("CrashReportClient"), TEXT("bHideLogFilesOption"), bHideLogFilesOption, GEngineIni))
-	{
-		// Default to false (show the option) when config is missing.
-		bHideLogFilesOption = false;
-	}
-	
-	if (!GConfig->GetBool(TEXT("CrashReportClient"), TEXT("bIsAllowedToCloseWithoutSending"), bIsAllowedToCloseWithoutSending, GEngineIni))
-	{
-		// Default to true (Allow the user to close without sending) when config is missing.
-		bIsAllowedToCloseWithoutSending = true;
-	}
+	FConfigFile EmptyConfigFile;
+	SetProjectConfigOverrides(EmptyConfigFile);
 
 	ReadFullCrashDumpConfigurations();
 }
@@ -90,6 +82,33 @@ void FCrashReportClientConfig::SetSendLogFile( bool bNewValue )
 {
 	bSendLogFile = bNewValue;
 	GConfig->SetBool( *SectionName, TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
+}
+
+void FCrashReportClientConfig::SetProjectConfigOverrides(const FConfigFile& InConfigFile)
+{
+	const FConfigSection* Section = InConfigFile.Find(FGenericCrashContext::ConfigSectionName);
+
+	// Default to false (show the option) when config is missing.
+	bHideLogFilesOption = false;
+
+	// Default to true (Allow the user to close without sending) when config is missing.
+	bIsAllowedToCloseWithoutSending = true;
+
+	// Try to read values from override config file
+	if (Section != nullptr)
+	{
+		const FConfigValue* HideLogFilesOptionValue = Section->Find(TEXT("bHideLogFilesOption"));
+		if (HideLogFilesOptionValue != nullptr)
+		{
+			bHideLogFilesOption = FCString::ToBool(*HideLogFilesOptionValue->GetValue());
+		}
+
+		const FConfigValue* IsAllowedToCloseWithoutSendingValue = Section->Find(TEXT("bIsAllowedToCloseWithoutSending"));
+		if (IsAllowedToCloseWithoutSendingValue != nullptr)
+		{
+			bIsAllowedToCloseWithoutSending = FCString::ToBool(*IsAllowedToCloseWithoutSendingValue->GetValue());
+		}
+	}
 }
 
 const FString FCrashReportClientConfig::GetFullCrashDumpLocationForBranch( const FString& BranchName ) const

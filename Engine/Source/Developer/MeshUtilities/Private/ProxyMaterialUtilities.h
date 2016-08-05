@@ -15,6 +15,7 @@ namespace ProxyMaterialUtilities
 		SwitchParameter.Value = true; \
 		SwitchParameter.bOverride = true; \
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter); \
+		a##Texture->PostEditChange(); \
 	} 
 
 #define TEXTURE_MACRO_VECTOR(a, b, c) TEXTURE_MACRO_BASE(a, b, c)\

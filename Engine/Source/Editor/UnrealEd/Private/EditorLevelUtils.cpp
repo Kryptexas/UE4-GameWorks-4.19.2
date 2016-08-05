@@ -553,7 +553,7 @@ namespace EditorLevelUtils
 			UWorldFactory* Factory = NewObject<UWorldFactory>();
 			Factory->WorldType = EWorldType::Inactive;
 			UPackage* Pkg = CreatePackage(NULL, NULL);
-			FName WorldName(TEXT("NewWorld"));
+			FName WorldName(TEXT("Untitled"));
 			EObjectFlags Flags = RF_Public | RF_Standalone;
 			NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, WorldName, Flags, NULL, GWarn));
 			if ( NewWorld )

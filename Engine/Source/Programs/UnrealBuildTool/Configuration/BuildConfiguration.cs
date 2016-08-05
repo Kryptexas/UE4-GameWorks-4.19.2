@@ -545,6 +545,12 @@ namespace UnrealBuildTool
 		public static bool bUseFastPDBLinking;
 
 		/// <summary>
+		/// Whether to specify the PCH File to be used for each source file to improve Intellisense performance
+		/// </summary>
+		[XmlConfig]
+		public static bool bUsePerFileIntellisense;
+
+		/// <summary>
 		/// Whether to request the linker create a map file as part of the build
 		/// </summary>
 		[XmlConfig]
@@ -716,6 +722,9 @@ namespace UnrealBuildTool
 			// Use Fast PDB linking by default in projects but not all builds
 			bAddFastPDBToProjects = false;
 			bUseFastPDBLinking = false;
+
+			// Don't use per file Intellisense by default
+			bUsePerFileIntellisense = false;
 
 			// Don't create a map file by default
 			bCreateMapFile = false;

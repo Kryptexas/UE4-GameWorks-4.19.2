@@ -907,17 +907,18 @@ void ProcessMobileBasePassMesh(
 	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 	if (bIsLitMaterial)
 	{
-		const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-			? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
+		const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
+			? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel)
 			: FLightMapInteraction();
 
 		const FScene* Scene = Action.GetScene();
-		const int32 LightChannel = GetFirstLightingChannelFromMask(Parameters.PrimitiveSceneProxy->GetLightingChannelMask());
-		const FLightSceneInfo* MobileDirectionalLight = 
-			(Parameters.PrimitiveSceneProxy && Scene && LightChannel>=0)
-			? GetSceneMobileDirectionalLights(Scene, LightChannel)
-			: nullptr;
-
+		const FLightSceneInfo* MobileDirectionalLight = nullptr;
+		if (Parameters.PrimitiveSceneProxy && Scene)
+		{
+			const int32 LightChannel = GetFirstLightingChannelFromMask(Parameters.PrimitiveSceneProxy->GetLightingChannelMask());
+			MobileDirectionalLight = LightChannel >= 0 ? GetSceneMobileDirectionalLights(Scene, LightChannel) : nullptr;
+		}
+	
 		const bool bUseMovableLight = MobileDirectionalLight && !MobileDirectionalLight->Proxy->HasStaticShadowing();
 
 		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));

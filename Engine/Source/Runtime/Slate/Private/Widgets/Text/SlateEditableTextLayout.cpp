@@ -223,14 +223,14 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 	const bool bForceRefresh = !EditableText.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive);
 
 	// Only emit the "text changed" event if the text has actually been changed
-	const bool bHasTextChanged = OwnerWidget->GetSlateWidget()->HasKeyboardFocus() 
+	const bool bHasTextChanged = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet()
 		? !NewText.ToString().Equals(EditableText.ToString(), ESearchCase::CaseSensitive)
 		: !NewText.ToString().Equals(PreviousText.ToString(), ESearchCase::CaseSensitive);
 
 	if (RefreshImpl(&NewText, bForceRefresh))
 	{
 		// Make sure we move the cursor to the end of the new text if we had keyboard focus
-		if (OwnerWidget->GetSlateWidget()->HasKeyboardFocus())
+		if (OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet())
 		{
 			JumpTo(ETextLocation::EndOfDocument, ECursorAction::MoveCursor);
 		}
@@ -907,7 +907,7 @@ FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeomet
 			InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 		{
 			// Am I getting focus right now?
-			const bool bIsGettingFocus = !OwnerWidget->GetSlateWidget()->HasKeyboardFocus();
+			const bool bIsGettingFocus = !OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 			if (bIsGettingFocus)
 			{
 				// We might be receiving keyboard focus due to this event.  Because the keyboard focus received callback
@@ -2255,7 +2255,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
 
-	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasKeyboardFocus();
+	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 	const bool bIsComposing = TextInputMethodContext->IsComposing();
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
 
@@ -2923,7 +2923,7 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 		TextInputMethodChangeNotifier->NotifyLayoutChanged(ITextInputMethodChangeNotifier::ELayoutChangeType::Changed);
 	}
 
-	const bool bShouldAppearFocused = OwnerWidget->GetSlateWidget()->HasKeyboardFocus() || HasActiveContextMenu();
+	const bool bShouldAppearFocused = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet() || HasActiveContextMenu();
 	if (bShouldAppearFocused)
 	{
 		// If we have focus then we don't allow the editable text itself to update, but we do still need to refresh the password and marshaller state

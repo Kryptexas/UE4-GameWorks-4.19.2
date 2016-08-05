@@ -843,10 +843,17 @@ void UPrimitiveComponent::UnWeldFromParent()
 						RootBI->UnWeld(ChildBI);
 					}
 
-					//At this point, NewRootBI must be kinematic because it's being unwelded. It's up to the code that simulates to call Weld on the children as needed
+					//At this point, NewRootBI must be kinematic because it's being unwelded.
 					FPlatformAtomics::InterlockedExchangePtr((void**)&ChildBI->WeldParent, nullptr); //null because we are currently kinematic
 				}
 			}
+
+			//If the new root body is simulating, we need to apply the weld on the children
+			if(NewRootBI->IsInstanceSimulatingPhysics())
+			{
+				NewRootBI->ApplyWeldOnChildren();
+			}
+			
 		}
 	}
 }

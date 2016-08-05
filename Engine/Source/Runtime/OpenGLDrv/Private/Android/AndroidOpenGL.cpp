@@ -198,20 +198,14 @@ bool PlatformInitOpenGL()
 
 	{
 		// determine ES version. PlatformInitOpenGL happens before ProcessExtensions and therefore FAndroidOpenGL::bES31Support.
-		FString VersionString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION)));
-		bool bES31Supported = VersionString.Contains(TEXT("OpenGL ES 3.1"));
-		// AJB HACK: figure out alternative method:
-		bool bBuildForES3 = false;
-		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES3"), bBuildForES3, GEngineIni);
+		const bool bES31Supported = FAndroidGPUInfo::Get().GLVersion.Contains(TEXT("OpenGL ES 3.1"));
+		static const auto CVarDisableES31 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableOpenGLES31Support"));
 
-		if (bES31Supported && bBuildForES3)
+		bool bBuildForES31 = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
+
+		if (bES31Supported && bBuildForES31 && CVarDisableES31->GetValueOnAnyThread() == 0)
 		{
-			// shut down pre-existing EGL (PlatformInit's ES2 EGL), so we can recreate the correct version.
-			if (AndroidEGL::GetInstance()->IsInitialized())
-			{
-				AndroidEGL::GetInstance()->DestroyBackBuffer();
-				AndroidEGL::GetInstance()->Terminate();
-			}
 			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, false);
 		}
 		else
@@ -221,9 +215,7 @@ bool PlatformInitOpenGL()
 
 			// If we're here and there's no ES2 data then we're in trouble.
 			check(bBuildForES2);
-			// no need to recreate PlatformInit's (ES2) EGL.
-			check(AndroidEGL::GetInstance()->IsInitialized());
-			//AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
 		}
 	}
 	return true;
@@ -492,6 +484,9 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsInstancing = true;
 		bSupportsTextureFloat = true;
 		bSupportsTextureHalfFloat = true;
+		
+		// According to https://www.khronos.org/registry/gles/extensions/EXT/EXT_color_buffer_float.txt
+		bSupportsColorBufferHalfFloat = (bSupportsColorBufferHalfFloat || bSupportsColorBufferFloat);
 	}
 
 	if (bES31Support)
@@ -592,12 +587,11 @@ void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 
 void FAndroidAppEntry::PlatformInit()
 {
-	// @todo Ronin vulkan: Yet another bit of FAndroidApp stuff that's in GL - and should be cleaned up if possible
-	if (!FAndroidMisc::ShouldUseVulkan())
-	{
-		// create an ES2 EGL here for gpu queries.
-		AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
-	}
+	// create an ES2 EGL here for gpu queries.
+	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+	FAndroidGPUInfo::Get();
+	AndroidEGL::GetInstance()->DestroyBackBuffer();
+	AndroidEGL::GetInstance()->Terminate();
 }
 
 #endif

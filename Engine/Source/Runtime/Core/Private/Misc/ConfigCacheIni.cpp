@@ -2957,6 +2957,7 @@ void FConfigCacheIni::InitializeConfigSystem()
 
 	// now we can make use of GConfig
 	GConfig->bIsReadyForUse = true;
+	FCoreDelegates::ConfigReadyForUse.Broadcast();
 }
 
 bool FConfigCacheIni::LoadGlobalIniFile(FString& FinalIniFilename, const TCHAR* BaseIniName, const TCHAR* Platform, bool bForceReload, bool bRequireDefaultIni, bool bAllowGeneratedIniWhenCooked, const TCHAR* GeneratedConfigDir)

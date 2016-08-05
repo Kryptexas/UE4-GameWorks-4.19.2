@@ -112,6 +112,8 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 				LOCTEXT("OwnerTooltip", "Specifies how the spawned object is to be owned"),
 				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddSpawnOwnershipMenu)
 			);
+
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ConvertToPossessable );
 		}
 		else
 		{

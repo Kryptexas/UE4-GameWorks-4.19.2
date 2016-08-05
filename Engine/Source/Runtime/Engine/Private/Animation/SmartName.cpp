@@ -22,7 +22,6 @@ bool FSmartNameMapping::AddOrFindName(FName Name, UID& OutUid, FGuid& OutGuid)
 
 	// make sure they both exists and same 
 	check(!!ExistingUid == !!ExistingGuid);
-
 	if(ExistingUid)
 	{
 		// Already present in the list
@@ -32,15 +31,28 @@ bool FSmartNameMapping::AddOrFindName(FName Name, UID& OutUid, FGuid& OutGuid)
 	}
 
 	// make sure we didn't reach till end
-	check(NextUid != MaxUID);
-
-	OutUid = NextUid;
 	OutGuid = FGuid::NewGuid();
-	UidMap.Add(OutUid, Name);
-	GuidMap.Add(Name, OutGuid);
+	return AddName(Name, OutUid, OutGuid);
+}
 
-	++NextUid;
-	return true;
+bool FSmartNameMapping::AddName(FName Name, UID& OutUid, const FGuid& InGuid)
+{
+	check(Name.IsValid());
+	if (GuidMap.Find(Name) == nullptr && GuidMap.FindKey(InGuid) == nullptr)
+	{
+		// make sure we didn't reach till end
+		check(NextUid != MaxUID);
+
+		OutUid = NextUid;
+		UidMap.Add(OutUid, Name);
+		GuidMap.Add(Name, InGuid);
+
+		++NextUid;
+
+		return true;
+	}
+
+	return false;
 }
 
 bool FSmartNameMapping::GetName(const UID& Uid, FName& OutName) const
@@ -181,6 +193,7 @@ FArchive& operator<<(FArchive& Ar, FSmartNameMapping& Elem)
 	return Ar;
 }
 
+#if WITH_EDITOR
 bool FSmartNameMapping::FindOrAddSmartName(FName Name, FSmartName& OutName)
 {
 	FSmartNameMapping::UID NewUID;
@@ -191,13 +204,23 @@ bool FSmartNameMapping::FindOrAddSmartName(FName Name, FSmartName& OutName)
 	return bNewlyAdded;
 }
 
+bool FSmartNameMapping::AddSmartName(FSmartName& OutName)
+{
+	return AddName(OutName.DisplayName, OutName.UID, OutName.Guid);
+}
+#endif // WITH_EDITOR
+
 bool FSmartNameMapping::FindSmartName(FName Name, FSmartName& OutName) const
 {
 	const FSmartNameMapping::UID* ExistingUID = FindUID(Name);
 	if (ExistingUID)
 	{
+#if WITH_EDITOR
 		const FGuid* ExistingGuid = GuidMap.Find(Name);
 		OutName = FSmartName(Name, *ExistingUID, *ExistingGuid);
+#else
+		OutName = FSmartName(Name, *ExistingUID);
+#endif // WITH_EDITOR
 		return true;
 	}
 
@@ -210,7 +233,9 @@ bool FSmartNameMapping::FindSmartNameByUID(FSmartNameMapping::UID UID, FSmartNam
 	if (GetName(UID, ExistingName))
 	{
 		OutName.DisplayName = ExistingName;
+#if WITH_EDITORONLY_DATA
 		OutName.Guid = *GuidMap.Find(ExistingName);
+#endif // WITH_EDITORONLY_DATA
 		OutName.UID = UID;
 		return true;
 	}
@@ -254,7 +279,14 @@ bool FSmartName::Serialize(FArchive& Ar)
 {
 	Ar << DisplayName;
 	Ar << UID;
-	Ar << Guid;
+
+	// only save if it's editor build and not cooking
+#if WITH_EDITORONLY_DATA
+	if (!Ar.IsSaving() || !Ar.IsCooking())
+	{
+		Ar << Guid;
+	}
+#endif // WITH_EDITORONLY_DATA
 
 	return true;
 }

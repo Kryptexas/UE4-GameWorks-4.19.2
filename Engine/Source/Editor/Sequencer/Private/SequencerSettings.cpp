@@ -28,7 +28,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bRewindOnRecord = true;
 	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
-	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
 	bLinkCurveEditorTimeRange = false;
 	bLooping = false;
@@ -365,22 +364,6 @@ void USequencerSettings::SetAutoScrollEnabled(bool bInAutoScrollEnabled)
 	}
 }
 
-
-bool USequencerSettings::GetShowCurveEditor() const
-{
-	return bShowCurveEditor;
-}
-
-void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
-{
-	if (bShowCurveEditor != InbShowCurveEditor)
-	{
-		bShowCurveEditor = InbShowCurveEditor;
-		OnShowCurveEditorChanged.Broadcast();
-		SaveConfig();
-	}
-}
-
 bool USequencerSettings::IsLooping() const
 {
 	return bLooping;
@@ -544,11 +527,6 @@ void USequencerSettings::SetAllowPossessionOfPIEViewports(bool bInAllowPossessio
 		bAllowPossessionOfPIEViewports = bInAllowPossessionOfPIEViewports;
 		SaveConfig();
 	}
-}
-
-USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
-{
-	return OnShowCurveEditorChanged;
 }
 
 USequencerSettings::FOnTimeSnapIntervalChanged& USequencerSettings::GetOnTimeSnapIntervalChanged()

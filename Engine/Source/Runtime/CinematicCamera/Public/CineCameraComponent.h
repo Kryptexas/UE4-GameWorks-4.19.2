@@ -237,6 +237,9 @@ public:
 	/** Returns a list of available lens presets. */
 	static TArray<FNamedLensPreset> const& GetLensPresets();
 
+	/** Update the debug focus plane position and orientation. */
+	void UpdateDebugFocusPlane();
+
 protected:
 
 	/** Most recent calculated focus distance. Used for interpolation. */
@@ -305,7 +308,7 @@ protected:
 	
 private:
 	void RecalcDerivedData();
-	float GetDesiredFocusDistance(FMinimalViewInfo& DesiredView) const;
+	float GetDesiredFocusDistance(const FVector& InLocation) const;
 	float GetWorldToMetersScale() const;
 
 	void CreateDebugFocusPlane();

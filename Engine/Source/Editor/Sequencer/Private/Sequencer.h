@@ -5,6 +5,7 @@
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "EditorUndoClient.h"
 #include "MovieSceneClipboard.h"
+#include "MovieScenePossessable.h"
 #include "SequencerLabelManager.h"
 #include "LevelEditor.h"
 
@@ -214,9 +215,21 @@ public:
 	void ConvertToSpawnable(TSharedRef<FSequencerObjectBindingNode> NodeToBeConverted);
 
 	/**
+	 * Converts the specified spawnable GUID to a possessable
+	 *
+	 * @param	SpawnableGuid		The guid of the spawnable to convert
+	 */
+	void ConvertToPossessable(TSharedRef<FSequencerObjectBindingNode> NodeToBeConverted);
+
+	/**
 	 * Converts all the currently selected nodes to be spawnables, if possible
 	 */
 	void ConvertSelectedNodesToSpawnables();
+
+	/**
+	 * Converts all the currently selected nodes to be possessables, if possible
+	 */
+	void ConvertSelectedNodesToPossessables();
 
 protected:
 
@@ -374,6 +387,10 @@ public:
 
 	/** @return Whether or not this sequencer is used in the level editor */
 	bool IsLevelEditorSequencer() const { return bIsEditingWithinLevelEditor; }
+
+	/** @return Whether to show the curve editor or not */
+	void SetShowCurveEditor(bool bInShowCurveEditor);
+	bool GetShowCurveEditor() const { return bShowCurveEditor; }
 
 	/** Called to save the current movie scene */
 	void SaveCurrentMovieScene();
@@ -788,6 +805,9 @@ protected:
 	/** Internal conversion function that doesn't perform expensive reset/update tasks */
 	FMovieSceneSpawnable* ConvertToSpawnableInternal(FGuid PossessableGuid);
 
+	/** Internal conversion function that doesn't perform expensive reset/update tasks */
+	FMovieScenePossessable* ConvertToPossessableInternal(FGuid SpawnableGuid);
+
 	/** Internal function to render movie for a given start/end time */
 	void RenderMovieInternal(float InStartTime, float InEndTime) const;
 
@@ -902,6 +922,8 @@ private:
 
 	/** True if this sequencer is being edited within the level editor */
 	bool bIsEditingWithinLevelEditor;
+
+	bool bShowCurveEditor;
 
 	/** Generic Popup Entry */
 	TWeakPtr<IMenu> EntryPopupMenu;

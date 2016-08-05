@@ -292,7 +292,6 @@ namespace UnrealBuildTool
 					{
 						// Full path to a folder outside of project
 						FullPath = CurPath;
-						System.Console.WriteLine("FullPath starting with /: " + FullPath);
 					}
 					else
 					{

@@ -103,6 +103,7 @@ static const ANSICHAR* GDeviceExtensions[] =
 {
 	//	VK_KHR_SURFACE_EXTENSION_NAME,			// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)
 #if PLATFORM_ANDROID
+	VK_KHR_SURFACE_EXTENSION_NAME,
 	VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
 #else
 	//	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,	// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)

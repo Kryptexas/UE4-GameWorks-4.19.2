@@ -1065,7 +1065,6 @@ namespace UnrealBuildTool
 			LinkAction.CommandArguments += " -lm"; // math
 
 			// libc++ and its abi lib
-			LinkAction.CommandArguments += " -stdlib=libc++";
 			LinkAction.CommandArguments += " -nodefaultlibs";
 			LinkAction.CommandArguments += " -L" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/";
 			LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++.a";

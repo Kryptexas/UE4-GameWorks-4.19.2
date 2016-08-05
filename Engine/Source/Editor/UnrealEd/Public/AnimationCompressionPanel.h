@@ -9,7 +9,7 @@ class UCompressionHolder : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Instanced, Category = Compression, EditAnywhere)
+	UPROPERTY(Instanced, Category = Compression, EditAnywhere, NoClear)
 	class UAnimCompress* Compression;
 };
 

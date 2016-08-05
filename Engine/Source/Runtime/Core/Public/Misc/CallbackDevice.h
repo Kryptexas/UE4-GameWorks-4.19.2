@@ -266,6 +266,10 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnPreMainInit);
 	static FOnPreMainInit& GetPreMainInitDelegate();
 	
+	/** Sent when GConfig is finished initializing */
+	DECLARE_MULTICAST_DELEGATE(FConfigReadyForUse);
+	static FConfigReadyForUse ConfigReadyForUse;
+
 	/** Callback for notifications regarding changes of the rendering thread. */
 	DECLARE_MULTICAST_DELEGATE(FRenderingThreadChanged)
 

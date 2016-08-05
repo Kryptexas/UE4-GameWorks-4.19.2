@@ -86,12 +86,23 @@ void UPhysicsConstraintTemplate::PostEditChangeProperty(FPropertyChangedEvent& P
 
 void UPhysicsConstraintTemplate::UpdateConstraintProfiles(const TArray<FName>& Profiles)
 {
-	//TODO: rename code. At the moment just deletes
 	for (int32 ProfileIdx = ProfileHandles.Num() - 1; ProfileIdx >= 0; --ProfileIdx)
 	{
 		if (Profiles.Contains(ProfileHandles[ProfileIdx].ProfileName) == false)
 		{
 			ProfileHandles.RemoveAtSwap(ProfileIdx);
+		}
+	}
+}
+
+void UPhysicsConstraintTemplate::RenameConstraintProfile(FName CurrentName, FName NewName)
+{
+	for(FPhysicsConstraintProfileHandle& Handle : ProfileHandles)
+	{
+		if(Handle.ProfileName == CurrentName)
+		{
+			Handle.ProfileName = NewName;
+			break;
 		}
 	}
 }

@@ -15,35 +15,41 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 
 	const bool bHasPreviousLocalToWorldParameter = PreviousLocalToWorldParameter.IsBound();
 	const bool bHasSkipOutputVelocityParameter = SkipOutputVelocityParameter.IsBound();
-	if ((bHasSkipOutputVelocityParameter || bHasPreviousLocalToWorldParameter) && Proxy)
-	{
-//		check(SkipOutputVelocityParameter.IsBound());
-
-		FMatrix PreviousLocalToWorldMatrix;
-		bool bHasPreviousLocalToWorldMatrix = false;
-		const auto& ViewInfo = (const FViewInfo&)View;
-		float SkipOutputVelocityValue;
-		if (FVelocityDrawingPolicy::HasVelocityOnBasePass(ViewInfo, Proxy, Proxy->GetPrimitiveSceneInfo(), Mesh,
-			bHasPreviousLocalToWorldMatrix, PreviousLocalToWorldMatrix))
-		{
-			if (bHasPreviousLocalToWorldParameter)
-			{
-				const FMatrix& Transform = bHasPreviousLocalToWorldMatrix ? PreviousLocalToWorldMatrix : Proxy->GetLocalToWorld();
-				SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, Transform);
-			}
-
-			SkipOutputVelocityValue = 0.0f;
-		}
-		else
-		{
-			SkipOutputVelocityValue = 1.0f;
-		}
-
-		if (bHasSkipOutputVelocityParameter)
-		{
-			SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, SkipOutputVelocityValue);
-		}
-	}
+    
+    float SkipOutputVelocityValue = 1.0f;
+    if (bHasPreviousLocalToWorldParameter)
+    {
+        FMatrix PreviousLocalToWorldMatrix;
+        
+        if (Proxy)
+        {
+            bool bHasPreviousLocalToWorldMatrix = false;
+            const auto& ViewInfo = (const FViewInfo&)View;
+            
+            if (FVelocityDrawingPolicy::HasVelocityOnBasePass(ViewInfo, Proxy, Proxy->GetPrimitiveSceneInfo(), Mesh,
+                                                              bHasPreviousLocalToWorldMatrix, PreviousLocalToWorldMatrix))
+            {
+                PreviousLocalToWorldMatrix = bHasPreviousLocalToWorldMatrix ? PreviousLocalToWorldMatrix : Proxy->GetLocalToWorld();
+                
+                SkipOutputVelocityValue = 0.0f;
+            }
+            else
+            {
+                PreviousLocalToWorldMatrix.SetIdentity();
+            }
+        }
+        else
+        {
+            PreviousLocalToWorldMatrix.SetIdentity();
+        }
+        
+        SetShaderValue(RHICmdList, VertexShaderRHI, PreviousLocalToWorldParameter, PreviousLocalToWorldMatrix);
+    }
+    
+    if (bHasSkipOutputVelocityParameter)
+    {
+        SetShaderValue(RHICmdList, VertexShaderRHI, SkipOutputVelocityParameter, SkipOutputVelocityValue);
+    }
 }
 
 template<typename VertexParametersType>

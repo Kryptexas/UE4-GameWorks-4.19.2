@@ -340,6 +340,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////
 	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
 	// return bool - Whether a name was added (false if already present)
+#if WITH_EDITOR
 	ENGINE_API bool AddSmartNameAndModify(FName ContainerName, FName NewDisplayName, FSmartName& NewName);
 
 	// Renames a smartname in the specified container and modifies the skeleton
@@ -351,6 +352,7 @@ public:
 
 	// Removes smartnames from the specified container and modifies the skeleton
 	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids);
+#endif// WITH_EDITOR
 
 	// quick wrapper function for Find UID by name, if not found, it will return FSmartNameMapping::MaxUID
 	ENGINE_API FSmartNameMapping::UID GetUIDByName(const FName& ContainerName, const FName& Name);

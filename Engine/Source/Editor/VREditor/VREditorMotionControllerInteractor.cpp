@@ -551,6 +551,7 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 				if ( !IsClickingOnUI() &&	// @todo vreditor: UI clicks happen with light presses; we never want to convert to a hard press!
 					GetDraggingMode() != EViewportInteractionDraggingMode::Material &&	// @todo vreditor: Material dragging happens with light presses, don't convert to a hard press!
 					GetDraggingMode() != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// @todo vreditor: Actor dragging happens with light presses, don't convert to a hard press!
+					AllowTriggerFullPress() &&
 					( !AllowTriggerLightPressLocking() || TimeSinceLightlyPressed < VREd::TriggerLightlyPressedLockTime->GetFloat() ) )
 				{
 					SetTriggerAtLeastLightlyPressed( false );
@@ -635,6 +636,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 			{
 				bIsTriggerAtLeastLightlyPressed = true;
 				SetAllowTriggerLightPressLocking( true );
+				SetAllowTriggerFullPress( true );
 				RealTimeTriggerWasLightlyPressed = FPlatformTime::Seconds();
 				bHasTriggerBeenReleasedSinceLastPress = false;
 
@@ -660,7 +662,8 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 		// Synthesize "fully pressed" events for the trigger
 		{
 			if ( !bIsTriggerFullyPressed &&	// Don't fire unless we are already pressed
-				Delta >= VREd::TriggerFullyPressedThreshold->GetFloat() )
+				 AllowTriggerFullPress() &&
+				 Delta >= VREd::TriggerFullyPressedThreshold->GetFloat() )
 			{
 				bIsTriggerFullyPressed = true;
 

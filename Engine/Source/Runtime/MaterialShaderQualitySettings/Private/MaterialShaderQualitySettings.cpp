@@ -131,20 +131,6 @@ UShaderPlatformQualitySettings::UShaderPlatformQualitySettings(const FObjectInit
 	GetQualityOverrides(EMaterialQualityLevel::High).bEnableOverride = true;
 }
 
-#if WITH_EDITOR
-
-void UShaderPlatformQualitySettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	SaveConfig(); // needed?
-}
-
-void UShaderPlatformQualitySettings::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-#endif
-
 void UShaderPlatformQualitySettings::BuildHash(EMaterialQualityLevel::Type QualityLevel, FSHAHash& OutHash) const
 {
 	FSHA1 Hash;

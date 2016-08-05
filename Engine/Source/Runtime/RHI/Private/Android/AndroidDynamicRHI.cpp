@@ -10,7 +10,7 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	// Load the dynamic RHI module.
 	IDynamicRHIModule* DynamicRHIModule = NULL;
 
-	if (FPlatformMisc::HasPlatformFeature(TEXT("Vulkan")))
+	if (FAndroidMisc::ShouldUseVulkan())
 	{
 		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("VulkanRHI"));
 		if (!DynamicRHIModule->IsSupported())

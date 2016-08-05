@@ -71,7 +71,7 @@ protected:
 
 protected:
 	/** The static mesh actor used to display all material thumbnails */
-	AStaticMeshActor* PreviewActor;
+	class AStaticMeshActor* PreviewActor;
 	/** Material being rendered is for UI */
 	bool bIsUIMaterial;
 };
@@ -130,7 +130,7 @@ protected:
 
 private:
 	/** The static mesh actor used to display all static mesh thumbnails */
-	AStaticMeshActor* PreviewActor;
+	class AStaticMeshActor* PreviewActor;
 };
 
 UCLASS(ClassGroup = ISkeletalMeshes, ComponentWrapperClass, ConversionRoot, meta = (ChildCanTick))
@@ -220,7 +220,7 @@ public:
 	FClassActorThumbnailScene();
 
 	/** Returns true if this component can be visualized */
-	bool IsValidComponentForVisualization(UActorComponent* Component) const;
+	static bool IsValidComponentForVisualization(UActorComponent* Component);
 
 protected:
 	// FThumbnailPreviewScene implementation
@@ -236,6 +236,10 @@ protected:
 
 private:
 
+	/** Clears out any stale actors in this scene if PreviewActor enters a stale state */
+	void ClearStaleActors();
+
+	int32 NumStartingActors;
 	TWeakObjectPtr<class AActor> PreviewActor;
 };
 
@@ -258,7 +262,7 @@ protected:
 
 private:
 	/** The blueprint that is currently being rendered. NULL when not rendering. */
-	TWeakObjectPtr<UBlueprint> CurrentBlueprint;
+	TWeakObjectPtr<class UBlueprint> CurrentBlueprint;
 };
 
 class UNREALED_API FClassThumbnailScene : public FClassActorThumbnailScene
@@ -277,4 +281,59 @@ protected:
 private:
 	/** The class that is currently being rendered. NULL when not rendering. */
 	UClass* CurrentClass;
+};
+
+/** Handles instancing thumbnail scenes for Class and Blueprint types (use the class or generated class as the key). */
+template <typename ThumbnailSceneType, int32 MaxNumScenes>
+class TClassInstanceThumbnailScene
+{
+public:
+	/** Constructor */
+	TClassInstanceThumbnailScene()
+	{
+		InstancedThumbnailScenes.Reserve(MaxNumScenes);
+	}
+
+	/** Find an existing thumbnail scene instance for this class type. */
+	TSharedPtr<ThumbnailSceneType> FindThumbnailScene(const UClass* InClass) const
+	{
+		check(InClass);
+		const FName ClassName = InClass->GetFName();
+
+		return InstancedThumbnailScenes.FindRef(ClassName);
+	}
+
+	/** Find or create a thumbnail scene instance for this class type. */
+	TSharedRef<ThumbnailSceneType> EnsureThumbnailScene(const UClass* InClass)
+	{
+		check(InClass);
+		const FName ClassName = InClass->GetFName();
+
+		TSharedPtr<ThumbnailSceneType> ExistingThumbnailScene = InstancedThumbnailScenes.FindRef(ClassName);
+		if (!ExistingThumbnailScene.IsValid())
+		{
+			if (InstancedThumbnailScenes.Num() >= MaxNumScenes)
+			{
+				InstancedThumbnailScenes.Reset();
+			}
+
+			ExistingThumbnailScene = MakeShareable(new ThumbnailSceneType());
+			InstancedThumbnailScenes.Add(ClassName, ExistingThumbnailScene);
+		}
+
+		return ExistingThumbnailScene.ToSharedRef();
+	}
+
+	/** Clears all thumbnail scenes */
+	void Clear()
+	{
+		InstancedThumbnailScenes.Reset();
+	}
+
+private:
+	/**
+	 * Mapping between the class type and its thumbnail scene.
+	 * @note This uses the class name rather than the class pointer to avoid leaving behind stale class instances as Blueprints are re-compiled.
+	 */
+	TMap<FName, TSharedPtr<ThumbnailSceneType>> InstancedThumbnailScenes;
 };

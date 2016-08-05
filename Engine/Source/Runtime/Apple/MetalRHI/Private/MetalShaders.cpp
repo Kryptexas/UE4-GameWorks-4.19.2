@@ -374,12 +374,90 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 	}
 }
 
+static uint64 GetHash(MTLVertexDescriptor* VertexDesc)
+{
+	uint64 Hash = 0;
+	MTLVertexBufferLayoutDescriptorArray* Layouts = VertexDesc.layouts;
+	MTLVertexAttributeDescriptorArray* Attributes = VertexDesc.attributes;
+	check(Layouts && Attributes);
+	for (uint32 i = 0; i < MaxMetalStreams; i++)
+	{
+		MTLVertexBufferLayoutDescriptor* LayoutDesc = [Layouts objectAtIndexedSubscript:(NSUInteger)i];
+		if (LayoutDesc)
+		{
+			Hash = (Hash ^ GetTypeHash(uint64(LayoutDesc.stride | (LayoutDesc.stepFunction << 8) | (LayoutDesc.stepRate << 16)))) * MaxMetalStreams;
+		}
+		
+		MTLVertexAttributeDescriptor* AttrDesc = [Attributes objectAtIndexedSubscript:(NSUInteger)i];
+		if (AttrDesc)
+		{
+			Hash = (Hash ^ GetTypeHash(uint64(AttrDesc.offset | (AttrDesc.format << 8) | (AttrDesc.bufferIndex << 16)))) * MaxMetalStreams;
+		}
+	}
+	
+	return Hash;
+}
+
+bool FMetalBoundShaderState::FMetalPipelineHash::operator==(FMetalPipelineHash const& Other) const
+{
+    bool bEqual = false;
+    if (this != &Other)
+    {
+        if (RenderPipelineHash == Other.RenderPipelineHash && VertexDescHash == Other.VertexDescHash)
+        {
+            bEqual = true;
+            if (VertexDesc != Other.VertexDesc)
+            {
+                MTLVertexBufferLayoutDescriptorArray* Layouts = VertexDesc.layouts;
+                MTLVertexAttributeDescriptorArray* Attributes = VertexDesc.attributes;
+                
+                MTLVertexBufferLayoutDescriptorArray* OtherLayouts = Other.VertexDesc.layouts;
+                MTLVertexAttributeDescriptorArray* OtherAttributes = Other.VertexDesc.attributes;
+                check(Layouts && Attributes && OtherLayouts && OtherAttributes);
+                
+                for (uint32 i = 0; bEqual && i < MaxMetalStreams; i++)
+                {
+                    MTLVertexBufferLayoutDescriptor* LayoutDesc = [Layouts objectAtIndexedSubscript:(NSUInteger)i];
+                    MTLVertexBufferLayoutDescriptor* OtherLayoutDesc = [OtherLayouts objectAtIndexedSubscript:(NSUInteger)i];
+                    
+                    bEqual &= ((LayoutDesc != nil) == (OtherLayoutDesc != nil));
+                    
+                    if (LayoutDesc && OtherLayoutDesc)
+                    {
+                        bEqual &= (LayoutDesc.stride == OtherLayoutDesc.stride);
+                        bEqual &= (LayoutDesc.stepFunction == OtherLayoutDesc.stepFunction);
+                        bEqual &= (LayoutDesc.stepRate == OtherLayoutDesc.stepRate);
+                    }
+                    
+                    MTLVertexAttributeDescriptor* AttrDesc = [Attributes objectAtIndexedSubscript:(NSUInteger)i];
+                    MTLVertexAttributeDescriptor* OtherAttrDesc = [OtherAttributes objectAtIndexedSubscript:(NSUInteger)i];
+                    
+                    bEqual &= ((AttrDesc != nil) == (OtherAttrDesc != nil));
+                    
+                    if (AttrDesc && OtherAttrDesc)
+                    {
+                        bEqual &= (AttrDesc.format == OtherAttrDesc.format);
+                        bEqual &= (AttrDesc.offset == OtherAttrDesc.offset);
+                        bEqual &= (AttrDesc.bufferIndex == OtherAttrDesc.bufferIndex);
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        bEqual = true;
+    }
+    return bEqual;
+}
+
 void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, MTLVertexDescriptor* VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc)
 {
 	// generate a key for the current statez
 	FMetalPipelineHash Hash;
 	Hash.RenderPipelineHash = RenderPipelineDesc.GetHash();
-	Hash.VertexDescHash = [VertexDesc hash];
+	Hash.VertexDesc = VertexDesc;
+	Hash.VertexDescHash = GetHash(VertexDesc);
 	
 	if(GUseRHIThread)
 	{

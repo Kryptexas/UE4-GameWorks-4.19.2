@@ -594,6 +594,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual FString GetDesc() override;
 	virtual void PostLoad() override; 
+	virtual bool CanBeInCluster() const override { return false; }
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

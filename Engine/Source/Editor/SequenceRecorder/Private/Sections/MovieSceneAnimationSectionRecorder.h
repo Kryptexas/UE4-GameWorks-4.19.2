@@ -9,7 +9,7 @@ public:
 
 	virtual bool CanRecordObject(class UObject* InObjectToRecord) const override;
 
-	TSharedPtr<class FMovieSceneAnimationSectionRecorder> CreateSectionRecorder(class UActorRecording* InActorRecording) const;
+	TSharedPtr<class FMovieSceneAnimationSectionRecorder> CreateSectionRecorder(class UActorRecording* InActorRecording, const FAnimationRecordingSettings& InAnimationSettings) const;
 
 private:
 	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const override;
@@ -33,6 +33,8 @@ public:
 		return ObjectToRecord.Get();
 	}
 
+	void SetRemoveRootTransform(bool bInRemoveRootTransform) { bRemoveRootTransform = bInRemoveRootTransform; }
+
 	UAnimSequence* GetAnimSequence() const { return AnimSequence.Get(); }
 
 	USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh.Get(); }
@@ -53,6 +55,8 @@ private:
 	TWeakObjectPtr<class USkeletalMeshComponent> SkeletalMeshComponent;
 
 	TWeakObjectPtr<class USkeletalMesh> SkeletalMesh;
+
+	bool bRemoveRootTransform;
 
 	/** Local transform of the component we are recording */
 	FTransform ComponentTransform;

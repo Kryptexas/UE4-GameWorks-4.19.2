@@ -14,6 +14,11 @@ class UMeshMergingSettingsObject : public UObject
 {
 	GENERATED_BODY()
 public:
+	UMeshMergingSettingsObject()		
+	{
+		Settings.bMergePhysicsData = true;
+	}
+
 	static UMeshMergingSettingsObject* Get()
 	{
 		static bool bInitialized = false;

@@ -61,7 +61,7 @@ struct ENGINE_API FPhysicalAnimationData
 	float MaxAngularForce;
 };
 
-UCLASS(meta = (BlueprintSpawnableComponent))
+UCLASS(meta = (BlueprintSpawnableComponent), Experimental)
 class ENGINE_API UPhysicalAnimationComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -72,11 +72,11 @@ public:
 	void SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent);
 
 	/** Applies the physical animation settings to the body given.*/
-	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation)
+	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation, meta = (UnsafeDuringActorConstruction))
 	void ApplyPhysicalAnimationSettings(FName BodyName, const FPhysicalAnimationData& PhysicalAnimationData);
 
 	/** Applies the physical animation settings to the body given and all bodies below.*/
-	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation)
+	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation, meta = (UnsafeDuringActorConstruction))
 	void ApplyPhysicalAnimationSettingsBelow(FName BodyName, const FPhysicalAnimationData& PhysicalAnimationData, bool bIncludeSelf = true);
 
 	/** Updates strength multiplyer and any active motors */
@@ -94,7 +94,7 @@ public:
 	*  @param  bIncludeSelf		Whether to include the provided body name in the list of bodies we act on (useful to ignore for cases where a root has multiple children)
 	*  @param  bClearNotFound	If true, bodies without the given profile name will have any existing physical animation settings cleared. If false, bodies without the given profile name are left untouched.
 	*/
-	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation)
+	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation, meta = (UnsafeDuringActorConstruction))
 	void ApplyPhysicalAnimationProfileBelow(FName BodyName, FName ProfileName, bool bIncludeSelf = true, bool bClearNotFound = false);
 
 	virtual void InitializeComponent() override;
@@ -106,7 +106,7 @@ public:
 #endif
 
 private:
-	UPROPERTY(transient)
+	UPROPERTY()
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	struct FPhysicalAnimationInstanceData

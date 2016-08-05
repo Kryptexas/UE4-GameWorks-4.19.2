@@ -14,6 +14,12 @@ public:
 	/** Handle clicking the convert button */
 	FReply ClickedOnConvertToStaticMesh();
 
+	/** Is the convert button enabled */
+	bool ConvertToStaticMeshEnabled() const;
+
+	/** Util to get the ProcMeshComp we want to convert */
+	UProceduralMeshComponent* GetFirstSelectedProcMeshComp() const;
+
 	/** Cached array of selected objects */
 	TArray< TWeakObjectPtr<UObject> > SelectedObjectsList;
 };

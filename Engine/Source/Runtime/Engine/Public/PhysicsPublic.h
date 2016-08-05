@@ -240,14 +240,15 @@ struct FSimulationScratchBuffer
 	int32 BufferSize;
 };
 
+#if WITH_PHYSX
 /** Interface for the creation of customized simulation event callbacks. */
-
 class ISimEventCallbackFactory
 {
 public:
 	virtual physx::PxSimulationEventCallback* Create(class FPhysScene* PhysScene, int32 SceneType) = 0;
 	virtual void Destroy(physx::PxSimulationEventCallback* Callback) = 0;
 };
+#endif // WITH PHYSX
 
 
 /** Container object for a physics engine 'scene'. */
@@ -255,10 +256,6 @@ public:
 class FPhysScene
 {
 public:
-	/** Static factory used to override the simulation event callback from other modules.
-		If not set it defaults to using FPhysXSimEventCallback. */
-	ENGINE_API static TSharedPtr<ISimEventCallbackFactory> SimEventCallbackFactory;
-
 	/** Indicates whether the async scene is enabled or not. */
 	bool							bAsyncSceneEnabled;
 
@@ -401,6 +398,11 @@ private:
 public:
 
 #if WITH_PHYSX
+	/** Static factory used to override the simulation event callback from other modules.
+	If not set it defaults to using FPhysXSimEventCallback. */
+	ENGINE_API static TSharedPtr<ISimEventCallbackFactory> SimEventCallbackFactory;
+
+
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
 

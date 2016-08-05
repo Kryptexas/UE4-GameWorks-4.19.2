@@ -27,6 +27,8 @@ struct FPreviewSceneProfile
 		RotationSpeed = 2.0f;
 		// Set up default cube map texture from editor/engine textures
 		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/MapTemplates/Sky/SunsetAmbientCubemap.SunsetAmbientCubemap"));
+		bPostProcessingEnabled = true;
+		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}
 
 	/** Name to identify the profile */
@@ -65,6 +67,10 @@ struct FPreviewSceneProfile
 	UPROPERTY(EditAnywhere, config, Category = PostProcessing, AdvancedDisplay)
 	FPostProcessSettings PostProcessingSettings;
 
+	/** Whether or not the Post Processing should influence the scene */
+	UPROPERTY(EditAnywhere, config, Category = PostProcessing, AdvancedDisplay)
+	bool bPostProcessingEnabled;
+
 	/** Current rotation value of the sky in degrees (0 - 360) */
 	UPROPERTY(EditAnywhere, config, Category = Lighting, meta = (UIMin = "0", UIMax = "360"), AdvancedDisplay)
 	float LightingRigRotation;
@@ -72,6 +78,10 @@ struct FPreviewSceneProfile
 	/** Speed at which the sky rotates when rotating is toggled */
 	UPROPERTY(EditAnywhere, config, Category = Lighting, AdvancedDisplay)
 	float RotationSpeed;
+
+	/** Rotation for directional light */
+	UPROPERTY(config)
+	FRotator DirectionalLightRotation;
 };
 
 UCLASS(Config = EditorPerProjectUserSettings)
@@ -91,8 +101,11 @@ class ENGINE_API UAssetViewerSettings : public UObject
 public:
 	UAssetViewerSettings();
 	static UAssetViewerSettings* Get();
-
+	
 #if WITH_EDITOR
+	/** Saves the config data out to the ini files */
+	void Save();
+
 	DECLARE_EVENT_OneParam(UAssetViewerSettings, FOnAssetViewerSettingsChangedEvent, const FName&);
 	FOnAssetViewerSettingsChangedEvent& OnAssetViewerSettingsChanged() { return OnAssetViewerSettingsChangedEvent; }
 

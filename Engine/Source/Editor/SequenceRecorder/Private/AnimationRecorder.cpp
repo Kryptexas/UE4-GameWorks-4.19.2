@@ -24,6 +24,7 @@ FAnimationRecorder::FAnimationRecorder()
 	: AnimationObject(nullptr)
 	, bRecordLocalToWorld(false)
 	, bAutoSaveAsset(false)
+	, bRemoveRootTransform(true)
 
 {
 	SetSampleRateAndLength(FAnimationRecordingSettings::DefaultSampleRate, FAnimationRecordingSettings::DefaultMaximumLength);
@@ -539,13 +540,20 @@ void FAnimationRecorder::Record(USkeletalMeshComponent* Component, FTransform co
 					FTransform LocalTransform = SpacesBases[BoneIndex];
 					if (ParentIndex == INDEX_NONE)
 					{
-						// Store initial root transform.
-						// We remove the initial transform of the root bone and transform root's children
-						// to remove any offset. We need to do this for sequence recording in particular
-						// as we use root motion to build transform tracks that properly sync with
-						// animation keyframes. If we have a transformed root bone then the assumptions 
-						// we make about root motion use are incorrect.
-						InvInitialRootTransform = LocalTransform.Inverse();
+						if (bRemoveRootTransform)
+						{
+							// Store initial root transform.
+							// We remove the initial transform of the root bone and transform root's children
+							// to remove any offset. We need to do this for sequence recording in particular
+							// as we use root motion to build transform tracks that properly sync with
+							// animation keyframes. If we have a transformed root bone then the assumptions 
+							// we make about root motion use are incorrect.
+							InvInitialRootTransform = LocalTransform.Inverse();
+						}
+						else
+						{
+							InvInitialRootTransform = FTransform::Identity;
+						}
 						SkeletonRootIndex = BoneIndex;
 						break;
 					}
@@ -745,29 +753,30 @@ FAnimRecorderInstance::FAnimRecorderInstance()
 {
 }
 
-void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, const FString& InAssetPath, const FString& InAssetName, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset)
+void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, const FString& InAssetPath, const FString& InAssetName, const FAnimationRecordingSettings& Settings)
 {
 	AssetPath = InAssetPath;
 	AssetName = InAssetName;
 
-	InitInternal(InComponent,  SampleRateHz, MaxLength, bRecordInWorldSpace, bAutoSaveAsset);
+	InitInternal(InComponent, Settings);
 }
 
-void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, UAnimSequence* InSequence, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset)
+void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, UAnimSequence* InSequence, const FAnimationRecordingSettings& Settings)
 {
 	Sequence = InSequence;
 	
-	InitInternal(InComponent, SampleRateHz, MaxLength, bRecordInWorldSpace, bAutoSaveAsset);
+	InitInternal(InComponent, Settings);
 }
 
-void FAnimRecorderInstance::InitInternal(USkeletalMeshComponent* InComponent, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset)
+void FAnimRecorderInstance::InitInternal(USkeletalMeshComponent* InComponent, const FAnimationRecordingSettings& Settings)
 {
 	SkelComp = InComponent;
 	Recorder = MakeShareable(new FAnimationRecorder());
-	Recorder->SetSampleRateAndLength(SampleRateHz, MaxLength);
-	Recorder->bRecordLocalToWorld = bRecordInWorldSpace;
+	Recorder->SetSampleRateAndLength(Settings.SampleRate, Settings.Length);
+	Recorder->bRecordLocalToWorld = Settings.bRecordInWorldSpace;
 	Recorder->SetAnimCompressionScheme(UAnimCompress_BitwiseCompressOnly::StaticClass());
-	Recorder->bAutoSaveAsset = bAutoSaveAsset;
+	Recorder->bAutoSaveAsset = Settings.bAutoSaveAsset;
+	Recorder->bRemoveRootTransform = Settings.bRemoveRootAnimation;
 
 	if (InComponent)
 	{
@@ -837,7 +846,7 @@ bool FAnimationRecorderManager::RecordAnimation(USkeletalMeshComponent* Componen
 	if (Component)
 	{
 		FAnimRecorderInstance NewInst;
-		NewInst.Init(Component, AssetPath, AssetName, Settings.SampleRate, Settings.Length, Settings.bRecordInWorldSpace, Settings.bAutoSaveAsset);
+		NewInst.Init(Component, AssetPath, AssetName, Settings);
 		bool const bSuccess = NewInst.BeginRecording();
 		if (bSuccess)
 		{
@@ -864,7 +873,7 @@ bool FAnimationRecorderManager::RecordAnimation(USkeletalMeshComponent* Componen
 	if (Component)
 	{
 		FAnimRecorderInstance NewInst;
-		NewInst.Init(Component, Sequence, Settings.SampleRate, Settings.Length, Settings.bRecordInWorldSpace, Settings.bAutoSaveAsset);
+		NewInst.Init(Component, Sequence, Settings);
 		bool const bSuccess = NewInst.BeginRecording();
 		if (bSuccess)
 		{

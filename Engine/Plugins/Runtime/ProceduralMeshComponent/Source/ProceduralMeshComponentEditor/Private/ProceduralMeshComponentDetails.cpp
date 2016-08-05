@@ -36,6 +36,7 @@ void FProceduralMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& De
 		.VAlign(VAlign_Center)
 		.ToolTipText(LOCTEXT("ConvertToStaticMeshTooltip", "Create a new StaticMesh asset using current geometry from this ProceduralMeshComponent. Does not modify instance."))
 		.OnClicked(this, &FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh)
+		.IsEnabled(this, &FProceduralMeshComponentDetails::ConvertToStaticMeshEnabled)
 		.Content()
 		[
 			SNew(STextBlock)
@@ -44,19 +45,35 @@ void FProceduralMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& De
 	];
 }
 
-FReply FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh()
+UProceduralMeshComponent* FProceduralMeshComponentDetails::GetFirstSelectedProcMeshComp() const
 {
-	// Find first selected ProcMeshComp
+	// Find first selected valid ProcMeshComp
 	UProceduralMeshComponent* ProcMeshComp = nullptr;
-	for (TWeakObjectPtr<UObject>& Object : SelectedObjectsList)
+	for (const TWeakObjectPtr<UObject>& Object : SelectedObjectsList)
 	{
-		ProcMeshComp = Cast<UProceduralMeshComponent>(Object.Get());
-		if (ProcMeshComp != nullptr)
+		UProceduralMeshComponent* TestProcComp = Cast<UProceduralMeshComponent>(Object.Get());
+		// See if this one is good
+		if (TestProcComp != nullptr && !TestProcComp->IsTemplate())
 		{
+			ProcMeshComp = TestProcComp;
 			break;
 		}
 	}
 
+	return ProcMeshComp;
+}
+
+
+bool FProceduralMeshComponentDetails::ConvertToStaticMeshEnabled() const
+{
+	return GetFirstSelectedProcMeshComp() != nullptr;
+}
+
+
+FReply FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh()
+{
+	// Find first selected ProcMeshComp
+	UProceduralMeshComponent* ProcMeshComp = GetFirstSelectedProcMeshComp();
 	if (ProcMeshComp != nullptr)
 	{
 		FString NewNameSuggestion = FString(TEXT("ProcMesh"));
@@ -84,18 +101,10 @@ FReply FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh()
 				MeshName = *Name;
 			}
 
-			// Then find/create it.
-			UPackage* Package = CreatePackage(NULL, *UserPackageName);
-			check(Package);
-
-			// Create StaticMesh object
-			UStaticMesh* StaticMesh = NewObject<UStaticMesh>(Package, MeshName, RF_Public | RF_Standalone);
-			StaticMesh->InitResources();
-
-			StaticMesh->LightingGuid = FGuid::NewGuid();
-
 			// Raw mesh data we are filling in
 			FRawMesh RawMesh;
+			// Materials to apply to new mesh
+			TArray<UMaterialInterface*> MeshMaterials;
 
 			const int32 NumSections = ProcMeshComp->GetNumSections();
 			int32 VertexBase = 0;
@@ -139,31 +148,51 @@ FReply FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh()
 					RawMesh.FaceSmoothingMasks.Add(0); // Assume this is ignored as bRecomputeNormals is false
 				}
 
-				// Copy material
-				StaticMesh->Materials.Add(ProcMeshComp->GetMaterial(SectionIdx));
+				// Remember material
+				MeshMaterials.Add(ProcMeshComp->GetMaterial(SectionIdx));
 
 				// Update offset for creating one big index/vertex buffer
 				VertexBase += ProcSection->ProcVertexBuffer.Num();
 			}
 
-			// Add source to new StaticMesh
-			FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
-			SrcModel->BuildSettings.bRecomputeNormals = false;
-			SrcModel->BuildSettings.bRecomputeTangents = false;
-			SrcModel->BuildSettings.bRemoveDegenerates = false;
-			SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
-			SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
-			SrcModel->BuildSettings.bGenerateLightmapUVs = true;
-			SrcModel->BuildSettings.SrcLightmapIndex = 0;
-			SrcModel->BuildSettings.DstLightmapIndex = 1;
-			SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
+			// If we got some valid data.
+			if (RawMesh.VertexPositions.Num() > 3 && RawMesh.WedgeIndices.Num() > 3)
+			{
+				// Then find/create it.
+				UPackage* Package = CreatePackage(NULL, *UserPackageName);
+				check(Package);
 
-			// Build mesh from source
-			StaticMesh->Build(false);
-			StaticMesh->PostEditChange();
+				// Create StaticMesh object
+				UStaticMesh* StaticMesh = NewObject<UStaticMesh>(Package, MeshName, RF_Public | RF_Standalone);
+				StaticMesh->InitResources();
 
-			// Notify asset registry of new asset
-			FAssetRegistryModule::AssetCreated(StaticMesh);
+				StaticMesh->LightingGuid = FGuid::NewGuid();
+
+				// Add source to new StaticMesh
+				FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
+				SrcModel->BuildSettings.bRecomputeNormals = false;
+				SrcModel->BuildSettings.bRecomputeTangents = false;
+				SrcModel->BuildSettings.bRemoveDegenerates = false;
+				SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
+				SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
+				SrcModel->BuildSettings.bGenerateLightmapUVs = true;
+				SrcModel->BuildSettings.SrcLightmapIndex = 0;
+				SrcModel->BuildSettings.DstLightmapIndex = 1;
+				SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
+
+				// Copy materials to new mesh
+				for (UMaterialInterface* Material : MeshMaterials)
+				{
+					StaticMesh->Materials.Add(Material);
+				}
+
+				// Build mesh from source
+				StaticMesh->Build(false);
+				StaticMesh->PostEditChange();
+
+				// Notify asset registry of new asset
+				FAssetRegistryModule::AssetCreated(StaticMesh);
+			}
 		}
 	}
 

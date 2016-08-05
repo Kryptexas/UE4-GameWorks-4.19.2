@@ -86,6 +86,7 @@ if [ -e /etc/os-release ]; then
     # Install all necessary dependencies
     DEPS="mono-core
       mono-devel
+      mono-mvc
       libqt4-devel
       dos2unix
       cmake
@@ -124,7 +125,7 @@ if [ -e /etc/os-release ]; then
 
   # Arch Linux
   if [[ "$ID" == "arch" ]] || [[ "$ID_LIKE" == "arch" ]]; then
-    DEPS="clang mono python sdl2 qt4 dos2unix cmake"
+    DEPS="clang35 mono python sdl2 qt4 dos2unix cmake"
     MISSING=false
     for DEP in $DEPS; do
       if ! pacman -Qs $DEP > /dev/null 2>&1; then

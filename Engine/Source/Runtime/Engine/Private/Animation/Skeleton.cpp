@@ -1070,7 +1070,7 @@ void USkeleton::RenameSlotName(const FName& OldName, const FName& NewName)
 	SetSlotGroupName(NewName, GroupName);
 }
 
-
+#if WITH_EDITOR
 
 bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewDisplayName, FSmartName& NewName)
 {
@@ -1133,13 +1133,14 @@ void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSma
 			}
 		}
 
-if (bModified)
-{
-	Modify();
-	CacheAnimCurveMappingNameUids();
-}
+		if (bModified)
+		{
+			Modify();
+			CacheAnimCurveMappingNameUids();
+		}
 	}
 }
+#endif // WITH_EDITOR
 
 bool USkeleton::GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
 {
@@ -1200,6 +1201,7 @@ bool USkeleton::FillSmartNameByDisplayName(FSmartNameMapping* Mapping, const FNa
 	{
 		OutSmartName.DisplayName = DisplayName;
 
+#if WITH_EDITORONLY_DATA
 		// if same guid, this is same
 		if (SkeletonName.Guid == OutSmartName.Guid)
 		{
@@ -1213,6 +1215,11 @@ bool USkeleton::FillSmartNameByDisplayName(FSmartNameMapping* Mapping, const FNa
 			OutSmartName.UID = SkeletonName.UID;
 			return true;
 		}
+#else
+		// if not editor, we assume name is always correct
+		OutSmartName.UID = SkeletonName.UID;
+		return true;
+#endif // WITH_EDITORONLY_DATA
 	}
 
 	return false;
@@ -1227,6 +1234,7 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 		// make a copy just in case we change by accident
 		FName DisplayName = InOutSmartName.DisplayName;
 
+#if WITH_EDITOR
 		// if I find the name, fill up the data
 		if (FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName) == false)
 		{
@@ -1238,10 +1246,15 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 			else
 			{
 				// this is only case where we add new one
-				Mapping->FindOrAddSmartName(InOutSmartName.DisplayName, InOutSmartName);
+				ensureAlways(Mapping->AddSmartName(InOutSmartName));
+				Modify();
 				return true;
 			}
 		}
+#else
+		// it always should have name
+		ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
+#endif // WITH_EDITOR
 	}
 
 	return false;

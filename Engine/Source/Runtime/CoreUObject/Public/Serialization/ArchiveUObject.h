@@ -911,7 +911,8 @@ private:
 	virtual FArchive& operator<<(UObject*& Object);
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr);
 	virtual FArchive& operator<<(FAssetPtr& AssetPtr);
-
+	virtual FArchive& operator<<(FStringAssetReference& StringAssetReference);
+	
 	void SerializeFail();
 
 	virtual void Serialize(void* Data,int64 Num)

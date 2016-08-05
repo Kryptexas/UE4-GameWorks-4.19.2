@@ -7,7 +7,7 @@
 DECLARE_DELEGATE_OneParam(FOnBoneSelectionChanged, FName);
 DECLARE_DELEGATE_RetVal(FName, FGetSelectedBone);
 
-class SBoneTreeMenu : public SCompoundWidget
+class PERSONA_API SBoneTreeMenu : public SCompoundWidget
 {
 public:
 	// Storage object for bone hierarchy
@@ -70,7 +70,7 @@ private:
 	FOnBoneSelectionChanged OnSelectionChangedDelegate;
 };
 
-class SBoneSelectionWidget : public SCompoundWidget
+class PERSONA_API SBoneSelectionWidget : public SCompoundWidget
 {
 public: 
 

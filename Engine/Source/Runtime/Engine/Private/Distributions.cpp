@@ -974,10 +974,13 @@ void FRawDistributionFloat::InitLookupTable()
 {
 #if WITH_EDITOR
 	// make sure it's up to date
-	if( GIsEditor || (Distribution && Distribution->bIsDirty) )
+	if(Distribution)
 	{
-		Distribution->ConditionalPostLoad();
-		Initialize();
+		if( GIsEditor || Distribution->bIsDirty)
+		{
+			Distribution->ConditionalPostLoad();
+			Initialize();
+		}
 	}
 #endif
 }

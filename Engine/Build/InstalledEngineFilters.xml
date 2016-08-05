@@ -31,6 +31,7 @@
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_PuzzleBP/TP_PuzzleBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_2DSideScrollerBP/TP_2DSideScrollerBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VehicleAdvBP/TP_VehicleAdvBP.uproject"/>
+	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject" If="'$(HostPlatform)' != 'Mac'"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/StarterContent/StarterContent.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/MobileStarterContent/MobileStarterContent.uproject"/>
 	
@@ -116,6 +117,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_2DSideScrollerBP/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VehicleAdv/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VehicleAdvBP/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Mac'"/>
 	<!-- shared template resources -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TemplateResources/..."/>
 	<!-- exclude intermediates and other files not needed in installed build-->
@@ -126,6 +128,8 @@
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/Saved/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/manifest.json"/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/contents.txt"/>
+	<!-- exclude VR feature pack on Mac -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);FeaturePacks/TP_VirtualRealityBP.upack" If="'$(HostPlatform)' == 'Mac'"/>
 
 	<!-- Build files -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/Build.version"/>
@@ -151,9 +155,10 @@
 
 	<!-- Build Files -->
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Build/Android/..."/>
-	<!--<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/cxa_demangle/..."/>
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/cxa_demangle/..."/>
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/extras/..."/>
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/GoogleVR/..."/>
-	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_0/Libs/..."/>-->
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_3/Libs/..."/>
 	<Property Name="CopyAndroidExceptions" Value="$(CopyAndroidExceptions);Engine/Binaries/Android/....apk"/>
 
 	<!-- IOS -->
@@ -166,6 +171,18 @@
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/....mobileprovision"/>
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/UnrealRemoteTool"/>
 	
+	<!-- Temporary until CsCompile includes .dll.config files -->
+	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/iOS/DeploymentInterface.dll.config"/>
+	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/iOS/MobileDeviceInterface.dll.config"/>
+	
+	<!-- Win64 specific -->
+	<Do If="'$(HostPlatform)' == 'Win64'">
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/ThirdParty/IOS/*"/>
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Build/BatchFiles/MakeAndInstallSSHKey.bat"/>
+		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Extras/ThirdPartyNotUE/DeltaCopy/..."/>
+	</Do>
+
 	<!-- TVOS -->
 	<Property Name="CopyTVOSFilter" Value=""/>
 	<Property Name="CopyTVOSExceptions" Value=""/>

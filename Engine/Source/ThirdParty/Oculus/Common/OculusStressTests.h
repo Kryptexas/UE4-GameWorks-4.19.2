@@ -4,7 +4,7 @@
 
 #include "HeadMountedDisplayCommon.h"
 
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 
 class FOculusStressTester
 {
@@ -64,4 +64,4 @@ protected:
 	double PDStartTimeInSeconds;
 };
 
-#endif // #if OCULUS_RIFT_SUPPORTED_PLATFORMS
+#endif // #if OCULUS_STRESS_TESTS_ENABLED

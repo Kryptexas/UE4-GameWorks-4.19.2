@@ -222,6 +222,7 @@ public:
 						->Split
 						(
 							FTabManager::NewStack()
+							->AddTab(FPersonaTabs::AdvancedPreviewSceneSettingsID, ETabState::OpenedTab)
 							->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )	//@TODO: FPersonaTabs::AnimPropertiesID
 						)
 					)
@@ -1355,6 +1356,10 @@ void FPersona::CreateDefaultCommands()
 	FExecuteAction::CreateSP(this, &FPersona::ShowReferencePose, false),
 	FCanExecuteAction::CreateSP(this, &FPersona::CanPreviewAsset),
 	FIsActionChecked::CreateSP(this, &FPersona::IsPreviewAssetEnabled)
+	);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().TogglePlay,
+		FExecuteAction::CreateSP(this, &FPersona::TogglePlayback)
 	);
 
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
@@ -3764,6 +3769,14 @@ float FPersona::GetCurrentRecordingTime() const
 	float RecordingTime = 0.0f;
 	PersonaModule.OnGetCurrentRecordingTime().ExecuteIfBound(PreviewComponent, RecordingTime);
 	return RecordingTime;
+}
+
+void FPersona::TogglePlayback()
+{
+	if (PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		PreviewComponent->PreviewInstance->SetPlaying(!PreviewComponent->PreviewInstance->IsPlaying());
+	}
 }
 
 static class FMeshHierarchyCmd : private FSelfRegisteringExec

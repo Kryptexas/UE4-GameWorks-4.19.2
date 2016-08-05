@@ -2311,6 +2311,11 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder, bool bI
 	{
 		for(UClass* Class : NotifyStateClasses)
 		{
+			if (Class->HasAllClassFlags(CLASS_Abstract))
+			{
+				continue; // skip abstract classes
+			}
+
 			const FText Description = LOCTEXT("NewNotifyStateSubMenu_NativeToolTip", "Add an existing native notify state");
 			const FText LabelText = Class->GetDisplayNameText();
 			const FString Label = LabelText.ToString();
@@ -3503,6 +3508,7 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 			// Clamp duration into the sequence
 			NewNotify.SetDuration(FMath::Clamp(NewNotify.GetDuration(), 1 / 30.0f, Sequence->SequenceLength - NewNotify.GetTime()));
 			NewNotify.EndTriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime() + NewNotify.GetDuration()));
+			NewNotify.EndLink.Link(Sequence, NewNotify.EndLink.GetTime());
 		}
 	}
 	else

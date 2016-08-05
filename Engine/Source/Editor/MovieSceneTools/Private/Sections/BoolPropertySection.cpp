@@ -57,7 +57,7 @@ int32 FBoolPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) 
 	{
 		float ThisTime = SectionSwitchTimes[i];
 		
-		const FColor Color = BoolSection->Eval(ThisTime) ? FColor(0, 255, 0, 200) : FColor(255, 0, 0, 200);
+		const FColor Color = BoolSection->Eval(ThisTime) ? FColor(0, 255, 0, 125) : FColor(255, 0, 0, 125);
 		
 		FVector2D StartPos(TimeConverter.TimeToPixel(ThisTime), VerticalOffset);
 		FVector2D Size(TimeConverter.TimeToPixel(SectionSwitchTimes[i+1]) - StartPos.X, Height);

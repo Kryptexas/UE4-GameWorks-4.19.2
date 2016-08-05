@@ -302,8 +302,10 @@ void USkeletalMeshComponent::UpdateClothTickRegisteredState()
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance() const
 {
 	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
-	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimClassInterface != NULL) &&
-		(SkeletalMesh != NULL) && (SkeletalMesh->Skeleton->IsCompatible(AnimClassInterface->GetTargetSkeleton())))
+	const USkeleton* AnimSkeleton = (AnimClassInterface) ? AnimClassInterface->GetTargetSkeleton() : nullptr;
+	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimSkeleton != nullptr) &&
+		(SkeletalMesh != nullptr) && (SkeletalMesh->Skeleton->IsCompatible(AnimSkeleton)
+		&& AnimSkeleton->IsCompatibleMesh(SkeletalMesh)))
 	{
 		if ( (AnimScriptInstance == NULL) || (AnimScriptInstance->GetClass() != AnimClass) )
 		{
@@ -366,12 +368,10 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 {
 	// a lot of places just call InitAnim without checking Mesh, so 
 	// I'm moving the check here
-	if ( SkeletalMesh != NULL && IsRegistered() )
+	if ( SkeletalMesh != nullptr && IsRegistered() )
 	{
-		if (SkeletalMesh->MorphTargets.Num() > 0 && MorphTargetWeights.Num() == 0)
-		{
-			MorphTargetWeights.AddZeroed(SkeletalMesh->MorphTargets.Num());
-		}
+		// we still need this in case users doesn't call tick, but sent to renderer
+		MorphTargetWeights.SetNumZeroed(SkeletalMesh->MorphTargets.Num());
 
 		// We may be doing parallel evaluation on the current anim instance
 		// Calling this here with true will block this init till that thread completes
@@ -383,9 +383,12 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		bool bBlueprintMismatch = (AnimClass != NULL) &&
 			(AnimScriptInstance != NULL) && (AnimScriptInstance->GetClass() != AnimClass);
 
-		bool bSkeletonMismatch = AnimScriptInstance && AnimScriptInstance->CurrentSkeleton && (AnimScriptInstance->CurrentSkeleton!=SkeletalMesh->Skeleton);
+		const USkeleton* AnimSkeleton = (AnimScriptInstance)? AnimScriptInstance->CurrentSkeleton : nullptr;
 
-		if (bBlueprintMismatch || bSkeletonMismatch )
+		bool bSkeletonMismatch = AnimSkeleton && (AnimScriptInstance->CurrentSkeleton!=SkeletalMesh->Skeleton);
+		bool bSkeletonNotCompatible = AnimSkeleton && (AnimSkeleton->IsCompatibleMesh(SkeletalMesh) == false);
+
+		if (bBlueprintMismatch || bSkeletonMismatch || bSkeletonNotCompatible)
 		{
 			ClearAnimScriptInstance();
 		}
@@ -470,7 +473,7 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		}		
 
 		// refresh morph targets - this can happen when re-registration happens
-		RefreshActiveMorphTargets();
+		InitializeAnimationMorphTargets();
 	}
 	return bCalledInitialize;
 }
@@ -728,9 +731,13 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	ActiveMorphTargets.Reset();
 	if (SkeletalMesh)
 	{
-		if (SkeletalMesh->MorphTargets.Num() > 0)
+		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
+
+		// we need this code to ensure the buffer gets cleared whether or not you have morphtarget curve set
+		// the case, where you had morphtargets weight on, and when you clear the weight, you want to make sure 
+		// the buffer gets cleared and resized
+		if (MorphTargetWeights.Num() > 0)
 		{
-			check(MorphTargetWeights.Num() == SkeletalMesh->MorphTargets.Num());
 			FMemory::Memzero(MorphTargetWeights.GetData(), MorphTargetWeights.GetAllocatedSize());
 		}
 
@@ -738,6 +745,10 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 		{
 			FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
 		}
+	}
+	else
+	{
+		MorphTargetWeights.Reset();
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -2295,8 +2306,10 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 	}
 }
 
-void USkeletalMeshComponent::RefreshActiveMorphTargets()
+void USkeletalMeshComponent::InitializeAnimationMorphTargets()
 {
+	ActiveMorphTargets.Empty();
+
 	if (SkeletalMesh && AnimScriptInstance)
 	{
 		// as this can be called from any worker thread (i.e. from CreateRenderState_Concurrent) we cant currently be doing parallel evaluation
@@ -2309,10 +2322,6 @@ void USkeletalMeshComponent::RefreshActiveMorphTargets()
 		{
 			MasterSMC->AnimScriptInstance->RefreshCurves(this);
 		}
-	}
-	else
-	{
-		ActiveMorphTargets.Empty();
 	}
 }
 

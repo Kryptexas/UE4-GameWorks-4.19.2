@@ -1644,6 +1644,9 @@ bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 Controller
 		FocusViewportOnPreviewMesh();
 	}
 
+	FAdvancedPreviewScene* AdvancedScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
+	bHandled |= AdvancedScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
+
 	// Pass keys to standard controls, if we didn't consume input
 	return (bHandled)
 		? true
@@ -2149,6 +2152,8 @@ void FAnimationViewportClient::UpdateCameraSetup()
 		FVector CustomOrbitLookAt = BoundSphere.Center;
 
 		SetCameraSetup(CustomOrbitLookAt, CustomOrbitRotation, CustomOrbitZoom, CustomOrbitLookAt, GetViewLocation(), GetViewRotation() );
+		
+		GetAdvancedPreviewScene()->SetFloorOffset(GetFloorOffset());
 	}
 }
 

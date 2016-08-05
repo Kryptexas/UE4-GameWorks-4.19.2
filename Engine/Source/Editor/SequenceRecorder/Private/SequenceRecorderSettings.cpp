@@ -3,6 +3,7 @@
 #include "SequenceRecorderPrivatePCH.h"
 #include "SequenceRecorderSettings.h"
 #include "SequenceRecorder.h"
+#include "CineCameraComponent.h"
 
 USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -23,6 +24,7 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	ClassesAndPropertiesToRecord.Add(FPropertiesToRecordForClass(UParticleSystemComponent::StaticClass()));
 	ClassesAndPropertiesToRecord.Add(FPropertiesToRecordForClass(ULightComponent::StaticClass()));
 	ClassesAndPropertiesToRecord.Add(FPropertiesToRecordForClass(UCameraComponent::StaticClass()));
+	ClassesAndPropertiesToRecord.Add(FPropertiesToRecordForClass(UCineCameraComponent::StaticClass()));
 }
 
 void USequenceRecorderSettings::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)

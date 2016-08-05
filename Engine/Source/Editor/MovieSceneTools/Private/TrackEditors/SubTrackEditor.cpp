@@ -34,7 +34,10 @@ public:
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
 	{
-		SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
+		if (InSequencer->HasSequenceInstanceForSection(InSection))
+		{
+			SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
+		}
 	}
 
 public:
@@ -135,19 +138,30 @@ public:
 		const float StartOffset = SectionObject.TimeScale * SectionObject.StartOffset;
 		const float WorkingStart = -SectionObject.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
 		const float WorkingSize = SectionObject.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
+		
+		if(UMovieSceneSubSection::GetRecordingSection() == &SectionObject)
+		{
+			FColor SubSectionColor = FColor(180, 75, 75, 190);
+	
+			ISequenceRecorder& SequenceRecorder = FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
+			if(SequenceRecorder.IsRecording())
+			{
+				SubSectionColor = FColor(200, 10, 10, 190);
+			}
 
-		FSlateDrawElement::MakeBox(
-			InPainter.DrawElements,
-			LayerId,
-			InPainter.SectionGeometry.ToPaintGeometry(
-				FVector2D(WorkingStart * DrawScale, 0.f),
-				FVector2D(WorkingSize * DrawScale, InPainter.SectionGeometry.Size.Y)
-			),
-			FEditorStyle::GetBrush("Sequencer.Section.SelectedTrackTint"),
-			InPainter.SectionClippingRect,
-			DrawEffects,
-			FColor(220, 120, 120)
-		);
+			FSlateDrawElement::MakeBox(
+				InPainter.DrawElements,
+				++LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(
+					FVector2D(WorkingStart * DrawScale, 0.f),
+					FVector2D(WorkingSize * DrawScale, InPainter.SectionGeometry.Size.Y)
+				),
+				FEditorStyle::GetBrush("Sequencer.Section.BackgroundTint"),
+				InPainter.SectionClippingRect,
+				DrawEffects,
+				SubSectionColor
+			);
+		}
 
 		// add dark tint for left out-of-bounds & working range
 		if (StartOffset < 0.0f)

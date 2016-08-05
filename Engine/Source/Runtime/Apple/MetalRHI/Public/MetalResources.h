@@ -161,11 +161,9 @@ protected:
 	{
 		FMetalRenderPipelineHash RenderPipelineHash;
 		NSUInteger VertexDescHash;
+		MTLVertexDescriptor* VertexDesc;
 		
-		bool operator==(FMetalPipelineHash const& Other) const
-		{
-			return (RenderPipelineHash == Other.RenderPipelineHash && VertexDescHash == Other.VertexDescHash);
-		}
+		bool operator==(FMetalPipelineHash const& Other) const;
 		
 		friend uint32 GetTypeHash(FMetalPipelineHash const& Hash)
 		{

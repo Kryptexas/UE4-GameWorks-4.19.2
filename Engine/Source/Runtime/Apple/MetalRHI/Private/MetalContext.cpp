@@ -540,8 +540,14 @@ void FMetalDeviceContext::ReleaseObject(id Object)
 		{
 			FreeListMutex.Lock();
 		}
-		check(!FreeList.Contains(Object));
-		FreeList.Add(Object);
+		if(!FreeList.Contains(Object))
+        {
+            FreeList.Add(Object);
+        }
+        else
+        {
+            [Object release];
+        }
 		if(GUseRHIThread)
 		{
 			FreeListMutex.Unlock();

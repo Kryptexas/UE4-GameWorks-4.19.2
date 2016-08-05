@@ -38,6 +38,15 @@ enum class EAnimCurveType : uint8
 	MaxAnimCurveType
 };
 
+UENUM()
+enum class EMontagePlayReturnType : uint8
+{
+	//Return value is the length of the montage (in seconds)
+	MontageLength,
+	//Return value is the play duration of the montage (length / play rate, in seconds)
+	Duration,
+};
+
 DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
 DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, UAnimMontage*, bool /*bInterrupted*/)
@@ -513,7 +522,7 @@ public:
 public:
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f);
+	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f, EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength);
 
 	/** Stops the animation montage. If reference is NULL, it will stop ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
@@ -687,6 +696,10 @@ private:
 
 	/** Used to guard against recursive calls to UpdateAnimation */
 	bool bUpdatingAnimation;
+
+	/** Used to guard against recursive calls to UpdateAnimation */
+	bool bPostUpdatingAnimation;
+
 #if WITH_EDITOR
 	/** Delegate for custom animation curve addition */
 	TArray<FOnAddCustomAnimationCurves> OnAddAnimationCurves;
@@ -696,6 +709,13 @@ public:
 	void RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
 #endif // editor only for now
 public:
+
+	/** Is this animation currently running post update */
+	bool IsPostUpdatingAnimation() const { return bPostUpdatingAnimation; }
+
+	/** Set RootMotionMode */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value);
 
 	/** 
 	 * NOTE: Derived anim getters

@@ -13,7 +13,12 @@
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";
 const TCHAR* FGenericCrashContext::CrashContextRuntimeXMLNameW = TEXT( "CrashContext.runtime-xml" );
 
-const FString FGenericCrashContext::CrashContextExtension = TEXT( ".runtime-xml" );
+const ANSICHAR* FGenericCrashContext::CrashConfigFileNameA = "CrashReportClient.ini";
+const TCHAR* FGenericCrashContext::CrashConfigFileNameW = TEXT("CrashReportClient.ini");
+const FString FGenericCrashContext::CrashConfigExtension = TEXT(".ini");
+const FString FGenericCrashContext::ConfigSectionName = TEXT("CrashReportClient");
+
+const FString FGenericCrashContext::CrashContextExtension = TEXT(".runtime-xml");
 const FString FGenericCrashContext::RuntimePropertiesTag = TEXT( "RuntimeProperties" );
 const FString FGenericCrashContext::PlatformPropertiesTag = TEXT( "PlatformProperties" );
 const FString FGenericCrashContext::UE4MinidumpName = TEXT( "UE4Minidump.dmp" );
@@ -83,7 +88,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
 	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
 	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
-	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetForLogging() : TEXT("");
+	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetOriginalForLogging() : TEXT(""); 
 
 	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
 	NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::Default;
@@ -126,7 +131,31 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
 	});
 
+	FCoreDelegates::ConfigReadyForUse.AddStatic(FGenericCrashContext::InitializeFromConfig);
+
 	bIsInitialized = true;
+}
+
+void FGenericCrashContext::InitializeFromConfig()
+{
+#if !NO_LOGGING
+	const bool bForceGetSection = false;
+	const bool bConstSection = true;
+	FConfigSection* CRCConfigSection = GConfig->GetSectionPrivate(*ConfigSectionName, bForceGetSection, bConstSection, GEngineIni);
+
+	if (CRCConfigSection != nullptr)
+	{
+		// Create a config file and save to a temp location. This file will be copied to
+		// the crash folder for all crash reports create by this session.
+		FConfigFile CrashConfigFile;
+
+		FConfigSection CRCConfigSectionCopy(*CRCConfigSection);
+		CrashConfigFile.Add(ConfigSectionName, CRCConfigSectionCopy);
+
+		CrashConfigFile.Dirty = true;
+		CrashConfigFile.Write(GetCrashConfigFilePath());
+	}
+#endif
 }
 
 FGenericCrashContext::FGenericCrashContext()
@@ -335,7 +364,6 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName )
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-
 FString FGenericCrashContext::EscapeXMLString( const FString& Text )
 {
 	return Text
@@ -373,6 +401,16 @@ const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIs
 	}
 
 	return *CrashTypeCrash;
+}
+
+const TCHAR* FGenericCrashContext::GetCrashConfigFilePath()
+{
+	static FString CrashConfigFilePath;
+	if (CrashConfigFilePath.IsEmpty())
+	{
+		CrashConfigFilePath = FPaths::Combine(*FPaths::GameLogDir(), *NCachedCrashContextProperties::CrashGUIDRoot, FGenericCrashContext::CrashConfigFileNameW);
+	}
+	return *CrashConfigFilePath;
 }
 
 FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :

@@ -6,7 +6,7 @@
 	"VersionName" : "1.0",
 	"EngineVersion" : "4.2.0",
 	"Description" : "Shared code for interacting online subsystem implementations.",
-	"Category" : "TODO",
+	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
 	"EnabledByDefault" : true,

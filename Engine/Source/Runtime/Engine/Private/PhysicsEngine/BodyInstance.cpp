@@ -896,14 +896,10 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseCo
 
 						// enable swept bounds for CCD for this shape
 						PxRigidBody* PBody = PActor->is<PxRigidBody>();
-						if (bSimCollision && !bPhysicsStatic && bUseCCD && PBody)
+						if (PBody)
 						{
-							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
-						}
-						else if (PBody)
-						{
-
-							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
+							const bool bNewCcd = IsNonKinematic() && bSimCollision && !bPhysicsStatic && bUseCCD;
+							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
 						}
 					}
 				}
@@ -914,9 +910,6 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseCo
 					PGivenShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
 				}
 			});
-
-
-			
 		}
 
 		if (bUpdateMassProperties)
@@ -2596,10 +2589,23 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 	{
 		bInitialized = true;
 		// If we want it fixed, and it is currently not kinematic
-		bool bNewKinematic = (bUseSimulate == false);
+		const bool bNewKinematic = (bUseSimulate == false);
+		const bool bNewCcd = !bNewKinematic && bUseCCD;
 		{
-			PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, !bNewKinematic && bUseCCD);
-            PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
+			// TODO: Set flags with sanatization.
+			// If we're enabling Kinematic, ensure CCD is disabled first.
+			if (bNewKinematic)
+			{
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
+				PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
+			}
+			// If we're enabling CCD, ensure Kinematic is disabled first.
+			else
+			{
+				PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, false);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
+			}
+
 			
 			//if wake when level starts is true, calling this function automatically wakes body up
 			if (bSimulatePhysics)
@@ -3854,7 +3860,9 @@ void FBodyInstance::AddAngularImpulse(const FVector& AngularImpulse, bool bVelCh
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		if (!IsRigidBodyKinematic_AssumesLocked(PRigidBody))
+		// If we don't have a PxScene yet do not continue, this can happen with deferred bodies such as
+		// destructible chunks that are not immediately placed in a scene
+		if(PRigidBody->getScene() && !IsRigidBodyKinematic_AssumesLocked(PRigidBody))
 		{
 			PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
 			PRigidBody->addTorque(U2PVector(AngularImpulse), Mode, true);
@@ -5110,14 +5118,10 @@ void FBodyInstance::SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::T
 
 				// enable swept bounds for CCD for this shape
 				PxRigidBody* PBody = GetPxRigidActor_AssumesLocked()->is<PxRigidBody>();
-				if (bSimCollision && !bPhysicsStatic && bUseCCD && PBody)
+				if (PBody)
 				{
-					PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
-				}
-				else if (PBody)
-				{
-
-					PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
+					const bool bNewCcd = IsNonKinematic() && bSimCollision && !bPhysicsStatic && bUseCCD;
+					PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
 				}
 			}
 		}
@@ -5189,18 +5193,18 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 		// enable swept bounds for CCD for this shape
 		if(bSimCollision && !bPhysicsStatic)
 		{
-			if(GetPxRigidActor_AssumesLocked()->is<PxRigidBody>())
+			if (GetPxRigidActor_AssumesLocked()->is<PxRigidBody>())
 			{
-				if (bUseCCD)
-				{
-					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
-					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
-				}
-				
-				if (!ShouldInstanceSimulatingPhysics())
+				if (!bSimulatePhysics)
 				{
 					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
 					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
+				}
+				// Only enable CCD if Kinematic is not enabled.
+				else if (bUseCCD)
+				{
+					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
 				}
 			}
 		}

@@ -23,7 +23,7 @@ public:
 		, bFireEventsWhenBackwards(true)
 	{
 #if WITH_EDITORONLY_DATA
-		TrackTint = FColor(0, 255, 128);
+		TrackTint = FColor(41, 98, 41, 150);
 #endif
 	}
 

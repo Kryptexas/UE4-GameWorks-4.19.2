@@ -589,6 +589,22 @@ namespace UnrealBuildTool
 
 				// Add all file directories to the filters file as solution filters
 				HashSet<string> FilterDirectories = new HashSet<string>();
+				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(BuildHostPlatform.Current.Platform);
+				bool bWritePerFilePCHInfo = false;
+				if (BuildConfiguration.bUsePerFileIntellisense && VCProjectFileGenerator.ProjectFileFormat >= VCProjectFileGenerator.VCProjectFileFormat.VisualStudio2015)
+				{
+					string UpdateRegistryLoc = string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\DevDiv\vs\Servicing\{0}\devenv", VCProjectFileGenerator.ProjectFileToolVersionString);
+					object Result = Microsoft.Win32.Registry.GetValue(UpdateRegistryLoc, "UpdateVersion", null);
+					if (Result != null)
+					{
+						int UpdateVersion = 0;
+						if (Int32.TryParse(Result.ToString().Split('.').Last(), out UpdateVersion) && UpdateVersion >= 25420)
+						{
+							bWritePerFilePCHInfo = true;
+						}
+					}
+				}
+
 				foreach (AliasedFile AliasedFile in LocalAliasedFiles)
 				{
 					// No need to add the root directory relative to the project (it would just be an empty string!)
@@ -598,9 +614,31 @@ namespace UnrealBuildTool
 					}
 
 					string VCFileType = GetVCFileType(AliasedFile.FileSystemPath);
+					string PCHFileName = null;
+					
+					if (bWritePerFilePCHInfo && VCFileType == "ClCompile")
+					{
+						FileReference TruePath = FileReference.Combine(ProjectFilePath.Directory, AliasedFile.FileSystemPath);
+						FileItem SourceFile = FileItem.GetItemByFileReference(TruePath);
+						List <DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetUncachedDirectIncludeDependencies(SourceFile, BuildPlatform);
+						if (DirectlyIncludedFilenames.Count > 0)
+						{
+							PCHFileName = DirectlyIncludedFilenames[0].IncludeName;
+						}
+					}
 
-					VCProjectFileContent.Append(
-						"		<" + VCFileType + " Include=\"" + EscapeFileName(AliasedFile.FileSystemPath) + "\" />" + ProjectFileGenerator.NewLine);
+					if (!string.IsNullOrEmpty(PCHFileName))
+					{
+						VCProjectFileContent.Append(
+							"		<" + VCFileType + " Include=\"" + EscapeFileName(AliasedFile.FileSystemPath) + "\">" + ProjectFileGenerator.NewLine +
+							"			<AdditionalOptions>$(AdditionalOptions) /Yu" + PCHFileName + "</AdditionalOptions>" + ProjectFileGenerator.NewLine +
+							"		</" + VCFileType + " >" + ProjectFileGenerator.NewLine);
+					}
+					else
+					{
+						VCProjectFileContent.Append(
+							"		<" + VCFileType + " Include=\"" + EscapeFileName(AliasedFile.FileSystemPath) + "\" />" + ProjectFileGenerator.NewLine);
+					}
 
 					if (!String.IsNullOrWhiteSpace(AliasedFile.ProjectPath))
 					{

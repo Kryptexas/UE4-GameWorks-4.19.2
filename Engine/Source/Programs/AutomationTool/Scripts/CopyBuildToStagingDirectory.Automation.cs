@@ -497,20 +497,36 @@ public partial class Project : CommandUtils
 
                 SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), "*", true, null, CombinePaths("Engine", "Content", "Internationalization"), false, true);
 
-                // Linux platform stages ICU in GetFilesToDeployOrStage(), accounting for the actual architecture
-                if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64 ||
-                    SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win32 ||
-                    SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Mac)
+                // Get the architecture in use
+                string Architecture = Params.SpecifiedArchitecture;
+                if (string.IsNullOrEmpty(Architecture))
                 {
-                    SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU"));
+                    Architecture = "";
+                    var BuildPlatform = UEBuildPlatform.GetBuildPlatform(SC.StageTargetPlatform.PlatformType, true);
+                    if (BuildPlatform != null)
+                    {
+                        Architecture = BuildPlatform.CreateContext(Params.RawProjectPath).GetActiveArchitecture();
+                    }
                 }
 
-                // SSL libraries are only available for Win64 builds.
-                // @see FPerforceSourceControlProvider::LoadSSLLibraries
-                if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64)
+                // Get the target receipt path for CrashReportClient
+                DirectoryReference EngineDir = new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine"));
+                string ReceiptFileName = TargetReceipt.GetDefaultPath(EngineDir.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, Architecture);
+                if (!File.Exists(ReceiptFileName))
                 {
-                    SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL"));
+                    throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
                 }
+
+                // Read the receipt for this target
+                TargetReceipt Receipt;
+                if (!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+                {
+                    throw new AutomationException("Missing or invalid target receipt ({0})", ReceiptFileName);
+                }
+
+                // Stage any runtime dependencies for CrashReportClient
+                Receipt.ExpandPathVariables(EngineDir, EngineDir);
+                SC.StageRuntimeDependenciesFromReceipt(Receipt, true, Params.UsePak(SC.StageTargetPlatform));
 
 				// Add config files.
 				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );

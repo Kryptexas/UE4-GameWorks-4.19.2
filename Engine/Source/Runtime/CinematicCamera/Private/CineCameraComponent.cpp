@@ -171,7 +171,7 @@ void UCineCameraComponent::RecalcDerivedData()
 #endif
 }
 
-float UCineCameraComponent::GetDesiredFocusDistance(FMinimalViewInfo& DesiredView) const
+float UCineCameraComponent::GetDesiredFocusDistance(const FVector& InLocation) const
 {
 	float DesiredFocusDistance = 0.f;
 
@@ -197,7 +197,7 @@ float UCineCameraComponent::GetDesiredFocusDistance(FMinimalViewInfo& DesiredVie
 				FocusPoint = FocusSettings.TrackingFocusSettings.RelativeOffset;
 			}
 
-			DesiredFocusDistance = (FocusPoint - DesiredView.Location).Size();
+			DesiredFocusDistance = (FocusPoint - InLocation).Size();
 		}
 		break;
 	}
@@ -216,11 +216,17 @@ void UCineCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& Desi
 
 	UpdateCameraLens(DeltaTime, DesiredView);
 
+	UpdateDebugFocusPlane();
+}
+
+void UCineCameraComponent::UpdateDebugFocusPlane()
+{
 #if WITH_EDITORONLY_DATA
 	if (FocusSettings.bDrawDebugFocusPlane && DebugFocusPlaneMesh && DebugFocusPlaneComponent)
 	{
-		FVector const CamDir = DesiredView.Rotation.Vector();
-		FVector const FocusPoint = DesiredView.Location + CamDir * CurrentFocusDistance;
+		FVector const CamLocation = ComponentToWorld.GetLocation();
+		FVector const CamDir = ComponentToWorld.GetRotation().Vector();
+		FVector const FocusPoint = ComponentToWorld.GetLocation() + CamDir * GetDesiredFocusDistance(CamLocation);
 		DebugFocusPlaneComponent->SetWorldLocation(FocusPoint);
 	}
 #endif
@@ -246,7 +252,7 @@ void UCineCameraComponent::UpdateCameraLens(float DeltaTime, FMinimalViewInfo& D
 		DesiredView.PostProcessSettings.bOverride_DepthOfFieldFstop = true;
 		DesiredView.PostProcessSettings.DepthOfFieldFstop = CurrentAperture;
 
-		CurrentFocusDistance = GetDesiredFocusDistance(DesiredView);
+		CurrentFocusDistance = GetDesiredFocusDistance(DesiredView.Location);
 
 		// clamp to min focus distance
 		float const MinFocusDistInWorldUnits = LensSettings.MinimumFocusDistance * (GetWorldToMetersScale() / 1000.f);	// convert mm to uu

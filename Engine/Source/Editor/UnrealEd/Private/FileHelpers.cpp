@@ -881,10 +881,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 						}
 					}
 
-#if USE_STABLE_LOCALIZATION_KEYS
-					TextNamespaceUtil::ClearPackageNamespace(InWorld);
-#endif // USE_STABLE_LOCALIZATION_KEYS
-
 					// Save the level!
 					bStatus = FEditorFileUtils::SaveMap( InWorld, SaveFilename );
 				}
@@ -895,10 +891,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 			}
 			else
 			{
-#if USE_STABLE_LOCALIZATION_KEYS
-				TextNamespaceUtil::ClearPackageNamespace(InWorld);
-#endif // USE_STABLE_LOCALIZATION_KEYS
-
 				// Save the level
 				bStatus = FEditorFileUtils::SaveMap( InWorld, SaveFilename );
 			}
@@ -920,17 +912,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	if (bStatus && OutSavedFilename)
 	{
 		*OutSavedFilename = SaveFilename;
-	}
-
-	if (bStatus && InWorld == GWorld)
-	{
-		FSelectionStateOfLevel SelectionStateOfLevel;
-		GEditor->GetSelectionStateOfLevel(SelectionStateOfLevel);
-
-		// Reload the world now as "Save As..." may have updated some IDs
-		FEditorFileUtils::LoadMap(SaveFilename, /*bLoadAsTemplate*/false, /*bShowProgress*/true);
-
-		GEditor->SetSelectionStateOfLevel(SelectionStateOfLevel);
 	}
 
 	return bStatus;

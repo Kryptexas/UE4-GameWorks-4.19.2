@@ -1654,11 +1654,21 @@ FSlateAtlasData UPaperSprite::GetSlateAtlasData() const
 {
 	if ( BakedSourceTexture == nullptr )
 	{
-		return FSlateAtlasData(SourceTexture, SourceUV, SourceDimension);
+		const FVector2D ImportedSize = FVector2D(SourceTexture->GetImportedSize());
+
+		const FVector2D StartUV = SourceUV / ImportedSize;
+		const FVector2D SizeUV = SourceDimension / ImportedSize;
+
+		return FSlateAtlasData(SourceTexture, StartUV, SizeUV);
 	}
 	else
 	{
-		return FSlateAtlasData(BakedSourceTexture, BakedSourceUV, BakedSourceDimension);
+		const FVector2D ImportedSize = FVector2D(BakedSourceTexture->GetImportedSize());
+
+		const FVector2D StartUV = BakedSourceUV / ImportedSize;
+		const FVector2D SizeUV = BakedSourceDimension / ImportedSize;
+
+		return FSlateAtlasData(BakedSourceTexture, StartUV, SizeUV);
 	}
 }
 

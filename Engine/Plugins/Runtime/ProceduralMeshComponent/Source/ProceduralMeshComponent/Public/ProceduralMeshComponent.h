@@ -121,7 +121,7 @@ struct FProcMeshSection
 *	Component that allows you to specify custom triangle mesh geometry
 *	Beware! This feature is experimental and may be substantially changed in future releases.
 */
-UCLASS(hidecategories = (Object, LOD), meta = (BlueprintSpawnableComponent), Experimental, ClassGroup = Experimental)
+UCLASS(hidecategories = (Object, LOD), meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
 class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
@@ -225,7 +225,7 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	bool bUseComplexAsSimpleCollision;
 
 	/** Collision data */
-	UPROPERTY(transient, duplicatetransient)
+	UPROPERTY(Instanced)
 	class UBodySetup* ProcMeshBodySetup;
 
 	/** 

@@ -971,12 +971,20 @@ void FAnimBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegr
 
 FClassActorThumbnailScene::FClassActorThumbnailScene()
 	: FThumbnailPreviewScene()
+	, NumStartingActors(0)
 	, PreviewActor(nullptr)
 {
+	NumStartingActors = GetWorld()->GetCurrentLevel()->Actors.Num();
 }
 
 void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
+	if (PreviewActor.IsStale())
+	{
+		PreviewActor = nullptr;
+		ClearStaleActors();
+	}
+
 	if (PreviewActor.IsValid())
 	{
 		if (PreviewActor->GetClass() == InClass)
@@ -1007,7 +1015,20 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 	}
 }
 
-bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component) const
+void FClassActorThumbnailScene::ClearStaleActors()
+{
+	ULevel* Level = GetWorld()->GetCurrentLevel();
+
+	for (int32 i = NumStartingActors; i < Level->Actors.Num(); ++i)
+	{
+		if (Level->Actors[i])
+		{
+			Level->Actors[i]->Destroy();
+		}
+	}
+}
+
+bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component)
 {
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if ( PrimComp && PrimComp->IsVisible() && !PrimComp->bHiddenInGame )

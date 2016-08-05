@@ -37,6 +37,7 @@
 #include "SDPIScaler.h"
 #include "SWidget.h"
 #include "SDockTab.h"
+#include "SColorPicker.h"
 
 namespace VREd
 {
@@ -80,6 +81,9 @@ namespace VREd
 	static const FTransform DefaultWorldOutlinerTransform(	FRotator( -30, -130, 0 ), FVector( 40,  45,  40 ), FVector( 1 ) );	// Top right
 	static const FTransform DefaultContentBrowserTransform( FRotator(  20,  160, 0 ), FVector( 50, -65, -40 ), FVector( 1 ) );  // Bottom left
 	static const FTransform DefaultActorDetailsTransform(	FRotator(  20, -160, 0 ), FVector( 50,  65, -40 ), FVector( 1 ) );	// Bottom right
+
+	static const FTransform DefaultColorPickerTransform(	FRotator( -10, 180, 0), FVector( 30, 35, 0 ), FVector( 1 ) );
+	
 }
 
 
@@ -145,6 +149,11 @@ void UVREditorUISystem::Init()
 	
 	// Create all of our UI panels
 	CreateUIs();
+
+
+	// Bind the color picker creation & destruction overrides
+	SColorPicker::OnColorPickerNonModalCreateOverride.BindUObject(this, &UVREditorUISystem::CreateVRColorPicker);
+	SColorPicker::OnColorPickerDestroyOverride.BindUObject(this, &UVREditorUISystem::DestroyVRColorPicker);
 }
 
 
@@ -155,6 +164,10 @@ void UVREditorUISystem::Shutdown()
 		GetOwner().GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
 		GetOwner().GetWorldInteraction().OnViewportInteractionHoverUpdate().RemoveAll( this );
 	}
+
+	// Unbind the color picker creation & destruction overrides
+	SColorPicker::OnColorPickerNonModalCreateOverride.Unbind();
+	SColorPicker::OnColorPickerDestroyOverride.Unbind();
 
 	CleanUpActorsBeforeMapChangeOrSimulate();
 
@@ -1129,18 +1142,20 @@ void UVREditorUISystem::StartDraggingDockUI( AVREditorDockableWindow* InitDraggi
 	if( DockTo == AVREditorFloatingUI::EDockedTo::LeftHand || DockTo == AVREditorFloatingUI::EDockedTo::RightHand )
 	{
 		bDraggedDockFromHandPassedThreshold = false;
-	}
 
-	// Set the laser of the interactor the dockable window was pulled from
-	UViewportInteractor* OtherInteractor = Interactor->GetOtherInteractor();
-	if ( OtherInteractor )
-	{
-		UVREditorInteractor* OtherVREditorInteractor = Cast<UVREditorInteractor>( OtherInteractor );
-		if ( OtherVREditorInteractor )
+		// Set the laser of the interactor the dockable window was pulled from
+		UViewportInteractor* OtherInteractor = Interactor->GetOtherInteractor();
+		if (OtherInteractor)
 		{
-			OtherVREditorInteractor->SetHasUIInFront( false );
+			UVREditorInteractor* OtherVREditorInteractor = Cast<UVREditorInteractor>(OtherInteractor);
+			if (OtherVREditorInteractor)
+			{
+				OtherVREditorInteractor->SetHasUIInFront(false);
+			}
 		}
 	}
+
+	
 
 	InteractorDraggingUI = Interactor;
 
@@ -1394,4 +1409,67 @@ void UVREditorUISystem::SetDefaultWindowLayout()
 			Panel->SetRelativeOffset( RoomSpaceHeadLocation + NewTransform.GetTranslation() );
 		}
 	}
+}
+
+void UVREditorUISystem::CreateVRColorPicker(const TSharedRef<SColorPicker>& ColorPicker)
+{
+	DestroyVRColorPicker();
+
+	// Check that the Color Picker Panel isn't currently showing. Also handles the EEditorUIPanel::ColorPicker being null.
+	if (!IsShowingEditorUIPanel(EEditorUIPanel::ColorPicker))
+	{
+		const FIntPoint DefaultResolution(VREd::DefaultEditorUIResolutionX->GetInt(), VREd::DefaultEditorUIResolutionY->GetInt());
+
+		TSharedRef<SWidget> WidgetToDraw =
+			SNew(SDPIScaler)
+			.DPIScale(VREd::EditorUIScale->GetFloat())
+			[
+				ColorPicker
+			]
+		;
+
+		const bool bWithSceneComponent = false;
+		AVREditorFloatingUI* ColorPickerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("ColorPickerUI"), bWithSceneComponent);
+		ColorPickerUI->ShowUI(true);
+		FloatingUIs.Add(ColorPickerUI);
+
+		EditorUIPanels[(int32)EEditorUIPanel::ColorPicker] = ColorPickerUI;
+
+		// Always spawn based on the location of the menu you are hovering over. To get this information, find the hand hovering over the UI.
+		UVREditorInteractor* VREditorInteractor = GetOwner().GetHandInteractor(EControllerHand::Left);
+		if (!VREditorInteractor->IsHoveringOverUI())
+		{
+			VREditorInteractor = GetOwner().GetHandInteractor(EControllerHand::Right);
+
+		}
+
+		ColorPickerUI->SetSlateWidget(*this, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Room);
+
+		// Make sure the UIs are centered around the direction your head is looking (yaw only!)
+		const FVector RoomSpaceHeadLocation = GetOwner().GetRoomSpaceHeadTransform().GetLocation() / GetOwner().GetWorldScaleFactor();
+		FRotator RoomSpaceHeadYawRotator = GetOwner().GetRoomSpaceHeadTransform().GetRotation().Rotator();
+		RoomSpaceHeadYawRotator.Pitch = 0.0f;
+		RoomSpaceHeadYawRotator.Roll = 0.0f;
+
+	
+		FTransform NewTransform = VREd::DefaultColorPickerTransform;
+		NewTransform *= FTransform(RoomSpaceHeadYawRotator.Quaternion(), FVector::ZeroVector);
+		ColorPickerUI->SetLocalRotation(NewTransform.GetRotation().Rotator());
+		ColorPickerUI->SetRelativeOffset(RoomSpaceHeadLocation + NewTransform.GetTranslation());
+
+		const bool bShouldShow = true;
+		const bool bShowOnHand = false;
+		ShowEditorUIPanel(EEditorUIPanel::ColorPicker, VREditorInteractor, bShouldShow, bShowOnHand);
+	}
+
+}
+
+void UVREditorUISystem::DestroyVRColorPicker()
+{
+
+	UVREditorInteractor* VREditorInteractor = nullptr;
+	const bool bShouldShow = false;
+	const bool bShowOnHand = false;
+	const bool bRefreshQuickMenu = true;
+	ShowEditorUIPanel(EEditorUIPanel::ColorPicker, VREditorInteractor, bShouldShow, bShowOnHand, bRefreshQuickMenu);
 }

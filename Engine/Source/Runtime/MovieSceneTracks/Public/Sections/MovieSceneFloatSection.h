@@ -24,15 +24,13 @@ public:
 	 *
 	 * @param Position	The position in time within the movie scene
 	 */
-	float Eval( float Position ) const;
+	virtual float Eval( float Position ) const;
 
 	/**
 	 * @return The float curve on this section
 	 */
-	FRichCurve& GetFloatCurve()
-	{
-		return FloatCurve;
-	}
+	FRichCurve& GetFloatCurve() { return FloatCurve; }
+	const FRichCurve& GetFloatCurve() const { return FloatCurve; }
 
 public:
 

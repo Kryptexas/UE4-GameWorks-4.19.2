@@ -1928,19 +1928,22 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 
 void USkeletalMeshComponent::UpdateBoneBodyMapping()
 {
-	// If we have a physics asset..
-	if (const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset())
+	if(Bodies.Num() > 0)	//If using per poly then there's no bodies to update indices on
 	{
-		// For each body in physics asset..
-		for (int32 BodyIndex = 0; BodyIndex < PhysicsAsset->SkeletalBodySetups.Num(); BodyIndex++)
+		// If we have a physics asset..
+		if (const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset())
 		{
-			// .. find the matching graphics bone index
-			int32 BoneIndex = GetBoneIndex(PhysicsAsset->SkeletalBodySetups[BodyIndex]->BoneName);
-			Bodies[BodyIndex]->InstanceBoneIndex = BoneIndex;
-
-			if (BoneIndex == INDEX_NONE)
+			// For each body in physics asset..
+			for (int32 BodyIndex = 0; BodyIndex < PhysicsAsset->SkeletalBodySetups.Num(); BodyIndex++)
 			{
-				//TODO: warn that body was found without corresponding bone
+				// .. find the matching graphics bone index
+				int32 BoneIndex = GetBoneIndex(PhysicsAsset->SkeletalBodySetups[BodyIndex]->BoneName);
+				Bodies[BodyIndex]->InstanceBoneIndex = BoneIndex;
+
+				if (BoneIndex == INDEX_NONE)
+				{
+					//TODO: warn that body was found without corresponding bone
+				}
 			}
 		}
 	}

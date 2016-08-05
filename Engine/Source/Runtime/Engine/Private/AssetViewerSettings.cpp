@@ -26,11 +26,19 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 }
 
 #if WITH_EDITOR
+void UAssetViewerSettings::Save()
+{
+	SaveConfig();
+	UpdateDefaultConfigFile();
+}
+#endif // WITH_EDITOR
+
+#if WITH_EDITOR
 void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;	
 	UObject* Outer = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetOuter() : nullptr;
-	if (Outer != nullptr && Outer->GetName() == "PostProcessSettings")
+	if (Outer != nullptr && ( Outer->GetName() == "PostProcessSettings" || Outer->GetName() == "Vector" || Outer->GetName() == "LinearColor"))
 	{
 		PropertyName = GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, PostProcessingSettings);
 	}
@@ -42,9 +50,6 @@ void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	}
 	
 	OnAssetViewerSettingsChangedEvent.Broadcast(PropertyName);
-
-	SaveConfig();
-	UpdateDefaultConfigFile();
 }
 
 void UAssetViewerSettings::PostInitProperties()

@@ -4097,7 +4097,7 @@ uint8* UAnimSequence::FindSyncMarkerPropertyData(int32 SyncMarkerIndex, UArrayPr
 	return NULL;
 }
 
-bool UAnimSequence::CreateAnimation(USkeletalMesh * Mesh)
+bool UAnimSequence::CreateAnimation(USkeletalMesh* Mesh)
 {
 	// create animation from Mesh's ref pose
 	if (Mesh)
@@ -4138,7 +4138,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMesh * Mesh)
 	return false;
 }
 
-bool UAnimSequence::CreateAnimation(USkeletalMeshComponent * MeshComponent)
+bool UAnimSequence::CreateAnimation(USkeletalMeshComponent* MeshComponent)
 {
 	if(MeshComponent && MeshComponent->SkeletalMesh)
 	{
@@ -4180,7 +4180,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMeshComponent * MeshComponent)
 	return false;
 }
 
-bool UAnimSequence::CreateAnimation(UAnimSequence * Sequence)
+bool UAnimSequence::CreateAnimation(UAnimSequence* Sequence)
 {
 	if(Sequence)
 	{
@@ -4195,11 +4195,9 @@ bool UAnimSequence::CreateAnimation(UAnimSequence * Sequence)
 		Notifies = Sequence->Notifies;
 		AnimNotifyTracks = Sequence->AnimNotifyTracks;
 		RawCurveData = Sequence->RawCurveData;
-
-		if (DoesContainTransformCurves())
-		{
-			bNeedsRebake = true;
-		}
+		// keep the same setting as source
+		bNeedsRebake = Sequence->DoesNeedRebake();
+		SourceRawAnimationData = Sequence->SourceRawAnimationData;
 
 		// refresh TrackToskeletonMapIndex
 		RefreshTrackMapFromAnimTrackNames();

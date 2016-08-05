@@ -876,6 +876,12 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 		}
 
+		if (GetLightingChannelMaskForStruct(Component->LightingChannels) != GetLightingChannelMaskForStruct(FoliageType->LightingChannels))
+		{
+			Component->LightingChannels = FoliageType->LightingChannels;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
 		UFoliageInstancedStaticMeshComponent* FoliageComponent = Cast<UFoliageInstancedStaticMeshComponent>(Component);
 
 		if (FoliageComponent && FoliageComponent->FoliageHiddenEditorViews != InSettings->HiddenEditorViews)
@@ -883,7 +889,7 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			FoliageComponent->FoliageHiddenEditorViews = InSettings->HiddenEditorViews;
 			bNeedsMarkRenderStateDirty = true;
 		}
-		
+	
 		const UFoliageType_InstancedStaticMesh* FoliageType_ISM = Cast<UFoliageType_InstancedStaticMesh>(FoliageType);
 		if (FoliageType_ISM)
 		{
@@ -1124,8 +1130,10 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 {
 	if (Component != nullptr)
 	{
-		Component->UnregisterComponent();
-		Component->bAutoRegister = false;
+		Component->ClearInstances();
+		Component->SetFlags(RF_Transactional);
+		Component->Modify();
+		Component->DestroyComponent();
 		Component = nullptr;
 	}
 
@@ -1940,7 +1948,11 @@ void AInstancedFoliageActor::RemoveFoliageType(UFoliageType** InFoliageTypes, in
 		{
 			if (MeshInfo->Component)
 			{
-				MeshInfo->Component->bAutoRegister = false;
+				MeshInfo->Component->ClearInstances();
+				MeshInfo->Component->SetFlags(RF_Transactional);
+				MeshInfo->Component->Modify();
+				MeshInfo->Component->DestroyComponent();
+				MeshInfo->Component = nullptr;
 			}
 
 			FoliageMeshes.Remove(FoliageType);

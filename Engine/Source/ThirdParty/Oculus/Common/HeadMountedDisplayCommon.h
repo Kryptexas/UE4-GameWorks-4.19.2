@@ -7,6 +7,17 @@
 
 class FHeadMountedDisplay;
 
+#if UE_BUILD_SHIPPING
+	#define OCULUS_STRESS_TESTS_ENABLED	0
+#else
+	#if PLATFORM_ANDROID
+		#define OCULUS_STRESS_TESTS_ENABLED	0
+	#else
+		#define OCULUS_STRESS_TESTS_ENABLED	1
+	#endif
+#endif	// #if UE_BUILD_SHIPPING
+
+
 /** Converts vector from meters to UU (Unreal Units) */
 FORCEINLINE FVector MetersToUU(const FVector& InVec, float WorldToMetersScale)
 {
@@ -792,10 +803,10 @@ protected:
 		uint64 Raw;
 	} Flags;
 
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 	// Stress testing
 	class FOculusStressTester* StressTester;
-#endif // #if !UE_BUILD_SHIPPING
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 
 	FHMDGameFrame* GetGameFrame()
 	{

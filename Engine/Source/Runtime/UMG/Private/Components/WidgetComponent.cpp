@@ -1088,6 +1088,16 @@ UUserWidget* UWidgetComponent::GetUserWidgetObject() const
 	return Widget;
 }
 
+UTextureRenderTarget2D* UWidgetComponent::GetRenderTarget() const
+{
+	return RenderTarget;
+}
+
+UMaterialInstanceDynamic* UWidgetComponent::GetMaterialInstance() const
+{
+	return MaterialInstance;
+}
+
 const TSharedPtr<SWidget>& UWidgetComponent::GetSlateWidget() const
 {
 	return SlateWidget;

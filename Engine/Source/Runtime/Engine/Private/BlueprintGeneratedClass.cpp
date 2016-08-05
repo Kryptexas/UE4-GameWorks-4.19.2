@@ -1062,11 +1062,7 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 	checkSlow(InThis);
 	for (UClass* CurrentClass = InThis->GetClass(); CurrentClass; CurrentClass = CurrentClass->GetSuperClass())
 	{
-		if (CurrentClass->HasAnyClassFlags(CLASS_NewerVersionExists))
-		{
-			break;
-		}
-		else if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
+		if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
 		{
 			if (BPGC->UberGraphFramePointerProperty)
 			{

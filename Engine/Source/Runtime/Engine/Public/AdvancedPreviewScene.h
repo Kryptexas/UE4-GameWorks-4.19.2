@@ -40,6 +40,7 @@ public:
 	/* End FTickableEditorObject */
 
 	const bool HandleViewportInput(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
+	const bool HandleInputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool Gamepad);
 
 	const float GetSkyRotation() const;
 	void SetSkyRotation(const float SkyRotation);	

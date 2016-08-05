@@ -31,9 +31,6 @@ struct FViewportInteractorData
 	/** Lights up when our laser pointer is close enough to something to click */
 	bool bIsHovering;
 
-	/** True if we're hovering over UI right now.  When hovering over UI, we don't bother drawing a see-through laser pointer */
-	bool bIsHoveringOverUI; //@todo: ViewportInteraction: UI should not be in this module
-
 	/** The widget component we are currently hovering over */
 	class UWidgetComponent* HoveringOverWidgetComponent; //@todo: ViewportInteraction: UI should not be in this module
 
@@ -131,11 +128,15 @@ struct FViewportInteractorData
 	a very slow press */
 	bool bAllowTriggerLightPressLocking;
 
+	/** This can be set to false when handling SelectAndMove_LightlyPressed to prevent a full press event from
+	    being possible at all.  Useful when you're not planning to use FullyPressed for anything, but you
+		don't want a full press to cancel your light press. */
+	bool bAllowTriggerFullPress;
+
 	/** Default constructor for FVirtualHand that initializes safe defaults */
 	FViewportInteractorData()
 	{
 		bIsHovering = false;
-		bIsHoveringOverUI = false;
 		HoveringOverWidgetComponent = nullptr;
 		HoverLocation = FVector::ZeroVector;
 		HoveredActorComponent = nullptr;
@@ -165,6 +166,7 @@ struct FViewportInteractorData
 		HoverHapticCheckLastHoveredGizmoComponent = nullptr;
 
 		bAllowTriggerLightPressLocking = true;
+		bAllowTriggerFullPress = true;
 	}
 };
 

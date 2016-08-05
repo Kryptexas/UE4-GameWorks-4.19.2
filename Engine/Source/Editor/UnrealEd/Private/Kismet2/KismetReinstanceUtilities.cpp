@@ -143,14 +143,26 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	, OriginalCDO(NULL)
 	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
+	, ReinstClassType(RCT_Unknown)
 	, ClassToReinstanceDefaultValuesCRC(0)
 	, bIsRootReinstancer(false)
 	, bAllowResaveAtTheEndIfRequested(false)
 {
 	if( InClassToReinstance != NULL )
 	{
-		bIsReinstancingSkeleton = FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance);
-		bAllowResaveAtTheEndIfRequested = bAutoInferSaveOnCompile && !bIsBytecodeOnly && !bIsReinstancingSkeleton;
+		if (FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance))
+		{
+			ReinstClassType = RCT_BpSkeleton;
+		}
+		else if (ClassToReinstance->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			ReinstClassType = RCT_BpGenerated;
+		}
+		else if (ClassToReinstance->HasAnyClassFlags(CLASS_Native))
+		{
+			ReinstClassType = RCT_Native;
+		}
+		bAllowResaveAtTheEndIfRequested = bAutoInferSaveOnCompile && !bIsBytecodeOnly && (ReinstClassType != RCT_BpSkeleton);
 
 		SaveClassFieldMapping(InClassToReinstance);
 
@@ -260,14 +272,14 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Pull the blueprint that generated this reinstance target, and gather the blueprints that are dependent on it
 		UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassToReinstance->ClassGeneratedBy);
 		check(GeneratingBP || GIsAutomationTesting);
-		if(!bIsReinstancingSkeleton && GeneratingBP)
+		if(!IsReinstancingSkeleton() && GeneratingBP)
 		{
 			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
 			Dependencies.Empty();
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 
 			// Never queue for saving when regenerating on load
-			if (!GeneratingBP->bIsRegeneratingOnLoad && !bIsReinstancingSkeleton)
+			if (!GeneratingBP->bIsRegeneratingOnLoad && !IsReinstancingSkeleton())
 			{
 				bool const bIsLevelPackage = (UWorld::FindWorldInPackage(GeneratingBP->GetOutermost()) != nullptr);
 				// we don't want to save the entire level (especially if this 
@@ -325,6 +337,15 @@ void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Col
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
 	Collector.AllowEliminatingReferences(true);
+
+	// it's ok for these to get GC'd, but it is not ok for the memory to be reused (after a GC), 
+	// for that reason we cannot allow these to be freed during the life of this reinstancer
+	// 
+	// for example, we saw this as a problem in UpdateBytecodeReferences() - if the GC'd function 
+	// memory was used for a new (unrelated) function, then we were replacing references to the 
+	// new function (bad), as well as any old stale references (both were using the same memory address)
+	Collector.AddReferencedObjects(FunctionMap);
+	Collector.AddReferencedObjects(PropertyMap);
 }
 
 void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
@@ -527,11 +548,15 @@ void FBlueprintCompileReinstancer::CompileChildren()
 		{
 			ReparentChild(BP);
 
-			// Full compiles first recompile all skeleton classes, so they are up-to-date
-			const bool bSkeletonUpToDate = true;
+			// avoid the skeleton compile if we don't need it - if the class 
+			// we're reinstancing is a Blueprint class, then we assume sub-class
+			// skeletons were kept in-sync (updated/reinstanced when the parent 
+			// was updated); however, if this is a native class (like when hot-
+			// reloading), then we want to make sure to update the skel as well
+			const bool bSkeletonUpToDate = !ClassToReinstance->HasAnyClassFlags(CLASS_Native);
 			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
 		}
-		else if (bIsReinstancingSkeleton)
+		else if (IsReinstancingSkeleton())
 		{
 			const bool bForceRegeneration = true;
 			FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
@@ -655,7 +680,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				Iter.RemoveCurrent();
 				if (auto BP = BPPtr.Get())
 				{
-					if (bIsReinstancingSkeleton)
+					if (IsReinstancingSkeleton())
 					{
 						const bool bForceRegeneration = true;
 						FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
@@ -724,7 +749,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 			}
 
 
-			if (!bIsReinstancingSkeleton)
+			if (!IsReinstancingSkeleton())
 			{
 				TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
 
@@ -1784,12 +1809,14 @@ void FBlueprintCompileReinstancer::ReparentChild(UBlueprint* ChildBP)
 	UClass* SkeletonClass = ChildBP->SkeletonGeneratedClass;
 	UClass* GeneratedClass = ChildBP->GeneratedClass;
 
-	if( bIsReinstancingSkeleton && SkeletonClass )
+	const bool ReparentGeneratedOnly = (ReinstClassType == RCT_BpGenerated);
+	if( !ReparentGeneratedOnly && SkeletonClass )
 	{
 		ReparentChild(SkeletonClass);
 	}
 
-	if( !bIsReinstancingSkeleton && GeneratedClass )
+	const bool ReparentSkelOnly = (ReinstClassType == RCT_BpSkeleton);
+	if( !ReparentSkelOnly && GeneratedClass )
 	{
 		ReparentChild(GeneratedClass);
 	}

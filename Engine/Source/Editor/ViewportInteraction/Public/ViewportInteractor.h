@@ -142,17 +142,30 @@ public:
 	float GetDragHapticFeedbackStrength() const;
 
 	/**
-	* Enables or disable "light press" locking for this interactor.  This is an advanced feature.
-	* It should be true if we allow locking of the lightly pressed state for the current event.  This can 
-	* be useful to turn off in cases where you always want a full press to override the light press, even 
-	* if it was a very slow press
-	*
-	* @param	bAllow		Enables or disables light press locking for this hand
-	*/
+	 * Enables or disable "light press" locking for this interactor.  This is an advanced feature.
+	 * It should be true if we allow locking of the lightly pressed state for the current event.  This can 
+	 * be useful to turn off in cases where you always want a full press to override the light press, even 
+	 * if it was a very slow press
+	 *
+	 * @param	bAllow		Enables or disables light press locking for this hand
+	 */
 	void SetAllowTriggerLightPressLocking( const bool bInAllow );
 
-	/** Check if this interactor allows the light press to be locked */
+	/** @return Check if this interactor allows the light press to be locked */
 	bool AllowTriggerLightPressLocking() const;
+
+	/**
+	 * When responding to a "light press" event, you can call this and pass false to to prevent a full press event from
+	 * being possible at all.  Useful when you're not planning to use FullyPressed for anything, but you don't want a 
+	 * full press to cancel your light press.
+	 *
+	 * @param	bInAllow	Whether to allow a full press to interrupt the light press.  Defaults to true, and will reset to true with every re-press of the trigger.
+	 */
+	void SetAllowTriggerFullPress( const bool bInAllow );
+
+	/** @return Returns whether a full press is allowed to interrupt a light press. */
+	bool AllowTriggerFullPress() const;
+
 
 protected:
 

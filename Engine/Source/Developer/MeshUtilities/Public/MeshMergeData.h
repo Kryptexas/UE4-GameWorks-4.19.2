@@ -41,14 +41,21 @@ struct FRawMeshExt
 {
 	FRawMeshExt()
 		: SourceStaticMesh(nullptr)
-	{}
+	{
+		FMemory::Memzero(bShouldExportLOD);
+	}
 
-	FMeshMergeData		MeshLODData[MAX_STATIC_MESH_LODS];
-	FKAggregateGeom		AggGeom;
+	FMeshMergeData MeshLODData[MAX_STATIC_MESH_LODS];
+	FKAggregateGeom	AggGeom;
 
 	/** Pointer to the source static mesh instance */
 	class UStaticMesh* SourceStaticMesh;
 
 	/** Specific LOD index that is being exported */
 	int32 ExportLODIndex;
+
+	/** Whether or not a specific LOD should be exported */
+	bool bShouldExportLOD[MAX_STATIC_MESH_LODS];
+	/** Max LOD index that is exported */
+	int32 MaxLODExport;
 };

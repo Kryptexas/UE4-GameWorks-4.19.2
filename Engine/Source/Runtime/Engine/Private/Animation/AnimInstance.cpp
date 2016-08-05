@@ -88,6 +88,7 @@ extern TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate;
 UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bUpdatingAnimation(false)
+	, bPostUpdatingAnimation(false)
 {
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	RootNode = nullptr;
@@ -422,6 +423,11 @@ void UAnimInstance::PreUpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::PostUpdateAnimation()
 {
+#if DO_CHECK
+	checkf(!bPostUpdatingAnimation, TEXT("PostUpdateAnimation already in progress, recursion detected for SkeletalMeshComponent [%s], AnimInstance [%s]"), *GetNameSafe(GetOwningComponent()), *GetName());
+	TGuardValue<bool> CircularGuard(bPostUpdatingAnimation, true);
+#endif
+
 	SCOPE_CYCLE_COUNTER(STAT_PostUpdateAnimation);
 	check(!IsRunningParallelEvaluation());
 
@@ -1373,6 +1379,11 @@ float UAnimInstance::GetCurveValue(FName CurveName)
 	return 0.f;
 }
 
+void UAnimInstance::SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value)
+{
+	RootMotionMode = Value;
+}
+
 float UAnimInstance::GetAnimAssetPlayerLength(class UAnimationAsset* AnimAsset)
 {
 	if (AnimAsset)
@@ -1807,7 +1818,7 @@ bool UAnimInstance::IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName
 }
 
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
-float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/)
+float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType)
 {
 	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f) && MontageToPlay->HasValidSlotSetup())
 	{
@@ -1845,7 +1856,10 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 
 			UE_LOG(LogAnimMontage, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 						*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
-			return NewInstance->Montage->SequenceLength;
+			
+			const float MontageLength = NewInstance->Montage->SequenceLength;
+			
+			return (ReturnValueType == EMontagePlayReturnType::MontageLength) ? MontageLength : (MontageLength/(InPlayRate*MontageToPlay->RateScale));
 		}
 		else
 		{

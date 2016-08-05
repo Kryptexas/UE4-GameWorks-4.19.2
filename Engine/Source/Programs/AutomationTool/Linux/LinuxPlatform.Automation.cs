@@ -23,17 +23,6 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 	}
 
-	public override List<string> GetExecutableNames(DeploymentContext SC, bool bIsRun = false)
-	{
-		List<string> Exes = base.GetExecutableNames(SC, bIsRun);
-		// replace the binary name to match what was staged
-		if (bIsRun && !SC.IsCodeBasedProject)
-		{
-			Exes[0] = CommandUtils.CombinePaths(SC.StageProjectRoot, "Binaries", SC.PlatformDir, SC.ShortProjectName);
-		}
-		return Exes;
-	}
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		// FIXME: use build architecture
@@ -81,6 +70,90 @@ public abstract class BaseLinuxPlatform : Platform
 		}
 
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+
+		// Stage all the build products
+		foreach (StageTarget Target in SC.StageTargets)
+		{
+			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.bTreatNonShippingBinariesAsDebugFiles);
+		}
+
+		// Stage the bootstrap executable
+		if (!Params.NoBootstrapExe)
+		{
+			foreach (StageTarget Target in SC.StageTargets)
+			{
+				BuildProduct Executable = Target.Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
+				if (Executable != null)
+				{
+					// only create bootstraps for executables
+					string FullExecutablePath = Path.GetFullPath(Executable.Path);
+					if (Executable.Path.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
+					{
+						string BootstrapArguments = "";
+						if (!SC.IsCodeBasedProject && !ShouldStageCommandLine(Params, SC))
+						{
+							BootstrapArguments = String.Format("\\\"../../../{0}/{0}.uproject\\\"", SC.ShortProjectName);
+						}
+
+						string BootstrapExeName;
+						if (SC.StageTargetConfigurations.Count > 1)
+						{
+							BootstrapExeName = Path.GetFileName(Executable.Path);
+						}
+						else if (Params.IsCodeBasedProject)
+						{
+							BootstrapExeName = Target.Receipt.TargetName;
+						}
+						else
+						{
+							BootstrapExeName = SC.ShortProjectName;
+						}
+
+						foreach (string StagePath in SC.NonUFSStagingFiles[FullExecutablePath])
+						{
+							StageBootstrapExecutable(SC, BootstrapExeName + ".sh", FullExecutablePath, StagePath, BootstrapArguments);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+	{
+		return false;
+	}
+
+	void StageBootstrapExecutable(DeploymentContext SC, string ExeName, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
+	{
+		// create a temp script file location
+		string IntermediateDir = CombinePaths(SC.ProjectRoot, "Intermediate", "Staging");
+		string IntermediateFile = CombinePaths(IntermediateDir, ExeName);
+		InternalUtils.SafeCreateDirectory(IntermediateDir);
+
+		// make sure slashes are good
+		StagedRelativeTargetPath = StagedRelativeTargetPath.Replace("\\", "/");
+
+		// make contents
+		StringBuilder Script = new StringBuilder();
+		string EOL = "\n";
+		Script.Append("#!/bin/sh" + EOL);
+		Script.AppendFormat("chmod +x {0}" + EOL, StagedRelativeTargetPath);
+		Script.AppendFormat("{0} {1} $@" + EOL, StagedRelativeTargetPath, StagedArguments);
+
+		// write out the 
+		File.WriteAllText(IntermediateFile, Script.ToString());
+
+		if (Utils.IsRunningOnMono)
+		{
+			var Result = CommandUtils.Run("sh", string.Format("-c 'chmod +x \\\"{0}\\\"'", IntermediateFile));
+			if (Result.ExitCode != 0)
+			{
+				throw new AutomationException(string.Format("Failed to chmod \"{0}\"", IntermediateFile));
+			}
+		}
+
+		SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, "");
 	}
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)

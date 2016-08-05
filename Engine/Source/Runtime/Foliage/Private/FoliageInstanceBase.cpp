@@ -75,19 +75,18 @@ FArchive& operator << (FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCach
 		for (const auto& Pair : InstanceBaseCache.InstanceBaseMap)
 		{
 			const FFoliageInstanceBaseInfo& BaseInfo = Pair.Value;
-			InstanceBaseCache.InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
+			if (InstanceBaseCache.InstanceBaseInvMap.Contains(BaseInfo.BasePtr))
+			{
+				// more info for UE-30878
+				UE_LOG(LogInstancedFoliage, Warning, TEXT("Instance base cache - integrity verification(3): Counter: %d Size: %d, InvSize: %d (Key: %s)"), 
+					(int32)InstanceBaseCache.NextBaseId, InstanceBaseCache.InstanceBaseMap.Num(), InstanceBaseCache.InstanceBaseInvMap.Num(), 
+					*BaseInfo.BasePtr.GetUniqueID().ToString());
+			}
+			else
+			{
+				InstanceBaseCache.InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
+			}
 		}
-	}
-
-	// more info for UE-30878
-	if (InstanceBaseCache.InstanceBaseMap.Num() != InstanceBaseCache.InstanceBaseInvMap.Num())
-	{
-		int32 LoadingFlag = Ar.IsLoading() ? 1 : 0;
-		int32 SavingFlag = Ar.IsSaving() ? 1 : 0;
-		int32 TransactingFlag = Ar.IsTransacting() ? 1 : 0;
-		UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(3): Counter: %d Size: %d, InvSize: %d (L:%d S:%d T:%d)"), 
-			(int32)InstanceBaseCache.NextBaseId, InstanceBaseCache.InstanceBaseMap.Num(), InstanceBaseCache.InstanceBaseInvMap.Num(), 
-			LoadingFlag, SavingFlag, TransactingFlag);
 	}
 
 	return Ar;
@@ -101,27 +100,25 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 		BaseId = GetInstanceBaseId(InComponent);
 		if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
 		{
-			BaseId = NextBaseId++;
-
-			// more info for UE-30878
-			if (InstanceBaseMap.Num() != InstanceBaseInvMap.Num())
+			// generate next unique ID for base component
+			do
 			{
-				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(1): Counter: %d Size: %d, InvSize: %d"), 
-					(int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num());
+				BaseId = NextBaseId++;
 			}
-
+			while (InstanceBaseMap.Contains(BaseId));
+			
 			FFoliageInstanceBaseInfo BaseInfo(InComponent);
-			InstanceBaseMap.Add(BaseId, BaseInfo);
-			InstanceBaseInvMap.Add(BaseInfo.BasePtr, BaseId);
-
+			
 			// more info for UE-30878
-			//check(InstanceBaseMap.Num() == InstanceBaseInvMap.Num());
-			if (InstanceBaseMap.Num() != InstanceBaseInvMap.Num())
+			if (InstanceBaseInvMap.Contains(BaseInfo.BasePtr))
 			{
 				FUniqueObjectGuid BaseUID = BaseInfo.BasePtr.GetUniqueID();
-				UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(2): Counter: %d Size: %d, InvSize: %d, BaseUID: %s, BaseName: %s"), 
+				UE_LOG(LogInstancedFoliage, Error, TEXT("Instance base cache - integrity verification(2): Counter: %d Size: %d, InvSize: %d, BaseUID: %s, BaseName: %s"), 
 					(int32)BaseId, InstanceBaseMap.Num(), InstanceBaseInvMap.Num(), *BaseUID.ToString(), *InComponent->GetFullName());
 			}
+						
+			InstanceBaseMap.Add(BaseId, BaseInfo);
+			InstanceBaseInvMap.Add(BaseInfo.BasePtr, BaseId);
 
 			ULevel* ComponentLevel = InComponent->GetComponentLevel();
 			if (ComponentLevel)
@@ -142,6 +139,10 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 FFoliageInstanceBaseId FFoliageInstanceBaseCache::GetInstanceBaseId(UActorComponent* InComponent) const
 {
 	FFoliageInstanceBasePtr BasePtr = InComponent;
+	if (!BasePtr.IsValid())
+	{
+		return InvalidBaseId;
+	}
 	return GetInstanceBaseId(BasePtr);
 }
 
@@ -262,7 +263,6 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 		else
 		{
 			// Regenerate inverse map
-			check(!Cache.InstanceBaseInvMap.Contains(BaseInfo.BasePtr));
 			Cache.InstanceBaseInvMap.Add(BaseInfo.BasePtr, Pair.Key);
 		}
 	}
@@ -289,13 +289,6 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 
 		Cache.InstanceBaseMap.Compact();
 		Cache.InstanceBaseLevelMap.Compact();
-	}
-
-	// more info for UE-30878
-	if (Cache.InstanceBaseMap.Num() != Cache.InstanceBaseInvMap.Num())
-	{
-		UE_LOG(LogInstancedFoliage, Fatal, TEXT("Instance base cache - integrity verification(4): Counter: %d Size: %d, InvSize: %d"), 
-			(int32)Cache.NextBaseId, Cache.InstanceBaseMap.Num(), Cache.InstanceBaseInvMap.Num());
 	}
 }
 

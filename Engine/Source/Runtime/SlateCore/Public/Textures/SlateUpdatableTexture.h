@@ -29,6 +29,11 @@ public:
 	virtual FRenderResource* GetRenderResource() {return nullptr;}
 
 	/**
+	 * Deferred or Immediate cleanup of this data depending on what is required.
+	 */
+	virtual void Cleanup() = 0;
+
+	/**
 	 * Resize the texture.
 	 *
 	 * @param Width New texture width

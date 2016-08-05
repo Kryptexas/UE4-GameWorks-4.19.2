@@ -24,8 +24,15 @@ struct ENGINE_API FSmartNameMapping
 	// Add a name to the mapping, if it exists, get it.
 	// @param Name - The name to add/get
 	// @param OUT OutUid - The UID of the newly created or retrieved name
+	// @param OUT OutGuid - The GUID of the newly created or retrieved name
 	// @return bool - true if the name was added, false if it existed (OutUid will be correctly set still in this case)
 	bool AddOrFindName(FName Name, UID& OutUid, FGuid& OutGuid);
+	// Add a name to the mapping if it doesn't exist
+	// @param Name - The name to add/get
+	// @param OUT OutUid - The UID of the newly created or retrieved name
+	// @param InGuid - the guid of the name
+	// @return bool - true if the name was added, false if it existed (OutUid will be correctly set still in this case)
+	bool AddName(FName Name, UID& OutUid, const FGuid& InGuid);
 
 	// Get a name from the mapping
 	// @param Uid - UID of the name to retrieve
@@ -71,7 +78,10 @@ struct ENGINE_API FSmartNameMapping
 	int32 GetNumNames() const;
 
 	// Find Or Add Smart Names
+#if WITH_EDITOR
 	bool FindOrAddSmartName(FName Name, FSmartName& OutName);
+	bool AddSmartName(FSmartName& OutName);
+#endif // WITH_EDITOR
 	bool FindSmartName(FName Name, FSmartName& OutName) const;
 	bool FindSmartNameByUID(FSmartNameMapping::UID UID, FSmartName& OutName) const;
 
@@ -124,23 +134,36 @@ struct ENGINE_API FSmartName
 	// UID - for faster access
 	FSmartNameMapping::UID	UID;
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	FGuid	Guid;
+#endif // WITH_EDITORONLY_DATA
 
 	FSmartName()
 		: DisplayName(NAME_None)
 		, UID(FSmartNameMapping::MaxUID)
 	{}
 
+#if WITH_EDITORONLY_DATA
 	FSmartName(const FName& InDisplayName, FSmartNameMapping::UID InUID, const FGuid& InGuid)
 		: DisplayName(InDisplayName)
 		, UID(InUID)
 		, Guid(InGuid)
 	{}
+#else
+	FSmartName(const FName& InDisplayName, FSmartNameMapping::UID InUID)
+		: DisplayName(InDisplayName)
+		, UID(InUID)
+	{}
+#endif // WITH_EDITORONLY_DATA
 
 	bool operator==(FSmartName const& Other) const
 	{
+#if WITH_EDITORONLY_DATA
 		return (DisplayName == Other.DisplayName && UID == Other.UID && Guid == Other.Guid);
+#else
+		return (DisplayName == Other.DisplayName && UID == Other.UID);
+#endif // WITH_EDITORONLY_DATA
 	}
 	bool operator!=(const FSmartName& Other) const
 	{
@@ -163,7 +186,11 @@ struct ENGINE_API FSmartName
 
 	bool IsValid() const
 	{
+#if WITH_EDITORONLY_DATA
 		return UID != FSmartNameMapping::MaxUID && Guid.IsValid(); 
+#else
+		return UID != FSmartNameMapping::MaxUID;
+#endif  // WITH_EDITORONLY_DATA
 	}
 };
 

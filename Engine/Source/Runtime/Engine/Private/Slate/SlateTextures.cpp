@@ -32,6 +32,16 @@ FSlateTexture2DRHIRef::~FSlateTexture2DRHIRef()
 
 }
 
+void FSlateTexture2DRHIRef::Cleanup()
+{
+	BeginReleaseResource(this);
+	BeginCleanup(this);
+}
+
+void FSlateTexture2DRHIRef::FinishCleanup()
+{
+	delete this;
+}
 
 void FSlateTexture2DRHIRef::InitDynamicRHI()
 {
