@@ -2090,49 +2090,46 @@ namespace ObjectTools
 					if(Object.IsValid())
 					{
 						ObjectsToReplace.Add(Object.Get());
-					}
-				}
 
-				for(UObject* Object : ObjectsToReplace)
-				{
-					UBlueprint* BlueprintObject = Cast<UBlueprint>(Object);
-					if (BlueprintObject)
-					{
-						// If we're a blueprint add our generated class as well
-						if (BlueprintObject->GeneratedClass)
+						UBlueprint* BlueprintObject = Cast<UBlueprint>(Object.Get());
+						if (BlueprintObject)
 						{
-							ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
-						}
-
-						// Reparent any direct children to the parent class of the blueprint that's about to be deleted
-						if(BlueprintObject->ParentClass != nullptr)
-						{
-							for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+							// If we're a blueprint add our generated class as well
+							if (BlueprintObject->GeneratedClass)
 							{
-								UClass* ChildClass = *ClassIt;
-								if(ChildClass->GetSuperStruct() == BlueprintObject->GeneratedClass)
+								ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
+							}
+
+							// Reparent any direct children to the parent class of the blueprint that's about to be deleted
+							if (BlueprintObject->ParentClass != nullptr)
+							{
+								for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 								{
-									UBlueprint* ChildBlueprint = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
-									if(ChildBlueprint != nullptr)
+									UClass* ChildClass = *ClassIt;
+									if (ChildClass->GetSuperStruct() == BlueprintObject->GeneratedClass)
 									{
-										// Do not reparent and recompile a Blueprint that is going to be deleted.
-										if (ObjectsToDelete.Find(ChildBlueprint) == INDEX_NONE)
+										UBlueprint* ChildBlueprint = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
+										if (ChildBlueprint != nullptr)
 										{
-											ChildBlueprint->Modify();
-											ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
+											// Do not reparent and recompile a Blueprint that is going to be deleted.
+											if (ObjectsToDelete.Find(ChildBlueprint) == INDEX_NONE)
+											{
+												ChildBlueprint->Modify();
+												ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
 
-											// Recompile the child blueprint to fix up the generated class
-											FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
+												// Recompile the child blueprint to fix up the generated class
+												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
 
-											// Defer garbage collection until after we're done processing the list of objects
-											bNeedsGarbageCollection = true;
+												// Defer garbage collection until after we're done processing the list of objects
+												bNeedsGarbageCollection = true;
+											}
 										}
 									}
 								}
 							}
-						}
 
-						BlueprintObject->RemoveGeneratedClasses();
+							BlueprintObject->RemoveGeneratedClasses();
+						}
 					}
 				}
 
