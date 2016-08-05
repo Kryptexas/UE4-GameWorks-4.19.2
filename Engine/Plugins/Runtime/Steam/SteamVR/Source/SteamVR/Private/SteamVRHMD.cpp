@@ -741,6 +741,8 @@ void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 
 bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 {
+	
+	
 	if (VRSystem == nullptr)
 	{
 		return false;
@@ -774,28 +776,49 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			break;
 		case vr::VREvent_TrackedDeviceUserInteractionStarted:
 			// if the event was sent by the HMD
-			if(VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd) )
 			{
-				HmdWornState = EHMDWornState::Worn;
+				// Save the position we are currently at and put us in the state where we could move to a worn state
+				bShouldCheckHMDPosition = true;
+				HMDStartLocation = Position;
 			}
 			break;
 		case vr::VREvent_TrackedDeviceUserInteractionEnded:
-			// if the event was sent by the HMD. Don't change our state to "not worn" unless we are currently wearing it.
-			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd) && (HmdWornState == EHMDWornState::Worn)) 
+			// if the event was sent by the HMD. 
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)) 
 			{
-				HmdWornState = EHMDWornState::NotWorn;
+				// Don't check to see if we might be wearing the HMD anymore.
+				bShouldCheckHMDPosition = false;
+				// Don't change our state to "not worn" unless we are currently wearing it.
+				if (HmdWornState == EHMDWornState::Worn)
+				{
+					HmdWornState = EHMDWornState::NotWorn;
+				}
 			}
 			break;
 		}
 	}
 
-	// SteamVR gives 5 seconds from VREvent_Quit till it's process is killed
+
+	// SteamVR gives 5 seconds from VREvent_Quit till its process is killed
 	if (bIsQuitting)
 	{
+		bShouldCheckHMDPosition = false;
 		Shutdown();
- 		GEngine->HMDDevice.Reset();
- 		GEngine->StereoRenderingDevice.Reset();
+		GEngine->HMDDevice.Reset();
+		GEngine->StereoRenderingDevice.Reset();
 	}
+
+	// If the HMD is being interacted with, but we haven't decided the HMD is worn yet.  
+	if (bShouldCheckHMDPosition)
+	{
+		if (FVector::Dist(HMDStartLocation, Position) > HMDWornMovementThreshold)
+		{
+			HmdWornState = EHMDWornState::Worn;
+			bShouldCheckHMDPosition = false;
+		}
+	}
+
 
 	return true;
 }
@@ -1149,16 +1172,19 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	WindowMirrorMode(1),
 	WindowMirrorBoundsWidth(2160),
 	WindowMirrorBoundsHeight(1200),
+	HMDWornMovementThreshold(50.0f),
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
 	LastHmdPosition(FVector::ZeroVector),
+	HMDStartLocation(FVector::ZeroVector),
 	BaseOrientation(FQuat::Identity),
 	BaseOffset(FVector::ZeroVector),
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),
 	SteamVRPlugin(SteamVRPlugin),
-	RendererModule(nullptr)
+	RendererModule(nullptr),
+	bShouldCheckHMDPosition(false)
 {
 	Startup();
 }
@@ -1314,6 +1340,13 @@ void FSteamVRHMD::LoadFromIni()
 	if (GConfig->GetInt(SteamVRSettings, TEXT("WindowMirrorBoundsHeight"), i, GEngineIni))
 	{
 		WindowMirrorBoundsHeight = i;
+	}
+
+	float ConfigFloat = 0.0f;
+
+	if (GConfig->GetFloat(SteamVRSettings, TEXT("HMDWornMovementThreshold"), ConfigFloat, GEngineIni))
+	{
+		HMDWornMovementThreshold = ConfigFloat;
 	}
 }
 

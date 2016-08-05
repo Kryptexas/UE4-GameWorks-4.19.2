@@ -397,6 +397,8 @@ private:
 	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
+	/** How far the HMD has to move before it's considered to be worn */
+	float HMDWornMovementThreshold;
 
 	/** Player's orientation tracking */
 	mutable FQuat			CurHmdOrientation;
@@ -405,6 +407,9 @@ private:
 	FQuat					DeltaControlOrientation; // same as DeltaControlRotation but as quat
 
 	mutable FVector			CurHmdPosition;
+
+	/** used to check how much the HMD has moved for changing the Worn status */
+	FVector					HMDStartLocation; 
 
 	mutable FQuat			LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
 	FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position
@@ -415,6 +420,9 @@ private:
 
 	// State for tracking quit operation
 	static bool				bIsQuitting;
+
+	/**  True if the HMD sends an event that the HMD is being interacted with */
+	bool					bShouldCheckHMDPosition;
 
 	/** Mapping from Unreal Controller Id and Hand to a tracked device id.  Passed in from the controller plugin */
 	int32 UnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2];
