@@ -87,6 +87,7 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 	}
 	
 	UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+	CopyParams.bNotifyObjectReplacement = false;
 	SpawnedActor->UnregisterAllComponents();
 	UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
 	SpawnedActor->RegisterAllComponents();

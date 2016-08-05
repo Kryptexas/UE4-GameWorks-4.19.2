@@ -142,6 +142,8 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 		USelection::SelectionChangedEvent.AddSP( this, &FSequencer::OnActorSelectionChanged );
 
+		GEditor->OnObjectsReplaced().AddSP(this, &FSequencer::OnObjectsReplaced);
+
 		AddLevelViewportMenuExtender();
 	}
 
@@ -6421,6 +6423,11 @@ void FSequencer::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBo
 	{
 		TrackEditors[i]->BuildObjectBindingEditButtons(EditBox, ObjectBinding, ObjectClass);
 	}
+}
+
+void FSequencer::OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	bNeedInstanceRefresh = true;
 }
 
 

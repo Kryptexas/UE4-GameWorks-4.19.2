@@ -22,6 +22,10 @@ FLevelSequenceEditorSpawnRegister::FLevelSequenceEditorSpawnRegister()
 	FAreObjectsEditable AreObjectsEditable = FAreObjectsEditable::CreateRaw(this, &FLevelSequenceEditorSpawnRegister::AreObjectsEditable);
 	OnAreObjectsEditableHandle = AreObjectsEditable.GetHandle();
 	LevelEditor.AddEditableObjectPredicate(AreObjectsEditable);
+
+#if WITH_EDITOR
+	GEditor->OnObjectsReplaced().AddRaw(this, &FLevelSequenceEditorSpawnRegister::OnObjectsReplaced);
+#endif
 }
 
 
@@ -39,6 +43,10 @@ FLevelSequenceEditorSpawnRegister::~FLevelSequenceEditorSpawnRegister()
 		Sequencer->OnPreSave().RemoveAll(this);
 		Sequencer->OnActivateSequence().RemoveAll(this);
 	}
+
+#if WITH_EDITOR
+	GEditor->OnObjectsReplaced().RemoveAll(this);
+#endif
 }
 
 
@@ -209,6 +217,31 @@ bool FLevelSequenceEditorSpawnRegister::AreObjectsEditable(const TArray<TWeakObj
 	return true;
 }
 
+void FLevelSequenceEditorSpawnRegister::OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+	if (!Sequencer.IsValid())
+	{
+		return;
+	}
+
+	for (auto& Pair : Register)
+	{
+		TWeakObjectPtr<>& WeakObject = Pair.Value.Object;
+		UObject* SpawnedObject = WeakObject.Get();
+		if (UObject* NewObject = OldToNewInstanceMap.FindRef(SpawnedObject))
+		{
+			WeakObject = NewObject;
+			// It's a spawnable, so ensure it's transient
+			NewObject->SetFlags(RF_Transient);
+			TSharedPtr<FMovieSceneSequenceInstance> Instance = Pair.Key.SequenceInstance.Pin();
+			if (Instance.IsValid())
+			{
+				Instance->OnObjectSpawned(Pair.Key.BindingId, *NewObject, *Sequencer);
+			}
+		}
+	}
+}
 
 #if WITH_EDITOR
 
