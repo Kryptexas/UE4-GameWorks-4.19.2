@@ -626,7 +626,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_ES2_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelES2;
 		bIsDesktop = true;
 	}
@@ -634,7 +634,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 		bIsDesktop = true;
 	}
@@ -642,7 +642,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM4_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelSM4;
 		bIsDesktop = true;
 	}
@@ -650,7 +650,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM5_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelSM5;
 		bIsDesktop = true;
 	}
