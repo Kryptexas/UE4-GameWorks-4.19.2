@@ -59,7 +59,12 @@ float3 GetTangentSpaceNonUniformScales(float3x3 TangentToLocal)
 float GetTessellationMultiplier(FPassSpecificVSToDS I)
 {
 	FMaterialTessellationParameters MaterialParameters = GetMaterialTessellationParameters(I.FactoryInterpolants, I.Position.xyz);
-	return GetMaterialTessellationMultiplier(MaterialParameters);
+	float MaterialTessellationMultiplier = GetMaterialTessellationMultiplier(MaterialParameters);
+#if VERTEX_FACTORY_MODIFIES_TESSELLATION
+	return VertexFactoryModifyTessellationMultiplier(I.FactoryInterpolants, I.Position.xyz, MaterialTessellationMultiplier);
+#else
+	return MaterialTessellationMultiplier;
+#endif
 }
 
 // Flag set if inside frustum

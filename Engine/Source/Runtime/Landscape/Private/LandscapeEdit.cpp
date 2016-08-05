@@ -236,6 +236,8 @@ void ULandscapeComponent::UpdateMaterialInstances()
 			FlushRenderingCommands();
 		}
 
+		UMaterialInstanceConstant*& MaterialInstance = MaterialInstances[0];
+
 		// Create the instance for this component, that will use the layer combination instance.
 		if (MaterialInstance == nullptr || GetOutermost() != MaterialInstance->GetOutermost())
 		{
@@ -283,9 +285,33 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		}
 		MaterialInstance->PostEditChange();
 
-		// Recreate the render state, needed to update the static drawlist which has cached the MaterialRenderProxy.
-		RecreateRenderState_Concurrent();
+		// when using tessellation, we disable tessellation for LODs 1+
+		const bool bTessellationEnabled = (CombinationMaterialInstance->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation);
+		if (bTessellationEnabled)
+		{
+			MaterialInstances.SetNumZeroed(2);
+			ULandscapeMaterialInstanceConstant*& TessellationMaterialInstance = (ULandscapeMaterialInstanceConstant*&)MaterialInstances[1];
+			if (!TessellationMaterialInstance)
+			{
+				TessellationMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
+			}
+			TessellationMaterialInstance->SetParentEditorOnly(MaterialInstance);
+			Context.AddMaterialInstance(TessellationMaterialInstance); // must be done after SetParent
+			TessellationMaterialInstance->bDisableTessellation = true;
+		}
+		else
+		{
+			MaterialInstances.SetNum(1);
+		}
 	}
+	else
+	{
+		MaterialInstances.Empty(1);
+		MaterialInstances.Add(nullptr);
+	}
+
+	// Recreate the render state, needed to update the static drawlist which has cached the MaterialRenderProxy.
+	RecreateRenderState_Concurrent();
 }
 
 int32 ULandscapeComponent::GetNumMaterials() const
@@ -460,9 +486,9 @@ void ULandscapeComponent::FixupWeightmaps()
 			RemoveInvalidWeightmaps();
 
 			// Store the layer combination in the MaterialInstanceConstantMap
-			if (MaterialInstance != nullptr)
+			if (MaterialInstances[0] != nullptr)
 			{
-				UMaterialInstanceConstant* CombinationMaterialInstance = Cast<UMaterialInstanceConstant>(MaterialInstance->Parent);
+				UMaterialInstanceConstant* CombinationMaterialInstance = Cast<UMaterialInstanceConstant>(MaterialInstances[0]->Parent);
 				if (CombinationMaterialInstance)
 				{
 					Proxy->MaterialInstanceConstantMap.Add(*GetLayerAllocationKey(CombinationMaterialInstance->Parent), CombinationMaterialInstance);
@@ -4554,8 +4580,8 @@ void ULandscapeComponent::InitWeightmapData(TArray<ULandscapeLayerInfoObject*>& 
 
 	FlushRenderingCommands();
 
-	MaterialInstance = nullptr;
-
+	MaterialInstances.Empty(1);
+	MaterialInstances.Add(nullptr);
 }
 
 #define MAX_LANDSCAPE_EXPORT_COMPONENTS_NUM		16
@@ -4893,7 +4919,7 @@ void ULandscapeComponent::GeneratePlatformPixelData()
 	{
 		// This path is used by game mode running with uncooked data, eg Mobile Preview.
 		// Game mode cannot create MICs, so we use a MaterialInstanceDynamic here.
-		UMaterialInstanceDynamic* NewMobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost());
+		UMaterialInstanceDynamic* NewMobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstances[0], GetOutermost());
 
 		MobileBlendableLayerMask = 0;
 
