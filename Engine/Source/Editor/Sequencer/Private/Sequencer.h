@@ -995,11 +995,11 @@ private:
 	TAttribute<UObject*> PlaybackContextAttribute;
 
 	/** Cached playback context for this frame */
-	UObject* CachedPlaybackContext;
+	TWeakObjectPtr<UObject> CachedPlaybackContext;
 
 	/** Attribute used to retrieve event contexts */
 	TAttribute<TArray<UObject*>> EventContextsAttribute;
 
 	/** Event contexts retrieved from the above attribute once per frame */
-	TArray<UObject*> CachedEventContexts;
+	TArray<TWeakObjectPtr<UObject>> CachedEventContexts;
 };

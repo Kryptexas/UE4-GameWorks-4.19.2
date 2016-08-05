@@ -106,7 +106,11 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 	EventContextsAttribute = InitParams.EventContexts;
 	if (EventContextsAttribute.IsSet())
 	{
-		CachedEventContexts = EventContextsAttribute.Get();
+		CachedEventContexts.Reset();
+		for (UObject* Object : EventContextsAttribute.Get())
+		{
+			CachedEventContexts.Add(Object);
+		}
 	}
 
 	PlaybackContextAttribute = InitParams.PlaybackContext;
@@ -359,10 +363,17 @@ void FSequencer::Tick(float InDeltaTime)
 {
 	if (EventContextsAttribute.IsBound())
 	{
-		CachedEventContexts = EventContextsAttribute.Get();
+		CachedEventContexts.Reset();
+		for (UObject* Object : EventContextsAttribute.Get())
+		{
+			CachedEventContexts.Add(Object);
+		}
 	}
 
-	CachedPlaybackContext = PlaybackContextAttribute.Get(nullptr);
+	if (PlaybackContextAttribute.IsBound())
+	{
+		CachedPlaybackContext = PlaybackContextAttribute.Get();
+	}
 
 	Selection.Tick();
 
@@ -691,12 +702,14 @@ FGuid FSequencer::CreateBinding(UObject& InObject, const FString& InName)
 
 UObject* FSequencer::GetPlaybackContext() const
 {
-	return CachedPlaybackContext;
+	return CachedPlaybackContext.Get();
 }
 
 TArray<UObject*> FSequencer::GetEventContexts() const
 {
-	return CachedEventContexts;
+	TArray<UObject*> Temp;
+	CopyFromWeakArray(Temp, CachedEventContexts);
+	return Temp;
 }
 
 void FSequencer::GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties)
@@ -994,8 +1007,6 @@ void FSequencer::NotifyMapChanged( class UWorld* NewWorld, EMapChangeType MapCha
 	// @todo sequencer: We should only wipe/respawn puppets that are affected by the world that is being changed! (multi-UWorld support)
 	if( ( MapChangeType == EMapChangeType::LoadMap || MapChangeType == EMapChangeType::NewMap || MapChangeType == EMapChangeType::TearDownWorld) )
 	{
-		PlaybackContextAttribute = nullptr;
-
 		SpawnRegister->CleanUp(*this);
 
 		UpdateRuntimeInstances();
@@ -1942,16 +1953,6 @@ void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( Settings );
 
-	if( CachedPlaybackContext )
-	{
-		Collector.AddReferencedObject( CachedPlaybackContext );
-	}
-
-	for( UObject* EventContext : CachedEventContexts )
-	{
-		Collector.AddReferencedObject( EventContext );
-	}
-
 	for( int32 MovieSceneIndex = 0; MovieSceneIndex < SequenceInstanceStack.Num(); ++MovieSceneIndex )
 	{
 		UMovieSceneSequence* Sequence = SequenceInstanceStack[MovieSceneIndex]->GetSequence();
@@ -1979,7 +1980,10 @@ void FSequencer::ResetPerMovieSceneData()
 
 void FSequencer::UpdateRuntimeInstances()
 {
-	CachedPlaybackContext = PlaybackContextAttribute.Get(nullptr);
+	if (PlaybackContextAttribute.IsBound())
+	{
+		CachedPlaybackContext = PlaybackContextAttribute.Get();
+	}
 
 	// Refresh the current root instance
 	SequenceInstanceStack.Top()->RefreshInstance( *this );
