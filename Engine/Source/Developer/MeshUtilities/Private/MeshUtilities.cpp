@@ -1397,6 +1397,9 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 			LODModel.MaxImportVertex = FMath::Max<float>(LODModel.MaxImportVertex, RawVertIndex);
 		}
 
+		// update NumVertices
+		Section.NumVertices = Section.SoftVertices.Num();
+
 		// update max bone influences
 		Section.CalcMaxBoneInfluences();
 

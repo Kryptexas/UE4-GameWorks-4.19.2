@@ -431,6 +431,9 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 		// these are the bones that will be used by this new section
 		Section.BoneMap = NewSectionInfo.MergedBoneMap;
 
+		// init vert totals
+		Section.NumVertices = 0;
+
 		// keep track of the current base vertex for this section in the merged vertex buffer
 		Section.BaseVertexIndex = MergedVertexBuffer.Num();
 
@@ -498,6 +501,8 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 			// keep track of the max number of influences used by the vertices of the chunk
 			Section.MaxBoneInfluences = FMath::Max<int32>(Section.MaxBoneInfluences, MergeSectionInfo.Section->MaxBoneInfluences );
+			// update vert total
+			Section.NumVertices += MergeSectionInfo.Section->GetNumVertices();
 
 			// update total number of vertices 
 			int32 NumTotalVertices = MergeSectionInfo.Section->GetNumVertices();

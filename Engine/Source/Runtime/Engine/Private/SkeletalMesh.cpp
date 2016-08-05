@@ -64,6 +64,8 @@ struct FSkeletalMeshCustomVersion
 		CombineSoftAndRigidVerts = 2,
 		// Need to recalc max bone influences
 		RecalcMaxBoneInfluences = 3,
+		// Add NumVertices that can be accessed when stripping editor data
+		SaveNumVertices = 4,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -1277,9 +1279,28 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 			}
 		}
 
+		// If loading content newer than CombineSectionWithChunk but older than SaveNumVertices, update NumVertices here
+		if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::SaveNumVertices)
+		{
+			if (!StripFlags.IsDataStrippedForServer())
+			{
+				S.NumVertices = S.SoftVertices.Num();
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Cannot set FSkelMeshSection::NumVertices for older content, loading in non-editor build."));
+				S.NumVertices = 0;
+			}
+		}
+
 		Ar << S.BoneMap;
 
-		// Removed NumRigidVertices and NumSoftVertices, just use array size
+		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) >= FSkeletalMeshCustomVersion::SaveNumVertices)
+		{
+			Ar << S.NumVertices;
+		}
+
+		// Removed NumRigidVertices and NumSoftVertices
 		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CombineSoftAndRigidVerts)
 		{
 			int32 DummyNumRigidVerts, DummyNumSoftVerts;
@@ -1467,7 +1488,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 
 	// Array of Sections for backwards compat
 	Ar.UsingCustomVersion(FSkeletalMeshCustomVersion::GUID);
-	if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CombineSectionWithChunk)
+	if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CombineSectionWithChunk)
 	{
 		TArray<FLegacySkelMeshChunk> LegacyChunks;
 
@@ -1476,7 +1497,20 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		check(LegacyChunks.Num() == Sections.Num());
 		for (int32 ChunkIdx = 0; ChunkIdx < LegacyChunks.Num(); ChunkIdx++)
 		{
-			LegacyChunks[ChunkIdx].CopyToSection(Sections[ChunkIdx]);
+			FSkelMeshSection& Section = Sections[ChunkIdx];
+
+			LegacyChunks[ChunkIdx].CopyToSection(Section);
+
+			// Set NumVertices for older content on load
+			if (!StripFlags.IsDataStrippedForServer())
+			{
+				Section.NumVertices = Section.SoftVertices.Num();
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Cannot set FSkelMeshSection::NumVertices for older content, loading in non-editor build."));
+				Section.NumVertices = 0;
+			}
 		}
 	}
 	

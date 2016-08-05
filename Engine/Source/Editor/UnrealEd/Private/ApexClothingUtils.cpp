@@ -777,6 +777,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	uint32 NumImportedVertices = ImportData.Positions.Num();
 
 	TempSection.SoftVertices.Empty(NumImportedVertices);
+	TempSection.NumVertices = NumImportedVertices;
 
 	for( uint32 VertexIndex=0;VertexIndex<NumImportedVertices;VertexIndex++ )
 	{
@@ -878,6 +879,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	// int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
 	ClothSection.SoftVertices = TempSection.SoftVertices;
 	ClothSection.BoneMap = TempSection.BoneMap;
+	ClothSection.NumVertices = TempSection.NumVertices;
 	ClothSection.MaxBoneInfluences = TempSection.MaxBoneInfluences;
 	ClothSection.CorrespondClothAssetIndex = TempSection.CorrespondClothAssetIndex;
 	ClothSection.ClothAssetSubmeshIndex = TempSection.ClothAssetSubmeshIndex;
