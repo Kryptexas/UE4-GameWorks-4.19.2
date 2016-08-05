@@ -3167,6 +3167,16 @@ FGuid FSequencer::MakeNewSpawnable( UObject& Object )
 		return FGuid();
 	}
 
+	FMovieSceneSpawnable* Spawnable = GetFocusedMovieSceneSequence()->GetMovieScene()->FindSpawnable(NewGuid);
+	if (!Spawnable)
+	{
+		return FGuid();
+	}
+
+	// Override spawn ownership during this process to ensure it never gets destroyed
+	ESpawnOwnership SavedOwnership = Spawnable->GetSpawnOwnership();
+	Spawnable->SetSpawnOwnership(ESpawnOwnership::External);
+
 	// Spawn the object so we can position it correctly, it's going to get spawned anyway since things default to spawned.
 	UObject* SpawnedObject = SpawnRegister->SpawnObject(NewGuid, *GetFocusedMovieSceneSequenceInstance(), *this);
 
@@ -3197,6 +3207,8 @@ FGuid FSequencer::MakeNewSpawnable( UObject& Object )
 	}
 
 	SetupDefaultsForSpawnable(NewGuid, DefaultTransform);
+
+	Spawnable->SetSpawnOwnership(SavedOwnership);
 
 	return NewGuid;
 }
@@ -5465,15 +5477,25 @@ void FSequencer::DiscardChanges()
 
 void FSequencer::CreateCamera()
 {
-	if (!GCurrentLevelEditingViewportClient)
+	UWorld* World = GCurrentLevelEditingViewportClient ? GCurrentLevelEditingViewportClient->GetWorld() : nullptr;
+	if (!World)
 	{
 		return;
 	}
 
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "CreateCameraHere", "Create Camera Here"));
 
+	const bool bCreateAsSpawnable = Settings->GetCreateSpawnableCameras();
+
+	FActorSpawnParameters SpawnParams;
+	if (bCreateAsSpawnable)
+	{
+		// Don't bother transacting this object if we're creating a spawnable since it's temporary
+		SpawnParams.ObjectFlags &= ~RF_Transactional;
+	}
+
 	// Set new camera to match viewport
-	ACineCameraActor* NewCamera = GCurrentLevelEditingViewportClient->GetWorld()->SpawnActor<ACineCameraActor>();
+	ACineCameraActor* NewCamera = World->SpawnActor<ACineCameraActor>(SpawnParams);
 	if (!NewCamera)
 	{
 		return;
@@ -5481,17 +5503,26 @@ void FSequencer::CreateCamera()
 
 	FGuid CameraGuid;
 
-	if (Settings->GetCreateSpawnableCameras())
+	FMovieSceneSpawnable* Spawnable = nullptr;
+	ESpawnOwnership SavedOwnership = Spawnable ? Spawnable->GetSpawnOwnership() : ESpawnOwnership::InnerSequence;
+
+	if (bCreateAsSpawnable)
 	{
 		CameraGuid = MakeNewSpawnable(*NewCamera);
-		UpdateRuntimeInstances();
-		UObject* SpawnedCamera = FindSpawnedObjectOrTemplate(CameraGuid);
-		if (SpawnedCamera)
+		Spawnable = GetFocusedMovieSceneSequence()->GetMovieScene()->FindSpawnable(CameraGuid);
+
+		if (ensure(Spawnable))
 		{
-			UWorld* PlaybackContext = Cast<UWorld>(GetPlaybackContext());
-			PlaybackContext->EditorDestroyActor(NewCamera, true);
-			NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
+			// Override spawn ownership during this process to ensure it never gets destroyed
+			SavedOwnership = Spawnable->GetSpawnOwnership();
+			Spawnable->SetSpawnOwnership(ESpawnOwnership::External);
 		}
+
+		// Destroy the old actor
+		World->EditorDestroyActor(NewCamera, false);
+
+		NewCamera = Cast<ACineCameraActor>(GetFocusedMovieSceneSequenceInstance()->FindObject(CameraGuid, *this));
+		ensure(NewCamera);
 	}
 	else
 	{
@@ -5500,17 +5531,24 @@ void FSequencer::CreateCamera()
 	
 	if (!CameraGuid.IsValid())
 	{
-		return;	
-	}	
-
+		return;
+	}
+	
 	NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 	NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 	//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
-	
+
 	OnActorAddedToSequencerEvent.Broadcast(NewCamera, CameraGuid);
 
 	const bool bLockToCamera = true;
 	NewCameraAdded(NewCamera, CameraGuid, bLockToCamera);
+
+	if (ensure(Spawnable))
+	{
+		Spawnable->SetSpawnOwnership(SavedOwnership);
+	}
+
+	bNeedInstanceRefresh = true;
 }
 
 void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera)
@@ -5518,7 +5556,7 @@ void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, b
 	SetPerspectiveViewportCameraCutEnabled(false);
 
 	// Lock the viewport to this camera
-	if (bLockToCamera)
+	if (bLockToCamera && NewCamera && NewCamera->GetLevel())
 	{
 		GCurrentLevelEditingViewportClient->SetMatineeActorLock(nullptr);
 		GCurrentLevelEditingViewportClient->SetActorLock(NewCamera);

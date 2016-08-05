@@ -233,7 +233,7 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNew
 	// Deal with creating a spawnable from an instance of an actor
 	else if (AActor* Actor = Cast<AActor>(&SourceObject))
 	{
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Actor, &OwnerMovieScene, TemplateName);
+		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Actor, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transactional);
 		NewSpawnable.Name = Actor->GetActorLabel();
 	}
 
@@ -267,7 +267,7 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNew
 			}
 		}
 
-		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transactional, TemplateName );
+		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_NoFlags, TemplateName );
 
 		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName);
 
