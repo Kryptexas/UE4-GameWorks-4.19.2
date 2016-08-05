@@ -637,8 +637,11 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 		FRawMesh RawMesh;
 		GenerateRawMeshFromSample(MergedSample, RawMesh);
 		
-		StaticMeshes.Add(CreateStaticMeshFromRawMesh(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags,
-			TotalNumMaterials, MergedFaceSetNames, RawMesh));
+		UStaticMesh* StaticMesh = CreateStaticMeshFromRawMesh(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags, TotalNumMaterials, MergedFaceSetNames, RawMesh);
+		if (StaticMesh)
+		{
+			StaticMeshes.Add(StaticMesh);
+		}
 	}
 	else
 	{
@@ -647,7 +650,11 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 		{
 			if (Mesh->bShouldImport)
 			{
-				StaticMeshes.Add(ImportSingleAsStaticMesh(MeshIndex, InParent, Flags));
+				UStaticMesh* StaticMesh = ImportSingleAsStaticMesh(MeshIndex, InParent, Flags);
+				if (StaticMesh)
+				{
+					StaticMeshes.Add(StaticMesh);
+				}
 			}
 			++MeshIndex;
 		}
@@ -1159,22 +1166,12 @@ const int32 FAbcImporter::PerformSVDCompression(TArray<float>& OriginalMatrix, c
 	return NumUsedSingularValues;
 }
 
-UStaticMesh* FAbcImporter::ReimportSingleAsStaticMesh(UStaticMesh* Mesh)
+const TArray<UStaticMesh*> FAbcImporter::ReimportAsStaticMesh(UStaticMesh* Mesh)
 {
 	const FString StaticMeshName = Mesh->GetName();
-	uint32 MeshObjectIndex = 0;
-	// If there is an object in the Alembic file that corresponds to the Mesh's current one use it for importing
-	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
-	{
-		if (StaticMeshName.Equals(MeshObject->Name))
-		{
-			return ImportSingleAsStaticMesh(MeshObjectIndex, Mesh->GetOuter(), RF_Public | RF_Standalone);
-		}
-		MeshObjectIndex++;
-	}
+	const TArray<UStaticMesh*> StaticMeshes = ImportAsStaticMesh(Mesh->GetOuter(), RF_Public | RF_Standalone);
 
-	// Otherwise reimporting failed so return null
-	return nullptr;
+	return StaticMeshes;
 }
 
 UGeometryCache* FAbcImporter::ReimportAsGeometryCache(UGeometryCache* GeometryCache)

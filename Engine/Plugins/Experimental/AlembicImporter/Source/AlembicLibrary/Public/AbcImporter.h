@@ -76,7 +76,7 @@ public:
 	* @param Mesh - Current StaticMesh instance
 	* @return FStaticMesh*
 	*/
-	UStaticMesh* ReimportSingleAsStaticMesh(UStaticMesh* Mesh);
+	const TArray<UStaticMesh*> ReimportAsStaticMesh(UStaticMesh* Mesh);
 
 	/**
 	* Reimport an Alembic file as a GeometryCache
