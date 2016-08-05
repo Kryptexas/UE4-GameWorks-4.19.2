@@ -195,7 +195,7 @@ void STextBlock::SetFont(const TAttribute< FSlateFontInfo >& InFont)
 
 void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpacity)
 {
-	if ( !ColorAndOpacity.IdenticalTo(InColorAndOpacity) )
+	if ( !ColorAndOpacity.IsSet() || !ColorAndOpacity.IdenticalTo(InColorAndOpacity) )
 	{
 		ColorAndOpacity = InColorAndOpacity;
 		Invalidate(EInvalidateWidget::Layout);
