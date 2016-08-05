@@ -282,26 +282,22 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 			if (!bNormalsAvailable)
 			{
 				// Function bodies for regular and smooth normals to prevent branch within loop
-				const TFunctionRef<void(int32)> RegularNormalsFunction
-					= [&](int32 Index)
+				const TFunction<void(int32)> RegularNormalsFunction
+					= [this,MeshObject](int32 Index)
 				{
 					FAbcMeshSample* MeshSample = MeshObject->MeshSamples[Index];
 					if (MeshSample)
 					{
 						AbcImporterUtilities::CalculateNormals(MeshSample);
-
-						// Setup smoothing masks to 0
-						MeshSample->SmoothingGroupIndices.Empty(MeshSample->Indices.Num() / 3);
-						MeshSample->SmoothingGroupIndices.AddZeroed(MeshSample->Indices.Num() / 3);
-						MeshSample->NumSmoothingGroups = 1;
+						AbcImporterUtilities::GenerateSmoothingGroupsIndices(MeshSample, ImportData->ImportSettings);
+						AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(MeshSample, MeshSample->SmoothingGroupIndices, MeshSample->NumSmoothingGroups);
 					}
 				};
 
-				const TFunctionRef<void(int32)> SmoothNormalsFunction
-					= [&](int32 Index)
+				const TFunction<void(int32)> SmoothNormalsFunction
+					= [MeshObject](int32 Index)
 				{
 					FAbcMeshSample* MeshSample = MeshObject->MeshSamples[Index];
-
 					if (MeshSample)
 					{
 						AbcImporterUtilities::CalculateSmoothNormals(MeshSample);
@@ -313,7 +309,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 					}
 				};
 
-				ParallelFor(MeshObject->MeshSamples.Num(), bCalculateSmoothingGroups ? RegularNormalsFunction : SmoothNormalsFunction);
+				ParallelFor(MeshObject->MeshSamples.Num(), ImportData->ImportSettings->NormalGenerationSettings.bRecomputeNormals && bCalculateSmoothingGroups ? RegularNormalsFunction : SmoothNormalsFunction);
 			}
 			else
 			{

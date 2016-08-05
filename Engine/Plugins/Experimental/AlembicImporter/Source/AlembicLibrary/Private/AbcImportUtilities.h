@@ -361,6 +361,9 @@ namespace AbcImporterUtilities
 	static void GenerateSmoothingGroups(TMultiMap<uint32, uint32> &TouchingFaces, const TArray<FVector>& FaceNormals,
 		TArray<uint32>& FaceSmoothingGroups, uint32& HighestSmoothingGroup, const float HardAngleDotThreshold)
 	{
+		// Cache whether or not the hard angle thresshold is set to 0.0 by the user
+		const bool bZeroThreshold = FMath::IsNearlyZero(HardAngleDotThreshold);
+
 		// MultiMap holding connected face indices of which is determined they belong to the same smoothing group (angle between face normals tested)
 		TMultiMap<uint32, uint32> SmoothingGroupConnectedFaces;
 		// Loop over all the faces
@@ -380,11 +383,11 @@ namespace AbcImporterUtilities
 				const uint32 ConnectedFaceIndex = ConnectedFaceIndices[i];
 				FVector ConnectedFaceNormal = FaceNormals[ConnectedFaceIndex];
 
-				// Calculate the Angle between the two connected face normals
-				const float DotProduct = FaceNormal | ConnectedFaceNormal;
+				// Calculate the Angle between the two connected face normals and clamp from 0-1
+				const float DotProduct = FMath::Clamp(FaceNormal | ConnectedFaceNormal, 0.0f, 1.0f);
 
-				// Compare DotProduct against threshold
-				if (DotProduct > HardAngleDotThreshold)
+				// Compare DotProduct against threshold and handle 0.0 case correctly
+				if (DotProduct > HardAngleDotThreshold || (bZeroThreshold && FMath::IsNearlyZero(DotProduct)))
 				{
 					// If the faces have a "similar" normal we can determine that they should belong to the same smoothing group so mark them as SmoothingGroupConnectedFaces
 					SmoothingGroupConnectedFaces.Add(FaceIndex, ConnectedFaceIndex);
@@ -418,10 +421,12 @@ namespace AbcImporterUtilities
 				SmoothingGroupFaces.Add(FaceIndex, SmoothingGroupIndex);
 				SmoothingGroupFaces.Add(ConnectedFaceIndices[ConnectedFaceIndex], SmoothingGroupIndex);
 
-				// Store the SmoothingGroupIndex in the RawMesh data structure (used for tangent calculation)
-				FaceSmoothingGroups[FaceIndex] = SmoothingGroupIndex;
+				// Store the SmoothingGroupIndex in the RawMesh data structure (used for tangent calculation)				
 				FaceSmoothingGroups[ConnectedFaceIndices[ConnectedFaceIndex]] = SmoothingGroupIndex;
 			}
+
+			// Store the smoothing group index for the face we are currently handling
+			FaceSmoothingGroups[FaceIndex] = SmoothingGroupIndex;
 
 			HighestSmoothingGroup = FMath::Max(HighestSmoothingGroup, SmoothingGroupIndex);
 		}
@@ -440,6 +445,7 @@ namespace AbcImporterUtilities
 
 		// Pre-initialize RawMesh arrays
 		const int32 NumFaces = MeshSample->Indices.Num() / 3;
+		MeshSample->SmoothingGroupIndices.Empty(NumFaces);
 		MeshSample->SmoothingGroupIndices.AddZeroed(NumFaces);
 
 		// Loop over faces
