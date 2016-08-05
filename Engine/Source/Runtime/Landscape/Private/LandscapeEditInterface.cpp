@@ -35,12 +35,12 @@ FLandscapeEditDataInterface::FLandscapeEditDataInterface(ULandscapeInfo* InLands
 	}
 }
 
-FLandscapeEditDataInterface::~FLandscapeEditDataInterface()
+FLandscapeTextureDataInterface::~FLandscapeTextureDataInterface()
 {
 	Flush();
 }
 
-void FLandscapeEditDataInterface::Flush()
+void FLandscapeTextureDataInterface::Flush()
 {
 	bool bNeedToWaitForUpdate = false;
 
@@ -3966,7 +3966,7 @@ void FLandscapeEditDataInterface::GetWeightDataFast(ULandscapeLayerInfoObject* L
 	GetWeightDataTemplFast(LayerInfo, X1, Y1, X2, Y2, SparseStoreData);
 }
 
-FLandscapeTextureDataInfo* FLandscapeEditDataInterface::GetTextureDataInfo(UTexture2D* Texture)
+FLandscapeTextureDataInfo* FLandscapeTextureDataInterface::GetTextureDataInfo(UTexture2D* Texture)
 {
 	FLandscapeTextureDataInfo* Result = TextureDataMap.FindRef(Texture);
 	if( !Result )
@@ -3976,7 +3976,7 @@ FLandscapeTextureDataInfo* FLandscapeEditDataInterface::GetTextureDataInfo(UText
 	return Result;
 }
 
-void FLandscapeEditDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 DestChannel, UTexture2D* Src, int32 SrcChannel)
+void FLandscapeTextureDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 DestChannel, UTexture2D* Src, int32 SrcChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	FLandscapeTextureDataInfo* SrcDataInfo = GetTextureDataInfo(Src);
@@ -3998,7 +3998,7 @@ void FLandscapeEditDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 Des
 	}
 }
 
-void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, int32 SrcChannel)
+void FLandscapeTextureDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, int32 SrcChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4023,7 +4023,7 @@ void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int
 	}
 }
 
-void FLandscapeEditDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo)
+void FLandscapeTextureDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4047,7 +4047,7 @@ void FLandscapeEditDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int
 	}
 }
 
-void FLandscapeEditDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel)
+void FLandscapeTextureDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4068,7 +4068,7 @@ void FLandscapeEditDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 Des
 }
 
 template<typename TData>
-void FLandscapeEditDataInterface::SetTextureValueTempl(UTexture2D* Dest, TData Value)
+void FLandscapeTextureDataInterface::SetTextureValueTempl(UTexture2D* Dest, TData Value)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4088,18 +4088,18 @@ void FLandscapeEditDataInterface::SetTextureValueTempl(UTexture2D* Dest, TData V
 	}
 }
 
-void FLandscapeEditDataInterface::ZeroTexture(UTexture2D* Dest)
+void FLandscapeTextureDataInterface::ZeroTexture(UTexture2D* Dest)
 {
 	SetTextureValueTempl<uint8>(Dest, 0);
 }
 
-void FLandscapeEditDataInterface::SetTextureValue(UTexture2D* Dest, FColor Value)
+void FLandscapeTextureDataInterface::SetTextureValue(UTexture2D* Dest, FColor Value)
 {
 	SetTextureValueTempl<FColor>(Dest, Value);
 }
 
 template<typename TData>
-bool FLandscapeEditDataInterface::EqualTextureValueTempl(UTexture2D* Src, TData Value)
+bool FLandscapeTextureDataInterface::EqualTextureValueTempl(UTexture2D* Src, TData Value)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Src);
 	TData* DestTextureData = (TData*)DestDataInfo->GetMipData(0);
@@ -4116,7 +4116,7 @@ bool FLandscapeEditDataInterface::EqualTextureValueTempl(UTexture2D* Src, TData 
 	return true;
 }
 
-bool FLandscapeEditDataInterface::EqualTextureValue(UTexture2D* Src, FColor Value)
+bool FLandscapeTextureDataInterface::EqualTextureValue(UTexture2D* Src, FColor Value)
 {
 	return EqualTextureValueTempl<FColor>(Src, Value);
 }

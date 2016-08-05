@@ -4851,7 +4851,7 @@ void ULandscapeComponent::GeneratePlatformPixelData()
 	CreateEmptyTextureMips(NewWeightNormalmapTexture);
 
 	{
-		FLandscapeEditDataInterface LandscapeEdit(GetLandscapeInfo());
+		FLandscapeTextureDataInterface LandscapeData;
 
 		if (WeightmapTextures.Num() > 0)
 		{
@@ -4861,7 +4861,7 @@ void ULandscapeComponent::GeneratePlatformPixelData()
 				// Only for valid Layers
 				if (MobileAllocation.Allocation.LayerInfo)
 				{
-					LandscapeEdit.CopyTextureFromWeightmap(NewWeightNormalmapTexture, CurrentIdx, this, MobileAllocation.Allocation.LayerInfo);
+					LandscapeData.CopyTextureFromWeightmap(NewWeightNormalmapTexture, CurrentIdx, this, MobileAllocation.Allocation.LayerInfo);
 					CurrentIdx++;
 					if (CurrentIdx >= 2) // Only support 2 layers in texture
 					{
@@ -4872,8 +4872,8 @@ void ULandscapeComponent::GeneratePlatformPixelData()
 		}
 
 		// copy normals into B/A channels.
-		LandscapeEdit.CopyTextureFromHeightmap(NewWeightNormalmapTexture, 2, this, 2);
-		LandscapeEdit.CopyTextureFromHeightmap(NewWeightNormalmapTexture, 3, this, 3);
+		LandscapeData.CopyTextureFromHeightmap(NewWeightNormalmapTexture, 2, this, 2);
+		LandscapeData.CopyTextureFromHeightmap(NewWeightNormalmapTexture, 3, this, 3);
 	}
 
 	NewWeightNormalmapTexture->PostEditChange();
