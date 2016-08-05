@@ -968,7 +968,7 @@ void ALandscapeProxy::PostRegisterAllComponents()
 #endif
 }
 
-void ALandscapeProxy::UnregisterAllComponents()
+void ALandscapeProxy::UnregisterAllComponents(const bool bForReregister)
 {
 #if WITH_EDITOR
 	// Game worlds don't have landscape infos
@@ -987,7 +987,7 @@ void ALandscapeProxy::UnregisterAllComponents()
 	}
 #endif
 
-	Super::UnregisterAllComponents();
+	Super::UnregisterAllComponents(bForReregister);
 }
 
 // FLandscapeWeightmapUsage serializer

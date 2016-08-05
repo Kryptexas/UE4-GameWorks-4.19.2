@@ -3883,15 +3883,14 @@ void AActor::GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescen
 
 // COMPONENTS
 
-void AActor::UnregisterAllComponents()
+void AActor::UnregisterAllComponents(const bool bForReregister)
 {
 	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
-	for(int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+	for(UActorComponent* Component : Components)
 	{
-		UActorComponent* Component = Components[CompIdx]; 
-		if( Component->IsRegistered()) // In some cases unregistering one component can unregister another, so we do a check here to avoid trying twice
+		if( Component->IsRegistered() && (!bForReregister || Component->AllowReregistration())) // In some cases unregistering one component can unregister another, so we do a check here to avoid trying twice
 		{
 			Component->UnregisterComponent();
 		}
@@ -4046,7 +4045,7 @@ void AActor::MarkComponentsAsPendingKill()
 
 void AActor::ReregisterAllComponents()
 {
-	UnregisterAllComponents();
+	UnregisterAllComponents(true);
 	RegisterAllComponents();
 }
 

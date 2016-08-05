@@ -540,7 +540,7 @@ public:
 
 	//~ Begin AActor Interface
 	virtual void PostRegisterAllComponents() override;
-	virtual void UnregisterAllComponents() override;
+	virtual void UnregisterAllComponents(bool bForReregister = false) override;
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return true; }
 

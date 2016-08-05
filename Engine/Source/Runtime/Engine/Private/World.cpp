@@ -2045,6 +2045,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		// Keep track of timing.
 		double StartTime = FPlatformTime::Seconds();	
 
+		Level->bIsBeingRemoved = true;
+
 		for (int32 ActorIdx = 0; ActorIdx < Level->Actors.Num(); ActorIdx++)
 		{
 			AActor* Actor = Level->Actors[ActorIdx];
@@ -2129,6 +2131,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		BroadcastLevelsChanged();
 
 		ULevelStreaming::BroadcastLevelVisibleStatus(this, Level->GetOutermost()->GetFName(), false);
+
+		Level->bIsBeingRemoved = false;
 
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		UE_LOG(LogStreaming, Display, TEXT("UWorld::RemoveFromWorld for %s took %5.2f ms"), *Level->GetOutermost()->GetName(), (FPlatformTime::Seconds() - StartTime) * 1000.0);

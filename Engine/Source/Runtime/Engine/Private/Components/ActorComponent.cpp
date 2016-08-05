@@ -118,6 +118,7 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*=
 
 	CreationMethod = EComponentCreationMethod::Native;
 
+	bAllowReregistration = true;
 	bAutoRegister = true;
 	bNetAddressable = false;
 	bEditableWhenInherited = true;

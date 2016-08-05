@@ -141,6 +141,10 @@ public:
 	/** Does this component automatically register with its owner */
 	uint32 bAutoRegister:1;
 
+protected:
+	uint32 bAllowReregistration:1;
+
+public:
 	/** Should this component be ticked in the editor */
 	uint32 bTickInEditor:1;
 
@@ -711,10 +715,11 @@ public:
 	bool IsOwnerRunningUserConstructionScript() const;
 
 	/** See if this component is currently registered */
-	FORCEINLINE bool IsRegistered() const
-	{
-		return bRegistered;
-	}
+	FORCEINLINE bool IsRegistered() const { return bRegistered; }
+
+	/** Checked whether the component class allows reregistration */
+	FORCEINLINE bool AllowReregistration() const { return bAllowReregistration; }
+
 	/** Register this component, creating any rendering/physics state. Will also adds to outer Actor's Components array, if not already present. */
 	void RegisterComponent();
 
