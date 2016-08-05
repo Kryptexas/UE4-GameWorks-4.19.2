@@ -948,7 +948,7 @@ namespace UnrealBuildTool
 
 			SSHProcess.StartInfo.FileName = ResolvedSSHExe;
 			SSHProcess.StartInfo.Arguments = string.Format(
-				"{0} {1}@{2} \"{3}\"",
+				"-o BatchMode=yes {0} {1}@{2} \"{3}\"",
 //				"-o CheckHostIP=no {0} {1}@{2} \"{3}\"",
 				ResolvedSSHAuthentication,
 				RSyncUsername,
