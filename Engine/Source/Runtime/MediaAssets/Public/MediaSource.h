@@ -13,8 +13,8 @@
  * be played in a media player, such as a video file on disk, a video stream on
  * the internet, or a web cam attached to or built into the target device.
  */
-UCLASS(Abstract, BlueprintType, MinimalAPI, hidecategories=(Object))
-class UMediaSource
+UCLASS(Abstract, BlueprintType, hidecategories=(Object))
+class MEDIAASSETS_API UMediaSource
 	: public UObject
 	, public IMediaOptions
 {
@@ -23,7 +23,7 @@ class UMediaSource
 public:
 
 	/** Name of the default native media player for all platforms (Empty = find one automatically). */
-	UPROPERTY(EditAnywhere, Category=Playback)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Playback)
 	FString DefaultPlayer;
 
 #if WITH_EDITORONLY_DATA
