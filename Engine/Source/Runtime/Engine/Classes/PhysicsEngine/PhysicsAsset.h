@@ -68,6 +68,13 @@ class UPhysicsAsset : public UObject
 	TArray<class UPhysicsConstraintTemplate*> ConstraintSetup;
 
 public:
+
+	/**
+	* If true, bodies of the physics asset will be put into the asynchronous physics scene. If false, they will be put into the synchronous physics scene.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Physics)
+	uint8 bUseAsyncScene:1;
+
 	/** This caches the BodySetup Index by BodyName to speed up FindBodyIndex */
 	TMap<FName, int32>					BodySetupIndexMap;
 

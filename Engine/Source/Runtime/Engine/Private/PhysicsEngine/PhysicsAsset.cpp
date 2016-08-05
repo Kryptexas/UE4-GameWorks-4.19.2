@@ -7,13 +7,15 @@
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "FrameworkObjectVersion.h"
-
+#include "ReleaseObjectVersion.h"
+#include "MessageLog.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
 #include "PhysicsEngine/PhysicsAsset.h"
 
+#define LOCTEXT_NAMESPACE "PhysicsAsset"
 
 ///////////////////////////////////////	
 //////////// UPhysicsAsset ////////////
@@ -162,6 +164,46 @@ void UPhysicsAsset::PostLoad()
 	{
 		UpdateBodySetupIndexMap();
 	}
+
+	if (GetLinkerCustomVersion(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::NoSyncAsyncPhysAsset)
+	{
+		bool bCurrentUseAsync = false;
+		bool bAnyConflicts = false;
+		for (int32 BodySetupIdx = 0; BodySetupIdx < SkeletalBodySetups.Num(); ++BodySetupIdx)
+		{
+			if(UBodySetup* BS = SkeletalBodySetups[BodySetupIdx])
+			{
+				if(BodySetupIdx == 0)
+				{
+					bCurrentUseAsync = BS->DefaultInstance.bUseAsyncScene;
+				}
+				else if(BS->DefaultInstance.bUseAsyncScene != bCurrentUseAsync)
+				{
+					bAnyConflicts = true;
+					break;
+				}
+			}
+		}
+
+		bUseAsyncScene = bAnyConflicts ? false : bCurrentUseAsync;	//If there's any conflict just use the sync scene
+
+		for (UBodySetup* BS : SkeletalBodySetups)
+		{
+			if (BS)
+			{
+				BS->DefaultInstance.bUseAsyncScene = bUseAsyncScene;
+			}
+		}
+
+		
+#if WITH_EDITOR
+		if(bAnyConflicts)
+		{
+			FMessageLog("LoadErrors").Warning(FText::Format(LOCTEXT("ConflictSyncAsync", "Physics Asset had both sync and async bodies. Defaulting to sync scene only. If you'd like to use async change UseAsyncScene on the PhysicsAsset:{0}"),
+				FText::FromString(GetName())));
+		}
+#endif
+	}
 }
 
 void UPhysicsAsset::Serialize(FArchive& Ar)
@@ -176,6 +218,9 @@ void UPhysicsAsset::Serialize(FArchive& Ar)
 		DefaultSkelMesh_DEPRECATED = NULL;
 	}
 #endif
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 }
 
 
@@ -600,6 +645,14 @@ void UPhysicsAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 			SanitizeProfilesHelper<UPhysicsConstraintTemplate>(ConstraintSetup, PreConstraintProfiles, ConstraintProfiles, PropertyChangedEvent, PropertyName, CurrentConstraintProfileName, RenameFunc, DuplicateFunc, UpdateFunc);
 		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, bUseAsyncScene))
+		{
+			for(USkeletalBodySetup* BS : SkeletalBodySetups)
+			{
+				BS->Modify();
+				BS->DefaultInstance.bUseAsyncScene = bUseAsyncScene;
+			}
+		}
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -655,3 +708,5 @@ SIZE_T UPhysicsAsset::GetResourceSize(EResourceSizeMode::Type Mode)
 	// @todo implement inclusive mode
 	return ResourceSize;
 }
+
+#undef LOCTEXT_NAMESPACE

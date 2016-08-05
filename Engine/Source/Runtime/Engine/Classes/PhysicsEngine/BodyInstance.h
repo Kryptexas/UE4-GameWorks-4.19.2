@@ -1099,9 +1099,11 @@ private:
 	template<typename AllocatorType>
 	bool OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*, AllocatorType>& Bodies) const;
 
+	friend class UPhysicsAsset;
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
 	friend struct FUpdateCollisionResponseHelper;
+	friend class FBodySetupDetails;
 	
 	friend struct FInitBodiesHelper<true>;
 	friend struct FInitBodiesHelper<false>;

@@ -12,6 +12,9 @@ struct CORE_API FReleaseObjectVersion
 		// Static Mesh extended bounds radius fix
 		StaticMeshExtendedBoundsFix,
 
+		//Physics asset bodies are either in the sync scene or the async scene, but not both
+		NoSyncAsyncPhysAsset,
+
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

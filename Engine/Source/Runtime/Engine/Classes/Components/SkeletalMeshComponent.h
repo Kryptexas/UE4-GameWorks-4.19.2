@@ -406,12 +406,6 @@ public:
 	UPROPERTY(transient)
 	uint32 bHasValidBodies:1;
 
-	/** Set during InitArticulated, to indicate if there are bodies in the sync scene */
-	uint32 bHasBodiesInSyncScene:1;
-
-	/** Set during InitArticulated, to indicate if there are bodies in the async scene */
-	uint32 bHasBodiesInAsyncScene:1;
-
 	/** Indicates that this SkeletalMeshComponent has deferred kinematic bone updates until next physics sim.  */
 	uint32 bDeferredKinematicUpdate:1;
 
@@ -848,6 +842,8 @@ private:
 	 * if same curve is found
 	 **/
 	TMap<FName, float>	MorphTargetCurves;
+
+	static uint32 GetPhysicsSceneType(const UPhysicsAsset& PhysAsset, const FPhysScene& PhysScene);
 
 public:
 	const TMap<FName, float>& GetMorphTargetCurves() const { return MorphTargetCurves;  }

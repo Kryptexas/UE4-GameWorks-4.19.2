@@ -894,16 +894,6 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			FTransform BoneTransform = GetBoneTransform( BoneIndex );
 			BodyInst->InitBody( PhysicsAssetBodySetup, BoneTransform, this, PhysScene, Aggregate);
 #endif //WITH_PHYSX
-
-			// Remember if we have bodies in sync/async scene, so we know which scene(s) to lock when moving bodies
-			if(BodyInst->UseAsyncScene(PhysScene))
-			{
-				bHasBodiesInAsyncScene = true;
-			}
-			else
-			{
-				bHasBodiesInSyncScene = true;
-			}
 		}
 	}
 
@@ -914,7 +904,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	if (PhysScene)
 	{
 		// Get the scene type from the SkeletalMeshComponent's BodyInstance
-		const uint32 SceneType = (bHasBodiesInAsyncScene && PhysScene->HasAsyncScene()) ? PST_Async : PST_Sync;
+		const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene);
 		PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
 		SCOPED_SCENE_WRITE_LOCK(PScene);
 		// add Aggregate into the scene
@@ -1020,10 +1010,11 @@ void USkeletalMeshComponent::TermArticulated()
 		Aggregate = NULL;
 	}
 #endif //WITH_PHYSX
+}
 
-	// Reset bools for scenes
-	bHasBodiesInAsyncScene = false;
-	bHasBodiesInSyncScene = false;
+uint32 USkeletalMeshComponent::GetPhysicsSceneType(const UPhysicsAsset& PhysAsset, const FPhysScene& PhysScene)
+{
+	return (PhysAsset.bUseAsyncScene && PhysScene.HasAsyncScene()) ? PST_Async : PST_Sync;
 }
 
 void USkeletalMeshComponent::TermBodiesBelow(FName ParentBoneName)

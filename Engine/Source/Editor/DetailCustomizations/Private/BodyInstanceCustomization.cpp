@@ -1309,7 +1309,11 @@ void FBodyInstanceCustomizationHelper::CustomizeDetails( IDetailLayoutBuilder& D
 		AddMaxAngularVelocity(PhysicsCategory, BodyInstanceHandler);
 
 		TSharedRef<IPropertyHandle> AsyncEnabled = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bUseAsyncScene)).ToSharedRef();
-		PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+		if(AsyncEnabled->IsCustomized() == false)	//outer customization already handles it so don't bother adding
+		{
+			PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+		}
+		
 
 		//Add the rest
 		uint32 NumChildren = 0;
