@@ -487,18 +487,12 @@ public:
 	/** 
 	 * Set the actor lock. This is the actor locked to the viewport via the viewport menus.
 	 */
-	void SetActorLock(AActor* Actor)
-	{
-		return ActorLockedToCamera = Actor;
-	}
+	void SetActorLock(AActor* Actor);
 
 	/** 
 	 * Set the actor locked to the viewport by Matinee.
 	 */
-	void SetMatineeActorLock(AActor* Actor)
-	{
-		return ActorLockedByMatinee = Actor;
-	}
+	void SetMatineeActorLock(AActor* Actor);
 
 	/** 
 	 * Check whether this viewport is locked to the specified actor
