@@ -1319,16 +1319,6 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
 		FApp::SetIdleTime(ActualWaitTime);
 
-		if (IsRunningDedicatedServer())
-		{
-			// if we slept longer than intended, log this out
-			const double PermissibleDelayInMs = 10;	// server kernel may be configured to tick at 100 HZ, so forgive scheduler some imprecision
-			if (UNLIKELY(AdditionalWaitTimeInMs > PermissibleDelayInMs))
-			{
-				UE_LOG(LogEngine, Warning, TEXT("HITCHHUNTER: spent %f ms sleeping instead of %f ms intended (overshot by %f ms)"), ActualWaitTime * 1000.0, WaitTime * 1000.0f, AdditionalWaitTimeInMs);
-			}
-		}
-
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
 		{

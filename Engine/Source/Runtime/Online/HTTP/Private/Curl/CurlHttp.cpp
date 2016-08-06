@@ -809,19 +809,7 @@ void FCurlHttpRequest::FinishedRequest()
 		// Mark last request attempt as completed successfully
 		CompletionStatus = EHttpRequestStatus::Succeeded;
 		// Call delegate with valid request/response objects
-
-		double DelegateTime = 0.0;
-		
-		{
-			FSimpleScopeSecondsCounter TickTimer(DelegateTime);
-			OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),Response,true);
-		}
-
-		if (DelegateTime > 0.01)
-		{
-			UE_LOG(LogHttp, Warning, TEXT("HITCHHUNTER: Hitch in delegate (result == success) for HTTP request (time: %.1f ms) has been detected (URL: '%s')"), DelegateTime * 1000.0, *GetURL());
-		}
-
+		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),Response,true);
 	}
 	else
 	{
@@ -858,17 +846,7 @@ void FCurlHttpRequest::FinishedRequest()
 		Response = NULL;
 
 		// Call delegate with failure
-		double DelegateTime = 0.0;
-
-		{
-			FSimpleScopeSecondsCounter TickTimer(DelegateTime);
 		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),NULL,false);
-		}
-
-		if (DelegateTime > 0.01)
-		{
-			UE_LOG(LogHttp, Warning, TEXT("HITCHHUNTER: Hitch in delegate (result == failure) for HTTP request (time: %.1f ms) has been detected (URL: '%s')"), DelegateTime * 1000.0, *GetURL());
-		}
 	}
 }
 
