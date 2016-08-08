@@ -296,7 +296,12 @@ namespace AbcImporterUtilities
 			}
 			else
 			{
-				if (bNeedsTriangulation)
+				// For vertex only normals (and no normal indices available), expand using the regular indices
+				if (Sample->UVs.Num() != Sample->Indices.Num())
+				{
+					ExpandVertexAttributeArray<FVector2D>(Sample->Indices, Sample->UVs);
+				}
+				else if(bNeedsTriangulation)
 				{
 					TriangulateVertexAttributeBuffer(FaceCounts, Sample->UVs);
 				}
@@ -336,7 +341,12 @@ namespace AbcImporterUtilities
 			}
 			else
 			{
-				if (bNeedsTriangulation)
+				// For vertex only normals (and no normal indices available), expand using the regular indices
+				if (Sample->Normals.Num() != Sample->Indices.Num())
+				{
+					ExpandVertexAttributeArray<FVector>(Sample->Indices, Sample->Normals);
+				}
+				else if (bNeedsTriangulation)
 				{
 					TriangulateVertexAttributeBuffer(FaceCounts, Sample->Normals);
 				}
