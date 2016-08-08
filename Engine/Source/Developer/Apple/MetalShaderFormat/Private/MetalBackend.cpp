@@ -954,8 +954,12 @@ protected:
 		}
 		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT) && (var->mode == ir_var_auto || var->mode == ir_var_temporary || var->mode == ir_var_shared) && (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end()))
 		{
-			ralloc_asprintf_append(buffer, " = ");
-			print_zero_initialiser(var->type);
+			// @todo UE-34355 temporary workaround for 10.12 shader compiler error - really all arrays should be zero'd but only threadgroup shared initialisation works on the Beta drivers.
+			if (var->type->base_type != GLSL_TYPE_ARRAY || var->mode == ir_var_shared)
+			{
+				ralloc_asprintf_append(buffer, " = ");
+				print_zero_initialiser(var->type);
+			}
 		}
 	}
 
