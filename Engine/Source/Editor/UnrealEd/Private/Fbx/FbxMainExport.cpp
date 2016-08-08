@@ -2163,7 +2163,7 @@ void FFbxExporter::ExportRichCurveToFbxCurve( FRichCurve& RichCurve, FbxAnimCurv
 
 			FbxTime FbxTime;
 			FbxTime.SetSecondDouble( Time );
-			int FbxKeyIndex = FbxCurve.KeyAdd( Time );
+			int FbxKeyIndex = FbxCurve.KeyAdd( FbxTime );
 			FbxCurve.KeySet( FbxKeyIndex, FbxTime, CurveValue, FbxAnimCurveDef::eInterpolationConstant, FbxAnimCurveDef::eTangentAuto );
 		}
 	}
