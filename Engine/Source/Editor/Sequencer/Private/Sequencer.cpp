@@ -6185,6 +6185,10 @@ void FSequencer::BindCommands()
 		return true;
 	};
 
+	auto CanDelete = [this]{
+		return Selection.GetSelectedKeys().Num() || Selection.GetSelectedSections().Num() || Selection.GetSelectedOutlinerNodes().Num();
+	};
+
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Cut,
 		FExecuteAction::CreateSP(this, &FSequencer::CutSelectedKeys),
@@ -6196,6 +6200,11 @@ void FSequencer::BindCommands()
 		FExecuteAction::CreateSP(this, &FSequencer::CopySelectedKeys),
 		FCanExecuteAction::CreateLambda(CanCutOrCopy)
 	);
+
+	SequencerCommandBindings->MapAction(
+		FGenericCommands::Get().Delete,
+		FExecuteAction::CreateSP( this, &FSequencer::DeleteSelectedItems ),
+		FCanExecuteAction::CreateLambda(CanDelete));
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleForceFixedFrameIntervalPlayback,
@@ -6304,10 +6313,6 @@ void FSequencer::BindCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.SetInterpolationConstant,
 		FExecuteAction::CreateSP(this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Constant, ERichCurveTangentMode::RCTM_Auto));
-
-	SequencerCommandBindings->MapAction(
-		FGenericCommands::Get().Delete,
-		FExecuteAction::CreateSP( this, &FSequencer::DeleteSelectedItems ));
 
 	SequencerCommandBindings->MapAction(
 		Commands.TogglePlay,
