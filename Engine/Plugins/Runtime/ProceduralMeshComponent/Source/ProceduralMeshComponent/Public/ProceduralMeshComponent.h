@@ -2,9 +2,8 @@
 
 #pragma once
 #include "Components/MeshComponent.h"
+#include "PhysicsEngine/ConvexElem.h"
 #include "ProceduralMeshComponent.generated.h"
-
-struct FKConvexElem;
 
 /**
 *	Struct used to specify a tangent vector for a vertex
