@@ -614,7 +614,7 @@
 			<Sign Files="#Files to Sign" Tag="#Installed Build Mac Files"/>
 
 			<!-- Copy the compressed DDC -->
-			<Property Name="SavedDir" Value="$(SavedOutput)\Installed\Mac"/>
+			<Property Name="SavedDir" Value="$(SavedOutput)/Installed/Mac"/>
 			<Copy Files="#CompressedDDCMac" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDirMac)" If="'$(WithDDC)' == true" Tag="#Installed Build Mac Files"/>
 
 			<!-- Create command line arguments for any platforms that were built with additional architectures -->
