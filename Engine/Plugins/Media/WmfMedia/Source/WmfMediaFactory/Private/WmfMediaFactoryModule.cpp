@@ -128,7 +128,7 @@ public:
 		SupportedFileExtensions.Add(TEXT("wmv"));
 
 		// supported platforms
-#if WINVVER >= _WIN32_WINNT_VISTA
+#if WINVER >= _WIN32_WINNT_VISTA
 		SupportedPlatforms.Add(TEXT("Windows"));
 #endif
 
