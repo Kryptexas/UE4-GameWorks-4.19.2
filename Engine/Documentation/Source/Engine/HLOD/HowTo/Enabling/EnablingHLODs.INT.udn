@@ -9,7 +9,7 @@ related:Engine/HLOD/Reference
 The **Hierarchical Level of Detail System** (HLOD) must be enabled on each Level that wants to make use of it. Follow the steps below to enable the Hierarchical LOD System.
 
 [REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+HLOD doesn't currently work well with dynamic shadows (casting or receiving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
 [/REGION]
 
 ## Steps
