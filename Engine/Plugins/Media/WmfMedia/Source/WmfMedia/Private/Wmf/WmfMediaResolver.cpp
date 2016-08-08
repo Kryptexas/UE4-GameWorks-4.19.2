@@ -127,7 +127,7 @@ STDMETHODIMP FWmfMediaResolver::Invoke(IMFAsyncResult* AsyncResult)
 	}
 
 	// is this the resolve state we care about?
-	FWmfMediaResolveState* State = NULL;
+	TComPtr<FWmfMediaResolveState> State;
 
 	if (FAILED(AsyncResult->GetState((IUnknown**)&State)) || (State != ResolveStateCopy))
 	{
