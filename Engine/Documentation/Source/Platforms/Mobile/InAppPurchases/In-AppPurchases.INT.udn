@@ -76,9 +76,7 @@ There is a non-latent version of this function (the Blueprint node will display 
 
 ![image alt text](image_5.png)
 
-To restrore purchases, use the **Restore In-App Purchases** Blueprint node (or associated C++ function call). It only takes in the Player Controller, and returns an array of all the purchase information associated with that Player Controller. You can then process that array to compare against the particular Identifier (or Identifiers) that your gameplay logic needs. 
+To restore purchases, use the **Restore In-App Purchases** Blueprint node (or associated C++ function call). It only takes in the Player Controller, and returns an array of all the purchase information associated with that Player Controller. You can then process that array to compare against the particular Identifier (or Identifiers) that your gameplay logic needs. 
 
 [/EXCERPT:usage]
-[REGION:warning]
-As of 4.10, Restore In-App Purchases is a function that only works on iOS. 
-[/REGION]
+

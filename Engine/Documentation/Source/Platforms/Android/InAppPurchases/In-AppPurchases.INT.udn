@@ -7,7 +7,7 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:howto
-
+Related:Platforms/Mobile/InAppPurchases/
 
 ## Configuration
 
@@ -34,6 +34,11 @@ type:howto
 1. Add an element to ExtraPermissions called "com.android.vending.BILLING".
 	
 	![image alt text](image_2.png)
+
+1. Edit [ProjectName]/Config/IOS/IOSEngine.ini:
+
+		[OnlineSubsystemIOS.Store]
+		bSupportsInAppPurchasing=True
 
 [INCLUDE:Platforms/Mobile/InAppPurchases#usage_android]
 
