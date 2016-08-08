@@ -435,6 +435,9 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 
 			if (AnimScriptInstance)
 			{
+				// If we have any sub-instances left we need to clear them out now, we're about to have a new master instance
+				SubInstances.Empty();
+
 				AnimScriptInstance->InitializeAnimation();
 				bCalledInitialize = true;
 			}
