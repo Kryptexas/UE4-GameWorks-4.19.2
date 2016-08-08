@@ -3,8 +3,6 @@
 #include "EnginePrivate.h"
 #include "Net/OnlineEngineInterface.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 UOnlineEngineInterface* UOnlineEngineInterface::Singleton = nullptr;
 
 UOnlineEngineInterface::UOnlineEngineInterface(const FObjectInitializer& ObjectInitializer)
@@ -30,5 +28,3 @@ UOnlineEngineInterface* UOnlineEngineInterface::Get()
 
 	return Singleton;
 }
-
-PRAGMA_ENABLE_OPTIMIZATION
