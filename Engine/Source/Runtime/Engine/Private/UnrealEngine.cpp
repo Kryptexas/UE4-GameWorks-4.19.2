@@ -1596,38 +1596,32 @@ void UEngine::InitializeObjectReferences()
 	// set the font object pointers, unless on server
 	if (!IsRunningDedicatedServer())
 	{
-		if (TinyFont == NULL && TinyFontName.ToString().Len())
+		auto ConditionalLoadEngineFont = [](UFont*& FontPtr, const FString& FontName)
 		{
-			TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (SmallFont == NULL && SmallFontName.ToString().Len())
-		{
-			SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (MediumFont == NULL && MediumFontName.ToString().Len())
-		{
-			MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (LargeFont == NULL && LargeFontName.ToString().Len())
-		{
-			LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
-		{
-			SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
-		}
+			if (!FontPtr && FontName.Len() > 0)
+			{
+				FontPtr = LoadObject<UFont>(nullptr, *FontName, nullptr, LOAD_None, nullptr);
+			}
+			if (FontPtr)
+			{
+				FontPtr->ForceLoadFontData();
+			}
+		};
+
+		// Standard fonts.
+		ConditionalLoadEngineFont(TinyFont, TinyFontName.ToString());
+		ConditionalLoadEngineFont(SmallFont, SmallFontName.ToString());
+		ConditionalLoadEngineFont(MediumFont, MediumFontName.ToString());
+		ConditionalLoadEngineFont(LargeFont, LargeFontName.ToString());
+		ConditionalLoadEngineFont(SubtitleFont, SubtitleFontName.ToString());
 
 		// Additional fonts.
-		AdditionalFonts.Empty( AdditionalFontNames.Num() );
-		for ( int32 FontIndex = 0 ; FontIndex < AdditionalFontNames.Num() ; ++FontIndex )
+		AdditionalFonts.Empty(AdditionalFontNames.Num());
+		for (const FString& FontName : AdditionalFontNames)
 		{
-			const FString& FontName = AdditionalFontNames[FontIndex];
-			UFont* NewFont = NULL;
-			if( FontName.Len() )
-			{
-				NewFont = LoadObject<UFont>(NULL,*FontName,NULL,LOAD_None,NULL);
-			}
-			AdditionalFonts.Add( NewFont );
+			UFont* NewFont = nullptr;
+			ConditionalLoadEngineFont(NewFont, FontName);
+			AdditionalFonts.Add(NewFont);
 		}
 	}
 

@@ -284,4 +284,10 @@ public:
 	/** Determines the height and width for the passed in string. */
 	ENGINE_API void GetStringHeightAndWidth( const FString& InString, int32& Height, int32& Width ) const;
 	ENGINE_API void GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Width ) const;
+
+	/**
+	 * Loads any bulk data associated with this font, and flags it to be loaded for the lifespan of this font.
+	 * Typically this is handled automatically as fonts are used, however you'll want to call this for any fonts used by the rendering thread (as we can't load the bulk data on that thread).
+	 */
+	ENGINE_API void ForceLoadFontData();
 };

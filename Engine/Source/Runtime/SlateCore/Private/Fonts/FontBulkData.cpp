@@ -6,7 +6,6 @@
 // The total amount of memory we are using to store raw font bytes in bulk data
 DECLARE_MEMORY_STAT(TEXT("Font BulkData Memory"), STAT_SlateBulkFontDataMemory, STATGROUP_SlateMemory);
 
-
 UFontBulkData::UFontBulkData()
 {
 	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed|BULKDATA_SerializeCompressedBitWindow);
@@ -16,7 +15,6 @@ void UFontBulkData::Initialize(const FString& InFontFilename)
 {
 	// The bulk data cannot be removed if we are loading from source file
 	BulkData.ClearBulkDataFlags( BULKDATA_SingleUse );
-
 	
 	TUniquePtr<FArchive> Reader(IFileManager::Get().CreateFileReader(*InFontFilename, 0));
 	if(Reader)
@@ -87,6 +85,29 @@ void UFontBulkData::Unlock() const
 	CriticalSection.Unlock();
 }
 
+void UFontBulkData::ForceLoadBulkData()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	// Keep the bulk data resident once it's been loaded
+	BulkData.ClearBulkDataFlags(BULKDATA_SingleUse);
+
+#if STATS
+	const bool bWasLoaded = BulkData.IsBulkDataLoaded();
+#endif
+
+	// Trigger the load (if needed)
+	BulkData.LockReadOnly();
+	BulkData.Unlock();
+
+#if STATS
+	if (!bWasLoaded && BulkData.IsBulkDataLoaded())
+	{
+		INC_DWORD_STAT_BY(STAT_SlateBulkFontDataMemory, BulkData.GetBulkDataSize());
+	}
+#endif
+}
+
 int32 UFontBulkData::GetBulkDataSize() const
 {
 	return BulkData.GetBulkDataSize();
@@ -108,7 +129,7 @@ void UFontBulkData::Serialize(FArchive& Ar)
 	}
 
 #if STATS
-	if( BulkData.IsBulkDataLoaded() )
+	if( Ar.IsLoading() && BulkData.IsBulkDataLoaded() )
 	{
 		INC_DWORD_STAT_BY( STAT_SlateBulkFontDataMemory, BulkData.GetBulkDataSize() );
 	}
