@@ -843,7 +843,12 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 				{
 					if(USCS_Node* SCS_Node = Node->GetSCSNode())
 					{
-						SCS_Node->Modify();
+						USimpleConstructionScript* SCS = SCS_Node->GetSCS();
+						UBlueprint* Blueprint = SCS ? SCS->GetBlueprint() : nullptr;
+						if (Blueprint == PreviewBlueprint)
+						{
+							SCS_Node->Modify();
+						}
 					}
 
 					// Modify both the component template and the instance in the preview actor (provided there is one)

@@ -81,6 +81,9 @@ public:
 	/** Initialise from data set */
 	void InitialiseFromDataSet(const TArray<TSharedPtr<FScriptPerfData>>& DataSet);
 
+	/** Initialise as accumulated from data set */
+	void AccumulateDataSet(const TArray<TSharedPtr<FScriptPerfData>>& DataSet);
+
 	/** Increments sample count without affecting data */
 	void TickSamples() { RawSamples++; }
 
@@ -100,7 +103,7 @@ public:
 	double GetMaxTiming() const { return MaxTiming; }
 	double GetMinTiming() const { return MinTiming; }
 	double GetTotalTiming() const { return AverageTiming; }
-	int32 GetSampleCount() const { return RawSamples / SampleFrequency; }
+	float GetSampleCount() const { return RawSamples / SampleFrequency; }
 	void OverrideSampleCount(const int32 NewSampleCount) { RawSamples = NewSampleCount; }
 
 	// Returns performance heat levels for visual display
@@ -129,7 +132,7 @@ private:
 	/** The stat type for performance threshold comparisons */
 	const EScriptPerfDataType StatType;
 	/** The sample frequency */
-	const int32 SampleFrequency;
+	float SampleFrequency;
 
 	/** Average timing */
 	double AverageTiming;

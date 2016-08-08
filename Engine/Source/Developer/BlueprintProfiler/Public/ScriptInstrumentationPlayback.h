@@ -115,6 +115,12 @@ public:
 	/** Basic function name creation that allows for UFunction lookups in the correct class */
 	FName GetFunctionNameFromGraph(const UEdGraph* Graph) const;
 
+	/** Registers a pure node using the pin connected to it for later lookup */
+	void RegisterPurePinNode(const UEdGraphPin* PurePin, TSharedPtr<FScriptExecutionNode> PureExecNode) { PureNodeMap.Add(PurePin) = PureExecNode; }
+
+	/** Locates a pure node using the pin connected to it. */
+	TSharedPtr<FScriptExecutionNode> FindPurePinNode(const UEdGraphPin* PurePin);
+
 private:
 
 	/** Creates and returns a new function context, returns existing if present  */
@@ -146,6 +152,8 @@ private:
 	TMap<FName, TWeakObjectPtr<const UObject>> EditorActorInstances;
 	/** PIE instances */
 	TMap<FName, TWeakObjectPtr<const UObject>> PIEActorInstances;
+	/** Pin to pure node map, used to lookup pure nodes across function boundaries */
+	TMap<FEdGraphPinReference, TSharedPtr<FScriptExecutionNode>> PureNodeMap;
 	/** Event Trace History */
 	TSimpleRingBuffer<FBlueprintExecutionTrace> ExecutionTraceHistory;
 };
@@ -211,9 +219,6 @@ public:
 	TSharedPtr<FScriptExecutionNode> GetProfilerDataForNodeChecked(const FName NodeName) const;
 
 	/** Returns the execution node representing the graph node */
-	TSharedPtr<FScriptExecutionNode> GetProfilerDataForGraphPin(const UEdGraphPin* Pin) const;
-
-	/** Returns the execution node representing the graph node */
 	TSharedPtr<FScriptExecutionNode> GetProfilerDataForGraphNode(const UEdGraphNode* Node) const;
 
 	/** Returns the execution node representing the node name */
@@ -258,13 +263,19 @@ public:
 	/** Utility function that returns the graph from the supplied node, handling tunnel boundaries to return the inner graph */
 	static UEdGraph* GetGraphFromNode(const UEdGraphNode* GraphNode, const bool bAllowNonTunnel = true);
 
+	/** Utility function that returns the graph name from the node argument */
+	static FName GetGraphNameFromNode(const UEdGraphNode* GraphNode);
+
 	/** Utility function that returns the tunnel instance function name */
 	static FName GetTunnelInstanceFunctionName(const UEdGraphNode* GraphNode);
 
 	/** Utility to get the scoped function name from the graph node */
 	FName GetScopedFunctionNameFromNode(const UEdGraphNode* GraphNode) const;
 
-	/** Utility function that returns customizations for a node (e.g. Node Color) */
+	/** Utility function that returns customizations for a pin node (e.g. Node Color/Icon) */
+	static void GetPinCustomizations(const UEdGraphPin* Pin, FScriptExecNodeParams& PinParams);
+
+	/** Utility function that returns customizations for a node (e.g. Node Color/Icon) */
 	void GetNodeCustomizations(FScriptExecNodeParams& ParamsInOut) const;
 
 protected:
@@ -290,6 +301,9 @@ protected:
 	/** Processes and detects any cyclic links making the linkage safe for traversal */
 	bool DetectCyclicLinks(TSharedPtr<FScriptExecutionNode> ExecNode, TSet<TSharedPtr<FScriptExecutionNode>>& Filter);
 
+	/** Add child function context */
+	void AddChildFunctionContext(const FName FunctionNameIn, TSharedPtr<FBlueprintFunctionContext> ChildContext);
+
 	// --Execution mapping functionality
 
 	/** Examines graphs nodes and determines some characterists to aid in creation of the matching executable node */
@@ -297,6 +311,9 @@ protected:
 
 	/** Maps each blueprint node following execution wires */
 	virtual TSharedPtr<FScriptExecutionNode> MapNodeExecution(UEdGraphNode* NodeToMap);
+
+	/** Maps pure node chains following the input pure wires */
+	virtual TSharedPtr<FScriptExecutionNode> MapPureNodeExecution(const UEdGraphPin* PinToMap);
 
 	/** Returns the pure chain root node for the argument execution node, creating one if not existing */
 	TSharedPtr<FScriptExecutionNode> FindOrCreatePureChainRoot(TSharedPtr<FScriptExecutionNode> ExecNode);
@@ -313,7 +330,7 @@ protected:
 	virtual TSharedPtr<FScriptExecutionNode> MapTunnelBoundary(const UEdGraphPin* TunnelPin);
 
 	/** Get tunnel boundary node */
-	TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNodeChecked(const UEdGraphPin* TunnelPin);
+	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNodeChecked(const UEdGraphPin* TunnelPin);
 
 	/** Maps the tunnel point into the instanced graph, creating the instanced graph if not already existing. */
 	void MapTunnelInstance(UK2Node_Tunnel* TunnelInstance);
@@ -363,14 +380,13 @@ public:
 	// ~FBlueprintFunctionContext Begin
 	virtual void InitialiseContextFromGraph(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FName TunnelInstanceName, UEdGraph* TunnelGraph);
 	virtual void MapFunction() override {}
-	virtual bool GetProfilerContextFromScriptOffset(const int32 ScriptOffset, TSharedPtr<FScriptExecutionNode>& ExecNode, TSharedPtr<FBlueprintFunctionContext>& FunctionContext) override;
 	// ~FBlueprintFunctionContext End
 
 	/** Maps a tunnel function context */
 	void MapTunnelContext(TSharedPtr<FBlueprintFunctionContext> CallingFunctionContext, UK2Node_Tunnel* TunnelInstance);
 
-	/** Get pure node from the tunnel pin */
-	TSharedPtr<FScriptExecutionNode> GetPureNodeFromTunnelPin(const UEdGraphPin* TunnelPin) const;
+	/** Sets the tunnel context parent context */
+	void SetParentContext(TSharedPtr<FBlueprintFunctionContext> ParentContextIn);
 
 private:
 
@@ -379,11 +395,16 @@ private:
 	// ~FBlueprintFunctionContext Begin
 	virtual TSharedPtr<FScriptExecutionNode> MapNodeExecution(UEdGraphNode* NodeToMap) override;
 	virtual void MapInputPins(TSharedPtr<FScriptExecutionNode> ExecNode, const TArray<UEdGraphPin*>& Pins) override;
+	virtual TSharedPtr<FScriptExecutionNode> MapPureNodeExecution(const UEdGraphPin* LinkedPin) override;
+	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNodeChecked(const UEdGraphPin* TunnelPin) override;
 	virtual TSharedPtr<FScriptExecutionNode> MapTunnelBoundary(const UEdGraphPin* TunnelPin) override;
 	// ~FBlueprintFunctionContext End
 	
 	/** Maps input and output pins in a tunnel graph */
-	void MapTunnelIO();
+	void MapTunnelIO(TMap<UEdGraphPin*, UEdGraphPin*>& PurePinsOut);
+
+	/** Maps pure chain connections once everything else is in place */
+	void MapTunnelPureIO(const TMap<UEdGraphPin*, UEdGraphPin*>& PurePinsOut);
 
 	/** Returns true if the node is an internal part of this tunnel */
 	bool IsTunnelNodeInternal(const UEdGraphNode* TunnelNode);
@@ -394,8 +415,13 @@ private:
 	/** Discovers already mapped exit sites */
 	void DiscoverExitSites(TSharedPtr<FScriptExecutionNode> MappedNode);
 
+	/** Looks up a function context using the nodes graph */
+	TSharedPtr<FBlueprintFunctionContext> FindContextByNodeGraph(const UEdGraphNode* GraphNode);
+
 private:
 
+	/** Tunnel context that are contained by this tunnel context */
+	TWeakPtr<FBlueprintTunnelInstanceContext> ParentTunnel;
 	/** The tunnel instance this context represents */
 	TWeakObjectPtr<UK2Node_Tunnel> TunnelInstanceNode;
 	/** The tunnel pure pin link nodes */
@@ -419,6 +445,7 @@ public:
 
 		/** Node signal properties */
 		TSharedPtr<FScriptExecutionNode> ImpureNode;
+		TMap<int32, TSharedPtr<FScriptExecutionNode>> PureNodes;
 		TSharedPtr<FBlueprintFunctionContext> FunctionContext;
 		TArray<class FScriptInstrumentedEvent> AverageEvents;
 		TArray<class FScriptInstrumentedEvent> InclusiveEvents;

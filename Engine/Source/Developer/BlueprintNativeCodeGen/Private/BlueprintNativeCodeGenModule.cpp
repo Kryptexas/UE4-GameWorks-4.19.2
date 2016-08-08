@@ -60,7 +60,7 @@ private:
 	FBlueprintNativeCodeGenManifest& GetManifest(const TCHAR* PlatformName);
 	void GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName);
 	void CollectBoundFunctions(UBlueprint* BP);
-	void GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName);
+	void GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary = TSharedPtr<FNativizationSummary>());
 
 	TMap< FString, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
 
@@ -290,6 +290,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 
 void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 {
+	TSharedPtr<FNativizationSummary> NativizationSummary(new FNativizationSummary());
 	for (TAssetPtr<UBlueprint>& BPPtr : ToGenerate)
 	{
 		UBlueprint* BP = BPPtr.LoadSynchronous();
@@ -297,8 +298,18 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 		{
 			for (const FString& PlatformName : TargetPlatformNames)
 			{
-				GenerateSingleAsset(BP->GeneratedClass, *PlatformName);
+				GenerateSingleAsset(BP->GeneratedClass, *PlatformName, NativizationSummary);
 			}
+		}
+	}
+	
+	if (NativizationSummary->InaccessiblePropertyStat.Num())
+	{
+		UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Nativization Summary - Inaccessible Properties:"));
+		NativizationSummary->InaccessiblePropertyStat.ValueSort(TGreater<int32>());
+		for (auto& Iter : NativizationSummary->InaccessiblePropertyStat)
+		{
+			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("\t %s \t - %d"), *Iter.Key.ToString(), Iter.Value);
 		}
 	}
 }
@@ -339,7 +350,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCH
 	GetManifest(PlatformName).GatherModuleDependencies(BP->GetOutermost());
 }
 
-void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName)
+void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary)
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	auto& BackendPCHQuery = BackEndModule.OnPCHFilenameQuery();
@@ -356,7 +367,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 	TSharedPtr<FString> HeaderSource(new FString());
 	TSharedPtr<FString> CppSource(new FString());
 
-	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource);
+	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource, NativizationSummary);
 	bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
 	// Run the cpp first, because we cue off of the presence of a header for a valid conversion record (see
 	// FConvertedAssetRecord::IsValid)

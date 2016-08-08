@@ -202,19 +202,8 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		TSharedPtr<FBlueprintEditorToolbar> Toolbar = MakeShareable(new FBlueprintEditorToolbar(InBlueprintEditor.Pin()));
 		TSharedPtr<FExtender> Extender = MakeShareable(new FExtender);
 		Toolbar->AddNewToolbar(Extender);
-
-		if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-		{
-			ToolbarBuilderWidget = SNullWidget::NullWidget;
-		}
-		else
-		{
-			FToolBarBuilder ToolbarBuilder(ToolKitCommandList, FMultiBoxCustomization::None, Extender);
-			ToolbarBuilder.BeginSection("MyBlueprint");
-			ToolbarBuilder.EndSection();
-			ToolbarBuilderWidget = ToolbarBuilder.MakeWidget();
-		}
-
+		ToolbarBuilderWidget = SNullWidget::NullWidget;
+	
 		ToolKitCommandList->MapAction(FGenericCommands::Get().Rename,
 			FExecuteAction::CreateSP(this, &SMyBlueprint::OnRequestRenameOnActionNode),
 			FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanRequestRenameOnActionNode));
@@ -228,40 +217,38 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	}
 
 	TSharedPtr<SWidget> AddNewMenu = SNullWidget::NullWidget;
-	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-	{
-		AddNewMenu = SNew(SComboButton)
-			.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
-			.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-			.ForegroundColor(FLinearColor::White)
-			.ToolTipText(LOCTEXT("AddNewToolTip", "Add a new Variable, Graph, Function, Macro, or Event Dispatcher."))
-			.OnGetMenuContent(this, &SMyBlueprint::CreateAddNewMenuWidget)
-			.HasDownArrow(true)
-			.ContentPadding(FMargin(1, 0, 2, 0))
-			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MyBlueprintAddNewCombo")))
-			.IsEnabled(this, &SMyBlueprint::IsEditingMode)
-			.ButtonContent()
-			[
-				SNew(SHorizontalBox)
 
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(FMargin(0, 1))
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("Plus"))
-				]
+	AddNewMenu = SNew(SComboButton)
+		.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+		.ForegroundColor(FLinearColor::White)
+		.ToolTipText(LOCTEXT("AddNewToolTip", "Add a new Variable, Graph, Function, Macro, or Event Dispatcher."))
+		.OnGetMenuContent(this, &SMyBlueprint::CreateAddNewMenuWidget)
+		.HasDownArrow(true)
+		.ContentPadding(FMargin(1, 0, 2, 0))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MyBlueprintAddNewCombo")))
+		.IsEnabled(this, &SMyBlueprint::IsEditingMode)
+		.ButtonContent()
+		[
+			SNew(SHorizontalBox)
 
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(FMargin(2, 0, 2, 0))
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AddNew", "Add New"))
-				]
-			];
-	}
+			+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(FMargin(0, 1))
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush("Plus"))
+		]
+
+	+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(FMargin(2, 0, 2, 0))
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AddNew", "Add New"))
+		]
+		];
 
 	FMenuBuilder ViewOptions(true, nullptr);
 

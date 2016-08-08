@@ -2051,9 +2051,12 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubClassObjects(UClass* Supe
 // don't want other files ending up with this internal define
 #undef DEFERRED_DEPENDENCY_CHECK
 
-FBlueprintDependencyData::FBlueprintDependencyData(const TCHAR* InPackageName
-	, const TCHAR* InObjectName, const TCHAR* InClassPackageName, const TCHAR* InClassName) 
-	: PackageName(InPackageName)
+FBlueprintDependencyData::FBlueprintDependencyData(const TCHAR* InPackageFolder
+	, const TCHAR* InShortPackageName
+	, const TCHAR* InObjectName
+	, const TCHAR* InClassPackageName
+	, const TCHAR* InClassName) 
+	: PackageName(*(FString(InPackageFolder) + TEXT("/") + InShortPackageName))
 	, ObjectName(InObjectName)
 	, ClassPackageName(InClassPackageName)
 	, ClassName(InClassName)

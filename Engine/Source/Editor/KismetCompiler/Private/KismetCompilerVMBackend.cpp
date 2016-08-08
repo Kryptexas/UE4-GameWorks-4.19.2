@@ -1034,6 +1034,7 @@ public:
 		const bool bIsCustomThunk = FunctionToCall->HasMetaData(TEXT("CustomThunk"));
 		if (bIsCustomThunk)
 		{
+			// collect all parameters that (should) have wildcard type.
 			auto CollectWildcards = [&](FName MetaDataName)
 			{
 				const FString DependentPinMetaData = FunctionToCall->GetMetaData(MetaDataName);
@@ -1067,6 +1068,8 @@ public:
 				else
 				{
 					const bool bWildcard = WildcardParams.Contains(FuncParamProperty->GetFName());
+					// Native type of a wildcard parameter should be ignored.
+					// When no coerce property is passed, a type of literal will be retrieved from the term.
 					EmitTerm(Term, bWildcard ? nullptr : FuncParamProperty);
 				}
 				NumParams++;
@@ -1563,6 +1566,8 @@ public:
 			uint8 EventType = 0;
 			switch (Statement.Type)
 			{
+			case KCST_InstrumentedEvent:			EventType = EScriptInstrumentation::InlineEvent; break;
+			case KCST_InstrumentedEventStop:		EventType = EScriptInstrumentation::Stop; break;
 			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
 			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
 			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
@@ -1574,6 +1579,11 @@ public:
 			}
 			Writer << EX_InstrumentationEvent;
 			Writer << EventType;
+			if (EventType == EScriptInstrumentation::InlineEvent)
+			{
+				FName EventName(*Statement.Comment);
+				Writer << EventName;
+			}
 		}
 
 		TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
@@ -1794,6 +1804,8 @@ public:
 			break;
 		case KCST_DebugSite:
 		case KCST_WireTraceSite:
+		case KCST_InstrumentedEvent:
+		case KCST_InstrumentedEventStop:
 		case KCST_InstrumentedWireEntry:
 		case KCST_InstrumentedWireExit:
 		case KCST_InstrumentedStatePush:

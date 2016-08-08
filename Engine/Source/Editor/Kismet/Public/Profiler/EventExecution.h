@@ -57,7 +57,8 @@ namespace EScriptStatContainerType
 		Standard = 0,
 		Container,
 		SequentialBranch,
-		NewExecutionPath
+		NewExecutionPath,
+		PureNode
 	};
 }
 
@@ -258,7 +259,10 @@ public:
 
 	/** Returns if this exec event represents the start of a custon event execution path */
 	bool IsCustomEvent() const { return (NodeFlags & EScriptExecutionNodeFlags::CustomEvent) != 0U; }
-	
+
+	/** Returns if this exec event represents the start of a delegate pin event execution path */
+	bool IsEventPin() const { return (NodeFlags & EScriptExecutionNodeFlags::EventPin) != 0U; }
+
 	/** Returns if this event is a function callsite event */
 	bool IsFunctionCallSite() const { return (NodeFlags & EScriptExecutionNodeFlags::FunctionCall) != 0U; }
 
@@ -335,7 +339,7 @@ public:
 	void SetExpanded(bool bIsExpanded) { bExpansionState = bIsExpanded; }
 
 	/** Returns the pure chain node associated with this exec node (if one exists) */
-	TSharedPtr<FScriptExecutionNode> GetPureChainNode();
+	virtual TSharedPtr<FScriptExecutionNode> GetPureChainNode();
 
 	/** Returns pure node script code range */
 	FInt32Range GetPureNodeScriptCodeRange() const { return PureNodeScriptCodeRange; }
@@ -556,20 +560,23 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// FScriptExecutionPureNode
+// FScriptExecutionPureChainNode
 
-class KISMET_API FScriptExecutionPureNode : public FScriptExecutionNode
+class KISMET_API FScriptExecutionPureChainNode : public FScriptExecutionNode
 {
 public:
 
-	FScriptExecutionPureNode(const FScriptExecNodeParams& InitParams)
+	FScriptExecutionPureChainNode(const FScriptExecNodeParams& InitParams)
 		: FScriptExecutionNode(InitParams)
 	{
 	}
 
 	// FScriptExecutionNode
+	virtual TSharedPtr<FScriptExecutionNode> GetPureChainNode() override { return AsShared(); }
 	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
 	virtual void RefreshStats(const FTracePath& TracePath) override;
+	virtual float CalculateHottestPathStats(FScriptExecutionHottestPathParams HotPathParams) override;
+	virtual void CalculateHeatLevelStats(TSharedPtr<FScriptHeatLevelMetrics> HeatLevelMetrics);
 	// ~FScriptExecutionNode
 
 };

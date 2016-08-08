@@ -872,6 +872,12 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			const uint8 EventType = ReadBYTE(ScriptIndex);
 			switch (EventType)
 			{
+				case EScriptInstrumentation::InlineEvent:
+					Ar.Logf(TEXT("%s $%X: .. instrumented inline event .."), *Indents, (int32)Opcode);
+					break;
+				case EScriptInstrumentation::Stop:
+					Ar.Logf(TEXT("%s $%X: .. instrumented event stop .."), *Indents, (int32)Opcode);
+					break;
 				case EScriptInstrumentation::PureNodeEntry:
 					Ar.Logf(TEXT("%s $%X: .. instrumented pure node entry site .."), *Indents, (int32)Opcode);
 					break;

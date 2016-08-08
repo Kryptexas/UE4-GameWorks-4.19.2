@@ -305,6 +305,7 @@ namespace EScriptInstrumentation
 		ClassScope,
 		Instance,
 		Event,
+		InlineEvent,
 		ResumeEvent,
 		PureNodeEntry,
 		NodeDebugSite,
@@ -353,12 +354,13 @@ struct COREUOBJECT_API FScriptInstrumentationSignal
 {
 public:
 
-	FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame);
+	FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame, const FName EventNameIn = NAME_None);
 
 	FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, UFunction* InFunction, const int32 LinkId = INDEX_NONE)
 		: EventType(InEventType)
 		, ContextObject(InContextObject)
 		, Function(InFunction)
+		, EventName(NAME_None)
 		, StackFramePtr(nullptr)
 		, LatentLinkId(LinkId)
 	{
@@ -405,6 +407,8 @@ protected:
 	const UObject* ContextObject;
 	/** The function that emitted this event */
 	const UFunction* Function;
+	/** The event override name */
+	const FName EventName;
 	/** The stack frame for the  */
 	const struct FFrame* StackFramePtr;
 	const int32 LatentLinkId;

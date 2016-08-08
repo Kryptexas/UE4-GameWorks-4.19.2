@@ -418,6 +418,18 @@ void SGraphNode::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	CachedUnscaledPosition = AllottedGeometry.AbsolutePosition/AllottedGeometry.Scale;
 
 	SNodePanel::SNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if (IsHovered())
+	{
+		if (FNodeSlot* CommentSlot = GetSlot(ENodeZone::TopCenter))
+		{
+			TSharedPtr<SCommentBubble> CommentBubble = StaticCastSharedRef<SCommentBubble>(CommentSlot->GetWidget());
+			if (CommentBubble.IsValid())
+			{
+				CommentBubble->TickVisibility(InCurrentTime, InDeltaTime);
+			}
+		}
+	}
 }
 
 bool SGraphNode::IsSelectedExclusively() const

@@ -6151,6 +6151,14 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			{
 				OriginalDefaults.Add(TEXT("0.0"));
 			}
+			
+			// Rotator OriginalDefaults are in the form of Y,Z,X but our pins are in the form of X,Y,Z
+			// so we have to change the OriginalDefaults order here to match our pins
+			if (StructType == TBaseStructure<FRotator>::Get())
+			{
+				OriginalDefaults.Swap(0, 2);
+				OriginalDefaults.Swap(1, 2);
+			}
 		}
 		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{
@@ -6219,12 +6227,19 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		UScriptStruct* StructType = CastChecked<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get());
 
 		TArray<FString> OriginalDefaults;
-		if (   StructType == TBaseStructure<FVector>::Get()
-			|| StructType == TBaseStructure<FRotator>::Get())
+		if (StructType == TBaseStructure<FVector>::Get())
 		{
 			ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",") 
 									+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
 									+ ParentPin->SubPins[2]->DefaultValue;
+		}
+		else if (StructType == TBaseStructure<FRotator>::Get())
+		{
+			// Our pins are in the form X,Y,Z but the Rotator pin type expects the form Y,Z,X
+			// so we need to make sure they are added in that order here
+			ParentPin->DefaultValue = ParentPin->SubPins[1]->DefaultValue + TEXT(",")
+									+ ParentPin->SubPins[2]->DefaultValue + TEXT(",")
+									+ ParentPin->SubPins[0]->DefaultValue;
 		}
 		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{

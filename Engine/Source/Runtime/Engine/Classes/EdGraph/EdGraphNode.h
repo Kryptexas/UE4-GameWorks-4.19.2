@@ -102,8 +102,6 @@ class ENGINE_API UEdGraphNode : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual ~UEdGraphNode();
-
 	TArray<UEdGraphPin*> Pins;
 
 	/** List of connector pins */
@@ -226,6 +224,7 @@ public:
 	virtual void PostEditUndo() override;
 	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	/** widget representing this node if it exists; Note: This is not safe to use in general and will be removed in the future, as there is no guarantee that only one graph editor/panel is viewing a given graph */

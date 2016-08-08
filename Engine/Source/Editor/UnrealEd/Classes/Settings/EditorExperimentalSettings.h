@@ -33,10 +33,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
 
-	/** Enable Single Layout BP Editor. */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
-	bool bUnifiedBlueprintEditor;
-
 	/** When enabled, all details panels will be able to have properties marked as favorite that show in a top most category.  
 	 * NOTE: Some customizations are not supported yet
 	 */

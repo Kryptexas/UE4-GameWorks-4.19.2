@@ -57,14 +57,6 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 }
 
-UEdGraphNode::~UEdGraphNode()
-{
-	for (UEdGraphPin* Pin : Pins)
-	{
-		Pin->MarkPendingKill();
-	}
-}
-
 #if WITH_EDITOR
 
 UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index /*= INDEX_NONE*/)
@@ -363,6 +355,18 @@ void UEdGraphNode::PostLoad()
 	{
 		bCommentBubbleVisible = !NodeComment.IsEmpty();
 	}
+
+	if (DeprecatedPins.Num())
+	{
+		for (UEdGraphPin_Deprecated* LegacyPin : DeprecatedPins)
+		{
+			LegacyPin->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders);
+			LegacyPin->SetFlags(RF_Transient);
+			LegacyPin->MarkPendingKill();
+		}
+
+		DeprecatedPins.Empty();
+	}
 }
 
 void UEdGraphNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -412,6 +416,18 @@ void UEdGraphNode::ImportCustomProperties(const TCHAR* SourceText, FFeedbackCont
 			Pins.Add(nullptr);
 		}
 	}
+}
+
+void UEdGraphNode::BeginDestroy()
+{
+	for (UEdGraphPin* Pin : Pins)
+	{
+		Pin->MarkPendingKill();
+	}
+
+	Pins.Empty();
+
+	Super::BeginDestroy();
 }
 
 void UEdGraphNode::CreateNewGuid()

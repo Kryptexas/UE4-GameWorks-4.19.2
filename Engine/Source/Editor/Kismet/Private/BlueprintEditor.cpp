@@ -758,22 +758,14 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 	// refresh widget
 	if(SCSViewport.IsValid())
 	{
-		if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+		TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+		if ( OwnerTab.IsValid() )
 		{
-			TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-			if ( OwnerTab.IsValid() )
-			{
-				bUpdateNow &= OwnerTab->IsForeground();
-			}
+			bUpdateNow &= OwnerTab->IsForeground();
+		}
 
-			// Only request a refresh immediately if the viewport tab is in the foreground.
-			SCSViewport->RequestRefresh(false, bUpdateNow);
-		}
-		else
-		{
-			// Ignore 'bUpdateNow' if "Components" mode is not current. Otherwise the preview actor might be spawned in as a result, which can lead to a few odd behaviors if the mode is not current.
-			SCSViewport->RequestRefresh(false, bUpdateNow && IsModeCurrent(FBlueprintEditorApplicationModes::BlueprintComponentsMode));
-		}
+		// Only request a refresh immediately if the viewport tab is in the foreground.
+		SCSViewport->RequestRefresh(false, bUpdateNow);
 	}
 }
 
@@ -815,8 +807,7 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 	if (Inspector.IsValid())
 	{
 		// Clear the my blueprints selection
-		bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
-		if ( bSingleLayoutBPEditor && SelectedNodes.Num() > 0 )
+		if ( SelectedNodes.Num() > 0 )
 		{
 			SetUISelectionState(FBlueprintEditor::SelectionState_Components);
 		}
@@ -1773,69 +1764,31 @@ void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlu
 		}
 		else if ( SingleBP->BlueprintType == BPTYPE_FunctionLibrary )
 		{
-			if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorUnifiedMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode, CanAccessComponentsMode())));
+			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+		}
+		else
+		{
+			if ( bShouldOpenInDefaultsMode )
+			{
+				// We either have no blueprints or many, open in the defaults mode for multi-editing
+				AddApplicationMode(
+					FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+					MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+			}
+			else
 			{
 				AddApplicationMode(
 					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
 					MakeShareable(new FBlueprintEditorUnifiedMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode, CanAccessComponentsMode())));
 				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-			}
-			else
-			{
-				AddApplicationMode(
-					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-					MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
-				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-			}
-		}
-		else
-		{
-			if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-			{
-				if ( bShouldOpenInDefaultsMode )
-				{
-					// We either have no blueprints or many, open in the defaults mode for multi-editing
-					AddApplicationMode(
-						FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
-						MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-					SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-				}
-				else
-				{
-					AddApplicationMode(
-						FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-						MakeShareable(new FBlueprintEditorUnifiedMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode, CanAccessComponentsMode())));
-					SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 
-					if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
-					{
-						TabManager->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
-					}
-				}
-			}
-			else
-			{
-				AddApplicationMode(
-					FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-					MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
-				AddApplicationMode(
-					FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
-					MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-				AddApplicationMode(
-					FBlueprintEditorApplicationModes::BlueprintComponentsMode,
-					MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
-
-				if ( bShouldOpenInDefaultsMode )
+				if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
 				{
-					SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-				}
-				else if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
-				{
-					SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
-				}
-				else
-				{
-					SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+					TabManager->InvokeTab(FBlueprintEditorTabs::SCSViewportID);
 				}
 			}
 		}
@@ -7083,34 +7036,29 @@ void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
 {
 	SetUISelectionState(FBlueprintEditor::SelectionState_ClassDefaults);
 
-	const bool bSingleLayoutBPEditor = GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor;
-
 	if (IsEditingSingleBlueprint())
 	{
 		if (GetBlueprintObj()->GeneratedClass != nullptr)
 		{
-			if (bSingleLayoutBPEditor)
+			if ( SCSEditor.IsValid() && GetBlueprintObj()->GeneratedClass->IsChildOf<AActor>() )
 			{
-				if ( SCSEditor.IsValid() && GetBlueprintObj()->GeneratedClass->IsChildOf<AActor>() )
+				SCSEditor->SelectRoot();
+			}
+			else
+			{
+				UObject* DefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+
+				// Update the details panel
+				FString Title;
+				DefaultObject->GetName(Title);
+				SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), bForceRefresh);
+				Options.bShowComponents = false;
+
+				Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
+
+				if ( bAutoFocus )
 				{
-					SCSEditor->SelectRoot();
-				}
-				else
-				{
-					UObject* DefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
-
-					// Update the details panel
-					FString Title;
-					DefaultObject->GetName(Title);
-					SKismetInspector::FShowDetailsOptions Options(FText::FromString(Title), bForceRefresh);
-					Options.bShowComponents = false;
-
-					Inspector->ShowDetailsForSingleObject(DefaultObject, Options);
-
-					if ( bAutoFocus )
-					{
-						TryInvokingDetailsTab();
-					}
+					TryInvokingDetailsTab();
 				}
 			}
 		}

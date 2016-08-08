@@ -1989,6 +1989,34 @@ void ExportAutoIncludes(FStringOutputDevice& Out, const FUnrealSourceFile& Sourc
 	}
 }
 
+static FString PrivatePropertiesOffsetGetters(const UStruct* Struct, const FString& StructCppName)
+{
+	check(Struct);
+
+	FUHTStringBuilder Result;
+	for (const UProperty* Property : TFieldRange<UProperty>(Struct, EFieldIteratorFlags::ExcludeSuper))
+	{
+		if (Property && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate | CPF_NativeAccessSpecifierProtected) && !Property->HasAnyPropertyFlags(CPF_EditorOnly))
+		{
+			const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
+			if (BoolProperty && !BoolProperty->IsNativeBool()) // if it's a bitfield
+			{
+				continue;
+			}
+
+			FString PropertyName = Property->GetName();
+			if (Property->HasAllPropertyFlags(CPF_Deprecated))
+			{
+				PropertyName += TEXT("_DEPRECATED");
+			}
+			Result.Logf(TEXT("\tFORCEINLINE static uint32 __PPO__%s() { return STRUCT_OFFSET(%s, %s); }") LINE_TERMINATOR,
+				*PropertyName, *StructCppName, *PropertyName);
+		}
+	}
+
+	return Result;
+}
+
 void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSourceFile& SourceFile)
 {
 	CurrentSourceFile.Push(&SourceFile);
@@ -2065,6 +2093,8 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 		// the name for the C++ version of the UClass
 		const TCHAR* ClassCPPName = NameLookupCPP.GetNameCPP(Class);
 		const TCHAR* SuperClassCPPName = (SuperClass != nullptr) ? NameLookupCPP.GetNameCPP(SuperClass) : nullptr;
+
+		FString PPOMacroName;
 
 		if (Class->HasAnyClassFlags(CLASS_Interface))
 		{
@@ -2261,16 +2291,23 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 					FError::Throwf(TEXT("Class %s has Net flagged properties and should declare member function: void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override"), ClassCPPName);
 				}
 			}
+			{
+				auto NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS_NO_PURE_DECLS"));
+				WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, ClassBoilerplate);
+				InClassNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 
-			auto NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS_NO_PURE_DECLS"));
-			WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, ClassBoilerplate);
-			InClassNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
+				FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS"));
+				WriteMacro(GeneratedHeaderText, MacroName, ClassBoilerplate);
+				InClassMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
 
-			FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS"));
-			WriteMacro(GeneratedHeaderText, MacroName, ClassBoilerplate);
-			InClassMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
-
-			ExportConstructorsMacros(SourceFile.GetGeneratedMacroName(ClassData), Class);
+				ExportConstructorsMacros(SourceFile.GetGeneratedMacroName(ClassData), Class);
+			}
+			{
+				const FString PrivatePropertiesOffsets = PrivatePropertiesOffsetGetters(Class, ClassCPPName);
+				const FString PPOMacroNameRaw = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_PRIVATE_PROPERTY_OFFSET"));
+				PPOMacroName = FString::Printf(TEXT("\t%s\r\n"), *PPOMacroNameRaw);
+				WriteMacro(GeneratedHeaderText, PPOMacroNameRaw, PrivatePropertiesOffsets);
+			}
 		}
 
 		{
@@ -2291,8 +2328,12 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 			auto Public = TEXT("public:" LINE_TERMINATOR);
 
 			auto GeneratedBodyLine = bIsIInterface ? ClassData->GetInterfaceGeneratedBodyLine() : ClassData->GetGeneratedBodyLine();
-			auto LegacyGeneratedBody = InClassMacroCalls + (bIsIInterface ? TEXT("") : StandardUObjectConstructorsMacroCall);
-			auto GeneratedBody = InClassNoPureDeclsMacroCalls + (bIsIInterface ? TEXT("") : EnhancedUObjectConstructorsMacroCall);
+			auto LegacyGeneratedBody = FString(bIsIInterface ? TEXT("") : PPOMacroName)
+				+ InClassMacroCalls 
+				+ (bIsIInterface ? TEXT("") : StandardUObjectConstructorsMacroCall);
+			auto GeneratedBody = FString(bIsIInterface ? TEXT("") : PPOMacroName)
+				+ InClassNoPureDeclsMacroCalls 
+				+ (bIsIInterface ? TEXT("") : EnhancedUObjectConstructorsMacroCall);
 
 			auto WrappedLegacyGeneratedBody = DeprecationWarning + DeprecationPushString + Public + LegacyGeneratedBody + Public + DeprecationPopString;
 			auto WrappedGeneratedBody = FString(DeprecationPushString) + Public + GeneratedBody + GetPreservedAccessSpecifierString(Class) + DeprecationPopString;
@@ -2845,16 +2886,17 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 				RequiredAPI = FriendApiString;
 			}
 
+			const TCHAR* StructNameCPP = NameLookupCPP.GetNameCPP(Struct);
 			const FString FriendLine = FString::Printf(TEXT("\tfriend %sclass UScriptStruct* %s;\r\n"), *FriendApiString, *StaticConstructionString);
 			const FString StaticClassLine = FString::Printf(TEXT("\t%sstatic class UScriptStruct* StaticStruct();\r\n"), *RequiredAPI);
+			const FString PrivatePropertiesOffset = PrivatePropertiesOffsetGetters(Struct, StructNameCPP);
 
-			const FString CombinedLine = FriendLine + StaticClassLine;
+			const FString CombinedLine = FriendLine + StaticClassLine + PrivatePropertiesOffset;
 			const FString MacroName = CurrentSourceFile.Top()->GetGeneratedBodyMacroName(Struct->StructMacroDeclaredLineNumber);
 
 			const FString Macroized = Macroize(*MacroName, *CombinedLine);
 			GeneratedHeaderText.Log(*Macroized);
 
-			const TCHAR* StructNameCPP = NameLookupCPP.GetNameCPP(Struct);
 			FString SingletonName = StaticConstructionString.Replace(TEXT("()"), TEXT(""), ESearchCase::CaseSensitive); // function address
 			FString GetCRCName = FString::Printf(TEXT("Get_%s_CRC"), *SingletonName);
 			

@@ -25,10 +25,10 @@ namespace EEasingFunc
 		/** Sinusoidal in/out interpolation. */
 		SinusoidalInOut,
 
-		/** Immediately accelerates, but smoothly decelerates into the target.  Ease amount controlled by BlendExp. */
+		/** Smoothly accelerates, but does not decelerate into the target.  Ease amount controlled by BlendExp. */
 		EaseIn,
 
-		/** Smoothly accelerates, but does not decelerate into the target.  Ease amount controlled by BlendExp. */
+		/** Immediately accelerates, but smoothly decelerates into the target.  Ease amount controlled by BlendExp. */
 		EaseOut,
 
 		/** Smoothly accelerates and decelerates.  Ease amount controlled by BlendExp. */

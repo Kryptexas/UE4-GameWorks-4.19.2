@@ -391,9 +391,12 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 		// When regenerating on load, we may need to import text on certain properties to force load the assets
 		TSharedPtr<FStructOnScope> LocalVarData;
-		if (CompilerContext.Blueprint->bIsRegeneratingOnLoad)
+		if (Function && CompilerContext.Blueprint->bIsRegeneratingOnLoad)
 		{
-			LocalVarData = MakeShareable(new FStructOnScope(Function));
+			if (Function->GetStructureSize() > 0 || !ensure(Function->PropertyLink == nullptr))
+			{
+				LocalVarData = MakeShareable(new FStructOnScope(Function));
+			}
 		}
 
 		for (TFieldIterator<UProperty> It(Function); It; ++It)

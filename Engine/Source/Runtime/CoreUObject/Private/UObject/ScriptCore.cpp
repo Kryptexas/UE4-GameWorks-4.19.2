@@ -452,10 +452,11 @@ FString FFrame::GetStackTrace() const
 //////////////////////////////////////////////////////////////////////////
 // FScriptInstrumentationSignal
 
-FScriptInstrumentationSignal::FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame)
+FScriptInstrumentationSignal::FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame, const FName EventNameIn)
 	: EventType(InEventType)
 	, ContextObject(InContextObject)
 	, Function(InStackFrame.Node)
+	, EventName(EventNameIn)
 	, StackFramePtr(&InStackFrame)
 	, LatentLinkId(INDEX_NONE)
 {
@@ -473,7 +474,7 @@ const UClass* FScriptInstrumentationSignal::GetFunctionClassScope() const
 
 FName FScriptInstrumentationSignal::GetFunctionName() const
 {
-	return Function->GetFName();
+	return EventName.IsNone() ? Function->GetFName() : EventName;
 }
 
 int32 FScriptInstrumentationSignal::GetScriptCodeOffset() const
@@ -1615,9 +1616,19 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 		}
 	}
 #endif
-	FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
-	FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
-	Stack.SkipCode(1);
+	if (EventType == EScriptInstrumentation::InlineEvent)
+	{
+		const FName& EventName = *reinterpret_cast<FName*>(&Stack.Code[1]);
+		FScriptInstrumentationSignal InstrumentationEventInfo(EScriptInstrumentation::Event, this, Stack, EventName);
+		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+		Stack.SkipCode(sizeof(FName) + 1);
+	}
+	else
+	{
+		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
+		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+		Stack.SkipCode(1);
+	}
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_InstrumentationEvent, execInstrumentation );

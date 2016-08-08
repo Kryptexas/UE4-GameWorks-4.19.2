@@ -2428,6 +2428,8 @@ public:
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
 
+	UStructProperty* FindStructPropertyChecked(const TCHAR* PropertyName) const;
+
 	/** Misc objects owned by the class. */
 	TArray<UObject*> MiscConvertedSubobjects;
 

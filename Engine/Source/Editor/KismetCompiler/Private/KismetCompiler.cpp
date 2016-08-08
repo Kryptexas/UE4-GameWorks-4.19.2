@@ -788,7 +788,27 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 	}
 }
 
-void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context)
+static void SwapElementsInSingleLinkedList(UField* & PtrToFirstElement, UField* & PtrToSecondElement)
+{
+	check(PtrToFirstElement && PtrToSecondElement);
+	UField* TempSecond = PtrToSecondElement;
+	UField* TempSecondNext = PtrToSecondElement->Next;
+
+	if (PtrToFirstElement->Next == PtrToSecondElement)
+	{
+		PtrToSecondElement->Next = PtrToFirstElement;
+	}
+	else
+	{
+		PtrToSecondElement->Next = PtrToFirstElement->Next;
+		PtrToSecondElement = PtrToFirstElement;
+	}
+
+	PtrToFirstElement->Next = TempSecondNext;
+	PtrToFirstElement = TempSecond;
+}
+
+void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature)
 {
 	ensure(Context.IsEventGraph() || !Context.EventGraphLocals.Num());
 	ensure(!Context.IsEventGraph() || !Context.Locals.Num() || !UsePersistentUberGraphFrame());
@@ -800,10 +820,49 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 
 		// Pull the local properties generated out of the function, they will be put at the end of the list
 		UField* LocalProperties = Context.Function->Children;
+		Context.Function->Children = nullptr;
 
 		UField** PropertyStorageLocation = &Context.Function->Children;
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Parameters, CPF_Parm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Results, CPF_Parm | CPF_OutParm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+
+		//MAKE SURE THE PARAMETERS ORDER MATCHES THE OVERRIDEN FUNCTION
+		if (ParameterSignature)
+		{
+			UField** CurrentFieldStorageLocation = &Context.Function->Children;
+			for (TFieldIterator<UProperty> SignatureIt(ParameterSignature); SignatureIt && ((SignatureIt->PropertyFlags & CPF_Parm) != 0); ++SignatureIt)
+			{
+				const FName WantedName = SignatureIt->GetFName();
+				if (!*CurrentFieldStorageLocation || (WantedName != (*CurrentFieldStorageLocation)->GetFName()))
+				{
+					//Find Field with the proper name
+					UField** FoundFieldStorageLocation = *CurrentFieldStorageLocation ? &((*CurrentFieldStorageLocation)->Next) : nullptr;
+					while (FoundFieldStorageLocation && *FoundFieldStorageLocation && (WantedName != (*FoundFieldStorageLocation)->GetFName()))
+					{
+						FoundFieldStorageLocation = &((*FoundFieldStorageLocation)->Next);
+					}
+
+					if (FoundFieldStorageLocation && *FoundFieldStorageLocation)
+					{
+						// swap the found field and OverridenIt
+						SwapElementsInSingleLinkedList(*CurrentFieldStorageLocation, *FoundFieldStorageLocation); //FoundFieldStorageLocation points now a random element 
+					}
+					else
+					{
+						MessageLog.Error(*FString::Printf(*LOCTEXT("WrongParameterOrder_Error", "Cannot order parameters %s in function %s.").ToString(), *WantedName.ToString(), *Context.Function->GetName()));
+						break;
+					}
+				}
+				CurrentFieldStorageLocation = &((*CurrentFieldStorageLocation)->Next);
+			}
+			PropertyStorageLocation = CurrentFieldStorageLocation;
+			// There is no guarantee that CurrentFieldStorageLocation points the last parameter's next. We need to ensure that.
+			while (*PropertyStorageLocation)
+			{
+				PropertyStorageLocation = &((*PropertyStorageLocation)->Next);
+			}
+		}
+
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Locals, 0, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 
 		if (bPersistentUberGraphFrame)
@@ -1413,7 +1472,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		}
 	
 		// Create variable declarations
-		CreateLocalVariablesForFunction(Context);
+		CreateLocalVariablesForFunction(Context, ParentFunction ? ParentFunction : OverridenFunction);
 
 		//Validate AccessSpecifier
 		const uint32 AccessSpecifierFlag = FUNC_AccessSpecifiers & Context.EntryPoint->GetExtraFlags();

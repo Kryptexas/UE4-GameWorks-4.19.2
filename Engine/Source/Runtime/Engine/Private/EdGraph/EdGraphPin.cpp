@@ -953,7 +953,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 	}
 
 	// Someone might have been waiting for this pin to be created. Let them know that this pin now exists.
-	ResolveReferencesToPin(this);
+	ResolveReferencesToPin(this, false);
 
 	return true;
 }
@@ -1192,9 +1192,6 @@ void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* Deprecated
 
 void UEdGraphPin::DestroyImpl(bool bClearLinks)
 {
-#if WITH_EDITOR
-	ensure(!GIsTransacting || bClearLinks == false);
-#endif
 	PinsToDelete.Add(this);
 	if (bClearLinks)
 	{
@@ -1320,7 +1317,7 @@ void UEdGraphPin::EnableAllConnectedNodes(UEdGraphNode* InNode)
 	}
 }
 
-void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin)
+void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin, bool bStrictValidation)
 {
 	check(!Pin->bWasTrashed);
 	FPinResolveId ResolveId(Pin->PinId, Pin->OwningNode);
@@ -1344,14 +1341,17 @@ void UEdGraphPin::ResolveReferencesToPin(UEdGraphPin* Pin)
 						Pin->LinkedTo.Add(ReferencingPin);
 					}
 				}
+				if (bStrictValidation)
+				{
 #if WITH_EDITOR
-				// When in the middle of a transaction the LinkedTo lists will be in an 
-				// indeterminate state. After PostEditUndo runs we could validate LinkedTo
-				// coherence.
-				ensureAlways(GIsTransacting || Pin->LinkedTo.Contains(ReferencingPin));
+					// When in the middle of a transaction the LinkedTo lists will be in an 
+					// indeterminate state. After PostEditUndo runs we could validate LinkedTo
+					// coherence.
+					ensureAlways(GIsTransacting || Pin->LinkedTo.Contains(ReferencingPin));
 #else
-				ensureAlways(Pin->LinkedTo.Contains(ReferencingPin));
+					ensureAlways(Pin->LinkedTo.Contains(ReferencingPin));
 #endif//WITH_EDITOR
+				}
 				break;
 
 			case EPinResolveType::SubPins:

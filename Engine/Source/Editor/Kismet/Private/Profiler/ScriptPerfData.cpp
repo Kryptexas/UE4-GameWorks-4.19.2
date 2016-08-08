@@ -75,6 +75,32 @@ void FScriptPerfData::InitialiseFromDataSet(const TArray<TSharedPtr<FScriptPerfD
 	}
 }
 
+void FScriptPerfData::AccumulateDataSet(const TArray<TSharedPtr<FScriptPerfData>>& DataSet)
+{
+	Reset();
+	SampleFrequency = 0.f;
+	for (auto DataPoint : DataSet)
+	{
+		if (DataPoint.IsValid())
+		{
+			const float SampleCount = DataPoint->GetSampleCount();
+			const double AverageTimeTemp = DataPoint->GetAverageTiming();
+			AverageTiming += AverageTimeTemp * SampleCount;
+			InclusiveTiming += (DataPoint->GetInclusiveTiming() - AverageTimeTemp) * SampleCount;
+			// Either sum the samples to get the average or use the highest sample rate encountered in the dataset.
+			RawSamples += SampleCount;
+			SampleFrequency += 1.f;
+		}
+	}
+	SampleFrequency = FMath::Max(1.f, SampleFrequency);
+	if (IsDataValid())
+	{
+		const double NormalisedAverageTiming = GetAverageTiming();
+		MaxTiming = FMath::Max<double>(MaxTiming, NormalisedAverageTiming);
+		MinTiming = FMath::Min<double>(MinTiming, NormalisedAverageTiming);
+	}
+}
+
 void FScriptPerfData::Reset()
 {
 	AverageTiming = 0.0;
@@ -99,13 +125,15 @@ double FScriptPerfData::GetAverageTiming() const
 {
 	// We need to use the GetSampleCount() call so we can take account of both the 
 	// SampleBase (re-entrant handling) and the RawSamples.
-	return AverageTiming / GetSampleCount();
+	const float SampleCount = GetSampleCount();
+	return SampleCount == 0.0f ? 0.0 : (AverageTiming / GetSampleCount());
 }
 
 double FScriptPerfData::GetInclusiveTiming() const
 {
 	// For inclusive timings we just use RawSamples as there is no re-entrant handling.
-	return (AverageTiming / GetSampleCount()) + (InclusiveTiming / RawSamples);
+	const double InclusiveTime = RawSamples == 0 ? 0.0 : (InclusiveTiming / RawSamples);
+	return GetAverageTiming() + InclusiveTime;
 }
 
 void FScriptPerfData::EnableBlueprintStatAverage(const bool bEnable)
@@ -162,9 +190,10 @@ FText FScriptPerfData::GetTotalTimingText() const
 
 FText FScriptPerfData::GetSamplesText() const
 {
-	if (GetSampleCount() > 0)
+	const int32 SampleCount = GetSampleCount();
+	if (SampleCount > 0)
 	{
-		return FText::AsNumber(GetSampleCount());
+		return FText::AsNumber(SampleCount);
 	}
 	return FText::GetEmpty();
 }

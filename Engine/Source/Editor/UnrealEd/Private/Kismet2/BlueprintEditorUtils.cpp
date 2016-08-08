@@ -183,8 +183,7 @@ static void PromoteInterfaceImplementationToOverride(FBPInterfaceDescription con
 			// in the graph
 			BlueprintObj->FunctionGraphs.Add(InterfaceGraph);
 
-			// Potentially adjust variable names for any child blueprints
-			FBlueprintEditorUtils::ValidateBlueprintChildVariables(BlueprintObj, InterfaceGraph->GetFName());
+			// No validation should be necessary here. Child blueprints will have interfaces conformed during their own compilation. 
 		}
 
 		// if any graphs were moved
@@ -6230,6 +6229,17 @@ void FBlueprintEditorUtils::ConformImplementedInterfaces(UBlueprint* Blueprint)
 
 		// not going to remove this interface, so let's continue forward
 		++InterfaceIndex;
+	}
+}
+
+void FBlueprintEditorUtils::ConformAllowDeletionFlag(UBlueprint* Blueprint)
+{
+	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	{
+		if (Graph->GetFName() != UEdGraphSchema_K2::FN_UserConstructionScript && Graph->GetFName() != UEdGraphSchema_K2::GN_AnimGraph)
+		{
+			Graph->bAllowDeletion = true;
+		}
 	}
 }
 

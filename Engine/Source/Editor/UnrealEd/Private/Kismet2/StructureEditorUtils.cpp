@@ -55,6 +55,26 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 	return Struct;
 }
 
+namespace 
+{
+	static bool IsObjPropertyValid(const UProperty* Property)
+	{
+		if (const UInterfaceProperty* InterfaceProperty = Cast<const UInterfaceProperty>(Property))
+		{
+			return InterfaceProperty->InterfaceClass != nullptr;
+		}
+		else if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
+		{
+			return ArrayProperty->Inner && IsObjPropertyValid(ArrayProperty->Inner);
+		}
+		else if (const UObjectProperty* ObjectProperty = Cast<const UObjectProperty>(Property))
+		{
+			return ObjectProperty->PropertyClass != nullptr;
+		}
+		return true;
+	}
+}
+
 FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(const UScriptStruct* Struct, const UStruct* RecursionParent, FString* OutMsg)
 {
 	check(Struct);
@@ -135,6 +155,17 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 					}
 					return Result;
 				}
+			}
+
+			// The structure is loaded (from .uasset) without recompilation. All properties should be verified.
+			if (!IsObjPropertyValid(P))
+			{
+				if (OutMsg)
+				{
+					*OutMsg = FString::Printf(*LOCTEXT("StructureUnknownObjectProperty", "Invalid object property. Structure '%s' Property: '%s'").ToString(),
+						*Struct->GetFullName(), *P->GetName());
+				}
+				return EStructureError::NotCompiled;
 			}
 		}
 	}

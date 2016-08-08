@@ -2511,7 +2511,7 @@ UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent>
 	return FoundComponent;
 }
 
-UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass)
+UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass) const
 {
 	return FindComponentByClass(ComponentClass);
 }

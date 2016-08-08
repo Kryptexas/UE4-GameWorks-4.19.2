@@ -71,7 +71,13 @@ inline const T* GetDefaultValueSafe(UClass* Class)
 }
 
 template<typename ValueType>
-inline ValueType* AccessPrivateProperty(void const* ContainerPtr, int32 PropertyOffset, int32 ElementSize, int32 ArrayIndex = 0)
+inline ValueType* AccessPrivateProperty(void const* ContainerPtr, int32 PropertyOffset)
+{
+	return (ValueType*)((uint8*)ContainerPtr + PropertyOffset);
+}
+
+template<typename ValueType>
+inline ValueType* AccessPrivateProperty(void const* ContainerPtr, int32 PropertyOffset, int32 ElementSize, int32 ArrayIndex)
 {
 	return (ValueType*)((uint8*)ContainerPtr + PropertyOffset + (ElementSize * ArrayIndex));
 }

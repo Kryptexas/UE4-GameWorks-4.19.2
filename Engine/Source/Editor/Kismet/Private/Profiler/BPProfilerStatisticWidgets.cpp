@@ -296,6 +296,10 @@ void FBPProfilerStatWidget::GenerateStandardNodeWidgets(const TSharedPtr<FBluepr
 			{
 				TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
 				FTracePath LinkPath(WidgetTracePath);
+				if (LinkIter.Value->IsEventPin())
+				{
+					LinkPath.ResetPath();
+				}
 				if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
 				{
 					LinkPath.AddExitPin(LinkIter.Key);
@@ -345,7 +349,8 @@ void FBPProfilerStatWidget::GenerateSimpleTunnelWidgets(TSharedPtr<FScriptExecut
 			for (auto LinearPathIter : LinearExecNodes)
 			{
 				const bool bInternalTunnelBoundary = TunnelEntryNode->IsInternalBoundary(LinearPathIter.LinkedNode);
-				if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode) && !bInternalTunnelBoundary  && !EntryPoint->IsPureChain())
+				const bool bPureChain = LinearPathIter.LinkedNode->IsPureChain();
+				if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode) && !bPureChain && !bInternalTunnelBoundary)
 				{
 					TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
 					NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);

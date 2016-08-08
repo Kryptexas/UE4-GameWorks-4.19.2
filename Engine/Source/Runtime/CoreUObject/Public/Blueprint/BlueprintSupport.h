@@ -220,7 +220,8 @@ struct COREUOBJECT_API FBlueprintDependencyData
 
 	FBlueprintDependencyData() {}
 
-	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageName
+	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageFolder
+		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
 		, const TCHAR* InClassPackageName
 		, const TCHAR* InClassName);

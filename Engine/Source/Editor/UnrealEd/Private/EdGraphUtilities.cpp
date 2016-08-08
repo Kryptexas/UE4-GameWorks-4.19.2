@@ -21,6 +21,8 @@ public:
 	TSet<UEdGraphNode*> SubstituteNodes;
 	const UEdGraph* DestinationGraph;
 	TArray<FName> ExtraNamesInUse;
+
+	TArray<UEdGraphNode*> PendingNodes;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
@@ -56,25 +58,25 @@ protected:
 		return false;
 	}
 
-	virtual void ProcessConstructedObject(UObject* CreatedObject) override
+	void HandleNode(UEdGraphNode* CreatedObject)
 	{
-		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
+		if (UEdGraphNode* Node = CreatedObject)
 		{
-			if(!Node->CanPasteHere(DestinationGraph))
+			if (!Node->CanPasteHere(DestinationGraph))
 			{
 				// Attempt to create a substitute node if it cannot be pasted (note: the return value can be NULL, indicating that the node cannot be pasted into the graph)
 				Node = DestinationGraph->GetSchema()->CreateSubstituteNode(Node, DestinationGraph, &InstanceGraph, ExtraNamesInUse);
 				SubstituteNodes.Add(Node);
 			}
 
-			if(Node != CreatedObject)
+			if (Node != CreatedObject)
 			{
 				// Move the old node into the transient package so that it is GC'd
 				CreatedObject->Rename(NULL, GetTransientPackage());
 				CreatedObject->MarkPendingKill();
 			}
 
-			if(Node)
+			if (Node)
 			{
 				SpawnedNodes.Add(Node);
 
@@ -83,8 +85,48 @@ protected:
 		}
 	}
 
+	virtual void ProcessConstructedObject(UObject* CreatedObject) override
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
+		{
+			PendingNodes.Add(Node);
+		}
+	}
+
 	virtual void PostProcessConstructedObjects() override
 	{
+		// First handle elements that can change the BPGC signature (for example Custom Event nodes).
+		for (int32 Idx = 0; Idx < PendingNodes.Num();)
+		{
+			UK2Node* Node = Cast<UK2Node>(PendingNodes[Idx]);
+			if (Node && Node->NodeCausesStructuralBlueprintChange())
+			{
+				HandleNode(Node);
+				PendingNodes.RemoveAtSwap(Idx);
+			}
+			else
+			{
+				Idx++;
+			}
+		}
+
+		// Update Skel Class signature
+		if (SpawnedNodes.Num())
+		{
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(DestinationGraph);
+			if (Blueprint)
+			{
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
+
+		}
+
+		// Handle all remaining nodes. Some of them can depend on the BPGC signature
+		for (UEdGraphNode* Node : PendingNodes)
+		{
+			HandleNode(Node);
+		}
+
 		if (SubstituteNodes.Num() > 0)
 		{
 			// Display a notification to inform the user that the variable type was invalid (likely due to corruption), it should no longer appear in the list.

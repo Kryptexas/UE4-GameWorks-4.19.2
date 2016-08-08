@@ -795,7 +795,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
 	const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
 
-	auto CreateAssetToLoadString = [&](const UObject* AssetObj) -> FString
+	auto CreateAssetToLoadString = [&](const UObject* AssetObj, const FString& LongPathVariable) -> FString
 	{
 		UClass* AssetType = AssetObj->GetClass();
 		if (AssetType->IsChildOf<UUserDefinedEnum>())
@@ -811,8 +811,9 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			AssetType = UDynamicClass::StaticClass();
 		}
 
-		return FString::Printf(TEXT("FBlueprintDependencyData(TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\")),")
-			, *AssetObj->GetOutermost()->GetPathName()
+		return FString::Printf(TEXT("FBlueprintDependencyData(%s, TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\"), TEXT(\"%s\")),")
+			, *LongPathVariable
+			, *FPackageName::GetShortName(AssetObj->GetOutermost()->GetPathName())
 			, *AssetObj->GetName()
 			, *AssetType->GetOutermost()->GetPathName()
 			, *AssetType->GetName());
@@ -820,6 +821,18 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 	auto AddAssetArray = [&](TArray<const UObject*>& Assets)
 	{
+		TMap<FString, FString> PrefixToLocalVariable;
+		for (const UObject* LocAsset : Assets)
+		{
+			FString LongPackagePath = FPackageName::GetLongPackagePath(LocAsset->GetOutermost()->GetPathName());
+			if (!PrefixToLocalVariable.Find(LongPackagePath))
+			{
+				FString VariableName = Context.GenerateUniqueLocalName();
+				Context.AddLine(FString::Printf(TEXT("const TCHAR* %s = TEXT(\"%s\");"), *VariableName, *LongPackagePath));
+				PrefixToLocalVariable.Add(LongPackagePath, VariableName);
+			}
+		}
+
 		if (Assets.Num())
 		{
 			Context.AddLine(TEXT("FBlueprintDependencyData LocAssets[] ="));
@@ -829,7 +842,9 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 		for (const UObject* LocAsset : Assets)
 		{
-			Context.AddLine(CreateAssetToLoadString(LocAsset));
+			FString* LongPathVar = PrefixToLocalVariable.Find(FPackageName::GetLongPackagePath(LocAsset->GetOutermost()->GetPathName()));
+			check(LongPathVar);
+			Context.AddLine(CreateAssetToLoadString(LocAsset, *LongPathVar));
 		}
 
 		if (Assets.Num())

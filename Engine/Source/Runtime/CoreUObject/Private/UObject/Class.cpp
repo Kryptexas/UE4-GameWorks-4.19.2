@@ -4701,6 +4701,11 @@ UObject* UDynamicClass::FindArchetype(UClass* ArchetypeClass, const FName Archet
 		(SuperClass ? SuperClass->FindArchetype(ArchetypeClass, ArchetypeName) : nullptr);
 }
 
+UStructProperty* UDynamicClass::FindStructPropertyChecked(const TCHAR* PropertyName) const
+{
+	return FindFieldChecked<UStructProperty>(this, PropertyName);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,
 {
 	Class->ClassAddReferencedObjects = &UDynamicClass::AddReferencedObjects;

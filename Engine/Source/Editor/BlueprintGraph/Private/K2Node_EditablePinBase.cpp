@@ -104,6 +104,15 @@ void UK2Node_EditablePinBase::ExportCustomProperties(FOutputDevice& Out, uint32 
 		Out.Logf( TEXT("Name=\"%s\" "), *PinInfo.PinName);
 		Out.Logf( TEXT("IsArray=%s "), (PinInfo.PinType.bIsArray ? TEXT("1") : TEXT("0")));
 		Out.Logf( TEXT("IsReference=%s "), (PinInfo.PinType.bIsReference ? TEXT("1") : TEXT("0")));
+
+		if (UEnum* PinDirEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEdGraphPinDirection")))
+		{ 
+			FString ValueName = PinDirEnum->GetEnumName(PinInfo.DesiredPinDirection);
+			if (!ValueName.IsEmpty())
+			{
+				Out.Logf(TEXT("PinDir=\"%s\" "), *ValueName);
+			}
+		}
 		
 		if (PinInfo.PinType.PinCategory.Len() > 0)
 		{
@@ -135,9 +144,6 @@ void UK2Node_EditablePinBase::ImportCustomProperties(const TCHAR* SourceText, FF
 	{
 		TSharedPtr<FUserPinInfo> PinInfo = MakeShareable( new FUserPinInfo() );
 
-		// UserDefinedPins don't currently support direction so set them to an unknown value by default for now
-		PinInfo->DesiredPinDirection = EGPD_MAX;
-
 		if (!FParse::Value(SourceText, TEXT("Name="), PinInfo->PinName))
 		{
 			Warn->Logf( *NSLOCTEXT( "Core", "SyntaxError", "Syntax Error" ).ToString() );
@@ -153,6 +159,19 @@ void UK2Node_EditablePinBase::ImportCustomProperties(const TCHAR* SourceText, FF
 		if (FParse::Value(SourceText, TEXT("IsReference="), BoolAsInt))
 		{
 			PinInfo->PinType.bIsReference = (BoolAsInt != 0);
+		}
+
+		if (UEnum* PinDirEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEdGraphPinDirection")))
+		{
+			FString DesiredDirection;
+			if (FParse::Value(SourceText, TEXT("PinDir="), DesiredDirection))
+			{
+				int32 DesiredDirectionVal = PinDirEnum->GetValueByName(*DesiredDirection);
+				if (DesiredDirectionVal != INDEX_NONE)
+				{
+					PinInfo->DesiredPinDirection = (EEdGraphPinDirection)DesiredDirectionVal;
+				}
+			}
 		}
 
 		FParse::Value(SourceText, TEXT("Category="), PinInfo->PinType.PinCategory);
@@ -191,7 +210,25 @@ void UK2Node_EditablePinBase::Serialize(FArchive& Ar)
 		UserDefinedPins.Empty(SerializedItems.Num());
 		for (int32 Index = 0; Index < SerializedItems.Num(); ++Index)
 		{
-			UserDefinedPins.Add(MakeShareable( new FUserPinInfo(SerializedItems[Index]) ));
+			TSharedPtr<FUserPinInfo> PinInfo = MakeShareable(new FUserPinInfo(SerializedItems[Index]));
+
+			// Ensure that the UserDefinedPin's "desired direction" matches the direction of 
+			// the EdGraphPin that it corresponds to. Somehow it is possible for these to get 
+			// out of sync, and we're not entirely sure how/why.
+			//
+			// @TODO: Determine how these get out of sync and fix that up so we can guard this 
+			//        with a version check, and not have to do this for updated assets
+			if (UEdGraphPin* NodePin = FindPin(PinInfo->PinName))
+			{
+				// NOTE: the second FindPin call here to keep us from altering a pin with the same 
+				//       name but different direction (in case there is two)
+				if (PinInfo->DesiredPinDirection != NodePin->Direction && FindPin(PinInfo->PinName, PinInfo->DesiredPinDirection) == nullptr)
+				{
+					PinInfo->DesiredPinDirection = NodePin->Direction;
+				}
+			}
+
+			UserDefinedPins.Add(PinInfo);
 		}
 	}
 	else

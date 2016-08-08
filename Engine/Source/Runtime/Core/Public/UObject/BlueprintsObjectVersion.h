@@ -12,6 +12,7 @@ struct CORE_API FBlueprintsObjectVersion
 		CleanBlueprintFunctionFlags,
 		ArrayGetByRefUpgrade,
 		EdGraphPinOptimized,
+		AllowDeletionConformed,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
