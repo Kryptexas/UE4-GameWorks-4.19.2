@@ -372,17 +372,21 @@ namespace AutomationTool.Tasks
 					case "Exe":
 					case "WinExe":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".exe"));
-						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
-                        FileReference ExeConfig = FileReference.Combine(OutputDir, AssemblyName + ".exe.config");
+						FileReference PDBFile = FileReference.Combine(OutputDir, AssemblyName + ".pdb");
+						if (PDBFile.Exists()) { BuildProducts.Add(PDBFile); }
+						FileReference ExeConfig = FileReference.Combine(OutputDir, AssemblyName + ".exe.config");
 						if (ExeConfig.Exists()) { BuildProducts.Add(ExeConfig); }
-						FileReference ExeMDB = FileReference.Combine(OutputDir, AssemblyName + "exe.mdb");
+						FileReference ExeMDB = FileReference.Combine(OutputDir, AssemblyName + ".exe.mdb");
 						if (ExeMDB.Exists()) { BuildProducts.Add(ExeMDB); }
 						return true;
 					case "Library":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".dll"));
-						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
+						FileReference PDBFile = FileReference.Combine(OutputDir, AssemblyName + ".pdb");
+						if (PDBFile.Exists()) { BuildProducts.Add(PDBFile); }
 						FileReference DllConfig = FileReference.Combine(OutputDir, AssemblyName + ".dll.config");
 						if (DllConfig.Exists()) { BuildProducts.Add(DllConfig); }
+						FileReference DllMDB = FileReference.Combine(OutputDir, AssemblyName + ".dll.mdb");
+						if (DllMDB.Exists()) { BuildProducts.Add(DllMDB); }
 						return true;
 				}
 			}
