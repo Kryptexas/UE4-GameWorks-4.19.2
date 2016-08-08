@@ -1371,7 +1371,7 @@ public:
 			if (Ar.IsLoading())
 			{
 				// Basic sanity checking to ensure that sizes match.
-				checkf(SerializedElementSize == 0 || SerializedElementSize == ElementSize, TEXT("Unexpected array element size when serializing %s. Expected %i, Got: %i. Package can be corrupt or the array template type changed."), *Ar.GetArchiveName(), ElementSize, SerializedElementSize);
+				checkf(SerializedElementSize == 0 || SerializedElementSize == ElementSize, TEXT("Unexpected array element size. Expected %i, Got: %i. Package can be corrupt or the array template type changed."), ElementSize, SerializedElementSize);
 				// Serialize the number of elements, block allocate the right amount of memory and deserialize
 				// the data as a giant memory blob in a single call to Serialize. Please see the function header
 				// for detailed documentation on limitations and implications.
