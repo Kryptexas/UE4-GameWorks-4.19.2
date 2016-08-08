@@ -8051,12 +8051,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 	// play the sound, then stop any already playing sounds
 	else if( SoundInst->PlayAudioComp && SoundInst->PlayAudioComp->IsPlaying() )
 	{
-		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
-		if (SoundTrackKey.Sound != SoundInst->PlayAudioComp->Sound)
-		{
-			SoundInst->PlayAudioComp->Stop();
-			bPlaying = false;
-		}
+		SoundInst->PlayAudioComp->Stop();
+		bPlaying = false;
 	}
 
 
