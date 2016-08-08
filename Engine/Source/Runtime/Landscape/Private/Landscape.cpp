@@ -558,7 +558,7 @@ void ULandscapeComponent::PostLoad()
 
 #if WITH_EDITORONLY_DATA
 	// Handle old MaterialInstance
-	if (MaterialInstance_DEPRECATED)
+	if (GIsEditor && MaterialInstance_DEPRECATED)
 	{
 		MaterialInstances.Empty(1);
 		MaterialInstances.Add(MaterialInstance_DEPRECATED);
