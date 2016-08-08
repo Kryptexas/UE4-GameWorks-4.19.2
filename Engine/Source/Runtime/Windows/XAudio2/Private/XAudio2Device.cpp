@@ -242,9 +242,6 @@ void FXAudio2Device::TeardownHardware()
 {
 	if (DeviceProperties)
 	{
-		// Make sure we clean up any pending decoding tasks before deleting the device properties
-		DeviceProperties->ProcessPendingTasksToCleanup(true);
-
 		delete DeviceProperties;
 		DeviceProperties = nullptr;
 	}
@@ -259,7 +256,6 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
-	DeviceProperties->ProcessPendingTasksToCleanup();
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

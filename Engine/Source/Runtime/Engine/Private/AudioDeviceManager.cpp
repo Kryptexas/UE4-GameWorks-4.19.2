@@ -463,6 +463,9 @@ void FAudioDeviceManager::FreeBufferResource(FSoundBuffer* SoundBuffer)
 {
 	if (SoundBuffer)
 	{
+		// Make sure any realtime tasks are finished that are using this buffer
+		SoundBuffer->EnsureRealtimeTaskCompletion();
+
 		Buffers.Remove(SoundBuffer);
 
 		// Stop any sound sources on any audio device currently using this buffer before deleting

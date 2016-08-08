@@ -374,6 +374,9 @@ public:
 	/** Returns whether or not a real-time decoding buffer is ready for playback */
 	virtual bool IsRealTimeSourceReady() { return true; }
 
+	/** Forces any pending async realtime source tasks to finish for the buffer */
+	virtual void EnsureRealtimeTaskCompletion() { }
+
 	/** Unique ID that ties this buffer to a USoundWave */
 	int32	ResourceID;
 	/** Cumulative channels from all streams */

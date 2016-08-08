@@ -96,57 +96,24 @@ void FXAudio2SoundSource::FreeResources( void )
 		Source = nullptr;
 	}
 
-	bool bCanFreeNow = true;
-	
-	// If the async decoding tasks are not done, to avoid blocking, add them to a pending list and clean up later
-	FPendingAsyncTaskInfo PendingTaskInfo;
-
 	if (XAudio2Buffer && XAudio2Buffer->RealtimeAsyncHeaderParseTask)
 	{
 		check(bResourcesNeedFreeing);
 
-		if (XAudio2Buffer->RealtimeAsyncHeaderParseTask->IsDone())
-		{
-			delete XAudio2Buffer->RealtimeAsyncHeaderParseTask;
-		}
-		else
-		{
-			bCanFreeNow = false;
-			PendingTaskInfo.RealtimeAsyncHeaderParseTask = XAudio2Buffer->RealtimeAsyncHeaderParseTask;
-		}
-
+		XAudio2Buffer->RealtimeAsyncHeaderParseTask->EnsureCompletion();
+		delete XAudio2Buffer->RealtimeAsyncHeaderParseTask;
 		XAudio2Buffer->RealtimeAsyncHeaderParseTask = nullptr;
 	}
 
 	if (RealtimeAsyncTask)
 	{
-		check(bResourcesNeedFreeing);
-
-		if (RealtimeAsyncTask->IsDone())
-		{
-			delete RealtimeAsyncTask;
-		}
-		else
-		{
-			bCanFreeNow = false;
-			PendingTaskInfo.RealtimeAsyncTask = RealtimeAsyncTask;
-		}
-
+		RealtimeAsyncTask->EnsureCompletion();
+		delete RealtimeAsyncTask;
 		RealtimeAsyncTask = nullptr;
-	}
-
-	// If we're not able to free now
-	if (!bCanFreeNow)
-	{
 		check(bResourcesNeedFreeing);
-
-		// Add the info to the pending list of tasks to cleanup later
-		check(Buffer->ResourceID == 0);
-		PendingTaskInfo.Buffer = Buffer;
-
-		AudioDevice->DeviceProperties->AddPendingTaskToCleanup(PendingTaskInfo);
 	}
-	else if (bResourcesNeedFreeing && Buffer)
+
+	if (bResourcesNeedFreeing && Buffer)
 	{
 		check(Buffer->ResourceID == 0);
 		delete Buffer;
