@@ -3109,6 +3109,7 @@ namespace vr
 	typedef EVRFirmwareError VRFirmwareError;
 	typedef EVRCompositorError VRCompositorError;
 	typedef EVRScreenshotError VRScreenshotsError;
+	typedef void*(VR_CALLTYPE *VRGenericInterfaceCallback)(const char* pchInterfaceVersion, vr::HmdError* peError); // @epic
 
 	inline uint32_t &VRToken()
 	{
@@ -3137,7 +3138,7 @@ namespace vr
 			if ( m_pVRSystem == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRSystem = ( IVRSystem * )VR_GetGenericInterface( IVRSystem_Version, &eError );
+				m_pVRSystem = ( IVRSystem * )m_pVRGenericInterface( IVRSystem_Version, &eError ); // @epic
 			}
 			return m_pVRSystem;
 		}
@@ -3147,7 +3148,7 @@ namespace vr
 			if ( m_pVRChaperone == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRChaperone = ( IVRChaperone * )VR_GetGenericInterface( IVRChaperone_Version, &eError );
+				m_pVRChaperone = ( IVRChaperone * )m_pVRGenericInterface( IVRChaperone_Version, &eError ); // @epic
 			}
 			return m_pVRChaperone;
 		}
@@ -3158,7 +3159,7 @@ namespace vr
 			if ( m_pVRChaperoneSetup == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRChaperoneSetup = ( IVRChaperoneSetup * )VR_GetGenericInterface( IVRChaperoneSetup_Version, &eError );
+				m_pVRChaperoneSetup = ( IVRChaperoneSetup * )m_pVRGenericInterface( IVRChaperoneSetup_Version, &eError ); // @epic
 			}
 			return m_pVRChaperoneSetup;
 		}
@@ -3169,7 +3170,7 @@ namespace vr
 			if ( m_pVRCompositor == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRCompositor = ( IVRCompositor * )VR_GetGenericInterface( IVRCompositor_Version, &eError );
+				m_pVRCompositor = ( IVRCompositor * )m_pVRGenericInterface( IVRCompositor_Version, &eError ); // @epic
 			}
 			return m_pVRCompositor;
 		}
@@ -3180,7 +3181,7 @@ namespace vr
 			if ( m_pVROverlay == nullptr )
 			{
 				EVRInitError eError;
-				m_pVROverlay = ( IVROverlay * )VR_GetGenericInterface( IVROverlay_Version, &eError );
+				m_pVROverlay = ( IVROverlay * )m_pVRGenericInterface( IVROverlay_Version, &eError ); // @epic
 			}
 			return m_pVROverlay;
 		}
@@ -3191,7 +3192,7 @@ namespace vr
 			if ( m_pVRResources == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRResources = (IVRResources *)VR_GetGenericInterface( IVRResources_Version, &eError );
+				m_pVRResources = (IVRResources *)m_pVRGenericInterface( IVRResources_Version, &eError ); // @epic
 			}
 			return m_pVRResources;
 		}
@@ -3202,7 +3203,7 @@ namespace vr
 			if ( m_pVRScreenshots == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRScreenshots = ( IVRScreenshots * )VR_GetGenericInterface( IVRScreenshots_Version, &eError );
+				m_pVRScreenshots = ( IVRScreenshots * )m_pVRGenericInterface( IVRScreenshots_Version, &eError ); // @epic
 			}
 			return m_pVRScreenshots;
 		}
@@ -3213,7 +3214,7 @@ namespace vr
 			if ( m_pVRRenderModels == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRRenderModels = ( IVRRenderModels * )VR_GetGenericInterface( IVRRenderModels_Version, &eError );
+				m_pVRRenderModels = ( IVRRenderModels * )m_pVRGenericInterface( IVRRenderModels_Version, &eError ); // @epic
 			}
 			return m_pVRRenderModels;
 		}
@@ -3224,7 +3225,7 @@ namespace vr
 			if ( m_pVRExtendedDisplay == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRExtendedDisplay = ( IVRExtendedDisplay * )VR_GetGenericInterface( IVRExtendedDisplay_Version, &eError );
+				m_pVRExtendedDisplay = ( IVRExtendedDisplay * )m_pVRGenericInterface( IVRExtendedDisplay_Version, &eError ); // @epic
 			}
 			return m_pVRExtendedDisplay;
 		}
@@ -3235,7 +3236,7 @@ namespace vr
 			if ( m_pVRSettings == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRSettings = ( IVRSettings * )VR_GetGenericInterface( IVRSettings_Version, &eError );
+				m_pVRSettings = ( IVRSettings * )m_pVRGenericInterface( IVRSettings_Version, &eError ); // @epic
 			}
 			return m_pVRSettings;
 		}
@@ -3246,7 +3247,7 @@ namespace vr
 			if ( m_pVRApplications == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRApplications = ( IVRApplications * )VR_GetGenericInterface( IVRApplications_Version, &eError );
+				m_pVRApplications = ( IVRApplications * )m_pVRGenericInterface( IVRApplications_Version, &eError ); // @epic
 			}
 			return m_pVRApplications;
 		}
@@ -3257,9 +3258,15 @@ namespace vr
 			if ( m_pVRTrackedCamera == nullptr )
 			{
 				EVRInitError eError;
-				m_pVRTrackedCamera = ( IVRTrackedCamera * )VR_GetGenericInterface( IVRTrackedCamera_Version, &eError );
+				m_pVRTrackedCamera = ( IVRTrackedCamera * )m_pVRGenericInterface( IVRTrackedCamera_Version, &eError ); // @epic
 			}
 			return m_pVRTrackedCamera;
+		}
+		
+		// @epic
+		void SetGenericInterfaceCallback(VRGenericInterfaceCallback pCallback)
+		{
+			m_pVRGenericInterface = pCallback;
 		}
 
 	private:
@@ -3275,6 +3282,7 @@ namespace vr
 		IVRApplications		*m_pVRApplications;
 		IVRTrackedCamera	*m_pVRTrackedCamera;
 		IVRScreenshots		*m_pVRScreenshots;
+		VRGenericInterfaceCallback	m_pVRGenericInterface; // @epic
 	};
 
 	inline COpenVRContext &OpenVRInternal_ModuleContext()
@@ -3314,6 +3322,9 @@ namespace vr
 
 	VR_INTERFACE uint32_t VR_CALLTYPE VR_InitInternal( EVRInitError *peError, EVRApplicationType eApplicationType );
 	VR_INTERFACE void VR_CALLTYPE VR_ShutdownInternal();
+
+	// @epic
+	inline void VR_SetGenericInterfaceCallback(VRGenericInterfaceCallback pCallback) { return OpenVRInternal_ModuleContext().SetGenericInterfaceCallback(pCallback); }
 
 	/** Finds the active installation of vrclient.dll and initializes it */
 	inline IVRSystem *VR_Init( EVRInitError *peError, EVRApplicationType eApplicationType )
