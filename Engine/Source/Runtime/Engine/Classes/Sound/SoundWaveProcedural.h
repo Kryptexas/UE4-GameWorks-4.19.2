@@ -35,9 +35,6 @@ private:
 	// Flag to reset the audio buffer
 	FThreadSafeBool bReset;
 
-	// Whether or not we've started generating audio
-	FThreadSafeBool bStarted;
-
 	// Pumps audio queued from game thread
 	void PumpQueuedAudio();
 

@@ -7,7 +7,6 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 {
 	bProcedural = true;
-	bStarted = false;
 	bReset = false;
 	NumBufferUnderrunSamples = 512;
 	NumSamplesToGeneratePerCallback = 1024;
@@ -48,41 +47,33 @@ int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesN
 		AudioBuffer.Reset();
 	}
 
-	PumpQueuedAudio();
-
 	int32 SamplesAvailable = AudioBuffer.Num() / sizeof(int16);
-
 	int32 SamplesToGenerate = FMath::Min(NumSamplesToGeneratePerCallback, SamplesNeeded);
+
 	check(SamplesToGenerate >= NumBufferUnderrunSamples);
 
-	// Wait until we have enough samples that are requested before starting.
-	if (bStarted || SamplesAvailable >= SamplesToGenerate)
+	if (SamplesAvailable < SamplesToGenerate && OnSoundWaveProceduralUnderflow.IsBound())
 	{
-		// We've now started
-		bStarted = true;
+		OnSoundWaveProceduralUnderflow.Execute(this, SamplesToGenerate);
+	}
 
-		// if delegate is bound and we don't have enough samples, call it so system can supply more
-		if (SamplesToGenerate > SamplesAvailable && OnSoundWaveProceduralUnderflow.IsBound())
-		{
-			OnSoundWaveProceduralUnderflow.Execute(this, SamplesToGenerate);
-			// Update available samples
-			PumpQueuedAudio();
-			SamplesAvailable = AudioBuffer.Num() / sizeof(int16);
-		}
+	PumpQueuedAudio();
 
-		if (SamplesAvailable > 0 && SamplesToGenerate > 0)
-		{
-			const int32 SamplesToCopy = FMath::Min<int32>(SamplesToGenerate, SamplesAvailable);
-			const int32 BytesToCopy = SamplesToCopy * sizeof(int16);
+	SamplesAvailable = AudioBuffer.Num() / sizeof(int16);
 
-			FMemory::Memcpy((void*)PCMData, &AudioBuffer[0], BytesToCopy);
-			AudioBuffer.RemoveAt(0, BytesToCopy);
+	// Wait until we have enough samples that are requested before starting.
+	if (SamplesAvailable >= SamplesToGenerate)
+	{
+		const int32 SamplesToCopy = FMath::Min<int32>(SamplesToGenerate, SamplesAvailable);
+		const int32 BytesToCopy = SamplesToCopy * sizeof(int16);
 
-			// Decrease the available by count
-			AvailableByteCount.Subtract(BytesToCopy);
+		FMemory::Memcpy((void*)PCMData, &AudioBuffer[0], BytesToCopy);
+		AudioBuffer.RemoveAt(0, BytesToCopy);
 
-			return BytesToCopy;
-		}
+		// Decrease the available by count
+		AvailableByteCount.Subtract(BytesToCopy);
+
+		return BytesToCopy;
 	}
 
 	// There wasn't enough data ready, write out zeros
@@ -95,9 +86,6 @@ void USoundWaveProcedural::ResetAudio()
 {
 	// Empty out any enqueued audio buffers
 	QueuedAudio.Empty();
-
-	// We're reseting the audio so reset the start flag
-	bStarted = false;
 
 	// Flag that we need to reset our audio buffer (on the audio thread)
 	bReset = true;
