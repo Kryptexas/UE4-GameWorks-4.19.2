@@ -3,7 +3,7 @@ description:A reference of the interface elements and properties found in the Hi
 crumbs:
 availability:docs
 
-This page details the buttons and properties that exist on the Hierarchical LOD Outliner.
+This page details the buttons and properties that exist on the **Hierarchical LOD Outliner**.
 
 [REGION:warning]
 HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
@@ -19,7 +19,7 @@ HLOD doesn't currently work well with dynamic shadows (casting or recieving them
 Below are the descriptions for the 3 buttons and slider that exist in the **Hierarchical LOD Outliner**.
 
 | --- | :---: | :--- |
-| **Generate Clusters** || This will generate spherical clusters of static mesh actors in the scene that can be grouped. The way this is handled is by using the settings for each LOD settings specified under the LODSystem section of the HLOD Outliner. |
+| **Generate Clusters** || This will generate spherical clusters of **Static Mesh Actors** in the scene that can be grouped. The way this is handled is by using the settings for each LOD settings specified under the LODSystem section of the HLOD Outliner. |
 | **Delete Clusters** || This will delete all HLODs that have been previously setup in this level. This includes all generated proxy meshes as well as the clusters that have been setup. This will not wipe the previously set values or properties for the HLOD Levels. |
 | **Generate Proxy Meshes** || [INCLUDE:#gpm] |
 | **Forced Viewing Level** || This will allow you to force a specific LOD level to be visible in the editor. This is helpful for debugging any LOD issues you may have. |
@@ -38,19 +38,19 @@ Below, broken out by major section, are the properties that can be found in a **
 | --- | :---: | :--- |
 | **Desired Bound Radius** || This is not guaranteed but used to calculate filling factor for auto clustering. |
 | **Desired Filling Percentage** || This is not guaranteed but used to calculate filling factor for auto clustering. |
-| **Min Number of Actors to Build** || Min number of actors to build LODActor. |
+| **Min Number of Actors to Build** || Min number of **Actors** to build LODActor. |
 
 ### Mesh Generation Settings
 
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Transition Screen Size** || The screen radius a mesh object should reach before swapping to the LOD actor. When the parent LOD displays it won’t display any of the children. |
+| **Transition Screen Size** || The screen radius a mesh object should reach before swapping to the LOD **Actor**. When the parent LOD displays it won’t display any of the children. |
 | [REGION:tablesection]**Merge Settings**[/REGION] |||
 | **Generate Light Map UV** || Whether to generate a lightmap UV for a merged mesh. |
 | **Target Light Map UVChannel** || The target UV channel to assign the lightmap UV. |
 | **Target Light Map Resolution** || The lightmap resolution set for the merged mesh. |
-| **Pivot Point at Zero** || Whether a merged mesh should have a pivot at the World Origin, or at the first merged actor from a generated cluster. |
-| **Merge Physics Data:** || Whether to merge the collision primitives when combining the actors. |
+| **Pivot Point at Zero** || Whether a merged mesh should have a pivot at the World Origin, or at the first merged **Actor** from a generated cluster. |
+| **Merge Physics Data:** || Whether to merge the collision primitives when combining the **Actors**. |
 | **Merge Materials** || Whether to merge source materials into one flat material. |
 | [REGION:tablesection]**[Material Settings See Below](#materialsettings)**[/REGION] |||
 | **Bake Vertex Data ** || Incorporates painted vertex colours into model/baked out material. |
@@ -85,7 +85,7 @@ Below, broken out by major section, are the properties that can be found in a **
 
 <!--
 [EXCERPT:GPM]
-When you generate the proxy meshes this will use the clustered LODs to merge these actors together into a single asset. Depending on what settings you changed for the HLOD levels your static meshes will generate based on this. This can affect your materials, lightmaps, and various other properties as well. 
+When you generate the proxy meshes this will use the clustered LODs to merge these **Actors** together into a single asset. Depending on what settings you changed for the HLOD levels your static meshes will generate based on this. This can affect your materials, lightmaps, and various other properties as well. 
 
 [REGION:note]
 Be aware that this process can take a **very long time** depending on your scene complexity and settings for your HLOD levels.
