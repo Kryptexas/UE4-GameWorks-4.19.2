@@ -397,7 +397,11 @@ public class DeploymentContext //: ProjectParams
 			}
 			else if(BuildProduct.Type == BuildProductType.SymbolFile)
 			{
-				StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
+				// Symbol files aren't true dependencies so we can skip if they don't exist
+				if (File.Exists(BuildProduct.Path))
+				{
+					StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
+				}
 			}
 		}
 	}
