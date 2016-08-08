@@ -245,6 +245,9 @@
 				<PakFile Output="FeaturePacks/$(SampleName).upack" Files="" ResponseFile="Samples/$(SampleName)/contents.txt"/>
 			</ForEach>
 		</Node>
+		<Node Name="Build Tools Linux" Requires="Compile UnrealHeaderTool Win64">
+			<Compile Target="CrashReportClient" Platform="Linux" Configuration="Shipping"/>
+		</Node>
 	</Agent>
 
 	<Agent Name="Tools Group Mac" Type="CompileMac">
