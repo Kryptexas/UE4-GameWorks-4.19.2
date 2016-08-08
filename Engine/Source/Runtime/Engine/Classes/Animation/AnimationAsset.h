@@ -258,6 +258,8 @@ struct FAnimTickRecord
 	float*  TimeAccumulator;
 	float PlayRateMultiplier;
 	float EffectiveBlendWeight;
+	float RootMotionWeightModifier;
+
 	bool bLooping;
 
 	union
@@ -284,11 +286,15 @@ struct FAnimTickRecord
 	bool bCanUseMarkerSync;
 	float LeaderScore;
 
+	// Return the root motion weight for this tick record
+	float GetRootMotionWeight() const { return EffectiveBlendWeight * RootMotionWeightModifier; }
+
 public:
 	FAnimTickRecord()
 		: TimeAccumulator(nullptr)
 		, PlayRateMultiplier(1.f)
 		, EffectiveBlendWeight(0.f)
+		, RootMotionWeightModifier(1.f)
 		, bLooping(false)
 		, MarkerTickRecord(nullptr)
 		, bCanUseMarkerSync(false)

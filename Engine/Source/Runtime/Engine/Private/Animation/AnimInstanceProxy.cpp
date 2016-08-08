@@ -376,7 +376,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 
 				if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 				{
-					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, GroupLeader.EffectiveBlendWeight);
+					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, GroupLeader.GetRootMotionWeight());
 				}
 
 				// if we're not using marker based sync, we don't care, get out
@@ -435,7 +435,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 					}
 					if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 					{
-						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayer.EffectiveBlendWeight);
+						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayer.GetRootMotionWeight());
 					}
 				}
 			}
@@ -459,7 +459,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 		}
 		if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 		{
-			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayerToTick.EffectiveBlendWeight);
+			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayerToTick.GetRootMotionWeight());
 		}
 	}
 }
