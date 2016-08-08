@@ -558,8 +558,6 @@ static uint32 TonemapperGenerateBitmask(const FViewInfo* RESTRICT View, bool bGa
 {
 	check(View);
 
-	bGammaOnly |= !IsMobileHDR();
-
 	const FSceneViewFamily* RESTRICT Family = View->Family;
 	if(
 		bGammaOnly ||
