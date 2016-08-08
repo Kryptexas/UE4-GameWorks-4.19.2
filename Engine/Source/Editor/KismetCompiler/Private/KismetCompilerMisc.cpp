@@ -307,7 +307,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	if (Property->HasAnyPropertyFlags(CPF_Parm))
 	{
 		// Parameters are directional
-		const bool bOutParam = (Property->HasAnyPropertyFlags(CPF_OutParm | CPF_ReturnParm) && !(Property->HasAnyPropertyFlags(CPF_ReferenceParm)));
+		const bool bOutParam = Property->HasAllPropertyFlags(CPF_ReturnParm) || (Property->HasAllPropertyFlags(CPF_OutParm) && !Property->HasAnyPropertyFlags(CPF_ReferenceParm));
 
 		if ( ((SourcePin->Direction == EGPD_Input) && bOutParam) || ((SourcePin->Direction == EGPD_Output) && !bOutParam))
 		{
