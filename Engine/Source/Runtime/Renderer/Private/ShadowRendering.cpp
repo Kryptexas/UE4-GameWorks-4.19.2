@@ -1340,8 +1340,11 @@ void FMobileSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmed
 	{
 		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
-		TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
-		SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
-		FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+		if(LightSceneInfo->ShouldRenderLightViewIndependent() && LightSceneInfo->Proxy && LightSceneInfo->Proxy->CastsModulatedShadows())
+		{
+			TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
+			SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
+			FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+		}
 	}
 }
