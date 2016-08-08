@@ -297,10 +297,18 @@ public class MacPlatform : Platform
 				if (File.Exists(CustomIconSrcPath))
 				{
 					File.Delete(DefaultIconPath);
+					if (File.Exists(CustomIconDestPath))
+					{
+						File.Delete(CustomIconDestPath);
+					}
 					File.Move(CustomIconSrcPath, CustomIconDestPath);
 				}
 				else if (File.Exists(DefaultIconPath))
 				{
+					if (File.Exists(CustomIconDestPath))
+					{
+						File.Delete(CustomIconDestPath);
+					}
 					File.Move(DefaultIconPath, CustomIconDestPath);
 				}
 
