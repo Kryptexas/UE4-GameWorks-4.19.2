@@ -34,8 +34,8 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * Creates a new render target and initializes it to the specified dimensions
 	 */
-	UFUNCTION(BlueprintCallable, Category="Rendering")
-	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(int32 Width = 256, int32 Height = 256);
+	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(WorldContext="WorldContextObject"))
+	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(UObject* WorldContextObject, int32 Width = 256, int32 Height = 256);
 
 	/** 
 	 * Renders a quad with the material applied to the specified render target.   

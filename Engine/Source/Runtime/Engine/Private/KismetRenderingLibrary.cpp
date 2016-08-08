@@ -39,11 +39,14 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 	}
 }
 
-UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(int32 Width, int32 Height)
+UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height)
 {
-	if (Width > 0 && Height > 0)
+	check(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	if (Width > 0 && Height > 0 && World)
 	{
-		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>();
+		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>(WorldContextObject);
 		check(NewRenderTarget2D);
 		NewRenderTarget2D->InitAutoFormat(Width, Height); 
 		NewRenderTarget2D->UpdateResourceImmediate(true);
