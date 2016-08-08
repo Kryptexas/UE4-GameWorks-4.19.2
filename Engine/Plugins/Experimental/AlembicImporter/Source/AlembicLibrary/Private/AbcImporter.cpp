@@ -1437,6 +1437,8 @@ bool FAbcImporter::BuildSkeletalMesh(
 		FSkelMeshSection& TargetSection = *new(LODModel.Sections) FSkelMeshSection();
 		TargetSection.MaterialIndex = (uint16)SourceSection.MaterialIndex;
 		TargetSection.NumTriangles = SourceSection.NumFaces;
+		// Currently there is no duplicate vertex removal so number of verts matches number of indices
+		TargetSection.NumVertices = SourceSection.Indices.Num();
 
 		TargetSection.BaseVertexIndex = LODModel.NumVertices;
 		TargetSection.SoftVertices.AddZeroed(SourceSection.NumFaces * 3);
@@ -1533,93 +1535,6 @@ bool FAbcImporter::BuildSkeletalMesh(
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
 
 	return true;
-}
-
-
-void FAbcImporter::GenerateSkeletalMeshDataFromCompressedData(FSkeletalMeshImportData& SkeletalMeshData, const TArray<FCompressedAbcData>& CompressedMeshData)
-{
-	uint32 VertexOffset = 0;
-	uint32 IndexOffset = 0;
-	uint32 WedgeOffset = 0;
-	uint32 TriangleOffset = 0;
-	uint32 MaterialOffset = 0;
-
-	for (const FCompressedAbcData& CompressedData : CompressedMeshData)
-	{
-		FAbcMeshSample* Sample = CompressedData.AverageSample;
-		const uint32 NumVertices = Sample->Vertices.Num();
-		const uint32 NumIndices = Sample->Indices.Num();
-		const uint32 NumFace = NumIndices / 3;
-
-		// Append vertices
-		SkeletalMeshData.Points.Append(Sample->Vertices);
-
-		// Influences
-		SkeletalMeshData.Influences.AddZeroed(NumVertices);
-
-		int32 VertexIndex = VertexOffset;
-		for (uint32 InfluenceIndex = 0; InfluenceIndex < NumVertices; ++InfluenceIndex)
-		{
-			VRawBoneInfluence& Influence = SkeletalMeshData.Influences[VertexIndex];
-			Influence.BoneIndex = 0;
-			Influence.VertexIndex = VertexIndex;
-			Influence.Weight = 1.0f;
-			++VertexIndex;
-		}
-
-		// Points to raw data
-		SkeletalMeshData.PointToRawMap.AddZeroed(NumVertices);
-		VertexIndex = VertexOffset;
-		for (uint32 PointIndex = 0; PointIndex < NumVertices; ++PointIndex)
-		{
-			SkeletalMeshData.PointToRawMap[PointIndex + VertexOffset] = VertexIndex;
-			++VertexIndex;
-		}
-
-		// Wedges
-		SkeletalMeshData.Wedges.AddZeroed(NumIndices);
-
-		for (uint32 WedgeIndex = 0; WedgeIndex < NumIndices; ++WedgeIndex)
-		{
-			VVertex& Wedge = SkeletalMeshData.Wedges[WedgeIndex + WedgeOffset];
-
-			// Retrieve index (to vertices)
-			const uint32& Index = Sample->Indices[WedgeIndex];
-			Wedge.VertexIndex = Index + VertexOffset;
-			Wedge.UVs[0] = Sample->UVs.Num() ? Sample->UVs[WedgeIndex] : FVector2D();
-			Wedge.Color = FColor::White; //Sample->Colours.Num() ? Sample->Colours[WedgeIndex] : white for now TODO
-			Wedge.MatIndex = 0;
-		}
-
-		// Faces
-		SkeletalMeshData.Faces.AddZeroed(Sample->Indices.Num() / 3);
-
-		for (uint32 FaceIndex = 0; FaceIndex < NumFace; ++FaceIndex)
-		{
-			VTriangle& Face = SkeletalMeshData.Faces[TriangleOffset + FaceIndex];
-
-			Face.SmoothingGroups = Sample->SmoothingGroupIndices[FaceIndex];
-			Face.MatIndex = (uint8)(Sample->MaterialIndices[FaceIndex] + MaterialOffset);
-			for (int32 Index = 0; Index < 3; ++Index)
-			{
-				const int32 OffsetIndex = ((FaceIndex * 3) + Index);
-				Face.WedgeIndex[Index] = OffsetIndex + WedgeOffset;
-				Face.TangentX[Index] = Sample->TangentX[OffsetIndex];
-				Face.TangentY[Index] = Sample->TangentY[OffsetIndex];
-				Face.TangentZ[Index] = Sample->Normals[OffsetIndex];
-
-				SkeletalMeshData.Wedges[OffsetIndex + TriangleOffset].MatIndex = Face.MatIndex;
-			}
-		}
-
-		SkeletalMeshData.NumTexCoords = 1;
-		WedgeOffset += NumIndices;
-		VertexOffset += NumVertices;
-		TriangleOffset += NumIndices / 3;
-		MaterialOffset += CompressedData.MaterialNames.Num();
-	}
-
-	SkeletalMeshData.MaxMaterialIndex = MaterialOffset - 1;
 }
 
 void FAbcImporter::GenerateMorphTargetVertices(FAbcMeshSample* BaseSample, TArray<FMorphTargetDelta> &MorphDeltas, FAbcMeshSample* AverageSample, uint32 WedgeOffset, const TArray<int32>& RemapIndices)

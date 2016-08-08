@@ -191,9 +191,6 @@ private:
 	/** Functionality for comparing the matrices and calculating the difference from the original animation */
 	void CompareCompressionResult(const TArray<float>& OriginalMatrix, const uint32 NumSamples, const uint32 NumRows, const uint32 NumUsedSingularValues, const uint32 NumVertices, const TArray<float>& OutU, const TArray<float>& OutV, const TArray<FVector>& AverageFrame);
 	
-	/** Populates the skeletal mesh import data structure using the data retrieved for the given sample index */
-	void GenerateSkeletalMeshDataFromCompressedData(FSkeletalMeshImportData& SkeletalMeshData, const TArray<FCompressedAbcData>& CompressedMeshData);
-
 	/** Build a skeletal mesh from the PCA compressed data */
 	bool BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, FAbcMeshSample* Sample, TArray<int32>& OutMorphTargetVertexRemapping);
 	
