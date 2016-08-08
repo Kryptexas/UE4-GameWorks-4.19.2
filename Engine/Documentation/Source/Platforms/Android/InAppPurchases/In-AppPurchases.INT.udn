@@ -7,6 +7,7 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:howto
+Prereq:P
 Related:Platforms/Mobile/InAppPurchases/
 
 ## Configuration
@@ -35,9 +36,12 @@ Related:Platforms/Mobile/InAppPurchases/
 	
 	![image alt text](image_2.png)
 
-1. Edit [ProjectName]/Config/IOS/IOSEngine.ini:
+1. Edit [ProjectName]/Config/Android/AndroidEngine.ini:
 
-		[OnlineSubsystemIOS.Store]
+		[OnlineSubsystem]
+		DefaultPlatformService=GooglePlay
+
+		[OnlineSubsystemGooglePlay.Store]
 		bSupportsInAppPurchasing=True
 
 [INCLUDE:Platforms/Mobile/InAppPurchases#usage_android]
