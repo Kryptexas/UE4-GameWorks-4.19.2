@@ -72,7 +72,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();	
 	ShowImportOptionsWindow(Options, UFactory::CurrentFilename, Importer);
 
-	// Set whether or not the user cancelled
+	// Set whether or not the user canceled
 	bOutOperationCanceled = !Options->ShouldImport();
 
 	TArray<UObject*> ResultAssets;
@@ -137,7 +137,9 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 		FAbcImportLogger::OutputMessages();
 	}
 	
-	return (ResultAssets.Num() > 0) ? InParent : nullptr;
+	// Determine out parent according to the generated assets outer
+	UObject* OutParent = (ResultAssets.Num() > 0 && InParent != ResultAssets[0]->GetOutermost()) ? ResultAssets[0]->GetOutermost() : InParent;
+	return (ResultAssets.Num() > 0) ? OutParent : nullptr;
 }
 
 TArray<UObject*> UAlembicImportFactory::ImportStaticMesh(FAbcImporter& Importer, UObject* InParent, EObjectFlags Flags)

@@ -476,7 +476,7 @@ void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom:
 }
 
 template<typename T>
-T* FAbcImporter::CreateObjectInstance(UObject* InParent, const FString& ObjectName, const EObjectFlags Flags)
+T* FAbcImporter::CreateObjectInstance(UObject*& InParent, const FString& ObjectName, const EObjectFlags Flags)
 {
 	// Parent package to place new mesh
 	UPackage* Package = nullptr;
@@ -507,6 +507,7 @@ T* FAbcImporter::CreateObjectInstance(UObject* InParent, const FString& ObjectNa
 
 			// Create a package for each mesh
 			Package = CreatePackage(nullptr, *NewPackageName);
+			InParent = Package;
 		}
 		else
 		{
@@ -539,57 +540,61 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 {
 	UStaticMesh* StaticMesh = CreateObjectInstance<UStaticMesh>(InParent, Name, Flags);
 
-	// Add the first LOD, we only support one
-	new(StaticMesh->SourceModels) FStaticMeshSourceModel();
-
-	// Generate a new lighting GUID (so its unique)
-	StaticMesh->LightingGuid = FGuid::NewGuid();
-
-	// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoord index exists for all LODs, etc).
-	StaticMesh->LightMapResolution = 64;
-	StaticMesh->LightMapCoordinateIndex = 1;
-
-	// Material setup, since there isn't much material information in the Alembic file, 
-	UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-	check(DefaultMaterial);
-
-	// Material list
-	StaticMesh->Materials.Empty();
-	// If there were FaceSets available in the Alembic file use the number of unique face sets as num material entries, otherwise default to one material for the whole mesh
-	const uint32 FrameIndex = 0;
-	uint32 NumFaceSets = FaceSetNames.Num();
-
-	const bool bCreateMaterial = ImportData->ImportSettings->MaterialSettings.bCreateMaterials;
-	for (uint32 MaterialIndex = 0; MaterialIndex < ((NumMaterials != 0 ) ? NumMaterials : 1); ++MaterialIndex)
+	// Only import data if a valid object was created
+	if (StaticMesh)
 	{
-		UMaterial* Material = nullptr;
-		if (FaceSetNames.IsValidIndex(MaterialIndex))
-		{			
-			Material = RetrieveMaterial(FaceSetNames[MaterialIndex], InParent, Flags);
-		}		
-				
-		StaticMesh->Materials.Add(( Material != nullptr) ? Material : DefaultMaterial);
+		// Add the first LOD, we only support one
+		new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+
+		// Generate a new lighting GUID (so its unique)
+		StaticMesh->LightingGuid = FGuid::NewGuid();
+
+		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoord index exists for all LODs, etc).
+		StaticMesh->LightMapResolution = 64;
+		StaticMesh->LightMapCoordinateIndex = 1;
+
+		// Material setup, since there isn't much material information in the Alembic file, 
+		UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+		check(DefaultMaterial);
+
+		// Material list
+		StaticMesh->Materials.Empty();
+		// If there were FaceSets available in the Alembic file use the number of unique face sets as num material entries, otherwise default to one material for the whole mesh
+		const uint32 FrameIndex = 0;
+		uint32 NumFaceSets = FaceSetNames.Num();
+
+		const bool bCreateMaterial = ImportData->ImportSettings->MaterialSettings.bCreateMaterials;
+		for (uint32 MaterialIndex = 0; MaterialIndex < ((NumMaterials != 0) ? NumMaterials : 1); ++MaterialIndex)
+		{
+			UMaterial* Material = nullptr;
+			if (FaceSetNames.IsValidIndex(MaterialIndex))
+			{
+				Material = RetrieveMaterial(FaceSetNames[MaterialIndex], InParent, Flags);
+			}
+
+			StaticMesh->Materials.Add((Material != nullptr) ? Material : DefaultMaterial);
+		}
+
+		// Get the first LOD for filling it up with geometry, only support one LOD
+		FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+		// Set build settings for the static mesh
+		SrcModel.BuildSettings.bRecomputeNormals = false;
+		SrcModel.BuildSettings.bRecomputeTangents = false;
+		SrcModel.BuildSettings.bUseMikkTSpace = false;
+		// Generate Lightmaps uvs (no support for importing right now)
+		SrcModel.BuildSettings.bGenerateLightmapUVs = true;
+		// Set lightmap UV index to 1 since we currently only import one set of UVs from the Alembic Data file
+		SrcModel.BuildSettings.DstLightmapIndex = 1;
+
+		// Build the static mesh (using the build setting etc.) this generates correct tangents using the extracting smoothing group along with the imported Normals data
+		StaticMesh->Build(false);
+
+		// Store the raw mesh within the RawMeshBulkData
+		SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
+
+		// No collision generation for now
+		StaticMesh->CreateBodySetup();
 	}
-
-	// Get the first LOD for filling it up with geometry, only support one LOD
-	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
-	// Set build settings for the static mesh
-	SrcModel.BuildSettings.bRecomputeNormals = false;
-	SrcModel.BuildSettings.bRecomputeTangents = false;
-	SrcModel.BuildSettings.bUseMikkTSpace = false;
-	// Generate Lightmaps uvs (no support for importing right now)
-	SrcModel.BuildSettings.bGenerateLightmapUVs = true;
-	// Set lightmap UV index to 1 since we currently only import one set of UVs from the Alembic Data file
-	SrcModel.BuildSettings.DstLightmapIndex = 1;
-
-	// Build the static mesh (using the build setting etc.) this generates correct tangents using the extracting smoothing group along with the imported Normals data
-	StaticMesh->Build(false);
-
-	// Store the raw mesh within the RawMeshBulkData
-	SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
-
-	// No collision generation for now
-	StaticMesh->CreateBodySetup();
 
 	return StaticMesh;
 }
@@ -668,66 +673,70 @@ UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFl
 {
 	// Create a GeometryCache instance 
 	UGeometryCache* GeometryCache = CreateObjectInstance<UGeometryCache>(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags);
-
-	// In case this is a reimport operation
-	GeometryCache->ClearForReimporting();
-
-	// Load the default material for later usage
-	UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-	check(DefaultMaterial);
-
-	uint32 MaterialOffset = 0;
-
-	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
+	
+	// Only import data if a valid object was created
+	if (GeometryCache)
 	{
-		UGeometryCacheTrack* Track = nullptr;
-		// Determine what kind of GeometryCacheTrack we must create
-		if (MeshObject->bConstant)
-		{
-			// TransformAnimation
-			Track = CreateTransformAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
-		}
-		else
-		{
-			// FlibookAnimation
-			Track = CreateFlipbookAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
-		}
+		// In case this is a reimport operation
+		GeometryCache->ClearForReimporting();
 
-		if (Track == nullptr)
-		{
-			// Import was cancelled
-			delete GeometryCache;
-			return nullptr;
-		}
+		// Load the default material for later usage
+		UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+		check(DefaultMaterial);
 
-		// Add materials for this Mesh Object
-		const uint32 NumMaterials = (MeshObject->FaceSetNames.Num() > 0) ? MeshObject->FaceSetNames.Num() : 1;
-		for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+		uint32 MaterialOffset = 0;
+
+		for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
 		{
-			UMaterial* Material = nullptr;
-			if (MeshObject->FaceSetNames.IsValidIndex(MaterialIndex))
+			UGeometryCacheTrack* Track = nullptr;
+			// Determine what kind of GeometryCacheTrack we must create
+			if (MeshObject->bConstant)
 			{
-				Material = RetrieveMaterial(MeshObject->FaceSetNames[MaterialIndex], InParent, Flags);
+				// TransformAnimation
+				Track = CreateTransformAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
+			}
+			else
+			{
+				// FlibookAnimation
+				Track = CreateFlipbookAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
 			}
 
-			GeometryCache->Materials.Add((Material != nullptr) ? Material : DefaultMaterial);
+			if (Track == nullptr)
+			{
+				// Import was cancelled
+				delete GeometryCache;
+				return nullptr;
+			}
+
+			// Add materials for this Mesh Object
+			const uint32 NumMaterials = (MeshObject->FaceSetNames.Num() > 0) ? MeshObject->FaceSetNames.Num() : 1;
+			for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+			{
+				UMaterial* Material = nullptr;
+				if (MeshObject->FaceSetNames.IsValidIndex(MaterialIndex))
+				{
+					Material = RetrieveMaterial(MeshObject->FaceSetNames[MaterialIndex], InParent, Flags);
+				}
+
+				GeometryCache->Materials.Add((Material != nullptr) ? Material : DefaultMaterial);
+			}
+			MaterialOffset += NumMaterials;
+
+			// Get Matrix samples 
+			TArray<FMatrix> Matrices;
+			TArray<float> SampleTimes;
+
+			// Retrieved cached matrix transformation for this object's hierarchy GUID
+			TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(MeshObject->HierarchyGuid);
+			// Store samples inside the track
+			Track->SetMatrixSamples(CachedHierarchyTransforms->MatrixSamples, CachedHierarchyTransforms->TimeSamples);
+
+			// Update Total material count
+			ImportData->NumTotalMaterials += Track->GetNumMaterials();
+
+			check(Track != nullptr && "Invalid track data");
+			GeometryCache->AddTrack(Track);
 		}
-		MaterialOffset += NumMaterials;
-
-		// Get Matrix samples 
-		TArray<FMatrix> Matrices;
-		TArray<float> SampleTimes;
-
-		// Retrieved cached matrix transformation for this object's hierarchy GUID
-		TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(MeshObject->HierarchyGuid);
-		// Store samples inside the track
-		Track->SetMatrixSamples(CachedHierarchyTransforms->MatrixSamples, CachedHierarchyTransforms->TimeSamples);
-
-		// Update Total material count
-		ImportData->NumTotalMaterials += Track->GetNumMaterials();
-
-		check(Track != nullptr && "Invalid track data");
-		GeometryCache->AddTrack(Track);
 	}
 
 	return GeometryCache;
@@ -754,143 +763,151 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 	// Create a Skeletal mesh instance 
 	USkeletalMesh* SkeletalMesh = CreateObjectInstance<USkeletalMesh>(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags);
 
-	// Touch pre edit change
-	SkeletalMesh->PreEditChange(NULL);
-
-	// Retrieve the imported resource structure and allocate a new LOD model
-	FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
-	check(ImportedResource->LODModels.Num() == 0);
-	ImportedResource->LODModels.Empty();
-	new(ImportedResource->LODModels)FStaticLODModel();
-	SkeletalMesh->LODInfo.Empty();
-	SkeletalMesh->LODInfo.AddZeroed();
-	FStaticLODModel& LODModel = ImportedResource->LODModels[0];
-	SkeletalMesh->LODInfo[0].TriangleSortSettings.AddZeroed(LODModel.Sections.Num());
-
-	const FMeshBoneInfo BoneInfo(FName(TEXT("RootBone"), FNAME_Add), TEXT("RootBone_Export"), INDEX_NONE);
-	const FTransform BoneTransform;
-	SkeletalMesh->RefSkeleton.Add(BoneInfo, BoneTransform);
-
-	// Forced to 1
-	ImportedResource->LODModels[0].NumTexCoords = 1;
-	SkeletalMesh->bHasVertexColors = false;
-
-	FAbcMeshSample* MergedMeshSample = new FAbcMeshSample();
-	for (const FCompressedAbcData& Data : ImportData->CompressedMeshData)
+	// Only import data if a valid object was created
+	if (SkeletalMesh)
 	{
-		AbcImporterUtilities::AppendMeshSample(MergedMeshSample, Data.AverageSample);
-	}
+		// Touch pre edit change
+		SkeletalMesh->PreEditChange(NULL);
 
-	/* TODO calculate bounding box according to animation */
-	FBox BoundingBox(MergedMeshSample->Vertices.GetData(), MergedMeshSample->Vertices.Num());
-	SkeletalMesh->SetImportedBounds(BoundingBox);
+		// Retrieve the imported resource structure and allocate a new LOD model
+		FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
+		check(ImportedResource->LODModels.Num() == 0);
+		ImportedResource->LODModels.Empty();
+		new(ImportedResource->LODModels)FStaticLODModel();
+		SkeletalMesh->LODInfo.Empty();
+		SkeletalMesh->LODInfo.AddZeroed();
+		FStaticLODModel& LODModel = ImportedResource->LODModels[0];
+		SkeletalMesh->LODInfo[0].TriangleSortSettings.AddZeroed(LODModel.Sections.Num());
 
-	bool bBuildSuccess = false;
-	TArray<int32> MorphTargetVertexRemapping;
-	bBuildSuccess = BuildSkeletalMesh(LODModel, SkeletalMesh->RefSkeleton, MergedMeshSample, MorphTargetVertexRemapping);
+		const FMeshBoneInfo BoneInfo(FName(TEXT("RootBone"), FNAME_Add), TEXT("RootBone_Export"), INDEX_NONE);
+		const FTransform BoneTransform;
+		SkeletalMesh->RefSkeleton.Add(BoneInfo, BoneTransform);
 
-	if (!bBuildSuccess)
-	{
-		SkeletalMesh->MarkPendingKill();
-		return NULL;
-	}
+		// Forced to 1
+		ImportedResource->LODModels[0].NumTexCoords = 1;
+		SkeletalMesh->bHasVertexColors = false;
 
-	// Create the skeleton object
-	FString SkeletonName = FString::Printf(TEXT("%s_Skeleton"), *SkeletalMesh->GetName());
-	USkeleton* Skeleton = CreateObjectInstance<USkeleton>(InParent, SkeletonName, Flags);
-	
-	// Merge bones to the selected skeleton
-	check(Skeleton->MergeAllBonesToBoneTree(SkeletalMesh));
-	Skeleton->MarkPackageDirty();
-	if (SkeletalMesh->Skeleton != Skeleton)
-	{
-		SkeletalMesh->Skeleton = Skeleton;
-		SkeletalMesh->MarkPackageDirty();
-	}
-
-	// Create animation sequence for the skeleton
-	UAnimSequence* Sequence = CreateObjectInstance<UAnimSequence>(InParent, FString::Printf(TEXT("%s_Animation"), *SkeletalMesh->GetName()), Flags);
-	Sequence->SetSkeleton(Skeleton);
-	Sequence->SequenceLength = ImportData->MaxTime - ImportData->MinTime;
-
-	int32 ObjectIndex = 0;
-	uint32 TriangleOffset = 0;
-	uint32 WedgeOffset = 0;
-	uint32 VertexOffset = 0;
-
-	for (FCompressedAbcData& CompressedData : ImportData->CompressedMeshData)
-	{
-		FAbcMeshSample* AverageSample = CompressedData.AverageSample;
-
-		if ( CompressedData.BaseSamples.Num() > 0 )
+		FAbcMeshSample* MergedMeshSample = new FAbcMeshSample();
+		for (const FCompressedAbcData& Data : ImportData->CompressedMeshData)
 		{
-			int32 NumBases = CompressedData.BaseSamples.Num();
-			int32 NumUsedBases = 0;
+			AbcImporterUtilities::AppendMeshSample(MergedMeshSample, Data.AverageSample);
+		}
 
-			const int32 NumIndices = CompressedData.AverageSample->Indices.Num();
-			
-			for (int32 BaseIndex = 0; BaseIndex < NumBases; ++BaseIndex)
+		/* TODO calculate bounding box according to animation */
+		FBox BoundingBox(MergedMeshSample->Vertices.GetData(), MergedMeshSample->Vertices.Num());
+		SkeletalMesh->SetImportedBounds(BoundingBox);
+
+		bool bBuildSuccess = false;
+		TArray<int32> MorphTargetVertexRemapping;
+		bBuildSuccess = BuildSkeletalMesh(LODModel, SkeletalMesh->RefSkeleton, MergedMeshSample, MorphTargetVertexRemapping);
+
+		if (!bBuildSuccess)
+		{
+			SkeletalMesh->MarkPendingKill();
+			return NULL;
+		}
+
+		// Create the skeleton object
+		FString SkeletonName = FString::Printf(TEXT("%s_Skeleton"), *SkeletalMesh->GetName());
+		USkeleton* Skeleton = CreateObjectInstance<USkeleton>(InParent, SkeletonName, Flags);
+
+		// Merge bones to the selected skeleton
+		check(Skeleton->MergeAllBonesToBoneTree(SkeletalMesh));
+		Skeleton->MarkPackageDirty();
+		if (SkeletalMesh->Skeleton != Skeleton)
+		{
+			SkeletalMesh->Skeleton = Skeleton;
+			SkeletalMesh->MarkPackageDirty();
+		}
+
+		// Create animation sequence for the skeleton
+		UAnimSequence* Sequence = CreateObjectInstance<UAnimSequence>(InParent, FString::Printf(TEXT("%s_Animation"), *SkeletalMesh->GetName()), Flags);
+		Sequence->SetSkeleton(Skeleton);
+		Sequence->SequenceLength = ImportData->MaxTime - ImportData->MinTime;
+
+		int32 ObjectIndex = 0;
+		uint32 TriangleOffset = 0;
+		uint32 WedgeOffset = 0;
+		uint32 VertexOffset = 0;
+
+		for (FCompressedAbcData& CompressedData : ImportData->CompressedMeshData)
+		{
+			FAbcMeshSample* AverageSample = CompressedData.AverageSample;
+
+			if (CompressedData.BaseSamples.Num() > 0)
 			{
-				FAbcMeshSample* BaseSample = CompressedData.BaseSamples[BaseIndex];
+				int32 NumBases = CompressedData.BaseSamples.Num();
+				int32 NumUsedBases = 0;
 
-				AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(BaseSample, BaseSample->SmoothingGroupIndices, BaseSample->NumSmoothingGroups);
+				const int32 NumIndices = CompressedData.AverageSample->Indices.Num();
 
-				// Create new morph target with name based on object and base index
-				UMorphTarget* MorphTarget = NewObject<UMorphTarget>(SkeletalMesh, FName(*FString::Printf(TEXT("Base_%i_%i"), BaseIndex, ObjectIndex)));
-
-				// Setup morph target vertices directly
-				TArray<FMorphTargetDelta> MorphDeltas;
-				GenerateMorphTargetVertices(BaseSample, MorphDeltas, AverageSample, WedgeOffset, MorphTargetVertexRemapping);
-				MorphTarget->PopulateDeltas(MorphDeltas, 0);
-
-				const float PercentageOfVerticesInfluences = ((float)MorphTarget->MorphLODModels[0].Vertices.Num() / (float)NumIndices) * 100.0f;
-				if (PercentageOfVerticesInfluences > ImportData->ImportSettings->CompressionSettings.MinimumNumberOfVertexInfluencePercentage)
+				for (int32 BaseIndex = 0; BaseIndex < NumBases; ++BaseIndex)
 				{
-					SkeletalMesh->RegisterMorphTarget(MorphTarget);
-					MorphTarget->MarkPackageDirty();
-					
-					// Set up curves
-					const TArray<float>& CurveValues = CompressedData.CurveValues[BaseIndex];
-					const TArray<float>& TimeValues = CompressedData.TimeValues[BaseIndex];
-					// Morph target stuffies
-					FString CurveName = FString::Printf(TEXT("Base_%i_%i"), BaseIndex, ObjectIndex);
-					FName ConstCurveName = *CurveName;
+					FAbcMeshSample* BaseSample = CompressedData.BaseSamples[BaseIndex];
 
-					// Sets up the morph target curves with the sample values and time keys
-					SetupMorphTargetCurves(Skeleton, ConstCurveName, Sequence, CurveValues, TimeValues);
-				}
-				else
-				{
-					MorphTarget->MarkPendingKill();
+					AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(BaseSample, BaseSample->SmoothingGroupIndices, BaseSample->NumSmoothingGroups);
+
+					// Create new morph target with name based on object and base index
+					UMorphTarget* MorphTarget = NewObject<UMorphTarget>(SkeletalMesh, FName(*FString::Printf(TEXT("Base_%i_%i"), BaseIndex, ObjectIndex)));
+
+					// Setup morph target vertices directly
+					TArray<FMorphTargetDelta> MorphDeltas;
+					GenerateMorphTargetVertices(BaseSample, MorphDeltas, AverageSample, WedgeOffset, MorphTargetVertexRemapping);
+					MorphTarget->PopulateDeltas(MorphDeltas, 0);
+
+					const float PercentageOfVerticesInfluences = ((float)MorphTarget->MorphLODModels[0].Vertices.Num() / (float)NumIndices) * 100.0f;
+					if (PercentageOfVerticesInfluences > ImportData->ImportSettings->CompressionSettings.MinimumNumberOfVertexInfluencePercentage)
+					{
+						SkeletalMesh->RegisterMorphTarget(MorphTarget);
+						MorphTarget->MarkPackageDirty();
+
+						// Set up curves
+						const TArray<float>& CurveValues = CompressedData.CurveValues[BaseIndex];
+						const TArray<float>& TimeValues = CompressedData.TimeValues[BaseIndex];
+						// Morph target stuffies
+						FString CurveName = FString::Printf(TEXT("Base_%i_%i"), BaseIndex, ObjectIndex);
+						FName ConstCurveName = *CurveName;
+
+						// Sets up the morph target curves with the sample values and time keys
+						SetupMorphTargetCurves(Skeleton, ConstCurveName, Sequence, CurveValues, TimeValues);
+					}
+					else
+					{
+						MorphTarget->MarkPendingKill();
+					}
 				}
 			}
+
+			Sequence->RawCurveData.RemoveRedundantKeys();
+
+			WedgeOffset += CompressedData.AverageSample->Indices.Num();
+			VertexOffset += CompressedData.AverageSample->Vertices.Num();
+
+			const uint32 NumMaterials = CompressedData.MaterialNames.Num();
+			for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+			{
+				const FString& MaterialName = CompressedData.MaterialNames[MaterialIndex];
+				UMaterial* Material = RetrieveMaterial(MaterialName, InParent, Flags);
+				SkeletalMesh->Materials.Add(FSkeletalMaterial(Material, true));
+			}
+
+			++ObjectIndex;
 		}
 
-		Sequence->RawCurveData.RemoveRedundantKeys();
+		SkeletalMesh->CalculateInvRefMatrices();
+		SkeletalMesh->PostEditChange();
+		SkeletalMesh->MarkPackageDirty();
 
-		WedgeOffset += CompressedData.AverageSample->Indices.Num();
-		VertexOffset += CompressedData.AverageSample->Vertices.Num();
+		// Retrieve the name mapping container
+		const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+		Sequence->RawCurveData.RefreshName(NameMapping);
+		Sequence->MarkRawDataAsModified();
+		Sequence->PostEditChange();
+		Sequence->MarkPackageDirty();
 
-		const uint32 NumMaterials = CompressedData.MaterialNames.Num();
-		for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-		{			
-			const FString& MaterialName = CompressedData.MaterialNames[MaterialIndex];
-			UMaterial* Material = RetrieveMaterial(MaterialName, InParent, Flags);
-			SkeletalMesh->Materials.Add(FSkeletalMaterial(Material, true));
-		}
-
-		++ObjectIndex;
+		Skeleton->PostEditChange();
 	}
-
-	SkeletalMesh->CalculateInvRefMatrices();
-	SkeletalMesh->PostEditChange();
-	SkeletalMesh->MarkPackageDirty();
 	
-	// Retrieve the name mapping container
-	const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
-	Sequence->RawCurveData.RefreshName(NameMapping);
-	Sequence->MarkRawDataAsModified();
-	Sequence->MarkPackageDirty();
 	
 	return SkeletalMesh;
 }

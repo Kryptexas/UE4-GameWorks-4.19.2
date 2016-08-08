@@ -106,11 +106,11 @@ private:
 	/**
 	* Creates an template object instance taking into account existing Instances and Objects (on reimporting)
 	*
-	* @param InParent - ParentObject for the geometry cache
+	* @param InParent - ParentObject for the geometry cache, this can be changed when parent is deleted/re-created
 	* @param ObjectName - Name to be used for the created object
 	* @param Flags - Object creation flags
 	*/
-	template<typename T> T* CreateObjectInstance(UObject* InParent, const FString& ObjectName, const EObjectFlags Flags);
+	template<typename T> T* CreateObjectInstance(UObject*& InParent, const FString& ObjectName, const EObjectFlags Flags);
 
 	/** Recursive functionality to traverse a whole Alembic Archive and caching all the object type/data */
 	void TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<TSharedPtr<FAbcTransformObject>>& InObjectHierarchy, FGuid InGuid);
