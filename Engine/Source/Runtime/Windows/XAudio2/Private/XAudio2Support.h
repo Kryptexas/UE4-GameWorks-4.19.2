@@ -81,7 +81,7 @@ struct FXWMABufferInfo
 	UINT32						XWMASeekDataSize;
 };
 
-typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FXAudio2SoundBuffer>> FAsyncRealtimeAudioTask;
+typedef FAsyncRealtimeAudioTaskProxy<FXAudio2SoundBuffer> FAsyncRealtimeAudioTask;
 
 /**
 * Struct to store pending task information.
