@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPCH.h"
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
 #include "WmfMediaSampler.h"
 #include "WmfMediaTracks.h"
 #include "AllowWindowsPlatformTypes.h"
@@ -740,3 +743,5 @@ void FWmfMediaTracks::HandleMediaSamplerSample(const uint8* Buffer, uint32 Size,
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif //WMFMEDIA_SUPPORTED_PLATFORM
