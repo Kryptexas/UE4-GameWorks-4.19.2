@@ -1569,9 +1569,20 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 		Material = *CachedMaterial;
 
 		if (Material->GetOuter() == GetTransientPackage())
-		{			
-			Material->Rename(*MaterialName, InParent);
-			Material->SetFlags(Flags);
+		{
+			UMaterial* ExistingTypedObject = FindObject<UMaterial>(InParent, *MaterialName);
+			if (!ExistingTypedObject)
+			{
+				// This is in for safety, as we do not expect this to happen
+				UObject* ExistingObject = FindObject<UObject>(InParent, *MaterialName);
+				if (ExistingObject)
+				{
+					return nullptr;
+				}
+
+				Material->Rename(*MaterialName, InParent);
+				Material->SetFlags(Flags);
+			}
 		}
 	}
 	else
