@@ -2080,6 +2080,10 @@ public:
 	UPROPERTY(Transient)
 	FRootMotionMovementParams RootMotionParams;
 
+	/** Velocity extracted from RootMotionParams when there is anim root motion active. Invalid to use when HasAnimRootMotion() returns false. */
+	UPROPERTY(Transient)
+	FVector AnimRootMotionVelocity;
+
 	/** True when SimulatedProxies are simulating RootMotion */
 	UPROPERTY(Transient)
 	bool bWasSimulatingRootMotion;
@@ -2095,12 +2099,21 @@ public:
 	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);
 
 	/**
-	 * Calculate velocity from root motion. Under some movement conditions, only portions of root motion may be used (e.g. when falling Z may be ignored).
+	 * Calculate velocity from anim root motion.
 	 * @param RootMotionDeltaMove	Change in location from root motion.
 	 * @param DeltaSeconds			Elapsed time
 	 * @param CurrentVelocity		Non-root motion velocity at current time, used for components of result that may ignore root motion.
+	 * @see ConstrainAnimRootMotionVelocity
 	 */
+	virtual FVector CalcAnimRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const;
+
+	DEPRECATED(4.13, "CalcRootMotionVelocity() has been replaced by CalcAnimRootMotionVelocity() instead, and ConstrainAnimRootMotionVelocity() now handles restricting root motion velocity under different conditions.")
 	virtual FVector CalcRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const;
+
+	/**
+	 * Constrain components of root motion velocity that may not be appropriate given the current movement mode (e.g. when falling Z may be ignored).
+	 */
+	virtual FVector ConstrainAnimRootMotionVelocity(const FVector& RootMotionVelocity, const FVector& CurrentVelocity) const;
 
 	// RVO Avoidance
 
