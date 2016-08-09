@@ -737,6 +737,12 @@ UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFl
 			check(Track != nullptr && "Invalid track data");
 			GeometryCache->AddTrack(Track);
 		}
+
+		// Update all geometry cache components, TODO move render-data from component to GeometryCache and allow for DDC population
+		for (TObjectIterator<UGeometryCacheComponent> CacheIt; CacheIt; ++CacheIt)
+		{
+			CacheIt->OnObjectReimported(GeometryCache);
+		}
 	}
 
 	return GeometryCache;
@@ -1194,12 +1200,6 @@ const TArray<UStaticMesh*> FAbcImporter::ReimportAsStaticMesh(UStaticMesh* Mesh)
 UGeometryCache* FAbcImporter::ReimportAsGeometryCache(UGeometryCache* GeometryCache)
 {
 	UGeometryCache* ReimportedCache = ImportAsGeometryCache(GeometryCache->GetOuter(), RF_Public | RF_Standalone);
-
-	for (TObjectIterator<UGeometryCacheComponent> CacheIt; CacheIt; ++CacheIt)
-	{
-		CacheIt->OnObjectReimported(ReimportedCache);
-	}
-
 	return ReimportedCache;
 }
 
