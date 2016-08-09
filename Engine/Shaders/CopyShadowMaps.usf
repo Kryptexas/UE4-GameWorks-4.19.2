@@ -22,7 +22,7 @@ void Copy2DDepthPS(
 struct FCubeCopyGSToPS
 {
 	FScreenVertexOutput Vertex;
-	uint FaceIndex : TEXCOORD1;
+	nointerpolation uint FaceIndex : TEXCOORD1;
 
 	/** Controls which of the cube map faces to rasterize the primitive to, only the value from the first vertex is used. */
 	uint RTIndex : SV_RenderTargetArrayIndex;
