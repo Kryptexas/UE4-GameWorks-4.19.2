@@ -676,7 +676,10 @@ void AGameplayDebuggerCategoryReplicator::SetEnabled(bool bEnable)
 
 	MarkComponentsRenderStateDirty();
 	NotifyCategoriesToolState(bEnable);
-	NotifyExtensionsToolState(bEnable);
+
+	// extensions will NOT work with simulate mode, they are meant to handle additional input
+	const bool bEnableExtensions = bEnable && !FGameplayDebuggerAddonBase::IsSimulateInEditor();
+	NotifyExtensionsToolState(bEnableExtensions);
 }
 
 void AGameplayDebuggerCategoryReplicator::SetDebugActor(AActor* Actor)
