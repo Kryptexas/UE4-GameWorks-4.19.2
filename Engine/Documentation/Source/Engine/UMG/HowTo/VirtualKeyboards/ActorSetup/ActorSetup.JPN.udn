@@ -1,23 +1,23 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:3. Actor Setup & Testing
+﻿INTSourceChangelist:3072583
+Availability:Docs
+Title:3.アクタのセットアップとテスト
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Demonstrates how you can create and interaction with a 3D Virtual Keyboard with UMG. 
-Related: Engine\UMG\UserGuide\WidgetInteraction\
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
-Version: 4.13
-SkillLevel: Advanced
+Description:UMG で 3D 仮想キーボードを作成し、インタラクションする方法を説明します。 
+Related:Engine\UMG\UserGuide\WidgetInteraction\
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
+Version:4.13
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup "%Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup:title%")
+		[前のステップ](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup "%Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Creating Virtual Keyboards](Engine\UMG\HowTo\VirtualKeyboards)
+		[仮想キーボードを作成する](Engine\UMG\HowTo\VirtualKeyboards)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -26,79 +26,79 @@ SkillLevel: Advanced
 
 %Steps%
 
-In this final section, we add our Widget Blueprints as **Widget** Components to our Actors and define what happens when the player clicks on the **Enter** Button, checking to see if the entered text is the same as our **GoalText**. 
-With everything in place, we give it a test to see the end result which prints **Success** to the screen if the code is correct or **Wrong Code** if the code is incorrect.  
+この最後のセクションでは、Widget ブループリントを **Widget** コンポーネントとしてアクタに追加し、プレイヤーが **Enter** ボタンをクリックすると何が起こるかを定義し、入力されたテキストが **GoalText** と同じになるかをチェックします。 
+何もかも配置した状態で、テストして最終結果を見てみます。コードが正しければ  **Success** と画面に表示され、コードに誤りがあれば **Wrong Code** と表示されます。  
 
 
-## Steps
+## ステップ
 
-1.	Open the **KeypadDisplay** Blueprint and add a **Widget** component with class set to **KeypadDisplayWB** and **Draw at Desired Size**. 
+1.	**KeypadDisplay** ブループリントを開き、クラスを **[KeypadDisplayWB]** と **[Draw at Desired Size]** に設定した **Widget** コンポーネントを追加します。 
 
 	![](Keypad15.png)
 
-	Draw at Desired Size is a quick way to cause the render target to automatically match the desired size inside the Widget Blueprint.
+	[Draw at Desired Size] は、レンダー ターゲットを Widget ブループリント内で必要なサイズに簡単に自動的にマッチさせる方法です。
 
-1.	Open the **Keypad** Blueprint and add a **Widget** component with class set to **KeypadWB** and **Draw at Desired Size**. 
+1.	**Keypad** ブループリントを開き、クラスを **KeypadWB** と **Draw at Desired Size** に設定した **Widget** コンポーネントを追加します。 
 
-1.	Uncheck the **Window Focusable** option for this Widget Component. 
+1.	この Widget コンポーネントの **[Window Focusable]** オプションのチェックを外します。 
 
 	![](Keypad16.png)
 
-	We don't want this component to take focus away from the Keypad Display widget, so this needs to be unchecked. 
+	このコンポーネントによって、Keypad Display ウィジェットからフォーカスが外されないようにするため、チェックを外す必要があります。 
 
-1.	Also inside **Keypad**, add a **WidgetInteraction** component with **Enable Hit Testing** set to false. 
+1.	**Keypad** 内で、**Enable Hit Testing** を false に設定した **WidgetInteraction** コンポーネントを追加します。 
 
 	![](Keypad17.png)
 
-	We add this WidgetInteraction component so that we don't have to get a reference to the WidgetInteraction component in the player character and we disable Hit Testing as we don't want it to generate any hover effects. 
+	この WidgetInteraction コンポーネントを追加したのは、プレイヤー キャラクターでこの WidgetInteraction コンポーネントを参照する必要をなくすためです。Hit Testing を無効にしたのは、ホーバー エフェクトを生成しないようにするためです。 
 
-	WidgetInteraction components by default are set to **Virtual User Index 0** when they are created and all of them communicate using the Virtual User Index ID. 
-	Since the WidgetInteraction component in the player character is also using Virtaul User Index 0, this is the same as getting a reference to it. 
+	デフォルトでは、WidgetInteraction コンポーネントは、作成時に **Virtual User Index 0** に設定されており、すべてのコンポーネントは Virtual User Index ID を使用して通信します。 
+	プレイヤー キャラクターの WidgetInteraction コンポーネントも、Virtaul User Index 0 を使用しているため、それを参照することと同じです。 
 
-1.	On the Graph of **Keypad**, off **Event Begin Play** take the **Widget** component and **Get User Widget Object** to **Cast to KeypadWB**. 
+1.	**Keypad** のグラフで、**Event Begin Play** から、**Widget** コンポーネントと **Get User Widget Object**、そして **Cast to KeypadWB** を取ります。 
 
 	![](Keypad18.png)
 
-1.	Off the **As Keypad WB** pin, **Set Widget Interaction** and pass through the **WidgetInteraction** component from Step 4. 
+1.	**As Keypad WB** ピンから **Widget Interaction を Set** し、ステップ 4 の **WidgetInteraction** コンポーネントを渡します。 
 
-1.	Also off the **As Keypad WB** pin, call the **Assign Enter Pressed** which will create an **Enter Pressed** Custom Event. 
+1.	**As Keypad WB** ピンから、**Assign Enter Pressed** を呼び出します。これにより、**Enter Pressed** Custom Event を作ります。 
 
 	![](Keypad19.png)
 
-	Now when we click on the Enter button this custom event will be called which we can use to check if the correct code was entered. 
+	Enter ボタンをクリックすると、この Custom Event が呼び出されます。これを使って、正しいコードが入力されたかをチェックすることができます。 
 
-1.	Create a **Variable** of the **Keypad Display** Actor type called **TargetDisplay** and set it to **Editable**. 
+1.	**TargetDisplay** と呼ばれる **Keypad Display** Actor 型の **Variable** を作成して **Editable** に設定します。 
 
 	![](Keypad20.png)
 
-1.	Create a **Variable** of the **Text** type called **GoalText**, then **Compile** and set the **Default Value** to **1212**. 
+1.	**GoalText** と呼ばれる **Text** 型の **Variable** を作成します。次に **Compile** し、**Default Value** を **1212** に設定します。 
 
 	![](Keypad21.png)
 
-1.	Hold **Ctrl** and drag in **TargetDisplay** to get the **Widget** and **User Widget Object** then **Cast to KeypadDisplayWB**. 
+1.	**Ctrl** キーを押しながら、**TargetDisplay** をドラッグして、**Widget** と **User Widget Object** を get し、**Cast to KeypadDisplayWB** につなげます。 
 
 	![](Keypad22.png)
 
-1.	Off the **As Keypad Display WB** pin, get the **Editable Text Box** and **GetText(Text Box)** to see if it **Equals** **Goal Text**. 
+1.	**As Keypad Display WB** ピンから、**Editable Text Box** と **GetText(Text Box)** を get し、**Goal Text** と **Equals (等しい)** かどうかを確認します。 
 
 	![](Keypad23.png)
 
-1.	Add a **Branch** with two **Print Strings** where off **True** (use Success) and **False** (use Wrong Code). 
+1.	2 つの **Print String** を持つ **Branch** を追加します。**True** (Success を使用) と **False** (Wrong Code を使用) の 2 つです。 
 
 	![](Keypad24.png)
 
-1.	Drag the **Keypad** and **KeypadDisplay** Blueprints into the level and rotate/position them as desired. 
+1.	**Keypad** ブループリントと **KeypadDisplay** ブループリントをレベルにドラッグして、必要に応じて回転/配置します。 
 
-1.	In the **Details** panel for the **Keypad** Actor, set the **Target Display** variable to the **KeypadDisplay** in the level. 
+1.	**Keypad** アクタの **[Details]** パネルで、**Target Display** 変数をレベル内の **KeypadDisplay** に設定します。 
 
 	![](Keypad25.png)
 
-1.	Play in the level. 
+1.	レベルでプレイします。 
 
-## End Result
+## 最終結果
 
-Approach the keypad display and **Right-click** in it to focus on it. You can look at the buttons and **Right-click** on them to issue the **Send Key Char** command and pass through the value to the display. 
-We are using the Right Mouse button to interact with the widgets in the level, but you could swap this to use gamepad or Motion Controller button presses as well. 
+キーパッド表示にアプローチし、その中で **右クリック** して、フォーカスします。ボタンを見て、**右クリック** し、**Send Key Char** コマンドを発行し、その値をディスプレイに渡します。 
+右マウスボタンを使ってレベル内のこのウィジェットとインタラクションしますが、代わりにゲームパッドやモーション コントローラーのボタンを押すようにすることもできます。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -112,6 +112,6 @@ N2Fo4izRgh0
 [/PARAMLITERAL]
 [/OBJECT]
 
-While this example only prints to the screen if the correct code was entered or not, you could instead fire off some event that opens a door, spawns an enemy or any other form of gameplay releated event! 
+この例では、正しいコードが入力されたか否かを単に画面に表示していますが、ドアを開く何らかのイベントを発行したり、敵や他のゲームプレイ関連のイベントをスポーンさせることもできます。 
 
 
