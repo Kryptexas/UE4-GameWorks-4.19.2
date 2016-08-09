@@ -35,6 +35,12 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return SF_Pixel;
 	}
 
+	virtual EMaterialShadingModel GetMaterialShadingModel() const override
+	{ 
+		// not used by Lightmass
+		return MSM_MAX;
+	}
+
 	virtual int32 ParticleMacroUV() override
 	{
 		return Compiler->ParticleMacroUV();

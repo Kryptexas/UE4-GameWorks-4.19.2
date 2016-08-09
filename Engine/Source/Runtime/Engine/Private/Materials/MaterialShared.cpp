@@ -2604,7 +2604,18 @@ int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMate
 		case MP_DiffuseColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_SpecularColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_BaseColor:				return Compiler->Constant3(0, 0, 0);
-		case MP_SubsurfaceColor:		return Compiler->Constant3(1, 1, 1);
+		case MP_SubsurfaceColor:		
+		{
+			// Two-sided foliage should default to black
+			if (Compiler->GetMaterialShadingModel() == MSM_TwoSidedFoliage)
+			{
+				return Compiler->Constant3(0, 0, 0);
+			}
+			else
+			{
+				return Compiler->Constant3(1, 1, 1);
+			}
+		}
 		case MP_Normal:					return Compiler->Constant3(0, 0, 1);
 		case MP_WorldPositionOffset:	return Compiler->Constant3(0, 0, 0);
 		case MP_WorldDisplacement:		return Compiler->Constant3(0, 0, 0);
