@@ -1584,22 +1584,35 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 	if (CachedMaterial)
 	{
 		Material = *CachedMaterial;
-
-		if (Material->GetOuter() == GetTransientPackage())
+		// Material could have been deleted if we're overriding/reimporting an asset
+		if (Material->IsValidLowLevel())
 		{
-			UMaterial* ExistingTypedObject = FindObject<UMaterial>(InParent, *MaterialName);
-			if (!ExistingTypedObject)
+			if (Material->GetOuter() == GetTransientPackage())
 			{
-				// This is in for safety, as we do not expect this to happen
-				UObject* ExistingObject = FindObject<UObject>(InParent, *MaterialName);
-				if (ExistingObject)
+				UMaterial* ExistingTypedObject = FindObject<UMaterial>(InParent, *MaterialName);
+				if (!ExistingTypedObject)
 				{
-					return nullptr;
-				}
+					// This is in for safety, as we do not expect this to happen
+					UObject* ExistingObject = FindObject<UObject>(InParent, *MaterialName);
+					if (ExistingObject)
+					{
+						return nullptr;
+					}
 
-				Material->Rename(*MaterialName, InParent);
-				Material->SetFlags(Flags);
+					Material->Rename(*MaterialName, InParent);				
+					Material->SetFlags(Flags);
+				}
+				else
+				{
+					ExistingTypedObject->PreEditChange(nullptr);
+				}
 			}
+		}
+		else
+		{
+			// In this case recreate the material
+			Material = NewObject<UMaterial>(InParent, *MaterialName);
+			Material->SetFlags(Flags);
 		}
 	}
 	else
