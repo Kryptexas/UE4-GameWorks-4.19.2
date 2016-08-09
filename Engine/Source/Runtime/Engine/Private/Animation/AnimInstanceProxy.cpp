@@ -1146,7 +1146,21 @@ float FAnimInstanceProxy::GetInstanceTransitionCrossfadeDuration(int32 MachineIn
 float FAnimInstanceProxy::GetInstanceTransitionTimeElapsed(int32 MachineIndex, int32 TransitionIndex)
 {
 	// Just an alias for readability in the anim graph
-	return GetInstanceCurrentStateElapsedTime(MachineIndex);
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		if(MachineInstance->IsValidTransitionIndex(TransitionIndex))
+		{
+			for(FAnimationActiveTransitionEntry& ActiveTransition : MachineInstance->ActiveTransitionArray)
+			{
+				if(ActiveTransition.SourceTransitionIndices.Contains(TransitionIndex))
+				{
+					return ActiveTransition.ElapsedTime;
+				}
+			}
+		}
+	}
+
+	return 0.0f;
 }
 
 float FAnimInstanceProxy::GetInstanceTransitionTimeElapsedFraction(int32 MachineIndex, int32 TransitionIndex)
@@ -1155,7 +1169,13 @@ float FAnimInstanceProxy::GetInstanceTransitionTimeElapsedFraction(int32 Machine
 	{
 		if(MachineInstance->IsValidTransitionIndex(TransitionIndex))
 		{
-			return MachineInstance->GetCurrentStateElapsedTime() / MachineInstance->GetTransitionInfo(TransitionIndex).CrossfadeDuration;
+			for(FAnimationActiveTransitionEntry& ActiveTransition : MachineInstance->ActiveTransitionArray)
+			{
+				if(ActiveTransition.SourceTransitionIndices.Contains(TransitionIndex))
+				{
+					return ActiveTransition.ElapsedTime / ActiveTransition.CrossfadeDuration;
+				}
+			}
 		}
 	}
 
