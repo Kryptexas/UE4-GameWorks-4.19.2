@@ -61,13 +61,16 @@ void FNullDynamicRHI::Shutdown()
  */
 void* FNullDynamicRHI::GetStaticBuffer()
 {
+#if !WITH_EDITOR
 	static bool bLogOnce = false;
-	if (!bLogOnce && (IsRunningDedicatedServer() && !WITH_EDITOR))
+
+	if (!bLogOnce && (IsRunningDedicatedServer()))
 	{
 		UE_LOG(LogRHI, Log, TEXT("NullRHI preferably does not allocate memory on the server. Try to change the caller to avoid doing allocs in when FApp::ShouldUseNullRHI() is true."));
 		bLogOnce = true;
 	}
-	
+#endif
+
 	static void* Buffer = nullptr;
 	if (!Buffer)
 	{
