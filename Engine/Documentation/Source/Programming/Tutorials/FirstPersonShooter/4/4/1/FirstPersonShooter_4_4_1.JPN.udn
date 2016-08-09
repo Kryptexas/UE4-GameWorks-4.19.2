@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3020369
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:4.4.1 - Idle と Run の間の遷移を追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description:FPS キャラクターのアニメーション ステートマシンに idle と run の間のステート遷移を追加する方法を学びます。
