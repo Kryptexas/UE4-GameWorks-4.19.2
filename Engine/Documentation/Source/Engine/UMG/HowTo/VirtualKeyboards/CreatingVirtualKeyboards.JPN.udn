@@ -1,18 +1,18 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Creating Virtual Keyboard Interactions
+﻿INTSourceChangelist:3072583
+Availability:Docs
+Title:仮想キーボードのインタラクションを作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Demonstrates how you can create and interaction with a 3D Virtual Keyboard with UMG. 
-Version: 4.13
-SkillLevel: Advanced
+Description:UMG で 3D 仮想キーボードを作成し、インタラクションする方法を説明します。 
+Version:4.13
+SkillLevel:Advanced
 parent:Engine/Editor
 order:1
 checkpoint: editorqs
 
-If you are looking to create a 3D keypad or virtual keyboard that allows a player to enter specified characters, you can do so with a combination of the [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) component and [Widget](Engine/Components/Widget) components. 
-The Widget Interaction component will help facilitate which "buttons" are clicked on and processes sending the characters through to a Widget component in an Actor that will handle the display.
+プレイヤーが指定された文字を入力する 3D キーパッドや仮想キーボードの作成を検討しているならば、 [WidgetInteraction](Engine\UMG\UserGuide\WidgetInteraction) コンポーネントと [Widget](Engine/Components/Widget) コンポーネントを組み合わせて行うことができます。 
+Widget Interaction コンポーネントは、どのボタンがクリックされるか、および表示を処理するアクタの Widget コンポーネントに文字を送るプロセスを支援します。
 
-In this how-to we create a keypad that can be interacted with in and provides entries to a text box. 
+この操作ガイドでは、インタラクション可能なキーパッドを作成し、テキスト ボックスへのエントリを提供します。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -26,18 +26,18 @@ N2Fo4izRgh0
 [/PARAMLITERAL]
 [/OBJECT]
 
-_At the end of this guide, you will have a keypad and display that appears inside the 3D game world and can be interacted with._
+_このガイドの最後まで進むと、 3D ゲーム ワールド内で表示され、インタラクション可能なキーパッドとディスプレイを作成することができます。_
 
-One important aspect in setting this up will be to determine the Widgets that are (or are not) focusable. If the Text Box that displays the characters the player enters is set to focusable and the buttons that the player clicks on to send characters through is also focusable, the Text Box would lose player focus when a button (or any other widget) is clicked on and not receive the commands issued. 
+このセットアップで重要なことは、フォーカス可能 (または不可能) なウィジェットを決めることです。プレイヤーが入力する文字を表示するテキスト ボックスがフォーカス可能に設定されていれば、文字を送るためにプレイヤーがクリックするボタンもフォーカス可能になっています。テキスト ボックスは、ボタンがクリックされるとフォーカスを失い、発行されるコマンドを受け取らなくなります。 
 
-The first step however is to set up our character with the Widget Interaction component and create the assets to display our UI. 
+最初のステップは、Widget Interaction コンポーネントで文字を設定し、 UI を表示するアセットを作成します。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -49,6 +49,6 @@ The first step however is to set up our character with the Widget Interaction co
 [/OBJECT]
 
 [REGION:call_to_action]
-	[Click to Start](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")
+	[クリックして開始](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")
 [/REGION]
 
