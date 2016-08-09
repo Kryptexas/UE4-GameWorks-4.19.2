@@ -726,11 +726,13 @@ ULandscapeInfo* ALandscapeProxy::GetLandscapeInfo() const
 	check(LandscapeGuid.IsValid());
 	UWorld* OwningWorld = GetWorld();
 	check(OwningWorld);
-	check(!OwningWorld->IsGameWorld());
-
-	auto& LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
-	LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
-
+	
+	//check(!OwningWorld->IsGameWorld());
+	if (!OwningWorld->IsGameWorld())
+	{
+		auto& LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
+		LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
+	}
 	return LandscapeInfo;
 }
 #endif
