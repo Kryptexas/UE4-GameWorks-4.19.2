@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:1. Character Setup
+﻿INTSourceChangelist:3072583
+Availability:Docs
+Title:1.キャラクターのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Here we add the Widget Interaction component to our character and create the other assets we will need. 
-Version: 4.13
-SkillLevel: Advanced
+Description:Widget Interaction コンポーネントをキャラクターに追加して、必要となる他のアセットを作成します。 
+Version:4.13
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,52 +13,52 @@ SkillLevel: Advanced
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Creating Virtual Keyboards](Engine\UMG\HowTo\VirtualKeyboards)
+		[仮想キーボードを作成する](Engine\UMG\HowTo\VirtualKeyboards)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup "%Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup:title%")
+		[次のステップ](Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup "%Engine\UMG\HowTo\VirtualKeyboards\WidgetSetup:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-In this step we prep our project and add the **Widget Interaction** component to our player character so we can interact with 3D widgets. 
+このステップでは、プロジェクトの準備をして、**Widget Interaction** コンポーネントをプレイヤー キャラクターに追加して、3D ウィジェットとインタラクションできるようにします。 
 
 [REGION:note]
-For this how-to, we are using the **Blueprint First Person Template** with **Starter Content** enabled. 
+この操作ガイドでは **スターター コンテンツ** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
 [/REGION]
 
-## Steps
+## ステップ
 
-1.	Inside the **Content/FirstPersonBP/Blueprints** folder, open the **FirstPersonCharacter** Blueprint. 
+1.	**「Content/FirstPersonBP/Blueprints」** フォルダ内で **FirstPersonCharacter** ブループリントを開きます。 
 
-1.	Add a **WidgetInteraction** component attached to the **Sphere** then zero out the **Location** and **Show Debug** in the **Details** panel. 
+1.	**Sphere** にアタッチされた **WidgetInteraction** コンポーネントを追加し、**[Details (詳細)]** パネルで、**[Location]** と **[Show Debug]** をゼロアウトします。 
 
 	![](Keypad01.png)
 
-	Our Widget Interaction component will now point in the direction that player points the gun indicated in-game by a debug marker.
+	Widget Interaction コンポーネントは、デバッグマーカーによってインゲームで示されているプレイヤーが銃を向けている方向をポイントするようになります。
 
-1.	In the **Graph**, add a **Right Mouse Button** Event and drag in the **Widget Interaction** Component. 
+1.	**グラフ** で、**Right Mouse Button** Event を追加し、**Widget Interaction** コンポーネントをドラッグします。 
 
-1.	Off **Widget Interaction** add **Press Pointer Key** and **Release Pointer Key** both set to **Left Mouse Button** and connect as shown. 
+1.	**Widget Interaction** から、両方とも **Left Mouse Button** に設定されている **Press Pointer Key** と **Release Pointer Key** を追加し、以下のように接続します。 
 
 	![](Keypad02.png)
 
-	Widgets respond to mouse/touch interaction via Left Mouse Button click or touch controls and we can simulate that using the **Press Pointer Key** function. 
-	In our example we use the **Right Mouse Button** to simulate a Left Mouse Button click, however you could use a gamepad button press or even Motion Controller Trigger press to fire off the Press Pointer Key function. 
+	ウィジェットは、左マウスボタンのクリックまたはタッチ コントロールを介してマウス / タッチのインタラクションに反応し、**Press Pointer Key** 関数を使ってこれをシミュレートすることができます。 
+	この例では、**Right Mouse Button** を使って左マウスボタンのクリックをシミュレートします。ただし、ゲームパッド ボタンの押下または、Motion Controller Trigger を押して、Press Pointer Key 関数を発行することができます。 
 
-1.	In the **Content Browser** create two **Class Blueprints** based on **Actor** and two **Widget Blueprints**. 
+1.	**コンテンツ ブラウザ** で、**Actor** および 2 つの **Widget ブループリント** に基づき 2 つの **Class ブループリント** を作成します。 
 
 	![](Keypad03.png)
 
-	For the two Actor Blueprints, call one **Keypad** (to represent the keypad entry) and the other **KeypadDisplay** (to represent and display the values entered from the Keypad). 
-	For the Widget Blueprints use the same names as the Actor Blueprints however to distinguish them, suffix them with **WB** (for Widget Blueprint). 
+	この 2 つの Actor ブループリントに対してひとつの **Keypad** (キーパッドのエントリを表すため) を呼び出し、もうひとつの **KeypadDisplay** (キーパッドから入力した値を表すため) を呼び出します。 
+	この Widget ブループリントに対しては、Actor ブループリントと同じ名前を使ってください。ただし、区別するために、**WB** という接尾辞を (Widget ブループリント) に付けてください。 
 
 
-## End Result
+## 最終結果
 
-Our project is ready to go and our character can interact with Widgets in the world, next we'll set up our interactive Widgets. 
+プロジェクトの用意ができて、キャラクターがワールドのウィジェットとインタラクションすることができます。次に、インタラクティブなウィジェットをセットアップします。 
 
 %Steps%
 
