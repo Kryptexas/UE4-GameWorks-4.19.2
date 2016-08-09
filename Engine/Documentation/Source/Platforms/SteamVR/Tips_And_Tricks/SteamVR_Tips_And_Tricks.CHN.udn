@@ -1,30 +1,33 @@
-﻿INTSourceChangelist:0
-Title: SteamVR Tips & Tricks
+﻿INTSourceChangelist:3011129
+Title:SteamVR 提示和技巧
 Crumbs:%ROOT%, Platforms
-Description: A collection of tips & tricks to help you unlock the full power of SteamVR
+Description:该提示和技巧合集将助您玩转 SteamVR
 Availability:Public
 Navigation:platform
 Platform:SteamVR
+type:overview
+parent:Platforms/SteamVR
+tags:VR
+tags:SteamVR
 
-## Overview 
+## 总览 
 
-In the following section we will cover some tips and tricks that you can use to help unlock the full potential of UE4 and SteamVR.
+以下将介绍一些提示和技巧，助您解锁 UE4 和 SteamVR 的完整潜能。
 
 
-### Avoiding Display Flickering
+### 消除画面闪烁
 
-Each time the editor is launched the display will flicker when the SteamVR compositor takes over. 
-To stop this from happening you can do the following to keep the compositor running in the background at all times.
+编辑器启动后，SteamVR 合成器介入时画面会出现闪烁。可执行以下步骤使合成器固定在后台运行，消除闪烁。
 
-1. Locate the **vrcompositor.exe** file that should be in **C:\ProgramFiles(x86)\Steam\steamapps\common\SteamVR\bin\win64**.
+1. 找到 **C:\ProgramFiles(x86)\Steam\steamapps\common\SteamVR\bin\win64** 路径下的 **vrcompositor.exe** 文件。
 	
 	![](T_Comp_EXE.png)
 
-1. Create a shortcut to vrcompositor.exe and then send that shortcut to your desktop.
-1. Right click on the shortcut that was placed on your desktop and then click on **Properties**.
-1. Inside of the **Shortcut** menu in the **Target** input add **-keepalive** after the .exe and press the **OK** button when done.  
+1. 创建 vrcompositor.exe 的快捷方式并传送到桌面。
+1. 右击桌面快捷方式，选择 **Properties**。
+1. 在 **Shortcut** 菜单的 **Target** 输入中，在 .exe 后面添加 **-keepalive**，完成后按下 **OK** 按钮。  
 	![](T_KeepAlive_CLA.png)
-1. Now when opening up the UE4 editor you should no longer have a flickering problem.
+1. 再次打开 UE4 编辑器，闪烁问题便不复存在。
 
 
 

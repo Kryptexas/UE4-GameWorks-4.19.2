@@ -1,115 +1,102 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714483
 Availability:Public
-Title:Guidelines for Programming for Blueprints
+Title:蓝图编程指南
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Tips and tricks for how best to write a Blueprint-friendly API
+Description:如何完善地编写蓝图支持 API 的提示和技巧
 Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints 
+version:4.9
 
 [TOC (start:2 end:2)]
 
-There are two driving considerations when deciding to use C++ or Blueprints:
--	Speed
--	Complexity of expression
+可从两个主要方面考虑使用 C++ 或蓝图：
+-	速度
+-	表达式复杂度
 
-Beyond those two factors, a lot of it comes down to the complexity of the game, and the composition of the team.  If you have many more artists than programmers, you'll probably have significantly 
-more Blueprints than C++ code.  In contrast, if you have a lot of programmers, they're probably keen to keep things in C++.  We expect people to fall somewhere in the middle.  At Epic, 
-a lot of the workflow is that content creators will make a very complex Blueprint, and a programmer can see how he can compress a lot of that work into C++ by coding a new Blueprint node, 
-so he moves that chunk of functionality into a new C++ function.  A good practice to follow would be to use Blueprints extensively, and then push things into C++ as they reach a complexity 
-where that would enable a more concise expression of the functionality (or it becomes too complex for a non-programmer), or speed of execution dictates a move to C++.
+这两个因素之外，便主要取决于游戏的复杂程度和团队的构成。如团队中美术师的数量多于程序员，则蓝图的优越性大于 C++ 代码。相反如果程序员数量较多，则最好使用 C++。还需要预计开发过程中人员的缺席。在 Epic，普遍的工作流程是 - 内容设计师创建十分复杂的蓝图后，程序员编写新蓝图节点的代码，明确如何将大量工作压缩到 C++ 中，然后将功能块移入一个新的 C++ 函数。较好的方法是大量使用蓝图，复杂度达到一定程度，启用功能更简洁的表达式（否则它对非程序人员而言过于复杂）时将内容转入 C++；或由执行速度指定到 C++ 的移动。
 
 
-### Speed
-For speed, the fact is that Blueprint execution is slower than C++ execution.  That's not to say performance is bad, but if you're doing something that requires a lot of calculations, or operates 
-at a high frequency, it might be better to use C++ instead of Blueprints.  However, it is possible to combine the two in the way that works best for your team and your project's performance.
-If you have a Blueprint that has a lot of functionality, you can push some of that functionality into C++ to speed it up, but keep the rest in Blueprints to retain the flexibility.  
-If your profiling shows that one operation is taking a lot of time in Blueprints, consider moving just that section into C++, while keeping the rest in Blueprints.  
+### 速度
+实际上，蓝图执行的速度比 C++ 执行慢。这并不意味着会影响性能。但需要大量计算或进行高频率操作时，最好使用 C++。也可以根据团队状况和项目性能对二者进行完美结合。如蓝图功能较多，可将部分功能移入 C++ 使速度加快，蓝图中剩余的部分功能可保留灵活性。如分析表明蓝图中的一项操作耗时极长，考虑只将该部分移入 C++，其他部分仍然保留在蓝图中。  
 
-An example of a system that would take a lot of time to execute if done with Blueprints visual scripting is a crowd system that controls a thousand Actors  In this case, it would be better for performance 
-to handle decision making, pathing, and other crowd functionality in C++, and then maybe expose some tweaking parameters and controlling functions to Blueprints.
+举例而言，控制上千个 Actor 的群组系统通过蓝图可视化脚本执行时间极长。在这类情况下，在 C++ 中处理决定、路径、和其他群组功能性能更佳，之后可将部分调整参数和控制函数公开到蓝图。
 
-### Complexity
-For complexity of expression, there are just some things that are easier to do in C++ than in Blueprints.  Blueprints do a lot of things well, but some things are just not very 
-easy to express in nodes.  Operating on large sets of data, doing string manipulation, complex math over large data sets, etc. are all very complex, and aren't easy to follow in a visual system. 
-Those things are better kept in C++ than in Blueprints, just because they're easier to look at and figure out what's going on.  Complexity of expression is another reason a crowd system would
-be better to implement in C++ code than in Blueprints. 
+### 复杂度
+就表达式复杂度而言，部分操作在 C++ 中更容易执行。蓝图可良好地执行大量操作，但部分内容不易在节点中表达。操作大型数据集、执行字符串操作，在大量数据集上执行复杂算术等内容均十分复杂，不易在视觉系统中进行操作。这些内容更适合于 C++，因为可以轻松进行查看，了解具体细节。群组系统更适合 C++ 代码的另一个原因在于表达式复杂度。 
 
 
 
-## Examples
+## 范例
 
-Since there are different pieces of functionality that are best handled in C++ or in Blueprints, here are some examples of how C++ programmers and Blueprint authors can work
-together while creating a game. 
+部分功能块适合在 C++ 中处理，部分适合在蓝图中处理。所以在此列举一些游戏开发中 C++ 程序员和蓝图作者搭档工作的实例。 
 
-* The programmer could create a Character class in C++ that defines some custom events, and then Blueprints could be used to extend that Character class and actually assign meshes and set defaults. 
-Check out the player character and the enemy bots in the ShooterGame sample project to see implementations like this.
+* 程序员可在 C++ 中创建定义自定义事件的角色类，之后蓝图可用于该角色类的延展，实际指定模型并进行默认设置。查看 ShooterGame 范例项目中的玩家角色和敌方机器人，了解类似实现。
 
-* A ability system where the base class is implemented in C++ but then designers can create Blueprints which actually do something. In the StrategyGame sample, there is a base turret defined in C++,
-but the behavior of the flamethrower, cannon, and arrow turrets is all defined in those Blueprints.
+* 可在 C++ 中实现能力系统的基础类，之后设计师再创建实际执行操作的蓝图。在 StrategyGame 范例项目中有一个在 C++ 中定义的基础炮台，
+但火焰喷射器、火炮台和弓箭台的行为均在蓝图中定义。
 
-* A pickup where the "Collect" or "Respawn" functions are Blueprint Implementable Events that can be overridden for designers to spawn different particle emitters and sound effects. Both ShooterGame and 
-StrategyGame have examples of pickups created this way.
+* “收集”或“重生”函数为可在蓝图中实现的事件，这样的可拾取道具可被覆写，以便设计师生成不同粒子发射器和声效。ShooterGame 和 StrategyGame 中均有此方式创建的可拾取道具。
 
 
-## Creating a Blueprint API : Tips and Tricks
+## 创建蓝图 API：提示和技巧
 
-Here are some points to consider as a programmer creating a Blueprint-exposed API:
+程序员创建对蓝图公开的 API 时需要考虑以下几点：
 
-* Optional parameters are handled well in Blueprints:
+* 可选参数便于在蓝图中处理：
 
 		/**
-		 * Prints a string to the log, and optionally, to the screen
-		 * If Print To Log is true, it will be visible in the Output Log window.  Otherwise it will be logged only as 'Verbose', so it generally won't show up.
+		 * 将字符串显示到日志中，也可选择显示到屏幕上。
+		 * 如 Print To Log 为 true，它将显示在 Output Log 窗口中。否则它将被记录为“Verbose”，通常不会显示。
 		 *
-		 * @param	InString		The string to log out
-		 * @param	bPrintToScreen	Whether or not to print the output to the screen
-		 * @param	bPrintToLog		Whether or not to print the output to the log
-		 * @param	bPrintToConsole	Whether or not to print the output to the console
-		 * @param	TextColor		Whether or not to print the output to the console
+		 * @param	InString		登出字符串
+		 * @param	bPrintToScreen	是否将输出显示到屏幕上
+		 * @param	bPrintToLog		是否将输出保存到日志中
+		 * @param	bPrintToConsole	是否将输出显示到控制台
+		 * @param	TextColor		是否将输出显示到控制台
 		 */
 		UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext, Keywords = "log print", AdvancedDisplay = "2"), Category="Utilities|String")
 		static void PrintString(UObject* WorldContextObject, const FString& InString = FString(TEXT("Hello")), bool bPrintToScreen = true, bool bPrintToLog = true, FLinearColor TextColor = FLinearColor(0.0,0.66,1.0));
 
-* Favor functions with lots of return parameters over functions that return structs. Here's a snippet showing how to create multiple output pins on your node:
+* 在带大量返回参数的函数和返回结构体的函数之间优先前者。以下片段显示如何在节点上创建多个输出引脚：
 
 		UFUNCTION(BlueprintCallable, Category = "Example Nodes")
 		static void MultipleOutputs(int32& OutputInteger, FVector& OutputVector);
 
-* Adding new parameters to an existing function is fine, but if you need to remove or change them, you should deprecate the original and add a new function. Make sure to use the deprecation metadata so the information about the new function will show up in Blueprints:
+* 可在现有函数上添加新参数，但如果要进行移除或变更，则需要否决原始函数并添加一个新函数。必须使用否决元数据，使新函数的信息显示在蓝图中：
 
 		UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new CapsuleOverlapActors", WorldContext="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore"))
 		static ENGINE_API bool CapsuleOverlapActors_DEPRECATED(UObject* WorldContextObject, const FVector CapsulePos, float Radius, float HalfHeight, EOverlapFilterOption Filter, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class AActor*>& OutActors);
 
-* If a function needs to take an enum, consider using the 'expand enum as execs' metadata, as this can make the node easier to use. 
+* 如果函数需要接受枚举，考虑将“expand enum as execs”用作元数据，可使节点更易于使用。 
 
 		UFUNCTION(BlueprintCallable, Category = "DataTable", meta = (ExpandEnumAsExecs="OutResult", DataTablePin="CurveTable"))
 		static void EvaluateCurveTableRow(UCurveTable* CurveTable, FName RowName, float InXY, TEnumAsByte<EEvaluateCurveTableResult::Type>& OutResult, float& OutXY);
 
-* Many operations that take time to complete (e.g. move here) should be latent functions.
+* 许多完成耗时较长的操作（如 move here）均为隐藏函数。
 
 		/** 
-		 * Perform a latent action with a delay.
+		 * 执行带延迟的隐藏操作。
 		 * 
-		 * @param WorldContext	World context.
-		 * @param Duration 		length of delay.
-		 * @param LatentInfo 	The latent action.
+		 * @param WorldContext	世界背景。
+		 * @param Duration 		延迟长度。
+		 * @param LatentInfo 	隐藏操作。
 		 */
 		UFUNCTION(BlueprintCallable, Category="Utilities|FlowControl", meta=(Latent, WorldContext="WorldContextObject", LatentInfo="LatentInfo", Duration="0.2"))
 		static void	Delay(UObject* WorldContextObject, float Duration, struct FLatentActionInfo LatentInfo );
 
-* Consider putting functions in a shared library if possible. This makes them easy to use across multiple classes, and avoids a 'target' pin.
+* 如有可能，考虑将函数放入共享库。便于在多个类之间使用，避开“target”引脚。
 
 		class DOCUMENTATIONCODE_API UTestBlueprintFunctionLibrary : public UBlueprintFunctionLibrary
 
-* Remember to mark nodes as pure if possible, as this will avoid needing an execution pin on a node that requires wiring.
+* 尽可能将节点标记为纯，可避免在节点上使用连线的执行引脚。
 
-		/* Returns a uniformly distributed random number between 0 and Max - 1 */
+		/* 在 0 和 最大 - 1 之间返回一致分配的随机数 */
 		UFUNCTION(BlueprintPure, Category="Math|Random")
 		static int32 RandomInteger(int32 Max);
 
-* Marking a function as `const` will also cause the Blueprint node to not have execution pins: 
+* 将一个函数标记为 `const` 也可使蓝图节点不带执行引脚： 
 		/**
-		 * Get the actor-to-world transform.
-		 * @return The transform that transforms from actor space to world space.
+		 * 获得 actor 到世界的转换。
+		 * @return 从 actor 空间转换到世界空间的转换。
 		 */
 		UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetActorTransform"), Category="Utilities|Transformation")
 		FTransform GetTransform() const;

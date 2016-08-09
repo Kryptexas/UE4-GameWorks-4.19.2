@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3032506
 Availability:Public
-Title: Overview of State Machines
+Title:状态机总览
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
-Description:Breaks down how State Machines work and the core systems used within them.
-version: 4.12
+Description:解析状态机的工作原理和其内部使用的核心系统。
+version:4.12
 related:Engine/Animation/StateMachines/CreatingStateMachines
 related:Engine/Animation/StateMachines/EditingStateMachines
 related:Engine/Animation/StateMachines/TransitionRules
@@ -46,112 +46,105 @@ related:Engine/Animation/AnimBlueprints
 
 [TOC (start:2)]
 
-Animation **State Machines** allow you to think of your [**Animation Blueprint**](Engine/Animation/AnimBlueprints/) in a more modular sense than you would without it. 
-Users define a series of various states in which the character or Skeletal Mesh could possibly exist. 
-Next, they define the circumstances in which the character or Skeletal Mesh may enter and exit each state, similar to a flow chart. 
+动画 **状态机（State Machines）** 可助您以更模块化的方式理解 [**动画蓝图**](Engine/Animation/AnimBlueprints/)。用户可定义角色或骨架网格体将拥有的诸多状态。此外还可定义角色或骨架网格体进入和退出每种状态的时机，与流程图相似。 
 
-For instance, you may have a flow chart that defines the process of your character's animation that may look something like this:
+例如，您可能拥有如下定义角色动画流程的流程图：
 
 [REGION:raw]
 ![](AnimationFlowChart.png)(w:700)
 [/REGION]
 
-If you were to set up a State Machine for the above flow, it might end up looking something like this:
+如需为以上流程设置状态机，最终效果应与下图相似：
 
 ![](StateMachine.png)(W:700)
 
 
-## Anatomy of a State Machine
+## 剖析状态机
 
-State Machines are comprised primarily of a network of states and the rules that define transitions into and out of them. Each state, along with each rule set, is its own condensed [**Blueprint**](Engine/Blueprints) network. 
-This makes it very easy to handle complex animation blending without having to use an overly complicated **AnimGraph**. 
+状态机的主要构成部分有二：各种状态的网络、以及定义状态转入转出的规则。每种状态和每条规则设置都是其自身浓缩的 [**蓝图**](Engine/Blueprints) 网络。这易于处理复杂动画混合，无需使用过于复杂的 **AnimGraph**。 
 
-### States
+### 状态
 
-Conceptually, it is best to think of a state as an organized portion of an AnimGraph that we know the character or Skeletal Mesh will be blending into and out of on a regular basis. 
-You can then transition into and out of this part of the graph. For instance, you may have an Idle state for your character's animation, and that state may just contain a single animation. 
+从概念上而言，理解状态的最佳方式是将其视为 AnimGraph 的一个组成部分。角色和骨架网格体将定期混入混出此状态。然后即可转入转出图表的该部分。例如，角色动画拥有“待机（Idle）”状态，而该状态可能只包含单个动画。 
 
-Here is such an Idle state seen from the State Machine.
+下图便是状态机中的显示的“待机（Idle）”状态。
 
 ![](State.png)
 
-**Double-clicking** on that state opens a graph where you define what will be the **Final Animation Pose**
+**双击** 状态打开图表，可在此定义 **最终动画姿势（Final Animation Pose）** 中的内容。
 
 ![](IdleStateInside.png)
 
-Once the character started moving however, they could transition into a Movement state - which could define moving laterally across a surface, like walking or running.
+角色开始移动后，即会转入运动状态 — 定义表面上的横向移动，如行走和奔跑。
 
 ![](MoveState.png)
 
-Within, this state may contain a [**BlendSpace**](Engine/Animation/Blendspaces) that is being defined by the character's speed and direction of movement.
+此状态中可能包含一个由角色速度和移动方向定义的 [**混合空间**](Engine/Animation/Blendspaces)。
 
 ![](MovementInside.png)
 
-States have no pins in and of themselves, because they are intended to have a more freeform layout. 
+状态自身不带引脚，也没有输入的引脚，因为它们拥有更自由的布局形式。 
 
-By dragging a wire from its outer border, you can connect states or create new states (similar to Blueprint). 
+从其外部边界拖动引线即可连接状态或创建新状态（与蓝图相似）。 
 
 ![](DragWire.png)
 
 
 
-### Transition Rules
+### 转换规则
 
-Once you have your states defined, you need to be able to control how your Skeletal Mesh is going to transition from one state to another which is where **Transition Rules** come into play. 
-Transition Rules are created automatically along the wires that connect states.
+定义状态后，需要控制骨架网格体如何从一个状态转换到另一个状态，这便是需要用到 **转换规则**。转换规则沿连接状态的引线自动创建。
 
 ![](TransitionRule.png)
 
-Transition Rules can perform any number of checks and tests against variable values, all with the purpose of outputting a True/False value. This Boolean output determines whether the animation can move through the transition or not. 
+转换规则可对变量值执行任意数量的检查和测试，目的是输出一个 True/False 值。此布尔输出决定动画是否能通过转换。 
 
 ![](TransitionRuleInside.png)
 
-Above, we are testing the value of a character's Speed. Once it reaches a value greater than 10, we enable the transition. In this case, the character is allowed to move from an Idle state to a Movement state. 
-We can then use a completely separate rule to transition back to Idle. 
+上图中正在对角色的速度值进行测试。数值大于 10 后便会开启转换。在此例中，角色将从待机状态进入移动状态。然后使用完全独立的规则转换回待机状态。 
 
-For example, here we have a transition rule moving back from Movement to Idle.
+例如，此处有一个从移动回到待机的转换规则。
 
 ![](TransitionRuleReturn.png)
 
-Inside, we check to see if the same value we used to transition into the Movement state is no longer true. 
+将进行检查，确定用于转换到移动状态的相同数值是否已不为 true。 
 
 [REGION:fullwidth]
 ![](TransitionRuleReturnInside.png)
 [/REGION]
 
 
-### Conduits
+### 导管
 
-**Conduits** serve as a more advanced and sharable transition resource. Where a Transition Rule is going to be a simple 1-to-1 relationship form one state to another, a Conduit can have 1-to-many, many-to-1, or many-to-many. 
-Conduits appear on the graph and look similar to a State but have a different icon preceding the Conduit's name (below). 
+**导管（Conduit）** 是更高级的共享转换资源。转换规则只是从一个状态到另一个状态的简单 1 对 1 关系，而导管可以是 1 对多、多对 1，或多对多关系。图表中的导管和状态相似，但带导管名称的图标不同（如下图）。 
 
 ![](ConduitNode.png)
 
-An example use case for a Conduit could be a situation where you have multiple animations that could play when a character is killed. 
+导管的使用范例之一 — 角色死亡时播放多个动画。 
 
-You could start with a simple Transition Rule that says when the health of that character is less than or equal to 0, then go to a Death state. However, if instead of a State, the transition went into a Conduit, you could perform a series of checks to see how the player was killed (shot, stabbed, explosion, hit by a car, anvil on the head, etc.) and branch from there into various independent death States. 
+从简单的转换规则开始，体力值小于等于零时角色进入死亡状态。然而，如果转换未进入状态而进入导管，即可执行一系列检查，确认角色的死亡方式（枪击、穿刺、爆炸、车撞、重物击头等）并分开进入诸多单独的死亡状态。 
 
-A simplified version of that graph may look something like below: 
+简单版本的图表与下图相似： 
 
 ![](ConduitGraph.png)(w:800)
 
-Inside, a Conduit graph looks just like a Transition Rule:
+导管图表的内部和转换规则相似：
 
 ![](ConduitInside.png)
 
-The actual transition rules that exit the Conduit can then determine the type of death and allow blending to the appropriate state.
+从导管退出的实际转换规则即可决定死亡的类型并混合到适当的状态。
 
-## Mouse-Over Previewing
+## 鼠标悬停预览
 
-One of the features of a State Machine is its ability to provide previews on mouse-over for the State Machine itself, as well as for its component nodes. For example, if you hover your mouse over a State Machine, a preview window will pop up giving you a high-level view of the State Machine. This is similar to a collapsed Blueprint network.
+状态机的功能之一是通过鼠标悬停查看状态机自身和其组件节点的预览。如在状态机上悬停鼠标，将弹出预览窗口，显示状态机的高级视图。这与重叠蓝图网络相似。
 
 ![](StateMachineHoverPreview.png)
 
-These previews also extend to the various States and Transition Rules within a State Machine. Hovering over them will show you a preview of what is inside.
+也可预览状态机中的诸多状态和转换规则。在它们上方悬停鼠标即可预览其中内容。
 
 ![](IdleStatePreview.png)
 
-In the case of Transition Rules, you will see not only a preview of the nodes, but also a breakdown of the rule in words.
+预览转换规则时不但可以预览节点，还可查看规则的文字说明。
 
 ![](TransitionRulePreview.png)
 
