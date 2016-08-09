@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2953540
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:4.3 - アニメーション ステート マシーンを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS キャラクターにアニメーション ステートマシンを追加する方法を学びます。
