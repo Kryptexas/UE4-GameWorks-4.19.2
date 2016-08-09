@@ -558,6 +558,12 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
+
+	MenuBuilder.BeginSection("AnimViewportAccessory", LOCTEXT("Viewport_AccessoryLabel", "Accessory"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.AutoAlignFloorToMesh);
+	}
+	MenuBuilder.EndSection();
 	
 	MenuBuilder.BeginSection("AnimViewportFloorOffset", LOCTEXT("Viewport_FloorOffsetLabel", "Floor Height Offset"));
 	{

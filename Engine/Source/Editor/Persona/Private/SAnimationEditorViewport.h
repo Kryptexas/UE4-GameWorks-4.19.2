@@ -143,6 +143,9 @@ public:
 
 	/** Can we use gizmos? */
 	bool CanUseGizmos() const;
+
+	/** Function to check whether floor is auto aligned or not */
+	bool IsAutoAlignFloor() const;
 	
 	/** Clears our reference to Persona, also cleaning up anything that depends on Persona first */
 	void CleanupPersonaReferences();
@@ -256,6 +259,9 @@ private:
 
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();
+	
+	/** Toggles floor alignment in the preview scene */
+	void OnToggleAutoAlignFloor();
 
 	/** update reference pose with current preview mesh */
 	void UpdateReferencePose();

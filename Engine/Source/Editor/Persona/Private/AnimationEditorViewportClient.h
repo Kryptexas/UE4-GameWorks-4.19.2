@@ -117,6 +117,12 @@ public:
 	/** Function to check whether grid is displayed or not */
 	bool IsShowingGrid() const;
 
+	/** Function to enable/disable floor auto align */
+	void OnToggleAutoAlignFloor();
+
+	/** Function to check whether floor is auto align or not */
+	bool IsAutoAlignFloor() const;
+
 	/** Function to mute/unmute audio in the viewport */
 	void OnToggleMuteAudio();
 

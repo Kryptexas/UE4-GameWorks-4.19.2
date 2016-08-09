@@ -233,6 +233,19 @@ bool FAnimationViewportClient::IsShowingGrid() const
 	return FEditorViewportClient::IsSetShowGridChecked();
 }
 
+void FAnimationViewportClient::OnToggleAutoAlignFloor()
+{
+	bAutoAlignFloor = !bAutoAlignFloor;
+	UpdateCameraSetup();
+
+	ConfigOption->SetAutoAlignFloorToMesh(bAutoAlignFloor);
+}
+
+bool FAnimationViewportClient::IsAutoAlignFloor() const
+{
+	return bAutoAlignFloor;
+}
+
 void FAnimationViewportClient::OnToggleMuteAudio()
 {
 	UWorld* World = PreviewScene->GetWorld();
@@ -2161,7 +2174,10 @@ void FAnimationViewportClient::UpdateCameraSetup()
 
 		SetCameraSetup(CustomOrbitLookAt, CustomOrbitRotation, CustomOrbitZoom, CustomOrbitLookAt, GetViewLocation(), GetViewRotation() );
 		
-		AdvancedPreviewScene->SetFloorOffset(GetFloorOffset());
+		// Move the floor to the bottom of the bounding box of the mesh, rather than on the origin
+		FVector Bottom = PreviewSkelMeshComp->Bounds.GetBoxExtrema(0);
+		const float FloorOffset = GetFloorOffset() + (bAutoAlignFloor ? -Bottom.Z : 0.0f);
+		AdvancedPreviewScene->SetFloorOffset(FloorOffset);
 	}
 }
 
