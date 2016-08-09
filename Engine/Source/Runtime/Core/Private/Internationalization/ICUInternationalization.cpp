@@ -147,11 +147,16 @@ bool FICUInternationalization::Initialize()
 	}
 	I18N->DefaultCulture = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale(), EAllowDefaultCultureFallback::Yes);
 	SetCurrentCulture( I18N->GetDefaultCulture()->GetName() );
+
+	InitializeInvariantGregorianCalendar();
+
 	return U_SUCCESS(ICUStatus) ? true : false;
 }
 
 void FICUInternationalization::Terminate()
 {
+	InvariantGregorianCalendar.Reset();
+
 	FICUBreakIteratorManager::Destroy();
 	CachedCultures.Empty();
 
@@ -688,6 +693,34 @@ FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, con
 	}
 
 	return NewCulture;
+}
+
+void FICUInternationalization::InitializeInvariantGregorianCalendar()
+{
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	InvariantGregorianCalendar = MakeUnique<icu::GregorianCalendar>(ICUStatus);
+	InvariantGregorianCalendar->setTimeZone(icu::TimeZone::getUnknown());
+}
+
+UDate FICUInternationalization::UEDateTimeToICUDate(const FDateTime& DateTime)
+{
+	// UE4 and ICU have a different time scale for pre-Gregorian dates, so we can't just use the UNIX timestamp from the UE4 DateTime
+	// Instead we have to explode the UE4 DateTime into its component parts, and then use an ICU GregorianCalendar (set to the "unknown" 
+	// timezone so it doesn't apply any adjustment to the time) to reconstruct the DateTime as an ICU UDate in the correct scale
+	int32 Year, Month, Day;
+	DateTime.GetDate(Year, Month, Day);
+	const int32 Hour = DateTime.GetHour();
+	const int32 Minute = DateTime.GetMinute();
+	const int32 Second = DateTime.GetSecond();
+
+	{
+		FScopeLock Lock(&InvariantGregorianCalendarCS);
+
+		InvariantGregorianCalendar->set(Year, Month - 1, Day, Hour, Minute, Second);
+		
+		UErrorCode ICUStatus = U_ZERO_ERROR;
+		return InvariantGregorianCalendar->getTime(ICUStatus);
+	}
 }
 
 UBool FICUInternationalization::OpenDataFile(const void* context, void** fileContext, void** contents, const char* path)

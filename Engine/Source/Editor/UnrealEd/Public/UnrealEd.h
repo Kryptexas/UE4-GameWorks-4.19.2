@@ -214,7 +214,6 @@
 #include "Classes/Commandlets/GenerateTextLocalizationResourceCommandlet.h"
 #include "Classes/Commandlets/InternationalizationConditioningCommandlet.h"
 #include "Classes/Commandlets/InternationalizationExportCommandlet.h"
-#include "Classes/Commandlets/RepairLocalizationDataCommandlet.h"
 #include "Classes/Commandlets/GenerateBlueprintAPICommandlet.h"
 #include "Classes/Commandlets/GenerateDistillFileSetsCommandlet.h"
 #include "Classes/Editor/GroupActor.h"

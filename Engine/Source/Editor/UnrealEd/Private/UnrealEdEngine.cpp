@@ -1258,7 +1258,6 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 		}
 	}
 
-	bool bAnyStaticBrushesFixed = false;
 	if (Brushes.Num() > 0)
 	{
 		for (ABrush* Brush : Brushes)
@@ -1275,7 +1274,7 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 			if (Brush->IsStaticBrush())
 			{
 				// Static brushes require a full BSP rebuild
-				bAnyStaticBrushesFixed = true;
+				ABrush::SetNeedRebuild(Brush->GetLevel());
 			}
 			else
 			{
@@ -1285,11 +1284,6 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 			}
 
 			Brush->MarkPackageDirty();
-		}
-
-		if (bAnyStaticBrushesFixed)
-		{
-			RebuildAlteredBSP();
 		}
 	}
 }

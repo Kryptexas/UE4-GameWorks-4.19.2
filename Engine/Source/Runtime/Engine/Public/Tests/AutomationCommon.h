@@ -128,9 +128,14 @@ DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeActiveEditorScreensho
 DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeEditorScreenshotCommand, WindowScreenshotParameters, ScreenshotParameters);
 
 /**
-* Latent command to load a map in game
-*/
+ * Latent command to load a map in game
+ */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
+
+/**
+ * Latent command to exit the current game
+ */
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(FExitGameCommand);
 
 /**
  * Latent command that requests exit

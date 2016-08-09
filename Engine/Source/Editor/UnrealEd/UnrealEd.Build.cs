@@ -86,8 +86,10 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
-                "FunctionalTesting"
-            }
+                "FunctionalTesting",
+				"AutomationController",
+				"Internationalization",
+			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -102,7 +104,6 @@ public class UnrealEd : ModuleRules
 				"EngineSettings",
 				"InputCore",
 				"InputBindingEditor",
-				"Internationalization",
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",
@@ -215,8 +216,9 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
-				"VREditor"
-			}
+				"VREditor",
+                "EditorAutomation",
+            }
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)

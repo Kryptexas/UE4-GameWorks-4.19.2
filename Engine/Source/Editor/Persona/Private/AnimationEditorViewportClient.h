@@ -94,6 +94,7 @@ public:
 	virtual void SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem) override;
 	virtual void SetViewMode(EViewModeIndex InViewModeIndex) override;
 	virtual void SetViewportType(ELevelViewportType InViewportType) override;
+	virtual void RotateViewportType() override;
 	// End of FEditorViewportClient interface
 
 	/** Draw call to render UV overlay */

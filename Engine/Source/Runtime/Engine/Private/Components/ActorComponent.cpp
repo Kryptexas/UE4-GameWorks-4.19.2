@@ -1612,6 +1612,16 @@ void UActorComponent::GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedP
 	}
 }
 
+void UActorComponent::RemoveUCSModifiedProperties(const TArray<UProperty*>& Properties)
+{
+	for (UProperty* Property : Properties)
+	{
+		FSimpleMemberReference MemberReference;
+		FMemberReference::FillSimpleMemberReference<UProperty>(Property, MemberReference);
+		UCSModifiedProperties.RemoveSwap(MemberReference);
+	}
+}
+
 void UActorComponent::SetCanEverAffectNavigation(bool bRelevant)
 {
 	if (bCanEverAffectNavigation != bRelevant)

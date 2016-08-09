@@ -1015,6 +1015,11 @@ int16 FSlateFontCache::GetBaseline( const FSlateFontInfo& InFontInfo, float Font
 	return FontRenderer->GetBaseline(InFontInfo, FontScale);
 }
 
+void FSlateFontCache::GetUnderlineMetrics( const FSlateFontInfo& InFontInfo, const float FontScale, int16& OutUnderlinePos, int16& OutUnderlineThickness ) const
+{
+	FontRenderer->GetUnderlineMetrics(InFontInfo, FontScale, OutUnderlinePos, OutUnderlineThickness);
+}
+
 int8 FSlateFontCache::GetKerning( const FFontData& InFontData, const int32 InSize, TCHAR First, TCHAR Second, float Scale ) const
 {
 	return FontRenderer->GetKerning(InFontData, InSize, First, Second, Scale);

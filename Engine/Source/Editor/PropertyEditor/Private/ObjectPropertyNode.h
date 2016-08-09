@@ -20,7 +20,7 @@ public:
 	/** FPropertyNode Interface */
 	virtual FObjectPropertyNode* AsObjectNode() override { return this;}
 	virtual const FObjectPropertyNode* AsObjectNode() const override { return this; }
-	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData& OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const override;
+	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData* OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const override;
 	virtual bool GetReadAddressUncached(FPropertyNode& InNode, FReadAddressListData& OutAddresses) const override;
 
 	virtual uint8* GetValueBaseAddress( uint8* Base ) override;
@@ -109,6 +109,7 @@ public:
 	 */
 	const TSet<FName>& GetHiddenCategories() const { return HiddenCategories; }
 
+	bool IsRootNode() const { return ParentNode == nullptr; }
 protected:
 	/** FPropertyNode interface */
 	virtual void InitBeforeNodeFlags() override;

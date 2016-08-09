@@ -725,7 +725,8 @@ bool UnFbx::FFbxImporter::RetrievePoseFromBindPose(const TArray<FbxNode*>& NodeA
 						else
 						{
 							FString ErrorString = Status.GetErrorString();
-							UE_LOG(LogFbx, Warning, TEXT("Not valid bind pose for Pose (%s) - Node %s : %s"), *PoseName, *FString(Current->GetName()), *ErrorString);
+							if (!GIsAutomationTesting)
+								UE_LOG(LogFbx, Warning, TEXT("Not valid bind pose for Pose (%s) - Node %s : %s"), *PoseName, *FString(Current->GetName()), *ErrorString);
 						}
 					}
 				}
@@ -795,7 +796,8 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		// get bind pose
 		if(RetrievePoseFromBindPose(NodeArray, PoseArray) == false)
 		{
-			UE_LOG(LogFbx, Warning, TEXT("Getting valid bind pose failed. Try to recreate bind pose"));
+			if (!GIsAutomationTesting)
+				UE_LOG(LogFbx, Warning, TEXT("Getting valid bind pose failed. Try to recreate bind pose"));
 			// if failed, delete bind pose, and retry.
 			const int32 PoseCount = Scene->GetPoseCount();
 			for(int32 PoseIndex = PoseCount-1; PoseIndex >= 0; --PoseIndex)
@@ -813,11 +815,13 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			SdkManager->CreateMissingBindPoses(Scene);
 			if ( RetrievePoseFromBindPose(NodeArray, PoseArray) == false)
 			{
-				UE_LOG(LogFbx, Warning, TEXT("Recreating bind pose failed."));
+				if (!GIsAutomationTesting)
+					UE_LOG(LogFbx, Warning, TEXT("Recreating bind pose failed."));
 			}
 			else
 			{
-				UE_LOG(LogFbx, Warning, TEXT("Recreating bind pose succeeded."));
+				if (!GIsAutomationTesting)
+					UE_LOG(LogFbx, Warning, TEXT("Recreating bind pose succeeded."));
 			}
 		}
 
@@ -1296,8 +1300,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkeletalMesh->Rename(NULL, GetTransientPackage());
 		return nullptr;
 	}
-
-	UE_LOG(LogFbx, Warning, TEXT("Bones digested - %i  Depth of hierarchy - %i"), SkeletalMesh->RefSkeleton.GetNum(), SkeletalDepth);
+	
+	if (!GIsAutomationTesting)
+		UE_LOG(LogFbx, Warning, TEXT("Bones digested - %i  Depth of hierarchy - %i"), SkeletalMesh->RefSkeleton.GetNum(), SkeletalDepth);
 
 	// process bone influences from import data
 	ProcessImportMeshInfluences(*SkelMeshImportDataPtr);
@@ -1378,7 +1383,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 		// Store the current file path and timestamp for re-import purposes
 		UFbxSkeletalMeshImportData* ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, TemplateImportData);
-		SkeletalMesh->AssetImportData->Update(UFactory::GetCurrentFilename());
+		SkeletalMesh->AssetImportData->Update(UFactory::GetCurrentFilename(), &Md5Hash);
 
 		SkeletalMesh->CalculateInvRefMatrices();
 		SkeletalMesh->PostEditChange();
@@ -1515,7 +1520,7 @@ UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString Par
 	FString 	ParentPath = FString::Printf(TEXT("%s/%s"), *FPackageName::GetLongPackagePath(*ParentPackageName), *ObjectName);
 	UObject* 	Parent = CreatePackage(NULL, *ParentPath);
 	// See if an object with this name exists
-	UObject* Object = LoadObject<UObject>(Parent, *ObjectName, NULL, LOAD_None, NULL);
+	UObject* Object = LoadObject<UObject>(Parent, *ObjectName, NULL, LOAD_NoWarn | LOAD_Quiet, NULL);
 
 	// if object with same name but different class exists, warn user
 	if ((Object != NULL) && (Object->GetClass() != AssetClass))

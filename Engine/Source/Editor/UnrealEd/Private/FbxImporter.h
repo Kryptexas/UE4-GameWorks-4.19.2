@@ -726,6 +726,9 @@ public:
 	FbxScene* Scene;
 	FBXImportOptions* ImportOptions;
 
+	//We cache the hash of the file when we open the file. This is to avoid calculating the hash many time when importing many asset in one fbx file.
+	FMD5Hash Md5Hash;
+
 protected:
 	enum IMPORTPHASE
 	{

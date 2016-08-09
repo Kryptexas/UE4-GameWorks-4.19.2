@@ -779,6 +779,16 @@ public:
 	int16 GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const;
 
 	/**
+	 * Get the underline metrics for the specified font.
+	 *
+	 * @param InFontInfo			A descriptor of the font to get character size for
+	 * @param FontScale				The scale to apply to the font
+	 * @param OutUnderlinePos		The offset from the baseline to the center of the underline bar
+	 * @param OutUnderlineThickness	The thickness of the underline bar
+	 */
+	void GetUnderlineMetrics( const FSlateFontInfo& InFontInfo, const float FontScale, int16& OutUnderlinePos, int16& OutUnderlineThickness ) const;
+
+	/**
 	 * Calculates the kerning amount for a pair of characters
 	 *
 	 * @param InFontData	The font that used to draw the string with the first and second characters

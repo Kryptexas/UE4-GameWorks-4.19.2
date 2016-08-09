@@ -114,7 +114,14 @@ FReply SDetailSingleItemRow::OnFavoriteToggle()
 			FName CatFavName = *CategoryFavoritesName;
 			int32 SimplePropertiesNum = 0;
 			int32 AdvancePropertiesNum = 0;
-			bool HasCategoryFavorite = OwnerTreeNode.Pin()->GetDetailsView().GetCategoryInfo(CatFavName, SimplePropertiesNum, AdvancePropertiesNum);
+
+			FDetailLayoutBuilderImpl& DetailLayout = OwnerTreeNode.Pin()->GetParentCategory()->GetParentLayoutImpl();
+
+			bool HasCategoryFavorite = DetailLayout.HasCategory(CatFavName);
+			if(HasCategoryFavorite)
+			{
+				DetailLayout.DefaultCategory(CatFavName).GetCategoryInformation(SimplePropertiesNum, AdvancePropertiesNum);
+			}
 
 			//Check if the property we toggle is an advance property
 			bool IsAdvanceProperty = Customization->GetPropertyNode()->HasNodeFlags(EPropertyNodeFlags::IsAdvanced) == 0 ? false : true;

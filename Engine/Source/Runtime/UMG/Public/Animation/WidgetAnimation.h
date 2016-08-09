@@ -85,7 +85,10 @@ public:
 	 */
 	UMG_API void ReplacePossessableObject(const FGuid& OldId, const FGuid& NewId, UObject& OldObject, UObject& NewObject);
 
+	/** Get Animation bindings of the animation */
 	const TArray<FWidgetAnimationBinding>& GetBindings() const { return AnimationBindings; }
+	/** Get the preview widget of the animation, if any */
+	const TWeakObjectPtr<UUserWidget> GetPreviewWidget() const { return PreviewWidget; }
 public:
 
 	/** Pointer to the movie scene that controls this animation. */

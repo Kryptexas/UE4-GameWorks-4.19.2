@@ -17,11 +17,11 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The width of the texture.												*/
+	/** The width of the texture. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	int32 SizeX;
 
-	/** The height of the texture.												*/
+	/** The height of the texture. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	int32 SizeY;
 
@@ -29,11 +29,11 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	UPROPERTY()
 	FLinearColor ClearColor;
 
-	/** The addressing mode to use for the X axis.								*/
+	/** The addressing mode to use for the X axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	TEnumAsByte<enum TextureAddress> AddressX;
 
-	/** The addressing mode to use for the Y axis.								*/
+	/** The addressing mode to use for the Y axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	TEnumAsByte<enum TextureAddress> AddressY;
 
@@ -108,6 +108,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	{
 		return NumMips;
 	}
+
 
 	FORCEINLINE EPixelFormat GetFormat() const
 	{

@@ -71,7 +71,7 @@ void FAssetTypeActions_WidgetBlueprint::PerformAssetDiff(UObject* Asset1, UObjec
 	bool bIsSingleAsset = (NewBlueprint->GetName() == OldBlueprint->GetName());
 
 	FText WindowTitle = LOCTEXT("NamelessWidgetBlueprintDiff", "Widget Blueprint Diff");
-	// if we're diff'ing one asset against itself 
+	// if we're diffing one asset against itself 
 	if (bIsSingleAsset)
 	{
 		// identify the assumed single asset in the window's title

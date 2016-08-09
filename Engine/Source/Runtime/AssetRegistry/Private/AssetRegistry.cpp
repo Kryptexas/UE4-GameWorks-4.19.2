@@ -863,10 +863,12 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 	}
 }
 
-bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const
+bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType) const
 {
 	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(PackageName);
 	const FDependsNode* Node = nullptr;
+	bool bShowingAllReferences = InReferenceType == EAssetRegistryDependencyType::All;
+
 	if (NodePtr != nullptr )
 	{
 		Node = *NodePtr;
@@ -879,7 +881,24 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 
 		for ( auto NodeIt = DependencyNodes.CreateConstIterator(); NodeIt; ++NodeIt )
 		{
-			OutReferencers.Add((*NodeIt)->GetPackageName());
+			if (!bShowingAllReferences)
+			{
+				TArray<FDependsNode*> DependenciesFromReferencer;
+				(*NodeIt)->GetDependencies(DependenciesFromReferencer, InReferenceType);
+				
+				for (FDependsNode* Dependency : DependenciesFromReferencer)
+				{
+					if (Dependency == Node)
+					{
+						OutReferencers.Add((*NodeIt)->GetPackageName());
+						break;
+					}
+				}
+			}
+			else
+			{
+				OutReferencers.Add((*NodeIt)->GetPackageName());
+			}
 		}
 
 		return true;

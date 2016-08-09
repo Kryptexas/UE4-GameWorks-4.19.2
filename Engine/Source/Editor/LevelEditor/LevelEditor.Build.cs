@@ -68,7 +68,8 @@ public class LevelEditor : ModuleRules
                 "HierarchicalLODUtilities",
 				"MaterialShaderQualitySettings",
                 "PixelInspectorModule",
-                "FbxAutomationBuilderModule"
+                "FbxAutomationBuilderModule",
+                "FunctionalTesting"
 			}
 		);
 

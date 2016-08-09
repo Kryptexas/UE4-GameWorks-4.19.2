@@ -1589,6 +1589,12 @@ void FAnimationViewportClient::SetViewportType(ELevelViewportType InViewportType
 	FocusViewportOnPreviewMesh();
 }
 
+void FAnimationViewportClient::RotateViewportType()
+{
+	FEditorViewportClient::RotateViewportType();
+	FocusViewportOnPreviewMesh();
+}
+
 bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
 {
 	const int32 HitX = InViewport->GetMouseX();

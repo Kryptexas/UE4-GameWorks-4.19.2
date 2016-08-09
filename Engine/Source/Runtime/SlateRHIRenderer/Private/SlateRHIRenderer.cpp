@@ -590,11 +590,19 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 				bLockToVsync = ElementBatcher->RequiresVsync();
 
-				if( !GIsEditor )
+				bool bForceVsyncFromCVar = false;
+				if(GIsEditor)
+				{
+					static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSyncEditor"));
+					bForceVsyncFromCVar = (CVar->GetInt() != 0);
+				}
+				else
 				{
 					static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-					bLockToVsync = bLockToVsync || (CVar->GetInt() != 0);
+					bForceVsyncFromCVar = (CVar->GetInt() != 0);
 				}
+
+				bLockToVsync |= bForceVsyncFromCVar;
 
 				// All elements for this window have been batched and rendering data updated
 				ElementBatcher->ResetBatches();

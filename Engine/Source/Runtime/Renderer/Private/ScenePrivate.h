@@ -1810,6 +1810,10 @@ public:
 	template<typename LightMapPolicyType>
 	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType, 0> >& GetMobileBasePassCSMDrawList(EBasePassDrawListType DrawType);
 
+#if WITH_EDITOR
+	/** Draw list to use for selected static meshes in the editor only */
+	TStaticMeshDrawList<FEditorSelectionDrawingPolicy> EditorSelectionDrawList;
+#endif
 	/**
 	 * The following arrays are densely packed primitive data needed by various
 	 * rendering passes. PrimitiveSceneInfo->PackedIndex maintains the index

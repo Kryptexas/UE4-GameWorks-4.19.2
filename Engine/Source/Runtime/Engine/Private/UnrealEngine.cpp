@@ -109,8 +109,7 @@
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "TextPackageNamespaceUtil.h"
-#include "JsonInternationalizationArchiveSerializer.h"
-#include "JsonInternationalizationManifestSerializer.h"
+#include "TextLocalizationResourceGenerator.h"
 
 #include "IMessagingRpcModule.h"
 #include "IMessageRpcClient.h"
@@ -2591,10 +2590,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
-			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-			FJsonInternationalizationManifestSerializer ManifestSerializer;
-
-			FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
+			FTextLocalizationResourceGenerator::GenerateAndUpdateLiveEntriesFromConfig(ConfigFilePath, /*bSkipSourceCheck*/false);
 		}
 	}
 #endif

@@ -409,6 +409,14 @@ public:
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
 
+	/** Called when a user executes the copy track menu item */
+	void CopySelectedTracks(TArray<TSharedPtr<FSequencerTrackNode>>& TrackNodes);
+	void ExportTracksToText(TArray<UMovieSceneTrack*> TrackToExport, /*out*/ FString& ExportedText);
+
+	/** Called when a user executes the paste track menu item */
+	void PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes);
+	void ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTrack);
+
 	/** Called when a user executes the active node menu item */
 	void ToggleNodeActive();
 	bool IsNodeActive() const;
@@ -437,6 +445,12 @@ public:
 	void SynchronizeSequencerSelectionWithExternalSelection();
 
 public:
+
+	/** Copy the selection, whether it's keys or tracks */
+	void CopySelection();
+
+	/** Cut the selection, whether it's keys or tracks */
+	void CutSelection();
 
 	/** Copy the selected keys to the clipboard */
 	void CopySelectedKeys();
@@ -561,6 +575,7 @@ public:
 	virtual void NotifyMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
+	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
@@ -955,6 +970,9 @@ private:
 	/** A delegate which is called any time the movie scene data is changed. */
 	FOnMovieSceneDataChanged OnMovieSceneDataChangedDelegate;
 
+	/** A delegate which is called any time the sequencer selection changes. */
+	FOnSelectionChangedObjectGuids OnSelectionChangedObjectGuidsDelegate;
+
 	/** A map of all the transport controls to viewports that this sequencer has made */
 	TMap< TSharedPtr<class ILevelViewport>, TSharedPtr<class SWidget> > TransportControls;
 
@@ -969,7 +987,7 @@ private:
 	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
 	FDelegateHandle LevelEditorExtenderDelegateHandle;
 
-	/** When true the sequencer selection is being updated from changes to the external seleciton. */
+	/** When true the sequencer selection is being updated from changes to the external selection. */
 	bool bUpdatingSequencerSelection;
 
 	/** When true the external selection is being updated from changes to the sequencer selection. */

@@ -1175,10 +1175,6 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 		(HasStaticLighting() && !HasValidSettingsForStaticLighting()) ||
 		HasViewDependentDPG() ||
 		 !IsStaticPathAvailable()
-#if WITH_EDITOR
-		//only check these in the editor
-		|| IsSelected() || IsHovered()
-#endif
 		)
 	{
 		Result.bDynamicRelevance = true;
@@ -1194,6 +1190,11 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 	else
 	{
 		Result.bStaticRelevance = true;
+
+#if WITH_EDITOR
+		//only check these in the editor
+		Result.bEditorStaticSelectionRelevance = (IsSelected() || IsHovered());
+#endif
 	}
 
 	Result.bShadowRelevance = IsShadowCast(View);

@@ -714,6 +714,14 @@ public:
 										.Text(LOCTEXT("STextBlockRightExampleLabel", "This is a right-justified text block"))
 										.Justification(ETextJustify::Right)
 								]
+
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									SNew(STextBlock)
+										.TextStyle(FCoreStyle::Get(), "NormalUnderlinedText")
+										.Text(LOCTEXT("STextBlockUnderlineLabel", "This is text is underlined using a line highlighter!"))
+								]
 							]
 
 						// STextComboBox

@@ -87,7 +87,7 @@ struct FMovieSceneBinding
 	 *
 	 * @param NewTrack	The track to add
 	 */
-	void AddTrack(UMovieSceneTrack& NewTrack);
+	void MOVIESCENE_API AddTrack(UMovieSceneTrack& NewTrack);
 
 	/**
 	 * Removes a track from this binding

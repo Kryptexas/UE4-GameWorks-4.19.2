@@ -250,7 +250,7 @@ void FEditorFileUtils::RegisterLevelFilename(UObject* Object, const FString& New
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static FString GetFilename(const FName& PackageName)
+FString FEditorFileUtils::GetFilename(const FName& PackageName)
 {
 	// First see if it is an in-memory package that already has an associated filename
 	const FString PackageNameString = PackageName.ToString();
@@ -282,7 +282,7 @@ static FString GetFilename(const FName& PackageName)
 	return *Result;
 }
 
-static FString GetFilename(UObject* LevelObject)
+FString FEditorFileUtils::GetFilename(UObject* LevelObject)
 {
 	return GetFilename( LevelObject->GetOutermost()->GetFName() );
 }
@@ -2231,6 +2231,14 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 	// If there are any old mirrored brushes in the map with inverted polys, fix them here
 	GUnrealEd->FixAnyInvertedBrushes(World);
+
+	// Rebuild BSP if the loading process flagged it as not up-to-date
+	TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
+	ABrush::NeedsRebuild(&LevelsToRebuild);
+	if (LevelsToRebuild.Num() > 0)
+	{
+		GUnrealEd->RebuildAlteredBSP();
+	}
 
 	// Fire delegate when a new map is opened, with name of map
 	FEditorDelegates::OnMapOpened.Broadcast(InFilename, LoadAsTemplate);

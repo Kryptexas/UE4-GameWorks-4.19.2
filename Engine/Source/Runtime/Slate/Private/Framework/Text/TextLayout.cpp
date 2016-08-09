@@ -1199,13 +1199,13 @@ void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
 		if ( LineModel.RunRenderers[ Index ].Range.BeginIndex > Renderer.Range.BeginIndex )
 		{
 			checkf(Index == 0 || LineModel.RunRenderers[Index - 1].Range.EndIndex <= Renderer.Range.BeginIndex, TEXT("Renderers cannot overlap!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
-			LineModel.RunRenderers.Insert( Renderer, Index - 1 );
+			LineModel.RunRenderers.Insert( Renderer, FMath::Max(0, Index - 1) );
 			bWasInserted = true;
 		}
 		else if ( LineModel.RunRenderers[ Index ].Range.EndIndex > Renderer.Range.EndIndex )
 		{
 			checkf(LineModel.RunRenderers[Index].Range.BeginIndex >= Renderer.Range.EndIndex, TEXT("Renderers cannot overlap!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
-			LineModel.RunRenderers.Insert( Renderer, Index - 1 );
+			LineModel.RunRenderers.Insert( Renderer, FMath::Max(0, Index - 1) );
 			bWasInserted = true;
 		}
 	}
@@ -1216,6 +1216,29 @@ void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
 	}
 
 	DirtyFlags |= ETextLayoutDirtyState::Layout;
+}
+
+void FTextLayout::RemoveRunRenderer( const FTextRunRenderer& Renderer )
+{
+	checkf(LineModels.IsValidIndex(Renderer.LineIndex), TEXT("Renderers must be for a valid Line Index!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
+
+	FLineModel& LineModel = LineModels[Renderer.LineIndex];
+
+	bool bWasRemoved = false;
+	for (int32 Index = 0; Index < LineModel.RunRenderers.Num(); ++Index)
+	{
+		if (LineModel.RunRenderers[Index] == Renderer)
+		{
+			LineModel.RunRenderers.RemoveAt(Index, 1, /*bAllowShrinking*/false);
+			bWasRemoved = true;
+			break;
+		}
+	}
+
+	if (bWasRemoved)
+	{
+		DirtyFlags |= ETextLayoutDirtyState::Layout;
+	}
 }
 
 void FTextLayout::ClearLineHighlights()
@@ -1253,7 +1276,7 @@ void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
 	{
 		if ( LineModel.LineHighlights[ Index ].ZOrder > Highlight.ZOrder )
 		{
-			LineModel.LineHighlights.Insert( Highlight, Index - 1 );
+			LineModel.LineHighlights.Insert( Highlight, FMath::Max(0, Index - 1) );
 			bWasInserted = true;
 		}
 	}
@@ -1264,6 +1287,30 @@ void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
 	}
 
 	DirtyFlags |= ETextLayoutDirtyState::Highlights;
+}
+
+void FTextLayout::RemoveLineHighlight( const FTextLineHighlight& Highlight )
+{
+	checkf(LineModels.IsValidIndex(Highlight.LineIndex), TEXT("Highlights must be for a valid Line Index!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
+	checkf(Highlight.ZOrder, TEXT("The highlight Z-order must be <0 to create an underlay, or >0 to create an overlay!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
+
+	FLineModel& LineModel = LineModels[Highlight.LineIndex];
+
+	bool bWasRemoved = false;
+	for (int32 Index = 0; Index < LineModel.LineHighlights.Num(); ++Index)
+	{
+		if (LineModel.LineHighlights[Index] == Highlight)
+		{
+			LineModel.LineHighlights.RemoveAt(Index, 1, /*bAllowShrinking*/false);
+			bWasRemoved = true;
+			break;
+		}
+	}
+
+	if (bWasRemoved)
+	{
+		DirtyFlags |= ETextLayoutDirtyState::Highlights;
+	}
 }
 
 FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint ) const

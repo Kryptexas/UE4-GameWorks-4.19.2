@@ -1254,7 +1254,7 @@ UMaterialInstanceConstant* FMaterialUtilities::CreateInstancedMaterial(UMaterial
 	if (ExistingPackage && !ExistingPackage->IsA<UMaterialInstanceConstant>())
 	{
 #if WITH_EDITOR
-		AutomationEditorCommonUtils::NullReferencesToObject(ExistingPackage);		
+		FAutomationEditorCommonUtils::NullReferencesToObject(ExistingPackage);		
 #endif // WITH_EDITOR
 		ExistingPackage->MarkPendingKill();
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);

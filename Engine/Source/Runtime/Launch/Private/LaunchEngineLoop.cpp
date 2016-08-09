@@ -3252,6 +3252,12 @@ bool FEngineLoop::AppInit( )
 		return false;
 	}
 
+	// Register the callback that allows the text localization manager to load data for plugins
+	FTextLocalizationManager::Get().GatherAdditionalLocResPathsCallback.AddLambda([](TArray<FString>& OutLocResPaths)
+	{
+		IPluginManager::Get().GetLocalizationPathsForEnabledPlugins(OutLocResPaths);
+	});
+
 	PreInitHMDDevice();
 
 	// Put the command line and config info into the suppression system

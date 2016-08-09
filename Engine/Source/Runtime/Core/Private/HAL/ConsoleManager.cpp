@@ -2070,6 +2070,15 @@ static TAutoConsoleVariable<int32> CVarSetVSyncEnabled(
 	TEXT("1: VSync is enabled."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+#if WITH_EDITOR
+static TAutoConsoleVariable<int32> CVarSetVSyncEditorEnabled(
+	TEXT("r.VSyncEditor"),
+	0,
+	TEXT("0: VSync is disabled in editor.(default)\n")
+	TEXT("1: VSync is enabled in editor."),
+	ECVF_RenderThreadSafe);
+#endif
+
 static TAutoConsoleVariable<int32> CVarFinishCurrentFrame(
 	TEXT("r.FinishCurrentFrame"),
 	0,

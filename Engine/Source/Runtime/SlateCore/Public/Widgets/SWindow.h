@@ -1158,7 +1158,7 @@ private:
 #if WITH_EDITOR
 
 /**
- * Hack to switch wolds in a scope and switch back when we fall out of scope                   
+ * Hack to switch worlds in a scope and switch back when we fall out of scope                   
  */
 struct FScopedSwitchWorldHack
 {

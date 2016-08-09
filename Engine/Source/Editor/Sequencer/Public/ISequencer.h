@@ -99,6 +99,8 @@ public:
 	
 	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
 	DECLARE_MULTICAST_DELEGATE(FOnMovieSceneDataChanged);
+	
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedObjectGuids, TArray<FGuid> /*Object*/)
 
 public:
 
@@ -352,6 +354,9 @@ public:
 
 	/** Gets a multicast delegate which is executed whenever the movie scene data is changed. */
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() = 0;
+
+	/** Gets a multicast delegate with an array of FGuid of bound objects which is called when the outliner node selection changes. */
+	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() = 0;
 
 	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() = 0;

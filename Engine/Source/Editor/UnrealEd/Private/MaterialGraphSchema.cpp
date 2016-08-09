@@ -165,6 +165,35 @@ UMaterialGraphSchema::UMaterialGraphSchema(const FObjectInitializer& ObjectIniti
 	AlphaPinColor = FLinearColor(0.5f, 0.5f, 0.5f);
 }
 
+void UMaterialGraphSchema::SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGraphPin)
+{
+	TArray<UEdGraphPin*> AllPins = InGraphPin->LinkedTo;
+
+	if (AllPins.Num() == 0)
+	{
+		return;
+	}
+
+	for (UEdGraphPin* Pin : AllPins)
+	{
+		UMaterialGraphNode* MaterialNode = Cast<UMaterialGraphNode>(Pin->GetOwningNode());
+		FMaterialEditorUtilities::AddToSelection(Graph, MaterialNode->MaterialExpression);
+
+		TArray<UEdGraphPin*> LinkedPins = Pin->GetOwningNode()->GetAllPins();
+		for (UEdGraphPin* InputPin : LinkedPins)
+		{
+			if (InputPin->Direction == EEdGraphPinDirection::EGPD_Output)
+			{
+				continue;
+			}
+			else
+			{
+				SelectAllInputNodes(Graph, InputPin);
+			}
+		}
+	}
+}
+
 void UMaterialGraphSchema::GetBreakLinkToSubMenuActions( class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin )
 {
 	// Make sure we have a unique name for every entry in the list
@@ -187,7 +216,7 @@ void UMaterialGraphSchema::GetBreakLinkToSubMenuActions( class FMenuBuilder& Men
 			Title = FText::Format( LOCTEXT("BreakDescPin", "{NodeTitle} ({PinName})"), Args );
 		}
 
-		uint32 &Count = LinkTitleCount.FindOrAdd( TitleString );
+		uint32 &Count = LinkTitleCount.FindOrAdd(TitleString);
 
 		FText Description;
 		FFormatNamedArguments Args;
@@ -313,7 +342,7 @@ void UMaterialGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 {
 	const UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(ContextMenuBuilder.CurrentGraph);
 
-	// Run thru all nodes and add any menu items they want to add
+	// Run through all nodes and add any menu items they want to add
 	Super::GetGraphContextActions(ContextMenuBuilder);
 
 	// Get the Context Actions from Material Editor Module
@@ -344,6 +373,13 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 			// Only display the 'Break Link' option if there is a link to break!
 			if (InGraphPin->LinkedTo.Num() > 0)
 			{
+				MenuBuilder->AddMenuEntry(
+					LOCTEXT("SelectLinkedNodes", "Select Linked Nodes"),
+					LOCTEXT("SelectLinkedNodesTooltip", "Adds all input Nodes linked to this Pin to selection"),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateUObject((UMaterialGraphSchema*const)this, &UMaterialGraphSchema::SelectAllInputNodes, const_cast<UEdGraph*>(CurrentGraph), const_cast<UEdGraphPin*>(InGraphPin)))
+					);
+
 				MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakPinLinks);
 
 				// add sub menu for break link to

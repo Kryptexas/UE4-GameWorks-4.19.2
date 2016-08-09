@@ -10,6 +10,7 @@
 	#pragma warning(disable:28253)
 #endif
 	#include <unicode/umachine.h>
+	#include <unicode/gregocal.h>
 #if defined(_MSC_VER) && USING_CODE_ANALYSIS
 	#pragma warning(pop)
 #endif
@@ -37,6 +38,8 @@ public:
 	TArray<FString> GetPrioritizedCultureNames(const FString& Name);
 	FCulturePtr GetCulture(const FString& Name);
 
+	UDate UEDateTimeToICUDate(const FDateTime& DateTime);
+
 private:
 #if NEEDS_ICU_DLLS
 	void LoadDLLs();
@@ -49,6 +52,8 @@ private:
 
 	enum class EAllowDefaultCultureFallback : uint8 { No, Yes, };
 	FCulturePtr FindOrMakeCulture(const FString& Name, const EAllowDefaultCultureFallback AllowDefaultFallback);
+
+	void InitializeInvariantGregorianCalendar();
 
 private:
 	struct FICUCultureData
@@ -86,6 +91,9 @@ private:
 
 	TMap<FString, FCultureRef> CachedCultures;
 	FCriticalSection CachedCulturesCS;
+
+	TUniquePtr<icu::GregorianCalendar> InvariantGregorianCalendar;
+	FCriticalSection InvariantGregorianCalendarCS;
 
 	static UBool OpenDataFile(const void* context, void** fileContext, void** contents, const char* path);
 	static void CloseDataFile(const void* context, void* const fileContext, void* const contents);

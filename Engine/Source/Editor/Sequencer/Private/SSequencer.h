@@ -389,9 +389,15 @@ private:
 	void OnSequenceInstanceActivated( FMovieSceneSequenceInstance& ActiveInstance );
 
 public:
+	/** On Paste Command */
+	void OnPaste();
+	bool CanPaste();
+
+	/** Handle Track Paste */
+	void PasteTracks();
 
 	/** Open the paste menu */
-	void Paste();
+	void OpenPasteMenu();
 	
 	/** Open the paste from history menu */
 	void PasteFromHistory();

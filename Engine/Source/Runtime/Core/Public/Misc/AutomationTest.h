@@ -46,6 +46,33 @@ namespace EAutomationTestFlags
 };
 
 
+struct CORE_API FAutomationEvent
+{
+	FString Message;
+	FString Context;
+	FString Filename;
+	int32 LineNumber;
+
+	FAutomationEvent(FString InMessage)
+		: Message(InMessage)
+		, Context()
+		, Filename()
+		, LineNumber(-1)
+	{
+	}
+
+	FAutomationEvent(FString InMessage, FString InContext, FString InFilename, int32 InLineNumber)
+		: Message(InMessage)
+		, Context(InContext)
+		, Filename(InFilename)
+		, LineNumber(InLineNumber)
+	{
+	}
+
+	FString ToString() const;
+};
+
+
 /** Simple class to store the results of the execution of a automation test */
 class FAutomationTestExecutionInfo
 {
@@ -65,16 +92,24 @@ public:
 	/** Helper method to clear out the results from a previous execution */
 	void Clear()
 	{
+		Context.Reset();
+
 		Errors.Empty();
 		Warnings.Empty();
 		LogItems.Empty();
 		AnalyticsItems.Empty();
 	}
 
+	/**
+	 * Allows tests to set the current logging context set on the events, like if we're currently
+	 * importing a specific file, you might set the file as the context.
+	 */
+	FString Context;
+
 	/** Whether the automation test completed successfully or not */
 	bool bSuccessful;
 	/** Any errors that occurred during execution */
-	TArray<FString> Errors;
+	TArray<FAutomationEvent> Errors;
 	/** Any warnings that occurred during execution */
 	TArray<FString> Warnings;
 	/** Any log items that occurred during execution */
@@ -118,12 +153,14 @@ public:
 	 * @param	InTestFlag - Test flags
 	 * @param	InParameterName - optional parameter. e.g. asset name
 	 */
-	FAutomationTestInfo(const FString& InDisplayName, const FString& InTestName, const uint32 InTestFlags, const int32 InNumParticipantsRequired, const FString& InParameterName = FString(), const FString& InSourceFile = FString(), int32 InSourceFileLine = 0)
+	FAutomationTestInfo(const FString& InDisplayName, const FString& InTestName, const uint32 InTestFlags, const int32 InNumParticipantsRequired, const FString& InParameterName = FString(), const FString& InSourceFile = FString(), int32 InSourceFileLine = 0, const FString& InAssetPath = FString(), const FString& InOpenCommand = FString())
 		: DisplayName( InDisplayName )
 		, TestName( InTestName )
 		, TestParameter( InParameterName )
 		, SourceFile( InSourceFile )
 		, SourceFileLine( InSourceFileLine )
+		, AssetPath( InAssetPath )
+		, OpenCommand( InOpenCommand )
 		, TestFlags( InTestFlags )
 		, NumParticipantsRequired( InNumParticipantsRequired )
 		, NumDevicesCurrentlyRunningTest( 0 )
@@ -200,6 +237,26 @@ public:
 	const int32 GetSourceFileLine() const
 	{
 		return SourceFileLine;
+	}
+
+	/**
+	 * Gets the asset potentially associated with the test.
+	 *
+	 * @return the source line number.
+	 */
+	const FString GetAssetPath() const
+	{
+		return AssetPath;
+	}
+
+	/**
+	 * Gets the open command potentially associated with the test.
+	 *
+	 * @return the source line number.
+	 */
+	const FString GetOpenCommand() const
+	{
+		return OpenCommand;
 	}
 
 	/**
@@ -294,6 +351,12 @@ private:
 
 	/** The line number in the source file this test originated on. */
 	int32 SourceFileLine;
+
+	/** The asset path associated with the test. */
+	FString AssetPath;
+
+	/** A custom open command for the test. */
+	FString OpenCommand;
 
 	/** The test flags. */
 	uint32 TestFlags;
@@ -726,7 +789,7 @@ public:
 	 *
 	 * @param	InError	Error message to add to this test
 	 */
-	void AddError( const FString& InError );
+	void AddError( const FString& InError, int32 StackOffset = 0 );
 
 	/**
 	 * Adds a warning to this test
@@ -799,24 +862,32 @@ public:
 	/**
 	 * Enqueues a new latent command.
 	 */
-	FORCEINLINE void AddCommand(TSharedPtr<IAutomationLatentCommand> NewCommand)
+	FORCEINLINE void AddCommand(IAutomationLatentCommand* NewCommand)
 	{
-		FAutomationTestFramework::GetInstance().EnqueueLatentCommand(NewCommand);
+		TSharedRef<IAutomationLatentCommand> CommandPtr = MakeShareable(NewCommand);
+		FAutomationTestFramework::GetInstance().EnqueueLatentCommand(CommandPtr);
 	}
 
 	/**
 	 * Enqueues a new latent network command.
 	 */
-	FORCEINLINE void AddCommand(TSharedPtr<IAutomationNetworkCommand> NewCommand)
+	FORCEINLINE void AddCommand(IAutomationNetworkCommand* NewCommand)
 	{
-		FAutomationTestFramework::GetInstance().EnqueueNetworkCommand(NewCommand);
+		TSharedRef<IAutomationNetworkCommand> CommandPtr = MakeShareable(NewCommand);
+		FAutomationTestFramework::GetInstance().EnqueueNetworkCommand(CommandPtr);
 	}
 
 	/** Gets the filename where this test was defined. */
-	virtual FString GetFileName() const { return ""; }
+	virtual FString GetTestSourceFileName() const { return TEXT(""); }
 
 	/** Gets the line number where this test was defined. */
-	virtual int32 GetFileLine() const { return 0; }
+	virtual int32 GetTestSourceFileLine() const { return 0; }
+
+	/** Allows navigation to the asset associated with the test if there is one. */
+	virtual FString GetTestAssetPath(const FString& Parameter) const { return TEXT(""); }
+
+	/** Return an exec command to open the test associated with this parameter. */
+	virtual FString GetTestOpenCommand(const FString& Parameter) const { return TEXT(""); }
 
 public:
 
@@ -833,7 +904,7 @@ public:
 	{
 		if (A != B)
 		{
-			AddError(FString::Printf(TEXT("%s: The two values are not equal."), *Description));
+			AddError(FString::Printf(TEXT("%s: The two values are not equal."), *Description), 1);
 		}
 	}
 
@@ -849,7 +920,7 @@ public:
 	{
 		if (Value)
 		{
-			AddError(FString::Printf(TEXT("%s: The value is not false."), *Description));
+			AddError(FString::Printf(TEXT("%s: The value is not false."), *Description), 1);
 		}
 	}
 
@@ -865,7 +936,7 @@ public:
 	{
 		if (SharedPointer.IsValid())
 		{
-			AddError(FString::Printf(TEXT("%s: The shared pointer is valid."), *Description));
+			AddError(FString::Printf(TEXT("%s: The shared pointer is valid."), *Description), 1);
 		}
 	}
 
@@ -882,7 +953,7 @@ public:
 	{
 		if (A == B)
 		{
-			AddError(FString::Printf(TEXT("%s: The two values are not equal."), *Description));
+			AddError(FString::Printf(TEXT("%s: The two values are not equal."), *Description), 1);
 		}
 	}
 
@@ -898,7 +969,7 @@ public:
 	{
 		if (Pointer == NULL)
 		{
-			AddError(FString::Printf(TEXT("%s: The pointer is NULL."), *Description));
+			AddError(FString::Printf(TEXT("%s: The pointer is NULL."), *Description), 1);
 		}
 	}
 
@@ -915,7 +986,7 @@ public:
 	{
 		if (&A == &B)
 		{
-			AddError(FString::Printf(TEXT("%s: The two values are the same."), *Description));
+			AddError(FString::Printf(TEXT("%s: The two values are the same."), *Description), 1);
 		}
 	}
 
@@ -931,7 +1002,7 @@ public:
 	{
 		if (Pointer != NULL)
 		{
-			AddError(FString::Printf(TEXT("%s: The pointer is not NULL."), *Description));
+			AddError(FString::Printf(TEXT("%s: The pointer is not NULL."), *Description), 1);
 		}
 	}
 
@@ -948,7 +1019,7 @@ public:
 	{
 		if (&A != &B)
 		{
-			AddError(FString::Printf(TEXT("%s: The two values are not the same."), *Description));
+			AddError(FString::Printf(TEXT("%s: The two values are not the same."), *Description), 1);
 		}
 	}
 
@@ -964,7 +1035,7 @@ public:
 	{
 		if (!Value)
 		{
-			AddError(FString::Printf(TEXT("%s: The value is not true."), *Description));
+			AddError(FString::Printf(TEXT("%s: The value is not true."), *Description), 1);
 		}
 	}
 
@@ -980,7 +1051,7 @@ public:
 	{
 		if (!SharedPointer.IsValid())
 		{
-			AddError(FString::Printf(TEXT("%s: The shared pointer is not valid."), *Description));
+			AddError(FString::Printf(TEXT("%s: The shared pointer is not valid."), *Description), 1);
 		}
 	}
 
@@ -1052,8 +1123,8 @@ class CommandName : public IAutomationLatentCommand \
 	ParamType ParamName; \
 }
 
-#define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(CommandName)	\
-class ENGINE_API CommandName : public IAutomationLatentCommand \
+#define DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND(EXPORT_API, CommandName)	\
+class EXPORT_API CommandName : public IAutomationLatentCommand \
 	{ \
 	public: \
 	virtual ~CommandName() \
@@ -1061,8 +1132,8 @@ class ENGINE_API CommandName : public IAutomationLatentCommand \
 		virtual bool Update() override; \
 }
 
-#define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
-class ENGINE_API CommandName : public IAutomationLatentCommand \
+#define DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(EXPORT_API, CommandName,ParamType,ParamName)	\
+class EXPORT_API CommandName : public IAutomationLatentCommand \
 	{ \
 	public: \
 	CommandName(ParamType InputParam) \
@@ -1074,6 +1145,12 @@ class ENGINE_API CommandName : public IAutomationLatentCommand \
 	private: \
 	ParamType ParamName; \
 }
+
+#define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(CommandName)	\
+	DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND(ENGINE_API, CommandName)
+
+#define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
+	DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(ENGINE_API, CommandName, ParamType, ParamName)
 
 //macro to simply the syntax for enqueueing a latent command
 #define ADD_LATENT_AUTOMATION_COMMAND(ClassDeclaration) FAutomationTestFramework::GetInstance().EnqueueLatentCommand(MakeShareable(new ClassDeclaration));
@@ -1108,12 +1185,12 @@ public: \
  * the automation test framework as a result of the macro.
  */
 
-#define IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE( TClass, PrettyName, TFlags, FileName, LineNumber ) \
-	class TClass : public FAutomationTestBase \
+#define IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE( TClass, TBaseClass, PrettyName, TFlags, FileName, LineNumber ) \
+	class TClass : public TBaseClass \
 	{ \
 	public: \
 		TClass( const FString& InName ) \
-		:FAutomationTestBase( InName, false ) {\
+		:TBaseClass( InName, false ) {\
 			static_assert((TFlags)&EAutomationTestFlags::ApplicationContextMask, "AutomationTest has no application flag.  It shouldn't run.  See AutomationTest.h."); \
 			static_assert(	(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter) || \
 							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::EngineFilter) || \
@@ -1125,8 +1202,8 @@ public: \
 		virtual uint32 GetTestFlags() const override { return TFlags; } \
 		virtual bool IsStressTest() const { return false; } \
 		virtual uint32 GetRequiredDeviceNum() const override { return 1; } \
-		virtual FString GetFileName() const { return FileName; } \
-		virtual int32 GetFileLine() const { return LineNumber; } \
+		virtual FString GetTestSourceFileName() const override { return FileName; } \
+		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
 	protected: \
 		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override \
 		{ \
@@ -1137,12 +1214,12 @@ public: \
 		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
-#define IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE( TClass, PrettyName, TFlags, FileName, LineNumber ) \
-	class TClass : public FAutomationTestBase \
+#define IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE( TClass, TBaseClass, PrettyName, TFlags, FileName, LineNumber ) \
+	class TClass : public TBaseClass \
 	{ \
 	public: \
 		TClass( const FString& InName ) \
-		:FAutomationTestBase( InName, true ) { \
+		:TBaseClass( InName, true ) { \
 			static_assert((TFlags)&EAutomationTestFlags::ApplicationContextMask, "AutomationTest has no application flag.  It shouldn't run.  See AutomationTest.h."); \
 			static_assert(	(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter) || \
 							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::EngineFilter) || \
@@ -1154,20 +1231,20 @@ public: \
 		virtual uint32 GetTestFlags() const override { return ((TFlags) & ~(EAutomationTestFlags::SmokeFilter)); } \
 		virtual bool IsStressTest() const { return true; } \
 		virtual uint32 GetRequiredDeviceNum() const override { return 1; } \
-		virtual FString GetFileName() const { return FileName; } \
-		virtual int32 GetFileLine() const { return LineNumber; } \
+		virtual FString GetTestSourceFileName() const override { return FileName; } \
+		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
 	protected: \
 		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override; \
 		virtual bool RunTest(const FString& Parameters) override; \
 		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
-#define IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants, FileName, LineNumber) \
-	class TClass : public FAutomationTestBase \
+#define IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, NumParticipants, FileName, LineNumber) \
+	class TClass : public TBaseClass \
 	{ \
 	public: \
 		TClass( const FString& InName ) \
-		:FAutomationTestBase( InName, false ) { \
+		:TBaseClass( InName, false ) { \
 			static_assert((TFlags)&EAutomationTestFlags::ApplicationContextMask, "AutomationTest has no application flag.  It shouldn't run.  See AutomationTest.h."); \
 			static_assert(	(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter) || \
 							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::EngineFilter) || \
@@ -1178,8 +1255,8 @@ public: \
 		} \
 		virtual uint32 GetTestFlags() const override { return ((TFlags) & ~(EAutomationTestFlags::EditorContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::SmokeFilter)); } \
 		virtual uint32 GetRequiredDeviceNum() const override { return NumParticipants; } \
-		virtual FString GetFileName() const { return FileName; } \
-		virtual int32 GetFileLine() const { return LineNumber; } \
+		virtual FString GetTestSourceFileName() const override { return FileName; } \
+		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
 	protected: \
 		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override \
 		{ \
@@ -1193,30 +1270,50 @@ public: \
 
 #if WITH_AUTOMATION_WORKER
 	#define IMPLEMENT_SIMPLE_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
-		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__) \
+		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, __FILE__, __LINE__) \
 		namespace\
 		{\
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
 	#define IMPLEMENT_COMPLEX_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
-		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__) \
+		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, __FILE__, __LINE__) \
 		namespace\
 		{\
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
 	#define IMPLEMENT_NETWORKED_AUTOMATION_TEST(TClass, PrettyName, TFlags, NumParticipants) \
-		IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__) \
+		IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__) \
 		namespace\
 		{\
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
+
+	#define IMPLEMENT_CUSTOM_SIMPLE_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__) \
+		namespace\
+		{\
+			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
+		}
+
+	#define IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__) \
+		namespace\
+		{\
+			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
+		}
+
 #else
 	#define IMPLEMENT_SIMPLE_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
-		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__)
+		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, __FILE__, __LINE__)
 	#define IMPLEMENT_COMPLEX_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
-		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__)
+		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, __FILE__, __LINE__)
 	#define IMPLEMENT_NETWORKED_AUTOMATION_TEST(TClass, PrettyName, TFlags, NumParticipants) \
-		IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__)
+		IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__)
+
+	#define IMPLEMENT_CUSTOM_SIMPLE_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
+	#define IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 #endif // #if WITH_AUTOMATION_WORKER
 
 
@@ -1227,11 +1324,11 @@ public: \
  * Run some code latently with a predicate lambda.  If the predicate returns true, the latent action will be called 
  * again next frame.  If it returns false, the command will stop running.
  */
-class CORE_API FFunctionLatentCommand : public IAutomationLatentCommand
+class FFunctionLatentCommand : public IAutomationLatentCommand
 {
 public:
 	FFunctionLatentCommand(TFunction<bool()> InLatentPredicate)
-		: LatentPredicate(InLatentPredicate)
+		: LatentPredicate(MoveTemp(InLatentPredicate))
 	{
 	}
 
@@ -1246,4 +1343,62 @@ public:
 
 private:
 	TFunction<bool()> LatentPredicate;
+};
+
+
+class FDelayedFunctionLatentCommand : public IAutomationLatentCommand
+{
+public:
+	FDelayedFunctionLatentCommand(TFunction<void()> InCallback, float InDelay = 0.1f)
+		: Callback(MoveTemp(InCallback))
+		, Delay(InDelay)
+	{}
+
+	virtual bool Update() override
+	{
+		float NewTime = FPlatformTime::Seconds();
+		if ( NewTime - StartTime >= Delay )
+		{
+			Callback();
+			return true;
+		}
+		return false;
+	}
+
+private:
+	TFunction<void()> Callback;
+	float Delay;
+};
+
+
+class FUntilCommand : public IAutomationLatentCommand
+{
+public:
+	FUntilCommand(TFunction<bool()> InCallback, TFunction<bool()> InTimeoutCallback, float InTimeout = 5.0f)
+		: Callback(MoveTemp(InCallback))
+		, TimeoutCallback(MoveTemp(InTimeoutCallback))
+		, Timeout(InTimeout)
+	{}
+
+	virtual bool Update() override
+	{
+		if ( !Callback() )
+		{
+			float NewTime = FPlatformTime::Seconds();
+			if ( NewTime - StartTime >= Timeout )
+			{
+				TimeoutCallback();
+				return false;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+private:
+	TFunction<bool()> Callback;
+	TFunction<bool()> TimeoutCallback;
+	float Timeout;
 };

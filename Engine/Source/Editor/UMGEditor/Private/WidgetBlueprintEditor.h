@@ -110,6 +110,18 @@ public:
 	/** @return The selected set of Objects */
 	const TSet< TWeakObjectPtr<UObject> >& GetSelectedObjects() const;
 
+	/** @return the selected template widget */
+	const TWeakObjectPtr<UClass> GetSelectedTemplate() const { return SelectedTemplate; }
+
+	/** @return the selected user widget */
+	const FAssetData GetSelectedUserWidget() const { return SelectedUserWidget; }
+
+	/** Set the selected template widget */
+	void SetSelectedTemplate(TWeakObjectPtr<UClass> TemplateClass) { SelectedTemplate = TemplateClass; }
+
+	/** Set the selected user widget */
+	void SetSelectedUserWidget(FAssetData InSelectedUserWidget) { SelectedUserWidget = InSelectedUserWidget; }
+
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> GetWidgetToolbarBuilder() { return WidgetToolbar; }
 
 	/** Migrate a property change from the preview GUI to the template GUI. */
@@ -229,6 +241,9 @@ private:
 	/** Handler which is called whenever sequencer movie scene data changes. */
 	void OnMovieSceneDataChanged();
 
+	/** Fire off when sequencer selection changed */
+	void SyncSelectedWidgetsWithSequencerSelection(TArray<FGuid> ObjectGuids);
+
 private:
 	/** The preview scene that owns the preview GUI */
 	FPreviewScene PreviewScene;
@@ -250,6 +265,12 @@ private:
 
 	/** The currently selected objects in the designer */
 	TSet< TWeakObjectPtr<UObject> > SelectedObjects;
+
+	/** The last selected template widget in the palette view */
+	TWeakObjectPtr<UClass> SelectedTemplate;
+
+	/** AssetData of Selected UserWidget */
+	FAssetData SelectedUserWidget;
 
 	/** The currently selected named slot */
 	TOptional<FNamedSlotSelection> SelectedNamedSlot;

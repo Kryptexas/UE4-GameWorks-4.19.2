@@ -91,6 +91,27 @@ int16 FSlateFontRenderer::GetBaseline(const FSlateFontInfo& InFontInfo, const fl
 #endif // WITH_FREETYPE
 }
 
+void FSlateFontRenderer::GetUnderlineMetrics(const FSlateFontInfo& InFontInfo, const float InScale, int16& OutUnderlinePos, int16& OutUnderlineThickness) const
+{
+#if WITH_FREETYPE
+	const FFontData& FontData = CompositeFontCache->GetDefaultFontData(InFontInfo);
+	FT_Face FontFace = GetFontFace(FontData);
+
+	if (FontFace && FT_IS_SCALABLE(FontFace))
+	{
+		FreeTypeUtils::ApplySizeAndScale(FontFace, InFontInfo.Size, InScale);
+
+		OutUnderlinePos = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(FontFace->underline_position, FontFace->size->metrics.y_scale)) * InScale);
+		OutUnderlineThickness = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(FontFace->underline_thickness, FontFace->size->metrics.y_scale)) * InScale);
+	}
+	else
+#endif // WITH_FREETYPE
+	{
+		OutUnderlinePos = 0;
+		OutUnderlineThickness = 0;
+	}
+}
+
 bool FSlateFontRenderer::HasKerning(const FFontData& InFontData) const
 {
 #if WITH_FREETYPE

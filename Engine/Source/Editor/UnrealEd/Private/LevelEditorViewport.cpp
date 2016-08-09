@@ -39,6 +39,7 @@
 #include "DragTool_BoxSelect.h"
 #include "DragTool_FrustumSelect.h"
 #include "DragTool_Measure.h"
+#include "DragTool_ViewportChange.h"
 #include "LevelEditorActions.h"
 #include "BrushBuilderDragDropOp.h"
 #include "AssetRegistryModule.h"
@@ -1668,6 +1669,11 @@ ELevelViewportType FLevelEditorViewportClient::GetViewportType() const
 	}
 }
 
+void FLevelEditorViewportClient::SetViewportTypeFromTool( ELevelViewportType InViewportType )
+{
+	SetViewportType(InViewportType);
+}
+
 void FLevelEditorViewportClient::SetViewportType( ELevelViewportType InViewportType )
 {
 	if (InViewportType != LVT_Perspective)
@@ -1677,6 +1683,14 @@ void FLevelEditorViewportClient::SetViewportType( ELevelViewportType InViewportT
 	}
 
 	FEditorViewportClient::SetViewportType(InViewportType);
+}
+
+void FLevelEditorViewportClient::RotateViewportType()
+{
+	SetActorLock(nullptr);
+	UpdateViewForLockedActor();
+
+	FEditorViewportClient::RotateViewportType();
 }
 
 void FLevelEditorViewportClient::OverridePostProcessSettings( FSceneView& View )
@@ -1841,6 +1855,11 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
 	const FViewportClick Click(&View,this,Key,Event,HitX,HitY);
+	if (Click.GetKey() == EKeys::MiddleMouseButton && !Click.IsAltDown() && !Click.IsShiftDown())
+	{
+		ClickHandlers::ClickViewport(this, Click);
+		return;
+	}
 	if (!ModeTools->HandleClick(this, HitProxy,Click))
 	{
 		if (HitProxy == NULL)
@@ -1918,7 +1937,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			}
 
 			// We clicked an actor, allow the pivot to reposition itself.
-//			GUnrealEd->SetPivotMovedIndependently(false);
+			// GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
@@ -2368,6 +2387,9 @@ TSharedPtr<FDragTool> FLevelEditorViewportClient::MakeDragTool( EDragTool::Type 
 	case EDragTool::Measure:
 		DragTool = MakeShareable( new FDragTool_Measure(this) );
 		break;
+	case EDragTool::ViewportChange:
+		DragTool = MakeShareable( new FDragTool_ViewportChange(this) );
+		break;
 	};
 
 	return DragTool;
@@ -2408,7 +2430,7 @@ void FLevelEditorViewportClient::SetCurrentViewport()
 
 void FLevelEditorViewportClient::SetLastKeyViewport()
 {
-	// Store a reference to the last viewport that received a keypress.
+	// Store a reference to the last viewport that received a key press.
 	GLastKeyLevelEditingViewportClient = this;
 
 	if (GCurrentLevelEditingViewportClient != this)
@@ -2964,6 +2986,16 @@ void FLevelEditorViewportClient::RedrawAllViewportsIntoThisScene()
 {
 	// Invalidate all viewports, so the new gizmo is rendered in each one
 	GEditor->RedrawLevelEditingViewports();
+}
+
+FWidget::EWidgetMode FLevelEditorViewportClient::GetWidgetMode() const
+{
+	if (GUnrealEd->ComponentVisManager.IsActive() && GUnrealEd->ComponentVisManager.IsVisualizingArchetype())
+	{
+		return FWidget::WM_None;
+	}
+
+	return FEditorViewportClient::GetWidgetMode();
 }
 
 FVector FLevelEditorViewportClient::GetWidgetLocation() const
@@ -3964,32 +3996,33 @@ void FLevelEditorViewportClient::DrawBrushDetails(const FSceneView* View, FPrimi
 		const float TextureSizeX = VertexTexture->GetSizeX() * 0.170f;
 		const float TextureSizeY = VertexTexture->GetSizeY() * 0.170f;
 
-		for (FSelectionIterator It(*ModeTools->GetSelectedActors()); It; ++It)
+		USelection* Selection = ModeTools->GetSelectedActors();
+		if(Selection->IsClassSelected(ABrush::StaticClass()))
 		{
-			AActor* SelectedActor = static_cast<AActor*>(*It);
-			checkSlow(SelectedActor->IsA(AActor::StaticClass()));
-
-			ABrush* Brush = Cast< ABrush >(SelectedActor);
-			if (Brush && Brush->Brush && !FActorEditorUtils::IsABuilderBrush(Brush))
+			for (FSelectionIterator It(*ModeTools->GetSelectedActors()); It; ++It)
 			{
-				for (int32 p = 0; p < Brush->Brush->Polys->Element.Num(); ++p)
+				ABrush* Brush = Cast<ABrush>(*It);
+				if(Brush && Brush->Brush && !FActorEditorUtils::IsABuilderBrush(Brush))
 				{
-					FTransform BrushTransform = Brush->ActorToWorld();
-
-					FPoly* poly = &Brush->Brush->Polys->Element[p];
-					for (int32 VertexIndex = 0; VertexIndex < poly->Vertices.Num(); ++VertexIndex)
+					for(int32 p = 0; p < Brush->Brush->Polys->Element.Num(); ++p)
 					{
-						const FVector& PolyVertex = poly->Vertices[VertexIndex];
-						const FVector WorldLocation = BrushTransform.TransformPosition(PolyVertex);
+						FTransform BrushTransform = Brush->ActorToWorld();
 
-						const float Scale = View->WorldToScreen(WorldLocation).W * (4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0]);
+						FPoly* poly = &Brush->Brush->Polys->Element[p];
+						for(int32 VertexIndex = 0; VertexIndex < poly->Vertices.Num(); ++VertexIndex)
+						{
+							const FVector& PolyVertex = poly->Vertices[VertexIndex];
+							const FVector WorldLocation = BrushTransform.TransformPosition(PolyVertex);
 
-						const FColor Color(Brush->GetWireColor());
-						PDI->SetHitProxy(new HBSPBrushVert(Brush, &poly->Vertices[VertexIndex]));
+							const float Scale = View->WorldToScreen(WorldLocation).W * (4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0]);
 
-						PDI->DrawSprite(WorldLocation, TextureSizeX * Scale, TextureSizeY * Scale, VertexTexture->Resource, Color, SDPG_World, 0.0f, 0.0f, 0.0f, 0.0f, SE_BLEND_Masked);
+							const FColor Color(Brush->GetWireColor());
+							PDI->SetHitProxy(new HBSPBrushVert(Brush, &poly->Vertices[VertexIndex]));
 
-						PDI->SetHitProxy(NULL);
+							PDI->DrawSprite(WorldLocation, TextureSizeX * Scale, TextureSizeY * Scale, VertexTexture->Resource, Color, SDPG_World, 0.0f, 0.0f, 0.0f, 0.0f, SE_BLEND_Masked);
+
+							PDI->SetHitProxy(NULL);
+						}
 					}
 				}
 			}

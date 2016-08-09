@@ -551,6 +551,14 @@ public:
 
 	/** Unregister this component's render data with the scene for SpeedTree wind */
 	void RemoveSpeedTreeWind();
+
+#if WITH_EDITOR
+	/** Called when the static mesh changes  */
+	DECLARE_EVENT_OneParam(UStaticMeshComponent, FOnStaticMeshChanged, UStaticMeshComponent*);
+	virtual FOnStaticMeshChanged& OnStaticMeshChanged() { return OnStaticMeshChangedEvent; }
+private:
+	FOnStaticMeshChanged OnStaticMeshChangedEvent;
+#endif
 };
 
 

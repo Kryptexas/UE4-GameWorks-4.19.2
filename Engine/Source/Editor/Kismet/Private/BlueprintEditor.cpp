@@ -704,6 +704,11 @@ void FBlueprintEditor::SetUISelectionState(FName SelectionOwner)
 	}
 }
 
+void FBlueprintEditor::AddToSelection(UEdGraphNode* InNode)
+{
+	FocusedGraphEdPtr.Pin()->SetNodeSelection(InNode, true);
+}
+
 void FBlueprintEditor::ClearSelectionStateFor(FName SelectionOwner)
 {
 	if ( SelectionOwner == SelectionState_Graph )

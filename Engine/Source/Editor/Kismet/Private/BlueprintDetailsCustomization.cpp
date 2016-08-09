@@ -5272,7 +5272,9 @@ void FBlueprintComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBu
 	{
 		const FName CategoryName(TEXT("Warning"));
 		const FText CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning");
-		const FText WarningText = bIsExperimental ? LOCTEXT("ExperimentalClassWarning", "Uses experimental class") : LOCTEXT("EarlyAccessClassWarning", "Uses early access class");
+		FString ClassUsed = DetailBuilder.GetTopLevelProperty().ToString();
+		const FText WarningText = bIsExperimental ? FText::Format( LOCTEXT("ExperimentalClassWarning", "Uses experimental class: {0}"), FText::FromString(*ClassUsed) )
+			: FText::Format( LOCTEXT("EarlyAccessClassWarning", "Uses early access class: {0}"), FText::FromString(*ClassUsed) );
 		const FText SearchString = WarningText;
 		const FText Tooltip = bIsExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
 		const FString ExcerptName = bIsExperimental ? TEXT("ComponentUsesExperimentalClass") : TEXT("ComponentUsesEarlyAccessClass");
@@ -5283,27 +5285,32 @@ void FBlueprintComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBu
 		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
 			.WholeRowContent()
 			[
-				SNew(SHorizontalBox)
-				.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
-				.Visibility(EVisibility::Visible)
-
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+				.BorderBackgroundColor(FColor(166,137,0))
 				[
-					SNew(SImage)
-					.Image(WarningIcon)
-				]
+					SNew(SHorizontalBox)
+					.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
+					.Visibility(EVisibility::Visible)
 
-				+SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-				[
-					SNew(STextBlock)
-					.Text(WarningText)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					[
+						SNew(SImage)
+						.Image(WarningIcon)
+					]
+
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					[
+						SNew(STextBlock)
+						.Text(WarningText)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+					]
 				]
 			];
 	}

@@ -147,6 +147,7 @@ public:
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
 	virtual void TrackingStopped() override;
 	virtual void AbortTracking() override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
 	virtual FVector GetWidgetLocation() const override;
 	virtual FMatrix GetWidgetCoordSystem() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
@@ -534,6 +535,11 @@ public:
 	void UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects );
 
 	/**
+	 * Calling SetViewportType from Dragtool_ViewportChange
+	 */
+	void SetViewportTypeFromTool(ELevelViewportType InViewportType);
+
+	/**
 	 * Static: Attempts to place the specified object in the level, returning one or more newly-created actors if successful.
 	 * IMPORTANT: The placed actor's location must be first set using GEditor->ClickLocation and GEditor->ClickPlane.
 	 *
@@ -583,6 +589,7 @@ protected:
 	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) override;
 	virtual ELevelViewportType GetViewportType() const override;
 	virtual void SetViewportType( ELevelViewportType InViewportType ) override;
+	virtual void RotateViewportType() override;
 	virtual void OverridePostProcessSettings( FSceneView& View ) override;
 	virtual void PerspectiveCameraMoved() override;
 	virtual bool ShouldLockPitch() const override;

@@ -513,7 +513,7 @@ PRAGMA_ENABLE_OPTIMIZATION
 
 void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings)
 {
-	auto CanPaste = [this]{
+	auto CanPasteFromHistory = [this]{
 		if (!HasFocusedDescendants() && !HasKeyboardFocus())
 		{
 			return false;
@@ -524,14 +524,14 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 	
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Paste,
-		FExecuteAction::CreateSP(this, &SSequencer::Paste),
-		FCanExecuteAction::CreateLambda(CanPaste)
+		FExecuteAction::CreateSP(this, &SSequencer::OnPaste),
+		FCanExecuteAction::CreateSP(this, &SSequencer::CanPaste)
 	);
 
 	SequencerCommandBindings->MapAction(
 		FSequencerCommands::Get().PasteFromHistory,
 		FExecuteAction::CreateSP(this, &SSequencer::PasteFromHistory),
-		FCanExecuteAction::CreateLambda(CanPaste)
+		FCanExecuteAction::CreateLambda(CanPasteFromHistory)
 	);
 
 	SequencerCommandBindings->MapAction(
@@ -1828,7 +1828,83 @@ FPasteContextMenuArgs SSequencer::GeneratePasteArgs(float PasteAtTime, TSharedPt
 	return FPasteContextMenuArgs::PasteInto(MoveTemp(PasteIntoNodes), PasteAtTime, Clipboard);
 }
 
-void SSequencer::Paste()
+void SSequencer::OnPaste()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
+	if (SelectedNodes.Num() == 0)
+	{
+		OpenPasteMenu();
+	}
+	else
+	{
+		PasteTracks();
+	}
+}
+
+bool SSequencer::CanPaste()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
+	if (SelectedNodes.Num() != 0)
+	{
+		FString TexttoImport;
+		FPlatformMisc::ClipboardPaste(TexttoImport);
+
+		TArray<UMovieSceneTrack*> ImportedTrack;
+		Sequencer->ImportTracksFromText(TexttoImport, ImportedTrack);
+		if (ImportedTrack.Num() == 0)
+		{
+			return false;
+		}
+
+		for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+		{
+			if (Node->GetType() == ESequencerNode::Object)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		if (!HasFocusedDescendants() && !HasKeyboardFocus())
+		{
+			return false;
+		}
+		return SequencerPtr.Pin()->GetClipboardStack().Num() != 0;
+	}
+}
+
+void SSequencer::PasteTracks()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
+	if (SelectedNodes.Num() == 0)
+	{
+		return;
+	}
+
+	TArray<TSharedPtr<FSequencerObjectBindingNode>> ObjectNodes;
+	for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+	{
+		if (Node->GetType() != ESequencerNode::Object)
+		{
+			continue;
+		}
+
+		TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
+		if (ObjectNode.IsValid())
+		{
+			ObjectNodes.Add(ObjectNode);
+		}
+	}
+	Sequencer->PasteCopiedTracks(ObjectNodes);
+}
+
+void SSequencer::OpenPasteMenu()
 {
 	TSharedPtr<FPasteContextMenu> ContextMenu;
 

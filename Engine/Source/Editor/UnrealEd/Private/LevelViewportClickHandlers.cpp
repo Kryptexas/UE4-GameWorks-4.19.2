@@ -33,6 +33,14 @@ namespace ClickHandlers
 		}
 	}	
 
+	static void PrivateSummonViewportMenu( FLevelEditorViewportClient* ViewportClient )
+	{
+		if (ViewportClient->ParentLevelEditor.IsValid())
+		{
+			ViewportClient->ParentLevelEditor.Pin()->SummonLevelViewportViewOptionMenu(LVT_Perspective);
+		}
+	}
+
 	/**
  	 * Creates an actor of the specified type, trying first to find an actor factory,
 	 * falling back to "ACTOR ADD" exec and SpawnActor if no factory is found.
@@ -89,6 +97,21 @@ namespace ClickHandlers
 			UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>( Light->GetLightComponent() );
 			PointLightComponent->LightColor = PixelColor;
 		}
+	}
+
+	bool ClickViewport(FLevelEditorViewportClient* ViewportClient, const FViewportClick& Click)
+	{
+		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.GetEvent() == EInputEvent::IE_DoubleClick)
+		{
+			ViewportClient->SetViewportTypeFromTool(LVT_Perspective);
+			return true;
+		}
+		else if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsControlDown())
+		{
+			PrivateSummonViewportMenu(ViewportClient);
+			return true;
+		}
+		return false;
 	}
 
 	bool ClickActor(FLevelEditorViewportClient* ViewportClient,AActor* Actor,const FViewportClick& Click,bool bAllowSelectionChange)

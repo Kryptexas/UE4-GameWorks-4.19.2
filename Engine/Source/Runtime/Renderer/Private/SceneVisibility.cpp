@@ -1366,6 +1366,7 @@ namespace EMarkMaskBits
 		StaticMeshOccluderMapMask = 0x8,
 		StaticMeshFadeOutDitheredLODMapMask = 0x10,
 		StaticMeshFadeInDitheredLODMapMask = 0x20,
+		StaticMeshEditorSelectedMask = 0x40,
 	};
 }
 
@@ -1455,6 +1456,7 @@ struct FRelevancePacket
 			const bool bDynamicRelevance = ViewRelevance.bDynamicRelevance;
 			const bool bShadowRelevance = ViewRelevance.bShadowRelevance;
 			const bool bEditorRelevance = ViewRelevance.bEditorPrimitiveRelevance;
+			const bool bEditorSelectionRelevance = ViewRelevance.bEditorStaticSelectionRelevance;
 			const bool bTranslucentRelevance = ViewRelevance.HasTranslucency();
 
 			if (bStaticRelevance && (bDrawRelevance || bShadowRelevance))
@@ -1665,6 +1667,13 @@ struct FRelevancePacket
 						}
 						bNeedsBatchVisibility = true;
 					}
+
+#if WITH_EDITOR
+					if(ViewRelevance.bDrawRelevance && ViewRelevance.bEditorStaticSelectionRelevance)
+					{
+						MarkMask |= EMarkMaskBits::StaticMeshEditorSelectedMask;
+					}
+#endif
 					if (MarkMask)
 					{
 						MarkMasks[StaticMesh.Id] = MarkMask;
@@ -1807,6 +1816,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	uint32* RESTRICT StaticMeshOccluderMap_Words = View.StaticMeshOccluderMap.GetData();
 	uint32* RESTRICT StaticMeshFadeOutDitheredLODMap_Words = View.StaticMeshFadeOutDitheredLODMap.GetData();
 	uint32* RESTRICT StaticMeshFadeInDitheredLODMap_Words = View.StaticMeshFadeInDitheredLODMap.GetData();
+#if WITH_EDITOR
+	uint32* RESTRICT StaticMeshEditorSelectionMap_Words = View.StaticMeshEditorSelectionMap.GetData();
+#endif
 	const uint64* RESTRICT MarkMasks64 = (const uint64* RESTRICT)MarkMasks;
 	const uint8* RESTRICT MarkMasks8 = MarkMasks;
 	for (int32 BaseIndex = 0; BaseIndex < NumMesh; BaseIndex += 32)
@@ -1817,6 +1829,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 		uint32 StaticMeshOccluderMap_Word = 0;
 		uint32 StaticMeshFadeOutDitheredLODMap_Word = 0;
 		uint32 StaticMeshFadeInDitheredLODMap_Word = 0;
+		uint32 StaticMeshEditorSelectionMap_Word = 0;
 		uint32 Mask = 1;
 		bool bAny = false;
 		for (int32 QWordIndex = 0; QWordIndex < 4; QWordIndex++)
@@ -1832,6 +1845,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 					StaticMeshOccluderMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshOccluderMapMask) ? Mask : 0;
 					StaticMeshFadeOutDitheredLODMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshFadeOutDitheredLODMapMask) ? Mask : 0;
 					StaticMeshFadeInDitheredLODMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshFadeInDitheredLODMapMask) ? Mask : 0;
+#if WITH_EDITOR
+					StaticMeshEditorSelectionMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshEditorSelectedMask) ? Mask : 0;
+#endif
 				}
 				bAny = true;
 			}
@@ -1850,6 +1866,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 			*StaticMeshOccluderMap_Words = StaticMeshOccluderMap_Word;
 			*StaticMeshFadeOutDitheredLODMap_Words = StaticMeshFadeOutDitheredLODMap_Word;
 			*StaticMeshFadeInDitheredLODMap_Words = StaticMeshFadeInDitheredLODMap_Word;
+#if WITH_EDITOR
+			*StaticMeshEditorSelectionMap_Words = StaticMeshEditorSelectionMap_Word;
+#endif
 		}
 		StaticMeshVisibilityMap_Words++;
 		StaticMeshVelocityMap_Words++;
@@ -1857,6 +1876,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 		StaticMeshOccluderMap_Words++;
 		StaticMeshFadeOutDitheredLODMap_Words++;
 		StaticMeshFadeInDitheredLODMap_Words++;
+#if WITH_EDITOR
+		StaticMeshEditorSelectionMap_Words++;
+#endif
 	}
 }
 
@@ -2346,6 +2368,10 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		View.StaticMeshBatchVisibility.AddZeroed(Scene->StaticMeshes.GetMaxIndex());
 
 		View.VisibleLightInfos.Empty(Scene->Lights.GetMaxIndex());
+
+#if WITH_EDITOR
+		View.StaticMeshEditorSelectionMap.Init(false, Scene->StaticMeshes.GetMaxIndex());
+#endif
 
 		// The dirty list allocation must take into account the max possible size because when GILCUpdatePrimTaskEnabled is true,
 		// the indirect lighting cache will be update on by threaded job, which can not do reallocs on the buffer (since it uses the SceneRenderingAllocator).

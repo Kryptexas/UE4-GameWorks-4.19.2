@@ -330,6 +330,9 @@ namespace SceneOutliner
 
 				// Header for the tree
 				.HeaderRow( HeaderRowWidget )
+
+				// Called when an item is expanded or collapsed with the shift-key pressed down
+				.OnSetExpansionRecursive(this, &SSceneOutliner::SetItemExpansionRecursive)
 			]
 		];
 
@@ -2572,6 +2575,21 @@ namespace SceneOutliner
 	bool SSceneOutliner::IsWorldChecked(TWeakObjectPtr<UWorld> InWorld)
 	{
 		return (InWorld == SharedData->UserChosenWorld);
+	}
+
+	void SSceneOutliner::SetItemExpansionRecursive(FTreeItemPtr Model, bool bInExpansionState)
+	{
+		if (Model.IsValid())
+		{
+			OutlinerTreeView->SetItemExpansion(Model, bInExpansionState);
+			for (auto& Child : Model->Children)
+			{
+				if (Child.IsValid())
+				{
+					SetItemExpansionRecursive(Child.Pin(), bInExpansionState);
+				}
+			}
+		}
 	}
 }	// namespace SceneOutliner
 

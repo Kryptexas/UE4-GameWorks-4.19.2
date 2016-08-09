@@ -6,6 +6,13 @@ public class MeshPaint : ModuleRules
 {
     public MeshPaint(TargetInfo Target)
     {
+		PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+                "AssetRegistry",
+                "AssetTools"
+            }
+        );
+
         PrivateDependencyModuleNames.AddRange(
             new string[] {
                 "AppFramework",
@@ -35,9 +42,10 @@ public class MeshPaint : ModuleRules
             });
 
 		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				"AssetTools"
-            });
+            new string[] {
+                "AssetRegistry",
+                "AssetTools"
+            }
+        );
     }
 }

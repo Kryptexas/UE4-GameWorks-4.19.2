@@ -151,7 +151,7 @@ void FAssetTypeActions_AnimBlueprint::PerformAssetDiff(UObject* Asset1, UObject*
 	bool bIsSingleAsset = (NewBlueprint->GetName() == OldBlueprint->GetName());
 
 	FText WindowTitle = LOCTEXT("NamelessAnimationBlueprintDiff", "Animation Blueprint Diff");
-	// if we're diff'ing one asset against itself 
+	// if we're diffing one asset against itself 
 	if (bIsSingleAsset)
 	{
 		// identify the assumed single asset in the window's title

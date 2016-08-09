@@ -426,6 +426,46 @@ public partial class Project : CommandUtils
 				}
 			}
 
+			// Stage all plugin localization targets
+			{
+				ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath.FullName);
+
+				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), new FileReference(CombinePaths(SC.ProjectRoot, Params.ShortProjectName + ".uproject")));
+				foreach (var Plugin in AvailablePlugins)
+				{
+					if (!UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Game) &&
+						UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Client))
+					{
+						// skip editor plugins
+						continue;
+					}
+
+					if (Plugin.Descriptor.LocalizationTargets == null || Plugin.Descriptor.LocalizationTargets.Length == 0)
+					{
+						// skip plugins with no localization targets
+						continue;
+					}
+
+					foreach (var LocalizationTarget in Plugin.Descriptor.LocalizationTargets)
+					{
+						if (LocalizationTarget.LoadingPolicy != LocalizationTargetDescriptorLoadingPolicy.Always && LocalizationTarget.LoadingPolicy != LocalizationTargetDescriptorLoadingPolicy.Game)
+						{
+							// skip targets not loaded by the game
+							continue;
+						}
+
+						var PluginLocTargetDirectory = CombinePaths(Plugin.Directory.FullName, "Content", "Localization", LocalizationTarget.Name);
+						if (DirectoryExists(PluginLocTargetDirectory))
+						{
+							foreach (string Culture in CulturesToStage)
+							{
+								StageLocalizationDataForCulture(SC, Culture, PluginLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
+							}
+						}
+					}
+				}
+			}
+
             // Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
             if (PlatformGameConfig != null)
             {

@@ -1422,7 +1422,7 @@ namespace ObjectTools
 	{
 		TArray<UPackage*> PackagesToDelete = PotentialPackagesToDelete;
 		TArray<FString> PackageFilesToDelete;
-		TArray<FSourceControlStatePtr> PackageSCCStates;
+		TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > PackageSCCStates;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 		GWarn->BeginSlowTask( NSLOCTEXT("ObjectTools", "OldPackageCleanupSlowTask", "Cleaning Up Old Assets"), true );
@@ -1472,11 +1472,13 @@ namespace ObjectTools
 
 				PackageFilesToDelete.Add(PackageFilename);
 				Cast<UPackage>(Package)->SetDirtyFlag(false);
-				if ( ISourceControlModule::Get().IsEnabled() )
-				{
-					PackageSCCStates.Add( SourceControlProvider.GetState(PackageFilename, EStateCacheUsage::ForceUpdate) );
-				}
 			}
+		}
+
+		// Get the current source control states of all the package files we're deleting at once.
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			SourceControlProvider.GetState(PackageFilesToDelete, PackageSCCStates, EStateCacheUsage::ForceUpdate);
 		}
 
 		GWarn->EndSlowTask();
@@ -1497,24 +1499,27 @@ namespace ObjectTools
 		// Now delete all packages that have become empty
 		bool bMakeWritable = false;
 		bool bSilent = false;
+		TArray<FString> SCCFilesToRevert;
+		TArray<FString> SCCFilesToDelete;
+
 		for ( int32 PackageFileIdx = 0; PackageFileIdx < PackageFilesToDelete.Num(); ++PackageFileIdx )
 		{
 			const FString& PackageFilename = PackageFilesToDelete[PackageFileIdx];
 			if ( ISourceControlModule::Get().IsEnabled() )
 			{
-				const FSourceControlStatePtr SourceControlState = PackageSCCStates[PackageFileIdx];
-				const bool bInDepot = (SourceControlState.IsValid() && SourceControlState->IsSourceControlled());
+				const FSourceControlStateRef SourceControlState = PackageSCCStates[PackageFileIdx];
+				const bool bInDepot = SourceControlState->IsSourceControlled();
 				if ( bInDepot )
 				{
 					// The file is managed by source control. Open it for delete.
-					TArray<FString> DeleteFilenames;
-					DeleteFilenames.Add(FPaths::ConvertRelativePathToFull(PackageFilename));
+					FString FullPackageFilename = FPaths::ConvertRelativePathToFull(PackageFilename);
 
 					// Revert the file if it is checked out
 					const bool bIsAdded = SourceControlState->IsAdded();
 					if ( SourceControlState->IsCheckedOut() || bIsAdded || SourceControlState->IsDeleted() )
 					{
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), DeleteFilenames);
+						// Batch the revert operation so that we only make one request to the source control module.
+						SCCFilesToRevert.Add(FullPackageFilename);
 					}
 
 					if ( bIsAdded )
@@ -1524,10 +1529,14 @@ namespace ObjectTools
 					}
 					else
 					{
-						// Open the file for delete
-						if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), DeleteFilenames) == ECommandResult::Failed )
+						// Batch this file for deletion so that we only send one deletion request to the source control module.
+						if (SourceControlState->CanDelete())
 						{
-							UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open '%s' for delete while saving an empty package."), *PackageFilename);
+							SCCFilesToDelete.Add(FullPackageFilename);
+						}
+						else
+						{
+							UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open '%s' for deletion."), *PackageFilename);
 						}
 					}
 				}
@@ -1563,6 +1572,23 @@ namespace ObjectTools
 				else
 				{
 					IFileManager::Get().Delete(*PackageFilename);
+				}
+			}
+		}
+
+		// Handle all source control revert and delete operations as a batched operation.
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			if (SCCFilesToRevert.Num() > 0)
+			{
+				SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SCCFilesToRevert);
+			}
+
+			if (SCCFilesToDelete.Num() > 0)
+			{
+				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), SCCFilesToDelete) == ECommandResult::Failed)
+				{
+					UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open the selected files for deletion."));
 				}
 			}
 		}

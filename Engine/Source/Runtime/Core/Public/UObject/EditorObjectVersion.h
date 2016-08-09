@@ -18,6 +18,8 @@ struct CORE_API FEditorObjectVersion
 		GatheredTextPackageCacheFixesV2,
 		// Updated FFormatArgumentData to allow variant data to be marshaled from a BP into C++
 		TextFormatArgumentDataIsVariant,
+		// Changes to SplineComponent
+		SplineComponentCurvesInStruct,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

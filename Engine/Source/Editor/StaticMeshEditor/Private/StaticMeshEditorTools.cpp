@@ -1626,7 +1626,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	.ValueContent()
 	[
 		SAssignNew(LODGroupComboBox, STextComboBox)
-		.ContentPadding(0)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
 		.OptionsSource(&LODGroupOptions)
 		.InitiallySelectedItem(LODGroupOptions[(LODGroupIndex == INDEX_NONE) ? 0 : LODGroupIndex])
 		.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnLODGroupChanged)
@@ -1642,7 +1642,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	.ValueContent()
 		[
 			SNew(STextComboBox)
-			.ContentPadding(0)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OptionsSource(&LODNames)
 			.InitiallySelectedItem(LODNames[0])
 			.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnImportLOD)

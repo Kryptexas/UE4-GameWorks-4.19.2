@@ -71,6 +71,7 @@ void SSCSEditorDragDropTree::Construct( const FArguments& InArgs )
 	BaseArgs.OnGenerateRow( InArgs._OnGenerateRow )
 			.OnItemScrolledIntoView( InArgs._OnItemScrolledIntoView )
 			.OnGetChildren( InArgs._OnGetChildren )
+			.OnSetExpansionRecursive( InArgs._OnSetExpansionRecursive )
 			.TreeItemsSource( InArgs._TreeItemsSource )
 			.ItemHeight( InArgs._ItemHeight )
 			.OnContextMenuOpening( InArgs._OnContextMenuOpening )
@@ -3305,6 +3306,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.SelectionMode(ESelectionMode::Multi)
 		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
 		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
+		.OnSetExpansionRecursive(this, &SSCSEditor::SetItemExpansionRecursive)
 		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
 		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
 		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
@@ -5896,6 +5898,18 @@ const TArray<FSCSEditorTreeNodePtrType>& SSCSEditor::GetRootComponentNodes()
 AActor* SSCSEditor::GetActorContext() const
 {
 	return ActorContext.Get(nullptr);
+}
+
+void SSCSEditor::SetItemExpansionRecursive(FSCSEditorTreeNodePtrType Model, bool bInExpansionState)
+{
+	SetNodeExpansionState(Model, bInExpansionState);
+	for (auto& Child : Model->GetChildren())
+	{
+		if (Child.IsValid())
+		{
+			SetItemExpansionRecursive(Child, bInExpansionState);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

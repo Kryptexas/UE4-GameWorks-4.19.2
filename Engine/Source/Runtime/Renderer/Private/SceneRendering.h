@@ -653,6 +653,11 @@ public:
 	/** A map from static mesh ID to a boolean dithered LOD fade in value. */
 	FSceneBitArray StaticMeshFadeInDitheredLODMap;
 
+#if WITH_EDITOR
+	/** A map from static mesh ID to editor selection visibility (whether or not it is selected AND should be drawn).  */
+	FSceneBitArray StaticMeshEditorSelectionMap;
+#endif
+
 	/** An array of batch element visibility masks, valid only for meshes
 	 set visible in either StaticMeshVisibilityMap or StaticMeshShadowDepthMap. */
 	TArray<uint64,SceneRenderingAllocator> StaticMeshBatchVisibility;

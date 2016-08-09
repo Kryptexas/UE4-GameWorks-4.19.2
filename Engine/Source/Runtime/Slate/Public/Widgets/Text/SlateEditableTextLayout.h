@@ -508,6 +508,9 @@ private:
 	/** Run renderer used to draw the active text selection */
 	TSharedPtr<SlateEditableTextTypes::FTextSelectionHighlighter> TextSelectionHighlighter;
 
+	/** Line highlights that have been added from this editable text layout (used for cleanup without removing) */
+	TArray<FTextLineHighlight> ActiveLineHighlights;
+
 	/** The scroll offset (in unscaled Slate units) for this text */
 	FVector2D ScrollOffset;
 

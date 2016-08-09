@@ -91,7 +91,7 @@ enum EPackageFlags
 	PKG_ClientOptional				= 0x00000002,	// Purely optional for clients.
 	PKG_ServerSideOnly				= 0x00000004,   // Only needed on the server side.
 	PKG_CompiledIn					= 0x00000010,   // This package is from "compiled in" classes.
-	PKG_ForDiffing					= 0x00000020,	// This package was loaded just for the purposes of diff'ing
+	PKG_ForDiffing					= 0x00000020,	// This package was loaded just for the purposes of diffing
 	PKG_EditorOnly					= 0x00000040, // This is editor-only package (for example: editor module script package)
 	PKG_Developer					= 0x00000080,	// Developer module
 //	PKG_Unused						= 0x00000100,

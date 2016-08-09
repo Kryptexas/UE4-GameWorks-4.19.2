@@ -20,7 +20,7 @@ TSharedRef<IDetailCustomization> FAnimNotifyDetails::MakeInstance()
 void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	const UClass* DetailObjectClass = nullptr;
-	const UClass* BaseClass = DetailBuilder.GetDetailsView().GetBaseClass();
+	const UClass* BaseClass = DetailBuilder.GetBaseClass();
 	TArray<TWeakObjectPtr<UObject>> SelectedObjects;
 	TArray<UClass*> NotifyClasses;
 	DetailBuilder.GetObjectsBeingCustomized(SelectedObjects);

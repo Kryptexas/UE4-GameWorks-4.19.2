@@ -94,7 +94,7 @@ private:
 	bool IgnoreSessionManagerEvents;
 
 	/** Whether to ignore events from the session tree view. */
-	bool IgnoreSessionTreeEvents;
+	bool updatingTreeExpansion;
 
 	/** Maps session and instance GUIDs to existing tree items. */
 	TMap<FGuid, TSharedPtr<FSessionBrowserTreeItem>> ItemMap;
@@ -121,4 +121,7 @@ private:
 
 	/** The session tree item that holds other user's standalone instances. */
 	TSharedPtr<FSessionBrowserGroupTreeItem> StandaloneGroupItem;
+
+	/** This app's instance session */
+	TWeakPtr<FSessionBrowserTreeItem> ThisAppInstance;
 };

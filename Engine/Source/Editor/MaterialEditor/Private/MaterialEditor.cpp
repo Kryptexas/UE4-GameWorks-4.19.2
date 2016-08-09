@@ -1003,7 +1003,7 @@ void FMaterialEditor::DrawMessages( FViewport* InViewport, FCanvas* Canvas )
 {
 	if( PreviewExpression != NULL )
 	{
-		Canvas->PushAbsoluteTransform( FMatrix::Identity );
+		Canvas->PushAbsoluteTransform( FTranslationMatrix(FVector(0.0f, 30.0f,0.0f) ) );
 
 		// The message to display in the viewport.
 		FString Name = FString::Printf( TEXT("Previewing: %s"), *PreviewExpression->GetName() );
@@ -2153,6 +2153,13 @@ void FMaterialEditor::OnConvertObjects()
 						NewGraphNode->ReplaceNode(GraphNode);
 
 						bool bNeedsRefresh = false;
+
+						// Copy over any common values
+						if (GraphNode->NodeComment.Len() > 0)
+						{
+							bNeedsRefresh = true; 
+							NewGraphNode->NodeComment = GraphNode->NodeComment;
+						}
 
 						// Copy over expression-specific values
 						if (Constant1Expression)

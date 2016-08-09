@@ -52,6 +52,8 @@ public:
 
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) = 0;
 
+	virtual void AddToSelection(UEdGraphNode* InNode) = 0;
+
 	virtual bool CanPasteNodes() const= 0;
 
 	virtual void PasteNodesHere(class UEdGraph* Graph, const FVector2D& Location) = 0;

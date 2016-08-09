@@ -4052,17 +4052,20 @@ struct FPropertyChangedEvent
 		, ChangeType(EPropertyChangeType::Unspecified)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, TopLevelObjects(nullptr)
 	{
 	}
 
-	FPropertyChangedEvent(UProperty* InProperty, EPropertyChangeType::Type InChangeType)
+	FPropertyChangedEvent(UProperty* InProperty, EPropertyChangeType::Type InChangeType, const TArray<const UObject*>* InTopLevelObjects = nullptr )
 		: Property(InProperty)
 		, MemberProperty(InProperty)
 		, ChangeType(InChangeType)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, TopLevelObjects(InTopLevelObjects)
 	{
 	}
+
 
 	DEPRECATED(4.7, "The bInChangesTopology parameter has been removed, use the two-argument constructor of FPropertyChangedEvent instead")
 	FPropertyChangedEvent(UProperty* InProperty, const bool /*bInChangesTopology*/, EPropertyChangeType::Type InChangeType)
@@ -4071,6 +4074,7 @@ struct FPropertyChangedEvent
 		, ChangeType(InChangeType)
 		, ObjectIteratorIndex(INDEX_NONE)
 		, ArrayIndicesPerObject(nullptr)
+		, TopLevelObjects(nullptr)
 	{
 	}
 
@@ -4107,6 +4111,19 @@ struct FPropertyChangedEvent
 	}
 
 	/**
+	 * @return The number of objects being edited during this change event
+	 */
+	int32 GetNumObjectsBeingEdited() const { return TopLevelObjects ? TopLevelObjects->Num() : 0; }
+
+	/**
+	 * Gets an object being edited by this change event.  Multiple objects could be edited at once
+	 *
+	 * @param Index	The index of the object being edited. Assumes index is valid.  Call GetNumObjectsBeingEdited first to check if there are valid objects
+	 * @return The object being edited or nullptr if no object was found
+	 */
+	const UObject* GetObjectBeingEdited(int32 Index) const { return TopLevelObjects ? (*TopLevelObjects)[Index] : nullptr; }
+
+	/**
 	 * The actual property that changed
 	 */
 	UProperty* Property;
@@ -4125,6 +4142,9 @@ struct FPropertyChangedEvent
 private:
 	//In the property window, multiple objects can be selected at once.  In the case of adding/inserting to an array, each object COULD have different indices for the new entries in the array
 	const TArray< TMap<FString,int32> >* ArrayIndicesPerObject;
+
+	/** List of top level objects being changed */
+	const TArray<const UObject*>* TopLevelObjects;
 };
 
 /**

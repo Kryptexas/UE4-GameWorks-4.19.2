@@ -41,11 +41,11 @@ namespace RHIConsoleVariables
 		ECVF_RenderThreadSafe
 		);
 
-	int32 bForceThirtyHz = 1;
-	static FAutoConsoleVariableRef CVarForceThirtyHz(
-		TEXT("RHI.ForceThirtyHz"),
-		bForceThirtyHz,
-		TEXT("If true, the display will never update more often than 30Hz."),
+	int32 TargetRefreshRate = 0;
+	static FAutoConsoleVariableRef CVarTargetRefreshRate(
+		TEXT("RHI.TargetRefreshRate"),
+		TargetRefreshRate,
+		TEXT("If non-zero, the display will never update more often than the target refresh rate (in Hz)."),
 		ECVF_RenderThreadSafe
 		);
 
@@ -288,7 +288,8 @@ void FD3D11Viewport::PresentWithVsyncDWM()
 	QueryPerformanceCounter(&Cycles);
 	FMemory::Memzero(TimingInfo);
 	TimingInfo.cbSize = sizeof(DWM_TIMING_INFO);
-	DwmGetCompositionTimingInfo(WindowHandle, &TimingInfo);
+	// Starting at windows 8.1 null must be passed into this method for it to work.  null also works on previous versions
+	DwmGetCompositionTimingInfo(nullptr, &TimingInfo);
 
 	uint64 QpcAtFlip = Cycles.QuadPart;
 	uint64 CyclesSinceLastFlip = Cycles.QuadPart - LastFlipTime;
@@ -298,13 +299,14 @@ void FD3D11Viewport::PresentWithVsyncDWM()
 
 	// Find the smallest multiple of the refresh rate that is >= 33ms, our target frame rate.
 	float RefreshPeriod = DisplayRefreshPeriod;
-	if (RHIConsoleVariables::bForceThirtyHz && RefreshPeriod > 1.0f)
+	if(RHIConsoleVariables::TargetRefreshRate > 0 && RefreshPeriod > 1.0f)
 	{
-		while (RefreshPeriod - (1000.0f / 30.0f) < -1.0f)
+		while(RefreshPeriod - (1000.0f / RHIConsoleVariables::TargetRefreshRate) < -1.0f)
 		{
 			RefreshPeriod *= 2.0f;
 		}
 	}
+
 
 	// If the last frame hasn't completed yet, we don't know how long the GPU took.
 	bool bValidGPUTime = (TimingInfo.cFrameComplete > LastFrameComplete);

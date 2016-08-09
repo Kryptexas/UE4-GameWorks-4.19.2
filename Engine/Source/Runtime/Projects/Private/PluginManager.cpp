@@ -598,6 +598,33 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 	return true;
 }
 
+void FPluginManager::GetLocalizationPathsForEnabledPlugins( TArray<FString>& OutLocResPaths )
+{
+	// Figure out which plugins are enabled
+	if (!ConfigureEnabledPlugins())
+	{
+		return;
+	}
+
+	// Gather the paths from all plugins that have localization targets that are loaded based on the current runtime environment
+	for (const TSharedRef<FPlugin>& Plugin : AllPlugins)
+	{
+		if (!Plugin->bEnabled || Plugin->GetDescriptor().LocalizationTargets.Num() == 0)
+		{
+			continue;
+		}
+		
+		const FString PluginLocDir = Plugin->GetContentDir() / TEXT("Localization");
+		for (const FLocalizationTargetDescriptor& LocTargetDesc : Plugin->GetDescriptor().LocalizationTargets)
+		{
+			if (LocTargetDesc.ShouldLoadLocalizationTarget())
+			{
+				OutLocResPaths.Add(PluginLocDir / LocTargetDesc.Name);
+			}
+		}
+	}
+}
+
 void FPluginManager::SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate )
 {
 	RegisterMountPointDelegate = Delegate;

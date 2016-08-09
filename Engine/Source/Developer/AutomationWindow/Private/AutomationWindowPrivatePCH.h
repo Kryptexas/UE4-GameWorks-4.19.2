@@ -30,3 +30,8 @@
 #include "SAutomationWindow.h"
 #include "SAutomationTestItemContextMenu.h"
 #include "SAutomationTestItem.h"
+
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#include "AssetRegistryModule.h"
+#endif

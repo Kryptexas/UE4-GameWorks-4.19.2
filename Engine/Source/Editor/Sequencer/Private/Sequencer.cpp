@@ -76,6 +76,8 @@
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "FbxExporter.h"
+#include "UnrealExporter.h"
+#include "Factories.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -263,6 +265,7 @@ FSequencer::FSequencer()
 {
 	Selection.GetOnOutlinerNodeSelectionChanged().AddRaw(this, &FSequencer::OnSelectedOutlinerNodesChanged);
 	Selection.GetOnNodesWithSelectedKeysOrSectionsChanged().AddRaw(this, &FSequencer::OnSelectedOutlinerNodesChanged);
+	Selection.GetOnOutlinerNodeSelectionChangedObjectGuids().AddRaw(this, &FSequencer::OnSelectedOutlinerNodesChanged);
 }
 
 
@@ -788,7 +791,7 @@ void FSequencer::GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCo
 		SelectedNodes.Add(&Node.Get());
 	}
 
-	// Anything within .5 pixel's worth of time is a duplicate as far as we're concerened
+	// Anything within .5 pixel's worth of time is a duplicate as far as we're concerned
 	FVirtualTrackArea TrackArea = SequencerWidget->GetVirtualTrackArea();;
 	const float DuplicateThreshold = (TrackArea.PixelToTime(0.f) - TrackArea.PixelToTime(1.f)) * .5f;
 
@@ -4016,6 +4019,7 @@ void FSequencer::OnSelectedOutlinerNodesChanged()
 		SynchronizeExternalSelectionWithSequencerSelection();
 		bUpdatingExternalSelection = false;
 	}
+	OnSelectionChangedObjectGuidsDelegate.Broadcast(Selection.GetBoundObjectsGuids());
 }
 
 
@@ -4511,6 +4515,181 @@ void FSequencer::DeleteSelectedNodes()
 	{
 		NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemRemoved );
 	}
+}
+
+
+void FSequencer::CopySelectedTracks(TArray<TSharedPtr<FSequencerTrackNode>>& TrackNodes)
+{
+	TArray<UMovieSceneTrack*> TracksToCopy;
+	for (TSharedPtr<FSequencerTrackNode> TrackNode : TrackNodes)
+	{
+		TracksToCopy.Add(TrackNode->GetTrack());
+	}
+
+	FString ExportedText;
+	FSequencer::ExportTracksToText(TracksToCopy, /*out*/ ExportedText);
+	FPlatformMisc::ClipboardCopy(*ExportedText);
+}
+
+
+void FSequencer::ExportTracksToText(TArray<UMovieSceneTrack*> TracksToExport, FString& ExportedText)
+{
+	// Clear the mark state for saving.
+	UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));
+
+	FStringOutputDevice Archive;
+	const FExportObjectInnerContext Context;
+
+	// Export each of the selected nodes
+	UObject* LastOuter = nullptr;
+
+	for (UMovieSceneTrack* TrackToExport : TracksToExport)
+	{
+		// The nodes should all be from the same scope
+		UObject* ThisOuter = TrackToExport->GetOuter();
+		check((LastOuter == ThisOuter) || (LastOuter == nullptr));
+		LastOuter = ThisOuter;
+
+		UExporter::ExportToOutputDevice(&Context, TrackToExport, nullptr, Archive, TEXT("copy"), 0, PPF_ExportsNotFullyQualified | PPF_Copy | PPF_Delimited, false, ThisOuter);
+	}
+
+	ExportedText = Archive;
+}
+
+void FSequencer::PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes)
+{
+	FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
+	// Grab the text to paste from the clipboard
+	FString TextToImport;
+	FPlatformMisc::ClipboardPaste(TextToImport);
+
+	TArray<UMovieSceneTrack*> ImportedTracks;
+	FSequencer::ImportTracksFromText(TextToImport, ImportedTracks);
+
+	if (ImportedTracks.Num() == 0)
+	{
+		Transaction.Cancel();
+		return;
+	}
+
+	for (TSharedPtr<FSequencerObjectBindingNode> ObjectNode : ObjectNodes)
+	{
+		FGuid ObjectGuid = ObjectNode->GetObjectBinding();
+		UObject* Context = nullptr;
+		UObject* PossessableObject = GetFocusedMovieSceneSequence()->FindPossessableObject(ObjectGuid, Context);
+
+		if (!PossessableObject)
+		{
+			FNotificationInfo Info(LOCTEXT("InvalidTargetObject", "Invalid Target Object"));
+			Info.FadeInDuration = 0.1f;
+			Info.FadeOutDuration = 0.5f;
+			Info.ExpireDuration = 2.5f;
+			auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
+
+			NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+			NotificationItem->ExpireAndFadeout();
+			continue;
+		}
+
+		for (UMovieSceneTrack* ImportedTrack : ImportedTracks)
+		{
+			UMovieScenePropertyTrack* CastedPropertyTrack = Cast<UMovieScenePropertyTrack>(ImportedTrack);
+
+			if (!CastedPropertyTrack)
+			{
+				FNotificationInfo Info(LOCTEXT("CopiedTrackIsNotPropertyTrack", "Can't Paste: Copied Track isn't a Property Track"));
+				Info.FadeInDuration = 0.1f;
+				Info.FadeOutDuration = 0.5f;
+				Info.ExpireDuration = 2.5f;
+				auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
+
+				NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+				NotificationItem->ExpireAndFadeout();
+
+				continue;
+			}
+
+			FString PropertyName = CastedPropertyTrack->GetPropertyName().ToString();
+			PropertyName.RemoveFromStart("b", ESearchCase::CaseSensitive);
+			FString FunctionName = "Set" + PropertyName;
+			if (PossessableObject->FindFunction(FName(*FunctionName)))
+			{
+				if (!GetFocusedMovieSceneSequence()->GetMovieScene()->AddGivenTrack(ImportedTrack, ObjectGuid))
+				{
+					FNotificationInfo Info(LOCTEXT("PropertyAlreadyBound", "Can't Paste: Property already bound to a track"));
+					Info.FadeInDuration = 0.1f;
+					Info.FadeOutDuration = 0.5f;
+					Info.ExpireDuration = 2.5f;
+					auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
+
+					NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+					NotificationItem->ExpireAndFadeout();
+
+					continue;
+				}
+				else
+				{
+					NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
+				}
+			}
+			else
+			{
+				FNotificationInfo Info(LOCTEXT("PropertyNotFound", "Can't Paste: Target Object doesn't have this property"));
+				Info.FadeInDuration = 0.1f;
+				Info.FadeOutDuration = 0.5f;
+				Info.ExpireDuration = 2.5f;
+				auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
+
+				NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+				NotificationItem->ExpireAndFadeout();
+
+				continue;
+			}
+		}
+	}
+	
+}
+
+
+class FTrackObjectTextFactory : public FCustomizableTextObjectFactory
+{
+public:
+	FTrackObjectTextFactory()
+		: FCustomizableTextObjectFactory(GWarn)
+	{
+	}
+
+	// FCustomizableTextObjectFactory implementation
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
+	{
+		return true;
+	}
+	
+
+	virtual void ProcessConstructedObject(UObject* NewObject) override
+	{
+		check(NewObject);
+
+		NewTracks.Add(Cast<UMovieSceneTrack>(NewObject));
+	}
+
+public:
+	TArray<UMovieSceneTrack*> NewTracks;
+};
+
+void FSequencer::ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTracks)
+{
+	UPackage* TempPackage = NewObject<UPackage>(nullptr, TEXT("/Engine/Sequencer/Editor/Transient"), RF_Transient);
+	TempPackage->AddToRoot();
+
+	// Turn the text buffer into objects
+	FTrackObjectTextFactory Factory;
+	Factory.ProcessBuffer(TempPackage, RF_Transactional, TextToImport);
+
+	ImportedTracks = Factory.NewTracks;
+
+	// Remove the temp package from the root now that it has served its purpose
+	TempPackage->RemoveFromRoot();
 }
 
 
@@ -5257,14 +5436,94 @@ void FSequencer::SelectTrackKeys(TWeakObjectPtr<UMovieSceneSection> Section, flo
 
 TArray<TSharedPtr<FMovieSceneClipboard>> GClipboardStack;
 
-
-void FSequencer::CopySelectedKeys()
+void FSequencer::CopySelection()
 {
 	if (Selection.GetSelectedKeys().Num() == 0)
 	{
-		return;
-	}
+		TArray<TSharedPtr<FSequencerTrackNode>> TracksToCopy;
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Selection.GetNodesWithSelectedKeysOrSections();
+		if (SelectedNodes.Num() == 0)
+		{
+			SelectedNodes = Selection.GetSelectedOutlinerNodes();
+		}
+		for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+		{
+			if (Node->GetType() != ESequencerNode::Track)
+			{
+				continue;
+			}
 
+			TSharedPtr<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(Node);
+			if (TrackNode.IsValid())
+			{
+				TracksToCopy.Add(TrackNode);
+			}
+		}
+
+		// Make a empty clipboard if the stack is empty
+		if (GClipboardStack.Num() == 0)
+		{
+			TSharedRef<FMovieSceneClipboard> NullClipboard = MakeShareable(new FMovieSceneClipboard());
+			GClipboardStack.Push(NullClipboard);
+		}
+		CopySelectedTracks(TracksToCopy);
+	}
+	else
+	{
+		CopySelectedKeys();
+	}
+}
+
+
+void FSequencer::CutSelection()
+{
+	FScopedTransaction CutSelectionTransaction(LOCTEXT("CutSelection_Transaction", "Cut Selection(s)"));
+	if (Selection.GetSelectedKeys().Num() == 0)
+	{
+		TArray<TSharedPtr<FSequencerTrackNode>> TracksToCopy;
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Selection.GetNodesWithSelectedKeysOrSections();
+		if (SelectedNodes.Num() == 0)
+		{
+			SelectedNodes = Selection.GetSelectedOutlinerNodes();
+		}
+		for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+		{
+			if (Node->GetType() != ESequencerNode::Track)
+			{
+				FNotificationInfo Info(LOCTEXT("InvalidCut", "Warning: One of the selected node is not a track node"));
+				Info.FadeInDuration = 0.1f;
+				Info.FadeOutDuration = 0.5f;
+				Info.ExpireDuration = 2.5f;
+				auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
+
+				NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+				NotificationItem->ExpireAndFadeout();
+				return;
+			}
+
+			TSharedPtr<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(Node);
+			if (TrackNode.IsValid())
+			{
+				TracksToCopy.Add(TrackNode);
+			}
+		}
+		// Make a empty clipboard if the stack is empty
+		if (GClipboardStack.Num() == 0)
+		{
+			TSharedRef<FMovieSceneClipboard> NullClipboard = MakeShareable(new FMovieSceneClipboard());
+			GClipboardStack.Push(NullClipboard);
+		}
+		CopySelectedTracks(TracksToCopy);
+		DeleteSelectedItems();
+	}
+	else
+	{
+		CutSelectedKeys();
+	}
+}
+
+void FSequencer::CopySelectedKeys()
+{
 	TOptional<float> CopyRelativeTo;
 	
 	// Copy relative to the current key hotspot, if applicable
@@ -5313,7 +5572,7 @@ void FSequencer::CopySelectedKeys()
 
 void FSequencer::CutSelectedKeys()
 {
-	FScopedTransaction CutKeysTransaction( LOCTEXT("CutSelectedKeys_Transaction", "Cut Selected Keys") );
+	FScopedTransaction CutSelectedKeysTransaction(LOCTEXT("CutSelectedKeys_Transaction", "Cut Selected keys"));
 	CopySelectedKeys();
 	DeleteSelectedKeys();
 }
@@ -6123,6 +6382,31 @@ void FSequencer::BindCommands()
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetLinkCurveEditorTimeRange(); } ) );
 
 	auto CanCutOrCopy = [this]{
+		// For copy tracks
+		TArray<TSharedPtr<FSequencerTrackNode>> TracksToCopy;
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Selection.GetNodesWithSelectedKeysOrSections();
+		// If this is empty then we are selecting display nodes
+		if (SelectedNodes.Num() == 0)
+		{
+			SelectedNodes = Selection.GetSelectedOutlinerNodes();
+			for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+			{
+				if (Node->GetType() == ESequencerNode::Track)
+				{
+					// if contains one node that can be copied we allow the action
+					// later on we will filter out the invalid nodes in CopySelection() or CutSelection()
+					return true;
+				}
+				else if (Node->GetParent().IsValid() && Node->GetParent()->GetType() == ESequencerNode::Track)
+				{
+					// Although copying only the child nodes (ex. translation) is not allowed, we still show the copy & cut button
+					// so that users are not misled and can achieve this in copy/cut the parent node (ex. transform)
+					return true;
+				}
+			}
+			return false;
+		}
+
 		UMovieSceneTrack* Track = nullptr;
 		for (FSequencerSelectedKey Key : Selection.GetSelectedKeys())
 		{
@@ -6140,13 +6424,13 @@ void FSequencer::BindCommands()
 
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Cut,
-		FExecuteAction::CreateSP(this, &FSequencer::CutSelectedKeys),
+		FExecuteAction::CreateSP(this, &FSequencer::CutSelection),
 		FCanExecuteAction::CreateLambda(CanCutOrCopy)
 	);
 
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Copy,
-		FExecuteAction::CreateSP(this, &FSequencer::CopySelectedKeys),
+		FExecuteAction::CreateSP(this, &FSequencer::CopySelection),
 		FCanExecuteAction::CreateLambda(CanCutOrCopy)
 	);
 

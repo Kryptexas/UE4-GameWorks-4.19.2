@@ -859,7 +859,7 @@ void FMainFrameModule::HandleCodeAccessorLaunched( const bool WasSuccessful )
 }
 
 
-void FMainFrameModule::HandleCodeAccessorLaunching( )
+void FMainFrameModule::HandleCodeAccessorLaunching()
 {
 	if (CodeAccessorNotificationPtr.IsValid())
 	{
@@ -878,7 +878,7 @@ void FMainFrameModule::HandleCodeAccessorLaunching( )
 
 void FMainFrameModule::HandleCodeAccessorOpenFileFailed(const FString& Filename)
 {
-	auto* Info = new FNotificationInfo(FText::Format(LOCTEXT("FileNotFound", "Could not find code file ({Filename})"), FText::FromString(Filename)));
+	auto* Info = new FNotificationInfo(FText::Format(LOCTEXT("FileNotFound", "Could not find code file, {0}"), FText::FromString(Filename)));
 	Info->ExpireDuration = 3.0f;
 	FSlateNotificationManager::Get().QueueNotification(Info);
 }

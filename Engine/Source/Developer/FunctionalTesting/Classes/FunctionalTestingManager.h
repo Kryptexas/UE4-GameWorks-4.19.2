@@ -34,10 +34,12 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestsBegin;
 	
+	/**
+	 * Triggers in sequence all functional tests found on the level.
+	 * @return true if any tests have been triggered
+	 */
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContext", CallableWithoutWorldContext ) )
-	/** Triggers in sequence all functional tests found on the level.
-	 *	@return true if any tests have been triggered */
-	 static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
+	static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
 		
 	bool IsRunning() const { return bIsRunning; }
 	bool IsFinished() const { return bFinished; }
@@ -76,7 +78,7 @@ protected:
 
 	FFunctionalTestDoneSignature TestFinishedObserver;
 	
-	FString GatheredFailedTestsReproString;
+	//FString GatheredFailedTestsReproString;
 	FString StartingReproString;
 	TArray<FString> TestReproStrings;
 

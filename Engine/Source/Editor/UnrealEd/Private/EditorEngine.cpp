@@ -713,7 +713,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("TreeMap"),
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
-			TEXT("NiagaraEditor")
+			TEXT("NiagaraEditor"),
+			TEXT("EditorAutomation"),
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
@@ -6728,7 +6729,8 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	//should really be wait until the map is properly loaded....in PIE or gameplay....
 	if (bNeedPieStart)
 	{
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		//TODO NICKD We need a better way to determine when to start the map.
+		//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
 	return;

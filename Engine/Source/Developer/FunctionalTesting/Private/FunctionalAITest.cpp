@@ -51,7 +51,7 @@ void AFunctionalAITest::BeginPlay()
 	Super::BeginPlay();
 }
 
-bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
+bool AFunctionalAITest::RunTest(const TArray<FString>& Params)
 {
 	KillOffSpawnedPawns();
 	ClearPendingDelayedSpawns();
@@ -75,7 +75,7 @@ bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 	
 	StartSpawning();
 
-	return Super::StartTest(Params);
+	return Super::RunTest(Params);
 }
 
 void AFunctionalAITest::StartSpawning()
@@ -202,7 +202,7 @@ void AFunctionalAITest::CleanUp()
 	ClearPendingDelayedSpawns();
 }
 
-FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const
+FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResult TestResult) const
 {
 	FString ResultStr;
 

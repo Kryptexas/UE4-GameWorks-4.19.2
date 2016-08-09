@@ -37,7 +37,8 @@ namespace EDragTool
 	{
 		BoxSelect,
 		FrustumSelect,
-		Measure
+		Measure,
+		ViewportChange
 	};
 }
 
@@ -812,6 +813,16 @@ public:
 	 */
 	virtual void SetViewportType( ELevelViewportType InViewportType );
 	
+	/**
+	 * Rotate through viewport view options
+	 */
+	virtual void RotateViewportType();
+
+	/**
+	* @return If the viewport option in the array is the active viewport type
+	*/
+	bool IsActiveViewportTypeInRotation() const;
+
 	/**
 	 * @return If InViewportType is the active viewport type 
 	 */

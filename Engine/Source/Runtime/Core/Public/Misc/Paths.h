@@ -233,7 +233,7 @@ public:
 	static FString GameUserDeveloperDir();
 
 	/**
-	 * @return The directory for temp files used for diff'ing
+	 * @return The directory for temp files used for diffing
 	 */
 	static FString DiffDir();
 

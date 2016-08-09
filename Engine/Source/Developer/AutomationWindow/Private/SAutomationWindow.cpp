@@ -8,6 +8,8 @@
 #include "SSearchBox.h"
 #include "SNotificationList.h"
 #include "SThrobber.h"
+#include "SHyperlink.h"
+#include "Internationalization/Regex.h"
 
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
@@ -35,6 +37,11 @@ public:
 		UI_COMMAND( ErrorFilter, "Errors", "Toggle Error Filter", EUserInterfaceActionType::ToggleButton, FInputChord() );
 		UI_COMMAND( WarningFilter, "Warnings", "Toggle Warning Filter", EUserInterfaceActionType::ToggleButton, FInputChord() );
 		UI_COMMAND( DeveloperDirectoryContent, "Dev Content", "Developer Directory Content Filter (when enabled, developer directories are also included)", EUserInterfaceActionType::ToggleButton, FInputChord() );
+		
+#if WITH_EDITOR
+		// Added button for running the currently open level test.
+		UI_COMMAND(RunLevelTest, "Run Level Test", "Run Level Test", EUserInterfaceActionType::Button, FInputGesture());
+#endif
 	}
 public:
 	TSharedPtr<FUICommandInfo> RefreshTests;
@@ -42,6 +49,10 @@ public:
 	TSharedPtr<FUICommandInfo> ErrorFilter;
 	TSharedPtr<FUICommandInfo> WarningFilter;
 	TSharedPtr<FUICommandInfo> DeveloperDirectoryContent;
+
+#if WITH_EDITOR
+	TSharedPtr<FUICommandInfo> RunLevelTest;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -76,6 +87,20 @@ SAutomationWindow::~SAutomationWindow()
 		AutomationController->OnTestsAvailable().RemoveAll(this);
 		AutomationController->OnTestsComplete().RemoveAll(this);
 	}
+
+#if WITH_EDITOR
+	if ( FModuleManager::Get().IsModuleLoaded(TEXT("AssetRegistry")) )
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().OnFileLoadProgressUpdated().RemoveAll(this);
+	}
+#endif
+
+	TSharedPtr<IAutomationReport> PreviousSelectionLock = PreviousSelection.Pin();
+	if ( PreviousSelectionLock.IsValid() )
+	{
+		PreviousSelectionLock->OnSetResults.Unbind();
+	}
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -83,6 +108,11 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 {
 	FAutomationWindowCommands::Register();
 	CreateCommands();
+
+#if WITH_EDITOR
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnFileLoadProgressUpdated().AddSP(this, &SAutomationWindow::OnAssetRegistryFileLoadProgress);
+#endif
 
 	TestPresetManager = MakeShareable(new FAutomationTestPresetManager());
 	TestPresetManager->LoadPresets();
@@ -93,10 +123,10 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	SessionManager = InSessionManager;
 	AutomationController = InAutomationController;
 
-	AutomationController->OnControllerReset().AddRaw(this, &SAutomationWindow::OnRefreshTestCallback);
-	AutomationController->OnTestsRefreshed().AddRaw(this, &SAutomationWindow::OnRefreshTestCallback);
-	AutomationController->OnTestsAvailable().AddRaw(this, &SAutomationWindow::OnTestAvailableCallback);
-	AutomationController->OnTestsComplete().AddRaw(this, &SAutomationWindow::OnTestsCompleteCallback);
+	AutomationController->OnControllerReset().AddSP(this, &SAutomationWindow::OnRefreshTestCallback);
+	AutomationController->OnTestsRefreshed().AddSP(this, &SAutomationWindow::OnRefreshTestCallback);
+	AutomationController->OnTestsAvailable().AddSP(this, &SAutomationWindow::OnTestAvailableCallback);
+	AutomationController->OnTestsComplete().AddSP(this, &SAutomationWindow::OnTestsCompleteCallback);
 
 	AutomationControllerState = AutomationController->GetTestState();
 	
@@ -399,50 +429,51 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 							]
 
 						+ SOverlay::Slot()
+						[
+							SNew(SBox)
+							.Visibility(this, &SAutomationWindow::GetTestLogVisibility)
 							[
-								SNew(SBox)
-									.Visibility(this, &SAutomationWindow::GetTestLogVisibility)
+								//results panel
+								SNew( SVerticalBox )
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									SNew( STextBlock )
+									.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
+								]
+
+								+ SVerticalBox::Slot()
+								.FillHeight(1.0f)
+								.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+								[
+									//list of results for the selected test
+									SNew(SBorder)
+									.BorderImage(FEditorStyle::GetBrush("MessageLog.ListBorder"))
 									[
-										//results panel
-										SNew( SVerticalBox )
-										+ SVerticalBox::Slot()
-											.AutoHeight()
-											[
-												SNew( STextBlock )
-													.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
-											]
-
-										+ SVerticalBox::Slot()
-											.FillHeight(1.0f)
-											.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-											[
-												//list of results for the selected test
-												SNew(SBorder)
-													[
-														SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
-															.ItemHeight(18)
-															.ListItemsSource(&LogMessages)
-															.SelectionMode(ESelectionMode::Multi)
-															.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
-															.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
-													]
-											]
-
-										+ SVerticalBox::Slot()
-											.AutoHeight()
-											.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-											[
-												SNew(SBorder)
-													.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-													.Padding(FMargin(8.0f, 6.0f))
-													[
-														// Add the command bar
-														SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
-															.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
-													]
-											]
+										SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
+										.ItemHeight(18)
+										.ListItemsSource(&LogMessages)
+										.SelectionMode(ESelectionMode::Multi)
+										.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
+										.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
 									]
+								]
+
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+								[
+									SNew(SBorder)
+									.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+									.Padding(FMargin(8.0f, 6.0f))
+									[
+										// Add the command bar
+										SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
+										.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
+									]
+								]
 							]
+						]
 					]
 			]
 
@@ -545,6 +576,14 @@ void SAutomationWindow::CreateCommands()
 		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsDeveloperDirectoryIncluded )
 		);
+
+	// Added button for running the currently open level test.
+#if WITH_EDITOR
+	ActionList.MapAction(Commands.RunLevelTest,
+		FExecuteAction::CreateRaw(this, &SAutomationWindow::OnRunLevelTest),
+		FCanExecuteAction::CreateRaw(this, &SAutomationWindow::CanExecuteRunLevelTest)
+		);
+#endif // WITH_EDITOR
 }
 
 TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<class SAutomationWindow> InAutomationWindow )
@@ -570,6 +609,17 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 					LOCTEXT( "TestOptionsToolTip", "Test Options" ),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.TestOptions"),
 					true);
+
+				// Added button for running the currently open level test.
+#if WITH_EDITOR
+				ToolbarBuilder.AddToolBarButton(
+					FAutomationWindowCommands::Get().RunLevelTest,
+					NAME_None,
+					TAttribute<FText>(),
+					LOCTEXT("RunLevelTest_ToolTip", "If the currently loaded editor level is a test map, click this to select the test and run it immediately."),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.RunTests"));
+#endif
+
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().RefreshTests );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().FindWorkers );
 			}
@@ -911,6 +961,15 @@ void SAutomationWindow::HandlePresetChanged( TSharedPtr<FAutomationTestPreset> I
 			ExpandEnabledTests(TestReports[Index]);
 		}
 	}
+	else
+	{
+		SelectedPreset.Reset();
+
+		TArray<FString> EnabledTests;
+		AutomationController->SetEnabledTests(EnabledTests);
+		TestTable->ClearExpandedItems();
+		TestTable->RequestTreeRefresh();
+	}
 }
 
 void SAutomationWindow::HandleRequesteFilterChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
@@ -997,7 +1056,7 @@ FText SAutomationWindow::GetPresetComboText() const
 	}
 	else
 	{
-		return LOCTEXT("AutomationPresetComboLabel", "<Select A Preset>");
+		return LOCTEXT("AutomationPresetComboLabel", "None");
 	}
 }
 
@@ -1016,8 +1075,16 @@ FText SAutomationWindow::GetRequestedFilterComboText() const
 
 TSharedRef<SWidget> SAutomationWindow::GeneratePresetComboItem(TSharedPtr<FAutomationTestPreset> InItem)
 {
-	return SNew(STextBlock) 
-		.Text( InItem->GetPresetName() );
+	if ( InItem.IsValid() )
+	{
+		return SNew(STextBlock)
+			.Text(InItem->GetPresetName());
+	}
+	else
+	{
+		return SNew(STextBlock)
+			.Text(LOCTEXT("AutomationPreset_None", "None"));
+	}
 }
 
 TSharedRef<SWidget> SAutomationWindow::GenerateRequestedFilterComboItem(TSharedPtr<FString> InItem)
@@ -1291,6 +1358,29 @@ bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
 	return AutomationController->IsScreenshotAllowed() && IsAutomationControllerIdle();
 }
 
+TArray<FString> SAutomationWindow::SaveExpandedTestNames(TSet<TSharedPtr<IAutomationReport>> ExpandedItems)
+{
+	TArray<FString> ExpandedItemsNames;
+	for ( TSharedPtr<IAutomationReport> ExpandedItem : ExpandedItems )
+	{
+		ExpandedItemsNames.Add(ExpandedItem->GetDisplayNameWithDecoration());
+	}
+	return ExpandedItemsNames;
+}
+
+// Expanded the given item if its name is in the array of strings given.
+void SAutomationWindow::ExpandItemsInList(TSharedPtr<SAutomationTestTreeView<TSharedPtr<IAutomationReport>>> InTestTable, TSharedPtr<IAutomationReport> InReport, TArray<FString> ItemsToExpand)
+{
+	InTestTable->SetItemExpansion(InReport, ItemsToExpand.Contains(InReport->GetDisplayNameWithDecoration()));
+
+	TArray<TSharedPtr<IAutomationReport>> ChildReports = InReport->GetFilteredChildren();
+
+	for ( int32 Index = 0; Index < ChildReports.Num(); Index++ )
+	{
+		ExpandItemsInList(InTestTable, ChildReports[Index], ItemsToExpand);
+	}
+}
+
 // Only valid in the editor
 #if WITH_EDITOR
 TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
@@ -1300,9 +1390,10 @@ TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
 	TArray<FString> AssetNames;
 	for (int32 ReportIndex = 0; ReportIndex < SelectedReport.Num(); ++ReportIndex)
 	{
-		if (SelectedReport[ReportIndex].IsValid() && (SelectedReport[ReportIndex]->GetAssetName().Len() > 0))
+		// TODO This is super sketch, we were interpreting the parameter always as the asset, this is no good.
+		if (SelectedReport[ReportIndex].IsValid() && (SelectedReport[ReportIndex]->GetTestParameter().Len() > 0))
 		{
-			AssetNames.Add(SelectedReport[ReportIndex]->GetAssetName());
+			AssetNames.Add(SelectedReport[ReportIndex]->GetTestParameter());
 		}
 	}		
 	if (AssetNames.Num())
@@ -1312,6 +1403,142 @@ TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
 
 	return nullptr;
 }
+
+void SAutomationWindow::RunSelectedTests()
+{
+	AutomationController->SetVisibleTestsEnabled(false);
+	SetAllSelectedTestsChecked(true);
+	RunTests();
+}
+
+namespace
+{
+	bool MakeMapPathUrl(FString& InPath)
+	{
+		if ( FPaths::MakePathRelativeTo(InPath, *FPaths::GameContentDir()) )
+		{
+			InPath.InsertAt(0, TEXT("/Game/"));
+			InPath.RemoveFromEnd(TEXT(".umap"));
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Kind of a hack - this requires that we know we group all the map tests coming from blueprints under "Functional Tests"
+	 */
+	TSharedPtr<IAutomationReport> GetFunctionalTestsReport(const TArray< TSharedPtr< IAutomationReport > >& TestReports)
+	{
+		for ( auto& Report : TestReports )
+		{
+			if ( Report->GetDisplayName() == TEXT("Functional Tests") )
+			{
+				return Report;
+			}
+
+			auto FoundInChild = GetFunctionalTestsReport(Report->GetChildReports());
+			if ( FoundInChild.IsValid() )
+			{
+				return FoundInChild;
+			}
+		}
+		return TSharedPtr<IAutomationReport>();
+	}
+
+	void FindReportByGameRelativeAssetPath(const TSharedPtr<IAutomationReport>& RootReport, const FString& AssetRelativePath, TArray<TSharedPtr<IAutomationReport>>& OutLevelReports)
+	{
+		FString TestAssetRelativePath(RootReport->GetTestParameter());
+
+		if ( TestAssetRelativePath.StartsWith(AssetRelativePath) )
+		{
+			OutLevelReports.Add(RootReport);
+		}
+		else
+		{
+			// Branch node
+			for ( auto ChildReport : RootReport->GetChildReports() )
+			{
+				FindReportByGameRelativeAssetPath(ChildReport, AssetRelativePath, OutLevelReports);
+			}
+		}
+	}
+} // namespace
+
+void SAutomationWindow::FindTestReportsForCurrentEditorLevel(TArray<TSharedPtr<IAutomationReport>>& OutLevelReports)
+{
+	// Find the current map path
+	if ( GWorld && GWorld->GetCurrentLevel() )
+	{
+		FString MapUrl(FEditorFileUtils::GetFilename(GWorld->GetCurrentLevel()));
+		if ( MakeMapPathUrl(MapUrl) )
+		{
+			auto FunctionTestsReport = GetFunctionalTestsReport(AutomationController->GetReports());
+			if ( FunctionTestsReport.IsValid() )
+			{
+				FindReportByGameRelativeAssetPath(FunctionTestsReport, MapUrl, OutLevelReports);
+			}
+		}
+	}
+}
+
+bool SAutomationWindow::CanExecuteRunLevelTest()
+{
+	return IsAutomationControllerIdle();
+}
+
+void SAutomationWindow::OnRunLevelTest()
+{
+	TArray<TSharedPtr<IAutomationReport>> LevelReports;
+	FindTestReportsForCurrentEditorLevel(LevelReports);
+
+	if ( LevelReports.Num() > 0 )
+	{
+		TestTable->ClearSelection();
+		for ( auto& LevelReport : LevelReports )
+		{
+			TestTable->SetItemSelection(LevelReport, true);
+		}
+
+		ScrollToTest(LevelReports[0]);
+		RunSelectedTests();
+	}
+}
+
+void SAutomationWindow::ScrollToTest(TSharedPtr<IAutomationReport> InReport)
+{
+	auto& RootReports = AutomationController->GetReports();
+	for ( auto ChildReport : RootReports )
+	{
+		auto ShouldExpand = ExpandToTest(ChildReport, InReport);
+		TestTable->SetItemExpansion(ChildReport, ShouldExpand);
+	}
+
+	TestTable->RequestScrollIntoView(InReport);
+}
+
+bool SAutomationWindow::ExpandToTest(TSharedPtr<IAutomationReport> InRoot, TSharedPtr<IAutomationReport> InReport)
+{
+	if ( InRoot == InReport )
+		return true;
+
+	bool WasExpanded = false;
+
+	for ( auto ChildReport : InRoot->GetChildReports() )
+	{
+		auto ShouldExpand = ExpandToTest(ChildReport, InReport);
+		TestTable->SetItemExpansion(ChildReport, ShouldExpand);
+
+		if ( ShouldExpand )
+		{
+			// Here we could just return true, but we want to collapse all the other reports 
+			// so we keep going and just remember that we found the test.
+			WasExpanded = true;
+		}
+	}
+
+	return WasExpanded;
+}
+
 #endif
 
 
@@ -1348,17 +1575,35 @@ void SAutomationWindow::OnTestExpansionRecursive(TSharedPtr<IAutomationReport> I
 
 void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Selection, ESelectInfo::Type /*SelectInfo*/)
 {
-	//empty the previous log
-	LogMessages.Empty();
+	TSharedPtr<IAutomationReport> PreviousSelectionLock = PreviousSelection.Pin();
+	if ( PreviousSelectionLock.IsValid() )
+	{
+		PreviousSelectionLock->OnSetResults.Unbind();
+	}
 
 	bHasChildTestSelected = false;
 
-	if (Selection.IsValid())
+	UpdateTestLog(Selection);
+
+	if ( Selection.IsValid() )
 	{
-		if( Selection->GetTotalNumChildren() == 0 )
+		Selection->OnSetResults.BindRaw(this, &SAutomationWindow::UpdateTestLog);
+		PreviousSelection = Selection;
+
+		if ( Selection->GetTotalNumChildren() == 0 )
 		{
 			bHasChildTestSelected = true;
 		}
+	}
+}
+
+void SAutomationWindow::UpdateTestLog(TSharedPtr<IAutomationReport> Selection)
+{
+	//empty the previous log
+	LogMessages.Empty();
+
+	if (Selection.IsValid())
+	{
 		//accumulate results for each device cluster that supports the test
 		int32 NumClusters = AutomationController->GetNumDeviceClusters();
 		for (int32 ClusterIndex = 0; ClusterIndex < NumClusters; ++ClusterIndex)
@@ -1386,7 +1631,7 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 
 				for (int32 ErrorIndex = 0; ErrorIndex < TestResults.Errors.Num(); ++ErrorIndex)
 				{
-					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Errors[ErrorIndex], TEXT("Automation.Error"))));
+					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Errors[ErrorIndex].ToString(), TEXT("Automation.Error"))));
 				}
 				for (int32 WarningIndex = 0; WarningIndex < TestResults.Warnings.Num(); ++WarningIndex)
 				{
@@ -1535,6 +1780,30 @@ TSharedRef<ITableRow> SAutomationWindow::OnGenerateWidgetForLog(TSharedPtr<FAuto
 {
 	check(Message.IsValid());
 
+	// ^((?:[\w]\:|\\)(?:(?:\\[a-z_\-\s0-9\.]+)+)\.(?:cpp|h))\((\d+)\)
+	// https://regex101.com/r/vV4cV7/1
+	FRegexPattern FileAndLinePattern(TEXT("^((?:[\\w]\\:|\\\\)(?:(?:\\\\[a-z_\\-\\s0-9\\.]+)+)\\.(?:cpp|h))\\((\\d+)\\)"));
+	FRegexMatcher FileAndLineRegexMatcher(FileAndLinePattern, Message->Text);
+
+	TSharedRef<SWidget> SourceLink = SNullWidget::NullWidget;
+
+	FString MessageString = Message->Text;
+
+	if ( FileAndLineRegexMatcher.FindNext() )
+	{
+		FString FileName = FileAndLineRegexMatcher.GetCaptureGroup(1);
+		int32 LineNumber = FCString::Atoi(*FileAndLineRegexMatcher.GetCaptureGroup(2));
+
+		// Remove the hyperlink from the message, since we're splitting it into its own string.
+		MessageString = MessageString.RightChop(FileAndLineRegexMatcher.GetMatchEnding());
+
+		SourceLink = SNew(SHyperlink)
+			.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
+			.TextStyle(FEditorStyle::Get(), Message->Style)
+			.OnNavigate_Lambda([=] { FSlateApplication::Get().GotoLineInSource(FileName, LineNumber); })
+			.Text(FText::FromString(FileAndLineRegexMatcher.GetCaptureGroup(0)));
+	}
+
 	return SNew(STableRow<TSharedPtr<FAutomationOutputMessage> >, OwnerTable)
 		[
 			SNew(SHorizontalBox)
@@ -1543,9 +1812,16 @@ TSharedRef<ITableRow> SAutomationWindow::OnGenerateWidgetForLog(TSharedPtr<FAuto
 			.AutoWidth()
 			.Padding(0)
 			[
+				SourceLink
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0)
+			[
 				SNew(STextBlock)
 				.TextStyle( FEditorStyle::Get(), Message->Style )
-				.Text(FText::FromString(Message->Text))
+				.Text(FText::FromString(MessageString))
 			]
 		];
 }
@@ -1592,7 +1868,18 @@ void SAutomationWindow::OnRefreshTestCallback()
 	for( int32 Index = 0; Index < TestReports.Num(); Index++ )
 	{
 		ExpandTreeView( TestReports[ Index ], ExpandChildren );
+
+		// Expand any items that where expanded before refresh tests was pressed.
+		if( !ExpandChildren )
+		{
+			ExpandItemsInList( TestTable, TestReports[Index], SavedExpandedItems );
+		}
 	}
+
+	// Check Tests that where checked before refresh tests was pressed.
+	AutomationController->SetEnabledTests(SavedEnabledTests);
+	SavedEnabledTests.Empty();
+	SavedExpandedItems.Empty();
 
 	//rebuild the UI
 	TestTable->RequestTreeRefresh();
@@ -1605,6 +1892,20 @@ void SAutomationWindow::OnRefreshTestCallback()
 void SAutomationWindow::OnTestAvailableCallback( EAutomationControllerModuleState::Type InAutomationControllerState )
 {
 	AutomationControllerState = InAutomationControllerState;
+
+#if WITH_EDITOR
+	// Only list tests on opening the Window if the asset registry isn't in the middle of loading tests.
+	if ( InAutomationControllerState == EAutomationControllerModuleState::Ready && AutomationController->GetReports().Num() == 0 )
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		if ( !AssetRegistryModule.Get().IsLoadingAssets() )
+		{
+			ListTests();
+		}
+	}
+#else
+	ListTests();
+#endif
 }
 
 void SAutomationWindow::OnTestsCompleteCallback()
@@ -1635,6 +1936,13 @@ void SAutomationWindow::ExpandTreeView( TSharedPtr< IAutomationReport > InReport
 /** Updates list of all the tests */
 void SAutomationWindow::ListTests( )
 {
+	// Save Expanded and Enabled Test Names
+	AutomationController->GetEnabledTestNames(SavedEnabledTests);
+
+	TSet<TSharedPtr<IAutomationReport>> ExpandedItems;
+	TestTable->GetExpandedItems(ExpandedItems);
+	SavedExpandedItems = SaveExpandedTestNames(ExpandedItems);
+
 	AutomationController->RequestTests();
 }
 
@@ -1705,6 +2013,22 @@ FReply SAutomationWindow::RunTests()
 	}
 	else
 	{
+		// Prompt to save current map when running a test. 
+#if WITH_EDITOR
+		if ( !GIsDemoMode )
+		{
+			// If there are any unsaved changes to the current level, see if the user wants to save those first.
+			const bool bPromptUserToSave = true;
+			const bool bSaveMapPackages = true;
+			const bool bSaveContentPackages = true;
+			if ( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+			{
+				// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
+				return FReply::Handled();
+			}
+		}
+#endif
+
 		AutomationController->RunTests( ActiveSession->IsStandalone() );
 	}
 
@@ -2112,5 +2436,16 @@ bool SAutomationWindow::HandleMainContentIsEnabled() const
 	return (SessionManager->GetSelectedInstances().Num() > 0);
 }
 
+#if WITH_EDITOR
+// React to asset registry finishing updating.
+// We only want to do this if there are no tests already listed, otherwise this fires every time you save a map for example.
+void SAutomationWindow::OnAssetRegistryFileLoadProgress(const IAssetRegistry::FFileLoadProgressUpdateData& ProgressUpdateData)
+{
+	if ( ProgressUpdateData.NumAssetsProcessedByAssetRegistry == ProgressUpdateData.NumTotalAssets && IsAutomationControllerIdle() && AutomationController->GetReports().Num() == 0 )
+	{
+		ListTests();
+	}
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

@@ -193,8 +193,8 @@ void FSceneViewport::UpdateCachedGeometry( const FGeometry& InGeometry )
 
 void FSceneViewport::UpdateModifierKeys( const FPointerEvent& InMouseEvent )
 {
-	KeyStateMap.Add( EKeys::LeftAlt, InMouseEvent.IsLeftAltDown() );
-	KeyStateMap.Add( EKeys::RightAlt, InMouseEvent.IsRightAltDown() );
+	KeyStateMap.Add(EKeys::LeftAlt, InMouseEvent.IsLeftAltDown());
+	KeyStateMap.Add(EKeys::RightAlt, InMouseEvent.IsRightAltDown());
 	KeyStateMap.Add(EKeys::LeftControl, InMouseEvent.IsLeftControlDown());
 	KeyStateMap.Add(EKeys::RightControl, InMouseEvent.IsRightControlDown());
 	KeyStateMap.Add(EKeys::LeftShift, InMouseEvent.IsLeftShiftDown());
@@ -259,7 +259,6 @@ void FSceneViewport::ProcessAccumulatedPointerInput()
 	MouseDelta = FIntPoint::ZeroValue;
 	NumMouseSamplesX = 0;
 	NumMouseSamplesY = 0;
-
 }
 
 FVector2D FSceneViewport::VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const

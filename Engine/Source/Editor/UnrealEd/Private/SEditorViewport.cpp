@@ -215,6 +215,12 @@ void SEditorViewport::BindCommands()
 		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoNegativeXY));
 
 	CommandListRef.MapAction(
+		Commands.Next,
+		FExecuteAction::CreateSP(ClientRef, &FEditorViewportClient::RotateViewportType),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::IsActiveViewportTypeInRotation));
+
+	CommandListRef.MapAction(
 		Commands.ScreenCapture,
 		FExecuteAction::CreateSP( this, &SEditorViewport::OnScreenCapture ),
 		FCanExecuteAction(),

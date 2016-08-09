@@ -5,6 +5,8 @@
 
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_SlateVerbose);
 
+DEFINE_STAT(STAT_SlateBufferPoolMemory);
+
 FSlateShaderResourceManager* FSlateDataPayload::ResourceManager;
 
 void FSlateDataPayload::SetTextPayloadProperties( FSlateWindowElementList& ElementList, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint, const int32 InStartIndex, const int32 InEndIndex )
@@ -326,6 +328,7 @@ void FSlateBatchData::Reset()
 }
 
 #define MAX_VERT_ARRAY_RECYCLE (200)
+#define MAX_INDEX_ARRAY_RECYCLE (500)
 
 void FSlateBatchData::AssignVertexArrayToBatch( FSlateElementBatch& Batch )
 {
@@ -337,14 +340,12 @@ void FSlateBatchData::AssignVertexArrayToBatch( FSlateElementBatch& Batch )
 	else
 	{
 		// There are no free vertex arrays so we must add one		
-		uint32 NewIndex = BatchVertexArrays.Add(TArray<FSlateVertex>());
-		BatchVertexArrays[NewIndex].Reserve(MAX_VERT_ARRAY_RECYCLE);
+		uint32 NewIndex = BatchVertexArrays.Add(FSlateVertexArray());
+		ResetVertexArray(BatchVertexArrays[NewIndex]);
 
 		Batch.VertexArrayIndex = NewIndex;
 	}
 }
-
-#define MAX_INDEX_ARRAY_RECYCLE (500)
 
 void FSlateBatchData::AssignIndexArrayToBatch( FSlateElementBatch& Batch )
 {
@@ -356,8 +357,8 @@ void FSlateBatchData::AssignIndexArrayToBatch( FSlateElementBatch& Batch )
 	else
 	{
 		// There are no free index arrays so we must add one
-		uint32 NewIndex = BatchIndexArrays.Add(TArray<SlateIndex>());
-		BatchIndexArrays[NewIndex].Reserve(MAX_INDEX_ARRAY_RECYCLE);
+		uint32 NewIndex = BatchIndexArrays.Add(FSlateIndexArray());
+		ResetIndexArray(BatchIndexArrays[NewIndex]);
 
 		Batch.IndexArrayIndex = NewIndex;
 	}
@@ -378,8 +379,8 @@ void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* Index
 
 		if ( Batch.VertexArrayIndex != INDEX_NONE && Batch.IndexArrayIndex != INDEX_NONE )
 		{
-			TArray<FSlateVertex>& Vertices = BatchVertexArrays[Batch.VertexArrayIndex];
-			TArray<SlateIndex>& Indices = BatchIndexArrays[Batch.IndexArrayIndex];
+			FSlateVertexArray& Vertices = BatchVertexArrays[Batch.VertexArrayIndex];
+			FSlateIndexArray& Indices = BatchIndexArrays[Batch.IndexArrayIndex];
 
 			if ( Vertices.Num() && Indices.Num() )
 			{
@@ -397,13 +398,12 @@ void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* Index
 
 				if ( Vertices.GetSlack() > MAX_VERT_ARRAY_RECYCLE )
 				{
-					Vertices.Empty();
-					Vertices.Reserve(MAX_VERT_ARRAY_RECYCLE);
+					ResetVertexArray(Vertices);
 				}
+
 				if ( Indices.GetSlack() > MAX_INDEX_ARRAY_RECYCLE )
 				{
-					Indices.Empty();
-					Indices.Reserve(MAX_INDEX_ARRAY_RECYCLE);
+					ResetIndexArray(Indices);
 				}
 			}
 
@@ -441,6 +441,17 @@ void FSlateBatchData::AddRenderBatch(uint32 InLayer, const FSlateElementBatch& I
 	const int32 Index = RenderBatches.Add(FSlateRenderBatch(InLayer, InElementBatch, RenderDataHandle, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset));
 	RenderBatches[Index].DynamicOffset = DynamicOffset;
 }
+
+void FSlateBatchData::ResetVertexArray(FSlateVertexArray& InOutVertexArray)
+{
+	InOutVertexArray.Empty(MAX_VERT_ARRAY_RECYCLE);
+}
+
+void FSlateBatchData::ResetIndexArray(FSlateIndexArray& InOutIndexArray)
+{
+	InOutIndexArray.Empty(MAX_INDEX_ARRAY_RECYCLE);
+}
+
 
 void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& VertexOffset, uint32& IndexOffset)
 {
@@ -507,8 +518,8 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 					
 				if ( ElementBatch.VertexArrayIndex != INDEX_NONE && ElementBatch.IndexArrayIndex != INDEX_NONE )
 				{
-					TArray<FSlateVertex>& BatchVertices = GetBatchVertexList(ElementBatch);
-					TArray<SlateIndex>& BatchIndices = GetBatchIndexList(ElementBatch);
+					FSlateVertexArray& BatchVertices = GetBatchVertexList(ElementBatch);
+					FSlateIndexArray& BatchIndices = GetBatchIndexList(ElementBatch);
 
 					// We should have at least some vertices and indices in the batch or none at all
 					check((BatchVertices.Num() > 0 && BatchIndices.Num() > 0) || (BatchVertices.Num() == 0 && BatchIndices.Num() == 0));
