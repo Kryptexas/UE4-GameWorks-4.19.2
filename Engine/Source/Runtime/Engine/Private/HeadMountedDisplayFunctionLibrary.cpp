@@ -219,6 +219,13 @@ TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTra
 
 void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)
 {
-	bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
-	bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+	if (GEngine->HMDDevice.IsValid())
+	{
+		bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
+		bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+	}
+	else
+	{
+		bUseFocus = bHasFocus = false;
+	}
 }
