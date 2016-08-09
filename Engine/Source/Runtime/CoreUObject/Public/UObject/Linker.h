@@ -280,6 +280,11 @@ struct FObjectExport : public FObjectResource
 	*/
 	bool			bDynamicClass;
 
+	/**
+	* Export was filtered out on load
+	*/
+	bool			bWasFiltered;
+
 	/** If this object is a top level package (which must have been forced into the export table via OBJECTMARK_ForceTagExp)
 	 * this is the GUID for the original package file
 	 * Serialized
@@ -1197,7 +1202,7 @@ public:
 	 */
 	bool FilterExport(const FObjectExport& Export)
 	{
-		if (Export.bExportLoadFailed)
+		if (Export.bExportLoadFailed || Export.bWasFiltered)
 		{
 			return true;
 		}
