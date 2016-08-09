@@ -582,9 +582,6 @@ protected:
 	/** The viewport which is currently being drawn. */
 	TRefCountPtr<FD3D11Viewport> DrawingViewport;
 
-	/** True if the device being used has been removed. */
-	bool bDeviceRemoved;
-
 	/** The feature level of the device. */
 	D3D_FEATURE_LEVEL FeatureLevel;
 
