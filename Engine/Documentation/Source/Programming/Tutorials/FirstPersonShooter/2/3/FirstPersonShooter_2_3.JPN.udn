@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3014773
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:2.3- キャラクターの Movement 関数を実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターの Movement 関数の実装方法を学びます。
