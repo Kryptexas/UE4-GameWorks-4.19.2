@@ -73,12 +73,6 @@ namespace AutomationTool
 		{
 			// Parse the command line parameters
 			string ScriptFileName = ParseParamValue("Script", null);
-			if(ScriptFileName == null)
-			{
-				LogError("Missing -Script= parameter for BuildGraph");
-				return ExitCode.Error_Unknown;
-			}
-
 			string TargetNames = ParseParamValue("Target", null);
 			string SchemaFileName = ParseParamValue("Schema", null);
 			string ExportFileName = ParseParamValue("Export", null);
@@ -163,7 +157,19 @@ namespace AutomationTool
 			ScriptSchema Schema = new ScriptSchema(NameToTask);
 			if(SchemaFileName != null)
 			{
+				Log("Writing schema to {0}...", SchemaFileName);
 				Schema.Export(new FileReference(SchemaFileName));
+				if(ScriptFileName == null)
+				{
+					return ExitCode.Success;
+				}
+			}
+
+			// Check there was a script specified
+			if(ScriptFileName == null)
+			{
+				LogError("Missing -Script= parameter for BuildGraph");
+				return ExitCode.Error_Unknown;
 			}
 
 			// Read the script from disk
