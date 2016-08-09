@@ -1257,7 +1257,7 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, IMovieScenePlay
 						if ( Track->IsA( UMovieScene3DTransformTrack::StaticClass() ) )
 						{
 							UMovieScene3DTransformTrack* TransformTrack = (UMovieScene3DTransformTrack*)Track;
-							ExportLevelSequence3DTransformTrack( *FbxActor, *TransformTrack );
+							ExportLevelSequence3DTransformTrack( *FbxActor, *TransformTrack, Actor );
 						}
 						else if ( Track->IsA( UMovieSceneFloatTrack::StaticClass() ) )
 						{
@@ -2005,10 +2005,104 @@ void FFbxExporter::ExportAnimatedFloat(FbxProperty* FbxProperty, FInterpCurveFlo
 	AnimCurve->KeyModifyEnd();
 }
 
-void FFbxExporter::ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovieScene3DTransformTrack& TransformTrack )
+FKeyHandle FindRichCurveKey(FRichCurve& InCurve, float InKeyTime)
+{
+	for ( auto It = InCurve.GetKeyHandleIterator(); It; ++It )
+	{
+		if (IsEquivalent(InCurve.GetKeyTime(It.Key()), InKeyTime))
+		{
+			return It.Key();
+		}
+	}
+	return FKeyHandle();
+}
+
+
+void RichCurveInterpolationToFbxInterpolation(ERichCurveInterpMode InInterpolation, ERichCurveTangentMode InTangentMode, FbxAnimCurveDef::EInterpolationType &OutInterpolation, FbxAnimCurveDef::ETangentMode &OutTangentMode)
+{
+	if (InInterpolation == ERichCurveInterpMode::RCIM_Cubic)
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationCubic;
+
+		if (InTangentMode == RCTM_Auto)
+		{
+			OutTangentMode = FbxAnimCurveDef::eTangentAuto;
+		}
+		else if (InTangentMode == RCTM_Break)
+		{
+			OutTangentMode = FbxAnimCurveDef::eTangentBreak;
+		}
+		else if (InTangentMode == RCTM_User)
+		{
+			OutTangentMode = FbxAnimCurveDef::eTangentUser;
+		}
+		else
+		{
+			OutTangentMode = FbxAnimCurveDef::eTangentAuto;
+		}
+	}
+	else if (InInterpolation == ERichCurveInterpMode::RCIM_Linear)
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationLinear;
+		OutTangentMode = FbxAnimCurveDef::eTangentUser;
+	}
+	else if (InInterpolation == ERichCurveInterpMode::RCIM_Constant)
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationConstant;
+		OutTangentMode = (FbxAnimCurveDef::ETangentMode)FbxAnimCurveDef::eConstantStandard;
+	}
+	else
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationCubic;
+		OutTangentMode = FbxAnimCurveDef::eTangentAuto;
+	}
+}
+
+
+void SetFbxKeyFromRichCurve(FbxAnimCurve* InFbxCurve, float InKeyTime, float InValue, FRichCurve& InRichCurve)
+{
+	FbxTime FbxTime;
+	FbxAnimCurveKey FbxKey;
+	FbxTime.SetSecondDouble((float)InKeyTime);
+			
+	int FbxKeyIndex = InFbxCurve->KeyAdd(FbxTime);
+
+	FKeyHandle KeyHandle = FindRichCurveKey(InRichCurve, InKeyTime);
+
+	if (InRichCurve.IsKeyHandleValid(KeyHandle))
+	{
+		FbxAnimCurveDef::EInterpolationType Interpolation = FbxAnimCurveDef::eInterpolationCubic;
+		FbxAnimCurveDef::ETangentMode Tangent = FbxAnimCurveDef::eTangentAuto;
+
+		RichCurveInterpolationToFbxInterpolation(InRichCurve.GetKeyInterpMode(KeyHandle), InRichCurve.GetKeyTangentMode(KeyHandle), Interpolation, Tangent);
+
+		if (Tangent != FbxAnimCurveDef::eTangentAuto)
+		{
+			FRichCurveKey RichCurveKey = InRichCurve.GetKey( KeyHandle );
+			FKeyHandle NextKeyHandle = InRichCurve.GetNextKey( KeyHandle );
+			float NextTangent = InRichCurve.IsKeyHandleValid( NextKeyHandle )
+				? InRichCurve.GetKey( NextKeyHandle ).ArriveTangent
+				: 0;
+
+			InFbxCurve->KeySet(FbxKeyIndex, FbxTime, InValue, Interpolation, Tangent, RichCurveKey.LeaveTangent, NextTangent);
+		}
+		else
+		{
+			InFbxCurve->KeySet(FbxKeyIndex, FbxTime, InValue, Interpolation, Tangent);
+		}
+	}
+	else
+	{
+		InFbxCurve->KeySet(FbxKeyIndex, FbxTime, InValue);
+	}
+}
+
+void FFbxExporter::ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovieScene3DTransformTrack& TransformTrack, AActor* Actor )
 {
 	FbxAnimLayer* BaseLayer = AnimStack->GetMember<FbxAnimLayer>( 0 );
-	FbxAnimCurve* Curve;
+
+	bool bIsCameraActor = Actor->IsA(ACameraActor::StaticClass());
+	bool bIsLightActor = Actor->IsA(ALight::StaticClass());
 
 	// TODO: Support more than one section?
 	UMovieScene3DTransformSection* TransformSection = TransformTrack.GetAllSections().Num() > 0
@@ -2017,32 +2111,127 @@ void FFbxExporter::ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovi
 
 	if ( TransformSection != nullptr )
 	{
-		// Translation;
+		TSet<float> KeyTimes;
+
+		if (bBakeKeys)
+		{
+			float InterpLength = TransformSection->GetRange().Size<float>();
+			int NumKeys = InterpLength * BakeTransformsFPS;
+			for ( int KeyIndex = 0; KeyIndex <= NumKeys; KeyIndex++ )
+			{
+				float Time = TransformSection->GetRange().GetLowerBoundValue() + ( KeyIndex * InterpLength / NumKeys );
+
+				KeyTimes.Add(Time);
+			}
+		}
+		else
+		{
+			TArray<FRichCurve*> TransformCurves;
+			TransformCurves.Add(&TransformSection->GetTranslationCurve(EAxis::X));
+			TransformCurves.Add(&TransformSection->GetTranslationCurve(EAxis::Y));
+			TransformCurves.Add(&TransformSection->GetTranslationCurve(EAxis::Z));
+
+			TransformCurves.Add(&TransformSection->GetRotationCurve(EAxis::X));
+			TransformCurves.Add(&TransformSection->GetRotationCurve(EAxis::Y));
+			TransformCurves.Add(&TransformSection->GetRotationCurve(EAxis::Z));
+
+			TransformCurves.Add(&TransformSection->GetScaleCurve(EAxis::X));
+			TransformCurves.Add(&TransformSection->GetScaleCurve(EAxis::Y));
+			TransformCurves.Add(&TransformSection->GetScaleCurve(EAxis::Z));
+
+			for (auto TransformCurve : TransformCurves)
+			{
+				for ( auto It = TransformCurve->GetKeyHandleIterator(); It; ++It )
+				{
+					KeyTimes.Add(TransformCurve->GetKeyTime(It.Key()));
+				}
+			}
+		}
+
 		FbxActor.LclTranslation.GetCurveNode( BaseLayer, true );
-		Curve = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetTranslationCurve( EAxis::X ), *Curve, TransformSection->GetRange() );
-		Curve = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetTranslationCurve( EAxis::Y ), *Curve, TransformSection->GetRange() );
-		Curve = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetTranslationCurve( EAxis::Z ), *Curve, TransformSection->GetRange() );
-
-		// Rotation
 		FbxActor.LclRotation.GetCurveNode( BaseLayer, true );
-		Curve = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetRotationCurve( EAxis::X ), *Curve, TransformSection->GetRange() );
-		Curve = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetRotationCurve( EAxis::Y ), *Curve, TransformSection->GetRange() );
-		Curve = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetRotationCurve( EAxis::Z ), *Curve, TransformSection->GetRange() );
-
-		// Scale
 		FbxActor.LclScaling.GetCurveNode( BaseLayer, true );
-		Curve = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetScaleCurve( EAxis::X ), *Curve, TransformSection->GetRange() );
-		Curve = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetScaleCurve( EAxis::Y ), *Curve, TransformSection->GetRange() );
-		Curve = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
-		ExportRichCurveToFbxCurve( TransformSection->GetScaleCurve( EAxis::Z ), *Curve, TransformSection->GetRange() );
+
+		TArray<FbxAnimCurve*> FbxCurves;
+
+		FbxAnimCurve* FbxCurveTransX = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
+		FbxAnimCurve* FbxCurveTransY = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
+		FbxAnimCurve* FbxCurveTransZ = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
+
+		FbxAnimCurve* FbxCurveRotX = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
+		FbxAnimCurve* FbxCurveRotY = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
+		FbxAnimCurve* FbxCurveRotZ = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
+
+		FbxAnimCurve* FbxCurveScaleX = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
+		FbxAnimCurve* FbxCurveScaleY = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
+		FbxAnimCurve* FbxCurveScaleZ = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
+
+		FbxCurves.Add(FbxCurveTransX);
+		FbxCurves.Add(FbxCurveTransY);
+		FbxCurves.Add(FbxCurveTransZ);
+
+		FbxCurves.Add(FbxCurveRotX);
+		FbxCurves.Add(FbxCurveRotY);
+		FbxCurves.Add(FbxCurveRotZ);
+
+		FbxCurves.Add(FbxCurveScaleX);
+		FbxCurves.Add(FbxCurveScaleY);
+		FbxCurves.Add(FbxCurveScaleZ);
+
+		for (auto FbxCurve : FbxCurves)
+		{
+			FbxCurve->KeyModifyBegin();
+		}
+
+		for (float KeyTime : KeyTimes)
+		{
+			FTransform RotationDirectionConvert;
+			if (bIsCameraActor)
+			{
+				FRotator Rotator(0.0f, 0.0f, 90.0f);
+				RotationDirectionConvert = FTransform(Rotator);
+			}
+			else if (bIsLightActor)
+			{
+				FRotator Rotator(0.0f, -90.0f, 0.0f);
+				RotationDirectionConvert = FTransform(Rotator);
+			}
+
+			FVector Trans;
+			TransformSection->EvalTranslation(KeyTime, Trans);
+			FRotator Rotator;
+			TransformSection->EvalRotation(KeyTime, Rotator);
+			FVector Scale;
+			TransformSection->EvalScale(KeyTime, Scale);
+
+			FTransform RelativeTransform;
+			RelativeTransform.SetTranslation(Trans);
+			RelativeTransform.SetRotation(Rotator.Quaternion());
+			RelativeTransform.SetScale3D(Scale);
+
+			RelativeTransform = RotationDirectionConvert * RelativeTransform;
+
+			FbxVector4 KeyTrans = Converter.ConvertToFbxPos(RelativeTransform.GetTranslation());
+			FbxVector4 KeyRot = Converter.ConvertToFbxRot(RelativeTransform.GetRotation().Euler());
+			FbxVector4 KeyScale = Converter.ConvertToFbxScale(RelativeTransform.GetScale3D());
+			
+			SetFbxKeyFromRichCurve(FbxCurveTransX, KeyTime, KeyTrans[0], TransformSection->GetTranslationCurve( EAxis::X ));
+			SetFbxKeyFromRichCurve(FbxCurveTransY, KeyTime, KeyTrans[1], TransformSection->GetTranslationCurve( EAxis::Y ));
+			SetFbxKeyFromRichCurve(FbxCurveTransZ, KeyTime, KeyTrans[2], TransformSection->GetTranslationCurve( EAxis::Z ));
+
+			SetFbxKeyFromRichCurve(FbxCurveRotX, KeyTime, KeyRot[0], TransformSection->GetRotationCurve( EAxis::X ));
+			SetFbxKeyFromRichCurve(FbxCurveRotY, KeyTime, KeyRot[1], TransformSection->GetRotationCurve( EAxis::Y ));
+			SetFbxKeyFromRichCurve(FbxCurveRotZ, KeyTime, KeyRot[2], TransformSection->GetRotationCurve( EAxis::Z ));
+
+			SetFbxKeyFromRichCurve(FbxCurveScaleX, KeyTime, KeyScale[0], TransformSection->GetScaleCurve( EAxis::X ));
+			SetFbxKeyFromRichCurve(FbxCurveScaleY, KeyTime, KeyScale[1], TransformSection->GetScaleCurve( EAxis::Y ));
+			SetFbxKeyFromRichCurve(FbxCurveScaleZ, KeyTime, KeyScale[2], TransformSection->GetScaleCurve( EAxis::Z ));
+		}
+
+		for (auto FbxCurve : FbxCurves)
+		{
+			FbxCurve->KeyModifyEnd();
+		}
 	}
 }
 
@@ -2058,17 +2247,7 @@ void FFbxExporter::ExportLevelSequenceFloatTrack( FbxNode& FbxActor, UMovieScene
 		return;
 	}
 
-
-	FbxNodeAttribute* FbxNodeAttr = nullptr;
-	// camera and light is appended on the fbx pivot node
-	if ( FbxActor.GetChild( 0 ) )
-	{
-		FbxNodeAttr = ( (FbxNode*)FbxActor.GetChild( 0 ) )->GetNodeAttribute();
-		if ( FbxNodeAttr == nullptr )
-		{
-			return;
-		}
-	}
+	FbxCamera* FbxCamera = FbxActor.GetCamera();
 
 	FbxProperty Property;
 	FString PropertyName = FloatTrack.GetTrackName().ToString();
@@ -2086,10 +2265,14 @@ void FFbxExporter::ExportLevelSequenceFloatTrack( FbxNode& FbxActor, UMovieScene
 	{
 		Property = FbxActor.FindProperty( "UE_Radius", false );
 	}
-	else if ( PropertyName == "FOVAngle" && FbxNodeAttr )
+	else if ( PropertyName == "FOVAngle" && FbxCamera )
 	{
-		Property = ( (FbxCamera*)FbxNodeAttr )->FocalLength;
+		Property = FbxCamera->FocalLength;
 		IsFoV = true;
+	}
+	else if ( PropertyName == "CurrentFocalLength" && FbxCamera )
+	{
+		Property = FbxCamera->FocalLength;
 	}
 	else if ( PropertyName == "AspectRatio" )
 	{
@@ -2119,82 +2302,40 @@ void FFbxExporter::ExportLevelSequenceFloatTrack( FbxNode& FbxActor, UMovieScene
 }
 
 
-FbxAnimCurveDef::EInterpolationType RichCurveInterpolationToFbxInterpolation(ERichCurveInterpMode Interpolation)
-{
-	switch ( Interpolation )
-	{
-		case ERichCurveInterpMode::RCIM_Cubic:
-			return FbxAnimCurveDef::eInterpolationCubic;
-		case ERichCurveInterpMode::RCIM_Linear:
-			return FbxAnimCurveDef::eInterpolationLinear;
-		default:
-			// ERichCurveInterpMode::RCIM_Constant and ERichCurveInterpMode::RCIM_None
-			return FbxAnimCurveDef::eInterpolationConstant;
-	}
-}
-
-FbxAnimCurveDef::ETangentMode RichCurveTangentModeToFbxTangentMode( ERichCurveTangentMode TangentMode )
-{
-	switch ( TangentMode )
-	{
-		case ERichCurveTangentMode::RCTM_Break:
-			return FbxAnimCurveDef::eTangentBreak;
-		case ERichCurveTangentMode::RCTM_User:
-			return FbxAnimCurveDef::eTangentUser;
-		default:
-			// ERichCurveTangentMode::RCTM_Auto and ERichCurveTangentMode::RCTM_None
-			return FbxAnimCurveDef::eTangentAuto;
-	}
-}
-
 void FFbxExporter::ExportRichCurveToFbxCurve( FRichCurve& RichCurve, FbxAnimCurve& FbxCurve, TRange<float> InterpolationRange,  ERichCurveValueMode ValueMode )
 {
-	FbxCurve.KeyModifyBegin();
-	if ( bBakeKeys )
+	TSet<float> KeyTimes;
+
+	if (bBakeKeys)
 	{
 		float InterpLength = InterpolationRange.Size<float>();
 		int NumKeys = InterpLength * BakeTransformsFPS;
 		for ( int KeyIndex = 0; KeyIndex <= NumKeys; KeyIndex++ )
 		{
 			float Time = InterpolationRange.GetLowerBoundValue() + ( KeyIndex * InterpLength / NumKeys );
-			float CurveValue = ValueMode == ERichCurveValueMode::Fov
-				? DefaultCamera->ComputeFocalLength( RichCurve.Eval( Time ) )
-				: RichCurve.Eval( Time );
 
-			FbxTime FbxTime;
-			FbxTime.SetSecondDouble( Time );
-			int FbxKeyIndex = FbxCurve.KeyAdd( FbxTime );
-			FbxCurve.KeySet( FbxKeyIndex, FbxTime, CurveValue, FbxAnimCurveDef::eInterpolationConstant, FbxAnimCurveDef::eTangentAuto );
+			KeyTimes.Add(Time);
 		}
 	}
 	else
 	{
 		for ( auto It = RichCurve.GetKeyHandleIterator(); It; ++It )
 		{
-			FRichCurveKey RichCurveKey = RichCurve.GetKey( It.Key() );
-			FKeyHandle NextKeyHandle = RichCurve.GetNextKey( It.Key() );
-			float NextTangent = RichCurve.IsKeyHandleValid( NextKeyHandle )
-				? RichCurve.GetKey( NextKeyHandle ).ArriveTangent
-				: 0;
-
-			FbxTime FbxTime;
-			FbxTime.SetSecondDouble( RichCurveKey.Time );
-			int FbxKeyIndex = FbxCurve.KeyAdd( FbxTime );
-
-			//TODO: Add support for tangent weights if they get added to FRichCurve.
-			float KeyValue = ValueMode == ERichCurveValueMode::Fov
-				? DefaultCamera->ComputeFocalLength( RichCurve.Eval( RichCurveKey.Time ) )
-				: RichCurve.Eval( RichCurveKey.Time );
-			FbxCurve.KeySet(
-				FbxKeyIndex,
-				FbxTime,
-				KeyValue,
-				RichCurveInterpolationToFbxInterpolation( RichCurveKey.InterpMode ),
-				RichCurveTangentModeToFbxTangentMode( RichCurveKey.TangentMode ),
-				RichCurveKey.LeaveTangent,
-				NextTangent );
+			KeyTimes.Add(RichCurve.GetKeyTime(It.Key()));
 		}
 	}
+
+	FbxCurve.KeyModifyBegin();
+			
+	for (float KeyTime : KeyTimes)
+	{
+		float CurveValue = ValueMode == ERichCurveValueMode::Fov
+			? DefaultCamera->ComputeFocalLength( RichCurve.Eval( KeyTime ) )
+			: RichCurve.Eval( KeyTime );
+		
+		SetFbxKeyFromRichCurve(&FbxCurve, KeyTime, CurveValue, RichCurve);
+	}
+
 	FbxCurve.KeyModifyEnd();
 }
 

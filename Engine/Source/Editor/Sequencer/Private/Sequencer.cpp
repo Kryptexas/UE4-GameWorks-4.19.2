@@ -5819,7 +5819,7 @@ void FSequencer::ExportSceneAndSequence()
 		UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 
 		Exporter->CreateDocument();
-		Exporter->SetTrasformBaking( true );
+		Exporter->SetTrasformBaking( false );
 		Exporter->SetKeepHierarchy( true );
 
 		const bool bSelectedOnly = false;
