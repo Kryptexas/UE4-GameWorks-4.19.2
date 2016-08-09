@@ -209,6 +209,18 @@ public:
 	{		
 	}
 
+	~FAbcImportData()
+	{
+		// Clear up unused materials (this could be due to reimporting, or overriding existing assets)
+		for (TPair<FString, UMaterial*>& Pair : MaterialMap)
+		{
+			if (Pair.Value->GetOutermost() == GetTransientPackage())
+			{
+				Pair.Value->MarkPendingKill();
+			}
+		}
+	}
+
 public:
 	/** Hierarchies (parenting structure) stored for retrieving matrix samples */
 	TMap<FGuid, TArray<TSharedPtr<FAbcTransformObject>>> Hierarchies;
