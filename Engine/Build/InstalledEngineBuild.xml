@@ -298,7 +298,7 @@
 			<!-- Filter out the files not needed to build DDC. Removing confidential folders can affect DDC keys, so we want to be sure that we're making DDC with a build that can use it. -->
 			<Tag Files="#ToCopy" Except="$(ConfidentialExceptions);.../Source/...;.../Intermediate/..." With="#FilteredCopyList"/>
 			<!-- Additional required files that would be removed by confidential filter -->
-			<Tag Files="Engine\Build\NotForLicensees\EpicInternal.txt" With="#FilteredCopyList"/>
+			<Tag Files="Engine\Build\NotForLicensees\EpicInternal.txt" With="#FilteredCopyList" If="Exists('Engine\Build\NotForLicensees\EpicInternal.txt')"/>
 			<Tag Files="Engine\Binaries\...\*DDCUtils*" With="#FilteredCopyList"/>
 			<!-- Copy everything to a temporary directory -->
 			<Copy FromDir="$(RootDir)" ToDir="$(DDCDir)" Files="#FilteredCopyList"/>
@@ -338,7 +338,7 @@
 			<!-- Filter out the files not needed to build DDC. Removing confidential folders can affect DDC keys, so we want to be sure that we're making DDC with a build that can use it. -->
 			<Tag Files="#ToCopy" Except="$(ConfidentialExceptions);.../Source/...;.../Intermediate/..." With="#FilteredCopyList"/>
 			<!-- Additional required files that would be removed by confidential filter -->
-			<Tag Files="Engine/Build/NotForLicensees/EpicInternal.txt" With="#FilteredCopyList"/>
+			<Tag Files="Engine/Build/NotForLicensees/EpicInternal.txt" With="#FilteredCopyList" If="Exists('Engine/Build/NotForLicensees/EpicInternal.txt')"/>
 			<Tag Files="Engine/Binaries/.../*DDCUtils*" With="#FilteredCopyList"/>
 			<!-- Copy everything to a temporary directory -->
 			<Copy FromDir="$(RootDir)" ToDir="$(DDCDir)" Files="#FilteredCopyList"/>
@@ -358,7 +358,7 @@
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game Android;#UE4Game Android Unstripped;#UE4Game Android Stripped;#UE4Game Android Includes" If="'$(WithAndroid)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game IOS;#UE4Game IOS Unstripped;#UE4Game IOS Stripped;#UE4Game IOS Includes" If="'$(WithIOS)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game TVOS;#UE4Game TVOS Unstripped;#UE4Game TVOS Stripped;#UE4Game TVOS Includes" If="'$(WithTVOS)' == true"/>
-		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game Linux;#UE4Game Linux Unstripped;#UE4Game Linux Stripped;#UE4Game Linux Includes" If="'$(WithLinux)' == true"/>
+		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game Linux;#UE4Game Linux Unstripped;#UE4Game Linux Stripped;#UE4Game Linux Includes;#Build Tools Linux" If="'$(WithLinux)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game HTML5;#UE4Game HTML5 Includes" If="'$(WithHTML5)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game PS4;#UE4Game PS4 Includes" If="'$(WithPS4)' == true"/>
 		<Property Name="InstalledRequirements" Value="$(InstalledRequirements);#UE4Game XboxOne;#UE4Game XboxOne Includes" If="'$(WithXboxOne)' == true"/>
@@ -418,7 +418,7 @@
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyTVOSExceptions)"/>
 			</Do>
 			<Do If="'$(WithLinux)' == true">
-				<Tag Files="#UE4Game Linux;#UE4Game Linux Includes" Except="#UE4Game Linux Unstripped" With="#Installed Win64"/>
+				<Tag Files="#UE4Game Linux;#UE4Game Linux Includes;#Build Tools Linux" Except="#UE4Game Linux Unstripped" With="#Installed Win64"/>
 				<Tag Files="#UE4Game Linux Stripped" With="#Saved Output"/>
 				<Property Name="CopyInstalledFilter" Value="$(CopyInstalledFilter);$(CopyLinuxFilter)"/>
 				<Property Name="CopyInstalledExceptions" Value="$(CopyInstalledExceptions);$(CopyLinuxExceptions)"/>
@@ -486,7 +486,7 @@
 			<Tag Files="$(LocalInstalledDir)/Engine/Build/InstalledBuild.txt" With="#Installed Build Win64 Files"/>
 		</Node>
 
-		<Node Name="Publish Installed Build Win64" Requires="#Installed Build Win64 Files">
+		<Node Name="Publish Installed Build Win64" Requires="#Installed Build Win64 Files" Produces="#Published Installed Build Win64">
 			<!-- Create a zip file containing the install -->
 			<Zip FromDir="$(LocalInstalledDir)" ZipFile="FullInstall.zip" Tag="#Zipped Installs"/>
 
@@ -498,7 +498,7 @@
 			<Zip FromDir="$(LocalInstalledDir)" Files="#EditorOnly" ZipFile="EditorInstall.zip" Tag="#Zipped Installs"/>
 			
 			<!-- Copy the files to their final location -->
-			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/WindowsZips"/>
+			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/WindowsZips" Tag="#Published Installed Build Win64"/>
 			<Delete Files="#Zipped Installs"/>
 		</Node>
 
@@ -625,7 +625,7 @@
 			<Tag Files="$(LocalInstalledDirMac)/Engine/Build/InstalledBuild.txt" With="#Installed Build Mac Files"/>
 		</Node>
 
-		<Node Name="Publish Installed Build Mac" Requires="#Installed Build Mac Files">
+		<Node Name="Publish Installed Build Mac" Requires="#Installed Build Mac Files" Produces="#Published Installed Build Mac">
 			<!-- Create a zip file containing the install -->
 			<Zip FromDir="$(LocalInstalledDirMac)" ZipFile="FullInstall_OnMac.zip" Tag="#Zipped Installs"/>
 
@@ -637,17 +637,16 @@
 			<Zip FromDir="$(LocalInstalledDirMac)" Files="#EditorOnly" ZipFile="EditorInstall_OnMac.zip" Tag="#Zipped Installs"/>
 
 			<!-- Copy the files to their final location -->
-			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/MacZips"/>
+			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/MacZips" Tag="#Published Installed Build Mac"/>
 			<Delete Files="#Zipped Installs"/>
 		</Node>
 
 		<!-- Build up a list of requirements as some can be optional -->
 		<Property Name="SymbolRequirements" Value="#UnrealHeaderTool Mac;#UE4Editor Mac;#Build Tools Mac;Build Tools CS"/>
-		<!-- Only include Target Platforms that will be built on Win64 machines -->
+		<!-- Only include Target Platforms that will be built on Mac machines -->
 		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Mac" If="'$(WithMac)' == true"/>
 		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game IOS" If="'$(WithIOS)' == true"/>
 		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game TVOS" If="'$(WithTVOS)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Linux" If="'$(WithLinux)' == true"/>
 
 		<Node Name="Publish Installed Symbols Mac" Requires="$(SymbolRequirements)">
 			<Tag Files="$(SymbolRequirements)" Filter="*.pdb;*.dsym;*.map;*.exe;*.dll" Except=".../Binaries/Win64/...;.../Binaries/Win32/..." With="#Symbols To Publish"/>

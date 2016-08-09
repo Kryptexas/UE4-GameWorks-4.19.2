@@ -44,7 +44,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/OneSky.dll"/>
 
 	<!-- API docs -->
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm"/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm" If="Exists('Engine/Documentation/CHM/API.chm')"/>
 	<!-- In-editor documentation -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Source/Shared/..."/>
 
