@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3041817
 Availability:Public
 Title: 블루프린트 개요
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -50,7 +50,7 @@ order:2
 
 [TOC (start:2)]
 
-[INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
+[INCLUDE:Engine/Blueprints/GettingStarted/#Intro]
 
 **_Blueprint_ 가 UnrealScript 를 대체한다는 뜻일까요?** 그렇기도 하고 아니기도 합니다. 게임플레이 프로그래밍과 예전에 
 UnrealScript 를 사용했던 모든 것은 여전히 C++ 를 사용해서 코드로 처리할 수 있습니다. 동시에 _Blueprint_ 가 
