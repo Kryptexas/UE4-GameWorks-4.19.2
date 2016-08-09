@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3063636
 Availability:Public
 Title: 컴포넌트 리플리케이션
 Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -99,7 +99,7 @@ CPU 측면에서는 액터상의 프로퍼티 리플리케이션 vs 컴포넌트
 
 ## 최적화
 리플리케이트시킬 서브오브젝트가 많은 경우, 최근 변경되어 리플리케이트시킬 필요가 있는 서브오브젝트가 있는지, 있다면 어느 것인지 알려주는 것으로 시간을 많이 절약할 수 있습니다. 즉 접근자 함수를 통해 서브오브젝트의 변경 내역을 기록한다는 뜻입니다.
-그 작업을 위한 인터페이스는 AActorChannel 에 있습니다:
+그 작업을 위한 인터페이스는 UActorChannel 에 있습니다:
 	bool KeyNeedsToReplicate(int32 ObjID, int32 RepKey);
 이 함수는 액터의 `::ReplicateSubobjects` 구현에서 호출해야 합니다. 액터 클래스는 리플리케이션 시스템이 각 클라이언트에 대해 기록을 유지할 임의의 Object ID 와 Replication Key 셋업을 해 주면 됩니다. ReplicateSubobjects 가 True 를 반환하면, 호출자는 해당 Object ID 로 기록중인 서브오브젝트 상의 ReplicateSubobjects 를 호출할 것으로 예상합니다.
 예를 들어 AQAInventory::ReplicateSubobjects 를 살펴봅시다. 한 가지 핵심적으로 기억할 것은, 오브젝트 ID 와 리플리케이션 키는 완전 임의적이라는 것입니다. 오브젝트 ID 는 '사물'을 가리키는 데 사용됩니다. 서브오브젝트 전체 리스트일 수도, 부분 리스트일 수도, 개별 오브젝트일 수도 있습니다. 리플리케이션 키 역시 임의적인 것으로, 오브젝트 ID 가 추적중인 것에 변화가 있을 때마다 증가되는 카운터가 될 수도 있습니다. 여기에 논의된 최적화는 완전히 옵션입니다.

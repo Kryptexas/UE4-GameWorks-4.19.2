@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3077981
 Availability:Public
 Title:하드웨어 & 소프트웨어 사양
 SEO-Title:하드웨어 & 소프트웨어 사양
@@ -81,7 +81,7 @@ version: 4.9
 | **운영 체제** | Ubuntu 15.04  |
 | **프로세서** | 쿼드코어 인텔 또는 AMD 2.5 GHz 이상|
 | **메모리** | 16 GB 램 |
-| **비디오 카드** | 	NVIDIA GeForce 470 GTX 이상에 최신 NVidia 바이너리 드라이버 |
+| **비디오 카드** | 	NVIDIA GeForce 470 GTX 이상에 최신 NVIDIA 바이너리 드라이버 |
 [/EXCERPT:LinuxMinHardware]
 -->
 
@@ -281,7 +281,7 @@ VTune 은 퍼포먼스 문제를 찾아내는 데 매우 유용한 툴이지만,
 * 24GB RAM
 * 300GB 10K SATA (OS)
 * 2X 300GB 10K SATA (데이터용 RAID0)
-* Nvidia Geforce 470 - 580
+* NVIDIA Geforce 470 - 580
 
 
 **아티스트/렙디:**
@@ -291,7 +291,7 @@ VTune 은 퍼포먼스 문제를 찾아내는 데 매우 유용한 툴이지만,
 * 16GB RAM
 * 500GB SATA (OS)
 * 2X 500GB SATA (데이터용 RAID0)
-* Nvidia Geforce 580
+* NVIDIA Geforce 580
 
 
 [REGION:note]
