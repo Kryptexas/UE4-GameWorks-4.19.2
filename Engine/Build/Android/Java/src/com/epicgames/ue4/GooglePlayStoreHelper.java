@@ -378,7 +378,7 @@ public class GooglePlayStoreHelper implements StoreHelper
 
 									if(bTryToConsume)
 									{
-										mService.consumePurchase(3, gameActivity.getPackageName(), purchaseToken);
+										consumeResponse = mService.consumePurchase(3, gameActivity.getPackageName(), purchaseToken);
 									}
 
 									if (consumeResponse == 0)
