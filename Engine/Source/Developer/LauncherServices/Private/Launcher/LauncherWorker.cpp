@@ -6,6 +6,11 @@
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"
 
+/* Static class member instantiations
+*****************************************************************************/
+
+FThreadSafeCounter FLauncherTask::TaskCounter;
+
 /* FLauncherWorker structors
  *****************************************************************************/
 
