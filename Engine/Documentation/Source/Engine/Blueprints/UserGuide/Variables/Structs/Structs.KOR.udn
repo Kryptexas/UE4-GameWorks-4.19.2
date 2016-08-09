@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3065279
 Availability:Docs
-Title:Struct Variables in Blueprints
+Title:블루프린트의 구조체 변수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
-Description: Blueprint struct variables allow you to store different data types that contain related information together.
+Description: 블루프린트 구조체 변수로 관련된 정보가 들어있는 다양한 데이터 유형을 저장할 수 있습니다.
 version: 4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
@@ -11,82 +11,82 @@ type:guide
 
 [TOC]
 
-A struct is a collection of different types of data that are related and held together for easy access. You've probably used simple structs in Blueprints already, as 
-Vectors, Rotators, and Transforms are all struct variables. For example, a Vector struct holds an X float, a Y float, and a Z float variable that are related to each other.
+구조체는 연관성이 있는 다양한 유형의 데이터 모음으로, 쉽게 접근할 수 있도록 모아둔 것입니다. 블루프린트에서 이미 단순한 구조체를 사용해 본 적이 있으실텐데, 
+벡터, 로테이터, 트랜스폼 모두 구조체입니다. 예를 들어 벡터 구조체는 서로 연관성이 있는 X 플로트, Y 플로트, Z 플로트 변수를 모아둔 것입니다.
 
-Structs can also nest their data. A Transform struct holds Location (a Vector struct), Rotation (a Rotator struct), and Scale (a Vector struct) data about an Actor.
+구조체는 데이터 중첩도 가능합니다. 트랜스폼 구조체에는 한 액터의 위치 (벡터 구조체), 회전 (로테이터 구조체), 스케일 (벡터 구조체) 데이터를 모아놓은 것입니다.
 
-## Creating Structs
+## 구조체 생성
 
-You add a struct variable to your Blueprint in the same way you add any other [Blueprint variable](Engine/Blueprints/UserGuide/Variables). Simple structs, like Vectors, Rotators, and Transforms, are listed in the top section of the variable type dropdown menu. 
+블루프린트에 구조체를 추가하는 방법은 다른 [블루프린트 변수](Engine/Blueprints/UserGuide/Variables) 를 추가하는 방법과 같습니다. 벡터, 로테이터, 트랜스폼과 같은 단순한 구조체는, 변수 유형 드롭다운 메뉴의 가장 윗부분에 나옵니다.
 
 
 ![](AddSimpleStruct.png)
 
-There is also a **Structure** section of the dropdown menu, where you can find all struct variables currently available to your Blueprint.
+드롭다운 메뉴에는 **구조체** 섹션도 있어, 현재 블루프린트에 사용할 수 있는 모든 구조체 변수를 찾을 수 있습니다.
 
 ![](AddComplexStruct.png)
 
 
-## Accessing Struct Information
+## 구조체 정보 접근
 
-Because structs work by bundling data together, you also need to work on accessing those smaller chunks of information. You can do that through a few different methods:
+구조체는 데이터를 함께 묶는 방식으로 작동하기에, 작은 정보 단위에 접근하는 방법도 알아야 합니다. 그 방법은 여러가지 있습니다:
 
-### Splitting Struct Pins
+### 구조체 핀 분할
 
-If you want to be able to access the individual variables in a struct on a single node, splitting struct pins can be a helpful tool. 
+하나의 노드에서 구조체의 개별 변수에 접근하기를 원한다면, 구조체 핀 분할이 도움이 될 수 있습니다.
 
-To split a struct pin, right-click on the pin and select **Split Struct Pin**.
+구조체 핀을 분할하려면, 핀에 우클릭한 뒤 **Split Struct Pin** (구조체 핀 분할) 을 선택합니다.
 
 ![](SplitStructPin.png)
 
-This exposes all of the variables contained within the struct as individual pins on the node, allowing you to enter values or manipulate them independently. 
+그러면 그 구조체 안에 포함된 모든 변수가 노드에 개별 핀으로 노출되어, 그 값을 개별적으로 입력하거나 조작할 수 있습니다.
 
 ![](LocationXYZ.png)
 
-To undo a **Split Struct Pin**, right-click on any of the new pins and select **Recombine Struct Pin**.
+**구조체 핀 분할** 을 되돌리려면, 새로 생긴 핀 중 아무거나 우클릭한 뒤 **Recombine Struct Pin** (구조체 핀 재결합)을 선택합니다.
 
 ![](RecombineStructPin.png)
 
-You can split and recombine both input and output struct pins. 
+입력 / 출력 구조체 핀 모두 분할 / 재결합 가능합니다.
 
-### Breaking Structs
+### 구조체 분해
 
-Often, taking apart a struct into its individual parts will be gameplay logic you repeat in a function or macro. Using a **Break Struct** node allows you to replicate that behavior throughout your Blueprint graph easily.
-To create a **Break Struct** node, drag off of a struct output pin and select **Break [Struct Name]** from the context menu.
+종종 구조체를 개별 부속으로 떼어내는 작업이 함수나 매크로에서 반복하는 게임플레이 로직이 되는 경우가 있습니다. **Break Struct** (구조체 분해) 노드를 사용하면 그러한 작업을 블루프린트 그래프 전반에 걸쳐 쉽게 재현할 수 있습니다.
+**Break Struct** 노드를 만들려면, 구조체 출력 핀을 끌어놓고 맥락 메뉴에서 **Break [구조체 이름]** ([구조체 이름] 분해)를 선택합니다.
 
 ![](BreakHitResult.png)
 
-The **Break Struct** node will have a different name and different output pins depending on the struct you use, but overall will break the struct into its individual parts.
+사용한 구조체에 따라 **Break Struct** 노드의 이름과 출력 핀이 달라지는데, 전체적으로 보면 구조체를 각 부속으로 분해한 것이 됩니다.
 
 ![](BrokenHitResult.png)
 
-For example, if you always want to work with the **Impact Point**, **Hit Component**, and **Hit Bone Name** of a **Hit Result**, you can have a **Break Hit Result** node inside a function that means that you can just input **Hit Result**
-as a function input, and always have those three data pieces separated out inside the function.
+예를 들어 항상 **Hit Result** 중 **Impact Point**, **Hit Component**, **Hit Bone Name** 으로 작업을 하려는 경우, 함수 안에 **Break Hit Result** (Hit Result 분해) 노드를 넣어 두면, 그 함수 입력에 **Hit Result** 만
+연결해 주면, 함수 안에서 그 데이터 세 부분이 항상 분해된다는 뜻입니다.
 
 ![](BreakHitExample.png)
 
-### Making Structs
+### 구조체 조합
 
-Much like you can break a struct into its individual pieces of data, you can make a struct out of the right data as well.
+구조체를 개별 데이터 부분으로 분해할 수 있는 것과 마찬가지로, 적당한 데이터를 가지고 구조체를 조합(make)할 수도 있습니다.
 
-To create a **Make Struct** node, drag off of a struct input pin and select **Make [Struct Name]** from the context menu.
+**Make Struct** (구조체 조합) 노드를 만들려면, 구조체 입력 핀을 끌어 놓고 맥락 메뉴에서 **Make [Struct Name]** ([구조체 이름] 조합)을 선택합니다.
 
 ![](MakeLinearMenu.png)
 
-The **Make Struct** node will have a different name and different input pins depending on the struct you use, but overall will enable you to build a struct out of all the data it contains.
+**Make Struct** 노드는 사용한 구조체에 따라 이름과 입력 핀이 달라지지만, 전반적으로 지정된 모든 데이터를 가지고 구조체를 만들 수 있습니다.
 
 ![](MakeLinearColor.png)
 
-### Setting Members in Structs
+### 구조체에 멤버 설정
 
-Sometimes, structs can contain a lot of data, and you only want to change a few elements out of that set. Setting members in a struct enables you to be very specific about what data you change, without having to wire up all the 
-data pins that are remaining constant.
+가끔 구조체에 들어있는 데이터가 많은데 그 중 몇 개의 요소만 변경하고플 때가 있습니다. 구조체에 멤버를 설정하면 변경되지 않는 데이터 핀 연결 작업을 일일히 해줄 필요 없이, 변경하고자 하는 
+데이터만 콕 찝어서 작업하는 것이 가능합니다.
 
 ![](SetMembersInStruct.png)
 
-To change which members are available through the **Set Members in Struct** node, select the node. In the **Details** panel, there are checkboxes for each possible member to expose as a pin on the node. Member variables that are not exposed
-will not be changed by the **Set Members in Struct** node.
+**Set Members in Struct** (구조체에 멤버 설정) 노드를 통해 작업할 수 있는 멤버를 변경하려면, 일단 노드를 선택합니다. **디테일** 패널에 보면, 노드에 핀으로 노출시킬 수 있는 멤버 각각에 대해 체크박스가 있습니다. 노출되지 않는 멤버 변수는 
+**Set Members in Struct** 노드로 인해 변경되지 않습니다.
 
 ![](SetMembersDetails.png)
 
