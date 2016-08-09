@@ -15,6 +15,15 @@ struct FMaterialQualityOverrides
 {
 public:
 	GENERATED_USTRUCT_BODY()
+	
+	FMaterialQualityOverrides() 
+		: bEnableOverride(false)
+		, bForceFullyRough(false)
+		, bForceNonMetal(false)
+		, bForceDisableLMDirectionality(false)
+		, bForceLQReflections(false)
+	{
+	}
 
 	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Enable Quality Override"), Category = "Quality")
 	bool bEnableOverride;
@@ -30,6 +39,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Force low quality reflections"), Category = "Quality")
 	bool bForceLQReflections;
+
+	bool HasAnyOverridesSet() const;
 };
 
 

@@ -2257,13 +2257,10 @@ void FMaterial::GetReferencedTexturesHash(EShaderPlatform Platform, FSHAHash& Ou
 		HashState.UpdateWithString(*TextureName, TextureName.Len());
 	}
 
-	// TODO:
-	// Appending the quality settings for this platform,
-	// this is being done here to avoid bumping EUnrealEngineObjectUE4Version for 4.10
-	// must be fixed for 4.11.
-	if (bHasQualityLevelUsage)
+	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
+	if(MaterialShaderQualitySettings->HasPlatformQualitySettings(Platform, QualityLevel))
 	{
-		UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(GetQualityLevelForShaderMapId(), HashState);
+		MaterialShaderQualitySettings->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(QualityLevel, HashState);
 	}
 
 	HashState.Final();

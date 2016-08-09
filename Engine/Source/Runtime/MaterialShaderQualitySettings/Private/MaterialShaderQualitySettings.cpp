@@ -31,15 +31,6 @@ UMaterialShaderQualitySettings* UMaterialShaderQualitySettings::Get()
 			RenderQualitySingleton = NewObject<UMaterialShaderQualitySettings>(GetTransientPackage(), UMaterialShaderQualitySettings::StaticClass(), SettingsContainerName);
 			RenderQualitySingleton->AddToRoot();
 		}
-		RenderQualitySingleton->CurrentPlatformSettings = RenderQualitySingleton->GetShaderPlatformQualitySettings(FPlatformProperties::PlatformName());
-
-		// LegacyShaderPlatformToShaderFormat(EShaderPlatform)
-		// GShaderPlatformForFeatureLevel
-		// GMaxRHIFeatureLevel
-
-		// populate shader platforms
-		RenderQualitySingleton->CurrentPlatformSettings = RenderQualitySingleton->GetShaderPlatformQualitySettings(FPlatformProperties::PlatformName());
-
 	}
 	return RenderQualitySingleton;
 }
@@ -95,6 +86,13 @@ static const FName GetPlatformNameFromShaderPlatform(EShaderPlatform Platform)
 	return LegacyShaderPlatformToShaderFormat(Platform);
 }
 
+bool UMaterialShaderQualitySettings::HasPlatformQualitySettings(EShaderPlatform ShaderPlatform, EMaterialQualityLevel::Type QualityLevel)
+{
+	const UShaderPlatformQualitySettings* PlatformShaderPlatformQualitySettings = GetShaderPlatformQualitySettings(ShaderPlatform);
+	const FMaterialQualityOverrides& PlatFormQualityOverrides = PlatformShaderPlatformQualitySettings->GetQualityOverrides(QualityLevel);
+	return PlatFormQualityOverrides.bEnableOverride && PlatFormQualityOverrides.HasAnyOverridesSet();
+}
+
 const UShaderPlatformQualitySettings* UMaterialShaderQualitySettings::GetShaderPlatformQualitySettings(EShaderPlatform ShaderPlatform)
 {
  #if WITH_EDITORONLY_DATA
@@ -119,7 +117,6 @@ UShaderPlatformQualitySettings* UMaterialShaderQualitySettings::GetShaderPlatfor
 {
 	return GetOrCreatePlatformSettings(PlatformName);
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -147,3 +144,9 @@ void UShaderPlatformQualitySettings::AppendToHashState(EMaterialQualityLevel::Ty
 	HashState.Update((const uint8*)&QualityLevelOverrides, sizeof(QualityLevelOverrides));
 }
 
+//////////////////////////////////////////////////////////////////////////
+
+bool FMaterialQualityOverrides::HasAnyOverridesSet() const
+{
+	return bForceDisableLMDirectionality || bForceFullyRough || bForceNonMetal || bForceDisableLMDirectionality || bForceLQReflections;
+}
