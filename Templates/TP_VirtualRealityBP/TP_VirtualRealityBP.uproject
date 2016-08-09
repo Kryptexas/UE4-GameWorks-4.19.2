@@ -5,7 +5,6 @@
 	"Description": "",
 	"TargetPlatforms": [
 		"PS4",
-		"WindowsNoEditor",
-		"Android"
+		"WindowsNoEditor"
 	]
 }
