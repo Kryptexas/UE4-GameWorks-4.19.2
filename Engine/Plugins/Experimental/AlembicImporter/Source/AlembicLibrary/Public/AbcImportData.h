@@ -214,7 +214,7 @@ public:
 		// Clear up unused materials (this could be due to reimporting, or overriding existing assets)
 		for (TPair<FString, UMaterial*>& Pair : MaterialMap)
 		{
-			if (Pair.Value->GetOutermost() == GetTransientPackage())
+			if (Pair.Value != nullptr && Pair.Value->IsValidLowLevel() && Pair.Value->GetOutermost() == GetTransientPackage())
 			{
 				Pair.Value->MarkPendingKill();
 			}
