@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3077981
 Availability:NoPublish
 Title:환영! 디스트럭터블 메시 에디터입니다.
 Crumbs:
@@ -156,16 +156,16 @@ Description:
 
 [EXCERPT:D8]
 [VAR:StageTitle]
-Nvidia PhysX Lab
+NVIDIA PhysX Lab
 [/VAR]
 
-둘 이상의 프랙처 레벨을 원하는 경우, Nvidia 의 APEX PhysX Lab 툴을 사용해야 합니다.
+둘 이상의 프랙처 레벨을 원하는 경우, NVIDIA 의 APEX PhysX Lab 툴을 사용해야 합니다.
 
 ![](APEXtopicIcon.png)
 
 [APEX 개발자 사이트로 이동시켜 주는 링크입니다.](https://developer.nvidia.com/apex-download-page)
 
-APEX Physics Lab 을 다운로드하기 위해서는 Nvidia 에 등록해야 합니다.
+APEX Physics Lab 을 다운로드하기 위해서는 NVIDIA 에 등록해야 합니다.
 
 
 [/EXCERPT:D8]

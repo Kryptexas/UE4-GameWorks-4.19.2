@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3077981
 Title: October 2013 Release Notes
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -176,7 +176,7 @@ Availability:Licensee
 	* The only tested VR experience currently in main is the **ElementalVR** sample project.  This is the demo that we showed at GDC, and is tuned to hit 60 FPS. Recommended as a user's first VR experience !
 	* Notes for the best experience:
 		* If your card is running the demo at a solid 60FPS, it is suggested to **turn on vsync**.  This is especially true if you use the HD kit, as the screen orientation makes tearing very noticeable!
-		* **Turn off frame buffering**.  This option is available in the nVidia control panel.  Set this to 1 to decrease the latency of the device.
+		* **Turn off frame buffering**.  This option is available in the NVIDIA control panel.  Set this to 1 to decrease the latency of the device.
 
 			![](OculusSupportUE4_02.png)
 
