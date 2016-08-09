@@ -312,29 +312,11 @@ bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, U
 const TCHAR* UObjectPropertyBase::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
 	const TCHAR* Buffer = InBuffer;
-	if (HasAnyPropertyFlags(CPF_PersistentInstance))
-	{
-		UObject* Result = nullptr;
-		// Find the referenced object and copy it, we pass nullptr into OwnerObject so that we can find
-		// private objects in other packages. It's fine to do so because we're going to duplicate the object,
-		// not keep a reference to it:
-		bool bOk = ParseObjectPropertyValue(this, nullptr, PropertyClass, PortFlags, Buffer, Result);
-		if (bOk)
-		{
-			// Assumption here is that objects referenced by Instanced properties must always be outered to the owner of that property:
-			SetObjectPropertyValue(Data, StaticDuplicateObject(Result, Parent));
-		}
-		else
-		{
-			SetObjectPropertyValue(Data, nullptr);
-		}
-	}
-	else
-	{
-		UObject* Result = nullptr;
-		ParseObjectPropertyValue(this, Parent, PropertyClass, PortFlags, Buffer, Result);
-		SetObjectPropertyValue(Data, Result);
-	}
+	UObject* Result = NULL;
+
+	bool bOk = ParseObjectPropertyValue(this, Parent, PropertyClass, PortFlags, Buffer, Result);
+
+	SetObjectPropertyValue(Data, Result);
 	return Buffer;
 }
 
