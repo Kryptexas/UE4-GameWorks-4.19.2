@@ -98,6 +98,7 @@ public:
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
+	virtual void ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* PreviewSkelMeshComp) const;
 
 private:
 	// FAnimNode_SkeletalControlBase interface
@@ -106,4 +107,9 @@ private:
 
 	// Convenience function to get current (pre-translation iteration) component space location of bone by bone index
 	FVector GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex);
+
+#if WITH_EDITOR
+	// Cached CS location when in editor for debug drawing
+	FTransform CachedEffectorCSTransform;
+#endif
 };
