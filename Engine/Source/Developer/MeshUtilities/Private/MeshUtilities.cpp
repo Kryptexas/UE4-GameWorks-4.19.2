@@ -2489,7 +2489,7 @@ static void ComputeTangents_MikkTSpace(
 		RawMesh.WedgeTangentZ.AddZeroed(NumWedges);
 
 		// we need to calculate normals for MikkTSpace
-		UE_LOG(LogMeshUtilities, Warning, TEXT("Invalid vertex normals found for mesh. Forcing recomputation of vertex normals for MikkTSpace. Fix mesh or disable \"Use MikkTSpace Tangent Space\" to avoid forced recomputation of normals."));
+		UE_LOG(LogMeshUtilities, Log, TEXT("Invalid vertex normals found for mesh. Forcing recomputation of vertex normals for MikkTSpace. Fix mesh or disable \"Use MikkTSpace Tangent Space\" to avoid forced recomputation of normals."));
 
 		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
 		{
