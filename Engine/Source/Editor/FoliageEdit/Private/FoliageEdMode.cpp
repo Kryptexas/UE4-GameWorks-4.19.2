@@ -732,7 +732,7 @@ void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime
 					}
 					else if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 					{
-						if (!UISettings.GetLassoSelectToolSelected())
+						if (UISettings.GetPaintToolSelected())
 						{
 							StartFoliageBrushTrace(ViewportClient, Interactor);
 						}
