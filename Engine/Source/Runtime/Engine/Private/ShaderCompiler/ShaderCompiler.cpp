@@ -99,7 +99,7 @@ static TAutoConsoleVariable<int32> CVarShaderBoundsChecking(
 
 static TAutoConsoleVariable<int32> CVarD3DRemoveUnusedInterpolators(
 	TEXT("r.D3D.RemoveUnusedInterpolators"),
-	0,
+	1,
 	TEXT("Enables removing unused interpolators mode when compiling pipelines for D3D.\n")
 	TEXT(" -1: Do not actually remove, but make the app think it did (for debugging)\n")
 	TEXT(" 0: Disable (default)\n")
