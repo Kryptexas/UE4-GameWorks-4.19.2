@@ -91,9 +91,7 @@ struct FAnimationPotentialTransition
 
 	const FBakedStateExitTransition* TransitionRule;
 
-#if WITH_EDITORONLY_DATA
 	TArray<int32, TInlineAllocator<3>> SourceTransitionIndices;
-#endif
 
 public:
 	FAnimationPotentialTransition();

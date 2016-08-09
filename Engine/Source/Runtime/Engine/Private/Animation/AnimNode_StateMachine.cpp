@@ -183,9 +183,7 @@ void FAnimationPotentialTransition::Clear()
 {
 	TargetState = INDEX_NONE;
 	TransitionRule = NULL;
-#if WITH_EDITORONLY_DATA
 	SourceTransitionIndices.Reset();
-#endif
 }
 
 
@@ -613,9 +611,8 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 			{
 				if (FindValidTransition(Context, NextStateInfo, /*out*/ OutPotentialTransition, /*out*/ OutVisitedStateIndices))
 				{
-#if WITH_EDITORONLY_DATA	
 					OutPotentialTransition.SourceTransitionIndices.Add(TransitionRule.TransitionIndex);
-#endif		
+
 					return true;
 				}					
 			}
@@ -629,9 +626,8 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 				OutPotentialTransition.TransitionRule = &TransitionRule;
 				OutPotentialTransition.TargetState = NextState;
 
-#if WITH_EDITORONLY_DATA	
 				OutPotentialTransition.SourceTransitionIndices.Add(TransitionRule.TransitionIndex);
-#endif
+
 				return true;
 			}
 		}
