@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3041238
+﻿INTSourceChangelist:3041237
 Availability: Public
 Title:Shooting from a Camera Rig Crane
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -14,7 +14,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 One of the tools real-world filmmakers use to produce smooth sweeping shots is by attaching a camera to a crane and controlling the shot through the crane's movement.
 You can create similar shots in Sequencer with the use of the **Camera Rig Crane** Actor and an attached **Camera**. 
 
-In this how-to we will add a Camera Rig Crane, attach a Camera and create a sample Crane Shot. 
+In this how-to we will add a Camera Rig Crane, attach a Camera, and create a sample Crane Shot. 
 
 
 ## Steps
@@ -37,7 +37,7 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 
 	This will attach the camera to the crane so that it will follow the crane's movement. 
 
-1.	Select the **CineCameraActor**, then in the **Details** panel under **Transform** enter **0's** for **Location** and **Rotation** values. 
+1.	Select the **CineCameraActor**, then in the **Details** panel under **Transform** enter "0" for **Location** and **Rotation** values. 
 
 	![](Crane04.png)
 
@@ -66,7 +66,7 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 
 	![](Crane09.png)
 
-	Clicking the **Lock Viewport to Camera** again will unlock the camera. 	
+	Clicking **Lock Viewport to Camera** again will unlock the camera. 	
 
 1.	Using the **Translate** tool (**W** key) and **Rotation** tool (**E** key), rotate the crane/camera as shown below. 
 
@@ -125,12 +125,11 @@ RAsfP5G0Shk
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can adjust the keys by dragging them to new values in the keyframe window. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
+You can adjust the keys by dragging them to new values in the Tracks Area. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
 
 [REGION:tip]
 There is an advanced method you can use to work with the **Camera Rig Crane** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 
 [/REGION]
-
 
 
 

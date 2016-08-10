@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3011128
 Availability: Public
 Title:Shooting from a Camera Rig Rail
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,7 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-The **Camera Rig Rail** Actor can be used to produce fly-through, 360 degree, or any other moving shots by attaching a camera to a rail for an attached camera to move along.
+The **Camera Rig Rail** Actor can be used to produce fly-through, 360 degree, or any other moving shots by attaching a camera to a rail to move along.
 The path for the rail can be defined using a [**Spline Component**](Engine/Components/Shapes/) and in Sequencer, you can keyframe the position along the rail where the camera should be at any given time. 
 
 In this how-to we create a 180 degree rail where the attached camera stays focused on our character. 
