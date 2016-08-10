@@ -192,26 +192,26 @@ void ABrush::PostLoad()
 			}
 		}
 
+#if WITH_EDITOR
 		// Fix up any broken poly normals.
 		// They have not been getting fixed up after vertex editing since at least UE2!
-		bool bHasBrokenNormals = false;
-		for (FPoly& Poly : Brush->Polys->Element)
+		for(FPoly& Poly : Brush->Polys->Element)
 		{
 			FVector Normal = Poly.Normal;
-			if (!Poly.CalcNormal())
+			if(!Poly.CalcNormal())
 			{
-				if (!Poly.Normal.Equals(Normal))
+				if(!Poly.Normal.Equals(Normal))
 				{
 					UE_LOG(LogBrush, Warning, TEXT("%s had invalid poly normals which have been fixed. Resave the level to remove this warning."), *Brush->GetName());
-					if (IsStaticBrush())
+					if(IsStaticBrush())
 					{
 						// Flag BSP as needing rebuild
 						SetNeedRebuild(GetLevel());
-						bHasBrokenNormals = true;
 					}
 				}
 			}
 		}
+#endif
 
 		// if the polys of the brush have the wrong outer, fix it up to be the UModel (my Brush member)
 		// UModelFactory::FactoryCreateText was passing in the ABrush as the Outer instead of the UModel
