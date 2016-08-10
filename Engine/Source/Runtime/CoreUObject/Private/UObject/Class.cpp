@@ -3919,9 +3919,13 @@ void UClass::AssembleReferenceTokenStreams()
 	{
 		if (UClass* Class = Cast<UClass>((UObject*)(It->Object)))
 		{
-			// Force the default object to be created.
-			Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
-																 // Assemble reference token stream for garbage collection/ RTGC.
+			// Force the default object to be created (except when we're in the middle of exit purge -
+			// this may happen if we exited PreInit early because of error).
+			if (!GExitPurge)
+			{
+				Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
+			}
+			// Assemble reference token stream for garbage collection/ RTGC.
 			if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
 			{
 				Class->AssembleReferenceTokenStream();
