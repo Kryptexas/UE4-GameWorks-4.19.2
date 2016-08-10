@@ -1039,13 +1039,18 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 
 		TSharedRef<SWidget> MenuContent = FocusedContent.Content;
 		
-		FSlateApplication::Get().PushMenu(
+		TSharedPtr<IMenu> Menu = FSlateApplication::Get().PushMenu(
 			AsShared(),
 			FWidgetPath(),
 			MenuContent,
 			WhereToSummon,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 			);
+
+		if (Menu.IsValid() && Menu->GetOwnedWindow().IsValid())
+		{
+			Menu->GetOwnedWindow()->SetWidgetToFocusOnActivate(FocusedContent.WidgetToFocus);
+		}
 
 		return FocusedContent.WidgetToFocus;
 	}
