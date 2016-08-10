@@ -2313,6 +2313,22 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint, FProp
 			}
 		}
 
+		if (PropertyChangedEvent.Property)
+		{
+			// If the property was an array, regenerate the custom property list since it contains an
+			// entry for every array element and some elements may be gone now.
+			// Regenerate for structs as well because they may contain arrays and we will only get one property
+			// event if the whole struct changes at once, thus implicitly changing the arrays inside.
+			if (PropertyChangedEvent.Property->IsA(UArrayProperty::StaticClass()) || PropertyChangedEvent.Property->IsA(UStructProperty::StaticClass()))
+			{
+				UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+				if (BPGC)
+				{
+					BPGC->UpdateCustomPropertyListForPostConstruction();
+				}
+			}
+		}
+
 		Blueprint->Status = BS_Dirty;
 		Blueprint->MarkPackageDirty();
 		// Previously, PostEditChange() was called on the Blueprint which creates an empty FPropertyChangedEvent. In
