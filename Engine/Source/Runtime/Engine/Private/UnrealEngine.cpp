@@ -8196,8 +8196,9 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, const bool bCh
 
 	check(Object);
 
+	// @note : GetWorldChecked is not thread safe, so we can't call if called by another thread
 	bool bSupported = true;
-	UWorld* World = (bChecked ? Object->GetWorldChecked(bSupported) : Object->GetWorld());
+	UWorld* World = ((bChecked && IsInGameThread() )? Object->GetWorldChecked(bSupported) : Object->GetWorld());
 	return (bSupported ? World : GWorld);
 }
 
