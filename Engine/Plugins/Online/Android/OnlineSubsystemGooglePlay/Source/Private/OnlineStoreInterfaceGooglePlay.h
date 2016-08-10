@@ -5,10 +5,11 @@
 #include "OnlineStoreInterface.h"
 
 
-enum EGooglePlayBillingResponseCode
+enum class EGooglePlayBillingResponseCode
 {
 	Ok					= 0,
-	Cancelled			= 1,
+	UserCancelled		= 1,
+	ServiceUnavailable	= 2,
 	BillingUnavailable	= 3,
 	ItemUnavailable		= 4,
 	DeveloperError		= 5,
@@ -65,8 +66,10 @@ public:
 	virtual bool RestorePurchases(const TArray<FInAppPurchaseProductRequest>& ConsumableProductFlags, FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
 	// End IOnlineStore 
 
-	void ProcessQueryAvailablePurchasesResults(bool bInSuccessful, const TArray<FInAppPurchaseProductInfo>& AvailablePurchases);
-	void ProcessPurchaseResult(bool bInSuccessful, const FString& InProductId, const FString& InReceiptData, const FString& Signature);
+	void ProcessQueryAvailablePurchasesResults(EGooglePlayBillingResponseCode InResponseCode, const TArray<FInAppPurchaseProductInfo>& AvailablePurchases);
+	void ProcessPurchaseResult(EGooglePlayBillingResponseCode InResponseCode, const FString& InProductId, const FString& InReceiptData, const FString& Signature);
+
+	EInAppPurchaseState::Type ConvertGPResponseCodeToIAPState(const EGooglePlayBillingResponseCode InResponseCode);
 
 	/** Cached in-app purchase restore transaction object, used to provide details to the developer about what products should be restored */
 	FOnlineInAppPurchaseRestoreReadPtr CachedPurchaseRestoreObject;
