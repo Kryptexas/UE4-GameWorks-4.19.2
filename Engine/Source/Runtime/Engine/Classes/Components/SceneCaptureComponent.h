@@ -43,6 +43,10 @@ class USceneCaptureComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	bool bCaptureEveryFrame;
 
+	/** Whether to update the capture's contents on movement.  Disable if you are going to capture manually from blueprint. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	bool bCaptureOnMovement;
+
 	/** if > 0, sets a maximum render distance override.  Can be used to cull distant objects from a reflection if the reflecting plane is in an enclosed area like a hallway or room */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture, meta=(UIMin = "100", UIMax = "10000"))
 	float MaxViewDistanceOverride;

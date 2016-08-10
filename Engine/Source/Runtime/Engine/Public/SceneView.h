@@ -1078,6 +1078,9 @@ public:
 	 */
 	ESceneCaptureSource SceneCaptureSource;
 
+	/** When enabled, the scene capture will composite into the render target instead of overwriting its contents. */
+	ESceneCaptureCompositeMode SceneCaptureCompositeMode;
+
 	/**
 	 * GetWorld->IsPaused() && !Simulate
 	 * Simulate is excluded as the camera can move which invalidates motionblur

@@ -148,7 +148,7 @@ void ASceneCaptureCube::PostActorCreated()
 void ASceneCaptureCube::PostEditMove(bool bFinished)
 {
 	Super::PostEditMove(bFinished);
-	if(bFinished)
+	if(bFinished && CaptureComponentCube->bCaptureOnMovement)
 	{
 		CaptureComponentCube->CaptureSceneDeferred();
 	}
@@ -159,6 +159,7 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 	: Super(ObjectInitializer), ShowFlags(FEngineShowFlags(ESFIM_Game))
 {
 	bCaptureEveryFrame = true;
+	bCaptureOnMovement = true;
 	MaxViewDistanceOverride = -1;
 
 	// Disable features that are not desired when capturing the scene
@@ -325,7 +326,10 @@ void USceneCaptureComponent2D::OnRegister()
 
 void USceneCaptureComponent2D::SendRenderTransform_Concurrent()
 {	
-	CaptureSceneDeferred();
+	if (bCaptureOnMovement)
+	{
+		CaptureSceneDeferred();
+	}
 
 	Super::SendRenderTransform_Concurrent();
 }
@@ -336,7 +340,7 @@ void USceneCaptureComponent2D::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld();
+		CaptureSceneDeferred();
 	}
 }
 
@@ -409,6 +413,10 @@ bool USceneCaptureComponent2D::CanEditChange(const UProperty* InProperty) const
 		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, OrthoWidth))
 		{
 			return ProjectionType == ECameraProjectionMode::Orthographic;
+		}
+		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, CompositeMode))
+		{
+			return CaptureSource == SCS_SceneColorHDR;
 		}
 	}
 
@@ -682,7 +690,10 @@ void USceneCaptureComponentCube::OnRegister()
 
 void USceneCaptureComponentCube::SendRenderTransform_Concurrent()
 {	
-	CaptureSceneDeferred();
+	if (bCaptureOnMovement)
+	{
+		CaptureSceneDeferred();
+	}
 
 	Super::SendRenderTransform_Concurrent();
 }
@@ -693,7 +704,7 @@ void USceneCaptureComponentCube::TickComponent(float DeltaTime, enum ELevelTick 
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld();
+		CaptureSceneDeferred();
 	}
 }
 
