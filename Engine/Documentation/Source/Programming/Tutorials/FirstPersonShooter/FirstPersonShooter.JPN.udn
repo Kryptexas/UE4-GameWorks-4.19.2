@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3020369
-Availability:Docs
-Title:C++ FPS チュートリアル
+﻿INTSourceChangelist:3069483
+Availability:Public
+Title:FPS チュートリアル
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
-Description:FPS の構築方法について説明します。
+Description:FPS ゲームにメカニクスを実装する方法を学びます。
 prereq:Programming/Development/VisualStudioSetup
 SkillLevel:Beginner
 Version:4.11
