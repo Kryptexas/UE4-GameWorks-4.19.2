@@ -1075,13 +1075,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
-	if (ViewFamily.EngineShowFlags.StationaryLightOverlap &&
-		FeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		RenderStationaryLightOverlap(RHICmdList);
-		ServiceLocalQueue();
-	}
-
 	FLightShaftsOutput LightShaftOutput;
 
 	// Draw Lightshafts
@@ -1193,9 +1186,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
+	// Draw visualizations just before use to avoid target contamination
 	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields)
 	{
 		RenderMeshDistanceFieldVisualization(RHICmdList, FDistanceFieldAOParameters(Scene->DefaultMaxDistanceFieldOcclusionDistance));
+		ServiceLocalQueue();
+	}
+
+	if (ViewFamily.EngineShowFlags.StationaryLightOverlap &&
+		FeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		RenderStationaryLightOverlap(RHICmdList);
 		ServiceLocalQueue();
 	}
 
