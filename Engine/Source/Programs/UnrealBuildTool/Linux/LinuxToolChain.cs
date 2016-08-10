@@ -296,18 +296,6 @@ namespace UnrealBuildTool
 			Result += " -c";
 			Result += " -pipe";
 
-			if (CrossCompiling())
-			{
-				// There are exceptions used in the code base (e.g. UnrealHeadTool).  @todo: weed out exceptions
-				// So this flag cannot be used, at least not for native Linux builds.
-				Result += " -fno-exceptions";               // no exceptions
-				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=1";
-			}
-			else
-			{
-				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
-			}
-
 			Result += " -nostdinc++";
 			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/";
 			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/c++/v1";
@@ -395,19 +383,13 @@ namespace UnrealBuildTool
 				//Result += " -fsanitize=address";            // detect address based errors (support properly and link to libasan)
 			}
 
-			// debug info (bCreateDebugInfo is normally set for all configurations, and we don't want it to affect Shipping performance)
-			if (CompileEnvironment.Config.bCreateDebugInfo && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
+			// debug info 
+			// bCreateDebugInfo is normally set for all configurations, including Shipping - this is needed to enable callstack in Shipping builds (proper resolution: UEPLAT-205, separate files with debug info)
+			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
-				Result += " -g3";
+				// libdwarf (from elftoolchain 0.6.1) doesn't support DWARF4
+				Result += " -gdwarf-3";
 			}
-			// Applying to all configurations, including Shipping @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
-			else
-			{
-				Result += " -gline-tables-only"; // include debug info for meaningful callstacks
-			}
-
-			// libdwarf (from elftoolchain 0.6.1) doesn't support DWARF4
-			Result += " -gdwarf-3";
 
 			// optimization level
 			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
@@ -427,9 +409,15 @@ namespace UnrealBuildTool
 				Result += " -ftls-model=local-dynamic";
 			}
 
-			if (CompileEnvironment.Config.bEnableExceptions)
+			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
 			{
 				Result += " -fexceptions";
+				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
+			}
+			else
+			{
+				Result += " -fno-exceptions";               // no exceptions
+				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=1";
 			}
 
 			//Result += " -v";                            // for better error diagnosis
