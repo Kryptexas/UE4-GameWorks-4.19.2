@@ -29,6 +29,7 @@
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "Components/SplineMeshComponent.h"
+#include "InstancedFoliageActor.h"
 
 #include "FbxExporter.h"
 #include "RawMesh.h"
@@ -375,6 +376,11 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 		else if(Actor->IsA(ASkeletalMeshActor::StaticClass()) ||  bIsBlueprintClass)
 		{
 			// Export blueprint and skeletal actors and all their components
+			ExportActor( Actor, InMatineeActor, true );
+		}
+		else if(Actor->IsA(AInstancedFoliageActor::StaticClass()))
+		{
+			// Export Foliage components
 			ExportActor( Actor, InMatineeActor, true );
 		}
 	}
