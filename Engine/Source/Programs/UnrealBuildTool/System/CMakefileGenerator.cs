@@ -93,7 +93,7 @@ namespace UnrealBuildTool
 			StringBuilder PreprocessorDefinitionsList = new StringBuilder("add_definitions( \n");
 
 			var CMakeGameRootPath = "";
-			var CMakeUE4RootPath = $"set(UE4_ROOT_PATH \"{Utils.CleanDirectorySeparators(Path.GetFullPath(RootRelativePath), '/')}\")\n";
+			var CMakeUE4RootPath = "set(UE4_ROOT_PATH " + Utils.CleanDirectorySeparators(Path.GetFullPath(ProjectFileGenerator.RootRelativePath), '/') + ")\n";
 
 			string GameProjectPath = "";
 			string CMakeGameProjectFile = "";
@@ -110,13 +110,13 @@ namespace UnrealBuildTool
 				case UnrealTargetPlatform.Mac:
 				{
 					HostArchitecture = "Mac";
-					BuildCommand = $"set(BUILD cd \"${{UE4_ROOT_PATH}}\" && bash \"${{UE4_ROOT_PATH}}/Engine/Build/BatchFiles/{HostArchitecture}/Build.sh\")\n";
+					BuildCommand = "set(BUILD cd \"${UE4_ROOT_PATH}\" && bash \"${UE4_ROOT_PATH}/Engine/Build/BatchFiles/" + HostArchitecture + "/Build.sh\")\n";
 					break;
 				}
 				case UnrealTargetPlatform.Linux:
 				{
 					HostArchitecture = "Linux";
-					BuildCommand = $"set(BUILD cd \"${{UE4_ROOT_PATH}}\" && bash \"${{UE4_ROOT_PATH}}/Engine/Build/BatchFiles/{HostArchitecture}/Build.sh\")\n";
+					BuildCommand = "set(BUILD cd \"${UE4_ROOT_PATH}\" && bash \"${UE4_ROOT_PATH}/Engine/Build/BatchFiles/" + HostArchitecture + "/Build.sh\")\n";
 					break;
 				}
 				default:
@@ -129,8 +129,8 @@ namespace UnrealBuildTool
 			{
 				GameProjectPath = OnlyGameProject.Directory.FullName;
 
-				CMakeGameRootPath = $"set(GAME_ROOT_PATH \"{Utils.CleanDirectorySeparators(OnlyGameProject.Directory.FullName, '/')}\")\n";
-				CMakeGameProjectFile = $"set(GAME_PROJECT_FILE \"{Utils.CleanDirectorySeparators(OnlyGameProject.FullName, '/')}\")\n";
+				CMakeGameRootPath = "set(GAME_ROOT_PATH \"" + Utils.CleanDirectorySeparators(OnlyGameProject.Directory.FullName, '/') + "\")\n";
+				CMakeGameProjectFile = "set(GAME_PROJECT_FILE \"" + Utils.CleanDirectorySeparators(OnlyGameProject.FullName, '/') + "\")\n";
 			}
 
 			CMakefileContent.Append(
@@ -160,7 +160,7 @@ namespace UnrealBuildTool
 						}
 						else
 						{
-							IncludeDirectories.Add($"${{GAME_ROOT_PATH}}/{IncludeDirectory}");
+							IncludeDirectories.Add("${GAME_ROOT_PATH}/" + IncludeDirectory);
 						}
 					}
 				}
@@ -201,18 +201,18 @@ namespace UnrealBuildTool
 						{
 							if (!SourceFileRelativeToRoot.StartsWith("..") && !Path.IsPathRooted(SourceFileRelativeToRoot))
 							{
-								CMakeSourceFilesList.Append($"\t\"${{UE4_ROOT_PATH}}/Engine/{Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/')}\"\n");
+								CMakeSourceFilesList.Append("\t\"${UE4_ROOT_PATH}/Engine/" + Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/') + "\"\n");
 							}
 							else
 							{
 								if (String.IsNullOrEmpty(GameProjectName))
 								{
-									CMakeSourceFilesList.Append($"\t\"{Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/').Substring(3)}\"\n");
+									CMakeSourceFilesList.Append("\t\"" + Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/').Substring(3) + "\"\n");
 								}
 								else
 								{
-									string relativeGameSourcePath = Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath);
-									CMakeSourceFilesList.Append($"\t\"${{GAME_ROOT_PATH}}/{Utils.CleanDirectorySeparators(relativeGameSourcePath, '/')}\"\n");
+									string RelativeGameSourcePath = Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath);
+									CMakeSourceFilesList.Append("\t\"${GAME_ROOT_PATH}/" + Utils.CleanDirectorySeparators(RelativeGameSourcePath, '/') + "\"\n");
 								}
 							}
 						}
@@ -220,18 +220,18 @@ namespace UnrealBuildTool
 						{
 							if (!SourceFileRelativeToRoot.StartsWith("..") && !Path.IsPathRooted(SourceFileRelativeToRoot))
 							{
-								CMakeHeaderFilesList.Append($"\t\"${{UE4_ROOT_PATH}}/Engine/{Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/')}\"\n");
+								CMakeHeaderFilesList.Append("\t\"${UE4_ROOT_PATH}/Engine/" + Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/') + "\"\n");
 							}
 							else
 							{
 								if (String.IsNullOrEmpty(GameProjectName))
 								{
-									CMakeHeaderFilesList.Append($"\t\"{Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/').Substring(3)}\"\n");
+									CMakeHeaderFilesList.Append("\t\"" + Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/').Substring(3) + "\"\n");
 								}
 								else
 								{
 									string relativeGameSourcePath = Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath);
-									CMakeHeaderFilesList.Append($"\t\"${{GAME_ROOT_PATH}}/{Utils.CleanDirectorySeparators(relativeGameSourcePath, '/')}\"\n");
+									CMakeHeaderFilesList.Append("\t\"${GAME_ROOT_PATH}/" + Utils.CleanDirectorySeparators(relativeGameSourcePath, '/') + "\"\n");
 								}
 							}
 						}
@@ -239,19 +239,19 @@ namespace UnrealBuildTool
 						{
 							if (!SourceFileRelativeToRoot.StartsWith("..") && !Path.IsPathRooted(SourceFileRelativeToRoot))
 							{
-								CMakeConfigFilesList.Append($"\t\"${{UE4_ROOT_PATH}}/Engine/{Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/')}\"\n");
+								CMakeConfigFilesList.Append("\t\"${UE4_ROOT_PATH}/Engine/" + Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/') + "\"\n");
 
 							}
 							else
 							{
 								if (String.IsNullOrEmpty(GameProjectName))
 								{
-									CMakeConfigFilesList.Append($"\t\"{Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/').Substring(3)}\"\n");
+									CMakeConfigFilesList.Append("\t\"" + Utils.CleanDirectorySeparators(SourceFileRelativeToRoot, '/').Substring(3) + "\"\n");
 								}
 								else
 								{
 									string relativeGameSourcePath = Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath);
-									CMakeConfigFilesList.Append($"\t\"${{GAME_ROOT_PATH}}/{Utils.CleanDirectorySeparators(relativeGameSourcePath, '/')}\"\n");
+									CMakeConfigFilesList.Append("\t\"${GAME_ROOT_PATH}/" + Utils.CleanDirectorySeparators(relativeGameSourcePath, '/') + "\"\n");
 								}
 							}
 						}
@@ -262,12 +262,12 @@ namespace UnrealBuildTool
 
 			foreach (string IncludeDirectory in IncludeDirectories)
 			{
-				IncludeDirectoriesList.Append($"\t\"{Utils.CleanDirectorySeparators(IncludeDirectory, '/')}\"\n");
+				IncludeDirectoriesList.Append("\t\"" + Utils.CleanDirectorySeparators(IncludeDirectory, '/') + "\"\n");
 			}
 
 			foreach (string PreprocessorDefinition in PreprocessorDefinitions)
 			{
-				PreprocessorDefinitionsList.Append($"\t-D{PreprocessorDefinition}\n");
+				PreprocessorDefinitionsList.Append("\t-D" + PreprocessorDefinition + "\n");
 			}
 
 			// Add section end to section strings;
@@ -308,8 +308,8 @@ namespace UnrealBuildTool
 									CMakeProjectCmdArg = "-project=\"${GAME_PROJECT_FILE}\"";
 								}
 
-								string confName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-								CMakefileContent.Append($"add_custom_target({TargetName}-{HostArchitecture}-{confName} ${{BUILD}} {TargetName} {HostArchitecture} {confName} {CMakeProjectCmdArg} $(ARGS))\n");
+								string ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
+								CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} ${{BUILD}} {0} {3} {1} {2} $(ARGS))\n", TargetName, ConfName, CMakeProjectCmdArg, HostArchitecture));
 							}
 						}
 					}
@@ -321,7 +321,7 @@ namespace UnrealBuildTool
 
 					if (!String.IsNullOrEmpty(HostArchitecture))
 					{
-						CMakefileContent.Append($"add_custom_target({TargetName} ${{BUILD}} {TargetName} {HostArchitecture} Development {CMakeProjectCmdArg} $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n");
+						CMakefileContent.Append(String.Format("add_custom_target({0} ${{BUILD}} {0} {2} Development {1} $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture));
 					}
 				}
 			}
