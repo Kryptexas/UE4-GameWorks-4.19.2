@@ -1303,6 +1303,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	if(AnimScriptInstance)
 	{
 		AnimScriptInstance->PreEvaluateAnimation();
+
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->PreEvaluateAnimation();
+		}
 	}
 
 	if (bDoParallelEvaluation)
@@ -1435,6 +1440,11 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 #endif 
 		// curve update happens first
 		AnimScriptInstance->UpdateCurves(EvaluationContext.Curve);
+
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->UpdateCurves(EvaluationContext.Curve);
+		}
 	}
 
 	bNeedToFlipSpaceBaseBuffers = true;
@@ -2489,6 +2499,11 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 void USkeletalMeshComponent::FinalizeBoneTransform() 
 {
 	Super::FinalizeBoneTransform();
+
+	for(UAnimInstance* SubInstance : SubInstances)
+	{
+		SubInstance->PostEvaluateAnimation();
+	}
 
 	if (AnimScriptInstance)
 	{
