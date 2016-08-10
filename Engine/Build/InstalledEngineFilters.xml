@@ -87,6 +87,9 @@
 
 	<!-- Exclude all the intermediate files in the Engine/Saved folder -->
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Saved/..."/>
+	
+	<!-- Exclude generated config files from Engine/Programs folder -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealBuildTool/..."/>
 
 	<!-- Starter content -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Samples/StarterContent/Content/..."/>
