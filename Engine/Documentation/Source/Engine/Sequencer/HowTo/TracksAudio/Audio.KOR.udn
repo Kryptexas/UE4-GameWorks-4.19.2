@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3011122
 Availability: Public
 Title:Adding Audio	
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -42,9 +42,9 @@ For this how-to, we are using the **Blueprint Third Person Template** with **Sta
 
 	![](Audio04.png)
 
-	You can layer sounds by arranging the audio asset on top of one another. 
+	You can layer sounds by arranging one audio asset on top of another. 
 
-1.	**Right-click** on the **Starter_Music_Cue** asset to reveal the **Properties**, then click the **Magnifying Glass** icon. 
+1.	**Right-click** on the **Starter_Music_Cue** asset to reveal the **Properties**, then click the magnifying glass icon. 
 
 	![](Audio05.png)
 
@@ -62,7 +62,7 @@ For this how-to, we are using the **Blueprint Third Person Template** with **Sta
 	In future engine releases, the ability to edit Audio Tracks within Sequencer will come online and this guide will be updated. 
 	[/REGION]
 
-1.	**Left-click** and connect the nodes as show below. 
+1.	**Left-click** and connect the nodes as shown below. 
 
 	![](Audio07.png)
 
@@ -107,7 +107,6 @@ You should now hear all your sounds that you've placed in the **Audio Track** an
 
 
 Audio Tracks support either **Sound Cue** or **Sound Wave** assets and can be added by dragging-and-dropping from the **Content Browser** into a Level Sequence or by adding through the **Add** option of an Audio Track. 
-
 
 
 
