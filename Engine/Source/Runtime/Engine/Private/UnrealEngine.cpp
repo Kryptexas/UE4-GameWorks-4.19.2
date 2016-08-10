@@ -12386,6 +12386,41 @@ void FAudioDevice::UpdateSoundShowFlags(const uint8 OldSoundShowFlags, const uin
 	}
 }
 
+void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
+{
+	check(IsInGameThread());
+
+	uint8 SetStats = 0;
+	uint8 ClearStats = 0;
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundCues")))
+	{
+		SetStats |= ERequestedAudioStats::SoundCues;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundCues;
+	}
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundWaves")))
+	{
+		SetStats |= ERequestedAudioStats::SoundWaves;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundWaves;
+	}
+
+	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
+
+	FAudioDevice* AudioDevice = this;
+	FAudioThread::RunCommandOnAudioThread([AudioDevice, SetStats, ClearStats]()
+	{
+		AudioDevice->RequestedAudioStats |= SetStats;
+		AudioDevice->RequestedAudioStats &= ~ClearStats;
+	}, GET_STATID(STAT_AudioResolveDesiredStats));
+}
+
 void FAudioDevice::UpdateRequestedStat(const uint8 RequestedStat)
 {
 	check(IsInGameThread());

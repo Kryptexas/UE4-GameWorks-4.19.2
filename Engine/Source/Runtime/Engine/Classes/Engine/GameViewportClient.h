@@ -585,10 +585,7 @@ public:
 	 *
 	 * @param InEnabledStats	Stats to enable
 	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
-	{
-		EnabledStats = InEnabledStats;
-	}
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override;
 
 	/**
 	 * Check whether a specific stat is enabled for this viewport
