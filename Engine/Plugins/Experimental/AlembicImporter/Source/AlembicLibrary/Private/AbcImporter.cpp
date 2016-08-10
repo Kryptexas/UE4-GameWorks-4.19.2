@@ -763,6 +763,8 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 	for (const FCompressedAbcData& CompressedData : ImportData->CompressedMeshData)
 	{
 		FAbcMeshSample* AverageSample = CompressedData.AverageSample;
+		AbcImporterUtilities::CalculateNormals(AverageSample);
+		AbcImporterUtilities::GenerateSmoothingGroupsIndices(AverageSample, ImportData->ImportSettings);
 		AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(AverageSample, AverageSample->SmoothingGroupIndices, AverageSample->NumSmoothingGroups);
 	}
 
@@ -851,7 +853,7 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 				{
 					FAbcMeshSample* BaseSample = CompressedData.BaseSamples[BaseIndex];
 
-					AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(BaseSample, BaseSample->SmoothingGroupIndices, BaseSample->NumSmoothingGroups);
+					AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(BaseSample, AverageSample->SmoothingGroupIndices, AverageSample->NumSmoothingGroups);
 
 					// Create new morph target with name based on object and base index
 					UMorphTarget* MorphTarget = NewObject<UMorphTarget>(SkeletalMesh, FName(*FString::Printf(TEXT("Base_%i_%i"), BaseIndex, ObjectIndex)));
