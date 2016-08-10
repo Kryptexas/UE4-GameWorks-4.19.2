@@ -173,6 +173,12 @@ public:
 	FString PlatformName;
 	FString PlatformVariantName;
 
+	/** If we are using a PDBCache, this is whether we should use a system-wide lock to access it. */
+	bool bMutexPDBCache;
+
+	/** If we are using a PDBCache, this is the name of the system-wide lock we should use to access it. */
+	FString PDBCacheLockName;
+
 	FCrashInfo()
 		: BuiltFromCL( INVALID_CHANGELIST )
 		, SourceLineNumber( 0 )
