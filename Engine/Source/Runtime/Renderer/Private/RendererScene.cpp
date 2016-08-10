@@ -2454,7 +2454,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	IndirectLightingCache.SetLightingCacheDirty();
 
 	// Primitives octree
-	PrimitiveOctree.ApplyOffset(InOffset);
+	PrimitiveOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
 
 	// Primitive bounds
 	for (auto It = PrimitiveBounds.CreateIterator(); It; ++It)
@@ -2477,7 +2477,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 
 	// Lights octree
-	LightOctree.ApplyOffset(InOffset);
+	LightOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
 
 	// Cached preshadows
 	for (auto It = CachedPreshadows.CreateIterator(); It; ++It)
