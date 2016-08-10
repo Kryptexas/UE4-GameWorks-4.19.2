@@ -448,7 +448,7 @@ namespace AutomationTool
 				JsonWriter.WriteArrayStart("Groups");
 				foreach(Agent Agent in Agents)
 				{
-					Node[] Nodes = Agent.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					Node[] Nodes = Agent.Nodes.Where(x => NodesToExecute.Contains(x) && x.ControllingTrigger == Trigger).ToArray();
 					if(Nodes.Length > 0)
 					{
 						JsonWriter.WriteObjectStart();
