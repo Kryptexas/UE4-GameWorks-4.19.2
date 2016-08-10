@@ -449,12 +449,11 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 			RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: even more painfully hard-coded
 		}
 
-		FString CrashReportClientArguments;
-
 		FString CrashReportLogFilename = LogBaseFilename + TEXT("-CRC") + LogExtension;
 		FString CrashReportLogFilepath = FPaths::Combine(*LogFolder, *CrashReportLogFilename);
-		CrashReportClientArguments += TEXT("-Abslog=");
+		FString CrashReportClientArguments = TEXT(" -Abslog=");
 		CrashReportClientArguments += *CrashReportLogFilepath;
+		CrashReportClientArguments += TEXT(" ");
 
 		// Suppress the user input dialog if we're running in unattended mode
 		bool bNoDialog = FApp::IsUnattended() || IsRunningDedicatedServer();
