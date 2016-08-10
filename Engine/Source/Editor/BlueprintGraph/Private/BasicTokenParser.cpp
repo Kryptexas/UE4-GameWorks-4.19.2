@@ -210,6 +210,79 @@ void FBasicTokenParser::FErrorState::Throw(bool bLogFatal) const
 /*******************************************************************************
  * FBasicTokenParser
 *******************************************************************************/
+namespace BasicTokenParserImpl
+{
+	//------------------------------------------------------------------------------
+	static bool IsNumericChar(TCHAR c)
+	{
+		return (c >= '0' && c <= '9');
+	}
+
+	//------------------------------------------------------------------------------
+	static bool IsWhitespace(TCHAR c)
+	{
+		return FText::IsWhitespace(c);
+	}
+
+	//------------------------------------------------------------------------------
+	static bool IsEOL(TCHAR c)
+	{
+		return c == TEXT('\n') || c == TEXT('\r') || c == 0;
+	}
+
+	//------------------------------------------------------------------------------
+	static bool IsSymbol(TCHAR c)
+	{
+		return 
+			// should have been handled in different cases, but as a catchall:
+			(c == '{') ||
+			(c == '}') ||
+			(c == '"') ||
+			// enumerated operators from logic in K2Node_MathExpression.cpp
+			(c == '|') ||
+			(c == '&') ||
+			(c == '~') ||
+			(c == '^') ||
+			(c == '!') ||
+			(c == '<') ||
+			(c == '>') ||
+			(c == '=') ||
+			(c == '+') ||
+			(c == '-') ||
+			(c == '*') ||
+			(c == '/') ||
+			(c == '%') ||
+			(c == ':') ||
+			(c == '(') ||
+			(c == ')') ||
+			(c == ',') ||
+			// in terms of the current MathExpression node, these could all 
+			// technically be used as identifier names, but seeing as 1) this parser 
+			// is meant to be generic, and 2) we could leverage these symbols as 
+			// operators in the future, we want to make sure they're reserved
+			(c == '`') ||
+			(c == '[') ||
+			(c == ']') ||
+			(c == '\\') ||
+			(c == ';') ||
+			(c == '\'') ||
+			(c == '@') ||
+			(c == '#') ||
+			(c == '$') ||
+			(c == '.') ||
+			(c == '?');
+	}
+
+	//------------------------------------------------------------------------------
+	static bool IsIdentifierDelim(TCHAR c)
+	{
+		// attempt to be the opposite of: 
+		//		IsLetter(c) || IsNumericChar(c) || (c == '_')
+		// for optimization purposes we don't have an IsLetter(), since 
+		// localization would make that a slow operation
+		return IsSymbol(c) || IsWhitespace(c) || IsEOL(c);
+	}
+}
 
 //------------------------------------------------------------------------------
 void FBasicTokenParser::ResetParser(TCHAR const* SourceBuffer, int32 StartingLineNumber)
@@ -232,33 +305,11 @@ void FBasicTokenParser::ClearCachedComment()
 	PrevComment.Empty( PrevComment.Len() );
 }
 
-// enumerated from logic in K2Node_MathExpression.cpp
-bool IsSymbolStart(TCHAR c)
-{
-	return
-		c == '|' ||
-		c == '&' ||
-		c == '~' ||
-		c == '^' ||
-		c == '!' ||
-		c == '<' ||
-		c == '>' ||
-		c == '=' ||
-		c == '+' ||
-		c == '-' ||
-		c == '*' ||
-		c == '/' ||
-		c == '%' ||
-		c == ':' ||
-		c == '(' ||
-		c == ')' ||
-		c == ',' ||
-		(c >= '0' && c <= '9'); // for the 'no consts' case numeric literals fall into the symbol branch
-}
-
 //------------------------------------------------------------------------------
 bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 {
+	using namespace BasicTokenParserImpl;
+
 	// if the parser is in a bad state, then don't continue parsing (who 
 	// knows what will happen!?)
 	if (!IsValid())
@@ -293,16 +344,23 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 
 				break;
 			}
+
 			c = GetChar();
+			if (c == 0)
+			{
+				SetError(FErrorState::ParseError, LOCTEXT("MissingBracket", "Missing closing bracket: }"));
+				break;
+			}
+
 			Token.Identifier[Length++] = c;
-		} while( c!='}' );
+		} while( c !='}' );
 
 		Token.Identifier[Length]=0;
 		Token.SetGuid(Token.Identifier);
 		return IsValid();
 	}
 	// if const values are allowed, determine whether the non-identifier token represents a const
-	else if ( !bNoConsts && ((c>='0' && c<='9') || ((c=='+' || c=='-') && (p>='0' && p<='9'))) )
+	else if ( !bNoConsts && (IsNumericChar(c) || ((c=='+' || c=='-') && IsNumericChar(p))) )
 	{
 		// Integer or floating point constant.
 		bool  bIsFloat = 0;
@@ -331,7 +389,7 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 				break;
 			}
 			c = FChar::ToUpper(GetChar());
-		} while ((c >= TEXT('0') && c <= TEXT('9')) || (!bIsFloat && c == TEXT('.')) || (!bIsHex && c == TEXT('X')) || (bIsHex && c >= TEXT('A') && c <= TEXT('F')));
+		} while (IsNumericChar(c) || (!bIsFloat && c == TEXT('.')) || (!bIsHex && c == TEXT('X')) || (bIsHex && c >= TEXT('A') && c <= TEXT('F')));
 
 		Token.Identifier[Length]=0;
 		if (!bIsFloat || c != 'F')
@@ -402,7 +460,14 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 		Token.SetConstString(Temp);
 		return IsValid();
 	}
-	else if (IsSymbolStart(c))
+	// this condition is meant to be a catchall that encompasses: 
+	//		!IsLetter(c) && (c != '_')
+	// unfortunately we had to remove IsLetter(), as it was slow (to account for 
+	// different languages)
+	//
+	// IsNumericChar() is here to catch when bNoConsts is true (we don't allow 
+	// identifiers to start with a number)
+	else if (IsSymbol(c) || IsNumericChar(c) || IsWhitespace(c) || IsEOL(c))
 	{
 		// Symbol.
 		int32 Length=0;
@@ -470,7 +535,7 @@ bool FBasicTokenParser::GetToken(FBasicToken& Token, bool bNoConsts/* = false*/)
 				break;
 			}
 			c = GetChar();
-		} while (!IsSymbolStart(c) && c != '{' && c != '}' && c != '"' && !FText::IsWhitespace(c));
+		} while (!IsIdentifierDelim(c));
 		UngetChar();
 		Token.Identifier[Length] = 0;
 
@@ -515,7 +580,7 @@ bool FBasicTokenParser::GetRawToken(FBasicToken& Token, TCHAR StopChar/* = TCHAR
 	TCHAR Temp[MAX_STRING_CONST_SIZE];
 	int32 Length=0;
 	TCHAR c = GetLeadingChar();
-	while( !IsEOL(c) && c != StopChar )
+	while( !BasicTokenParserImpl::IsEOL(c) && c != StopChar )
 	{
 		if( (c=='/' && PeekChar()=='/') || (c=='/' && PeekChar()=='*') )
 		{
@@ -562,7 +627,7 @@ bool FBasicTokenParser::GetRawTokenRespectingQuotes(FBasicToken& Token, TCHAR St
 
 	bool bInQuote = false;
 
-	while( !IsEOL(c) && ((c != StopChar) || bInQuote) )
+	while( !BasicTokenParserImpl::IsEOL(c) && ((c != StopChar) || bInQuote) )
 	{
 		if( (c=='/' && PeekChar()=='/') || (c=='/' && PeekChar()=='*') )
 		{
@@ -797,7 +862,7 @@ TCHAR FBasicTokenParser::GetLeadingChar()
 			if (c == 0)
 				return c;
 			PrevComment += c;
-		} while (!IsEOL(c));
+		} while (!BasicTokenParserImpl::IsEOL(c));
 
 		TrailingCommentNewline = c;
 
@@ -806,7 +871,7 @@ TCHAR FBasicTokenParser::GetLeadingChar()
 			c = GetChar();
 			if (c == 0)
 				return c;
-			if (c == TrailingCommentNewline || !IsEOL(c))
+			if (c == TrailingCommentNewline || !BasicTokenParserImpl::IsEOL(c))
 			{
 				UngetChar();
 				break;
@@ -822,12 +887,6 @@ void FBasicTokenParser::UngetChar()
 {
 	InputPos = PrevPos;
 	InputLine = PrevLine;
-}
-
-//------------------------------------------------------------------------------
-bool FBasicTokenParser::IsEOL(TCHAR c)
-{
-	return c==TEXT('\n') || c==TEXT('\r') || c==0;
 }
 
 //------------------------------------------------------------------------------
