@@ -48,7 +48,7 @@ FStaticMeshStaticLightingMesh::FStaticMeshStaticLightingMesh(const UStaticMeshCo
 		InPrimitive->StaticMesh->RenderData->LODResources[InLODIndex].GetNumVertices(),
 		InPrimitive->StaticMesh->RenderData->LODResources[InLODIndex].GetNumVertices(),
 		0,
-		(InPrimitive->GetOwner() && InPrimitive->GetOwner()->bHidden) ? !!(InPrimitive->bCastHiddenShadow) : !!(InPrimitive->CastShadow),
+		!!(InPrimitive->CastShadow | InPrimitive->bCastHiddenShadow),
 		false,
 		InRelevantLights,
 		InPrimitive,
