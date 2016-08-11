@@ -1976,17 +1976,6 @@ namespace UnrealBuildTool
 							// Make sure any old DLL files from in-engine recompiles aren't lying around.  Must be called after the action graph is finalized.
 							ActionGraph.DeleteStaleHotReloadDLLs();
 
-							// Plan the actions to execute for the build.
-							Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap;
-							List<Action> ActionsToExecute = ActionGraph.GetActionsToExecute(UBTMakefile.PrerequisiteActions, Targets, out TargetToOutdatedPrerequisitesMap);
-
-							// Display some stats to the user.
-							Log.TraceVerbose(
-									"{0} actions, {1} outdated and requested actions",
-									ActionGraph.AllActions.Count,
-									ActionsToExecute.Count
-									);
-
 							if (!bIsHotReload && String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile))
 							{
 								// clean up any stale modules
@@ -2001,11 +1990,21 @@ namespace UnrealBuildTool
 
 							ToolChain.PreBuildSync();
 
+                            // Plan the actions to execute for the build.
+                            Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap;
+                            List<Action> ActionsToExecute = ActionGraph.GetActionsToExecute(UBTMakefile.PrerequisiteActions, Targets, out TargetToOutdatedPrerequisitesMap);
 
-							// Cache indirect includes for all outdated C++ files.  We kick this off as a background thread so that it can
-							// perform the scan while we're compiling.  It usually only takes up to a few seconds, but we don't want to hurt
-							// our best case UBT iteration times for this task which can easily be performed asynchronously
-							if (BuildConfiguration.bUseUBTMakefiles && TargetToOutdatedPrerequisitesMap.Count > 0)
+                            // Display some stats to the user.
+                            Log.TraceVerbose(
+                                    "{0} actions, {1} outdated and requested actions",
+                                    ActionGraph.AllActions.Count,
+                                    ActionsToExecute.Count
+                                    );
+
+                            // Cache indirect includes for all outdated C++ files.  We kick this off as a background thread so that it can
+                            // perform the scan while we're compiling.  It usually only takes up to a few seconds, but we don't want to hurt
+                            // our best case UBT iteration times for this task which can easily be performed asynchronously
+                            if (BuildConfiguration.bUseUBTMakefiles && TargetToOutdatedPrerequisitesMap.Count > 0)
 							{
 								CPPIncludesThread = CreateThreadForCachingCPPIncludes(TargetToOutdatedPrerequisitesMap);
 								CPPIncludesThread.Start();
