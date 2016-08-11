@@ -1,0 +1,28 @@
+﻿availability:docs
+title: Capsule Shadows
+description:Landing page for Capsule Shadows in Unreal Engine 4
+crumbs:
+version:4.13
+
+**Capsule Shadows** have been developed to support soft shadow casting for Skeletal Meshes by creating a capsule representation of your character using a custom Physics Asset. 
+The soft shadows serve to ground the character in indirectly areas and give soft shadows in directly lit areas. This shadowing technique can be used with Unreal Engine 4.11 or later. 
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Capsule Shadows Topics
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview "%Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices "%Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference "%Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo "%Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo:description%")
+	[/PARAM]
+[/OBJECT]
+
+

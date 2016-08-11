@@ -1,0 +1,25 @@
+﻿availability:docs
+title: Capsule Shadows How-To's
+description:How-To's for Capsule Shadows in Unreal Engine 4.
+crumbs:
+version:4.13
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Capsule Shadow Topics
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\CreateShadowAsset "%Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\CreateShadowAsset:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\AssignShadowAsset "%Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\AssignShadowAsset:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\EnableCapsuleShadows "%Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\EnableCapsuleShadows:description%")
+	[/PARAM]
+[/OBJECT]
+
