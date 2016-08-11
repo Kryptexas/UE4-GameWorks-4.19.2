@@ -383,11 +383,7 @@ public:
 	const FTexture2DRHIRef& GetSceneDepthSurface() const							{ return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetNoMSAASceneDepthSurface() const						{ return (const FTexture2DRHIRef&)NoMSAASceneDepthZ->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSmallDepthSurface() const							{ return (const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface() const 
-	{ 
-		return (const FTexture2DRHIRef&)OptionalShadowDepthColor->GetRenderTargetItem().TargetableTexture; 
-	}
-
+	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface(FRHICommandList& RHICmdList, int32 Width, int32 Height) const;
 	const FTexture2DRHIRef& GetLightAttenuationSurface() const					{ return (const FTexture2DRHIRef&)GetLightAttenuation()->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetAuxiliarySceneDepthSurface() const 
 	{	
@@ -564,8 +560,8 @@ public:
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
 	// used by the CustomDepth material feature for stencil
 	TRefCountPtr<FRHIShaderResourceView> CustomStencilSRV;
-	// optional in case this RHI requires a color render target
-	TRefCountPtr<IPooledRenderTarget> OptionalShadowDepthColor;
+	// optional in case this RHI requires a color render target (adjust up if necessary)
+	TRefCountPtr<IPooledRenderTarget> OptionalShadowDepthColor[4];
 	// Cache of preshadow depths
 	//@todo - this should go in FScene
 	TRefCountPtr<IPooledRenderTarget> PreShadowCacheDepthZ;

@@ -2086,7 +2086,7 @@ void FSceneRenderer::RenderShadowDepthMapAtlases(FRHICommandListImmediate& RHICm
 			if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
 			{
 				Info.NumColorRenderTargets = 1;
-				Info.ColorRenderTarget[0].Texture = SceneContext.GetOptionalShadowDepthColorSurface();
+				Info.ColorRenderTarget[0].Texture = SceneContext.GetOptionalShadowDepthColorSurface(InRHICmdList, Info.DepthStencilRenderTarget.Texture->GetTexture2D()->GetSizeX(), Info.DepthStencilRenderTarget.Texture->GetTexture2D()->GetSizeY());
 				InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.ColorRenderTarget[0].Texture);
 			}
 			InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.DepthStencilRenderTarget.Texture);
@@ -2177,7 +2177,7 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 			if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
 			{
 				Info.NumColorRenderTargets = 1;
-				Info.ColorRenderTarget[0].Texture = SceneContext.GetOptionalShadowDepthColorSurface();
+				Info.ColorRenderTarget[0].Texture = SceneContext.GetOptionalShadowDepthColorSurface(InRHICmdList, Info.DepthStencilRenderTarget.Texture->GetTexture2D()->GetSizeX(), Info.DepthStencilRenderTarget.Texture->GetTexture2D()->GetSizeY());
 				InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.ColorRenderTarget[0].Texture);
 			}
 			InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.DepthStencilRenderTarget.Texture);
