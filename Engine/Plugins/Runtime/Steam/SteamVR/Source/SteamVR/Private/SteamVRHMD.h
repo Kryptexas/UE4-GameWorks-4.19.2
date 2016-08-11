@@ -34,6 +34,12 @@ class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, publ
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("SteamVR"));
+		return DefaultName;
+	}
+
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual bool IsHMDConnected() override { return true; }

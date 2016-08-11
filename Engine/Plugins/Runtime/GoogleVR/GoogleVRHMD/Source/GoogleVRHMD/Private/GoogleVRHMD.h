@@ -180,6 +180,11 @@ public:
 	bool IsInitialized() const;
 
 public:
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("GoogleVR"));
+		return DefaultName;
+	}
 
 	/** Get current pose */
 	void GetCurrentPose(FQuat& CurrentOrientation);

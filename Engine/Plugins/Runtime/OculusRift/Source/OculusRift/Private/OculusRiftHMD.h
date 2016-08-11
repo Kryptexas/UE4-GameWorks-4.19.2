@@ -417,6 +417,11 @@ class FOculusRiftHMD : public FHeadMountedDisplay
 public:
 
 	/** IHeadMountedDisplay interface */
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("OculusRift"));
+		return DefaultName;
+	}
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual bool IsHMDConnected() override;

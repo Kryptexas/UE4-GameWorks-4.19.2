@@ -34,6 +34,18 @@ bool UHeadMountedDisplayFunctionLibrary::EnableHMD(bool bEnable)
 	return false;
 }
 
+FName UHeadMountedDisplayFunctionLibrary::GetHMDDeviceName()
+{
+	FName DeviceName(NAME_None);
+
+	if (GEngine->HMDDevice.IsValid())
+	{
+		DeviceName = GEngine->HMDDevice->GetDeviceName();
+	}
+
+	return DeviceName;
+}
+
 void UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(FRotator& DeviceRotation, FVector& DevicePosition)
 {
 	if(GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())

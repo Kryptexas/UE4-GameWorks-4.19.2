@@ -508,6 +508,12 @@ class FGearVR : public FHeadMountedDisplay
 	friend class FGearVRSplash;
 public:
 	/** IHeadMountedDisplay interface */
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("GearVR"));
+		return DefaultName;
+	}
+
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 	virtual bool IsHMDConnected() override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;

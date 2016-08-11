@@ -40,6 +40,11 @@ DECLARE_LOG_CATEGORY_EXTERN(OSVRHMDLog, Log, All);
 class FOSVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis< FOSVRHMD, ESPMode::ThreadSafe >
 {
 public:
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("OSVR"));
+		return DefaultName;
+	}
 
 #if OSVR_UNREAL_4_12
     virtual void OnBeginPlay(FWorldContext& InWorldContext) override;
