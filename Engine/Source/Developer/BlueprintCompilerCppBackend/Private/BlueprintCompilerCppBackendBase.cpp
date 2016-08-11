@@ -358,7 +358,9 @@ void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FEmitterLocalContex
 		UProperty* LocalVariable = LocalVariables[i];
 
 		const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
-		EmitterContext.AddLine(CppDeclaration + TEXT("{};"));
+		UStructProperty* StructProperty = Cast<UStructProperty>(LocalVariable);
+		const TCHAR* EmptyDefaultConstructor = FEmitHelper::EmptyDefaultConstructor(StructProperty ? StructProperty->Struct : nullptr);
+		EmitterContext.AddLine(CppDeclaration + EmptyDefaultConstructor + TEXT(";"));
 	}
 }
 

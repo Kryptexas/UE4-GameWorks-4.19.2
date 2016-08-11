@@ -256,6 +256,7 @@ struct FEmitHelper
 	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property
 		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx = 0);
 
+	static const TCHAR* EmptyDefaultConstructor(UScriptStruct* Struct);
 };
 
 struct FNonativeComponentData;

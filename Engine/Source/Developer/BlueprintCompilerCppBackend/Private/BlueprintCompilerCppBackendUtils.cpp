@@ -973,7 +973,8 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			if (bEmptyCustomValue)
 			{
 				// The local variable is created to fix: "fatal error C1001: An internal error has occurred in the compiler."
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;"), *LocalStructNativeName, *StructName, StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}")));
+				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;"), *LocalStructNativeName, *StructName,
+					StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : FEmitHelper::EmptyDefaultConstructor(StructType)));
 			}
 			else
 			{
@@ -1628,4 +1629,11 @@ void FBackendHelperStaticSearchableValues::EmitFunctionDefinition(FEmitterLocalC
 
 	Context.Body.DecreaseIndent();
 	Context.Body.AddLine(TEXT("}"));
+}
+
+const TCHAR* FEmitHelper::EmptyDefaultConstructor(UScriptStruct* Struct)
+{
+	UScriptStruct::ICppStructOps* StructOps = Struct ? Struct->GetCppStructOps() : nullptr;
+	const bool bUseForceInitConstructor = StructOps && StructOps->HasNoopConstructor();
+	return bUseForceInitConstructor ? TEXT("(EForceInit::ForceInit)") : TEXT("{}");
 }
