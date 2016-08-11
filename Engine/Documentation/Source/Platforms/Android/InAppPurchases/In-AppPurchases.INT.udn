@@ -7,7 +7,6 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:howto
-Prereq:P
 Related:Platforms/Mobile/InAppPurchases/
 
 ## Configuration
