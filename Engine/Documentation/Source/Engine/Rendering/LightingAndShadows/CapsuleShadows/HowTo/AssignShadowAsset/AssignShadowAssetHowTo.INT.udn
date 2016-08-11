@@ -1,0 +1,75 @@
+﻿Availability: Docs
+Title: How-To Assign a Shadow Physics Asset to a Skeletal Mesh
+Crumbs: %ROOT%, Engine, 
+Description: How to assign a Shadow Physics Asset to a Skeletal Mesh.
+Version: 4.13
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\CreateShadowAsset
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\EnableCapsuleShadows
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/LightingAndShadows/Rendering/CapsuleShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+To have Capsule Shadows for your Skeletal Mesh you must assign a Physics Asset you created for your shadows to your Actor. Follow the steps below to assign your shadow Physics Asset.
+
+
+## Steps
+
+1. Inside the **Content Browser**, select your character Skeletal Mesh and **Double-Click** to open it.
+
+	![](CB.png)
+
+	After a moment **Persona**, the Skeletal Mesh editor, will open.
+	[REGION:lightbox]
+	[![](Persona.png)(w:600)](Persona.png)
+	[/REGION]
+	_Click image for full size_
+
+2. In the **Details** panel under the **Lighting** category, click the drop-down for **Shadow Phsyics Asset** and select the **Physics Asset** you created for Capsule Shadows.
+	
+	![](AssignShadowPhsyicsAsset.png)(w:450)
+
+	[REGION:note]
+	Since the **Shadow Physics Asset** uses a Physics Asset to create Capsule Shadows, you may see other Physics Assets in this list. It is important to name your Shadow Physics Assets so that you can easily locate it.
+	[/REGION]
+
+3. Now you can **Save** and **Close** Persona.

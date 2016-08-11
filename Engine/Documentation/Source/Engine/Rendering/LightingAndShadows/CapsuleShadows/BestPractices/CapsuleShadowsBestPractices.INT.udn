@@ -1,0 +1,135 @@
+﻿Availability: Docs
+Title: Capsule Shadows Best Practices
+Crumbs: %ROOT%, Engine, 
+Description: Capsule Shadows Best Practices
+Version: 4.13
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[TOC(start:2 end:3)]
+
+
+
+
+
+## Best Practices
+
+Below are some steps you can take to ensure that your Capsule Shadows look correct and perform well for your game.
+
+### Feet Capsule Placement
+
+It is important to get the foot placement right for your characters to make them feel grounded in the environment. Take your time to tweak this part of the setup for your Shadow Physics Asset to 
+make sure that it looks right. You may also want to have several different lighting scenarios set up in a test scene to make sure everything looks correct.
+
+
+[REGION:lightbox]
+[![](FootPlacement1.png)(w:600)](FootPlacement1.png)
+[/REGION]
+
+In this setup the capsules for the feet are close to relative size of the feet and have some overlap with the capsules for the shins. The shadows are soft and not overly dark.
+
+[REGION:lightbox]
+[![](FootPlacement2.png)(w:600)](FootPlacement2.png)
+[/REGION]
+ 
+In this setup the capsules are too large for the feet and extend beyond the back of the heel leaving the soft shadows to appear darker than they should.
+
+
+### Limit Capsule Bodies
+
+Capsule Shadows can be considered an advanced form of "blob" shadows. You can simply use a single capsule or as many as you need to get better shadowing accuracy. With that in mind, start by 
+determining the needs of your character's movement for your game and whether they will ever be near a surface by using a cover system or falling down. If they will never be near surfaces consider
+not having capsule bodies for the arms of your character, since the performance costs is determined by the number of capsule bodies.
+
+[REGION:lightbox]
+[![](BlobShadow.png)(w:400)](BlobShadow.png)
+[/REGION]
+[REGION:caption]
+_Click image for full size view_
+[/REGION]
+
+In this example, there is a single capsule that is used to represent the character. In indirectly lit areas this can save performance costs by only using a single capsule for the character's representation
+if accuracy is not a concern.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With Capsules for Arms](WithArms.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Without Capusles for Arms](WithoutArms.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+In this comparison, the arms have been removed from the character's representation. In the directly lit character areas not near surfaces you can see that it only makes a slight visual difference. 
+
+
+### Indirect Lighting Cache (Volume Light Samples)
+
+Capsule Shadows for indirect lighting are heavily influenced by the [Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) to determine the directionality and intensity of the 
+soft shadow. Sometimes this requires tweaking the placement of the light samples to be more dense or spaced out on your game's needs. 
+
+To adjust the **Volume Light Sample Placement** you must enable the **World Settings** panel by going to **Settings** > **World Settings** in the main toolbar. Then in the World Settings panel under the 
+**Lightmass** section you can change the **Volume Light Sample Placement**. Use lower values to make the placement of samples more dense or higher values to make them more spread out.
+
+
+You can visualize these samples in your level by going to the **Viewport** > **Show** > **Visualize** > **Volume Lighting Samples**. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volume Light Samples Placement: 1.0 (Default)](VolmeLightSamplesDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volume Light Samples Placement: 0.25](WithArms.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+You may need to adjust the settings for the Volume Light Samples Placement to get the results that you desire. In this scene setup, adjusting to a value between 0.5 and 0.25 gave better results, but 
+this may be different for your game.
+
+[REGION:warning]
+Values too low will cause a "popping" as the capsule moves between the samples instead of providing a soft smooth transition between them, since the placement of the samples is so close together.
+[/REGION]
+
+
+
+
+
