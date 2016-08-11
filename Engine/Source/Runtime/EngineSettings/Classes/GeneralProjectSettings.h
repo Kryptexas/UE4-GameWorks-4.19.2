@@ -66,4 +66,8 @@ class ENGINESETTINGS_API UGeneralProjectSettings
 	/** Should the game's window preserve its aspect ratio when resized by user. */
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bShouldWindowPreserveAspectRatio;
+
+	/** Should the game attempt to start in VR, regardless of whether -vr was set on the commandline */
+	UPROPERTY(config, EditAnywhere, Category = Settings)
+	bool bStartInVR;
 };

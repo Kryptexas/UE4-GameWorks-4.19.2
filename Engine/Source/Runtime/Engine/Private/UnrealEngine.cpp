@@ -2116,7 +2116,8 @@ bool UEngine::InitializeHMDDevice()
 			if (HMDDevice.IsValid())
 			{
 				StereoRenderingDevice = HMDDevice;
-				if (FParse::Param(FCommandLine::Get(), TEXT("vr")))
+				const bool bShouldStartInVR = FParse::Param(FCommandLine::Get(), TEXT("vr")) || GetDefault<UGeneralProjectSettings>()->bStartInVR;
+				if (bShouldStartInVR)
 				{
 					HMDDevice->EnableStereo(true);
 				}
