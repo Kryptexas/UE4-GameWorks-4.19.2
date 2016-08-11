@@ -547,8 +547,9 @@ void AActor::RerunConstructionScripts()
 						{
 							if (BlueprintCreatedComponent && BlueprintCreatedComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript)
 							{
-								UObject* BlueprintComponentTemplate = ComponentToArchetypeMap.FindChecked(BlueprintCreatedComponent);
-								if (ComponentData.OldArchetype == BlueprintComponentTemplate &&
+								UObject* BlueprintComponentTemplate = ComponentToArchetypeMap.FindRef(BlueprintCreatedComponent);
+								if (BlueprintComponentTemplate &&
+									ComponentData.OldArchetype == BlueprintComponentTemplate &&
 									++FoundSerializedIndex == ComponentData.UCSComponentIndex)
 								{
 									bMatches = (BlueprintCreatedComponent == NewComponent);
