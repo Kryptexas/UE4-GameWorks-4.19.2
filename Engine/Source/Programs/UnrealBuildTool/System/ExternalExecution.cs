@@ -582,6 +582,15 @@ namespace UnrealBuildTool
 					FlatModuleCsData[Module.Name].UHTHeaderNames = UHTModuleInfo.HeaderFilenames.ToList();
 					Log.TraceVerbose("Detected UObject module: " + UHTModuleInfo.Info.ModuleName);
 				}
+				else
+				{
+					// Remove any stale generated code directory
+					if (Module.GeneratedCodeDirectory != null && Module.GeneratedCodeDirectory.Exists())
+					{
+						Log.TraceVerbose("Deleting stale generated code directory: " + Module.GeneratedCodeDirectory.ToString());
+						Directory.Delete(Module.GeneratedCodeDirectory.FullName, true);
+					}
+				}
 			}
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
