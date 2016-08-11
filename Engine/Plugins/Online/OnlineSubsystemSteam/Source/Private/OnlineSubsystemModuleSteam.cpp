@@ -136,9 +136,18 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 	if (SteamDLLHandle == nullptr)
 	{
 		// try bundled one
-		UE_LOG_ONLINE(Log, TEXT("Could not find system one, loading bundled libsteam_api.so."));
+		UE_LOG_ONLINE(Warning, TEXT("Could not find system one, loading bundled libsteam_api.so."));
 		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Linux/"), STEAM_SDK_VER_PATH);
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "libsteam_api.so"));
+	}
+
+	if (SteamDLLHandle)
+	{
+		UE_LOG_ONLINE(Display, TEXT("Loaded libsteam_api.so at %p"), SteamDLLHandle);
+	}
+	else
+	{
+		UE_LOG_ONLINE(Warning, TEXT("Unable to load libsteam_api.so, Steam functionality will not work"));
 	}
 #else
 	UE_LOG_ONLINE(Log, TEXT("libsteam_api.so is linked explicitly and should be already loaded."));
