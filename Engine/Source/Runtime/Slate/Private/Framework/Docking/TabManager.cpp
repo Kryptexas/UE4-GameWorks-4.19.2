@@ -704,9 +704,8 @@ TSharedPtr<SWidget> FTabManager::RestoreFrom( const TSharedRef<FLayout>& Layout,
 				CollapsedDockAreas.Add(ThisArea);
 			}
 
-			if ( bIsPrimaryArea )
+			if ( bIsPrimaryArea && ensure(!PrimaryDockArea.IsValid()) )
 			{
-				check( !PrimaryDockArea.IsValid() );
 				PrimaryDockArea	= RestoredDockArea;
 			}
 		}
