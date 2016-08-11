@@ -177,6 +177,28 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return false;
 	}
 
+	static AActor* FindActorByName(const FString& ActorNameStr, UWorld* InWorld)
+	{
+		for (ULevel const* Level : InWorld->GetLevels())
+		{
+			if (Level)
+			{
+				for (AActor* Actor : Level->Actors)
+				{
+					if (Actor)
+					{
+						if (Actor->GetName() == ActorNameStr)
+						{
+							return Actor;
+						}
+					}
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
 	static bool HandleRecordAnimationCommand(UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar)
 	{
 #if WITH_EDITOR
@@ -186,24 +208,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		AActor* FoundActor = nullptr;
 		if (FParse::Token(Str, ActorName, ARRAY_COUNT(ActorName), 0))
 		{
-			FString const ActorNameStr = FString(ActorName);
-			for (ULevel const* Level : InWorld->GetLevels())
-			{
-				if (Level)
-				{
-					for (AActor* Actor : Level->Actors)
-					{
-						if (Actor)
-						{
-							if (Actor->GetName() == ActorNameStr)
-							{
-								FoundActor = Actor;
-								break;
-							}
-						}
-					}
-				}
-			}
+			FoundActor = FindActorByName(FString(ActorName), InWorld);
 		}
 
 		if (FoundActor)
@@ -221,7 +226,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return false;
 	}
 
-	static AActor* FindActor(const FString& ActorNameStr, UWorld* InWorld, bool bFuzzy = false)
+	static AActor* FindActorByLabel(const FString& ActorNameStr, UWorld* InWorld, bool bFuzzy = false)
 	{
 		// search for the actor by name
 		for (ULevel* Level : InWorld->GetLevels())
@@ -287,7 +292,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			}
 			else if (InWorld)
 			{
-				FoundActor = FindActor(ActorNameStr, InWorld);
+				FoundActor = FindActorByName(ActorNameStr, InWorld);
 			}
 		}
 
@@ -372,7 +377,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 				FString const SpecifierStr = FString(Specifier).Trim();
 				if(FilterType == EFilterType::Actor)
 				{
-					AActor* FoundActor = FindActor(SpecifierStr, InWorld, true);
+					AActor* FoundActor = FindActorByLabel(SpecifierStr, InWorld, true);
 					if(FoundActor)
 					{
 						Settings->ActorFilter.ActorClassesToRecord.Empty();
