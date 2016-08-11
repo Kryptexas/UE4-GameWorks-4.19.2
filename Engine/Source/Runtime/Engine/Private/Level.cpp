@@ -642,9 +642,8 @@ void ULevel::BeginDestroy()
 	{
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
 		OwningWorld->Scene->SetPrecomputedVolumeDistanceField(NULL);
-
-		RemoveFromSceneFence.BeginFence();
 	}
+	RemoveFromSceneFence.BeginFence();
 }
 
 bool ULevel::IsReadyForFinishDestroy()
