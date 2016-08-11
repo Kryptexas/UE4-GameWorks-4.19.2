@@ -2849,6 +2849,7 @@ UMaterialInterface* FParticleEmitterInstance::GetCurrentMaterial()
 	{
 		RenderMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
+	CurrentMaterial = RenderMaterial;
 	return RenderMaterial;
 }
 
@@ -3564,6 +3565,7 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 		RenderMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
 	NewReplayData->MaterialInterface = RenderMaterial;
+	CurrentMaterial = RenderMaterial;
 
 	// Mesh settings
 	NewReplayData->bScaleUV = LODLevel->RequiredModule->bScaleUV;

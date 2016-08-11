@@ -710,6 +710,7 @@ UMaterialInterface* FParticleTrailsEmitterInstance_Base::GetCurrentMaterial()
 	{
 		RenderMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
+	CurrentMaterial = RenderMaterial;
 	return RenderMaterial;
 }
 
