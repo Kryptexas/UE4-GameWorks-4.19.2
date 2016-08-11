@@ -98,7 +98,7 @@ void SetLevelVisibility( ULevelStreaming* Level, bool bVisible )
 		Level->GetWorld()->FlushLevelStreaming();
 
 		// Iterate over the level's actors
-		TTransArray<AActor*>& Actors = Level->GetLoadedLevel()->Actors;
+		TArray<AActor*>& Actors = Level->GetLoadedLevel()->Actors;
 		for ( int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex )
 		{
 			AActor* Actor = Actors[ActorIndex];

@@ -339,7 +339,7 @@ public:
 	FURL					URL;
 
 	/** Array of all actors in this level, used by FActorIteratorBase and derived classes */
-	TTransArray<AActor*> Actors;
+	TArray<AActor*> Actors;
 
 	/** Set before calling LoadPackage for a streaming level to ensure that OwningWorld is correct on the Level */
 	ENGINE_API static TMap<FName, TWeakObjectPtr<UWorld> > StreamedLevelsOwningWorld;
@@ -538,7 +538,7 @@ public:
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	ULevel(FVTableHelper& Helper)
 		: Super(Helper)
-		, Actors(this)
+		, Actors()
 	{}
 #endif // WITH_HOT_RELOAD_CTORS
 

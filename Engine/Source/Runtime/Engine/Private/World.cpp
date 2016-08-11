@@ -1271,7 +1271,7 @@ void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 		
 		if (!IsGameWorld())
 		{
-			CheckLevel->Actors.ModifyItem(ActorListIndex);
+			CheckLevel->Actors[ActorListIndex]->Modify();
 		}
 		
 		CheckLevel->Actors[ActorListIndex] = NULL;

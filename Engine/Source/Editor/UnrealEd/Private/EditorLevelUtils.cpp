@@ -754,7 +754,7 @@ namespace EditorLevelUtils
 			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 
 			// Iterate over the level's actors, making a list of their layers and unhiding the layers.
-			TTransArray<AActor*>& Actors = Level->Actors;
+			TArray<AActor*>& Actors = Level->Actors;
 			for ( int32 ActorIndex = 0 ; ActorIndex < Actors.Num() ; ++ActorIndex )
 			{
 				AActor* Actor = Actors[ ActorIndex ];
@@ -808,7 +808,7 @@ namespace EditorLevelUtils
 		{
 			USelection* SelectedActors = GEditor->GetSelectedActors();
 			SelectedActors->Modify();
-			TTransArray<AActor*>& Actors = Level->Actors;
+			TArray<AActor*>& Actors = Level->Actors;
 			for ( int32 ActorIndex = 0 ; ActorIndex < Actors.Num() ; ++ActorIndex )
 			{
 				AActor* Actor = Actors[ ActorIndex ];
