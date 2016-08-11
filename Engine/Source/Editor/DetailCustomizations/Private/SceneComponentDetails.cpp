@@ -262,7 +262,12 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 		for (int32 ComponentIndex = 0; bShouldShowTransform && ComponentIndex < SceneComponentObjects.Num(); ++ComponentIndex)
 		{
 			USceneComponent* SceneComponent = Cast<USceneComponent>(SceneComponentObjects[ComponentIndex].Get());
-			if (SceneComponent && SceneComponent->GetAttachParent() == NULL && SceneComponent->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+			if (SceneComponent == nullptr)
+			{
+				continue;
+			}
+
+			if (SceneComponent->GetAttachParent() == NULL && SceneComponent->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				bShouldShowTransform = false;
 			}
@@ -281,7 +286,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 				}
 			}
 
-			if (bShouldShowTransform && SceneComponent && SceneComponent->HasAnyFlags(RF_InheritableComponentTemplate))
+			if (bShouldShowTransform && SceneComponent->HasAnyFlags(RF_InheritableComponentTemplate))
 			{
 				auto OwnerClass = Cast<UClass>(SceneComponent->GetOuter());
 				auto Bluepirnt = UBlueprint::GetBlueprintFromClass(OwnerClass);
