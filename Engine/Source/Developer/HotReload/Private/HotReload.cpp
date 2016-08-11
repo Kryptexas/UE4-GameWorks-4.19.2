@@ -12,6 +12,10 @@
 #endif
 #include "Misc/ScopeExit.h"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
+
 DEFINE_LOG_CATEGORY(LogHotReload);
 
 #define LOCTEXT_NAMESPACE "HotReload"
@@ -1358,7 +1362,8 @@ bool FHotReloadModule::Tick(float DeltaTime)
 {
 	if (NewModules.Num())
 	{
-		if ( GEditor )
+#if WITH_EDITOR
+		if (GEditor)
 		{
 			// Don't allow hot reloading if we're running networked PIE instances
 			// The reason, is it's fairly complicated to handle the re-wiring that needs to happen when we re-instance objects like player controllers, possessed pawns, etc...
@@ -1372,6 +1377,7 @@ bool FHotReloadModule::Tick(float DeltaTime)
 				}
 			}
 		}
+#endif // WITH_EDITOR
 
 		// We have new modules in the queue, but make sure UBT has finished compiling all of them
 		if (!FDesktopPlatformModule::Get()->IsUnrealBuildToolRunning())
