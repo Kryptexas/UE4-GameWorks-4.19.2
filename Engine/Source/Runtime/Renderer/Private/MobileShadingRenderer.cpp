@@ -186,7 +186,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		GSupportsRenderTargetFormat_PF_FloatRGBA &&
 		GSupportsShaderFramebufferFetch &&
 		ViewFamily.EngineShowFlags.PostProcessing &&
-		((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) ||
+		((View.bLightShaftUse) || GetMobileDepthOfFieldScale(View) > 0.0 ||
 		((ViewFamily.GetShaderPlatform() == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
 		);
 
