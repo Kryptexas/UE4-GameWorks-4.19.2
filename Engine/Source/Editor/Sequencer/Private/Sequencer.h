@@ -837,9 +837,6 @@ protected:
 	/** Possess PIE viewports with the specified camera settings (a mirror of level viewport possession, but for game viewport clients) */
 	void PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut);
 
-	/** Called from the editor when a blueprint object replacement has occurred */
-	void OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
-
 private:
 	/** Performs any post-tick rendering work needed when moving through scenes */
 	void PostTickRenderStateFixup();
