@@ -499,7 +499,9 @@ void UAnimSequence::PostLoad()
 	// actual anim flags 
 	for (FFloatCurve& Curve : RawCurveData.FloatCurves)
 	{
-		if (FAnimCurveBase* CompressedCurve = CompressedCurveData.GetCurveData(Curve.Name.UID))
+		FAnimCurveBase* CompressedCurve = CompressedCurveData.GetCurveData(Curve.Name.UID);
+		// ensure to make sure the curve exists. If not, it has issue. 
+		if (ensureAlwaysMsgf(CompressedCurve, TEXT("Compressed Curve Data is missing %s curve"), *Curve.Name.DisplayName.ToString()))
 		{
 			CompressedCurve->SetCurveTypeFlags(Curve.GetCurveTypeFlags());
 		}
