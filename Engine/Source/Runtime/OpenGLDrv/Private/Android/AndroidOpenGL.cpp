@@ -589,7 +589,7 @@ void FAndroidAppEntry::PlatformInit()
 {
 	// create an ES2 EGL here for gpu queries.
 	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
-	FAndroidGPUInfo::Get();
+	// FAndroidGPUInfo::Get();
 }
 
 void FAndroidAppEntry::ReleaseEGL()
