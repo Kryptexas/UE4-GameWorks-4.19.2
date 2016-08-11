@@ -763,9 +763,20 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 	for (const FCompressedAbcData& CompressedData : ImportData->CompressedMeshData)
 	{
 		FAbcMeshSample* AverageSample = CompressedData.AverageSample;
-		AbcImporterUtilities::CalculateNormals(AverageSample);
-		AbcImporterUtilities::GenerateSmoothingGroupsIndices(AverageSample, ImportData->ImportSettings);
-		AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(AverageSample, AverageSample->SmoothingGroupIndices, AverageSample->NumSmoothingGroups);
+		if (ImportData->ImportSettings->NormalGenerationSettings.bForceOneSmoothingGroupPerObject)
+		{
+			// Set smoothing group indices and calculate smooth normals
+			AverageSample->SmoothingGroupIndices.Empty(AverageSample->Indices.Num() / 3);
+			AverageSample->SmoothingGroupIndices.AddZeroed(AverageSample->Indices.Num() / 3);
+			AverageSample->NumSmoothingGroups = 1;
+			AbcImporterUtilities::CalculateSmoothNormals(AverageSample);
+		}
+		else
+		{
+			AbcImporterUtilities::CalculateNormals(AverageSample);
+			AbcImporterUtilities::GenerateSmoothingGroupsIndices(AverageSample, ImportData->ImportSettings);
+			AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(AverageSample, AverageSample->SmoothingGroupIndices, AverageSample->NumSmoothingGroups);
+		}		
 	}
 
 	// Create a Skeletal mesh instance 

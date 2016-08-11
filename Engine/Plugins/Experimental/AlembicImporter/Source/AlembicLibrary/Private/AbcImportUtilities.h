@@ -635,9 +635,10 @@ namespace AbcImporterUtilities
 	
 	static void CalculateNormalsWithSmoothingGroups(FAbcMeshSample* Sample, const TArray<uint32>& SmoothingMasks, const uint32 NumSmoothingGroups)
 	{
-		if (NumSmoothingGroups == 0)
+		if (NumSmoothingGroups == 1)
 		{
 			CalculateSmoothNormals(Sample);
+			return;
 		}
 
 		TArray<FVector> PerVertexNormals;
