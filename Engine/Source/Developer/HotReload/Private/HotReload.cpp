@@ -1358,6 +1358,21 @@ bool FHotReloadModule::Tick(float DeltaTime)
 {
 	if (NewModules.Num())
 	{
+		if ( GEditor )
+		{
+			// Don't allow hot reloading if we're running networked PIE instances
+			// The reason, is it's fairly complicated to handle the re-wiring that needs to happen when we re-instance objects like player controllers, possessed pawns, etc...
+			const TIndirectArray<FWorldContext>& WorldContextList = GEditor->GetWorldContexts();
+
+			for (const FWorldContext& WorldContext : WorldContextList)
+			{
+				if (WorldContext.World() && WorldContext.World()->WorldType == EWorldType::PIE && WorldContext.World()->NetDriver)
+				{
+					return true;		// Don't allow automatic hot reloading if we're running PIE instances
+				}
+			}
+		}
+
 		// We have new modules in the queue, but make sure UBT has finished compiling all of them
 		if (!FDesktopPlatformModule::Get()->IsUnrealBuildToolRunning())
 		{
