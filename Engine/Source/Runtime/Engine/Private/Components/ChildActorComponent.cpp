@@ -359,6 +359,7 @@ void UChildActorComponent::CreateChildActor()
 				}
 
 				// Spawn actor of desired class
+				ConditionalUpdateComponentToWorld();
 				FVector Location = GetComponentLocation();
 				FRotator Rotation = GetComponentRotation();
 				ChildActor = World->SpawnActor(ChildActorClass, &Location, &Rotation, Params);
