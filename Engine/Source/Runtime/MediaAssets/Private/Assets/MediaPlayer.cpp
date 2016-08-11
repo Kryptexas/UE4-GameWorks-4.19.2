@@ -329,12 +329,12 @@ void UMediaPlayer::SetImageTexture(UMediaTexture* NewTexture)
 		NewTexture->OnBeginDestroy().AddUObject(this, &UMediaPlayer::HandleMediaTextureBeginDestroy);
 	}
 	
-	ImageTexture = NewTexture;
-
 	if (Player.IsValid())
 	{
-		Player->GetOutput().SetImageSink(ImageTexture);
+		Player->GetOutput().SetImageSink(NewTexture);
 	}
+
+	ImageTexture = NewTexture;
 }
 
 
@@ -364,12 +364,12 @@ void UMediaPlayer::SetSoundWave(UMediaSoundWave* NewSoundWave)
 		NewSoundWave->OnBeginDestroy().AddUObject(this, &UMediaPlayer::HandleMediaSoundWaveBeginDestroy);
 	}
 
-	SoundWave = NewSoundWave;
-
 	if (Player.IsValid())
 	{
-		Player->GetOutput().SetAudioSink(SoundWave);
+		Player->GetOutput().SetAudioSink(NewSoundWave);
 	}
+
+	SoundWave = NewSoundWave;
 }
 
 
@@ -390,12 +390,12 @@ void UMediaPlayer::SetVideoTexture(UMediaTexture* NewTexture)
 		NewTexture->OnBeginDestroy().AddUObject(this, &UMediaPlayer::HandleMediaTextureBeginDestroy);
 	}
 
-	VideoTexture = NewTexture;
-
 	if (Player.IsValid())
 	{
-		Player->GetOutput().SetVideoSink(VideoTexture);
+		Player->GetOutput().SetVideoSink(NewTexture);
 	}
+
+	VideoTexture = NewTexture;
 }
 
 
