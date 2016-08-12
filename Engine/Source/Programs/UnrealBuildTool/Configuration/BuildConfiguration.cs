@@ -577,7 +577,7 @@ namespace UnrealBuildTool
 			bDisableDebugInfo = false;
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
-			bGeneratedSYMFile = false;
+			bGeneratedSYMFile = true;
 			bGeneratedSYMBundle = false;
 			bStripSymbolsOnIOS = bGeneratedSYMFile;
 
