@@ -585,10 +585,13 @@ namespace UnrealBuildTool
 				else
 				{
 					// Remove any stale generated code directory
-					if (Module.GeneratedCodeDirectory != null && Module.GeneratedCodeDirectory.Exists())
+					if(!UnrealBuildTool.IsEngineInstalled() || !Module.GeneratedCodeDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 					{
-						Log.TraceVerbose("Deleting stale generated code directory: " + Module.GeneratedCodeDirectory.ToString());
-						Directory.Delete(Module.GeneratedCodeDirectory.FullName, true);
+						if (Module.GeneratedCodeDirectory != null && Module.GeneratedCodeDirectory.Exists())
+						{
+							Log.TraceVerbose("Deleting stale generated code directory: " + Module.GeneratedCodeDirectory.ToString());
+							Directory.Delete(Module.GeneratedCodeDirectory.FullName, true);
+						}
 					}
 				}
 			}
