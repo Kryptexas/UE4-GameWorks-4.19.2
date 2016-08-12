@@ -1079,6 +1079,11 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
+
+	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
+	Context.ResetPropertiesForInaccessibleStructs();
+
+	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 }
 
 void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
@@ -1259,8 +1264,6 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	}
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
-
-	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 }
 
 FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsType, bool bCreate, bool bInitilize)

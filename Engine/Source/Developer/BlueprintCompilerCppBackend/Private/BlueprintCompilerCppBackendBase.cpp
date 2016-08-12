@@ -304,6 +304,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 			FBackendHelperStaticSearchableValues::EmitFunctionDefinition(EmitterContext);
 		}
 		FEmitDefaultValueHelper::GenerateConstructor(EmitterContext);
+		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
 	}
 
 	// Create the state map
@@ -334,7 +335,6 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	{
 		// must be called after GenerateConstructor
 		// now we knows which assets are directly used in source code
-		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
 		FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
 		FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
 	}
