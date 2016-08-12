@@ -3,6 +3,8 @@
 #include "SteamVRPrivatePCH.h"
 #include "SteamVRHMD.h"
 
+#if STEAMVR_SUPPORTED_PLATFORMS
+
 // enable to ensure all openvr calls succeed
 #if 0
 static vr::EVROverlayError sOvrError;
@@ -251,3 +253,4 @@ IStereoLayers* FSteamVRHMD::GetStereoLayers ()
 	return this;
 }
 
+#endif //STEAMVR_SUPPORTED_PLATFORMS

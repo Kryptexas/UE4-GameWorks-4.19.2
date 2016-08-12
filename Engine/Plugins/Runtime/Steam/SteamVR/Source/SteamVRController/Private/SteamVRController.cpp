@@ -364,6 +364,7 @@ public:
 
 	virtual void SetHapticFeedbackValues(int32 UnrealControllerId, int32 Hand, const FHapticFeedbackValues& Values) override
 	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 		if (Hand != (int32)EControllerHand::Left && Hand != (int32)EControllerHand::Right)
 		{
 			return;
@@ -377,6 +378,7 @@ public:
 
 			UpdateVibration(ControllerIndex);
 		}
+#endif
 	}
 
 	virtual void GetHapticFrequencyRange(float& MinFrequency, float& MaxFrequency) const override

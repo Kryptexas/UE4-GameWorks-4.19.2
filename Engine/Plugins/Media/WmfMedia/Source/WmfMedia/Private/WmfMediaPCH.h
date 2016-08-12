@@ -12,9 +12,9 @@
 
 #include "Runtime/Core/Public/Core.h"
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
+#include "Runtime/CoreUObject/Public/CoreUObject.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
-	#include "Runtime/CoreUObject/Public/CoreUObject.h"
 	#include "Runtime/Media/Public/IMediaAudioSink.h"
 	#include "Runtime/Media/Public/IMediaModule.h"
 	#include "Runtime/Media/Public/IMediaOptions.h"
