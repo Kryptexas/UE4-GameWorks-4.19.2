@@ -1356,6 +1356,11 @@ namespace UnrealBuildTool
 				// NOTE: We disable mutex when launching UBT from within UBT to clean UHT
 				UBTArguments.Append(" -NoMutex -Clean");
 
+				if(UnrealBuildTool.CommandLineContains("-ignorejunk"))
+				{
+					UBTArguments.Append(" -ignorejunk");
+				}
+
 				ExternalExecution.RunExternalExecutable(UnrealBuildTool.GetUBTPath(), UBTArguments.ToString());
 			}
 		}
