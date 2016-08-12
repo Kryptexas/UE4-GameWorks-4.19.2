@@ -681,6 +681,7 @@ namespace APIDocTool
 				NewProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 				NewProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 
+				Console.WriteLine("Running {0} {1}", NewProcess.StartInfo.FileName, NewProcess.StartInfo.Arguments);
 				try
 				{
 					NewProcess.Start();
