@@ -303,6 +303,8 @@ void ULevel::Serialize( FArchive& Ar )
 
 	Super::Serialize( Ar );
 
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
 	if (Ar.IsLoading() && Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::LevelTransArrayConvertedToTArray)
 	{
 		TTransArray<AActor*> OldActors(this);
