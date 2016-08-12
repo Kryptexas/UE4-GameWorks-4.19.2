@@ -228,8 +228,11 @@ public:
 	/** Record the selected actors into a sub sequence of the currently active sequence */
 	TSharedPtr< FUICommandInfo > RecordSelectedActors;
 
-	/** Exports the current scene and sequence to fbx. */
-	TSharedPtr< FUICommandInfo > ExportSceneAndSequence;
+	/** Imports animation from fbx. */
+	TSharedPtr< FUICommandInfo > ImportFBX;
+
+	/** Exports animation to fbx. */
+	TSharedPtr< FUICommandInfo > ExportFBX;
 
 	/**
 	 * Initialize commands

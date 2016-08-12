@@ -46,6 +46,7 @@
 
 #include "Animation/AnimSequence.h"
 
+
 ERichCurveInterpMode FMatineeImportTools::MatineeInterpolationToRichCurveInterpolation( EInterpCurveMode CurveMode )
 {
 	switch ( CurveMode )
@@ -81,6 +82,12 @@ ERichCurveTangentMode FMatineeImportTools::MatineeInterpolationToRichCurveTangen
 	}
 }
 
+void CleanupCurveKeys(FRichCurve& InCurve)
+{
+	InCurve.RemoveRedundantKeys(KINDA_SMALL_NUMBER);
+	InCurve.AutoSetTangents();
+}
+
 
 bool FMatineeImportTools::TryConvertMatineeToggleToOutParticleKey( ETrackToggleAction ToggleAction, EParticleKey::Type& OutParticleKey )
 {
@@ -102,7 +109,13 @@ bool FMatineeImportTools::TryConvertMatineeToggleToOutParticleKey( ETrackToggleA
 
 void FMatineeImportTools::SetOrAddKey( FRichCurve& Curve, float Time, float Value, float ArriveTangent, float LeaveTangent, EInterpCurveMode MatineeInterpMode )
 {
-	FKeyHandle KeyHandle = Curve.AddKey( Time, Value, false, Curve.FindKey( Time ) );
+	FKeyHandle KeyHandle = Curve.FindKey(Time);
+
+	if (!Curve.IsKeyHandleValid(KeyHandle))
+	{
+		KeyHandle = Curve.AddKey( Time, Value, false);
+	}
+
 	FRichCurveKey& Key = Curve.GetKey( KeyHandle );
 	Key.ArriveTangent = ArriveTangent;
 	Key.LeaveTangent = LeaveTangent;
@@ -176,6 +189,8 @@ bool FMatineeImportTools::CopyInterpFloatTrack( UInterpTrackFloatBase* MatineeFl
 			SectionMax = FMath::Max( SectionMax, Point.InVal );
 		}
 
+		CleanupCurveKeys(FloatCurve);
+
 		Section->SetStartTime( SectionMin );
 		Section->SetEndTime( SectionMax );
 	}
@@ -222,6 +237,10 @@ bool FMatineeImportTools::CopyInterpColorTrack( UInterpTrackColorProp* ColorProp
 			SectionMin = FMath::Min( SectionMin, Point.InVal );
 			SectionMax = FMath::Max( SectionMax, Point.InVal );
 		}
+
+		CleanupCurveKeys(RedCurve);
+		CleanupCurveKeys(GreenCurve);
+		CleanupCurveKeys(BlueCurve);
 
 		Section->SetStartTime( SectionMin );
 		Section->SetEndTime( SectionMax );
@@ -271,6 +290,11 @@ bool FMatineeImportTools::CopyInterpLinearColorTrack( UInterpTrackLinearColorPro
 			SectionMin = FMath::Min( SectionMin, Point.InVal );
 			SectionMax = FMath::Max( SectionMax, Point.InVal );
 		}
+
+		CleanupCurveKeys(RedCurve);
+		CleanupCurveKeys(GreenCurve);
+		CleanupCurveKeys(BlueCurve);
+		CleanupCurveKeys(AlphaCurve);
 
 		Section->SetStartTime( SectionMin );
 		Section->SetEndTime( SectionMax );
@@ -337,44 +361,54 @@ bool FMatineeImportTools::CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMov
 				UInterpTrackMoveAxis* MoveSubTrack = Cast<UInterpTrackMoveAxis>(SubTrack);
 				if (MoveSubTrack)
 				{
-					for (const auto& Point : MoveSubTrack->FloatTrack.Points)
-					{
-						FRichCurve* SubTrackCurve = nullptr;
+					FRichCurve* SubTrackCurve = nullptr;
 
-						if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationX)
-						{
-							SubTrackCurve = &TranslationXCurve;
-						}
-						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationY)
-						{
-							SubTrackCurve = &TranslationYCurve;
-						}
-						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationZ)
-						{
-							SubTrackCurve = &TranslationZCurve;
-						}
-						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
-						{
-							SubTrackCurve = &RotationXCurve;
-						}
-						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
-						{
-							SubTrackCurve = &RotationYCurve;
-						}
-						else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationZ)
-						{
-							SubTrackCurve = &RotationZCurve;
-						}
+					if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationX)
+					{
+						SubTrackCurve = &TranslationXCurve;
+					}
+					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationY)
+					{
+						SubTrackCurve = &TranslationYCurve;
+					}
+					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_TranslationZ)
+					{
+						SubTrackCurve = &TranslationZCurve;
+					}
+					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
+					{
+						SubTrackCurve = &RotationXCurve;
+					}
+					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
+					{
+						SubTrackCurve = &RotationYCurve;
+					}
+					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationZ)
+					{
+						SubTrackCurve = &RotationZCurve;
+					}
 							
-						if (SubTrackCurve != nullptr)
+					if (SubTrackCurve != nullptr)
+					{
+						for (const auto& Point : MoveSubTrack->FloatTrack.Points)
 						{
 							FMatineeImportTools::SetOrAddKey( *SubTrackCurve, Point.InVal, Point.OutVal, Point.ArriveTangent, Point.LeaveTangent, Point.InterpMode );
 							SectionMax = FMath::Max( SectionMax, Point.InVal );
 						}
+
+						CleanupCurveKeys(*SubTrackCurve);
 					}
 				}
 			}
 		}
+
+		CleanupCurveKeys(TranslationXCurve);
+		CleanupCurveKeys(TranslationYCurve);
+		CleanupCurveKeys(TranslationZCurve);
+
+		CleanupCurveKeys(RotationXCurve);
+		CleanupCurveKeys(RotationYCurve);
+		CleanupCurveKeys(RotationZCurve);
 
 		Section->SetStartTime( SectionMin );
 		Section->SetEndTime( SectionMax );

@@ -4,6 +4,8 @@
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneAudioTrack.h"
+#include "MovieSceneFloatSection.h"
+#include "MovieSceneFloatTrack.h"
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 #include "MovieSceneCinematicShotSection.h"
@@ -616,9 +618,223 @@ bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene,
 	return false;
 }
 
-bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, FGuid InObjectBinding)
+bool ImportFBXProperty(FString NodeName, FString AnimatedPropertyName, FGuid ObjectBinding, UnFbx::FFbxCurvesAPI& CurveAPI, UMovieScene* InMovieScene, FMovieSceneSequenceInstance& InSequence, ISequencer& InSequencer)
 {
-	/*
+	const UMovieSceneToolsProjectSettings* ProjectSettings = GetDefault<UMovieSceneToolsProjectSettings>();
+
+	for (auto FbxSetting : ProjectSettings->FbxSettings)
+	{
+		if (FCString::Strcmp(*FbxSetting.FbxPropertyName.ToUpper(), *AnimatedPropertyName.ToUpper()) != 0)
+		{
+			continue;
+		}
+					
+		UObject* FoundObject = InSequence.FindObject(ObjectBinding, InSequencer);
+		if (!FoundObject)
+		{
+			continue;
+		}
+		
+		UObject* PropertyOwner = FoundObject;
+		if (!FbxSetting.PropertyPath.ComponentName.IsEmpty())
+		{
+			PropertyOwner = FindObjectFast<UObject>(FoundObject, *FbxSetting.PropertyPath.ComponentName);
+		}
+
+		if (!PropertyOwner)
+		{
+			continue;
+		}
+	
+		FGuid PropertyOwnerGuid = InSequence.FindObjectId(*PropertyOwner);
+		if (!PropertyOwnerGuid.IsValid())
+		{
+			PropertyOwnerGuid = InSequencer.GetHandleToObject(PropertyOwner);
+		}
+
+		if (PropertyOwnerGuid.IsValid())
+		{
+			UMovieSceneFloatTrack* FloatTrack = InMovieScene->FindTrack<UMovieSceneFloatTrack>(PropertyOwnerGuid, *FbxSetting.PropertyPath.PropertyName);
+			if (!FloatTrack)
+			{
+				FString PropertyPath = FbxSetting.PropertyPath.ComponentName + TEXT(".") + FbxSetting.PropertyPath.PropertyName;
+				InMovieScene->Modify();
+				FloatTrack = InMovieScene->AddTrack<UMovieSceneFloatTrack>(PropertyOwnerGuid);
+				FloatTrack->SetPropertyNameAndPath(*FbxSetting.PropertyPath.PropertyName, PropertyPath);
+			}
+
+			if (FloatTrack)
+			{			
+				bool bSectionAdded = false;
+				UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>(FloatTrack->FindOrAddSection(0.f, bSectionAdded));
+				if (!FloatSection)
+				{
+					continue;
+				}
+
+				if (bSectionAdded)
+				{
+					FloatSection->SetIsInfinite(true);
+				}
+
+				float MinTime = FLT_MAX;
+				float MaxTime = -FLT_MAX;
+
+				const int32 ChannelIndex = 0;
+				const int32 CompositeIndex = 0;
+				FInterpCurveFloat CurveHandle;
+				const bool bNegative = false;
+				CurveAPI.GetCurveData(NodeName, AnimatedPropertyName, ChannelIndex, CompositeIndex, CurveHandle, bNegative);
+
+				FRichCurve& FloatCurve = FloatSection->GetFloatCurve();
+				FloatCurve.Reset();
+				for (int32 KeyIndex = 0; KeyIndex < CurveHandle.Points.Num(); ++KeyIndex)
+				{
+					MinTime = FMath::Min(MinTime, CurveHandle.Points[KeyIndex].InVal);
+					MaxTime = FMath::Max(MaxTime, CurveHandle.Points[KeyIndex].InVal);
+					FMatineeImportTools::SetOrAddKey(FloatCurve, CurveHandle.Points[KeyIndex].InVal, CurveHandle.Points[KeyIndex].OutVal, CurveHandle.Points[KeyIndex].ArriveTangent, CurveHandle.Points[KeyIndex].LeaveTangent, CurveHandle.Points[KeyIndex].InterpMode);
+				}
+
+				FloatCurve.RemoveRedundantKeys(KINDA_SMALL_NUMBER);
+				FloatCurve.AutoSetTangents();
+
+				FloatSection->SetStartTime(MinTime);
+				FloatSection->SetEndTime(MaxTime);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool ImportFBXTransform(FString NodeName, FGuid ObjectBinding, UnFbx::FFbxCurvesAPI& CurveAPI, UMovieScene* InMovieScene)
+{
+	// Look for transforms explicitly
+	FInterpCurveFloat Translation[3];
+	FInterpCurveFloat EulerRotation[3];
+	FInterpCurveFloat Scale[3];
+	CurveAPI.GetConvertedTransformCurveData(NodeName, Translation[0], Translation[1], Translation[2], EulerRotation[0], EulerRotation[1], EulerRotation[2], Scale[0], Scale[1], Scale[2]);
+
+	if (Translation[0].Points.Num() == 0 &&  Translation[1].Points.Num() == 0 && Translation[2].Points.Num() == 0 &&
+		EulerRotation[0].Points.Num() == 0 && EulerRotation[1].Points.Num() == 0 && EulerRotation[2].Points.Num() == 0 &&
+		Scale[0].Points.Num() == 0 && Scale[1].Points.Num() && Scale[2].Points.Num())
+	{
+		return false;
+	}
+
+	UMovieScene3DTransformTrack* TransformTrack = InMovieScene->FindTrack<UMovieScene3DTransformTrack>(ObjectBinding); 
+	if (!TransformTrack)
+	{
+		InMovieScene->Modify();
+		TransformTrack = InMovieScene->AddTrack<UMovieScene3DTransformTrack>(ObjectBinding);
+	}
+
+	bool bSectionAdded = false;
+	UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>(TransformTrack->FindOrAddSection(0.f, bSectionAdded));
+	if (!TransformSection)
+	{
+		return false;
+	}
+
+	if (bSectionAdded)
+	{
+		TransformSection->SetIsInfinite(true);
+	}
+
+	float MinTime = FLT_MAX;
+	float MaxTime = -FLT_MAX;
+
+	const int NumCurves = 3; // Trans, Rot, Scale
+	for (int32 CurveIndex = 0; CurveIndex < NumCurves; ++CurveIndex)
+	{
+		for (int32 ChannelIndex = 0; ChannelIndex < 3; ++ChannelIndex)
+		{
+			EAxis::Type ChannelAxis = EAxis::X;
+			if (ChannelIndex == 1)
+			{
+				ChannelAxis = EAxis::Y;
+			}
+			else if (ChannelIndex == 2)
+			{
+				ChannelAxis = EAxis::Z;
+			}
+	
+			FInterpCurveFloat* CurveFloat = nullptr;
+			FRichCurve* ChannelCurve = nullptr;
+				
+			if (CurveIndex == 0)
+			{
+				CurveFloat = &Translation[ChannelIndex];
+				ChannelCurve = &TransformSection->GetTranslationCurve(ChannelAxis);
+			}
+			else if (CurveIndex == 1)
+			{
+				CurveFloat = &EulerRotation[ChannelIndex];
+				ChannelCurve = &TransformSection->GetRotationCurve(ChannelAxis);
+			}
+			else if (CurveIndex == 2)
+			{
+				CurveFloat = &Scale[ChannelIndex];
+				ChannelCurve = &TransformSection->GetScaleCurve(ChannelAxis);
+			}
+
+			if (ChannelCurve != nullptr && CurveFloat != nullptr)
+			{
+				ChannelCurve->Reset();
+				
+				for (int32 KeyIndex = 0; KeyIndex < CurveFloat->Points.Num(); ++KeyIndex)
+				{
+					MinTime = FMath::Min(MinTime, CurveFloat->Points[KeyIndex].InVal);
+					MaxTime = FMath::Max(MaxTime, CurveFloat->Points[KeyIndex].InVal);
+					FMatineeImportTools::SetOrAddKey(*ChannelCurve, CurveFloat->Points[KeyIndex].InVal, CurveFloat->Points[KeyIndex].OutVal, CurveFloat->Points[KeyIndex].ArriveTangent, CurveFloat->Points[KeyIndex].LeaveTangent, CurveFloat->Points[KeyIndex].InterpMode);
+				}
+
+				ChannelCurve->RemoveRedundantKeys(KINDA_SMALL_NUMBER);
+				ChannelCurve->AutoSetTangents();
+			}
+		}
+	}
+		
+	TransformSection->SetStartTime(MinTime);
+	TransformSection->SetEndTime(MaxTime);
+	return true;
+}
+
+bool ImportFBXNode(FString NodeName, UnFbx::FFbxCurvesAPI& CurveAPI, UMovieScene* InMovieScene, FMovieSceneSequenceInstance& InSequence, ISequencer& InSequencer, const TMap<FGuid, FString>& InObjectBindingMap)
+{
+	// Find the matching object binding to apply this animation to. Defaults to the first.
+	FGuid ObjectBinding;
+	for (auto It = InObjectBindingMap.CreateConstIterator(); It; ++It)
+	{
+		if (InObjectBindingMap.Num() == 1 || FCString::Strcmp(*It.Value().ToUpper(), *NodeName.ToUpper()) == 0)
+		{
+			ObjectBinding = It.Key();
+			break;
+		}
+	}
+
+	if (!ObjectBinding.IsValid())
+	{
+		//@todo output warning
+		return false;
+	}
+
+	// Look for animated float properties
+	TArray<FString> AnimatedPropertyNames;
+	CurveAPI.GetNodeAnimatedPropertyNameArray(NodeName, AnimatedPropertyNames);
+		
+	for (auto AnimatedPropertyName : AnimatedPropertyNames)
+	{
+		ImportFBXProperty(NodeName, AnimatedPropertyName, ObjectBinding, CurveAPI, InMovieScene, InSequence, InSequencer);
+	}
+	
+	ImportFBXTransform(NodeName, ObjectBinding, CurveAPI, InMovieScene);
+
+	return true;
+}
+
+bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, FMovieSceneSequenceInstance& InSequence, ISequencer& InSequencer, const TMap<FGuid, FString>& InObjectBindingMap)
+{
 	TArray<FString> OpenFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bOpen = false;
@@ -639,7 +855,7 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, FGuid InObjectB
 		bOpen = DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
 			NSLOCTEXT("UnrealEd", "MovieSceneToolHelpersImportFBX", "Import FBX from...").ToString(), 
-			FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_IMPORT),
+			FEditorDirectories::Get().GetLastDirectory(ELastDirectory::FBX),
 			TEXT(""), 
 			*ExtensionStr,
 			EFileDialogFlags::None,
@@ -656,10 +872,13 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, FGuid InObjectB
 		return false;
 	}
 
+	FString ImportFilename = OpenFilenames[0];
+	FEditorDirectories::Get().SetLastDirectory( ELastDirectory::FBX, FPaths::GetPath( ImportFilename ) ); // Save path as default for next time.
+	
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
 
-	const FString FileExtension = FPaths::GetExtension(OpenFilenames[0]);
-	if (!FbxImporter->ImportFromFile(*OpenFilenames[0], FileExtension, true))
+	const FString FileExtension = FPaths::GetExtension(ImportFilename);
+	if (!FbxImporter->ImportFromFile(*ImportFilename, FileExtension, true))
 	{
 		// Log the error message and fail the import.
 		FbxImporter->ReleaseScene();
@@ -668,86 +887,16 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, FGuid InObjectB
 
 	const FScopedTransaction Transaction( NSLOCTEXT( "MovieSceneTools", "ImportFBX", "Import FBX" ) );
 
-	//@todo Find transform tracks explicitly for now. This should be dynamic in the future
-	UMovieScene3DTransformTrack* TransformTrack = InMovieScene->FindTrack<UMovieScene3DTransformTrack>(InObjectBinding); 
-	if (!TransformTrack)
-	{
-		InMovieScene->Modify();
-		TransformTrack = InMovieScene->AddTrack<UMovieScene3DTransformTrack>(InObjectBinding);
-	}
-
-	bool bSectionAdded = false;
-	UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>(TransformTrack->FindOrAddSection(0.f, bSectionAdded));
-	if (!TransformSection)
-	{
-		return false;
-	}
-
-	if (bSectionAdded)
-	{
-		TransformSection->SetIsInfinite(true);
-	}
-
-	float MinTime = FLT_MAX;
-	float MaxTime = -FLT_MAX;
-
 	UnFbx::FFbxCurvesAPI CurveAPI;
 	FbxImporter->PopulateAnimatedCurveData(CurveAPI);
 	TArray<FString> AnimatedNodeNames;
 	CurveAPI.GetAnimatedNodeNameArray(AnimatedNodeNames);
+
 	for (FString NodeName : AnimatedNodeNames)
 	{
-		FInterpCurveFloat Translation[3];
-		FInterpCurveFloat EulerRotation[3];
-
-		CurveAPI.GetConvertedTransformCurveData(NodeName, Translation[0], Translation[1], Translation[2], EulerRotation[0], EulerRotation[1], EulerRotation[2]);
-
-		for (int32 CurveIndex = 0; CurveIndex < 2; ++CurveIndex)
-		{
-			for (int32 ChannelIndex = 0; ChannelIndex < 3; ++ChannelIndex)
-			{
-				EAxis::Type ChannelAxis = EAxis::X;
-				if (ChannelIndex == 1)
-				{
-					ChannelAxis = EAxis::Y;
-				}
-				else if (ChannelIndex == 2)
-				{
-					ChannelAxis = EAxis::Z;
-				}
-	
-				FInterpCurveFloat* CurveFloat = nullptr;
-				FRichCurve* ChannelCurve = nullptr;
-				
-				if (CurveIndex == 0)
-				{
-					CurveFloat = &Translation[ChannelIndex];
-					ChannelCurve = &TransformSection->GetTranslationCurve(ChannelAxis);
-				}
-				else
-				{
-					CurveFloat = &EulerRotation[ChannelIndex];
-					ChannelCurve = &TransformSection->GetRotationCurve(ChannelAxis);
-				}
-
-				if (ChannelCurve != nullptr && CurveFloat != nullptr)
-				{
-					ChannelCurve->Reset();
-					for (int32 KeyIndex = 0; KeyIndex < CurveFloat->Points.Num(); ++KeyIndex)
-					{
-						MinTime = FMath::Min(MinTime, CurveFloat->Points[KeyIndex].InVal);
-						MaxTime = FMath::Max(MaxTime, CurveFloat->Points[KeyIndex].InVal);
-						FMatineeImportTools::SetOrAddKey(*ChannelCurve, CurveFloat->Points[KeyIndex].InVal, CurveFloat->Points[KeyIndex].OutVal, CurveFloat->Points[KeyIndex].ArriveTangent, CurveFloat->Points[KeyIndex].LeaveTangent, CurveFloat->Points[KeyIndex].InterpMode);
-					}
-				}
-			}
-		}
+		ImportFBXNode(NodeName, CurveAPI, InMovieScene, InSequence, InSequencer, InObjectBindingMap);
 	}
-		
-	TransformSection->SetStartTime(MinTime);
-	TransformSection->SetEndTime(MaxTime);
-	
+
 	FbxImporter->ReleaseScene();
-	*/
 	return true;
 }

@@ -4,6 +4,34 @@
 
 #include "MovieSceneToolsProjectSettings.generated.h"
 
+USTRUCT()
+struct FMovieSceneToolsPropertyTrackSettings
+{
+	GENERATED_BODY()
+
+	/** Optional ActorComponent tag (when keying a component property). */
+	UPROPERTY(config, EditAnywhere, Category=PropertyTrack)
+	FString ComponentName;
+
+	/** Name to the keyed property within the Actor or ActorComponent. */
+	UPROPERTY(config, EditAnywhere, Category=PropertyTrack)
+	FString PropertyName;
+};
+
+USTRUCT()
+struct FMovieSceneToolsFbxSettings
+{
+	GENERATED_BODY()
+
+    /** The name of the fbx property */
+	UPROPERTY(config, EditAnywhere, Category=TrackSettings)
+	FString FbxPropertyName;
+
+	/** The property track setting to map to */
+	UPROPERTY(config, EditAnywhere, Category=TrackSettings)
+	FMovieSceneToolsPropertyTrackSettings PropertyPath;
+};
+
 // Settings for the level sequences
 UCLASS(config=EditorPerProjectUserSettings)
 class MOVIESCENETOOLS_API UMovieSceneToolsProjectSettings : public UObject
@@ -52,4 +80,8 @@ public:
 	/** A single character separator between the shot number and the take number. */
 	UPROPERTY(config, EditAnywhere, Category=Shots)
 	FString TakeSeparator;
+
+	/** Mapping between fbx property name and property track path */
+	UPROPERTY(config, EditAnywhere, Category=TrackSettings)
+	TArray<FMovieSceneToolsFbxSettings> FbxSettings;
 };

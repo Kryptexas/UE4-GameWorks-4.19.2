@@ -985,7 +985,8 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 
 	if ( SequencerPtr.Pin()->IsLevelEditorSequencer() )
 	{
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExportSceneAndSequence );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ImportFBX );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExportFBX );
 	}
 
 	return MenuBuilder.MakeWidget();

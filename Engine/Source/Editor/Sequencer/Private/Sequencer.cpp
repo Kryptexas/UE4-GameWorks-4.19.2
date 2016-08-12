@@ -4475,15 +4475,6 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 	NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
 }
 
-void FSequencer::ImportFBX(FGuid InObjectBinding)
-{
-	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
-	if (MovieSceneToolHelpers::ImportFBX(MovieScene, InObjectBinding))
-	{
-		NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
-	}
-}
-
 void FSequencer::DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted)
 {
 	// If this node is selected, delete all selected nodes
@@ -5783,8 +5774,47 @@ void FSequencer::FixFrameTiming()
 	}
 }
 
+void FSequencer::ImportFBX()
+{
+	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 
-void FSequencer::ExportSceneAndSequence()
+	// The object binding and names to match when importing from fbx
+	TMap<FGuid, FString> ObjectBindingNameMap;
+
+	for (const TSharedRef<FSequencerDisplayNode>& Node : Selection.GetSelectedOutlinerNodes())
+	{
+		if (Node->GetType() == ESequencerNode::Object)
+		{
+			auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
+
+			FGuid ObjectBinding = ObjectBindingNode.Get().GetObjectBinding();
+
+			ObjectBindingNameMap.Add(ObjectBinding, ObjectBindingNode.Get().GetDisplayName().ToString());
+		}
+	}
+
+	// If nothing selected, try to map onto everything
+	if (ObjectBindingNameMap.Num() == 0)
+	{
+		TArray<TSharedRef<FSequencerObjectBindingNode>> RootObjectBindingNodes;
+		GetRootObjectBindingNodes( NodeTree->GetRootNodes(), RootObjectBindingNodes );
+
+		for (auto RootObjectBindingNode : RootObjectBindingNodes)
+		{
+			FGuid ObjectBinding = RootObjectBindingNode.Get().GetObjectBinding();
+
+			ObjectBindingNameMap.Add(ObjectBinding, RootObjectBindingNode.Get().GetDisplayName().ToString());
+		}
+	}
+	
+	if (MovieSceneToolHelpers::ImportFBX(MovieScene, *GetFocusedMovieSceneSequenceInstance(), *this, ObjectBindingNameMap))
+	{
+		NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
+	}
+}
+
+
+void FSequencer::ExportFBX()
 {
 	void* ParentWindowWindowHandle = nullptr;
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( TEXT( "MainFrame" ) );
@@ -5802,7 +5832,7 @@ void FSequencer::ExportSceneAndSequence()
 		bExportFileNamePicked = DesktopPlatform->SaveFileDialog(
 			ParentWindowWindowHandle,
 			LOCTEXT( "ExportLevelSequence", "Export Level Sequence" ).ToString(),
-			*( FEditorDirectories::Get().GetLastDirectory( ELastDirectory::GENERIC_EXPORT ) ),
+			*( FEditorDirectories::Get().GetLastDirectory( ELastDirectory::FBX ) ),
 			TEXT( "" ),
 			TEXT( "FBX document|*.fbx" ),
 			EFileDialogFlags::None,
@@ -5812,19 +5842,33 @@ void FSequencer::ExportSceneAndSequence()
 	if ( bExportFileNamePicked )
 	{
 		FString ExportFilename = SaveFilenames[0];
-		FEditorDirectories::Get().SetLastDirectory( ELastDirectory::GENERIC_EXPORT, FPaths::GetPath( ExportFilename ) ); // Save path as default for next time.
+		FEditorDirectories::Get().SetLastDirectory( ELastDirectory::FBX, FPaths::GetPath( ExportFilename ) ); // Save path as default for next time.
 
 		UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 
 		Exporter->CreateDocument();
-		Exporter->SetTrasformBaking( false );
+		Exporter->SetTrasformBaking( true );
 		Exporter->SetKeepHierarchy( true );
 
-		const bool bSelectedOnly = false;
+		// Select selected nodes if there are selected nodes
+		TArray<FGuid> Bindings;
+		for (const TSharedRef<FSequencerDisplayNode>& Node : Selection.GetSelectedOutlinerNodes())
+		{
+			if (Node->GetType() == ESequencerNode::Object)
+			{
+				auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
+
+				Bindings.Add(ObjectBindingNode.Get().GetObjectBinding());
+			}
+		}
+
+		const bool bSelectedOnly = Bindings.Num() != 0;
+
+		UnFbx::FFbxExporter::FLevelSequenceNodeNameAdapter NodeNameAdapter(GetFocusedMovieSceneSequence()->GetMovieScene(), this);
 
 		// Export the persistent level and all of it's actors
 		UWorld* World = Cast<UWorld>( GetPlaybackContext() );
-		Exporter->ExportLevelMesh( World->PersistentLevel, nullptr, bSelectedOnly );
+		Exporter->ExportLevelMesh( World->PersistentLevel, bSelectedOnly, NodeNameAdapter );
 
 		// Export streaming levels and actors
 		for ( int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex )
@@ -5832,12 +5876,12 @@ void FSequencer::ExportSceneAndSequence()
 			ULevel* CurLevel = World->GetLevel( CurLevelIndex );
 			if ( CurLevel != NULL && CurLevel != ( World->PersistentLevel ) )
 			{
-				Exporter->ExportLevelMesh( CurLevel, nullptr, bSelectedOnly );
+				Exporter->ExportLevelMesh( CurLevel, bSelectedOnly, NodeNameAdapter );
 			}
 		}
 
 		// Export the movie scene data.
-		Exporter->ExportLevelSequence( GetFocusedMovieSceneSequence()->GetMovieScene(), this );
+		Exporter->ExportLevelSequence( GetFocusedMovieSceneSequence()->GetMovieScene(), Bindings, this );
 
 		// Save to disk
 		Exporter->WriteToFile( *ExportFilename );
@@ -6279,8 +6323,13 @@ void FSequencer::BindCommands()
 		FCanExecuteAction::CreateLambda( [] { return true; } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ExportSceneAndSequence,
-		FExecuteAction::CreateSP( this, &FSequencer::ExportSceneAndSequence ),
+		Commands.ImportFBX,
+		FExecuteAction::CreateSP( this, &FSequencer::ImportFBX ),
+		FCanExecuteAction::CreateLambda( [] { return true; } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ExportFBX,
+		FExecuteAction::CreateSP( this, &FSequencer::ExportFBX ),
 		FCanExecuteAction::CreateLambda( [] { return true; } ) );
 
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)

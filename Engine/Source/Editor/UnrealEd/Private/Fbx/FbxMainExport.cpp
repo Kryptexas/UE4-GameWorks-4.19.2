@@ -280,7 +280,7 @@ static void SortActorsHierarchy(TArray<AActor*>& Actors)
 /**
  * Exports the basic scene information to the FBX document.
  */
-void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeActor, bool bSelectedOnly )
+void FFbxExporter::ExportLevelMesh( ULevel* InLevel, bool bSelectedOnly, INodeNameAdapter& NodeNameAdapter )
 {
 	if (InLevel == NULL)
 	{
@@ -306,19 +306,6 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 			ExportModel(InLevel->Model, Node, "Level Mesh");
 		}
 	}
-
-	// Export all the recognized global actors.
-	// Right now, this only includes lights.
-	UWorld* World = NULL;
-	if( InMatineeActor )
-	{
-		World = InMatineeActor->GetWorld();
-	}
-	else
-	{
-		World = CastChecked<UWorld>( InLevel->GetOuter() );
-	}
-	check(World);
 
 	TArray<AActor*> ActorToExport;
 	int32 ActorCount = InLevel->Actors.Num();
@@ -350,38 +337,38 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 		}
 		if (Actor->IsA(ALight::StaticClass()))
 		{
-			ExportLight((ALight*) Actor, InMatineeActor );
+			ExportLight((ALight*) Actor, NodeNameAdapter );
 		}
 		else if (!bIsBlueprintClass && Actor->IsA(AStaticMeshActor::StaticClass()))
 		{
-			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), InMatineeActor );
+			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter );
 		}
 		else if (Actor->IsA(ALandscapeProxy::StaticClass()))
 		{
-			ExportLandscape(CastChecked<ALandscapeProxy>(Actor), false);
+			ExportLandscape(CastChecked<ALandscapeProxy>(Actor), false, NodeNameAdapter);
 		}
 		else if (Actor->IsA(ABrush::StaticClass()))
 		{
 			// All brushes should be included within the world geometry exported above.
-			ExportBrush((ABrush*) Actor, NULL, 0 );
+			ExportBrush((ABrush*) Actor, NULL, 0, NodeNameAdapter );
 		}
 		else if (Actor->IsA(AEmitter::StaticClass()))
 		{
-			ExportActor( Actor, InMatineeActor ); // Just export the placement of the particle emitter.
+			ExportActor( Actor, false, NodeNameAdapter ); // Just export the placement of the particle emitter.
 		}
 		else if(Actor->IsA(ACameraActor::StaticClass()))
 		{
-			ExportCamera(CastChecked<ACameraActor>(Actor), InMatineeActor, false); // Just export the placement of the particle emitter.
+			ExportCamera(CastChecked<ACameraActor>(Actor), false, NodeNameAdapter); // Just export the placement of the particle emitter.
 		}
 		else if(Actor->IsA(ASkeletalMeshActor::StaticClass()) ||  bIsBlueprintClass)
 		{
 			// Export blueprint and skeletal actors and all their components
-			ExportActor( Actor, InMatineeActor, true );
+			ExportActor( Actor, true, NodeNameAdapter );
 		}
 		else if(Actor->IsA(AInstancedFoliageActor::StaticClass()))
 		{
 			// Export Foliage components
-			ExportActor( Actor, InMatineeActor, true );
+			ExportActor( Actor, true, NodeNameAdapter );
 		}
 	}
 }
@@ -439,18 +426,18 @@ void FFbxExporter::FillFbxLightAttribute(FbxLight* Light, FbxNode* FbxParentNode
 /**
  * Exports the light-specific information for a light actor.
  */
-void FFbxExporter::ExportLight( ALight* Actor, AMatineeActor* InMatineeActor )
+void FFbxExporter::ExportLight( ALight* Actor, INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL || !Actor->GetLightComponent()) return;
 
 	// Export the basic actor information.
-	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor ); // this is the pivot node
+	FbxNode* FbxActor = ExportActor( Actor, false, NodeNameAdapter ); // this is the pivot node
 	// The real fbx light node
 	FbxNode* FbxLightNode = FbxActor->GetParent();
 
 	ULightComponent* BaseLight = Actor->GetLightComponent();
 
-	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
 	// Export the basic light information
 	FbxLight* Light = FbxLight::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
@@ -476,17 +463,17 @@ void FFbxExporter::FillFbxCameraAttribute(FbxNode* ParentNode, FbxCamera* Camera
 	Camera->SetFarPlane(100000.0f);
 }
 
-void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeActor, bool bExportComponents )
+void FFbxExporter::ExportCamera( ACameraActor* Actor, bool bExportComponents,INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL) return;
 
 	UCameraComponent *CameraComponent = Actor->GetCameraComponent();
 	// Export the basic actor information.
-	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor, bExportComponents ); // this is the pivot node
+	FbxNode* FbxActor = ExportActor( Actor, bExportComponents, NodeNameAdapter ); // this is the pivot node
 	// The real fbx camera node
 	FbxNode* FbxCameraNode = FbxActor->GetParent();
 
-	FString FbxNodeName = GetActorNodeName(Actor, NULL);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
 	// Create a properly-named FBX camera structure and instantiate it in the FBX scene graph
 	FbxCamera* Camera = FbxCamera::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
@@ -500,7 +487,7 @@ void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeAc
 /**
  * Exports the mesh and the actor information for a brush actor.
  */
-void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToStaticMesh )
+void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToStaticMesh, INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL || !Actor->GetBrushComponent()) return;
 
@@ -512,7 +499,7 @@ void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToSt
 		if (Model == NULL || Model->VertexBuffer.Vertices.Num() < 3 || Model->MaterialIndexBuffers.Num() == 0) return;
  
 		// Create the FBX actor, the FBX geometry and instantiate it.
-		FbxNode* FbxActor = ExportActor( Actor, NULL );
+		FbxNode* FbxActor = ExportActor( Actor, false, NodeNameAdapter );
 		Scene->GetRootNode()->AddChild(FbxActor);
  
 		// Export the mesh information
@@ -684,7 +671,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 	Node->SetNodeAttribute(Mesh);
 }
 
-void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, AMatineeActor* InMatineeActor)
+void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, INodeNameAdapter& NodeNameAdapter)
 {
 	if (Scene == NULL || Actor == NULL || StaticMeshComponent == NULL)
 	{
@@ -699,7 +686,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	}
 	int32 LODIndex = StaticMeshComponent->ForcedLodModel-1;
 
-	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 	FString FbxMeshName = StaticMesh->GetName().Replace(TEXT("-"), TEXT("_"));
 	FColorVertexBuffer* ColorBuffer = NULL;
 	
@@ -708,7 +695,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 		ColorBuffer = StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
 	}
 
-	FbxNode* FbxActor = ExportActor(Actor, InMatineeActor);
+	FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
 	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
 }
 
@@ -907,16 +894,16 @@ void FFbxExporter::ExportSkeletalMesh( USkeletalMesh* SkeletalMesh )
 	ExportSkeletalMeshToFbx(SkeletalMesh, NULL, *MeshName, MeshNode);
 }
 
-void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent )
+void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent, INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL || SkeletalMeshComponent == NULL) return;
 
 	// Retrieve the skeletal mesh rendering information.
 	USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 
-	FString FbxNodeName = GetActorNodeName(Actor, NULL);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
-	ExportActor( Actor, NULL, true );
+	ExportActor( Actor, true, NodeNameAdapter );
 }
 
 FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
@@ -934,18 +921,16 @@ FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
 	return FbxMaterial;
 }
 
-void FFbxExporter::ExportLandscape(ALandscapeProxy* Actor, bool bSelectedOnly)
+void FFbxExporter::ExportLandscape(ALandscapeProxy* Actor, bool bSelectedOnly, INodeNameAdapter& NodeNameAdapter)
 {
 	if (Scene == NULL || Actor == NULL)
 	{ 
 		return;
 	}
 
-	AMatineeActor* InMatineeActor = NULL;
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
-	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
-
-	FbxNode* FbxActor = ExportActor(Actor, InMatineeActor, true);
+	FbxNode* FbxActor = ExportActor(Actor, true, NodeNameAdapter);
 	ExportLandscapeToFbx(Actor, *FbxNodeName, FbxActor, bSelectedOnly);
 }
 
@@ -1118,6 +1103,27 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterialInterface* MaterialInt
 }
 
 
+FFbxExporter::FMatineeNodeNameAdapter::FMatineeNodeNameAdapter( AMatineeActor* InMatineeActor )
+{
+	MatineeActor = InMatineeActor;
+}
+
+FString FFbxExporter::FMatineeNodeNameAdapter::GetActorNodeName(const AActor* Actor)
+{
+	FString NodeName = Actor->GetName();
+	const UInterpGroupInst* FoundGroupInst = MatineeActor->FindGroupInst( Actor );
+	if( FoundGroupInst != NULL )
+	{
+		NodeName = FoundGroupInst->Group->GroupName.ToString();
+	}
+
+	// Maya does not support dashes.  Change all dashes to underscores
+	NodeName = NodeName.Replace(TEXT("-"), TEXT("_") );
+
+	return NodeName;
+}
+
+
 FFbxExporter::FMatineeAnimTrackAdapter::FMatineeAnimTrackAdapter( AMatineeActor* InMatineeActor )
 {
 	MatineeActor = InMatineeActor;
@@ -1205,6 +1211,36 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 }
 
 
+FFbxExporter::FLevelSequenceNodeNameAdapter::FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer )
+{
+	MovieScene = InMovieScene;
+	MovieScenePlayer = InMovieScenePlayer;
+}
+
+FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AActor* Actor)
+{
+	FString NodeName = Actor->GetName();
+
+	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
+	{
+		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
+		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
+
+		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		{
+			if (RuntimeObject.Get() == Actor)
+			{
+				NodeName = MovieSceneBinding.GetName();
+			}
+		}
+	}
+
+	// Maya does not support dashes.  Change all dashes to underscores		
+	NodeName = NodeName.Replace(TEXT("-"), TEXT("_") );
+
+	return NodeName;
+}
+
 FFbxExporter::FLevelSequenceAnimTrackAdapter::FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer )
 {
 	MovieScenePlayer = InMovieScenePlayer;
@@ -1224,7 +1260,7 @@ void FFbxExporter::FLevelSequenceAnimTrackAdapter::UpdateAnimation( float Time )
 }
 
 
-bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, IMovieScenePlayer* MovieScenePlayer )
+bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& Bindings, IMovieScenePlayer* MovieScenePlayer )
 {
 	if ( MovieScene == nullptr || MovieScenePlayer == nullptr )
 	{
@@ -1233,6 +1269,12 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, IMovieScenePlay
 
 	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
 	{
+		// If there are specific bindings to export, export those only
+		if (Bindings.Num() != 0 && !Bindings.Contains(MovieSceneBinding.GetObjectGuid()))
+		{
+			continue;
+		}
+
 		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
 		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
 
@@ -1293,14 +1335,14 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, IMovieScenePlay
  * Exports a scene node with the placement indicated by a given actor.
  * This scene node will always have two transformations: one translation vector and one Euler rotation.
  */
-FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor, bool bExportComponents )
+FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeNameAdapter& NodeNameAdapter )
 {
 	// Verify that this actor isn't already exported, create a structure for it
 	// and buffer it.
 	FbxNode* ActorNode = FindActor(Actor);
 	if (ActorNode == NULL)
 	{
-		FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
+		FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
 		// See if a node with this name was already found
 		// if so add and increment the number on the end of it
@@ -1499,7 +1541,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 				}
 				else if (ChildActorComp && ChildActorComp->GetChildActor())
 				{
-					FbxNode* ChildActorNode = ExportActor(ChildActorComp->GetChildActor(), InMatineeActor, true);
+					FbxNode* ChildActorNode = ExportActor(ChildActorComp->GetChildActor(), true, NodeNameAdapter);
 					FbxActors.Add(ChildActorComp->GetChildActor(), ChildActorNode);
 				}
 			}
