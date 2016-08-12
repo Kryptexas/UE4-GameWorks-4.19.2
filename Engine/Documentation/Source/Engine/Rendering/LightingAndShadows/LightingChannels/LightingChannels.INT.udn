@@ -1,7 +1,7 @@
 Availability:Docs
 Title: Lighting Channels
 Crumbs: %ROOT%, Engine
-Description:The Lighting Channels feature overview.
+Description:Lighting Channels ia a rendering feature that enables you to choose what renderable surfaces are lit by specific lights.
 Navigation:topic
 Version: 4.13
 
