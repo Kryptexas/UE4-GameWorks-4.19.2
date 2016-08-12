@@ -965,7 +965,8 @@ void USkeletalMeshComponent::TermArticulated()
 
 #if WITH_PHYSX
 	uint32 SkelMeshCompID = GetUniqueID();
-	FPhysScene * PhysScene = GetWorld()->GetPhysicsScene();
+	UWorld* MyWorld = GetWorld();
+	FPhysScene* PhysScene = (MyWorld ? MyWorld->GetPhysicsScene() : nullptr);
 	if (PhysScene)
 	{
 		PhysScene->DeferredRemoveCollisionDisableTable(SkelMeshCompID);
