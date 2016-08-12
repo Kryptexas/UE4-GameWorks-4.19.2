@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability:Public
-Title:Google VR and Daydream Devices
+Title:Google VR と Daydream デバイス
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Which Google VR features are specific to Daydream devices.
+Description:Daydream デバイス特有の Google VR 機能
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.12
+Skilllevel:Intermediate
+Version:4.12
 parent:Platforms/GoogleVR
 type:overview
 tags:VR
@@ -13,65 +13,65 @@ tags:Google VR
 tags:Daydream
 
 
-## Overview
-While Google VR can work for almost any Android based device, there are certain features that will only work with Daydream devices. In the following section, we will take a look at these features and what you have to do to use them in your projects.
+## 概要
+Google VR はほとんどの Android ベースのデバイスで使用できますが、Daydream デバイスのみに有効な機能もいくつかあります。これらの機能とプロジェクトでの使用方法について、次のセクションで説明します。
 
 ### Android NDK 11c
-In Order to access the full functionality, Daydream offers you need to download, install Android NDK version 11c. You can download the appropriate version of NDK 11c using the following link.
+Daydream が提供しているすべての機能を使うためには、Android NDK version 11c のダウンロードおよびインストールが必要となります。NDK 11c の最新版は以下のリンクからダウンロードできます。
 
 * [https://developer.android.com/ndk/downloads/index.html](https://developer.android.com/ndk/downloads/index.html)
 
-Once downloaded and installed you will need to point UE4 to the new NDK files by going to the **Android SDK** > **SDKConfig** section and changing the NDK path to the new NDK 11c install location. 
+ダウンロードおよびインストールが完了したら、**[Android SDK]** > **[SDKConfig]** セクションで NDK パスを NDK 11c のインストール先に変更して、UE4 をNDK ファイルに指定する必要があります。 
 
 ![](GDaydream_New_NDK_00.png)
 
 ### Scanline Racing
-Scanline Racing is a feature specific to Daydream devices that when enabled helps to reduce latency in your VR project. To enable Scanline Racing in your Google VR project for Daydream devices you will need to do the following.
+Scanline Racing は、VR プロジェクトでのレイテンシーを減らすことができる Daydream 固有の機能です。Daydream デバイス向け Google VR プロジェクトで Scanline Racing を有効にするには、以下の操作を行います。
 
-1. Open up your **Project Settings** and go to **Platforms** > **Android**.
+1. **[Project Settings (プロジェクト設定)]** の **[Platforms]** > **[Android]** を選択します。
 
 	![](GDaydream_Arm64_Support_00.png)
 
-1. Under the **Build** section enable **Support arm64[aka arm64-v8a]** by clicking on the checkmark box next to its name.
+1. **[Build]** セクションの **[Support arm64[aka arm64-v8a]]** のチェックボックスにチェックを入れて有効にします。
 
 	![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
 
 	[region:note]
-    Enabling this will add significant time to your first cook as the arm64 libraries need to be compiled.
+    これを有効にすることで、arm64 ライブラリのコンパイルが必要な場合、最初のクックに大幅に時間が追加されます。
     [/region]
 
-1. Then under the **Advanced APKPackaging** section and enable the **Configure GoogleVR for low-latency rendering mode (scanline racing)** by clicking on the checkmark box next to its name.
+1. 次に **[Advanced APKPackaging (APKPackaging の詳細設定)]** セクションで **[Configure GoogleVR for low-latency rendering mode (scanline racing)(低レイテンシー レンダリングモードに設定する)]** のチェックボックスにチェックを入れて有効にします。
 
 	![](GDaydream_Scanline_Racing_Support_00.png)
 
-Then next time you cook your UE4 project and deploy it to your Daydream device low latency rendering will be enabled.
+そして UE プロジェクトをクックし、それを低レイテンシー レンダリング設定を有効にした Daydream デバイスにデプロイします。
 
-### Motion Controllers
-Working with Motion Controllers for Daydream devices is much like working with Motion Controllers for the HtC Vive or Oculus Rift. To quickly add Motion Controller functionality to your UE4 Daydream project you need to do the following.
+### モーション コントローラー
+Daydream デバイス用モーション コントローラの操作は、HtC Vive や Oculus Rift のモーション コントローラーの操作とほぼ同じです。この機能を追加するには、以下の手順に従います。
 
 [region:note]
-For a more in-depth look at how to use Motion Controllers in UE4, make sure to check out the [Offical Motion Controller Documents](https://docs.unrealengine.com/latest/INT/Platforms/VR/MotionController/) page for more information.
+UE4 のモーション コントローラーに関する詳細を知りたい方は、[モーション コントローラー公式文書](https://docs.unrealengine.com/latest/INT/Platforms/VR/MotionController/) ページを参照してください。
 [/region]
 
-1. Open up your Player Pawn and search for Motion Controller Component from the **Add Components** list add the following items.
+1. プレイヤー ポーンを開いて、**[Add Components (コンポーネントを追加)]** リストから Motion Controller コンポーネントを検索して以下の項目を追加します。
 
-	* Motion Controller Component
-	* Static Mesh Component with Static Mesh
-	
+	* Motion Controller コンポーネント
+	* スタティクメッシュのある Static Mesh コンポーネント
+
 	[region:lightbox] 
 	[![](GVRQS_Daydream_MC_Setup_00.png)(w:700)](GVRQS_Daydream_MC_Setup_00.png)
 	[/region]
 
-1. Next in the Event Graph use the Motion Contorler Blueprint functions to interact with the buttons on the Motion Controllers.
-	
+1. 次に、イベントグラフで Motion Contorler ブループリント関数を使って、モーションコントローラー上のボタンとインタラクトさせます。
+
 	![](Platforms\VR\MotionController\Working_With_MC.png)
 
-## Training Streams
+## トレーニング ストリーム
 
 [REGION:topics third]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	Setting Up Motion Controllers
+	モーション コントローラーの設定
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	6ALnsdQnkVQ
@@ -79,7 +79,7 @@ For a more in-depth look at how to use Motion Controllers in UE4, make sure to c
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	Creating Interactions in VR With Motion Controllers Part 1
+	モーション コントローラーと VR のインタラクションの作成 (パート 1)
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	eRNtgFo6iU0
@@ -87,7 +87,7 @@ For a more in-depth look at how to use Motion Controllers in UE4, make sure to c
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-		Creating Interactions in VR With Motion Controllers Part 2
+		モーション コントローラーと VR のインタラクションの作成 (パート 2)
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	utOahIZgKgc
