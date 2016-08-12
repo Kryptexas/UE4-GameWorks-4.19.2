@@ -190,6 +190,9 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		checkf(false, TEXT("Incorrect sampling type found in import settings (%i)"), (uint8)SamplingType);
 	}
 
+	// Override the frame start to not crash when indexing the sample array using it as a frame offset TODO CHANGE THIS TO BE MORE CLEAN
+	ImportSettings->SamplingSettings.FrameStart = StartFrameIndex;
+
 	// Reading the required transform tracks
 	ParallelFor(ImportData->TransformObjects.Num(), [&](int32 ObjectIndex)
 	{
