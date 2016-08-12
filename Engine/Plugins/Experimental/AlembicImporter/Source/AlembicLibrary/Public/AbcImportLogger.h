@@ -13,8 +13,8 @@ protected:
 public:
 	/** Adds an import message to the stored array for later output*/
 	static void AddImportMessage(const TSharedRef<FTokenizedMessage> Message);
-	/** Outputs the messages to a message log*/
-	ALEMBICLIBRARY_API static void OutputMessages();
+	/** Outputs the messages to a new named page in the message log */
+	ALEMBICLIBRARY_API static void OutputMessages(const FString& PageName);
 private:
 	/** Error messages **/
 	static TArray<TSharedRef<FTokenizedMessage>> TokenizedErrorMessages;

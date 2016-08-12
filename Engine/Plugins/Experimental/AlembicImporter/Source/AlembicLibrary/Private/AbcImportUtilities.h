@@ -94,18 +94,27 @@ namespace AbcImporterUtilities
 		}
 	}
 
-	template<typename T, typename U> static void RetrieveTypedAbcData(T InSampleDataPtr, TArray<U>& OutDataArray )
+	template<typename T, typename U> static const bool RetrieveTypedAbcData(T InSampleDataPtr, TArray<U>& OutDataArray )
 	{
 		// Allocate required memory for the OutData
 		const int32 NumEntries = InSampleDataPtr->size();
-		OutDataArray.AddZeroed(NumEntries);
-
-		auto DataPtr = InSampleDataPtr->get();
-		auto OutDataPtr = &OutDataArray[0];
+		bool bSuccess = false; 
 		
-		// Ensure that the destination and source data size corresponds (otherwise we will end up with an invalid memcpy and means we have a type mismatch)
-		check(sizeof(DataPtr[0]) == sizeof(OutDataArray[0]));		
-		FMemory::Memcpy(OutDataPtr, DataPtr, sizeof(U) * NumEntries);
+		if (NumEntries)
+		{
+			OutDataArray.AddZeroed(NumEntries);
+			auto DataPtr = InSampleDataPtr->get();
+			auto OutDataPtr = &OutDataArray[0];
+
+			// Ensure that the destination and source data size corresponds (otherwise we will end up with an invalid memcpy and means we have a type mismatch)
+			if (sizeof(DataPtr[0]) == sizeof(OutDataArray[0]))
+			{
+				FMemory::Memcpy(OutDataPtr, DataPtr, sizeof(U) * NumEntries);
+				bSuccess = true;
+			}
+		}	
+
+		return bSuccess;
 	}
 
 	/** Expands the given vertex attribute array to not be indexed */
@@ -246,13 +255,15 @@ namespace AbcImporterUtilities
 		Alembic::AbcGeom::IPolyMeshSchema::Sample MeshSample;
 		Schema.get(MeshSample, FrameSelector);
 
+		bool bRetrievalResult = true;
+
 		// Retrieve all available mesh data
 		Alembic::Abc::P3fArraySamplePtr PositionsSample = MeshSample.getPositions();
-		RetrieveTypedAbcData<Alembic::Abc::P3fArraySamplePtr, FVector>(PositionsSample, Sample->Vertices);
+		bRetrievalResult &= RetrieveTypedAbcData<Alembic::Abc::P3fArraySamplePtr, FVector>(PositionsSample, Sample->Vertices);	
 
 		Alembic::Abc::Int32ArraySamplePtr FaceCountsSample = MeshSample.getFaceCounts();
 		TArray<uint32> FaceCounts;
-		RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(FaceCountsSample, FaceCounts);
+		bRetrievalResult &= RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(FaceCountsSample, FaceCounts);
 		const bool bNeedsTriangulation = FaceCounts.Contains(4);
 
 		const uint32* Result = FaceCounts.FindByPredicate([](uint32 FaceCount) { return FaceCount < 3 || FaceCount > 4; });
@@ -266,7 +277,7 @@ namespace AbcImporterUtilities
 		}
 
 		Alembic::Abc::Int32ArraySamplePtr IndicesSample = MeshSample.getFaceIndices();
-		RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(IndicesSample, Sample->Indices);
+		bRetrievalResult &= RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(IndicesSample, Sample->Indices);
 		if (bNeedsTriangulation)
 		{
 			TriangulateIndexBuffer(FaceCounts, Sample->Indices);
@@ -361,6 +372,12 @@ namespace AbcImporterUtilities
 		if (bNeedsTriangulation)
 		{
 			TriangulateMateriaIndices(FaceCounts, Sample->MaterialIndices);
+		}
+
+		if (!bRetrievalResult)
+		{
+			delete Sample;
+			Sample = nullptr;
 		}
 
 		return Sample;

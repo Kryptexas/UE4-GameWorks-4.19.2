@@ -202,4 +202,5 @@ private:
 	
 private:
 	FAbcImportData* ImportData;
+	static const int32 FirstSampleIndex;
 };

@@ -42,6 +42,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogAbcImporter, Verbose, All);
 	a TypedObject = a(b, Alembic::Abc::kWrapExisting); \
 	ParseAbcObject<a>(TypedObject, c); bHandled = true; }
 
+// Static variable to define the first sample index (sample zero for now)
+const int32 FAbcImporter::FirstSampleIndex = 0;
+
 FAbcImporter::FAbcImporter()
 	: ImportData(nullptr)
 {
@@ -256,12 +259,31 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	// Processing the mesh objects in order to calculate their normals/tangents
 	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
 	{
+		// Remove invalid or empty samples
+		MeshObject->MeshSamples.RemoveAll([&](FAbcMeshSample* In) { return In == nullptr; });
+
 		const bool bFramesAvailable = MeshObject->MeshSamples.Num() > 0;
-		check(bFramesAvailable);
+		if (!bFramesAvailable)
+		{
+			TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("NoFramesForMeshObject", "Unable to import valid frames for {0}, skipping object."), FText::FromString(MeshObject->Name)));
+			FAbcImportLogger::AddImportMessage(Message);
+			continue;
+		}
+
+		// Make sure we have smoothing groups for the first frame
+		if (MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices.Num() == 0)
+		{
+			if (MeshObject->MeshSamples[FirstSampleIndex]->Normals.Num() == 0)
+			{
+				AbcImporterUtilities::CalculateNormals(MeshObject->MeshSamples[FirstSampleIndex]);
+			}
+			
+			AbcImporterUtilities::GenerateSmoothingGroupsIndices(MeshObject->MeshSamples[FirstSampleIndex], ImportData->ImportSettings);
+		}
 
 		// We determine whether or not the mesh contains constant topology to know if it can be PCA compressed
-		int32 VertexCount = bFramesAvailable ? MeshObject->MeshSamples[0]->Vertices.Num() : 0;
-		int32 IndexCount = bFramesAvailable ? MeshObject->MeshSamples[0]->Indices.Num() : 0;
+		int32 VertexCount = bFramesAvailable ? MeshObject->MeshSamples[FirstSampleIndex]->Vertices.Num() : 0;
+		int32 IndexCount = bFramesAvailable ? MeshObject->MeshSamples[FirstSampleIndex]->Indices.Num() : 0;
 		MeshObject->bConstantTopology = true;
 		for (FAbcMeshSample* Sample : MeshObject->MeshSamples)
 		{
@@ -273,13 +295,13 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		}
 		
 		// Normal availability determination and calculating what's needed/missing
-		const bool bNormalsAvailable = MeshObject->MeshSamples[0]->Normals.Num() > 0 && !ImportData->ImportSettings->NormalGenerationSettings.bRecomputeNormals;
-		const bool bFullFrameNormalsAvailable = (!MeshObject->bConstant && MeshObject->MeshSamples.Num() > 1) && (MeshObject->MeshSamples[1]->Normals.Num() > 0);
+		const bool bNormalsAvailable = MeshObject->MeshSamples[FirstSampleIndex]->Normals.Num() > 0 && !ImportData->ImportSettings->NormalGenerationSettings.bRecomputeNormals;
+		const bool bFullFrameNormalsAvailable = (!MeshObject->bConstant && MeshObject->MeshSamples.Num() > (FirstSampleIndex + 1)) && (MeshObject->MeshSamples[FirstSampleIndex + 1]->Normals.Num() > 0);
 		const bool bCalculateSmoothingGroups = !ImportData->ImportSettings->NormalGenerationSettings.bForceOneSmoothingGroupPerObject;		
 		if (!bNormalsAvailable || !bFullFrameNormalsAvailable)
 		{
-			// Require calculating Normals, no normals available whatsoever
-			if (!bNormalsAvailable)
+			// Require calculating Normals, no normals available whatsoever or we have varying topology for which we cannot reuse smoothing groups
+			if (!bNormalsAvailable || !MeshObject->bConstantTopology)
 			{
 				// Function bodies for regular and smooth normals to prevent branch within loop
 				const TFunction<void(int32)> RegularNormalsFunction
@@ -309,7 +331,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 					}
 				};
 
-				ParallelFor(MeshObject->MeshSamples.Num(), ImportData->ImportSettings->NormalGenerationSettings.bRecomputeNormals && bCalculateSmoothingGroups ? RegularNormalsFunction : SmoothNormalsFunction);
+				ParallelFor(MeshObject->MeshSamples.Num(), (ImportData->ImportSettings->NormalGenerationSettings.bRecomputeNormals || !MeshObject->bConstantTopology) && bCalculateSmoothingGroups ? RegularNormalsFunction : SmoothNormalsFunction);
 			}
 			else
 			{
@@ -320,10 +342,10 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 					FAbcMeshSample* MeshSample = MeshObject->MeshSamples[Index + 1];
 					if (MeshSample)
 					{
-						AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(MeshSample, MeshObject->MeshSamples[0]->SmoothingGroupIndices, MeshObject->MeshSamples[0]->NumSmoothingGroups);
+						AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(MeshSample, MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices, MeshObject->MeshSamples[FirstSampleIndex]->NumSmoothingGroups);
 
 						// Copy smoothing masks from frame 0
-						MeshSample->SmoothingGroupIndices = MeshObject->MeshSamples[0]->SmoothingGroupIndices;
+						MeshSample->SmoothingGroupIndices = MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices;
 					}
 				});
 			}
@@ -346,7 +368,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 
 		if (bFramesAvailable)
 		{
-			ImportData->NumTotalMaterials += MeshObject->MeshSamples[0]->NumMaterials;
+			ImportData->NumTotalMaterials += MeshObject->MeshSamples[FirstSampleIndex]->NumMaterials;
 		}
 	}
 
@@ -360,7 +382,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 			{
 				TMap<uint32, uint32> IdenticalPositions;
 
-				for (int32 SampleIndex = 0; SampleIndex < MeshObject->MeshSamples.Num() - 1; ++SampleIndex)
+				for (int32 SampleIndex = FAbcImporter::FirstSampleIndex; SampleIndex < MeshObject->MeshSamples.Num() - 1; ++SampleIndex)
 				{
 					FAbcMeshSample* Sample = MeshObject->MeshSamples[SampleIndex];
 					FAbcMeshSample* NextSample = MeshObject->MeshSamples[SampleIndex + 1];
@@ -530,7 +552,7 @@ UStaticMesh* FAbcImporter::ImportSingleAsStaticMesh(const int32 MeshTrackIndex, 
 	GenerateRawMeshFromSample(MeshTrackIndex, FrameIndex, RawMesh);
 	
 	// Setup static mesh instance
-	UStaticMesh* StaticMesh = CreateStaticMeshFromRawMesh(InParent, ImportData->PolyMeshObjects[MeshTrackIndex]->Name, Flags,ImportData->PolyMeshObjects[MeshTrackIndex]->MeshSamples[0]->NumMaterials, ImportData->PolyMeshObjects[MeshTrackIndex]->FaceSetNames, RawMesh);
+	UStaticMesh* StaticMesh = CreateStaticMeshFromRawMesh(InParent, ImportData->PolyMeshObjects[MeshTrackIndex]->Name, Flags, ImportData->PolyMeshObjects[MeshTrackIndex]->MeshSamples[FirstSampleIndex]->NumMaterials, ImportData->PolyMeshObjects[MeshTrackIndex]->FaceSetNames, RawMesh);
 	
 	// Return the freshly created static mesh
 	return StaticMesh;
@@ -616,11 +638,9 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 		uint32 TotalNumMaterials = 0;
 		for (TSharedPtr<FAbcPolyMeshObject> Mesh : ImportData->PolyMeshObjects)
 		{
-			if (Mesh->bShouldImport)
+			if (Mesh->bShouldImport && Mesh->MeshSamples.Num())
 			{
-				checkf(Mesh->MeshSamples.Num(), TEXT("No mesh samples found"));
-
-				FAbcMeshSample* Sample = Mesh->MeshSamples[0];				
+				FAbcMeshSample* Sample = Mesh->MeshSamples[FirstSampleIndex];
 				TotalNumMaterials += (Sample->NumMaterials != 0) ? Sample->NumMaterials : 1;
 
 				Samples.Add(Sample);
@@ -637,15 +657,19 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 			}
 		}
 		
-		FAbcMeshSample* MergedSample = nullptr;
-		MergedSample = AbcImporterUtilities::MergeMeshSamples(Samples);
-		FRawMesh RawMesh;
-		GenerateRawMeshFromSample(MergedSample, RawMesh);
-		
-		UStaticMesh* StaticMesh = CreateStaticMeshFromRawMesh(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags, TotalNumMaterials, MergedFaceSetNames, RawMesh);
-		if (StaticMesh)
+		// Only merged samples if there are any
+		if (Samples.Num())
 		{
-			StaticMeshes.Add(StaticMesh);
+			FAbcMeshSample* MergedSample = nullptr;
+			MergedSample = AbcImporterUtilities::MergeMeshSamples(Samples);
+			FRawMesh RawMesh;
+			GenerateRawMeshFromSample(MergedSample, RawMesh);
+
+			UStaticMesh* StaticMesh = CreateStaticMeshFromRawMesh(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags, TotalNumMaterials, MergedFaceSetNames, RawMesh);
+			if (StaticMesh)
+			{
+				StaticMeshes.Add(StaticMesh);
+			}
 		}
 	}
 	else
@@ -653,7 +677,7 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 		uint32 MeshIndex = 0;
 		for (TSharedPtr<FAbcPolyMeshObject> Mesh : ImportData->PolyMeshObjects)
 		{
-			if (Mesh->bShouldImport)
+			if (Mesh->bShouldImport && Mesh->MeshSamples.Num())
 			{
 				UStaticMesh* StaticMesh = ImportSingleAsStaticMesh(MeshIndex, InParent, Flags);
 				if (StaticMesh)
@@ -1077,7 +1101,7 @@ const bool FAbcImporter::CompressAnimationDataUsingPCA(const FAbcCompressionSett
 				ImportData->CompressedMeshData.AddDefaulted();
 				FCompressedAbcData& CompressedData = ImportData->CompressedMeshData.Last();
 				CompressedData.Guid = MeshObject->HierarchyGuid;
-				CompressedData.AverageSample = new FAbcMeshSample(*MeshObject->MeshSamples[0]);
+				CompressedData.AverageSample = new FAbcMeshSample(*MeshObject->MeshSamples[FirstSampleIndex]);
 				FMemory::Memcpy(CompressedData.AverageSample->Vertices.GetData(), AverageVertexData.GetData(), sizeof(FVector) * NumVertices);
 
 				const float FrameStep = (MaxTime - MinTime) / (float)(NumSamples);
@@ -1105,7 +1129,7 @@ const bool FAbcImporter::CompressAnimationDataUsingPCA(const FAbcCompressionSett
 		ImportData->CompressedMeshData.AddDefaulted();
 		FCompressedAbcData& CompressedData = ImportData->CompressedMeshData.Last();
 		CompressedData.Guid = MeshObject->HierarchyGuid;
-		CompressedData.AverageSample = new FAbcMeshSample(*MeshObject->MeshSamples[0]);
+		CompressedData.AverageSample = new FAbcMeshSample(*MeshObject->MeshSamples[FirstSampleIndex]);
 		AbcImporterUtilities::AppendMaterialNames(MeshObject, CompressedData);
 	}
 
@@ -1326,7 +1350,7 @@ void FAbcImporter::GenerateGeometryCacheMeshDataForSample(FGeometryCacheMeshData
 	check(SampleIndex < (uint32)InMeshObject->MeshSamples.Num());
 	
 	FAbcMeshSample* MeshSample = InMeshObject->MeshSamples[SampleIndex];
-
+	check(MeshSample != nullptr);
 	// Bounding box
 	OutMeshData.BoundingBox = FBox(MeshSample->Vertices);
 

@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
 #include "AlembicLibraryPublicPCH.h"
 #include "Core.h"
 
@@ -11,6 +9,8 @@
 #include "AbcImportUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAlembicImport, Log, All);
+
+#define LOCTEXT_NAMESPACE "AbcImportRunnable"
 
 namespace AbcMeshImporter
 {
@@ -40,7 +40,7 @@ bool FAbcMeshDataImportRunnable::Init()
 	// Check if initialised data is valid
 	checkf(ImportData != nullptr, TEXT("Invalid ImportData found"));
 	checkf((StopFrameIndex - StartFrameIndex) > 0, TEXT("Invalid frame span to process"));
-	checkf(StopFrameIndex > 0 && StopFrameIndex > 0, TEXT("Invalid start or stop frame index found"));
+	checkf(StartFrameIndex >= 0 && StopFrameIndex > 0, TEXT("Invalid start or stop frame index found"));
 
 	return true;
 }
@@ -81,11 +81,12 @@ uint32 FAbcMeshDataImportRunnable::Run()
 			Alembic::Abc::ISampleSelector Selector = AbcImporterUtilities::GenerateAlembicSampleSelector<double>((double)SampleTime);
 			FAbcMeshSample* Sample = AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Schema, Selector, FrameIndex == FrameOffset);
 
-			// If we failed to create a sample break out
+			// If we failed to create a sample skip it
 			if (Sample == nullptr)
 			{
-				bImportSuccesful = false;
-				break;
+				TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("InvalidFrameForMeshObject", "Invalid or empty frame number {0} in {1}, skipping frame."), FText::FromString( FString::FromInt(FrameIndex) ), FText::FromString(PolyMeshObject->Name)));
+				FAbcImportLogger::AddImportMessage(Message);
+				continue;
 			}
 
 			if (bApplyTransformation)
@@ -131,3 +132,5 @@ const bool FAbcMeshDataImportRunnable::WasSuccesful() const
 {
 	return bImportSuccesful;
 }
+
+#undef LOCTEXT_NAMESPACE // "AbcImportRunnable"

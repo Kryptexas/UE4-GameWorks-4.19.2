@@ -75,6 +75,9 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 	// Set whether or not the user canceled
 	bOutOperationCanceled = !Options->ShouldImport();
 
+	// Set up message log page name to separate different assets
+	const FString PageName = "Importing " + InName.ToString() + ".abc";
+
 	TArray<UObject*> ResultAssets;
 	if (!bOutOperationCanceled)
 	{
@@ -95,7 +98,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 			{
 				// Failed to read the file info, fail the import
 				FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
-				FAbcImportLogger::OutputMessages();
+				FAbcImportLogger::OutputMessages(PageName);
 				return nullptr;
 			}
 			else
@@ -134,7 +137,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 			}
 		}
 
-		FAbcImportLogger::OutputMessages();
+		FAbcImportLogger::OutputMessages(PageName);
 	}
 	
 	// Determine out parent according to the generated assets outer
