@@ -162,13 +162,11 @@ public:
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
-	void SetIsCameraCut( bool bInIsCameraCut )
+	/** Sets a flag for this frame indicating that the camera has been cut, and temporal effects (such as motion blur) should be reset */
+	void SetIsCameraCut()
 	{
-		bEditorCameraCut = bInIsCameraCut;
-		if (bEditorCameraCut)
-		{
-			bWasEditorCameraCut = false;
-		}
+		bEditorCameraCut = true;
+		bWasEditorCameraCut = false;
 	}
 
 	/** 

@@ -3043,7 +3043,7 @@ void FLevelEditorViewportClient::SetActorLock(AActor* Actor)
 {
 	if (ActorLockedToCamera != Actor)
 	{
-		SetIsCameraCut(true);
+		SetIsCameraCut();
 	}
 	ActorLockedToCamera = Actor;
 }
@@ -3052,7 +3052,7 @@ void FLevelEditorViewportClient::SetMatineeActorLock(AActor* Actor)
 {
 	if (ActorLockedByMatinee != Actor)
 	{
-		SetIsCameraCut(true);
+		SetIsCameraCut();
 	}
 	ActorLockedByMatinee = Actor;
 }

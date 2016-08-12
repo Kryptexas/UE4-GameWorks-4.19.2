@@ -3816,7 +3816,11 @@ void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut(FLevelEditorViewp
 		InViewportClient.ViewFOV = InViewportClient.FOVAngle;
 	}
 
-	InViewportClient.SetIsCameraCut(bCameraHasBeenCut);
+
+	if (bCameraHasBeenCut)
+	{
+		InViewportClient.SetIsCameraCut();
+	}
 
 
 	// Set the actor lock.
