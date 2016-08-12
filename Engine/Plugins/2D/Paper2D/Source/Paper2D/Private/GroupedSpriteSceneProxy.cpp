@@ -45,23 +45,27 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 
 	NumInstances = InComponent->PerInstanceSpriteData.Num();
 
-	BodySetupTransforms.Reserve(NumInstances);
-	BodySetups.Reserve(NumInstances);
+	const bool bAllowCollisionRendering = AllowDebugViewmodes() && InComponent->IsCollisionEnabled();
+
+	if (bAllowCollisionRendering)
+	{
+		BodySetupTransforms.Reserve(NumInstances);
+		BodySetups.Reserve(NumInstances);
+	}
 
 	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; ++InstanceIndex)
 	{
 		const FSpriteInstanceData InstanceData = InComponent->PerInstanceSpriteData[InstanceIndex];
 
-		TWeakObjectPtr<class UBodySetup> BodySetup;
-		if (InstanceData.SourceSprite != nullptr)
+		UBodySetup* BodySetup = nullptr;
+		if (UPaperSprite* SourceSprite = InstanceData.SourceSprite)
 		{
 			FSpriteDrawCallRecord Record;
-			Record.BuildFromSprite(InstanceData.SourceSprite);
+			Record.BuildFromSprite(SourceSprite);
 
 			UMaterialInterface* SpriteMaterial = InComponent->GetMaterial(InstanceData.MaterialIndex);
 
 			FSpriteRenderSection& Section = FindOrAddSection(Record, SpriteMaterial);
-			
 			
 			const int32 NumNewVerts = Record.RenderVerts.Num();
 			Section.NumVertices += NumNewVerts;
@@ -80,17 +84,14 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 				new (VertexBuffer.Vertices) FPaperSpriteVertex(ComponentSpacePos, UV, VertColor, TangentX, TangentZ);
 			}
 
-			if (InComponent->InstanceBodies.IsValidIndex(InstanceIndex))
-			{
-				if (FBodyInstance* BodyInstance = InComponent->InstanceBodies[InstanceIndex])
-				{
-					BodySetup = BodyInstance->BodySetup;
-				}
-			}
+			BodySetup = SourceSprite->BodySetup;
 		}
 
-		BodySetupTransforms.Add(InstanceData.Transform);
-		BodySetups.Add(BodySetup);
+		if (bAllowCollisionRendering)
+		{
+			BodySetupTransforms.Add(InstanceData.Transform);
+			BodySetups.Add(BodySetup);
+		}
 	}
 	
 	if (VertexBuffer.Vertices.Num() > 0)
@@ -106,7 +107,7 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 
 void FGroupedSpriteSceneProxy::DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const
 {
-	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; ++InstanceIndex)
+	for (int32 InstanceIndex = 0; InstanceIndex < BodySetups.Num(); ++InstanceIndex)
 	{
 		if (UBodySetup* BodySetup = BodySetups[InstanceIndex].Get())
 		{
@@ -115,15 +116,4 @@ void FGroupedSpriteSceneProxy::DebugDrawCollision(const FSceneView* View, int32 
 			DebugDrawBodySetup(View, ViewIndex, Collector, BodySetup, GeomTransform, CollisionColor, bDrawSolid);
 		}
 	}
-}
-
-void FGroupedSpriteSceneProxy::SetOneBodySetup_RenderThread(int32 InstanceIndex, UBodySetup* NewSetup)
-{
-	BodySetups[InstanceIndex] = NewSetup;
-}
-
-void FGroupedSpriteSceneProxy::SetAllBodySetups_RenderThread(TArray<TWeakObjectPtr<UBodySetup>> Setups)
-{
-	check(Setups.Num() == NumInstances);
-	BodySetups = MoveTemp(Setups);
 }
