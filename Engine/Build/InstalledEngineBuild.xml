@@ -4,6 +4,9 @@
 	<!-- The output directory to store zip files and full symbols -->
 	<Option Name="PublishDir" DefaultValue="$(RootDir)/LocalBuilds/Engine" Description="Root directory to contain published builds and symbols"/>
 	
+	<!-- Helper option to make installed build for host platform only -->
+	<Option Name="HostPlatformOnly" Restrict="true|false" DefaultValue="false" Description="A helper option to make an installed build for your host platform only, so that you don't have to disable each platform individually"/>
+	
 	<!-- Setup default target platforms for Installed build if they haven't been specified on the commandline -->
 	<Option Name="WithWin64" Restrict="true|false" DefaultValue="true" Description="Include the Win64 target platform"/>
 	<Option Name="WithWin32" Restrict="true|false" DefaultValue="true" Description="Include the Win32 target platform"/>
@@ -18,9 +21,46 @@
 
 	<!-- Whether to create a prebuilt DDC -->
 	<Option Name="WithDDC" Restrict="true|false" DefaultValue="true" Description="Build a standalone derived-data cache for the engine content and templates" />
+	
+	<!-- Whether to sign any executables produced -->
+	<Option Name="SignExecutables" Restrict="true|false" DefaultValue="false" Description="Sign the executables produced where signing is available"/>
 
 	<!-- The analytics type -->
 	<Option Name="AnalyticsTypeOverride" DefaultValue="" Description="Identifier for analytic events to send"/>
+
+	<Do If="'$(HostPlatformOnly)' == true">
+		<!-- Activate correct Target Platforms for host -->
+		<Switch>
+			<Case If="'$(HostPlatform)' == 'Win64'">
+				<Property Name="WithWin64" Value="true"/>
+				<Property Name="WithWin32" Value="true"/>
+				<Property Name="WithMac" Value="false"/>
+				<Property Name="WithLinux" Value="false"/>
+			</Case>
+			<Case If="'$(HostPlatform)' == 'Mac'">
+				<Property Name="WithWin64" Value="false"/>
+				<Property Name="WithWin32" Value="false"/>
+				<Property Name="WithMac" Value="true"/>
+				<Property Name="WithLinux" Value="false"/>
+			</Case>
+			<Case If="'$(HostPlatform)' == 'Linux'">
+				<Property Name="WithWin64" Value="false"/>
+				<Property Name="WithWin32" Value="false"/>
+				<Property Name="WithMac" Value="false"/>
+				<Property Name="WithLinux" Value="true"/>
+			</Case>
+			<Default>
+				<Error Message="$(HostPlatform) is not supported for making an installed build"/>
+			</Default>
+		</Switch>
+		<!-- Other Target Platforms always disabled -->
+		<Property Name="WithAndroid" Value="false"/>
+		<Property Name="WithIOS" Value="false"/>
+		<Property Name="WithTVOS" Value="false"/>
+		<Property Name="WithHTML5" Value="false"/>
+		<Property Name="WithPS4" Value="false"/>
+		<Property Name="WithXboxOne" Value="false"/>
+	</Do>
 
 	<!-- The local output directory -->
 	<Property Name="LocalInstalledDir" Value="$(RootDir)/LocalBuilds/Engine/Windows"/>
@@ -51,9 +91,11 @@
 			<Tag Files="#UE4Editor Win64" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions)" With="#UE4Editor Win64 Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Win64" Files="#UE4Editor Win64 Unstripped" Tag="#UE4Editor Win64 Stripped"/>
 
-			<Tag Files="#UE4Editor Win64" Filter="$(WindowsSignFilter)" With="#UE4Editor Win64 Unsigned"/>
-			<Copy Files="#UE4Editor Win64 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Editor_ToSign_Win64"/>
-			<Sign Files="#Editor_ToSign_Win64" Tag="#UE4Editor Win64 Signed"/>
+			<Do If="'$(SignExecutables)' == true">
+				<Tag Files="#UE4Editor Win64" Filter="$(WindowsSignFilter)" With="#UE4Editor Win64 Unsigned"/>
+				<Copy Files="#UE4Editor Win64 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Editor_ToSign_Win64"/>
+				<Sign Files="#Editor_ToSign_Win64" Tag="#UE4Editor Win64 Signed"/>
+			</Do>
 
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/Win64/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Win64/UE4Editor/Inc/..." With="#UE4Editor Win64 Includes"/>
@@ -72,9 +114,11 @@
 			<Tag Files="#UE4Editor Mac" Filter="$(MacStripFilter)" With="#UE4Editor Mac Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Mac" Files="#UE4Editor Mac Unstripped" Tag="#UE4Editor Mac Stripped"/>
 
-			<Tag Files="#UE4Editor Mac" Filter="$(MacSignFilter)" With="#UE4Editor Mac Unsigned"/>
-			<Copy Files="#UE4Editor Mac Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Editor_ToSign_Mac"/>
-			<Sign Files="#Editor_ToSign_Mac" Tag="#UE4Editor Mac Signed"/>
+			<Do If="'$(SignExecutables)' == true">
+				<Tag Files="#UE4Editor Mac" Filter="$(MacSignFilter)" With="#UE4Editor Mac Unsigned"/>
+				<Copy Files="#UE4Editor Mac Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Editor_ToSign_Mac"/>
+				<Sign Files="#Editor_ToSign_Mac" Tag="#UE4Editor Mac Signed"/>
+			</Do>
 		
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/Mac/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Mac/UE4Editor/Inc/..." With="#UE4Editor Mac Includes"/>
@@ -107,9 +151,11 @@
 			<Tag Files="#UE4Game Win64" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions)" With="#UE4Game Win64 Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Win64" Files="#UE4Game Win64 Unstripped" Tag="#UE4Game Win64 Stripped"/>
 
-			<Tag Files="#UE4Game Win64" Filter="$(WindowsSignFilter)" With="#UE4Game Win64 Unsigned"/>
-			<Copy Files="#UE4Game Win64 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Win64"/>
-			<Sign Files="#Game_ToSign_Win64" Tag="#UE4Game Win64 Signed"/>
+			<Do If="'$(SignExecutables)' == true">
+				<Tag Files="#UE4Game Win64" Filter="$(WindowsSignFilter)" With="#UE4Game Win64 Unsigned"/>
+				<Copy Files="#UE4Game Win64 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Win64"/>
+				<Sign Files="#Game_ToSign_Win64" Tag="#UE4Game Win64 Signed"/>
+			</Do>
 		
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/Win64/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Win64/UE4/Inc/..." With="#UE4Game Win64 Includes"/>
@@ -123,9 +169,11 @@
 			<Tag Files="#UE4Game Win32" Filter="$(Win32StripFilter)" With="#UE4Game Win32 Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Win32" Files="#UE4Game Win32 Unstripped" Tag="#UE4Game Win32 Stripped"/>
 
-			<Tag Files="#UE4Game Win32" Filter="$(WindowsSignFilter)" With="#UE4Game Win32 Unsigned"/>
-			<Copy Files="#UE4Game Win32 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Win32"/>
-			<Sign Files="#Game_ToSign_Win32" Tag="#UE4Game Win32 Signed"/>
+			<Do If="'$(SignExecutables)' == true">
+				<Tag Files="#UE4Game Win32" Filter="$(WindowsSignFilter)" With="#UE4Game Win32 Unsigned"/>
+				<Copy Files="#UE4Game Win32 Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Win32"/>
+				<Sign Files="#Game_ToSign_Win32" Tag="#UE4Game Win32 Signed"/>
+			</Do>
 
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/Win32/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Win32/UE4/Inc/..." With="#UE4Game Win32 Includes"/>
@@ -193,9 +241,11 @@
 			<Tag Files="#UE4Game Mac" Filter="$(MacStripFilter)" With="#UE4Game Mac Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Mac" Files="#UE4Game Mac Unstripped" Tag="#UE4Game Mac Stripped"/>
 
-			<Tag Files="#UE4Game Mac" Filter="$(MacSignFilter)" With="#UE4Game Mac Unsigned"/>
-			<Copy Files="#UE4Game Mac Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Mac"/>
-			<Sign Files="#Game_ToSign_Mac" Tag="#UE4Game Mac Signed"/>
+			<Do If="'$(SignExecutables)' == true">
+				<Tag Files="#UE4Game Mac" Filter="$(MacSignFilter)" With="#UE4Game Mac Unsigned"/>
+				<Copy Files="#UE4Game Mac Unsigned" FromDir="$(RootDir)" ToDir="$(SavedOutput)" Tag="#Game_ToSign_Mac"/>
+				<Sign Files="#Game_ToSign_Mac" Tag="#UE4Game Mac Signed"/>
+			</Do>
 
 			<!-- Tag the generated includes for this target -->
 			<Tag Files="Engine/Intermediate/Build/Mac/UE4/Inc/...;Engine/Plugins/.../Intermediate/Build/Mac/UE4/Inc/..." With="#UE4Game Mac Includes"/>
@@ -504,8 +554,10 @@
 			<!-- Tag Win64 files that need to be stripped -->
 			<Tag Files="#UAT Win64;#Compile UnrealHeaderTool Win64;#Build Tools Win64;#Build Tools CS" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions);$(CopyInstalledExceptions)" With="#Strip Tools for Installed Win64"/>
 
-			<!-- Tag files that need to be signed -->
-			<Tag Files="#UAT Win64;#Compile UnrealHeaderTool Win64;#Build Tools Win64;#Build Tools CS" Filter="$(WindowsSignFilter)" Except="$(CopyInstalledExceptions);.../ThirdParty/..." With="#Sign Tools for Installed Win64"/>
+			<Do If="'$(SignExecutables)' == true">
+				<!-- Tag files that need to be signed -->
+				<Tag Files="#UAT Win64;#Compile UnrealHeaderTool Win64;#Build Tools Win64;#Build Tools CS" Filter="$(WindowsSignFilter)" Except="$(CopyInstalledExceptions);.../ThirdParty/..." With="#Sign Tools for Installed Win64"/>
+			</Do>
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Win64" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Win64;#Sign Tools for Installed Win64" With="#Copy for Installed Win64"/>
@@ -518,9 +570,11 @@
 			<!-- Strip required files into their final location -->
 			<Strip Files="#Strip Tools for Installed Win64" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDir)" Platform="Win64" Tag="#Installed Build Win64 Files"/>
 
-			<!-- Copy then Sign required files in their final location -->
-			<Copy Files="#Sign Tools for Installed Win64" FromDir="$(RootDir)" ToDir="$(LocalInstalledDir)" Tag="#Files to Sign"/>
-			<Sign Files="#Files to Sign" Tag="#Installed Build Win64 Files"/>
+			<Do If="'$(SignExecutables)' == true">
+				<!-- Copy then Sign required files in their final location -->
+				<Copy Files="#Sign Tools for Installed Win64" FromDir="$(RootDir)" ToDir="$(LocalInstalledDir)" Tag="#Files to Sign"/>
+				<Sign Files="#Files to Sign" Tag="#Installed Build Win64 Files"/>
+			</Do>
 
 			<!-- Copy the compressed DDC -->
 			<Property Name="SavedDir" Value="$(SavedOutput)\Installed\Win64"/>
@@ -647,8 +701,10 @@
 			<!-- Tag Mac files that need to be stripped -->
 			<Tag Files="#Compile UnrealHeaderTool Mac;#Build Tools Mac" Filter="$(MacStripFilter)" Except="$(CopyInstalledExceptions)" With="#Strip Tools for Installed Mac"/>
 
-			<!-- Tag files that need to be signed -->
-			<Tag Files="#Compile UnrealHeaderTool Mac;#Build Tools Mac" Filter="$(MacSignFilter)" Except="$(CopyInstalledExceptions);.../ThirdParty/..." With="#Sign Tools for Installed Mac"/>
+			<Do If="'$(SignExecutables)' == true">
+				<!-- Tag files that need to be signed -->
+				<Tag Files="#Compile UnrealHeaderTool Mac;#Build Tools Mac" Filter="$(MacSignFilter)" Except="$(CopyInstalledExceptions);.../ThirdParty/..." With="#Sign Tools for Installed Mac"/>
+			</Do>
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Mac" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Mac;#Sign Tools for Installed Mac" With="#Copy for Installed Mac"/>
@@ -661,9 +717,11 @@
 			<!-- Strip required files into their final location -->
 			<Strip Files="#Strip Tools for Installed Mac" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDirMac)" Platform="Mac" Tag="#Installed Build Mac Files"/>
 
-			<!-- Copy then Sign required files in their final location -->
-			<Copy Files="#Sign Tools for Installed Mac" FromDir="$(RootDir)" ToDir="$(LocalInstalledDirMac)" Tag="#Files to Sign"/>
-			<Sign Files="#Files to Sign" Tag="#Installed Build Mac Files"/>
+			<Do If="'$(SignExecutables)' == true">
+				<!-- Copy then Sign required files in their final location -->
+				<Copy Files="#Sign Tools for Installed Mac" FromDir="$(RootDir)" ToDir="$(LocalInstalledDirMac)" Tag="#Files to Sign"/>
+				<Sign Files="#Files to Sign" Tag="#Installed Build Mac Files"/>
+			</Do>
 
 			<!-- Copy the compressed DDC -->
 			<Property Name="SavedDir" Value="$(SavedOutput)/Installed/Mac"/>
@@ -694,7 +752,7 @@
 		</Node>
 
 		<!-- Build up a list of requirements as some can be optional -->
-		<Property Name="SymbolRequirements" Value="#Compile UnrealHeaderTool Mac;#UE4Editor Mac;#Build Tools Mac;Build Tools CS"/>
+		<Property Name="SymbolRequirements" Value="#Compile UnrealHeaderTool Mac;#UE4Editor Mac;#Build Tools Mac;#Build Tools CS"/>
 		<!-- Only include Target Platforms that will be built on Mac machines -->
 		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Mac" If="'$(WithMac)' == true"/>
 		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game IOS" If="'$(WithIOS)' == true"/>
