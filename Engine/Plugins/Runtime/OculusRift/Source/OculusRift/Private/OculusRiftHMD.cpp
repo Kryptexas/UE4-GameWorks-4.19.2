@@ -800,12 +800,12 @@ void FGameFrame::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& Out
 
 void FOculusRiftHMD::GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera)
 {
-	check(IsInGameThread());
+	check(!IsInActualRenderingThread());
 
 	auto frame = GetFrame();
 	check(frame);
 
-	if (bUseOrienationForPlayerCamera || bUsePositionForPlayerCamera)
+	if (IsInGameThread() && (bUseOrienationForPlayerCamera || bUsePositionForPlayerCamera))
 	{
 		// if this pose is going to be used for camera update then save it.
 		// This matters only if bUpdateOnRT is OFF.
