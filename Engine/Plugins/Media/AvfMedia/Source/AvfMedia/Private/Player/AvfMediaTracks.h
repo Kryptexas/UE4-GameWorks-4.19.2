@@ -13,9 +13,9 @@ class FAvfMediaTracks
 	enum ESyncStatus
 	{
 		Default,    // Starting state
-		Ahead,      // Frame is ahead of playback cursor.
 		Behind,     // Frame is behind playback cursor.
 		Ready,      // Frame is within tolerance of playback cursor.
+		Ahead,      // Frame is ahead of playback cursor.
 	};
 
 	struct FTrack
@@ -24,11 +24,9 @@ class FAvfMediaTracks
 		FText DisplayName;
 		bool Loaded;
 		FString Name;
-		AVAssetReaderTrackOutput* Output;
+		NSObject* Output;
 		AVAssetReader* Reader;
-		ESyncStatus SyncStatus;
-
-		// @todo trepka: do we have to 'release' any of these in the destructor?
+		AudioConverterRef Converter;
 	};
 
 public:
@@ -49,17 +47,47 @@ public:
 	 *
 	 * @param PlayerItem The player item containing the track information.
 	 */
-	void Initialize(AVPlayerItem& InPlayerItem);
+	void Initialize(AVPlayerItem* InPlayerItem);
 
 	/** Reset the stream collection. */
 	void Reset();
 
 	/**
-	 * Notify tracks that playback was paused or resumed.
+	 * Notify tracks that playback rate was changed.
 	 *
-	 * @param Paused true if playback was paused, false if resumed.
+	 * @param Rate The new playback rate.
 	 */
-	void SetPaused(bool Paused);
+	void SetRate(float Rate);
+	
+	/**
+	 * Notify tracks that playback is seeking.
+	 *
+	 * @param Time The time to seek to.
+	 */
+	void Seek(const FTimespan& Time);
+	
+	/**
+	 * Append track statistics information to the given string.
+	 *
+	 * @param OutStats The string to append the statistics to.
+	 */
+	void AppendStats(FString &OutStats) const;
+
+	/**
+	 * Update the playback of tracks - must only be called when playing.
+	 *
+	 * @param DeltaTime Time between ticks.
+	 */
+	bool Tick(float DeltaTime);
+	
+	/**
+	 * Called by the caption track delegate to provide the attributed strings for each timecode to the caption sink.
+	 *
+	 * @param Output The caption track output that generated the strings.
+	 * @param Strings The attributed caption strings.
+	 * @param ItemTime The display time for the strings.
+	 */
+	void HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, CMTime ItemTime);
 
 public:
 
@@ -96,6 +124,9 @@ protected:
 
 	/** Initialize the current video sink. */
 	void InitializeVideoSink();
+	
+	/** Update the current video sink. */
+	void UpdateVideoSink();
 
 private:
 
@@ -135,4 +166,27 @@ private:
 
 	/** Index of the selected video track. */
 	int32 SelectedVideoTrack;
+
+private:
+	
+	/** Target desciption for audio output required by Media framework audio sinks. */
+	AudioStreamBasicDescription TargetDesc;
+	
+	/** Whether the audio is currently paused. */
+	bool bAudioPaused;
+	
+	/** The last audio sample provided to the sink. */
+	CMTime LastAudioSample;
+	
+	/** Seek to this time. */
+	double SeekTime;
+	
+	/** Has been played with fast/slow rate? */
+	bool bZoomed;
+	
+#if WITH_ENGINE && !PLATFORM_MAC
+private:
+	/** The Metal texture cache for unbuffered texture uploads. */
+	CVMetalTextureCacheRef MetalTextureCache;
+#endif
 };

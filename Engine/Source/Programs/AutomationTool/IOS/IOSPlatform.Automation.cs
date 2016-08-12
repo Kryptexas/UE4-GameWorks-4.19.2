@@ -709,12 +709,6 @@ public class IOSPlatform : Platform
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
 			}
 		}
-
-		// copy the movies from the project
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/IOS/Resources/Movies"), "*", false, null, "", true, false);
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, "", true, false);
-		}
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
@@ -1343,7 +1337,7 @@ public class IOSPlatform : Platform
 
 	public override bool StageMovies
 	{
-		get { return false; }
+		get { return true; }
 	}
 
 	public override bool RequiresPackageToDeploy

@@ -10,7 +10,6 @@
 UAvfFileMediaSourceFactory::UAvfFileMediaSourceFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	Formats.Add(TEXT("avi;Audio Video Interleave File"));
 	Formats.Add(TEXT("m4v;Apple MPEG-4 Video"));
 	Formats.Add(TEXT("mov;Apple QuickTime Movie"));
 	Formats.Add(TEXT("mp4;MPEG-4 Movie"));

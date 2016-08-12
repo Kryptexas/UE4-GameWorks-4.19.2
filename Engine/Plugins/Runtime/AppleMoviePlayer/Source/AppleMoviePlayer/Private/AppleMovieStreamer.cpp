@@ -12,6 +12,52 @@ DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 #define MOVIE_FILE_EXTENSION @"mp4"
 #define TIMESCALE 1000
 
+static FString ConvertToNativePath(const FString& Filename, bool bForWrite)
+{
+	FString Result = Filename;
+#if !PLATFORM_MAC
+	if (Result.Contains(TEXT("/OnDemandResources/")))
+	{
+		return Result;
+	}
+	
+	Result.ReplaceInline(TEXT("../"), TEXT(""));
+	Result.ReplaceInline(TEXT(".."), TEXT(""));
+	Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
+	
+	if(bForWrite)
+	{
+		static FString WritePathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+		return WritePathBase + Result;
+	}
+	else
+	{
+		// if filehostip exists in the command line, cook on the fly read path should be used
+		FString Value;
+		// Cache this value as the command line doesn't change...
+		static bool bHasHostIP = FParse::Value(FCommandLine::Get(), TEXT("filehostip"), Value) || FParse::Value(FCommandLine::Get(), TEXT("streaminghostip"), Value);
+		static bool bIsIterative = FParse::Value(FCommandLine::Get(), TEXT("iterative"), Value);
+		if (bHasHostIP)
+		{
+			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+			return ReadPathBase + Result;
+		}
+		else if (bIsIterative)
+		{
+			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+			return ReadPathBase + Result.ToLower();
+		}
+		else
+		{
+			static FString ReadPathBase = FString([[NSBundle mainBundle] bundlePath]) + TEXT("/cookeddata/");
+			return ReadPathBase + Result.ToLower();
+		}
+	}
+#endif
+	
+	return Result;
+}
+
 //
 // Methods
 //
@@ -226,16 +272,12 @@ bool FAVPlayerMovieStreamer::StartNextMovie()
         bVideoTracksLoaded = false;
 
         NSURL* nsURL = nil;
-#if PLATFORM_MAC
 		FString MoviePath = FPaths::GameContentDir() + TEXT("Movies/") + MovieQueue[0] + TEXT(".") + FString(MOVIE_FILE_EXTENSION);
 		if (FPaths::FileExists(MoviePath))
 		{
-			nsURL = [NSURL fileURLWithPath:MoviePath.GetNSString()];
+			nsURL = [NSURL fileURLWithPath:ConvertToNativePath(MoviePath, false).GetNSString()];
 		}
-#else
-        NSString* moviestring = MovieQueue[0].GetNSString();
-		nsURL = [[NSBundle mainBundle] URLForResource: moviestring withExtension: MOVIE_FILE_EXTENSION ];
-#endif
+		
         if (nsURL == nil)
         {
             UE_LOG(LogMoviePlayer, Warning, TEXT("Couldn't find movie: %s"), *MovieQueue[0]);

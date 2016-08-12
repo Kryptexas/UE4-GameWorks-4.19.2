@@ -257,8 +257,8 @@ public:
 	class FMetalViewport* Viewport;
 
 private:
-	// The movie playback IOSurface wrapper to avoid page-off
-	CVImageBufferRef IB;
+	// The movie playback IOSurface/CVTexture wrapper to avoid page-off
+	CFTypeRef CoreVideoImageRef;
 	
 	// next format for the pixel format mapping
 	static uint8 NextKey;

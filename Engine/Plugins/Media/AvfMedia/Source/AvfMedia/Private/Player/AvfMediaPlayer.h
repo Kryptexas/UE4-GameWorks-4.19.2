@@ -9,27 +9,7 @@
 
 @class AVPlayer;
 @class AVPlayerItem;
-
-
-/**
- * Cocoa class that can help us with reading player item information.
- */
-@interface FMediaHelper : NSObject
-{
-};
-
-/** We should only initiate a helper with a media player */
--(FMediaHelper*) initWithMediaPlayer:(AVPlayer*)InPlayer;
-/** Destructor */
--(void)dealloc;
-
-/** Reference to the media player which will be responsible for this media session */
-@property(retain) AVPlayer* MediaPlayer;
-
-/** Flag to dictate whether the media players current item is ready to play */
-@property bool bIsPlayerItemReady;
-
-@end
+@class FAVPlayerDelegate;
 
 
 /**
@@ -47,6 +27,12 @@ public:
 
 	/** Destructor. */
 	~FAvfMediaPlayer() { }
+
+	/** Called by the delegate whenever the player item status changes. */
+	void HandleStatusNotification(AVPlayerItemStatus Status);
+
+	/** Called by the delegate when the playback reaches the end. */
+	void HandleDidReachEnd();
 
 public:
 
@@ -90,22 +76,6 @@ public:
 	{
 		return MediaEvent;
 	}
-	
-protected:
-
-	/**
-	 * Whether the video finished playback.
-	 *
-	 * @return true if playback has finished, false otherwise.
-	 */
-	bool ReachedEnd() const;
-
-	/**
-	 * Whether the media player should tick in this frame.
-	 *
-	 * @return true if the player should advance, false otherwise.
-	 */
-//	bool ShouldTick() const;
 
 private:
 
@@ -122,7 +92,7 @@ private:
 	FOnMediaEvent MediaEvent;
 
 	/** Cocoa helper object we can use to keep track of ns property changes in our media items */
-	FMediaHelper* MediaHelper;
+	FAVPlayerDelegate* MediaHelper;
     
 	/** The AVFoundation media player */
 	AVPlayer* MediaPlayer;
@@ -138,4 +108,9 @@ private:
 
 	/** The media track collection. */
 	FAvfMediaTracks Tracks;
+	
+	/** Media playback state. */
+	EMediaState State;
+	
+	bool bPrerolled;
 };
