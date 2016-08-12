@@ -2019,7 +2019,7 @@ namespace UnrealBuildTool
 
 							// Execute the actions.
 							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
-							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry);
+							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry, bIsHotReload);
 
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
