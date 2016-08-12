@@ -1,0 +1,239 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: Capsule Shadows Reference
+Crumbs: %ROOT%, Engine, 
+Description: Capsule Shadows Reference
+Version: 4.13
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[TOC(start:2 end:2)]
+
+
+
+The following console commands allow you to adjust the quality of various features for Capsule Shadows.
+
+<!---
+| Console Variable | Description |
+| ---------------- | ----------- |
+| [r.CapsuleIndirectConeAngle](#Parameters) |	Light source angle used when the indirect shadow direction is derived from precomputed indirect lighting (no stationary skylight present). Default Value: 0.392699 |
+| [r.CapsuleIndirectShadowMinVisibility](#capsuleindirectshadowminvisibility) |	Minimum visibility caused by capsule indirect shadows. This is used to keep the indirect shadows from going fully black. Default Value: 0.1 |
+| r.CapsuleMaxDirectOcclusionDistance |	Maximum cast distance for direct shadows from capsules. �This has a big impact on performance. Default Value: 400 |
+| r.CapsuleMaxIndirectOcclusionDistance |	Maximum cast distance for indirect shadows from capsules. This has a big impact on performance. Default Value: 200 |
+| r.CapsuleShadowFadeAngleFromVertical |	Angle from vertical up to start fading out the indirect shadow, to avoid self shadowing artifacts. Default Value: 1.047198 |
+| r.CapsuleShadows |	Whether to allow capsule shadowing on skinned components with bCastCapsuleDirectShadow or bCastCapsuleIndirectShadow enabled. |
+| r.CapsuleShadowsFullResolution |	Whether to compute capsule shadows at full resolution. Disabled by Default. |
+| r.CapsuleSkyAngleScale |	Scales the light source angle derived from the precomputed unoccluded sky vector (stationary skylight present) Default Value: 0.6 |
+--->
+
+
+### Capsule Indirect Cone Angle
+
+The **Capsule Indirect Cone Angle** command allows you to specify the light source angle when using precomputed indirect lighting. If a Skylight is used in the scene its mobility must be set to Static in order to use this command. 
+
+Type the following command followed by a value to adjust the light source angle.
+
+	r.CapsuleIndirectConeAngle
+	
+		
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Cone Angle = 0.392699 (Default)](IndirectConeAngle_Default.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Cone Angle = 0.55](IndirectConeAngle_55.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+### Capsule Indirect Shadow Min Visibility
+
+The **Capsule Indirect Shadow Minimum Visibility** command allows you to specify a value for the capsule's indirect shadows. This is used to keep the indirect
+shadows from going fully black. Lower values will soften the shadows intensity, whereas higher values will darken the shadows.
+
+Type the following command followed by a value to adjust the indirect shadow's visibility.
+
+	r.CapsuleIndirectShadowMinVisibility
+	
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Shadow Minimum Visibility = 0.1 (Default)](DirectIndirectShadowsDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Shadow Minimum Visibility = 0.55](IndirectShadMinVis_0_55.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+
+### Capsule Occlusion Distance
+
+The **Capsule Occlusion Distance** command allows you to specify the maximum distance from the capsule that it can cast shadows. Values can be set for Capsule Shadows that are in directly and indirectly lit areas.
+
+[Region:warning]
+Adjusting this value will have a significant impact on performance.
+[/REGION]
+
+#### Direct Occlusion Distance
+
+Type the following command followed by a value for distance that direct shadows should cast from the capsules.
+
+	r.CapsuleMaxDirectOcclusionDistance 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Direct Max Occlusion Distance = 400 (Default)](DirectDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Direct Max Occlusion Distance = 200](MaxDirOccDist_200.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+#### Indirect Occlusion Distance
+
+Type the following command followed by a value for distance that indirect shadows should cast from the capsules.
+
+	r.CapsuleMaxIndirectOcclusionDistance 
+		
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Max Occlusion Distance = 200 (Default)](IndirectDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Max Occlusion Distance = 50 ](MaxIndirOccDist_100.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+
+### Capsule Shadow Fade Angle From Vertical
+
+The **Capsule Shadow Fade Angle from Vertical** command allows you to set a value to start fading out indirect shadows. This can help avoid self shadowing artifacts.
+
+Type the following command followed by a value for fading the indirect shadows. Higher values will fade out more quickly.
+
+	r.CapsuleShadowFadeAngleFromVertical 
+
+		
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Shadow Fade Angle from Vertical = 1.047198 (Default)](FadeAngleVertical_Default.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Shadow Fade Angle from Vertical = 1.9](FadeAngleVertical_1_9.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+<!---FULL RESOLUTION---
+[Couldn't get this one to show any difference!]
+
+### Capsule Shadows Full Resolution
+
+Whether to compute capsule shadows at full resolution. Disabled by Default.
+
+Type the following to enable full resolution of the Capsule Shadows.
+
+	r.CapsuleShadowsFullResolution 1
+
+<!---		
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Cone Angle = 0.392699 (Default)](IndirectCS_Default.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Cone Angle = 0.75](CapsuleIndirectConeAngle_75.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+---/FULL RESOLUTION-->
+
+--->
+
+### Capsule Sky Angle
+
+The **Capsule Sky Angle** commands allow you to specify minimum light source angle for the sky and the scale. The commands require you to have a 
+Stationary Skylight present in your scene and an unoccluded sky to see the results. 
+
+
+#### Mininmum Sky Angle
+
+Type the following to set the minimum value for the Stationary Skylight's light source angle.
+
+	r.CapsuleMinSkyAngle
+
+		
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Min Sky Angle = 15.0 (Default)](DirectIndirectShadowsDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Min Sky Angle = 35.0](MinSkyAngle_35.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+#### Sky Angle Scale
+
+Type the following to set the scale of the light source angle derived from the Stationary Skylight.
+
+	r.CapsuleShadowsSkyAngleScale
+
+		
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Angle Scale = 0.6 (Default)](DirectIndirectShadowsDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Angle Scale = 0.1](SkyAngleScale_0_1.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
