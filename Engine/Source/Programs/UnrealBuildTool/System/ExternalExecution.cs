@@ -1054,7 +1054,7 @@ namespace UnrealBuildTool
 							UBTArguments.Append(" -noxge");
 						}
 
-						// Propagate command-line option
+						// Propagate command-line options
 						if ( UnrealBuildTool.CommandLineContains( "-2015" ) )
 						{
 							UBTArguments.Append( " -2015" );
@@ -1062,6 +1062,10 @@ namespace UnrealBuildTool
 						if ( UnrealBuildTool.CommandLineContains( "-2013" ) )
 						{
 							UBTArguments.Append(" -2013");
+						}
+						if ( UnrealBuildTool.CommandLineContains( "-ignorejunk" ) )
+						{
+							UBTArguments.Append(" -ignorejunk");
 						}
 
 						// Add UHT plugins to UBT command line as external plugins
