@@ -724,7 +724,10 @@ void CheckRenderingThreadHealth()
 
 	if (IsInGameThread())
 	{
-		GLog->FlushThreadedLogs();
+		if (!GIsCriticalError)
+		{
+			GLog->FlushThreadedLogs();
+		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		TGuardValue<bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
 #endif
