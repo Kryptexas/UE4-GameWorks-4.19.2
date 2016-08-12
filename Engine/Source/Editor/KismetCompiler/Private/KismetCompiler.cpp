@@ -512,9 +512,6 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CreateClassVariables);
 
-	// Ensure that member variable names are valid and that there are no collisions with a parent class
-	ValidateVariableNames();
-
 	// Grab the blueprint variables
 	NewClass->NumReplicatedProperties = 0;	// Keep track of how many replicated variables this blueprint adds
 	// Clear out any existing property guids
@@ -3327,6 +3324,10 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 	}
+
+	// Ensure that member variable names are valid and that there are no collisions with a parent class
+	// This validation requires CDO object.
+	ValidateVariableNames();
 
 	UObject* OldCDO = NULL;
 	int32 OldGenLinkerIdx = INDEX_NONE;

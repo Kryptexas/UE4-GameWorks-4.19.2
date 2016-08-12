@@ -4440,47 +4440,32 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 			// Update any existing references to the old name
 			FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, OldName, NewName);
 
-			void* OldPropertyAddr = NULL;
-			void* NewPropertyAddr = NULL;
-
-			//Grab property of blueprint's current CDO
-			UClass* GeneratedClass = Blueprint->GeneratedClass;
-			UObject* GeneratedCDO = GeneratedClass->GetDefaultObject();
-			UProperty* TargetProperty = FindField<UProperty>(GeneratedClass, OldName);
-
-			if( TargetProperty )
 			{
-				// Grab the address of where the property is actually stored (UObject* base, plus the offset defined in the property)
-				OldPropertyAddr = TargetProperty->ContainerPtrToValuePtr<void>(GeneratedCDO);
-				if(OldPropertyAddr)
+				//Grab property of blueprint's current CDO
+				UClass* GeneratedClass = Blueprint->GeneratedClass;
+				UObject* GeneratedCDO = GeneratedClass ? GeneratedClass->GetDefaultObject(false) : nullptr;
+				if (GeneratedCDO)
 				{
-					// if there is a property for variable, it means the original default value was already copied, so it can be safely overridden
-					Variable.DefaultValue.Empty();
-					PropertyValueToString(TargetProperty, reinterpret_cast<const uint8*>(GeneratedCDO), Variable.DefaultValue);
+					UProperty* TargetProperty = FindField<UProperty>(GeneratedCDO->GetClass(), OldName); // GeneratedCDO->GetClass() is used instead of GeneratedClass, because CDO could use REINST class.
+					// Grab the address of where the property is actually stored (UObject* base, plus the offset defined in the property)
+					void* OldPropertyAddr = TargetProperty ? TargetProperty->ContainerPtrToValuePtr<void>(GeneratedCDO) : nullptr;
+					if (OldPropertyAddr)
+					{
+						// if there is a property for variable, it means the original default value was already copied, so it can be safely overridden
+						Variable.DefaultValue.Empty();
+						PropertyValueToString(TargetProperty, reinterpret_cast<const uint8*>(GeneratedCDO), Variable.DefaultValue);
+					}
 				}
-			}
-
-			// Validate child blueprints and adjust variable names to avoid a potential name collision
-			FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
-
-			// And recompile
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-
-			// Grab the new regenerated property and CDO
-			UClass* NewGeneratedClass = Blueprint->GeneratedClass;
-			UObject* NewGeneratedCDO = NewGeneratedClass->GetDefaultObject();
-			UProperty* NewTargetProperty = FindField<UProperty>(NewGeneratedClass, NewName);
-
-			if( NewTargetProperty )
-			{
-				// Get the property address of the new CDO
-				NewPropertyAddr = NewTargetProperty->ContainerPtrToValuePtr<void>(NewGeneratedCDO);
-
-				if( OldPropertyAddr && NewPropertyAddr )
+				else
 				{
-					// Copy the properties from old to new address.
-					NewTargetProperty->CopyCompleteValue(NewPropertyAddr, OldPropertyAddr);
+					UE_LOG(LogBlueprint, Warning, TEXT("Could not find default value of renamed variable '%s' (previously '%s') in %s"), *NewName.ToString(), *OldName.ToString(), *GetPathNameSafe(Blueprint));
 				}
+
+				// Validate child blueprints and adjust variable names to avoid a potential name collision
+				FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
+
+				// And recompile
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 
 			{
