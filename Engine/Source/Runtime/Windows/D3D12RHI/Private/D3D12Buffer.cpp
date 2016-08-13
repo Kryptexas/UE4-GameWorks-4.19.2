@@ -44,7 +44,7 @@ struct FRHICommandRenameUploadBuffer : public FRHICommand<FRHICommandRenameUploa
 	void Execute(FRHICommandListBase& CmdList) { Resource->Rename(NewResource); }
 };
 
-FD3D12ResourceLocation* FD3D12DynamicRHI::CreateBuffer(FRHICommandListImmediate* RHICmdList, const D3D12_RESOURCE_DESC Desc, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, uint32 Alignment)
+FD3D12ResourceLocation* FD3D12DynamicRHI::CreateBuffer(FRHICommandListImmediate* RHICmdList, const D3D12_RESOURCE_DESC InDesc, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, uint32 Alignment)
 {
 	// Explicitly check that the size is nonzero before allowing CreateBuffer to opaquely fail.
 	check(Size > 0);
@@ -83,11 +83,11 @@ FD3D12ResourceLocation* FD3D12DynamicRHI::CreateBuffer(FRHICommandListImmediate*
 			// We only need to synchronize when creating default resource buffers (because we need a command list to initialize them)
 			FScopedRHIThreadStaller StallRHIThread(*RHICmdList);
 
-			VERIFYD3D12RESULT(GetRHIDevice()->GetDefaultBufferAllocator().AllocDefaultResource(Desc, pInitData, ResourceLocation, Alignment));
+			VERIFYD3D12RESULT(GetRHIDevice()->GetDefaultBufferAllocator().AllocDefaultResource(InDesc, pInitData, ResourceLocation, Alignment));
 		}
 		else
 		{
-			VERIFYD3D12RESULT(GetRHIDevice()->GetDefaultBufferAllocator().AllocDefaultResource(Desc, pInitData, ResourceLocation, Alignment));
+			VERIFYD3D12RESULT(GetRHIDevice()->GetDefaultBufferAllocator().AllocDefaultResource(InDesc, pInitData, ResourceLocation, Alignment));
 		}
 		check(ResourceLocation->GetEffectiveBufferSize() == Size);
 	}

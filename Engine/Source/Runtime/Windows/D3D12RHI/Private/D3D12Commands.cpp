@@ -1355,11 +1355,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12CommitGraphicsConstants);
 
-	// MSFT: Seb: Do we need to support this none parallel case?
-	//if (GRHISupportsParallelRHIExecute)
 	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = CurrentBoundShaderState.GetReference();
-	//else
-	//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
 
 	check(CurrentBoundShaderStatePtr);
 
@@ -1572,12 +1568,8 @@ void FD3D12CommandContext::CommitGraphicsResourceTables()
 {
 	uint32 Start = FPlatformTime::Cycles();
 
-	// MSFT: Seb: Do we need this non parallel case now that context objects are always used?
-//#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = CurrentBoundShaderState.GetReference();
-//#else
-//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
-//#endif
+
 	check(CurrentBoundShaderStatePtr);
 
 	if (auto* Shader = CurrentBoundShaderStatePtr->GetVertexShader())
