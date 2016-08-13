@@ -161,12 +161,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 							.OnTextCommitted_Lambda([this](const FText& InText, ETextCommit::Type InCommitType){
 								if (InCommitType == ETextCommit::OnEnter)
 								{
-									FString Url = UrlTextBox->GetText().ToString();
-									if (!Url.Contains(TEXT("://"), ESearchCase::CaseSensitive))
-									{
-										Url.InsertAt(0, TEXT("file://"));
-									}
-									MediaPlayer->OpenUrl(Url);
+									OpenUrlTextBoxUrl();
 								}
 							})
 					]
@@ -186,7 +181,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 								return !UrlTextBox->GetText().IsEmpty();
 							})
 							.OnClicked_Lambda([this]{
-								MediaPlayer->OpenUrl(UrlTextBox->GetText().ToString());
+								OpenUrlTextBoxUrl();
 								return FReply::Handled();
 							})
 							[
@@ -377,6 +372,19 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 
 /* SMediaPlayerEditorPlayer implementation
  *****************************************************************************/
+
+void SMediaPlayerEditorViewer::OpenUrlTextBoxUrl()
+{
+	FString Url = UrlTextBox->GetText().ToString();
+
+	if (!Url.Contains(TEXT("://"), ESearchCase::CaseSensitive))
+	{
+		Url.InsertAt(0, TEXT("file://"));
+	}
+
+	MediaPlayer->OpenUrl(Url);
+}
+
 
 void SMediaPlayerEditorViewer::SetDesiredPlayerName(FName PlayerName)
 {

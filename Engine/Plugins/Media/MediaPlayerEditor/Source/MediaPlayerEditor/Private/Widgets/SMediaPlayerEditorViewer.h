@@ -41,6 +41,9 @@ public:
 
 protected:
 
+	/** Open the media URL in the url text box. */
+	void OpenUrlTextBoxUrl();
+
 	/** Set the name of the desired native media player. */
 	void SetDesiredPlayerName(FName PlayerName);
 
