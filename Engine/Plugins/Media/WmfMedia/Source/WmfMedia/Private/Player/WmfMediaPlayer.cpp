@@ -146,15 +146,15 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 
 		if (Options.GetMediaOption("PrecacheFile", false))
 		{
-			FBufferArchive* Buffer = new FBufferArchive;
+			FArrayReader* Reader = new FArrayReader;
 
-			if (FFileHelper::LoadFileToArray(*Buffer, FilePath))
+			if (FFileHelper::LoadFileToArray(*Reader, FilePath))
 			{
-				Archive = MakeShareable(Buffer);
+				Archive = MakeShareable(Reader);
 			}
 			else
 			{
-				delete Buffer;
+				delete Reader;
 			}
 		}
 		else
