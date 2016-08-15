@@ -22,11 +22,11 @@ tags:BuildGraph
 %Programming/Development/InstalledBuildReference:topiccompact%
 [/REGION]
 
-## BuildGraph Script Reference
+## BuildGraph Scripting Reference
 
 [REGION:topics third]
-%Programming/Development/BuildGraph/BuildGraphTypes:topiccompact%
-%Programming/Development/BuildGraph/BuildGraphElements:topiccompact%
-%Programming/Development/BuildGraph/BuildGraphConditions:topiccompact%
-%Programming/Development/BuildGraph/BuildGraphTasks:topiccompact%
+%Programming/Development/BuildGraph/BuildGraphScriptTypes:topiccompact%
+%Programming/Development/BuildGraph/BuildGraphScriptElements:topiccompact%
+%Programming/Development/BuildGraph/BuildGraphScriptConditions:topiccompact%
+%Programming/Development/BuildGraph/BuildGraphScriptTasks:topiccompact%
 [/REGION]

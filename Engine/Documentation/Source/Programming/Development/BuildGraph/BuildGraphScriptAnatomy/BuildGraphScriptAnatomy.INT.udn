@@ -63,10 +63,10 @@ the allocation of machines (and coordination between them) is assumed to be mana
 
 The syntax of elements used to define BuildGraph constructs is listed in the following sections.
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphTypes#buildgraphtypes]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptTypes#buildgraphscripttypes]
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphElements#buildgraphelements]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptElements#buildgraphscriptelements]
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphConditions#buildgraphconditions]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptConditions#buildgraphscriptconditions]
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphTasks#buildgraphtasks]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptTasks#buildgraphscripttasks]
