@@ -142,6 +142,9 @@ class FXAudio2Device : public FAudioDevice
 
 protected:
 
+	/** Creates a mastering voice. Returns false if fails. */
+	struct IXAudio2MasteringVoice* CreateMasteringVoice();
+
 	/**
      * Allocates memory from permanent pool. This memory will NEVER be freed.
 	 *
@@ -169,6 +172,9 @@ protected:
 
 private:
 	struct FXAudioDeviceProperties* DeviceProperties;
+
+	/** Whether or not audio hardware changed. */
+	bool bHardwareChanged;
 
 #if PLATFORM_WINDOWS
 	// We need to keep track whether com was successfully initialized so we can clean 

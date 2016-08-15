@@ -52,6 +52,10 @@ const float* FXAudioDeviceProperties::OutputMixMatrix = NULL;
 XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
+#if PLATFORM_WINDOWS
+FMMNotificationClient* FXAudioDeviceProperties::NotificationClient = nullptr;
+#endif
+
 /*------------------------------------------------------------------------------------
 	FAudioDevice Interface.
 ------------------------------------------------------------------------------------*/
@@ -65,6 +69,10 @@ void FXAudio2Device::GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) co
 
 bool FXAudio2Device::InitializeHardware()
 {
+	bIsAudioDeviceHardwareInitialized = false;
+
+	bHardwareChanged = false;
+
 	if (IsRunningDedicatedServer())
 	{
 		return false;
@@ -222,6 +230,9 @@ bool FXAudio2Device::InitializeHardware()
 
 	DeviceProperties->SpatializationHelper.Init();
 
+	// Set that we initialized our hardware audio device ok so we should use real voices.
+	bIsAudioDeviceHardwareInitialized = true;
+
 	// Initialize permanent memory stack for initial & always loaded sound allocations.
 	if( CommonAudioPoolSize )
 	{
@@ -256,6 +267,25 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+	if (DeviceProperties)
+	{
+#if PLATFORM_WINDOWS
+		if (DeviceProperties->DidAudioDeviceChange())
+		{
+			// Stop any sounds that are playing
+			StopAllSounds(true);
+
+			// Set all sound sources to virtual mode so they don't play audio
+			for (FSoundSource* Source : Sources)
+			{
+				Source->SetVirtual();
+			}
+
+			// And switch to no-audio mode.
+			bIsAudioDeviceHardwareInitialized = false;
+		}
+#endif
+	}
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

@@ -395,6 +395,11 @@ public:
 */
 struct FSpatializationParams
 {
+	FSpatializationParams()
+	{
+		FMemory::Memzero(this, sizeof(*this));
+	}
+
 	FVector ListenerPosition;
 	FVector ListenerOrientation;
 	FVector EmitterPosition;
@@ -421,6 +426,7 @@ public:
 		, bInitialized(true) // Note: this is defaulted to true since not all platforms need to deal with async initialization.
 		, bReverbApplied(false)
 		, bIsPreviewSound(false)
+		, bIsVirtual(false)
 		, StereoBleed(0.0f)
 		, LFEBleed(0.5f)
 		, LPFFrequency(MAX_FILTER_FREQUENCY)
@@ -556,6 +562,12 @@ public:
 	{
 	}
 
+	/** Sets if this voice is virtual. */
+	void SetVirtual()
+	{
+		bIsVirtual = true;
+	}
+
 protected:
 
 	// Variables.	
@@ -575,6 +587,8 @@ protected:
 	uint32				bReverbApplied:1;
 	/** Whether or not the sound is a preview sound */
 	uint32				bIsPreviewSound:1;
+	/** True if this isn't a real hardware voice */
+	uint32				bIsVirtual : 1;
 	/** The amount of stereo sounds to bleed to the rear speakers */
 	float				StereoBleed;
 	/** The amount of a sound to bleed to the LFE speaker */
