@@ -1,29 +1,29 @@
 Availability: Docs
-Title: BuildGraph Tasks
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraphs
+Title: BuildGraph Script Tasks
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
 Description: Learn how BuildGraph can help you create custom tasks.
 version: 4.13
-parent:Programming/Development/BuildGraphs
+parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraphs/BuildGraphScriptAnatomy
+related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraphs/BuildGraphTasks%](tasks_topic.png)
+		![%Programming/Development/BuildGraph/BuildGraphTasks%](tasks_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraphs/BuildGraphTasks:title%
+		%Programming/Development/BuildGraph/BuildGraphTasks:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraphs/BuildGraphTasks:description%
+		%Programming/Development/BuildGraph/BuildGraphTasks:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraphs/BuildGraphTasks]
+		[RELATIVE:Programming/Development/BuildGraph/BuildGraphTasks]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -53,6 +53,6 @@ If you'd like to have a starting point for creating tasks, we're providing a var
 If you're looking for a simple predefined task to start from, we recommend using `LogTask` as a good starting point. If you want to keep up with 
 our latest improvements to BuildGraph; bookmark this page, because the following list of predefined tasks will be updated periodically. 
 
-[INCLUDE:Programming/Development/BuildGraphs/BuildGraphTasks/BuildGraphPredefinedTasks]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphTasks/BuildGraphPredefinedTasks]
 
 [/EXCERPT:buildgraphtasks]

@@ -1,28 +1,28 @@
 Availability: Docs
 Title: BuildGraph Script Anatomy
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraphs
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
 Description:This page introduces you to our BuildGraph scripting system.
 version: 4.13
-parent:Programming/Development/BuildGraphs
+parent:Programming/Development/BuildGraph
 type:Overview
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraphs/BuildGraphScriptAnatomy%](anatomy_topic.png)
+		![%Programming/Development/BuildGraph/BuildGraphScriptAnatomy%](anatomy_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraphs/BuildGraphScriptAnatomy:title%
+		%Programming/Development/BuildGraph/BuildGraphScriptAnatomy:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraphs/BuildGraphScriptAnatomy:description%
+		%Programming/Development/BuildGraph/BuildGraphScriptAnatomy:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraphs/BuildGraphScriptAnatomy]
+		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptAnatomy]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -63,10 +63,10 @@ the allocation of machines (and coordination between them) is assumed to be mana
 
 The syntax of elements used to define BuildGraph constructs is listed in the following sections.
 
-[INCLUDE:Programming/Development/BuildGraphs/BuildGraphTypes#buildgraphtypes]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphTypes#buildgraphtypes]
 
-[INCLUDE:Programming/Development/BuildGraphs/BuildGraphElements#buildgraphelements]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphElements#buildgraphelements]
 
-[INCLUDE:Programming/Development/BuildGraphs/BuildGraphConditions#buildgraphconditions]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphConditions#buildgraphconditions]
 
-[INCLUDE:Programming/Development/BuildGraphs/BuildGraphTasks#buildgraphtasks]
+[INCLUDE:Programming/Development/BuildGraph/BuildGraphTasks#buildgraphtasks]
