@@ -817,9 +817,9 @@ void FViewInfo::CreateUniformBuffer(
 		ViewUniformShaderParameters.AtmosphericFogInscatterAltitudeSampleNum = 0;
 	}
 
-	SetBlack2DIfNull(ViewUniformShaderParameters.AtmosphereTransmittanceTexture_UB);
-	SetBlack2DIfNull(ViewUniformShaderParameters.AtmosphereIrradianceTexture_UB);
-	SetBlack3DIfNull(ViewUniformShaderParameters.AtmosphereInscatterTexture_UB);
+	ViewUniformShaderParameters.AtmosphereTransmittanceTexture_UB = OrBlack2DIfNull(AtmosphereTransmittanceTexture);
+	ViewUniformShaderParameters.AtmosphereIrradianceTexture_UB = OrBlack2DIfNull(AtmosphereIrradianceTexture);
+	ViewUniformShaderParameters.AtmosphereInscatterTexture_UB = OrBlack3DIfNull(AtmosphereInscatterTexture);
 
 	ViewUniformShaderParameters.AtmosphereTransmittanceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 	ViewUniformShaderParameters.AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
