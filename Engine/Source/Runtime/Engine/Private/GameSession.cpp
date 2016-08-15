@@ -136,7 +136,8 @@ void AGameSession::InitOptions( const FString& Options )
 	
 	if (GameMode)
 	{
-		APlayerState const* const DefaultPlayerState = GetDefault<APlayerState>(GameMode->PlayerStateClass);
+		UClass* PlayerStateClass = GameMode->PlayerStateClass;
+		APlayerState const* const DefaultPlayerState = (PlayerStateClass ? GetDefault<APlayerState>(PlayerStateClass) : nullptr);
 		if (DefaultPlayerState)
 		{
 			SessionName = DefaultPlayerState->SessionName;
