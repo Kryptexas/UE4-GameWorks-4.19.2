@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Capsule Shadows Best Practices
+﻿INTSourceChangelist:3085410
+Availability:Docs
+Title:カプセル シャドウ ベストプラクティス
 Crumbs: %ROOT%, Engine, 
-Description: Capsule Shadows Best Practices
-Version: 4.13
+Description:カプセル シャドウ ベストプラクティス
+Version:4.13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,44 +52,44 @@ Version: 4.13
 
 
 
-## Best Practices
+## ベスト プラクティス
 
-Below are some steps you can take to ensure that your Capsule Shadows look correct and perform well for your game.
+以下の操作を行うと、カプセル シャドウがゲームで正しく表示され、パフォーマンスを上げることができます。
 
-### Feet Capsule Placement
+### 足のカプセルの配置
 
-It is important to get the foot placement right for your characters to make them feel grounded in the environment. Take your time to tweak this part of the setup for your Shadow Physics Asset to 
-make sure that it looks right. You may also want to have several different lighting scenarios set up in a test scene to make sure everything looks correct.
+背景の中でしっかり地面を踏んでいるように見せるためにも、キャラクターの足のカプセルを正しく配置することは重要です。Shadow Physics アセットを使ってこの設定をいろいろ調整して、 
+正しく見えるようにしてください。どこからみても正しく見えるように、テスト シナリオには何通りか異なるライティング シナリオを用意しておくと良いかもしれません。
 
 
 [REGION:lightbox]
 [![](FootPlacement1.png)(w:600)](FootPlacement1.png)
 [/REGION]
 
-In this setup the capsules for the feet are close to relative size of the feet and have some overlap with the capsules for the shins. The shadows are soft and not overly dark.
+この設定では、足用のカプセルは足の相対サイズに近いので、むこうずね用のカプセルに若干オーバーラップします。シャドウは柔らかいですし、暗すぎくもありません。
 
 [REGION:lightbox]
 [![](FootPlacement2.png)(w:600)](FootPlacement2.png)
 [/REGION]
  
-In this setup the capsules are too large for the feet and extend beyond the back of the heel leaving the soft shadows to appear darker than they should.
+この設定では、足に対してカプセルが長すぎて、踵の裏側まで伸びて、必要以上に影が濃くなっています。
 
 
-### Limit Capsule Bodies
+### カプセル ボディを制限する
 
-Capsule Shadows can be considered an advanced form of "blob" shadows. You can simply use a single capsule or as many as you need to get better shadowing accuracy. With that in mind, start by 
-determining the needs of your character's movement for your game and whether they will ever be near a surface by using a cover system or falling down. If they will never be near surfaces consider
-not having capsule bodies for the arms of your character, since the performance costs is determined by the number of capsule bodies.
+カプセル シャドウは "blob" シャドウの進化形と考えることができます。カプセルは 1 つだけ使ってもいいですし、シャドウイングの精度をあげるために好きな数だけ使用できます。以上を踏まえて、 
+カバーシステムあるいはフォーリングダウンを使って、サーフェイスまで接近するかどうか、ゲームでのキャラクターの移動の必要性を定義します。サーフェイスに接近しないのであれば、
+パフォーマンス負荷はカプセル ボディ数で決定されるので、キャラクターの腕にカプセル ボディを使わないことを検討してください。
 
 [REGION:lightbox]
 [![](BlobShadow.png)(w:400)](BlobShadow.png)
 [/REGION]
 [REGION:caption]
-_Click image for full size view_
+_画像をクリックしてフルサイズで表示_
 [/REGION]
 
-In this example, there is a single capsule that is used to represent the character. In indirectly lit areas this can save performance costs by only using a single capsule for the character's representation
-if accuracy is not a concern.
+このサンプルでは、カプセルを 1 つ使ってキャラクターを表します。間接的な照明領域では、キャラクターの表現のために使用するカプセルを 1 つだけにすることでパフォーマンス負荷を抑えることができます。
+ただし、精度は気にしないものとします。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -100,19 +100,19 @@ if accuracy is not a concern.
 	[/PARAM]
 [/OBJECT]
 
-In this comparison, the arms have been removed from the character's representation. In the directly lit character areas not near surfaces you can see that it only makes a slight visual difference. 
+この比較では、キャラクターの表現から腕を削除しました。直接的な照明領域でサーフェイスに近くない場合は、視覚的な差はほとんど確認することはできません。 
 
 
-### Indirect Lighting Cache (Volume Light Samples)
+### 間接ライティング キャッシュ (Volume Light Samples)
 
-Capsule Shadows for indirect lighting are heavily influenced by the [Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) to determine the directionality and intensity of the 
-soft shadow. Sometimes this requires tweaking the placement of the light samples to be more dense or spaced out on your game's needs. 
+間接ライティングの場合、カプセル シャドウのソフト シャドウの方向性と強度は [間接ライティング キャッシュ](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) に 
+大きく左右されます。ライト サンプルの位置を調節して、ゲームのニーズに合わせた密集や文才が必要な場合があります。 
 
-To adjust the **Volume Light Sample Placement** you must enable the **World Settings** panel by going to **Settings** > **World Settings** in the main toolbar. Then in the World Settings panel under the 
-**Lightmass** section you can change the **Volume Light Sample Placement**. Use lower values to make the placement of samples more dense or higher values to make them more spread out.
+**[Volume Light Sample Placement]** を調節するには、メイン ツールバーの **[Settings (設定)]** > **[World Settings (ワールド設定)]** で **[World Settings (ワールド設定)]** パネルを有効にしなければなりません。[World Settings (ワールド設定)]** パネルの **[Lightmass]** セクションで 
+ **[Volume Light Sample Placement]** を変更することができます。数字を低くするとサンプルは密集した配置となり、数字を高くすると分散します。
 
 
-You can visualize these samples in your level by going to the **Viewport** > **Show** > **Visualize** > **Volume Lighting Samples**. 
+**[Viewport (ビューポート)]** > **[Show (表示)]** > **[Visualize (可視化)]** > **[Volume Lighting Samples]** から、レベル内でサンプルを可視化することができます。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -123,11 +123,11 @@ You can visualize these samples in your level by going to the **Viewport** > **S
 	[/PARAM]
 [/OBJECT]
 
-You may need to adjust the settings for the Volume Light Samples Placement to get the results that you desire. In this scene setup, adjusting to a value between 0.5 and 0.25 gave better results, but 
-this may be different for your game.
+求めている仕上りにするためには、Volume Light Samples Placement の設定を調節する必要がるかもしれません。このシーンの場合は値を 0.5 と 0.25 の間で調節するのが良さそうですが、 
+ベストな値はゲームによって異なります。
 
 [REGION:warning]
-Values too low will cause a "popping" as the capsule moves between the samples instead of providing a soft smooth transition between them, since the placement of the samples is so close together.
+値が低すぎると、サンプル同士の配置が近すぎるため、カプセルはサンプル間で滑らかな移動ができず、"popping" が起こります。
 [/REGION]
 
 
