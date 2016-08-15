@@ -11,6 +11,7 @@
  */
 
 class FAudioEffectsManager;
+class FViewportClient;
 class ICompressedAudioInfo;
 class IAudioSpatializationPlugin;
 class IAudioSpatializationAlgorithm;
