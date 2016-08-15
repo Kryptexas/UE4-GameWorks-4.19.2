@@ -95,8 +95,9 @@ public:
 	/**
 	 * Do anything necessary to prepare for any kind of draw call 
 	 * @param PrimitiveType The UE4 primitive type for the draw call, needed to compile the correct render pipeline.
+	 * @returns True if the preparation completed and the draw call can be encoded, false to skip.
 	 */
-	void PrepareToDraw(uint32 PrimitiveType);
+	bool PrepareToDraw(uint32 PrimitiveType);
 	
 	/**
 	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
