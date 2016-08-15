@@ -5851,7 +5851,7 @@ void FSequencer::ExportFBX()
 		UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 
 		Exporter->CreateDocument();
-		Exporter->SetTrasformBaking( true );
+		Exporter->SetTrasformBaking( false );
 		Exporter->SetKeepHierarchy( true );
 
 		// Select selected nodes if there are selected nodes

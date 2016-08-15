@@ -2124,7 +2124,7 @@ void SetFbxKeyFromRichCurve(FbxAnimCurve* InFbxCurve, float InKeyTime, float InV
 
 		RichCurveInterpolationToFbxInterpolation(InRichCurve.GetKeyInterpMode(KeyHandle), InRichCurve.GetKeyTangentMode(KeyHandle), Interpolation, Tangent);
 
-		if (Tangent != FbxAnimCurveDef::eTangentAuto)
+		if (Interpolation == FbxAnimCurveDef::eInterpolationCubic)
 		{
 			FRichCurveKey RichCurveKey = InRichCurve.GetKey( KeyHandle );
 			FKeyHandle NextKeyHandle = InRichCurve.GetNextKey( KeyHandle );
@@ -2132,7 +2132,13 @@ void SetFbxKeyFromRichCurve(FbxAnimCurve* InFbxCurve, float InKeyTime, float InV
 				? InRichCurve.GetKey( NextKeyHandle ).ArriveTangent
 				: 0;
 
-			InFbxCurve->KeySet(FbxKeyIndex, FbxTime, InValue, Interpolation, Tangent, RichCurveKey.LeaveTangent, NextTangent);
+			// Special case - if first or last key, the interpolation type is always user
+			if (InRichCurve.GetFirstKey() == RichCurveKey || InRichCurve.GetLastKey() == RichCurveKey)
+			{
+				Tangent = FbxAnimCurveDef::eTangentUser;
+			}
+
+			InFbxCurve->KeySet(FbxKeyIndex, FbxTime, InValue, Interpolation, Tangent, -RichCurveKey.LeaveTangent, -NextTangent);
 		}
 		else
 		{
