@@ -709,9 +709,13 @@ public class IOSPlatform : Platform
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
 			}
 		}
-	}
+        {
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Engine/Content/Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
+        }
+    }
 
-	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
+    public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
 		{
@@ -1337,7 +1341,7 @@ public class IOSPlatform : Platform
 
 	public override bool StageMovies
 	{
-		get { return true; }
+		get { return false; }
 	}
 
 	public override bool RequiresPackageToDeploy
