@@ -222,6 +222,7 @@ namespace UnrealBuildTool
 	 * Nodes for inserting text into the section are as follows:
 	 * 
 	 *	<insert> body </insert>
+	 *	<insertNewline/>
 	 *	<insertValue value=""/>
 	 *	<loadLibrary name="" failmsg=""/>
 	 *	
@@ -1477,6 +1478,10 @@ namespace UnrealBuildTool
 								}
 							}
 						}
+						break;
+
+					case "insertNewline":
+						GlobalContext.StringVariables["Output"] += "\n";
 						break;
 
 					case "insertValue":
