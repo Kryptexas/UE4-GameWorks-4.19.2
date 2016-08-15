@@ -1238,6 +1238,9 @@ FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AAct
 	// Maya does not support dashes.  Change all dashes to underscores		
 	NodeName = NodeName.Replace(TEXT("-"), TEXT("_") );
 
+	// Maya does not support spaces.  Change all spaces to underscores		
+	NodeName = NodeName.Replace(TEXT(" "), TEXT("_") );
+
 	return NodeName;
 }
 
