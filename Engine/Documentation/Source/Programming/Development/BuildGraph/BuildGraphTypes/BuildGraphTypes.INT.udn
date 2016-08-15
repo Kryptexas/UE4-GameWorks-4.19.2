@@ -1,29 +1,29 @@
 Availability: Docs
-Title: BuildGraph Types
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraphs
+Title: BuildGraph Script Types
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
 Description:Learn about valid data types for BuildGraph attributes.
 version: 4.13
-parent:Programming/Development/BuildGraphs
+parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraphs/BuildGraphScriptAnatomy
+related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraphs/BuildGraphTypes%](types_topic.png)
+		![%Programming/Development/BuildGraph/BuildGraphTypes%](types_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraphs/BuildGraphTypes:title%
+		%Programming/Development/BuildGraph/BuildGraphTypes:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraphs/BuildGraphTypes:description%
+		%Programming/Development/BuildGraph/BuildGraphTypes:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraphs/BuildGraphTypes]
+		[RELATIVE:Programming/Development/BuildGraph/BuildGraphTypes]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -56,6 +56,6 @@ The following table contains valid data types that can be contained by BuildGrap
 | **File Spec**           | A set of file and tag names, separated by semi-colons. Wildcards such as `"..."`, `"*"`, and `"?"` are permitted when referencing files (i.e., `Engine/.../*.bat`). Unless otherwise specified, relative paths are resolved relative to the working root directory.                        |
 | **File Name**           | A path to a file. Unless otherwise specified, relative paths are resolved to the working root directory.                                                                                                                                                                                   |
 | **Directory Name**      | A path to a directory. Unless otherwise specified, relative paths are resolved relative to the working root directory.                                                                                                                                                                     |
-| **Condition**           | A [conditional expression](Programming/Development/BuildGraphs/BuildGraphConditions).                                                                                                                                                                                                      |
+| **Condition**           | A [conditional expression](Programming/Development/BuildGraph/BuildGraphConditions).                                                                                                                                                                                                      |
 [/EXCERPT:TypesTable]
 -->

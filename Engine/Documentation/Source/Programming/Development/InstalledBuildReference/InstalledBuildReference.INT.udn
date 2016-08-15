@@ -7,6 +7,7 @@ parent:Programming/Development
 type:Reference
 related:Programming/Development/BuildConfigurations
 related:Programming/UnrealBuildSystem
+related:Programming/Development/BuildGraph
 
 [TOC (start:1 end:4)]
 

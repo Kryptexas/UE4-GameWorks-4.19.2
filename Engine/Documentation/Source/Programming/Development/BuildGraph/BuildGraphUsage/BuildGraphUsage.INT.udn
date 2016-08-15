@@ -1,29 +1,29 @@
 Availability: Docs
 Title: BuildGraph Usage
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraphs
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
 Description:This page shows you how to use BuildGraph Scripts.
 version: 4.13
-parent:Programming/Development/BuildGraphs
+parent:Programming/Development/BuildGraph
 type:Overview
-related: Programming/Development/BuildGraphs/BuildGraphScriptAnatomy
+related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraphs/BuildGraphUsage%](usage_topic.png)
+		![%Programming/Development/BuildGraph/BuildGraphUsage%](usage_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraphs/BuildGraphUsage:title%
+		%Programming/Development/BuildGraph/BuildGraphUsage:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraphs/BuildGraphUsage:description%
+		%Programming/Development/BuildGraph/BuildGraphUsage:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraphs/BuildGraphUsage]
+		[RELATIVE:Programming/Development/BuildGraph/BuildGraphUsage]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
