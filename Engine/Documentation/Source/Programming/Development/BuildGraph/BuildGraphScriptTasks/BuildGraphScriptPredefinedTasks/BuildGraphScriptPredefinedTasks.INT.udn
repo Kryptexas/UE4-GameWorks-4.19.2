@@ -213,8 +213,7 @@ Creates a new changelist and submits a set of files to a Perforce stream.
 
 ### Tag
 
-Applies a tag to a given set of files. The list of files is found by enumerating the tags and file specifications given by the 'Files' 
-            parameter. From this list, any files not matched by the 'Filter' parameter are removed, followed by any files matched by the 'Except' parameter.
+Applies a tag to a given set of files. The list of files is found by enumerating the tags and file specifications given by the 'Files' parameter. From this list, any files not matched by the 'Filter' parameter are removed, followed by any files matched by the 'Except' parameter.
 
 |         |                |          |                                                                                                                                                                                                                  |
 | ------- | -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
