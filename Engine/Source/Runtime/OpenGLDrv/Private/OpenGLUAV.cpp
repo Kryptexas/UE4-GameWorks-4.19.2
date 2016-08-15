@@ -137,7 +137,7 @@ void FOpenGLDynamicRHI::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAcc
 {
 	FOpenGLUnorderedAccessView* Texture = ResourceCast(UnorderedAccessViewRHI);
 	glBindBuffer(GL_TEXTURE_BUFFER, Texture->BufferResource);
-	glClearBufferData(GL_TEXTURE_BUFFER, Texture->Format, GL_RGBA, GL_UNSIGNED_INT, Values);
+	FOpenGL::ClearBufferData(GL_TEXTURE_BUFFER, Texture->Format, GL_RGBA, GL_UNSIGNED_INT, Values);
 	GPUProfilingData.RegisterGPUWork(1);
 }
 
