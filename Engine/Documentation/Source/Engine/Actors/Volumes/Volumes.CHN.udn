@@ -1,4 +1,5 @@
-﻿Availability: Public
+﻿INTSourceChangelist:3059681
+Availability: Public
 Title:体积用户指南
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description: 关于放置及应用体积来增加关卡的行为及设置的指南。
@@ -164,7 +165,8 @@ h:301
 
 ### 关卡动态载入体积
 
-**Level Streaming Volumes（关卡动态载入体积）**  用于辅助关卡动态载入处理。 它们提供了一种简单的封装关卡的方式，可以根据玩家进出该体积的时机，控制关卡载入及载出内存的时机。 
+[EXCERPT:LSV]
+**Level Streaming Volumes（关卡动态载入体积）**  用于辅助 [关卡动态载入](Engine/LevelStreaming) 处理。 它们提供了一种简单的封装关卡的方式，可以根据玩家进出该体积的时机，控制关卡载入及载出内存的时机。 
 
 现在，您可以在 **详细信息** 面板中调整关卡动态载入体积如何处理关卡动态载入。 
 
@@ -177,6 +179,9 @@ h:301
 | Disabled(禁用) | 如果该项为 _true_ ，那么动态载入体积代码会忽略该动态载入体积。 <br>也用于启用该体积，而不必将该体积从关卡中分离；或者用于在蓝图和体积动态载入之间切换关卡动态载入的控制。 |
 | Streaming Usage（动态载入应用） |决定此体积的用途，例如，是否控制载入，是否控制载入及可视度，或仅仅是可视度（在载入时遮挡） |
 
+[/EXCERPT]
+
+更多关于关卡流送体积的内容，请查看 [](Engine/LevelStreaming/StreamingVolumes)。
 
 ### 剔除距离体积
 

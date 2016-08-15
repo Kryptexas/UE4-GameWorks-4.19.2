@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability:Public
-Title:Events
+Title:事件（Events）
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
-Description: Nodes that are called from gameplay code to begin execution of an individual network within the EventGraph.
-version: 4.9
+Description:从游戏性代码中调用的节点，在 EventGraph 中开始执行个体网络。
+version:4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
 
@@ -51,36 +51,31 @@ tags:Execution Flow
 [TOC (start:2)]
 
 [EXCERPT:Intro]
-**Events** are nodes that are called from gameplay code to begin execution of an individual network 
-within the **EventGraph**. They allow Blueprints to perform a series of actions in response to 
-certain events that occur within the game, such as the game beginning, the level being reset, taking 
-damage, etc. These events can be accessed within Blueprints in order to implement new functionality or 
-override or augment the default functionality. Any number of **Events** can be used within a 
-single **EventGraph**; though only one of each type may be used.
+**事件（Events）** 是从游戏性代码中调用的节点，在 **事件图表（EventGraph）** 中开始执行个体网络。它们使蓝图执行一系列操作，对游戏中发生的特定事件（如游戏开始、关卡重置、受到伤害等）进行回应。这些事件可在蓝图中访问，以便实现新功能，或覆盖/扩充默认功能。任意数量的 **Events** 均可在单一 **EventGraph** 中使用，但每种类型只能使用一个。
 [/EXCERPT:Intro]
 
 ![Blueprint Class Events Expanded](EventsExpanded.png) ![Level Blueprint Events Expanded](LevelBPEventsExpanded.png)
 
 [REGION:note]
-	Each event can only execute a single object. If you want to trigger multiple actions from one 
-	event, you will need to string them together linearly.
+	每个事件只能执行单个对象。如需从一个事件触发多项操作， 
+	需要将它们线性地排列起来。
 [/REGION]
 
 [REGION:note]
-For information about using Matinee to create events to be triggered at specific times during the playback of a cinematic sequence, see [](Engine/Matinee\UserGuide\BlueprintComponents).
+在 [](Engine/Matinee\UserGuide\BlueprintComponents) 中可查阅使用 Matinee 创建事件的内容，可在过场序列播放中的特定时间触发这些事件。
 [/REGION]
 
 <!--
 
 [EXCERPT:LevelBPOnly]
 [REGION:note]
-This Blueprint Event node is only available in the Level Blueprint.
+此蓝图事件节点仅在关卡蓝图中可用。
 [/REGION]
 [/EXCERPT:LevelBPOnly]
 
 [EXCERPT:ServerOnly]
 [REGION:note]
-This Blueprint Event node executes only on the server. For single player games, the local client is considered the server.
+此蓝图事件节点仅在服务器上执行。在单人游戏中，本地客户端即视为服务器。
 [/REGION]
 [/EXCERPT:ServerOnly]
 
@@ -94,9 +89,7 @@ This Blueprint Event node executes only on the server. For single player games, 
 
 ![LevelReset.png](LevelReset.png)
 
-The **Level Reset** event sends out an execution signal when the level restarts. This is useful when you 
-need something to be triggered once a level has reloaded, such as in a gaming situation when the player 
-has died but the level does not need to reload.
+**Level Reset** 事件在关卡重启时发出执行信号。它在关卡重新加载后进行某项触发时非常实用。如玩家角色已死亡，但关卡无需重新加载时。
 
 ![LevelReset_Example.png](LevelReset_Example.png)(w:500)
 
@@ -105,71 +98,71 @@ has died but the level does not need to reload.
 [EXCERPT:EventBeginOverlap]
 ![](BeginOverlap.png)
 
-This event will execute when a number of conditions are met at the same time:
+多项条件同时满足时，将执行该事件：
 
-* Collision response between the actors must allow Overlaps.
-* Both Actors that are to execute the event have **Generate Overlap Events** set to true.
-* And finally, both Actors' collision starts overlapping; moving together or one is created overlapping the other.
+* Actor 之间的碰撞响应必须允许重叠。
+* 执行事件的两个 Actor 的 **Generate Overlap Events** 均设为 true。
+* 最后，两个 Actor 的碰撞开始重叠；两者移到一起或其中一个创建时与另一个重叠。
 
-For more information on collision, see: [Collision Responses](Engine\Physics\Collision).
+关于碰撞详细信息，请查阅：[碰撞响应](Engine\Physics\Collision)。
 
 ![](BeginOverlapEX.png)
 
-_When this Blueprint Actor overlaps the Actor stored in the Player Actor variable, it will increment the Counter integer variable_.
+_此蓝图 Actor 和保存在 Player Actor 变量中的 Actor 重叠时，它将增加 Counter 整数变量。_
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Other Actor** | Actor - This is the Actor that is overlapping this Blueprint. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Other Actor** | Actor - 这是与此蓝图发生重叠的 Actor。|
 [/EXCERPT:EventBeginOverlap]
 
 ## Event Actor End Overlap
 [EXCERPT:EventEndOverlap]
 ![](EndOverlap.png)
 
-This event will execute when a number of conditions are met at the same time:
+多项条件同时满足时，将执行该事件：
 
-* Collision response between the actors must allow Overlaps.
-* Both Actors that are to execute the event have **Generate Overlap Events** set to true.
-* And finally, both Actors' collision stop overlapping; moving apart or if one is destroyed.
+* Actor 之间的碰撞响应必须允许重叠。
+* 执行事件的两个 Actor 的 **Generate Overlap Events** 均设为 true。
+* 最后，两个 Actor 的碰撞停止重叠；它们将分离，或在其中一个将被销毁。
 
-For more information on collision, see: [Collision Responses](Engine\Physics\Collision).
+关于碰撞详细信息，请查阅：[碰撞响应](Engine\Physics\Collision)。
 
 ![](EndOverlapEX.png)
 
-_When this Blueprint Actor stops overlapping any other Actor except the Actor stored in the Player Actor variable, it will destroy the Actor that overlapped it._
+_当此蓝图 Actor 不与其他 Actor 发生重叠时（保存在 Player Actor 变量中的 Actor 除外），它将销毁重叠的 Actor。_
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Other Actor** | Actor - This is the Actor that is overlapping this Blueprint. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Other Actor** | Actor - 这是与此蓝图发生重叠的 Actor。|
 [/EXCERPT:EventEndOverlap]
 
 ## Event Hit
 
 ![](EventHit.png)
 
-This event will execute as long as the collision settings on one of the Actors involved have **Simulation Generates Hit Events** set to true. 
+只要其中一个相关 Actor 的碰撞设置中 **Simulation Generates Hit Events** 设为 true，该事件便会执行。 
 
 [REGION:note]
-If you are creating movement using Sweeps, you will get this event even if you don't have the flag selected. This occurs as long as the Sweep stops you from moving past the blocking object.
+如您使用 Sweeps 创建运动，即使未选中标记也将获得此事件。只要 Sweep 阻止您移过阻挡物体，这便会发生。
 [/REGION]
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **My Comp** | PrimitiveComponent - The Component on the executing Actor that was hit. |
-| **Other** | Actor - The other Actor involved in the collision. |
-| **Other Comp** | PrimitiveComponent - The component on the other Actor involved in the collision that was hit. |
-| **Self Moved** | Boolean - Used when receiving a hit from another object's movement (if false), the directions of Hit Normal and Hit Impact Normal will be adjusted to indicate force from the other object against the object being hit. |
-| **Hit Location** | Vector - The location of contact between the two colliding Actors. |
-| **Hit Normal** | Vector - The direction of the collision. |
-| **Normal Impulse** | Vector - The force that the Actors collided with. |
-| **Hit** | Struct HitResult - All the data collected in a Hit, you can pull off and "break" this result to gain access to the individual bits of data. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **My Comp** | 原始组件 - 被命中的执行 Actor 上的组件。|
+| **Other** | Actor - 参与碰撞的其他 Actor。|
+| **Other Comp** | 原始组件 - 参与碰撞，被命中的其他 Actor 上的组件。|
+| **Self Moved** | 布尔型 - 接受来自另一个物体运动的命中时使用（如为 false），对 Hit Normal 和 Hit Impact Normal 的方向进行调整，以便表现其他物体对被命中物体施加的力。|
+| **Hit Location** | 矢量 - 两个碰撞 Actor 之间的接触位置。|
+| **Hit Normal** | 矢量 - 碰撞方向。|
+| **Normal Impulse** | 矢量 - Actor 碰撞的力。|
+| **Hit** | 命中结果结构体 - 一次命中中收集到的所有数据，可剥离并“打破”该结果，访问数据的单个位元。|
 
 ![](EventHitEX.png)
 
-_In this example, when this Blueprint executes **Hit** it will spawn an explosion effect at the point of impact._
+_在此例中，蓝图执行 **Hit** 时，它将在冲撞点生成爆炸效果。_
 
 ## Event Any Damage
 
@@ -177,21 +170,21 @@ _In this example, when this Blueprint executes **Hit** it will spawn an explosio
 
 ![](AnyDamage.png)
 
-This event is passed along when general damage is to be dealt. Like drowning or environmental damage, not specifically point damage or radial damage.
+此事件在造成整体伤害时出现。如溺死或环境伤害，并非点伤害或放射伤害。
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Damage** | Float - The amount of damage being passed into the Actor. |
-| **Damage Type** | Object DamageType - This is the object that contains additional data on the Damage being dealt. |
-| **Instigated By** | Actor - The Actor that is responsible for the damage. This would be the Actor that fired a gun or threw the grenade to deal the damage. |
-| **Damage Causer** | Actor - The Actor that caused the damage. This would be like a bullet or explosion. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Damage** | 浮点型 - 传入 Actor 的伤害量。|
+| **Damage Type** | 伤害类型对象 - 这是在输出伤害上包含额外数据的对象。|
+| **Instigated By** | Actor - 负责伤害的 Actor。这就是开枪或投手雷造成伤害的 Actor。|
+| **Damage Causer** | Actor - 输出伤害的 Actor。这可以是子弹或爆炸。|
 
 [REGION:lightbox]
 [![](AnyDamageEX.png)(w:940)](AnyDamageEX.png)
 [/REGION]
 
-_Here if the damage being dealt to the Actor is coming from Water, it will subtract health and print a warning to the screen._
+_此处，如果对 Actor 造成的伤害来自水，将减少体力值并在屏幕上生成警告。_
 
 ## Event Point Damage
 
@@ -199,26 +192,26 @@ _Here if the damage being dealt to the Actor is coming from Water, it will subtr
 
 ![](PointDamage.png)
 
-**Point Damage** is meant to represent damage dealt by projectiles, hit scan weapons, or even melee weaponry.
+**点伤害（Point Damage）** 代表由投射物、扫射武器、甚至近战武器造成的伤害。
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Damage** | Float - The amount of damage being passed into the Actor. |
-| **Damage Type** | Object DamageType - This is the object that contains additional data on the Damage being dealt. |
-| **Hit Location** | Vector - The location of where the damage is being applied. |
-| **Hit Normal** | Vector - The direction of the collision. |
-| **Hit Component** | PrimitiveComponent - The Component on the executing Actor that was hit. |
-| **Bone Name** | Name - The name of the bone that was hit. |
-| **Shot from Direction** | Vector - The direction the damage came from. |
-| **Instigated By** | Actor - The Actor that is responsible for the damage. This would be the Actor that fired a gun or threw the grenade to deal the damage. |
-| **Damage Causer** | Actor - The Actor that caused the damage. This would be like a bullet or explosion. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Damage** | 浮点型 - 传入 Actor 的伤害量。|
+| **Damage Type** | 伤害类型对象 - 这是在输出伤害上包含额外数据的对象。|
+| **Hit Location** | 矢量 - 应用伤害的位置。|
+| **Hit Normal** | 矢量 - 碰撞方向。|
+| **Hit Component** | 原始组件 - 被命中的执行 Actor 上的组件。|
+| **Bone Name** | 名称 - 命中的骨骼名称。|
+| **Shot from Direction** | 矢量 - 伤害来源的方向。|
+| **Instigated By** | Actor - 负责伤害的 Actor。这是开枪或投手雷造成伤害的 Actor。|
+| **Damage Causer** | Actor - 输出伤害的 Actor。这可以是子弹或爆炸。|
 
 [REGION:lightbox]
 [![](PointDamageEX.png)(w:940)](PointDamageEX.png)
 [/REGION]
 
-_In this example, when any damage is received, the damage dealt is subtracted from the Actor's health, but if the Head of the Actor is hit then the Actor's health is set to -1._
+_在此例中，受到任意伤害时均会从 Actor 的体力值减去造成的伤害。但如果 Actor 的头部被击中，则 Actor 的体力值设为 -1。_
 
 ## Event Radial Damage
 
@@ -226,17 +219,17 @@ _In this example, when any damage is received, the damage dealt is subtracted fr
 
 ![](RadialDamage.png)
 
-The **Radial Damage** Event is called whenever the parent Actor for this sequence receives radial damage. This is useful for handling events based on explosion damage, or damage caused indirectly.
+**放射伤害（Radial Damage）** 事件在该序列的父 Actor 受到放射伤害时调用。这可用于处理基于爆炸伤害或间接伤害的事件。
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Damage Received** | Float - The amount of damage received from the event. |
-| **Damage Type** | Object DamageType - This is the object that contains additional data on the Damage being dealt.  |
-| **Origin** | Vector - This gives the location in 3D space where the damage originated.|
-| **Hit Info** | Struct HitResult - All the data collected in a Hit, you can pull off and "break" this result to gain access to the individual bits of data.  |
-| **Instigated By** | Controller - The Controller (AI or Player) that instigated the damage. |
-| **Damage Causer** | Actor - The Actor that caused the damage. Could be a bullet, rocket, laser, or a character punching another. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Damage Received** | 浮点型 - 从事件接收的伤害量。|
+| **Damage Type** | 伤害类型对象 - 这是在输出伤害上包含额外数据的对象。|
+| **Origin** | 矢量 - 3D 空间中的伤害来源位置。|
+| **Hit Info** | 命中结果结构体 - 一次命中中收集到的所有数据，可剥离并“打破”该结果，访问数据的单个位元。|
+| **Instigated By** | 控制器 - 发起伤害的控制器（AI 或玩家）。|
+| **Damage Causer** | Actor - 输出伤害的 Actor。可以是子弹、火箭、激光或角色的拳击。|
 
 [REGION:lightbox]
 [![](RadialDamageEX.png)(w:940)](RadialDamageEX.png)
@@ -246,107 +239,107 @@ The **Radial Damage** Event is called whenever the parent Actor for this sequenc
 
 ![](BeginCursorOver.png)
 
-When using the mouse interface, when the mouse cursor is moved over an Actor, this event will execute.
+使用鼠标界面时，鼠标光标在 Actor 上悬停时执行的事件。
 
 ![](BeginCursorOverEX.png)
 
-_Once the mouse passes over this Actor it sets the scalar Parameter named Highlight on the Dynamic Material Instance to 1.0._
+_鼠标经过此 Actor 后，它将把动态材质实例上名为 Highlight 的标量参数设为 1.0。_
 
 
 ## Event Actor End Cursor Over
 
 ![](EndCursorOver.png)
 
-When using the mouse interface, when the mouse cursor is moved off an Actor, this event will execute.
+使用鼠标界面时，鼠标光标在 Actor 上移开时执行的事件。
 
 ![](EndCursorOverEX.png)
 
-_This will set the Actor stored in **Target Notification** to hidden in game._
+_它将把保存在 **Target Notification** 中的 Actor 设为在游戏中隐藏。_
 
 
 ## Event Begin Play
 [EXCERPT:EventBegin]
 ![](BeginPlay.png)
 
-This event is triggered for all Actors when the game is started, any Actors spawned after the game is started will have this called immediately.
+游戏开始时将在所有 Actor 上触发此事件。游戏开始后生成的所有 Actor 上均会立即调用此事件。
 
 ![](BeginPlayEX.png)
 
-_Upon beginning play, this Actor will set its Health to 1000 and Score to 0._
+_开始游戏时，此 Actor 将把其体力值设为 1000，分数设为 0。_
 [/EXCERPT:EventBegin]
 
 ## Event End Play
 [EXCERPT:EventEnd]
 ![](EndPlay.png)
 
-This event is executed when the Actor ceases to be in the World.
+Actor 不存在于世界场景中时执行此事件。
 
 ![](EndPlayEX.png)
 
-_Once this Actor is no longer in the World, a String will output to indicate the reason for the Event being called._
+_此 Actor 不存在于世界场景中时，字符串将输出，说明事件被调用的原因。_
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **End Play Reason** | enum EEndPlayReason - An enum indicating the reason for why Event End Play is being called.|
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **End Play Reason** | EEndPlayReason 枚举 - 说明 Event End Play 被调用原因的枚举。|
 [/EXCERPT:EventEnd]
 
 ## Event Destroyed
 
 ![](Destroyed.png)
 
-This event is executed when the Actor is Destroyed.
+Actor 被销毁时执行此事件。
 
 ![](DestroyedEX.png)
 
-_In this example, the variable of **Score** is being set to **Value** plus **Score**._
+_此例中，**Score** 变量设为 **Value** 加 **Score**。_
 
 [REGION:warning]
-	The Destroyed Event will be deprecated in a future release! The functionality of the Destroyed function has been incorporated into the EndPlay function.
+	Destroyed 事件将在之后的版本中移除！Destroyed 函数的功能已合并到 EndPlay 函数。
 [/REGION]
 
 ## Event Tick
 [EXCERPT:EventTick]
 ![](Tick.png)
 
-This is a simple event that is called on every frame of gameplay. 
+游戏进程中每帧调用的简单事件。 
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Delta Seconds** | Float - This outputs the amount of time between frames. |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Delta Seconds** | 浮点型 - 输出帧之间的时间量。|
 
 [![](TickEX.png)(w:940)](TickEX.png)
 
-_This example uses Delta Seconds to form a countdown timer that displays in the log with the final tick being "Blast Off!"_
+_此例使用 Delta Seconds 构成倒数计时器显示日志，最后的 tick 为“Blast Off!”_
 [/EXCERPT:EventTick]
 
 ## Event Receive Draw HUD
 
 [REGION:note]
-This Event is only available to Blueprint Classes that inherit from the HUD class.
+此事件仅限继承自 HUD 类的蓝图类可用。
 [/REGION]
 
 ![](DrawHud.png)
 
-This is a specialized event that enables Blueprints to draw to the HUD. The HUD draw nodes require this event to be the one that creates them.
+这是一个特殊事件，使蓝图可绘制到 HUD。此事件须创建 HUD 绘制节点。
 
-| Item | Description |
+| 项目 | 描述 |
 | -------- | ----------- |
-| [REGION:tablesection]Output Pins[/REGION] ||
-| **Size X** | Int - The width of the render window in pixels. |
-| **Size Y** | Int - The height of the render window in pixels.  |
+| [REGION:tablesection]输出引脚[/REGION] ||
+| **Size X** | Int - 渲染窗口的像素宽度。|
+| **Size Y** | Int - 渲染窗口的像素高度。|
 
 
 [REGION:lightbox]
 [![](DrawHudEX.png)(w:940)](DrawHudEX.png)
 [/REGION]
 
-_This will create a clickable **Hit Box** in the center of the render window, with a red box behind it so you can see it._
+_这会在渲染窗口的中央创建一个可点击的 **Hit Box**，其后有一个红框，便于辨认。_
 
 
 ## Custom Event
 
 ![Custom Event Node](Engine\Blueprints\UserGuide\Events\Custom\name_custom_event.png)
 
-The Custom Event node is a specialized node with its own workflow, see: [Custom Event Nodes](Engine\Blueprints\UserGuide\Events\Custom) for more information.
+Custom Event 节点是拥有自身工作流程的特殊节点，请查阅 [自定义事件节点](Engine\Blueprints\UserGuide\Events\Custom) 中的更多内容。

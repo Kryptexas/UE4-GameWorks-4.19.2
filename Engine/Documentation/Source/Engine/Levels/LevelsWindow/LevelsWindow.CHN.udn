@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Managing Multiple Levels
-Description:Manage your persistent level and sublevels with the Levels window.
-Version: 4.12
+﻿INTSourceChangelist:3075226
+Availability:Public
+Title:管理多个关卡
+Description:通过 Levels 窗口管理固定关卡和关卡分段。
+crumbs:
+Version:4.12
 parent:Engine/Levels
 type:reference
 order:2
@@ -48,117 +49,107 @@ order:2
 
 [TOC]
 
-Levels are managed with the **Levels** window. You can access the **Levels** window through the **Windows** menu.
+借助 **Levels** 窗口可进行关卡管理。可通过 **Windows** 菜单访问 **Levels** 窗口。
 
 ![](WindowLevels.png)
 
-You will always have a **Persistent Level**, and you can have one or more sublevels that are always loaded or are streamed in with Level Streaming Volumes, Blueprints, or C++ code.
-The **Levels** window shows all of these levels, enabling you to change which level is current (indicated in bold blue text), save one or more levels, and access Level Blueprints.
- The current Level is the one that will be modified if changes are made in the Level Editor's viewport. This allows you to easily work on multiple maps, as long as they
- are all writeable.
+将固定拥有一个 **固定关卡（Persistent Level）**，一个或多个关卡分段可固定被加载或通过关卡流送体积域、蓝图或 C++ 代码流入。**Levels** 窗口显示所有关卡，可在此变更当前关卡（蓝色粗体字显示）、保存一个或多个关卡，并访问关卡蓝图。如关卡编辑器视口中出现修改，当前关卡将被修改。借此可轻松在多个可写入的关卡上进行操作。
 
 ![](LevelsWindow.png)
 
-By right-clicking on the **Persistent Level**, you can perform operations like making it the current level, changing its visibility and lock status, and selecting all the Actors in that level.
+右键单击 **Persistent Level** 即可执行操作，如将其设为当前关卡、变更其可视性和锁定状态，并选中该关卡中的全部 Actor。
 
 ![](RightClickPersistent.png)
 
-Right-clicking on any sublevel gives a similar array of options, with additional entries for removing the sublevel and changing its streaming method. 
+在任意关卡分段上单击右键会出现相似的选项排列，此外还包括移除关卡分段和变更流送方法的条目。 
 
 ![](RightClickStreaming.png)
 
-Changing a level's visibility is for visualization purposes only and has no bearing on whether or not a level will stream into 
-the game when it is run. However, a level that is not visible here will not be affected if you rebuild the level, which can be a great timesaver if you have complicated levels. 
+变更关卡可视性只以显示为目的，与关卡是否在游戏运行时流入并无关系。然而，重建关卡时此处不可见的关卡将不受影响，处理复杂关卡时可节约大量时间。 
 
-## Adding New Sublevels
+## 添加新关卡分段
 
-You can create sublevels by splitting off part of an existing Persistent Level or sublevel, by creating a new level, or by adding an existing level.
-Adding a new sublevel makes it the current Level, so if you want to continue working in the level you were using prior to the addition, make sure to right-click on it and select 
-**Make Current** from the context menu.
+可创建新关卡或添加已有关卡，分离已有固定关卡或关卡分段的部分，以创建关卡分段。添加新关卡分段并将其设为当前关卡。如要继续在添加前使用的关卡上进行操作，对其单击右键并从快捷菜单中选择 **Make Current**。
 
-### Adding an Existing Level
+### 添加已有关卡
 
-1. Click on the **Levels** dropdown menu, then select **Add Existing...** to add a new sublevel.
+1. 点击 **Levels** 下拉菜单，然后选择 **Add Existing...** 新增一个关卡分段。
 
 	![](AddExisting.png)
 
-1. Select your Level to add in the **Open Level** dialog, then click on **Open**.
+1. 选择关卡加入 **Open Level** 对话，然后点击 **Open**。
 	
 	![](SunTempleStreaming_Select.png)
 
-### Creating an Empty Sublevel
+### 创建空白关卡分段
 
-1. Click on the **Levels** dropdown menu, then select **Create New...** to create a new blank Level.
+1. 点击 **Levels** 下拉菜单，然后选择 **Create New...** 新建空白关卡。
 
 	![](CreateNew.png)
 
-1. Select a save location and a name for your Level, then click on **Save**. 
+1. 选择关卡的保存路径并命名，然后点击 **Save**。 
 
 	![](Engine/Levels/HowTo/WorkWithLevelAssets/SaveLevelAs.png)(w:400)
 
-	The new Level will be added as a sublevel of your current persistent Level, and it will also be made the current Level for working in the Viewport.
+	新关卡将作为当前固定关卡的关卡分段添加，也将使当前关卡可在视口中正常使用。
 
-### Splitting Off Sublevels
+### 分离关卡分段
 
-If you've already created a Level, and later decide you want to split part of that Level off for streaming or for collaboration with a team, you can create a new Level with Actors
-from the original. 
+创建关卡后，如过需要将关卡部分分离进行流送或团队协作，可使用原始关卡中的 Actor 创建一个新关卡。 
 
-1. Select the Actors you want to move to the new level in the **Scene Outliner** or in the **Viewport**.
+1. 在 **Scene Outliner** 或 **视口** 中选择需要移动到新关卡中的 Actor。
 
-1. In the **Levels** window, click on the **Levels** dropdown menu, then select **Create New with Selected Actors...** to create a new Level.
+1. 在 **Levels** 窗口中点击 **Levels** 下拉菜单，然后选择 **Create New with Selected Actors...** 创建新关卡。
 
 	![](CreateNewWithSelectedActors.png)
 
-1. Select a save location and a name for your Level, then click on **Save**. 
+1. 选择关卡的保存路径并命名，然后点击 **Save**。 
 
 	![](Engine/Levels/HowTo/WorkWithLevelAssets/SaveLevelAs.png)(w:500)
 
-	All your selected Actors will be removed from their original Level and added to the new one, which will be added as a sublevel of your current persistent Level and made the current Level for working in the Viewport. 
+	选中的所有 Actor 都将从原始关卡移除并添加到新关卡。而新关卡将作为当前固定关卡的关卡分段添加，并使使当前关卡可在视口中正常使用。 
 
 	[REGION:note]
-	If you are moving an Actor that another Actor that remains in the persistent Level references, you will get a pop-up message asking if you really want to delete it from the persistent Level.
+	移动在固定关卡中被另一个 Actor 引用的 Actor 时，将出现提示信息询问您是否确定将其从固定关卡中删除。
 
 	![](DeleteNewLevel.png)
 	[/REGION]
 
-## Moving Actors Between Levels
+## 在关卡间移动 Actor
 
-While you can copy Actors from your active Level, then switch active Levels to paste Actors, there is a simpler way to move Actors between Levels.
+可以从使用中的关卡中复制 Actor，然后切换使用中的关卡粘贴 Actor。以下还有一种在关卡间移动 Actor 的更简单方法。
 
-1. Select the Actors you want to move to the new level in the **Scene Outliner** or in the **Viewport**.
+1. 在 **Scene Outliner** 或 **视口** 中选择需要移动到新关卡中的 Actor。
 
-1. **Right-click** on a Level in the **Levels** window, then select **Move Selected Actors to Level** from the context menu.
+1. 在 **Levels** 窗口中 **右键单击** 一个关卡，然后从快捷菜单中选择 **Move Selected Actors to Level**。
 
 	![](MoveSelectedActors.png)
 
-1. Press **Ctrl+S** to save all Levels.
+1. 按下 **Ctrl+S** 保存所有关卡。
 
-## Level Details
+## 关卡细节
 
-The **Level Details** button is indicated with a magnifying glass and question mark in the **Levels Window**, and enables you to access additional information about your current Levels.
-To set Level Streaming Volumes, you need to open the **Level Details** for your streaming Levels; for more on this process, see the [Level Streaming Volumes how-to](Engine/LevelStreaming/HowTo/StreamWithVolumes).
+**关卡细节（Level Details）** 按钮在 **Levels 窗口** 中显示为一个带问号的放大镜，通过它能获悉当前关卡的更多信息。如需设置关卡流送体积域，需要打开流送关卡的 **关卡细节**。如需了解该流程的详细内容，请查阅 [关卡流送体积域指南](Engine/LevelStreaming/HowTo/StreamWithVolumes)。
 
 ![](SummonLevelDetails.png)
 
-No additional details are visible for persistent Levels, although there is a dropdown menu you can use to change to another Level. 
+固定关卡无可见的额外细节，但可使用下拉菜单切换到另一个关卡。 
 
 ![](LevelDetails_Persistent.png)(w:500)
 
-For sublevels, you can set the Level's offset **Position** and **Rotation**, as well as the **Streaming Volumes** to use and the debug **Level Color**. Advanced settings like the 
-[minimum time between unload requests](Engine/LevelStreaming/Overview#addinghysteresistounloadingrequests) to improve performance are also accessible here.
+对关卡分段而言，可设置关卡的偏移 **位置** 和 **旋转**，以及使用的 **流送体积域** 和调试 **关卡颜色**。还可在此访问一些用于增强性能的高级设置，如 [卸载请求间的最短时间](Engine/LevelStreaming/StreamingVolumes#addinghysteresistounloadingrequests)。
 
 ![](LevelDetails_Streaming.png)
 
-## Visualizing Sublevels
+## 显示关卡分段
 
-You can set the color of sublevels either in the main **Levels** window or in the **Level Details** window. 
+可在主 **Levels** 窗口或 **Level Details** 窗口中设置关卡分段的颜色。 
 
-To toggle showing the level color, use the **Show** button on the viewport, then select **Advanced > Level Coloration**.
+如需切换显示关卡颜色，点击视口上的 **Show** 按钮，然后选择 **Advanced > Level Coloration**。
 
 ![](ShowLevelColoration.png)
 
-The persistent level will be shown in white, while all sublevels will be indicated with their selected colors. **Level Coloration** works in perspective and orthographic viewports,
-and will be toggled off with **Game Mode**.
+固定关卡将以白色显示，所有关卡分段将以其选中的颜色显示。**关卡着色（Level Coloration）** 在透视和正视视口中可用，可通过 **Game Mode** 关闭。
 
 ![](LevelColorOn.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2752357
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title: 插件
 Crumbs:%ROOT%, Programming
@@ -259,8 +259,8 @@ Plugin 模块有一个地方有点特别，那就是 Public 的源码头文件�
 1. 在游戏项目目录中 **创建一个 "Plugins" 目录**，然后将插件拷贝到 “Plugins” 目录内的任何子目录下。
 	
 	![ExamplePlugins.png](ExamplePlugins.png)
-1. ××重新生成 c++ 项目文件**。插件模块和代码应该在项目文件中被体现出来。
-1. 正常的**编译游戏项目**。Unreal Build Tool 会检测到插件的存在，并将它们作为游戏的依赖项进行编译。
+1. **重新生成 c++ 项目文件**。插件模块和代码应该在项目文件中被体现出来。
+1. 正常的 **编译游戏项目**。Unreal Build Tool 会检测到插件的存在，并将它们作为游戏的依赖项进行编译。
 1. **启动编辑器**（或者游戏）。插件一开始是处于禁用的状态，但可以在编辑器界面中启用它。
 1. **打开插件编辑器**（Window->Plugins），找到该插件并选中勾选框。
 1. **重启编辑器**。插件就会自动在启动时被加载。

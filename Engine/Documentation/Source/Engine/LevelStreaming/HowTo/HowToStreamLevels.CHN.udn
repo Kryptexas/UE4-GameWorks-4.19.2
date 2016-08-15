@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Level Streaming How-Tos
+﻿INTSourceChangelist:3075226
+Availability:Public
+Title:关卡流送指南
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:How to dynamically stream in levels using Level Streaming Volumes, Blueprints, and C++ code
+Description:如何使用关卡流送体积、蓝图和 C++ 代码动态流送关卡。
+Version:4.12
 parent:Engine/LevelStreaming
 order:10
 tags:Level Streaming
@@ -10,51 +11,48 @@ tags:Level Streaming
 [TOC]
 
 
-These three how-tos all solve the following scenario, and have a shared set of steps to load in the two Levels you are going to work with. Follow these steps, then select the how-to you want to continue with.
+这三大指南均可解决以下情况，载入两个关卡的步骤相同。照这些步骤执行，然后选择使用的指南。
 
 [EXCERPT:LevelStreamScenario]
-## Level Streaming Scenario
-Starting with the main level in the **Sun Temple** project, we have split the level up into the interior space and the end patio with pillars overlooking the ocean.
-In the wireframe view below, the teal wireframe shows the persistent interior level, and the yellow wireframe shows the patio level that is going to be streamed in.
-The sky and ocean are in the persistent level, as there are a few windows in the main temple that allow the sky and exterior to be seen.
+## 关卡流送
+从 **Sun Temple** 项目中的主关卡开始。此关卡已被拆分为室内空间和面朝大海、拥有柱子的末端天井。在下方的线框图中，青色线框为固定的室内关卡，黄色线框为将被流入的天井。天空和海洋处于固定关卡中，主庙宇场景中有数个窗口，可看到天空和室外场景。
 
 ![](LevelSplit.png)(w:500)
 
 
-In the interior of the temple, there is a bend in the hallway that hides the patio area from view. 
+庙宇室内场景的走廊中有一个弯拐，遮挡了天井区域。 
 
 ![](StartLoading.png)(w:500)
 
-We want to start streaming in the patio level here, so that by the time the player rounds the corner and begins approaching the patio, the streaming level
-will be loaded and visible.
+我们需要在此处开始流入天井。玩家转过弯拐靠近天井时，将加载并显示流送关卡。
 
 ![](StreamingLevelVisible.png)(w:500)
 
-As part of the setup, we have two levels, **SunTemple_Persistent** and **SunTemple_Streaming**. Our **Player Start** is in **SunTemple_Persistent**, and our player in the game is represented by a _Character_.
+设置拥有两个关卡，**SunTemple_Persistent** 和 **SunTemple_Streaming**。**玩家出生点** 位于 **SunTemple_Persistent** 中，游戏中的玩家由 _角色_ 表示。
 
-1. Open **SunTemple_Persistent** in the **Content Browser**.
+1. 在 **Content Browser** 中打开 **SunTemple_Persistent**。
 
-1. Move the **Player Start** to the very beginning of the temple.
+1. 将 **玩家出生点** 移至庙宇开端的位置。
 
 	![](PlayerStart.png)(w:500)
 
-1. Click on **Windows**, then select **Levels**.
+1. 点击 **Windows**，然后选择 **Levels**。
 
 	![](Engine/Levels/LevelsWindow/WindowLevels.png)
 
-1.  Click on the **Levels** dropdown menu, then select **Add Existing...** to add a new sublevel.
+1. 点击 **Levels** 下拉菜单，然后选择 **Add Existing...** 新增一个关卡分段。
 
 	![](AddExisting.png)
 
-1. Select **SunTemple_Streaming** to add in the **Open Level** dialog, then click on **Open**.
+1. 选择 **SunTemple_Streaming** 加入 **Open Level** 对话，然后点击 **Open**。
 	
 	![](SunTempleStreaming_Select.png)
 	
-1. **Right-click** on **Persistent Level** and select **Make Current** from the dropdown menu.
+1. **右键点击** **Persistent Level**，从下拉菜单中选择 **Make Current**。
 
 [/EXCERPT]
 
-## How-Tos
+## 指南
 
 [DIR(output:"listbutton" parent:"Engine/LevelStreaming/HowTo")]
 
