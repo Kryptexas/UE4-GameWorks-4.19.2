@@ -100,6 +100,7 @@ FAudioDevice::FAudioDevice()
 	, bHRTFEnabledForAll_OnGameThread(false)
 	, bGameWasTicking(true)
 	, bDisableAudioCaching(false)
+	, bIsAudioDeviceHardwareInitialized(false)
 	, bStartupSoundsPreCached(false)
 	, bSpatializationExtensionEnabled(false)
 	, bHRTFEnabledForAll(false)
@@ -109,7 +110,6 @@ FAudioDevice::FAudioDevice()
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
-	, bIsAudioDeviceHardwareInitialized(false)
 	, UpdateDeltaTime(0.0f)
 	, ConcurrencyManager(this)
 {
