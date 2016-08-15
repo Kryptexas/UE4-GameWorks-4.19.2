@@ -43,7 +43,7 @@ public:
 	FMMNotificationClient()
 		: Ref(1)
 	{
-		CoInitialize(nullptr);
+		bComInitialized = FWindowsPlatformMisc::CoInitialize();
 		HRESULT Result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (void**)&DeviceEnumerator);
 		if (Result == S_OK)
 		{
@@ -59,7 +59,10 @@ public:
 			SAFE_RELEASE(DeviceEnumerator);
 		}
 
-		CoUninitialize();
+		if (bComInitialized)
+		{
+			FWindowsPlatformMisc::CoUninitialize();
+		}
 	}
 
 	HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId) override
@@ -132,7 +135,7 @@ private:
 	LONG Ref;
 	TSet<IDeviceChangedListener*> Listeners;
 	IMMDeviceEnumerator* DeviceEnumerator;
-
+	bool bComInitialized;
 };
 
 #include "HideWindowsPlatformTypes.h"
