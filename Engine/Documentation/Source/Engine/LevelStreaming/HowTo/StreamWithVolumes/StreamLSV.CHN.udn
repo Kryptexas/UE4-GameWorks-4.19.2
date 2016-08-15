@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Stream Sublevels with Level Streaming Volumes
+﻿INTSourceChangelist:3075226
+Availability:Public
+Title:使用关卡流送体积域流送关卡分段
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:How to use volumes to control the streaming of Levels based on the player's viewpoint.
+Description:如何使用体积域基于玩家视点控制关卡流送。
+Version:4.12
 parent:Engine/LevelStreaming/HowTo
 type:howto
 order:1
@@ -13,33 +14,33 @@ tags:Level Streaming
 [INCLUDE:Engine/LevelStreaming/HowTo#levelstreamscenario]
 
 
-## Streaming In Levels with Volumes
+## 使用体积域流入关卡
 
-1. In the **Modes** panel, select **Volumes** and then drag a **Level Streaming Volume** into your level.
+1. 在 **Modes** 面板中选择 **Volumes** 并将一个 **关卡流送体积域** 拖入关卡。
 
 	![](LevelStreamingVolumeModes.png)
 
-1. Arrange the **Level Streaming Volume** to encompass the whole walkable area of **SunTemple_Streaming**.
+1. 使 **关卡流送体积域** 包含 **SunTemple_Streaming** 整个可行走的区域。
 	![](LSVPlacement.png)
 
 	[REGION:tip]
-	Keep in mind that the logic for Level Streaming Volumes tracks where your active camera is, so if you have a camera placed at a distance from your player's Pawn or Character, you may need to adjust the
-	size and placement of the Level Streaming Volume accordingly.
+	注意，关卡流送体积域的逻辑会追踪使用中摄像机的位置。因此，如果摄像机离玩家 Pawn 或角色较远，可能需要相应地调整
+	关卡流送体积域的大小和放置。
 	[/REGION]
 
-1. Click on **Windows**, then select **Levels**.
+1. 点击 **Windows**，然后选择 **Levels**。
 
 	![](Engine/Levels/LevelsWindow/WindowLevels.png)
 	
-1. Select **SunTemple_Streaming**, then click on the **Level Details** icon.
+1. 选择 **SunTemple_Streaming**，然后点击 **Level Details** 图标。
 
-1. Next to **Streaming Volumes**, click on the plus sign (**+**) to add a new volume. Then, use the dropdown menu or the eyedropper to select the **Level Streaming Volume** you just placed in the level.
+1. 点击 **Streaming Volumes** 旁边的加号（**+**）新添加一个体积域。然后使用下拉菜单或滴管选择放置在关卡中的 **关卡流送体积域**。
 	![](AddLSV.png)
 
-1. Ensure that the **Initially Loaded** and **Initially Visible** checkboxes are unchecked, then close the **Level Details** panel.
+1. 确保 **Initially Loaded** 和 **Initially Visible** 复选框未勾选，然后关闭 **Level Details** 面板。
 
-1. Back in the **Viewport**, select the **Level Streaming Volume**. In the **Details** panel, set the following properties of the volume: **Editor Pre Vis Only** and **Disabled** should be unchecked, and **Streaming Usage** should be set to **SVB Visibility Blocking on Load**.
+1. 返回 **视口**，选择 **Level Streaming Volume**。在 **Details** 面板中设置体积域的以下属性：取消勾选 **Editor Pre Vis Only** 和 **Disabled**；**Streaming Usage** 应被设为 **SVB Visibility Blocking on Load**。
 	
 	![](LSVSettings.png)
 	
-1. Use **Play in Editor** to test out your streaming level. 
+1. 使用 **Play in Editor** 测试流送关卡。 

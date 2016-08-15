@@ -1,69 +1,70 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Pixel Inspector
+﻿INTSourceChangelist:3075229
+Availability:Public
+Title:像素检查器
 Crumbs: %ROOT%, Engine
-Description:The Pixel Inspector shows you what is happening in the various parts of the GBuffer at a given pixel.
-version: 4.12
+Description:像素检查器为您展示特定像素 Gbuffer 上诸多部分的种种。
+version:4.12
 
 
 [REGION:raw]
 ![](PixelInspector.png)
 [/REGION]
 
-The **Pixel Inspector** tool is a Developer Tool that will allow you to diagnose the pixels that make up the colors in your scene. 
-Want to know why a pixel is producing an unexpected color or maybe what Material input is driving a pixel's color, you can use the Pixel Inspector's **Inspect Mode** to output information that is driving the pixel's visual result. 
+**像素检查器（Pixel Inspector）** 工具是一个开发者工具，可用于诊断构成场景色彩的像素。如您希望了解像素产生奇怪色彩的原因（或像素颜色由哪个材质输入决定），可使用像素检查器的 **Inspect 模式** 输出决定像素视觉效果的信息。 
 
-## Using the Pixel Inspector
+## 使用像素检查器
 
-To enable and use the Pixel Inspector, from the Main Editor Window go to the **Window** menu option under **Developer Tools**: 
+启动并使用像素检查器的步骤：
 
-![](EnablePixelInspector.png)
+1. 前往主编辑器窗口中的 **Window** 菜单选项，选择 **Developer Tools** 下的 **Pixel Inspector**。  
 
-Clicking on **Pixel Inspector** will open the Pixel Inspector tool: 
+	![](EnablePixelInspector.png)
 
-![](PixelInspectorWindow.png)
+	像素检查器窗口便会打开。 
 
-Click the ![](InspectIcon.png) button to start pixel inspection: 
+	![](PixelInspectorWindow.png)
 
-![](Inspecting.png)
+1. 点击 ![](InspectIcon.png) 按钮开启像素检查器。
 
-Moving the mouse over any viewport (Level, Material, Blueprint, etc..) will populate the Pixel Inspector data fields in real-time. 
+1. 将鼠标移到任意视口上（关卡、材质、蓝图等），在像素检查器数据域中进行实时填充。 
 
-Pressing **Escape** will stop inspection and populate the Pixel Inspector data fields with the last inspected pixel. 
+	![](Inspecting.png)
+
+1. 按下 **Esc** 键停止检查并使用最后检查的像素填充像素检查器数据域。 
 
 
 
-## Pixel Inspector Information
+## 像素检查器数据引用
 
-Below are the data fields that will become populated with a pixel's information during inspection: 
+检查中以下数据域将被像素信息填充： 
 
-| Option| Description |
+| 选项| 描述 |
 | --- | --- |
-| **Viewport ID** | Displays the ID of which viewport the Pixel Inspector is drawing from. |
-| **Coordinate** | Displays the X/Y coordinates from the current inspection (can be manually set). |
+| **Viewport ID** | 显示像素检查器绘制来源的视口 ID。|
+| **Coordinate** | 显示当前检查的 X/Y 坐标（可手动设置）。|
 | [REGION:tablesection]**Final Color**[/REGION] ||
-| **Context Colors** | Displays the Context Colors associated with the current inspection. |
-| **Final Color** | Final RGBA 8bits Color after tone mapping (default value is black). |
+| **Context Colors** | 显示当前检查相关的环境色彩。|
+| **Final Color** | 色调映射后的最终 RGBA 8 位色彩（默认为黑）。|
 | [REGION:tablesection]**Scene Color**[/REGION] ||
-| **Scene Color** | The RGB Scene Color applied from the current inspection. |
+| **Scene Color** | 应用自当前检查的 RGB 场景色彩。|
 | [REGION:tablesection]**HDR**[/REGION] ||
-| **Luminance** | HDR Luminance value for current inspection. |
-| **HDR Color** | The HDR RGB Color value being applied. |
+| **Luminance** | 当前检查的 HDR 亮度值。|
+| **HDR Color** | 应用的 HDR RGB 色彩值。|
 | [REGION:tablesection]**GBuffer A**[/REGION] ||
-| **Normal** | The Normal applied from the GBufferA channel. |
-| **Per Object GBuffer Data** | The amount of per object data from the GBufferA Channel. |
+| **Normal** | 应用自 GBufferA 通道的 Normal。|
+| **Per Object GBuffer Data** | 来自 GBufferA 通道的每个对象数据的量。|
 | [REGION:tablesection]**GBuffer B**[/REGION] ||
-| **Metallic** | The Metallic value applied from the GBufferB R Channel. |
-| **Specular** | The Specular value applied from the GBufferB G Channel. |
-| **Roughness** | The amount of Roughness applied from the GBufferB B Channel. |
-| **Material Shading Model** | The shading model from the GBufferB A Channel encoded with Selective Output Mask. |
-| **Selective Output Mask** | The value for the Selective Output Mask from the GBufferB A Channel encoded with Shading Model. |
+| **Metallic** | 应用自 GBufferB R 通道的金属感值。|
+| **Specular** | 应用自 GBufferB G 通道的镜面反射值。|
+| **Roughness** | 应用自 GBufferB B 通道的粗糙度。|
+| **Material Shading Model** | 以选择性输出遮罩（Selective Output Mask）编码，来自 GBufferB A 通道的着色模型。|
+| **Selective Output Mask** | 以着色模型编码，来自 GBufferB A 通道的选择性输出遮罩数值。|
 | [REGION:tablesection]**GBuffer C**[/REGION] ||
-| **Base Color** | The base color value applied from the GBufferC RGB Channels. |
-| **Indirect Irradiance** | The value of Indirect Irradiance from the GBufferC A Channel encoded with Ambient Occlusion (AO). |
-| **Ambient Occlusion** | The value of AO from the GBufferC A Channel encoded with Indirect Irradiance. |
+| **Base Color** | 应用自 GBufferC RGB 通道的基础色彩值。|
+| **Indirect Irradiance** | 以环境遮挡（AO）编码，来自 GBufferC A 通道的间接辐照度值。|
+| **Ambient Occlusion** | 以间接辐照度编码，来自 GBufferC A 通道的 AO 值。|
 
 [REGION:note]
-See [**Using GBuffer Properties**](Engine/Rendering/PostProcessEffects/PostProcessMaterials) and [**Buffer Visualization**](Engine/UI/LevelEditor/Viewports/ViewModes) for more information on GBuffers.  
+可在 [**使用 GBuffer 属性**](Engine/Rendering/PostProcessEffects/PostProcessMaterials) 和 [**缓冲可视**](Engine/UI/LevelEditor/Viewports/ViewModes) 中查阅 GBuffer 的更多内容。  
 [/REGION]
 
