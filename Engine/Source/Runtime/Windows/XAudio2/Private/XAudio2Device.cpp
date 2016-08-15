@@ -167,7 +167,6 @@ bool FXAudio2Device::InitializeHardware()
 			}
 		}
 	}
-#endif
 
 	// Get the details of the desired device index (0 is default)
 	if (!ValidateAPICall(TEXT("GetDeviceDetails"),
@@ -177,6 +176,7 @@ bool FXAudio2Device::InitializeHardware()
 		DeviceProperties->XAudio2 = nullptr;
 		return(false);
 	}
+#endif
 
 #if DEBUG_XAUDIO2
 	XAUDIO2_DEBUG_CONFIGURATION DebugConfig = {0};
@@ -195,12 +195,14 @@ bool FXAudio2Device::InitializeHardware()
 		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec = SampleRate;
 	}
 
-	UE_LOG(LogInit, Log, TEXT( "XAudio2 using '%s' : %d channels at %g kHz using %d bits per sample (channel mask 0x%x)" ), 
+#if XAUDIO_SUPPORTS_DEVICE_DETAILS
+	UE_LOG(LogInit, Log, TEXT("XAudio2 using '%s' : %d channels at %g kHz using %d bits per sample (channel mask 0x%x)"),
 		FXAudioDeviceProperties::DeviceDetails.DisplayName,
 		FXAudioDeviceProperties::NumSpeakers, 
 		( float )SampleRate / 1000.0f, 
 		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.wBitsPerSample,
 		(uint32)UE4_XAUDIO2_CHANNELMASK );
+#endif
 
 	if( !GetOutputMatrix( UE4_XAUDIO2_CHANNELMASK, FXAudioDeviceProperties::NumSpeakers ) )
 	{

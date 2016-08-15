@@ -771,6 +771,7 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 		, XAudio2Dll(nullptr)
 		, NumActiveVoices(0)
 	{
+#if PLATFORM_WINDOWS
 		if (NotificationClient == nullptr)
 		{
 			NotificationClient = new FMMNotificationClient();
@@ -781,12 +782,15 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 		}
 
 		NotificationClient->RegisterDeviceChangedListener(this);
+#endif
 	}
 	
 	~FXAudioDeviceProperties()
 	{
+#if PLATFORM_WINDOWS
 		NotificationClient->UnRegisterDeviceDeviceChangedListener(this);
 		NotificationClient->Release();
+#endif
 
 		// Make sure we've free'd all of our active voices at this point!
 		check(NumActiveVoices == 0);
@@ -838,10 +842,12 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 
 	void OnDeviceRemoved(FString DeviceID) override
 	{
+#if XAUDIO_SUPPORTS_DEVICE_DETAILS
 		if (DeviceID == FString(DeviceDetails.DeviceID))
 		{
 			bDeviceChanged = true;
 		}
+#endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 	}
 
 	bool DidAudioDeviceChange()
