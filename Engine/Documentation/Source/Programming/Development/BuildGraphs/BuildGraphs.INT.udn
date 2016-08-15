@@ -1,0 +1,32 @@
+Availability: Docs
+Title: BuildGraph Scripting
+Crumbs: %ROOT%, Programming, Programming/Development
+Description: Customize your Installed Builds by using our BuildGraph scripting system.
+Version: 4.13
+type:landing
+parent:Programming/Development
+tags:BuildGraph
+
+[INCLUDE:Programming/Development/BuildGraphs/BuildGraphIntroduction]
+
+## Writing BuildGraph Scripts
+
+[REGION:topics third]
+%Programming/Development/BuildGraphs/BuildGraphScriptAnatomy:topiccompact%
+[/REGION]
+
+## Using BuildGraph
+
+[REGION:topics third]
+%Programming/Development/BuildGraphs/BuildGraphUsage:topiccompact%
+%Programming/Development/InstalledBuildReference:topiccompact%
+[/REGION]
+
+## Reference
+
+[REGION:topics third]
+%Programming/Development/BuildGraphs/BuildGraphTypes:topiccompact%
+%Programming/Development/BuildGraphs/BuildGraphElements:topiccompact%
+%Programming/Development/BuildGraphs/BuildGraphConditions:topiccompact%
+%Programming/Development/BuildGraphs/BuildGraphTasks:topiccompact%
+[/REGION]
