@@ -11,26 +11,26 @@ tags:BuildGraph
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphElements%](elements_topic.png)
+		![%Programming/Development/BuildGraph/BuildGraphScriptElements%](elements_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphElements:title%
+		%Programming/Development/BuildGraph/BuildGraphScriptElements:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphElements:description%
+		%Programming/Development/BuildGraph/BuildGraphScriptElements:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphElements]
+		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptElements]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 [TOC(start:1 end:3)]
 
-[EXCERPT:buildgraphelements]
+[EXCERPT:BuildGraphScriptElements]
 
 BuildGraph scripts have elements that are similar to the sort of elements that you'd expect to find in an XML document. 
 As you read through this section, you'll learn how to define a graph along with the syntax that goes into manipulating 
@@ -185,7 +185,7 @@ the target being executed.
 
 [INCLUDE:#ErrorTable]
 
-[/EXCERPT:buildgraphelements]
+[/EXCERPT:BuildGraphScriptElements]
 
 <!--Tables for the 'Defining a Graph' section.-->
 
