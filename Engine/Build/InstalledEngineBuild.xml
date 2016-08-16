@@ -28,6 +28,8 @@
 	<!-- The analytics type -->
 	<Option Name="AnalyticsTypeOverride" DefaultValue="" Description="Identifier for analytic events to send"/>
 
+	<Option Name="EnableSymStore" Restrict="true|false" DefaultValue="false" Description="Whether to add Source indexing to Windows game apps so they can be added to a symbol server"/>
+
 	<Do If="'$(HostPlatformOnly)' == true">
 		<!-- Activate correct Target Platforms for host -->
 		<Switch>
@@ -148,6 +150,13 @@
 			<Compile Target="UE4Game" Platform="Win64" Configuration="Development" Tag="#UE4Game Win64" Arguments="-precompile -nodebuginfo"/>
 			<Compile Target="UE4Game" Platform="Win64" Configuration="Shipping" Tag="#UE4Game Win64" Arguments="-precompile -nodebuginfo"/>
 
+			<Do If="$(EnableSymStore)">
+				<!-- Embed source info into the PDB files. Should be done from this machine to ensure that paths are correct. -->
+				<Log Message="Embedding source file information into PDB files..."/>
+				<Tag Files="Engine/Source/...;Engine/Plugins/..." Filter="*.c;*.h;*.cpp;*.hpp;*.inl" Except="Engine/Source/ThirdParty/..." With="#SourceFiles"/>
+				<SrcSrv BinaryFiles="#UE4Game Win64" SourceFiles="#SourceFiles" Branch="$(Branch)" Change="$(Change)"/>
+			</Do>
+
 			<Tag Files="#UE4Game Win64" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions)" With="#UE4Game Win64 Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Win64" Files="#UE4Game Win64 Unstripped" Tag="#UE4Game Win64 Stripped"/>
 
@@ -165,6 +174,13 @@
 		<Node Name="Compile UE4Game Win32" Requires="Compile UnrealHeaderTool Win64" Produces="#UE4Game Win32;#UE4Game Win32 Unstripped;#UE4Game Win32 Stripped;#UE4Game Win32 Unsigned;#UE4Game Win32 Signed;#UE4Game Win32 Includes">
 			<Compile Target="UE4Game" Platform="Win32" Configuration="Development" Tag="#UE4Game Win32" Arguments="-precompile -nodebuginfo"/>
 			<Compile Target="UE4Game" Platform="Win32" Configuration="Shipping" Tag="#UE4Game Win32" Arguments="-precompile -nodebuginfo"/>
+
+			<Do If="$(EnableSymStore)">
+				<!-- Embed source info into the PDB files. Should be done from this machine to ensure that paths are correct. -->
+				<Log Message="Embedding source file information into PDB files..."/>
+				<Tag Files="Engine/Source/...;Engine/Plugins/..." Filter="*.c;*.h;*.cpp;*.hpp;*.inl" Except="Engine/Source/ThirdParty/..." With="#SourceFiles"/>
+				<SrcSrv BinaryFiles="#UE4Game Win32" SourceFiles="#SourceFiles" Branch="$(Branch)" Change="$(Change)"/>
+			</Do>
 
 			<Tag Files="#UE4Game Win32" Filter="$(Win32StripFilter)" With="#UE4Game Win32 Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Win32" Files="#UE4Game Win32 Unstripped" Tag="#UE4Game Win32 Stripped"/>
@@ -343,7 +359,7 @@
 	<Property Name="CookPlatformsWin64" Value="$(CookPlatformsWin64)+XboxOne" If="'$(WithXboxOne)' == true"/>
 
 	<Agent Name="DDC Group Win64" Type="Win64">
-		<Node Name="Build DDC Win64" Requires="Compile UE4Editor Win64;Build Tools Win64;Build Tools CS" Produces="#CompressedDDCWin64">
+		<Node Name="Build DDC Win64" Requires="#UE4Editor Win64;Build Tools Win64;Build Tools CS" Produces="#CompressedDDCWin64">
 			<!-- Get our temp dir -->
 			<Property Name="DDCDir" Value="$(RootDir)\LocalBuilds\InstalledDDC"/>
 			<Property Name="SavedDir" Value="$(SavedOutput)\Installed\Win64"/>
@@ -383,7 +399,7 @@
 	<Property Name="CookPlatformsMac" Value="$(CookPlatformsMac)+HTML5" If="'$(WithHTML5)' == true"/>
 
 	<Agent Name="DDC Group Mac" Type="Mac">
-		<Node Name="Build DDC Mac" Requires="Compile UE4Editor Mac;Build Tools Mac;Build Tools CS" Produces="#CompressedDDCMac">
+		<Node Name="Build DDC Mac" Requires="#UE4Editor Mac;Build Tools Mac;Build Tools CS" Produces="#CompressedDDCMac">
 			<!-- Get our temp dir -->
 			<Property Name="DDCDir" Value="$(RootDir)/LocalBuilds/InstalledDDC"/>
 			<Property Name="SavedDir" Value="$(SavedOutput)/Installed/Mac"/>
@@ -419,7 +435,7 @@
 	<Property Name="CookPlatformsLinux" Value="$(CookPlatformsWin64)+LinuxNoEditor" If="'$(WithLinux)' == true"/>
 
 	<Agent Name="DDC Group Linux" Type="Linux">
-		<Node Name="Build DDC Linux" Requires="Compile UE4Editor Linux;Build Tools Linux;Build Tools CS" Produces="#CompressedDDCLinux">
+		<Node Name="Build DDC Linux" Requires="#UE4Editor Linux;Build Tools Linux;Build Tools CS" Produces="#CompressedDDCLinux">
 			<!-- Get our temp dir -->
 			<Property Name="DDCDir" Value="$(RootDir)/LocalBuilds/InstalledDDC"/>
 			<Property Name="SavedDir" Value="$(SavedOutput)/Installed/Linux"/>
