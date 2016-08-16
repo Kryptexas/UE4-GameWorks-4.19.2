@@ -1370,7 +1370,7 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	{
 #if WITH_EDITOR
 		// if the mesh package is dirty, then the mesh has been re-imported and we need to clear the vertex factories
-		if (GIsEditor)
+		if (GIsEditor && InEmitterInstance->Component->SceneProxy)
 		{
 			UPackage* Package = InEmitterInstance->MeshTypeData->Mesh->GetOutermost();
 			if (Package && Package->IsDirty())
