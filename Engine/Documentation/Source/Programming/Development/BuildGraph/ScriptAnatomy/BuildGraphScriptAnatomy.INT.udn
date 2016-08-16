@@ -10,19 +10,19 @@ tags:BuildGraph
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphScriptAnatomy%](anatomy_topic.png)
+		![%Programming/Development/BuildGraph/ScriptAnatomy%](anatomy_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphScriptAnatomy:title%
+		%Programming/Development/BuildGraph/ScriptAnatomy:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphScriptAnatomy:description%
+		%Programming/Development/BuildGraph/ScriptAnatomy:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptAnatomy]
+		[RELATIVE:Programming/Development/BuildGraph/ScriptAnatomy]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -63,10 +63,11 @@ the allocation of machines (and coordination between them) is assumed to be mana
 
 The syntax of elements used to define BuildGraph constructs is listed in the following sections.
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptTypes#buildgraphscripttypes]
+## BuildGraph Scripting Reference
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptElements#buildgraphscriptelements]
-
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptConditions#buildgraphscriptconditions]
-
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptTasks#buildgraphscripttasks]
+[REGION:topics third]
+%Programming/Development/BuildGraph/ScriptAnatomy/Types:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Elements:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Conditions:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:topiccompact%
+[/REGION]

@@ -5,25 +5,25 @@ Description:This page shows you how to use BuildGraph Scripts.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Overview
-related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
+related: Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphUsage%](usage_topic.png)
+		![%Programming/Development/BuildGraph/Usage%](usage_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphUsage:title%
+		%Programming/Development/BuildGraph/Usage:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphUsage:description%
+		%Programming/Development/BuildGraph/Usage:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphUsage]
+		[RELATIVE:Programming/Development/BuildGraph/Usage]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
