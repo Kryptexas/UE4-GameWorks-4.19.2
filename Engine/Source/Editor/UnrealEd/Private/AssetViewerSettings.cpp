@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "UnrealEd.h"
 #include "AssetViewerSettings.h"
 
-#if WITH_EDITOR
 #include "Editor/EditorPerProjectUserSettings.h"
-#endif // WITH_EDITOR
+#include "Classes/Engine/TextureCube.h"
 
 UAssetViewerSettings::UAssetViewerSettings()
 {
@@ -13,9 +12,7 @@ UAssetViewerSettings::UAssetViewerSettings()
 	Profiles.AddDefaulted(1);
 	Profiles[0].ProfileName = TEXT("Profile_0");
 
-#if WITH_EDITOR
 	NumProfiles = Profiles.Num();
-#endif // WITH_EDITOR
 }
 
 UAssetViewerSettings* UAssetViewerSettings::Get()
@@ -25,15 +22,12 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 	return DefaultSettings;
 }
 
-#if WITH_EDITOR
 void UAssetViewerSettings::Save()
 {
 	SaveConfig();
 	UpdateDefaultConfigFile();
 }
-#endif // WITH_EDITOR
 
-#if WITH_EDITOR
 void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;	
@@ -81,4 +75,3 @@ void UAssetViewerSettings::PostInitProperties()
 	}
 }
 
-#endif // WITH_EDITOR

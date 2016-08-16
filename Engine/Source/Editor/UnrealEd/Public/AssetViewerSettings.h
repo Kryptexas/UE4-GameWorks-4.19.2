@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "Classes/Engine/TextureCube.h"
+#include "UnrealEd.h"
 
 #include "AssetViewerSettings.generated.h"
+
+class UTextureCube;
 
 /**
 * Preview scene profile settings structure.
@@ -26,7 +28,7 @@ struct FPreviewSceneProfile
 		LightingRigRotation = 0.0f;
 		RotationSpeed = 2.0f;
 		// Set up default cube map texture from editor/engine textures
-		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/MapTemplates/Sky/SunsetAmbientCubemap.SunsetAmbientCubemap"));
+		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EngineSky/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1"));		
 		bPostProcessingEnabled = true;
 		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}
@@ -61,7 +63,7 @@ struct FPreviewSceneProfile
 
 	/** Sets environment cube map used for sky lighting and reflections */
 	UPROPERTY(EditAnywhere, Category = Environment)
-	class UTextureCube* EnvironmentCubeMap;
+	UTextureCube* EnvironmentCubeMap;
 
 	/** Manual set post processing settings */
 	UPROPERTY(EditAnywhere, config, Category = PostProcessing, AdvancedDisplay)
@@ -84,25 +86,17 @@ struct FPreviewSceneProfile
 	FRotator DirectionalLightRotation;
 };
 
-UCLASS(Config = EditorPerProjectUserSettings)
-class ENGINE_API UProfileIndex : public UObject
-{
-	GENERATED_BODY()
-	int32 ProfileIndex;
-};
-
 /**
 * Default asset viewer settings.
 */
 UCLASS(config=Editor, defaultconfig, meta=(DisplayName = "Asset Viewer"))
-class ENGINE_API UAssetViewerSettings : public UObject
+class UNREALED_API UAssetViewerSettings : public UObject
 {
 	GENERATED_BODY()
 public:
 	UAssetViewerSettings();
 	static UAssetViewerSettings* Get();
 	
-#if WITH_EDITOR
 	/** Saves the config data out to the ini files */
 	void Save();
 
@@ -116,13 +110,11 @@ public:
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostInitProperties() override;
 	/** End UObject */
-#endif // WITH_EDITOR
 
 	/** Collection of scene profiles */
 	UPROPERTY(EditAnywhere, config, Category = Settings, meta=(ShowOnlyInnerProperties))
 	TArray<FPreviewSceneProfile> Profiles;
 protected:
-#if WITH_EDITOR
 	/** Cached value to determine whether or not a profile was added or removed*/
 	int32 NumProfiles;
 
@@ -130,5 +122,4 @@ protected:
 	FOnAssetViewerSettingsChangedEvent OnAssetViewerSettingsChangedEvent;
 
 	FOnAssetViewerProfileAddRemovedEvent OnAssetViewerProfileAddRemovedEvent;
-#endif // WITH_EDITOR
 };
