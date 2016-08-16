@@ -1,0 +1,166 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: How-To Create a Shadow Phsyics Assets
+Crumbs: %ROOT%, Engine, 
+Description: How to create a Shadows Physics Asset for Capsule Shadows.
+Version: 4.13
+prereq: Engine\Physics\PhAT\HowTo
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\AssignShadowAsset
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\EnableCapsuleShadows
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+In order to have Capsule Shadow representations a Physics Asset that will be used for soft shadowing must be created that is unique to your Skeletal Mesh Actor. 
+Since this Physics Asset is not used for any physics simulations it does not have to accurately match the Skeletal Mesh. Follow the steps below to create a Shadow 
+Physics Asset for your Skeletal Mesh.
+
+
+## Steps
+
+1. Inside the **Content Browser**, find and select your character **Skeletal Mesh**. 
+
+	[REGION:note]
+	If you do not have a Skeletal Mesh to use, you can enable **Show Engine Content** under the **View Options** selection in the **Content Browser.** Then navigate to
+	**Engine Content** > **Tutorial** > **SubEditors** > **TutorialAssets** > **Character** folder and copy the **TutorialTPP** Skeletal Mesh to your own folder under **Content**.
+	[/REGION]
+
+2. Right-Click on the **TutorialTPP** Skeletal Mesh to open the context menu and select **Create**, then select **Physics Asset**.
+	
+	[REGION:raw]
+	![](RtClickCreatePA.png)
+	[/REGION]
+
+3. A **New Asset** window will open. Set the **Minimum Bone Size** to **15** and click **Ok**.
+
+	![](PA_NewAssetWindow.png)
+
+	[REGION:note]
+	Only use **Sphyl** bodies for the best results. **Sphere** bodies will work, but are not as flexible.
+	[/REGION]
+
+4. At this point, the **Physics Asset Tool** (PhAT) will open. Before moving forward, minimize the **PhAT** window and go back to the **Content Browser** and rename the newly created Physics asset from **TutorialTPP_Physics** to something
+like **CS_TutorialTPP**, or anything that is recognizable for you.
+
+5. Now **maximize** the **PhAT** editor window to view the Physics Asset that has been created. You should see something similar to this.
+
+	![](PhysicsAssetCapsules.png)(w:500)
+
+6. Adjust the **Physics Bodies** so that the capsules represent the body of your Character more accurately. There are several things to consider when adjusting the capsules for your character listed below. 
+
+	* Remove any unnecessary capsules, like hands, multiple bodies for the torso, and neck.
+	* Foot capsules are the most important to make the character look grounded.
+	* Use a little bit of overlap of the capsules between joints.
+	* Capsules for the arms are not necessary unless you're character will be near surfaces like with cover systems or if the character can go prone.
+	
+	[REGION:tip]
+	In the **PhAT Editor Main Viewport** set the **Collision Render Mode** to **Solid** to make it easier to see the adjustments you make to the Sphyl bodies for your Skeletal Mesh.
+	[INCLUDE:#collisionmode]
+	[INCLUDE:#imagetable]
+	[/REGION]
+	
+	[REGION:note]
+	The shadow casting in the PhAT editor is not representative of the shadows that will be cast from the capsule bodies. You must test them in your scene.
+	[/REGION]
+	
+	For more information on how to use the [Physics Asset Tool](https://docs.unrealengine.com/latest/INT/Engine/Physics/PhAT/HowTo/index.html) see the following page.
+
+7. When you are finished with your adjustments you should have something that looks similiar to this. Depending on the Skeletal Mesh you used the results may have something different.
+	
+	[INCLUDE:#imagetable2]
+
+
+
+<!---
+[EXCERPT:Capsule1]
+[REGION:lightbox]
+[![](CollisionRenderWireframe.png)(w:350)](CollisionRenderWireframe.png)
+[/REGION]
+[/EXCERPT:Capsule1]
+
+[EXCERPT:Capsule2]
+[REGION:lightbox]
+[![](CollisionRenderSolid.png)(w:350)](CollisionRenderSolid.png)
+[/REGION]
+[/EXCERPT:Capsule2]
+
+[EXCERPT:collisionmode]
+[REGION:lightbox]
+[![](PhATCollisionRenderMode.png)(w:375)](PhATCollisionRenderMode.png)
+[/REGION]
+[/EXCERPT:collisionmode]
+
+[EXCERPT:imagetable]
+[REGION:imagetable]
+| [INCLUDE:#Capsule1] | [INCLUDE:#capsule2] |
+|-----------|-------|
+| Wireframe | Solid |
+[/REGION]
+[/EXCERPT:imagetable]
+
+[EXCERPT:imagetable2]
+[REGION:imagetable]
+| [INCLUDE:#Front] | [INCLUDE:#Left] |
+|-----------|-------|
+| Front | Left |
+[/REGION]
+[/EXCERPT:imagetable2]
+
+[EXCERPT:Front]
+[REGION:lightbox]
+[![](PA_Front.png)(w:425)](PA_Front.png)
+[/REGION]
+[/EXCERPT:Front]
+
+[EXCERPT:Left]
+[REGION:lightbox]
+[![](PA_Left.png)(w:425)](PA_Left.png)
+[/REGION]
+[/EXCERPT:Left]
+
+--->
+
+
+
+
+
