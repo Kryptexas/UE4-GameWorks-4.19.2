@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2666775
+﻿INTSourceChangelist:2714483
 Availability:Public
-Title: 环境遮挡
+Title: 环境遮挡（AO）
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:由于遮挡造成的近似光衰减。
 Version: 4.9
