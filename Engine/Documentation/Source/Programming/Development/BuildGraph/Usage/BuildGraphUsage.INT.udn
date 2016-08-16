@@ -6,6 +6,7 @@ version: 4.13
 parent:Programming/Development/BuildGraph
 type:Overview
 related: Programming/Development/BuildGraph/ScriptAnatomy
+related: Programming/Development/InstalledBuildReference
 tags:BuildGraph
 
 [VAR:TopicCompact]
