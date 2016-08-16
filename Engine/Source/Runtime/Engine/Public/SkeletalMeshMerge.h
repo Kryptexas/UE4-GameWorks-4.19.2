@@ -309,5 +309,5 @@ private:
 	 * Copy Vertex Buffer from Source LOD Model - templatized per SourceLODModel extra bone influence
 	 */
 	template<typename VertexDataType, bool bHasExtraBoneInfluences>
-	void FSkeletalMeshMerge::CopyVertexFromSource(VertexDataType& DestVert, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
+	void CopyVertexFromSource(VertexDataType& DestVert, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
 };
