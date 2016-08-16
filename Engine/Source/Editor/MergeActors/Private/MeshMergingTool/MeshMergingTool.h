@@ -17,6 +17,8 @@ public:
 	UMeshMergingSettingsObject()		
 	{
 		Settings.bMergePhysicsData = true;
+		// In this case set to AllLODs value since calculating the LODs is not possible and thus disabled in the UI
+		Settings.LODSelectionType = EMeshLODSelectionType::AllLODs;
 	}
 
 	static UMeshMergingSettingsObject* Get()
