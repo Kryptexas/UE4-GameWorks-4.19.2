@@ -190,6 +190,13 @@ void USplineComponent::UpdateSpline()
 	}
 
 	SplineCurves.ReparamTable.Points.Emplace(AccumulatedLength, static_cast<float>(NumSegments), 0.0f, 0.0f, CIM_Linear);
+
+#if !UE_BUILD_SHIPPING
+	if (bDrawDebug)
+	{
+		MarkRenderStateDirty();
+	}
+#endif
 }
 
 
