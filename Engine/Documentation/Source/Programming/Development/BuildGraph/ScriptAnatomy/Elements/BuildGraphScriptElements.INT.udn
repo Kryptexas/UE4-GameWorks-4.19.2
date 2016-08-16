@@ -1,29 +1,29 @@
 Availability: Docs
 Title: BuildGraph Script Elements
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
 Description:Learn about the elements of a BuildGraph.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
+related: Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphScriptElements%](elements_topic.png)
+		![%Programming/Development/BuildGraph/ScriptAnatomy/Elements%](elements_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphScriptElements:title%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Elements:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphScriptElements:description%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Elements:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptElements]
+		[RELATIVE:Programming/Development/BuildGraph/ScriptAnatomy/Elements]
 	[/PARAM]
 [/OBJECT]
 [/VAR]

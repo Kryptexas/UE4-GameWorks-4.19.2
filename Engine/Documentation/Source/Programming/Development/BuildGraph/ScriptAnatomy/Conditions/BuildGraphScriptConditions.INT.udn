@@ -1,29 +1,29 @@
 Availability: Docs
 Title: BuildGraph Script Conditions
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
 Description:Learn the syntax needed to write BuildGraph script conditions.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
+related: Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphScriptConditions%](conditional_topic.png)
+		![%Programming/Development/BuildGraph/ScriptAnatomy/Conditions%](conditional_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphScriptConditions:title%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Conditions:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphScriptConditions:description%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Conditions:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptConditions]
+		[RELATIVE:Programming/Development/BuildGraph/ScriptAnatomy/Conditions]
 	[/PARAM]
 [/OBJECT]
 [/VAR]

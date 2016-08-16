@@ -1,9 +1,9 @@
 Availability: NoPublish
 Title: BuildGraph Predefined Tasks
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy, Programming/Development/BuildGraph/ScriptAnatomy/Tasks
 Description: This is a procedurally generated markdown page.
 version: 4.13
-parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
+parent:Programming/Development/BuildGraph/ScriptAnatomy/Tasks
 
 ### Command
 
