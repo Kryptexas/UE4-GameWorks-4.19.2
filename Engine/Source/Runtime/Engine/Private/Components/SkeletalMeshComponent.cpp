@@ -1535,7 +1535,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 	
 		if(IsPhysicsStateCreated())
 		{
-			if(GetPhysicsAsset() == OldPhysAsset)
+			if(GetPhysicsAsset() == OldPhysAsset && OldPhysAsset && Bodies.Num() == OldPhysAsset->SkeletalBodySetups.Num())	//Make sure that we actually created all the bodies for the asset (needed for old assets in editor)
 			{
 				UpdateBoneBodyMapping();
 			}
@@ -2277,26 +2277,10 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 		// Only need to do further work if we have any bodies at all (ie physics state is created)
 		if(Bodies.Num() > 0)
 		{
-			if (Bodies.IsValidIndex(RootBodyData.BodyIndex) && SkeletalMesh &&
-				Bodies[RootBodyData.BodyIndex]->BodySetup.IsValid() && Bodies[RootBodyData.BodyIndex]->BodySetup.Get()->BoneName != NAME_None)
+			if (Bodies.IsValidIndex(RootBodyData.BodyIndex))
 			{
-				int32 BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
-				// if bone index is valid and not 0, it SHOULD have parnet index
-				if (ensure(BoneIndex != INDEX_NONE))
-				{
-					int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-					if (BoneIndex != 0 && ensure(ParentIndex != INDEX_NONE))
-					{
-						const TArray<FTransform>& SpaceBases = GetComponentSpaceTransforms();
-						FTransform RelativeTransform = SpaceBases[BoneIndex].GetRelativeTransformReverse(SpaceBases[ParentIndex]);
-						// now get offset 
-						RootBodyData.TransformToRoot = RelativeTransform;
-					}
-					else
-					{
-						RootBodyData.TransformToRoot = SkeletalMesh->RefSkeleton.GetRefBonePose()[0];
-					}
-				}
+				FBodyInstance* BI = Bodies[RootBodyData.BodyIndex];
+				RootBodyData.TransformToRoot = GetComponentToWorld().GetRelativeTransform(BI->GetUnrealWorldTransform());
 			}
 			else
 			{

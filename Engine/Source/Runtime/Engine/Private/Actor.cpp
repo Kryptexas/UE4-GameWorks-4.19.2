@@ -1887,12 +1887,12 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 		bActorInitialized = false;
 		GetWorld()->RemoveNetworkActor(this);
+	}
 
-		// Clear any ticking lifespan timers
-		if (InitialLifeSpan > 0.f)
-		{
-			SetLifeSpan(0.f);
-		}
+	// Clear any ticking lifespan timers
+	if (TimerHandle_LifeSpanExpired.IsValid())
+	{
+		SetLifeSpan(0.f);
 	}
 
 	UNavigationSystem::OnActorUnregistered(this);

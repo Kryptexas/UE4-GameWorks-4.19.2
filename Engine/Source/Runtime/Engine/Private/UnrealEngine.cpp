@@ -10109,10 +10109,7 @@ void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)
 	check(InWorld);
 	
 	// Update streaming levels state using streaming volumes
-	if (InWorld->GetNetMode() != NM_Client)
-	{
-		InWorld->ProcessLevelStreamingVolumes();
-	}
+	InWorld->ProcessLevelStreamingVolumes();
 
 	if (InWorld->WorldComposition)
 	{

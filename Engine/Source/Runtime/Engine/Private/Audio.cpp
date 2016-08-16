@@ -359,6 +359,82 @@ void FSoundSource::DrawDebugInfo()
 		}
 	}
 }
+ 
+float FSoundSource::GetDebugVolume(const float InVolume)
+{
+	float OutVolume = InVolume;
+
+#if !UE_BUILD_SHIPPING
+
+	if (OutVolume != 0.0f)
+	{
+
+		// Check for solo sound class debuging. Mute all sounds that don't substring match their sound class name to the debug solo'd sound class
+		const FString& DebugSoloSoundName = GEngine->GetAudioDeviceManager()->GetDebugSoloSoundWave();
+		if (DebugSoloSoundName != TEXT(""))
+		{
+			bool bMute = true;
+			FString WaveInstanceName = WaveInstance->GetName();
+			if (WaveInstanceName.Contains(DebugSoloSoundName))
+			{
+				bMute = false;
+			}
+			if (bMute)
+			{
+				OutVolume = 0.0f;
+			}
+		}
+	}
+
+	if (OutVolume != 0.0f)
+	{
+		// Check for solo sound class debuging. Mute all sounds that don't substring match their sound class name to the debug solo'd sound class
+		const FString& DebugSoloSoundCue = GEngine->GetAudioDeviceManager()->GetDebugSoloSoundCue();
+		if (DebugSoloSoundCue != TEXT(""))
+		{
+			bool bMute = true;
+			USoundBase* Sound = WaveInstance->ActiveSound->GetSound();
+			if (Sound->IsA<USoundCue>())
+			{
+				FString SoundCueName = Sound->GetName();
+				if (SoundCueName.Contains(DebugSoloSoundCue))
+				{
+					bMute = false;
+				}
+			}
+
+			if (bMute)
+			{
+				OutVolume = 0.0f;
+			}
+		}
+	}
+
+	if (OutVolume != 0.0f)
+	{
+		const FString& DebugSoloSoundClassName = GEngine->GetAudioDeviceManager()->GetDebugSoloSoundClass();
+		if (DebugSoloSoundClassName != TEXT(""))
+		{
+			bool bMute = true;
+			if (WaveInstance->SoundClass)
+			{
+				FString SoundClassName;
+				WaveInstance->SoundClass->GetName(SoundClassName);
+				if (SoundClassName.Contains(DebugSoloSoundClassName))
+				{
+					bMute = false;
+				}
+			}
+			if (bMute)
+			{
+				OutVolume = 0.0f;
+			}
+		}
+	}
+#endif
+
+	return OutVolume;
+}
 
 FSpatializationParams FSoundSource::GetSpatializationParams()
 {

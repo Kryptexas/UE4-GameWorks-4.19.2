@@ -47,6 +47,9 @@ struct CORE_API FFrameworkObjectVersion
 		// Remove SoundWave CompressionName
 		RemoveSoundWaveCompressionName,
 
+		// Switched render data for clothing over to unreal data, reskinned to the simulation mesh
+		AddInternalClothingGraphicalSkinning,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

@@ -338,6 +338,8 @@ void FCoreAudioSoundSource::Update( void )
 		Volume = 20.0 * log10(Volume);
 		Volume = FMath::Clamp<float>( Volume, -120.0f, 20.0f );
 
+		Volume = FSoundSource::GetDebugVolume(Volume);
+
 		const float Pitch = FMath::Clamp<float>( WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
 		
 		// Set the HighFrequencyGain value

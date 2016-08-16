@@ -143,12 +143,8 @@ class ENGINE_API FTimerManager : public FNoncopyable
 {
 public:
 
-	// ----------------------------------
-	// FTickableGameObject interface
-
 	void Tick(float DeltaTime);
 	TStatId GetStatId() const;
-
 
 	// ----------------------------------
 	// Timer API

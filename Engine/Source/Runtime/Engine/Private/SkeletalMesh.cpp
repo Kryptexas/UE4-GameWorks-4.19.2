@@ -28,9 +28,15 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/AssetUserData.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
+
+#if WITH_APEX_CLOTHING
+#include "ApexClothingUtils.h"
+#endif
+
 #endif // #if WITH_EDITOR
 
 #include "Net/UnrealNetwork.h"
@@ -48,7 +54,6 @@
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
 
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);
-
 DECLARE_CYCLE_STAT(TEXT("GetShadowShapes"), STAT_GetShadowShapes, STATGROUP_Anim);
 
 // Custom serialization version for RecomputeTangent
@@ -2851,6 +2856,8 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
 	FStripDataFlags StripFlags( Ar );
 
 	Ar << ImportedBounds;
@@ -2969,6 +2976,14 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	{
 		Ar << BodySetup;
 	}
+
+#if WITH_APEX_CLOTHING && WITH_EDITORONLY_DATA
+	if(GIsEditor && Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::AddInternalClothingGraphicalSkinning)
+	{
+		ApexClothingUtils::BackupClothingDataFromSkeletalMesh(this);
+		ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(this);
+	}
+#endif
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)

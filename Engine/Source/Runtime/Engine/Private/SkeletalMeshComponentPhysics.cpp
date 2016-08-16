@@ -783,6 +783,29 @@ DECLARE_CYCLE_STAT(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Phy
 
 TAutoConsoleVariable<int32> CVarEnableRagdollPhysics(TEXT("p.RagdollPhysics"), 1, TEXT("If 1, ragdoll physics will be used. Otherwise just root body is simulated"));
 
+int32 USkeletalMeshComponent::FindRootBodyIndex() const
+{
+	// Find root physics body
+	int32 RootBodyIndex = RootBodyData.BodyIndex;
+	if(RootBodyIndex == INDEX_NONE && SkeletalMesh)
+	{
+		if(const UPhysicsAsset* PhysicsAsset = GetPhysicsAsset())
+		{
+			for (int32 i = 0; i<SkeletalMesh->RefSkeleton.GetNum(); i++)
+			{
+				int32 BodyInstIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(i));
+				if (BodyInstIndex != INDEX_NONE)
+				{
+					RootBodyIndex = BodyInstIndex;
+					break;
+				}
+			}
+		}
+	}
+
+	return RootBodyIndex;
+}
+
 void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitArticulated);
@@ -804,16 +827,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	const float Scale = Scale3D.GetAbsMin();
 
 	// Find root physics body
-	int32 RootBodyIndex = INDEX_NONE;
-	for(int32 i=0; i<SkeletalMesh->RefSkeleton.GetNum(); i++)
-	{
-		int32 BodyInstIndex = PhysicsAsset->FindBodyIndex( SkeletalMesh->RefSkeleton.GetBoneName(i) );
-		if(BodyInstIndex != INDEX_NONE)
-		{
-			RootBodyIndex = BodyInstIndex;
-			break;
-		}
-	}
+	RootBodyData.BodyIndex = INDEX_NONE;	//Reset the root body index just in case we need to refind a new one
+	const int32 RootBodyIndex = FindRootBodyIndex();
 
 	if(RootBodyIndex == INDEX_NONE)
 	{
@@ -936,8 +951,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		Constraints[i] = new FConstraintInstance;
 		FConstraintInstance* ConInst = Constraints[i];
 		check( ConInst );
-		ConInst->ConstraintIndex = i; // Set the ConstraintIndex property in the ConstraintInstance.
 		ConInst->CopyConstraintParamsFrom(&ConstraintSetup->DefaultInstance);
+		ConInst->ConstraintIndex = i; // Set the ConstraintIndex property in the ConstraintInstance.
 #if WITH_EDITOR
 		if(GetWorld()->IsGameWorld())
 		{

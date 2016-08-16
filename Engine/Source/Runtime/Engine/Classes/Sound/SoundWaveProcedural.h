@@ -23,7 +23,28 @@ class ENGINE_API USoundWaveProcedural : public USoundWave
 	GENERATED_UCLASS_BODY()
 
 private:
-	TArray<uint8> QueuedAudio;
+	// A thread safe queue for queuing audio to be consumed on audio thread
+	TQueue<TArray<uint8>> QueuedAudio;
+
+	// The amount of bytes queued and not yet consumed
+	FThreadSafeCounter AvailableByteCount;
+
+	// The actual audio buffer that can be consumed. QueuedAudio is fed to this buffer. Accessed only audio thread.
+	TArray<uint8> AudioBuffer;
+
+	// Flag to reset the audio buffer
+	FThreadSafeBool bReset;
+
+	// Pumps audio queued from game thread
+	void PumpQueuedAudio();
+
+protected:
+
+	// Number of samples to pad with 0 if there isn't enough audio available
+	int32 NumBufferUnderrunSamples;
+
+	// The number of PCM samples we want to generate. This can't be larger than SamplesNeeded in GeneratePCMData callback, but can be less.
+	int32 NumSamplesToGeneratePerCallback;
 
 public:
 

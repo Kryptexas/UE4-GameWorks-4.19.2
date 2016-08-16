@@ -14,9 +14,6 @@ class FGroupedSpriteSceneProxy : public FPaperRenderSceneProxy
 public:
 	FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent* InComponent);
 
-	void SetOneBodySetup_RenderThread(int32 InstanceIndex, UBodySetup* NewSetup);
-	void SetAllBodySetups_RenderThread(TArray<TWeakObjectPtr<UBodySetup>> Setups);
-
 protected:
 	// FPaperRenderSceneProxy interface
 	virtual void DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const override;

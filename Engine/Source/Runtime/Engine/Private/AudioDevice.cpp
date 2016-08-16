@@ -186,6 +186,7 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	// Make sure the Listeners array has at least one entry, so we don't have to check for Listeners.Num() == 0 all the time
 	Listeners.AddDefaulted();
 	ListenerTransforms.AddDefaulted();
+	InverseListenerTransform.SetIdentity();
 
 	if (!bDeferStartupPrecache)
 	{
@@ -885,6 +886,38 @@ bool FAudioDevice::HandleAudio3dVisualizeCommand(const TCHAR* Cmd, FOutputDevice
 	return true;
 }
 
+bool FAudioDevice::HandleAudioSoloSoundClass(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+	if (DeviceManager)
+	{
+		DeviceManager->SetDebugSoloSoundClass(Cmd);
+	}
+
+	return true;
+}
+
+bool FAudioDevice::HandleAudioSoloSoundWave(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+	if (DeviceManager)
+	{
+		DeviceManager->SetDebugSoloSoundWave(Cmd);
+	}
+
+	return true;
+}
+
+bool FAudioDevice::HandleAudioSoloSoundCue(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+	if (DeviceManager)
+	{
+		DeviceManager->SetDebugSoloSoundCue(Cmd);
+	}
+
+	return true;
+}
 
 bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 {
@@ -1250,6 +1283,18 @@ bool FAudioDevice::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("Audio3dVisualize")))
 	{
 		return HandleAudio3dVisualizeCommand(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("AudioSoloSoundClass")))
+	{
+		return HandleAudioSoloSoundClass(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("AudioSoloSoundWave")))
+	{
+		return HandleAudioSoloSoundWave(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("AudioSoloSoundCue")))
+	{
+		return HandleAudioSoloSoundCue(Cmd, Ar);
 	}
 	else if (FParse::Command(&Cmd, TEXT("AudioMemReport")))
 	{
@@ -2854,6 +2899,17 @@ void FAudioDevice::Update(bool bGameTicking)
 
 	ProcessingPendingActiveSoundStops();
 
+	// Update listener transform
+	if (Listeners.Num() > 0)
+	{
+		// Caches the matrix used to transform a sounds position into local space so we can just look
+		// at the Y component after normalization to determine spatialization.
+		const FVector Up = Listeners[0].GetUp();
+		const FVector Right = Listeners[0].GetFront();
+		InverseListenerTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).Inverse();
+		ensure(!InverseListenerTransform.ContainsNaN());
+	}
+
 	int32 FirstActiveIndex = INDEX_NONE;
 
 	if (Sources.Num())
@@ -2885,16 +2941,6 @@ void FAudioDevice::Update(bool bGameTicking)
 		INC_DWORD_STAT_BY(STAT_AudioSources, MaxChannels - FreeSources.Num());
 		INC_DWORD_STAT_BY(STAT_WavesDroppedDueToPriority, FMath::Max(ActiveWaveInstances.Num() - MaxChannels, 0));
 		INC_DWORD_STAT_BY(STAT_ActiveSounds, ActiveSounds.Num());
-	}
-
-	// Update listener transform
-	if (Listeners.Num() > 0)
-	{
-		// Caches the matrix used to transform a sounds position into local space so we can just look
-		// at the Y component after normalization to determine spatialization.
-		const FVector Up = Listeners[0].GetUp();
-		const FVector Right = Listeners[0].GetFront();
-		InverseListenerTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
 	}
 
 	// now let the platform perform anything it needs to handle

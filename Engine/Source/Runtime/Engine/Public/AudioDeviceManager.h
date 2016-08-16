@@ -134,6 +134,23 @@ public:
 	/** Toggles 3d visualization of 3d sounds on/off */
 	void ToggleVisualize3dDebug();
 
+	/** Debug solos the given sound class name. Sounds that play with this sound class will be solo'd */
+	void SetDebugSoloSoundClass(const TCHAR* SoundClassName);
+
+	/** Debug solos the given sound name. Sounds that play with this name will be solo'd */
+	void SetDebugSoloSoundWave(const TCHAR* SoundClassName);
+
+	void SetDebugSoloSoundCue(const TCHAR* SoundClassName);
+
+	/** Gets the solo sound class used for debugging sounds */
+	const FString& GetDebugSoloSoundClass() const;
+
+	/** Gets the solo sound name used for debugging sound waves */
+	const FString& GetDebugSoloSoundWave() const;
+
+	/** Gets the solo sound name used for debugging sound cues */
+	const FString& GetDebugSoloSoundCue() const;
+
 public:
 
 	/** Array of all created buffers */
@@ -144,6 +161,14 @@ public:
 
 
 private:
+
+	/** Struct which contains debug names for run-time debugging of sounds. */
+	struct FDebugNames
+	{
+		FString DebugSoloSoundClass;
+		FString DebugSoloSoundWave;
+		FString DebugSoloSoundCue;
+	};
 
 	/** Call back for garbage collector, ensures no processing is happening on the thread before collecting resources */
 	void OnPreGarbageCollect();
@@ -189,6 +214,9 @@ private:
 
 	/** Which audio device is currently active */
 	uint32 ActiveAudioDeviceHandle;
+
+	/** Instance of the debug names struct. */
+	FDebugNames DebugNames;
 
 	/** Whether or not to play all audio in all active audio devices. */
 	bool bPlayAllDeviceAudio;

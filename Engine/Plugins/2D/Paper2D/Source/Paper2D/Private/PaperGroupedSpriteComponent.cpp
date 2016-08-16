@@ -351,29 +351,12 @@ void UPaperGroupedSpriteComponent::CreateAllInstanceBodies()
 	check(InstanceBodies.Num() == 0);
 	InstanceBodies.SetNumUninitialized(NumBodies);
 
-	TArray<FTransform> Transforms;
-	Transforms.Reserve(NumBodies);
-
-	TArray<TWeakObjectPtr<UBodySetup>> BodySetups;
-	BodySetups.Reserve(NumBodies);
 
 	for (int32 InstanceIndex = 0; InstanceIndex < NumBodies; ++InstanceIndex)
 	{
 		const FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
 		FBodyInstance* InstanceBody = InitInstanceBody(InstanceIndex, InstanceData, PhysScene);
 		InstanceBodies[InstanceIndex] = InstanceBody;
-		BodySetups.Add((InstanceBody != nullptr) ? InstanceBody->BodySetup : TWeakObjectPtr<UBodySetup>());
-	}
-
-	if (SceneProxy != nullptr)
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FSendPaperGroupBodySetups,
-			FGroupedSpriteSceneProxy*, InSceneProxy, (FGroupedSpriteSceneProxy*)SceneProxy,
-			TArray<TWeakObjectPtr<UBodySetup>>, InBodySetups, BodySetups,
-			{
-			InSceneProxy->SetAllBodySetups_RenderThread(InBodySetups);
-		});
 	}
 }
 

@@ -223,8 +223,9 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 
 				if (LinkedNode == OldNode)
 				{
-					const int32 LinkedPinIndex = LinkedNode->Pins.IndexOfByKey(LinkedPin);
+					const int32 LinkedPinIndex = OldNode->Pins.IndexOfByKey(LinkedPin);
 					Pin->LinkedTo[LinkedIndex] = NewNode->Pins[LinkedPinIndex];
+					LinkedPin->LinkedTo.Remove(Pin);
 				}
 			}
 		}
@@ -246,6 +247,10 @@ void UBehaviorTreeGraph::UpdateDeprecatedNodes()
 
 				ReplaceNodeConnections(Node, NewNode);
 				Nodes[Index] = NewNode;
+
+				Node->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders);
+				Node->SetFlags(RF_Transient);
+				Node->MarkPendingKill();
 			}
 		}
 	}

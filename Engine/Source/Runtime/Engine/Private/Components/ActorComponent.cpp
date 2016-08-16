@@ -132,7 +132,25 @@ void UActorComponent::PostInitProperties()
 	// Instance components will be added during the owner's initialization
 	if (OwnerPrivate && CreationMethod != EComponentCreationMethod::Instance)
 	{
-		OwnerPrivate->AddOwnedComponent(this);
+		if (!FPlatformProperties::RequiresCookedData() && CreationMethod == EComponentCreationMethod::Native && HasAllFlags(RF_NeedLoad|RF_DefaultSubObject))
+		{
+			UObject* MyArchetype = GetArchetype();
+			if (!MyArchetype->IsPendingKill() && MyArchetype != GetClass()->ClassDefaultObject)
+			{
+				OwnerPrivate->AddOwnedComponent(this);
+			}
+			else
+			{
+				// else: this is a natively created component that thinks its archetype is the CDO of
+				// this class, rather than a template component and this isn't the template component.
+				// Delete this stale component:
+				MarkPendingKill();
+			}
+		}
+		else
+		{
+			OwnerPrivate->AddOwnedComponent(this);
+		}
 	}
 }
 

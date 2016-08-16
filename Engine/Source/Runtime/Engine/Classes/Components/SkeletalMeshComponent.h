@@ -1166,6 +1166,9 @@ public:
 	/** Turn off all physics and remove the instance. */
 	void TermArticulated();
 
+	/** Find the root body index*/
+	int32 FindRootBodyIndex() const;
+
 
 	/** Terminate physics on all bodies below the named bone */
 	void TermBodiesBelow(FName ParentBoneName);
@@ -1281,6 +1284,7 @@ public:
 	 * @param	ConstraintIndex	Index of constraint to look for
 	 * @return	Constraint Joint Name
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
 	FName	FindConstraintBoneName(int32 ConstraintIndex);
 
 	/** 

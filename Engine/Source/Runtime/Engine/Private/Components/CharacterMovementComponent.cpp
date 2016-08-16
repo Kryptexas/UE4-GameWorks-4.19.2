@@ -95,7 +95,7 @@ namespace CharacterMovementCVars
 	FAutoConsoleVariableRef CVarNetEnableListenServerSmoothing(
 		TEXT("p.NetEnableListenServerSmoothing"),
 		NetEnableListenServerSmoothing,
-		TEXT("Whether to enable move combining on the client to reduce bandwidth by combining similar moves.\n")
+		TEXT("Whether to enable mesh smoothing on listen servers for the local view of remote clients.\n")
 		TEXT("0: Disable, 1: Enable"),
 		ECVF_Default);
 
@@ -8558,14 +8558,29 @@ void UCharacterMovementComponent::SetAvoidanceGroup(int32 GroupFlags)
 	AvoidanceGroup.SetFlagsDirectly(GroupFlags);
 }
 
+void UCharacterMovementComponent::SetAvoidanceGroupMask(const FNavAvoidanceMask& GroupMask)
+{
+	AvoidanceGroup.SetFlagsDirectly(GroupMask.Packed);
+}
+
 void UCharacterMovementComponent::SetGroupsToAvoid(int32 GroupFlags)
 {
 	GroupsToAvoid.SetFlagsDirectly(GroupFlags);
 }
 
+void UCharacterMovementComponent::SetGroupsToAvoidMask(const FNavAvoidanceMask& GroupMask)
+{
+	GroupsToAvoid.SetFlagsDirectly(GroupMask.Packed);
+}
+
 void UCharacterMovementComponent::SetGroupsToIgnore(int32 GroupFlags)
 {
 	GroupsToIgnore.SetFlagsDirectly(GroupFlags);
+}
+
+void UCharacterMovementComponent::SetGroupsToIgnoreMask(const FNavAvoidanceMask& GroupMask)
+{
+	GroupsToIgnore.SetFlagsDirectly(GroupMask.Packed);
 }
 
 void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)

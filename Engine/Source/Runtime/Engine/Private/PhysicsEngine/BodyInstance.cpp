@@ -2606,7 +2606,6 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
 			}
 
-			
 			//if wake when level starts is true, calling this function automatically wakes body up
 			if (bSimulatePhysics)
 			{

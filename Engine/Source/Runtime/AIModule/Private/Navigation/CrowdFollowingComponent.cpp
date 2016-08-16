@@ -34,10 +34,6 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& Obj
 	PathOptimizationRange = 1000.0f;	// approx: radius * 30.0f
 	AvoidanceQuality = ECrowdAvoidanceQuality::Low;
 	AvoidanceRangeMultiplier = 1.0f;
-
-	AvoidanceGroup.SetFlagsDirectly(1);
-	GroupsToAvoid.SetFlagsDirectly(MAX_uint32);
-	GroupsToIgnore.SetFlagsDirectly(0);
 }
 
 FVector UCrowdFollowingComponent::GetCrowdAgentLocation() const
@@ -248,9 +244,9 @@ void UCrowdFollowingComponent::SetCrowdRotateToVelocity(bool bEnable)
 
 void UCrowdFollowingComponent::SetAvoidanceGroup(int32 GroupFlags, bool bUpdateAgent)
 {
-	if (AvoidanceGroup.Packed != GroupFlags)
+	if (CharacterMovement && CharacterMovement->GetAvoidanceGroupMask() != GroupFlags)
 	{
-		AvoidanceGroup.SetFlagsDirectly(GroupFlags);
+		CharacterMovement->SetAvoidanceGroup(GroupFlags);
 
 		if (bUpdateAgent)
 		{
@@ -261,9 +257,9 @@ void UCrowdFollowingComponent::SetAvoidanceGroup(int32 GroupFlags, bool bUpdateA
 
 void UCrowdFollowingComponent::SetGroupsToAvoid(int32 GroupFlags, bool bUpdateAgent)
 {
-	if (GroupsToAvoid.Packed != GroupFlags)
+	if (CharacterMovement && CharacterMovement->GetGroupsToAvoidMask() != GroupFlags)
 	{
-		GroupsToAvoid.SetFlagsDirectly(GroupFlags);
+		CharacterMovement->SetGroupsToAvoid(GroupFlags);
 
 		if (bUpdateAgent)
 		{
@@ -274,15 +270,30 @@ void UCrowdFollowingComponent::SetGroupsToAvoid(int32 GroupFlags, bool bUpdateAg
 
 void UCrowdFollowingComponent::SetGroupsToIgnore(int32 GroupFlags, bool bUpdateAgent)
 {
-	if (GroupsToIgnore.Packed != GroupFlags)
+	if (CharacterMovement && CharacterMovement->GetGroupsToIgnoreMask() != GroupFlags)
 	{
-		GroupsToIgnore.SetFlagsDirectly(GroupFlags);
+		CharacterMovement->SetGroupsToIgnore(GroupFlags);
 
 		if (bUpdateAgent)
 		{
 			UpdateCrowdAgentParams();
 		}
 	}
+}
+
+int32 UCrowdFollowingComponent::GetAvoidanceGroup() const
+{
+	return CharacterMovement ? CharacterMovement->GetAvoidanceGroupMask() : 0;
+}
+
+int32 UCrowdFollowingComponent::GetGroupsToAvoid() const
+{
+	return CharacterMovement ? CharacterMovement->GetGroupsToAvoidMask() : 0;
+}
+
+int32 UCrowdFollowingComponent::GetGroupsToIgnore() const
+{
+	return CharacterMovement ? CharacterMovement->GetGroupsToIgnoreMask() : 0;
 }
 
 void UCrowdFollowingComponent::SuspendCrowdSteering(bool bSuspend)

@@ -103,6 +103,23 @@ namespace ApexClothingUtils
 	// if MaterialIndex is not specified, default material index will be used
 	UNREALED_API void GetPhysicsPropertiesFromApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
 	UNREALED_API void SetPhysicsPropertiesToApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
+
+	UNREALED_API void GenerateMeshToMeshSkinningData(TArray<FApexClothPhysToRenderVertData>& OutSkinningData,
+													 const TArray<FVector>& Mesh0Verts,
+													 const TArray<FVector>& Mesh0Normals,
+													 const TArray<FVector>& Mesh0Tangents,
+													 const TArray<FVector>& Mesh1Verts,
+													 const TArray<FVector>& Mesh1Normals,
+													 const TArray<uint32>& Mesh1Indices);
+
+	FVector4 GetPointBaryAndDist(const FVector& A,
+								 const FVector& B,
+								 const FVector& C,
+								 const FVector& NA,
+								 const FVector& NB,
+								 const FVector& NC,
+								 const FVector& Point);
+
 #endif // #if WITH_APEX_CLOTHING
 } // namespace ApexClothingUtils
 

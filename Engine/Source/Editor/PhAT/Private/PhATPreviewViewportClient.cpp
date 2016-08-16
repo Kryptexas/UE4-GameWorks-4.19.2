@@ -861,7 +861,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* InViewport, bool bCo
 			SharedData->MouseHandle->InterpolationSpeed = SharedData->EditorSimOptions->InterpolationSpeed;
 
 			// Create handle to object.
-			SharedData->MouseHandle->GrabComponent(SharedData->EditorSkelComp, BoneName, Result.Location, bConstrainRotation);
+			SharedData->MouseHandle->GrabComponentAtLocationWithRotation(SharedData->EditorSkelComp, BoneName, Result.Location, FRotator::ZeroRotator);
 
 			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.InverseFast();
 

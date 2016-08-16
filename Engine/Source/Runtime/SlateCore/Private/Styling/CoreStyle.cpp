@@ -102,12 +102,13 @@ void FCoreStyle::SetFocusBrush(FSlateBrush* NewBrush)
 }
 
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define TTF_FONT( RelativePath, ... ) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
 #define OTF_FONT( RelativePath, ... ) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".otf")), __VA_ARGS__)
-
 
 TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 {
@@ -1195,7 +1196,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	return Style;
 }
-
+PRAGMA_ENABLE_OPTIMIZATION
 
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH

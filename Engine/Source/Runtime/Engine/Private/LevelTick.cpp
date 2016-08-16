@@ -498,6 +498,11 @@ private:
  */
 void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 {
+	if (GetWorldSettings()->bUseClientSideLevelStreamingVolumes != (GetNetMode() == NM_Client))
+	{
+		return;
+	}
+
 	// if we are delaying using streaming volumes, return now
 	if( StreamingVolumeUpdateDelay > 0 )
 	{
@@ -1313,14 +1318,14 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		if( !bIsPaused )
 		{
 			// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
-			if (IsGameWorld() && GetNetMode() != NM_Client)
+			if (IsGameWorld())
 			{
 				ProcessLevelStreamingVolumes();
-			}
 
-			if (IsGameWorld() && WorldComposition)
-			{
-				WorldComposition->UpdateStreamingState();
+				if (WorldComposition)
+				{
+					WorldComposition->UpdateStreamingState();
+				}
 			}
 		}
 	}

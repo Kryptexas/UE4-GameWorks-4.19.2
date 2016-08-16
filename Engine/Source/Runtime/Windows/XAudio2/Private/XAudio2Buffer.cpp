@@ -112,6 +112,8 @@ FXAudio2SoundBuffer::~FXAudio2SoundBuffer( void )
 		UE_LOG(LogXAudio2, Fatal, TEXT( "Can't free resource '%s' as it was allocated in permanent pool." ), *ResourceName );
 	}
 
+	check(RealtimeAsyncHeaderParseTask == nullptr);
+
 	if( DecompressionState )
 	{
 		delete DecompressionState;
@@ -232,6 +234,16 @@ bool FXAudio2SoundBuffer::IsRealTimeSourceReady()
 	}
 	// Otherwise, we weren't a real time decoding sound buffer (or we've already asked and it was ready)
 	return true;
+}
+
+void FXAudio2SoundBuffer::EnsureRealtimeTaskCompletion()
+{
+	if (RealtimeAsyncHeaderParseTask)
+	{
+		RealtimeAsyncHeaderParseTask->EnsureCompletion();
+		delete RealtimeAsyncHeaderParseTask;
+		RealtimeAsyncHeaderParseTask = nullptr;
+	}
 }
 
 /** 

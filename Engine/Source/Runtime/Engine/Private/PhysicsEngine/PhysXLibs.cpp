@@ -72,20 +72,30 @@ void LoadPhysXModules()
 	FString APEXSuffix(ArchName + TEXT(".dll"));
 #endif
 
-	PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common" + PhysXSuffix));
-	nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt" + ArchBits + "_1.dll"));
-	PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3" + PhysXSuffix));
+	auto LoadPhysicsLibrary([](const FString& Path) -> HMODULE
+	{
+		HMODULE Handle = LoadLibraryW(*Path);
+		if (Handle == nullptr)
+		{
+			UE_LOG(LogPhysics, Fatal, TEXT("Failed to load module '%s'."), *Path);
+		}
+		return Handle;
+	});
+
+	PhysX3CommonHandle = LoadPhysicsLibrary(RootPhysXPath + "PhysX3Common" + PhysXSuffix);
+	nvToolsExtHandle = LoadPhysicsLibrary(RootPhysXPath + "nvToolsExt" + ArchBits + "_1.dll");
+	PhysX3Handle = LoadPhysicsLibrary(RootPhysXPath + "PhysX3" + PhysXSuffix);
 	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Cooking" + PhysXSuffix));
+		PhysX3CookingHandle = LoadPhysicsLibrary(RootPhysXPath + "PhysX3Cooking" + PhysXSuffix);
 	#endif
 	#if WITH_APEX
-		APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFramework" + APEXSuffix));
-		APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Destructible" + APEXSuffix));
+		APEXFrameworkHandle = LoadPhysicsLibrary(RootAPEXPath + "APEXFramework" + APEXSuffix);
+		APEX_DestructibleHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Destructible" + APEXSuffix);
 		#if WITH_APEX_LEGACY
-			APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Legacy" + APEXSuffix));
+			APEX_LegacyHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Legacy" + APEXSuffix);
 		#endif //WITH_APEX_LEGACY
 		#if WITH_APEX_CLOTHING
-			APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Clothing" + APEXSuffix));
+			APEX_ClothingHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Clothing" + APEXSuffix);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #endif	//PLATFORM_WINDOWS

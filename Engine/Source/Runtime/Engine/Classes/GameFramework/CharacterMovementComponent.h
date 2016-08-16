@@ -884,20 +884,32 @@ public:
 	/** Moving actor's group mask */
 	UPROPERTY(Category="Character Movement: Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
 	FNavAvoidanceMask AvoidanceGroup;
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DeprecatedFunction, DeprecationMessage="Please use SetAvoidanceGroupMask function instead."))
 	void SetAvoidanceGroup(int32 GroupFlags);
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|CharacterMovement")
+	void SetAvoidanceGroupMask(const FNavAvoidanceMask& GroupMask);
 
 	/** Will avoid other agents if they are in one of specified groups */
 	UPROPERTY(Category="Character Movement: Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
 	FNavAvoidanceMask GroupsToAvoid;
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta = (DeprecatedFunction, DeprecationMessage = "Please use SetGroupsToAvoidMask function instead."))
 	void SetGroupsToAvoid(int32 GroupFlags);
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|CharacterMovement")
+	void SetGroupsToAvoidMask(const FNavAvoidanceMask& GroupMask);
 
 	/** Will NOT avoid other agents if they are in one of specified groups, higher priority than GroupsToAvoid */
 	UPROPERTY(Category="Character Movement: Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
 	FNavAvoidanceMask GroupsToIgnore;
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta = (DeprecatedFunction, DeprecationMessage = "Please use SetGroupsToIgnoreMask function instead."))
 	void SetGroupsToIgnore(int32 GroupFlags);
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|CharacterMovement")
+	void SetGroupsToIgnoreMask(const FNavAvoidanceMask& GroupMask);
 
 	/** De facto default value 0.5 (due to that being the default in the avoidance registration function), indicates RVO behavior. */
 	UPROPERTY(Category="Character Movement: Avoidance", EditAnywhere, BlueprintReadOnly)

@@ -1335,24 +1335,32 @@ APawn* AGameMode::SpawnDefaultPawnFor_Implementation(AController* NewPlayer, AAc
 
 void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 {
+	UWorld* MyWorld = GetWorld();
+
+	if (MyWorld->GetWorldSettings()->bUseClientSideLevelStreamingVolumes)
+	{
+		// Client will itself decide what to stream
+		return;
+	}
+
 	// don't do this for local players or players after the first on a splitscreen client
-	if (Cast<ULocalPlayer>(PC->Player) == NULL && Cast<UChildConnection>(PC->Player) == NULL)
+	if (Cast<ULocalPlayer>(PC->Player) == nullptr && Cast<UChildConnection>(PC->Player) == nullptr)
 	{
 		// if we've loaded levels via CommitMapChange() that aren't normally in the StreamingLevels array, tell the client about that
-		if (GetWorld()->CommittedPersistentLevelName != NAME_None)
+		if (MyWorld->CommittedPersistentLevelName != NAME_None)
 		{
-			PC->ClientPrepareMapChange(GetWorld()->CommittedPersistentLevelName, true, true);
+			PC->ClientPrepareMapChange(MyWorld->CommittedPersistentLevelName, true, true);
 			// tell the client to commit the level immediately
 			PC->ClientCommitMapChange();
 		}
 
-		if (GetWorld()->StreamingLevels.Num() > 0)
+		if (MyWorld->StreamingLevels.Num() > 0)
 		{
 			// Tell the player controller the current streaming level status
-			for (int32 LevelIndex = 0; LevelIndex < GetWorld()->StreamingLevels.Num(); LevelIndex++)
+			for (int32 LevelIndex = 0; LevelIndex < MyWorld->StreamingLevels.Num(); LevelIndex++)
 			{
 				// streamingServer
-				ULevelStreaming* TheLevel = GetWorld()->StreamingLevels[LevelIndex];
+				ULevelStreaming* TheLevel = MyWorld->StreamingLevels[LevelIndex];
 
 				if( TheLevel != NULL )
 				{
@@ -1378,11 +1386,11 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 		}
 
 		// if we're preparing to load different levels using PrepareMapChange() inform the client about that now
-		if (GetWorld()->PreparingLevelNames.Num() > 0)
+		if (MyWorld->PreparingLevelNames.Num() > 0)
 		{
-			for (int32 LevelIndex = 0; LevelIndex < GetWorld()->PreparingLevelNames.Num(); LevelIndex++)
+			for (int32 LevelIndex = 0; LevelIndex < MyWorld->PreparingLevelNames.Num(); LevelIndex++)
 			{
-				PC->ClientPrepareMapChange(GetWorld()->PreparingLevelNames[LevelIndex], LevelIndex == 0, LevelIndex == GetWorld()->PreparingLevelNames.Num() - 1);
+				PC->ClientPrepareMapChange(MyWorld->PreparingLevelNames[LevelIndex], LevelIndex == 0, LevelIndex == MyWorld->PreparingLevelNames.Num() - 1);
 			}
 			// DO NOT commit these changes yet - we'll send that when we're done preparing them
 		}

@@ -982,8 +982,8 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 	ConditionalUpdateComponentToWorld();
 	
 #if ENABLE_NAN_DIAGNOSTIC
-	bool NaN = NewRotation.ContainsNaN();
-	if (NaN)
+	const bool bNaN = NewRotation.ContainsNaN();
+	if (bNaN)
 	{
 		logOrEnsureNanError(TEXT("USceneComponent::SetRelativeLocationAndRotation contains NaN is NewRotation. %s "), *GetNameSafe(GetOwner()));
 	}
@@ -996,10 +996,10 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 		}
 	}
 #else
-	bool NaN = false;
+	const bool bNaN = false;
 #endif
 
-	const FTransform DesiredRelTransform(NaN ? FQuat::Identity :NewRotation, NewLocation);
+	const FTransform DesiredRelTransform((bNaN ? FQuat::Identity : NewRotation), NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
 	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 

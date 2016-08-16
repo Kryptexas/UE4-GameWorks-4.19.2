@@ -704,9 +704,10 @@ void FCompositeNavModifier::CreateAreaModifiers(const UPrimitiveComponent* PrimC
 	for (int32 Idx = 0; Idx < BodySetup->AggGeom.SphylElems.Num(); Idx++)
 	{
 		const FKSphylElem& SphylElem = BodySetup->AggGeom.SphylElems[Idx];
-		const FTransform AreaOffset(FVector(0, 0, -SphylElem.Length));
+		const float CapsuleHeight = SphylElem.Length + SphylElem.Radius;
+		const FTransform AreaOffset(FVector(0, 0, -CapsuleHeight));
 
-		FAreaNavModifier AreaMod(SphylElem.Radius, SphylElem.Length, AreaOffset * PrimComp->ComponentToWorld, AreaClass);
+		FAreaNavModifier AreaMod(SphylElem.Radius, CapsuleHeight, AreaOffset * PrimComp->ComponentToWorld, AreaClass);
 		Add(AreaMod);
 	}
 

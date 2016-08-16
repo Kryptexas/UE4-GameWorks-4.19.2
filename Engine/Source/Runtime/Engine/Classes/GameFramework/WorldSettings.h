@@ -303,6 +303,13 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World)
 	uint32 bEnableWorldComposition:1;
 
+	/**
+	 * Enables client-side streaming volumes instead of server-side.
+	 * Expected usage scenario: server has all streaming levels always loaded, clients independently stream levels in/out based on streaming volumes.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = World)
+	uint32 bUseClientSideLevelStreamingVolumes:1;
+
 	/** World origin will shift to a camera position when camera goes far away from current origin */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, AdvancedDisplay, meta=(editcondition = "bEnableWorldComposition"))
 	uint32 bEnableWorldOriginRebasing:1;

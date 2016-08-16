@@ -81,7 +81,7 @@ struct FXWMABufferInfo
 	UINT32						XWMASeekDataSize;
 };
 
-typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FXAudio2SoundBuffer>> FAsyncRealtimeAudioTask;
+typedef FAsyncRealtimeAudioTaskProxy<FXAudio2SoundBuffer> FAsyncRealtimeAudioTask;
 
 /**
 * Struct to store pending task information.
@@ -124,6 +124,7 @@ public:
 	int32 GetCurrentChunkIndex() const override;
 	int32 GetCurrentChunkOffset() const override;
 	bool IsRealTimeSourceReady() override;
+	void EnsureRealtimeTaskCompletion() override;
 	//~ End FSoundBuffer interface 
 
 	/** 
@@ -470,7 +471,7 @@ protected:
 	void RouteHexToDry(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 	void RouteMonoToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 	void RouteStereoToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
-
+	
 	/** Owning audio device object */
 	FXAudio2Device*	AudioDevice;
 
@@ -632,9 +633,6 @@ struct FXAudioDeviceProperties
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
-	/** Array of pending async tasks to clean up when they finish */
-	TArray<FPendingAsyncTaskInfo>		PendingAsyncTasksToCleanUp;
-
 	// For calculating speaker maps for 3d audio
 	FSpatializationHelper				SpatializationHelper;
 
@@ -791,65 +789,7 @@ struct FXAudioDeviceProperties
 
 		--NumActiveVoices;
 	}
-	
-	void AddPendingTaskToCleanup(FPendingAsyncTaskInfo PendingTaskInfo)
-	{
-		PendingAsyncTasksToCleanUp.Add(PendingTaskInfo);
-	}
 
-	void ProcessPendingTasksToCleanup(bool bForceWait = false)
-	{
-		for (int32 i = PendingAsyncTasksToCleanUp.Num() - 1; i >= 0; --i)
-		{
-			FPendingAsyncTaskInfo& TaskInfo = PendingAsyncTasksToCleanUp[i];
-
-			if (bForceWait)
-			{
-				if (TaskInfo.RealtimeAsyncTask)
-				{
-					TaskInfo.RealtimeAsyncTask->EnsureCompletion(true);
-
-					delete TaskInfo.RealtimeAsyncTask;
-					TaskInfo.RealtimeAsyncTask = nullptr;
-				}
-
-				if (TaskInfo.RealtimeAsyncHeaderParseTask)
-				{
-					TaskInfo.RealtimeAsyncHeaderParseTask->EnsureCompletion(true);
-					delete TaskInfo.RealtimeAsyncHeaderParseTask;
-					TaskInfo.RealtimeAsyncHeaderParseTask = nullptr;
-				}
-
-				check(TaskInfo.RealtimeAsyncTask == nullptr);
-				check(TaskInfo.RealtimeAsyncHeaderParseTask == nullptr);
-
-				PendingAsyncTasksToCleanUp.RemoveAtSwap(i, 1, false);
-			}
-			else
-			{
-				// Clean up the tasks if they're finished
-				if (TaskInfo.RealtimeAsyncTask && TaskInfo.RealtimeAsyncTask->IsDone())
-				{
-					delete TaskInfo.RealtimeAsyncTask;
-					TaskInfo.RealtimeAsyncTask = nullptr;
-				}
-
-				if (TaskInfo.RealtimeAsyncHeaderParseTask && TaskInfo.RealtimeAsyncHeaderParseTask->IsDone())
-				{
-					delete TaskInfo.RealtimeAsyncHeaderParseTask;
-					TaskInfo.RealtimeAsyncHeaderParseTask = nullptr;
-				}
-
-				// If both tasks are finished, clean up the buffer and remove it in the pending list
-				if (!TaskInfo.RealtimeAsyncHeaderParseTask && !TaskInfo.RealtimeAsyncTask)
-				{
-					check(TaskInfo.Buffer);
-					delete TaskInfo.Buffer;
-					PendingAsyncTasksToCleanUp.RemoveAtSwap(i, 1, false);
-				}
-			}
-		}
-	}
 };
 
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
