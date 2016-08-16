@@ -841,6 +841,8 @@ void FSplineComponentVisualizer::DuplicateKey()
 	// Unset tangent handle selection
 	SelectedTangentHandle = INDEX_NONE;
 	SelectedTangentHandleType = ESelectedTangentHandle::None;
+
+	GEditor->RedrawLevelEditingViewports(true);
 }
 
 
@@ -923,6 +925,8 @@ void FSplineComponentVisualizer::OnAddKey()
 	NotifyPropertyModified(SplineComp, SplineCurvesProperty);
 
 	CachedRotation = SplineComp->GetQuaternionAtSplinePoint(LastKeyIndexSelected, ESplineCoordinateSpace::World);
+
+	GEditor->RedrawLevelEditingViewports(true);
 }
 
 
@@ -980,6 +984,8 @@ void FSplineComponentVisualizer::OnDeleteKey()
 	NotifyPropertyModified(SplineComp, SplineCurvesProperty);
 
 	CachedRotation = SplineComp->GetQuaternionAtSplinePoint(LastKeyIndexSelected, ESplineCoordinateSpace::World);
+
+	GEditor->RedrawLevelEditingViewports(true);
 }
 
 
