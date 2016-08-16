@@ -535,12 +535,12 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 
 		FLinearColor ActualColor = Color;
 		ActualColor.A *= InCanvas->AlphaModulate;
-		const FTexture* CornersTexture = BorderTexture ? BorderTexture : GWhiteTexture;	
-		const FTexture* BackTexture = BackgroundTexture ? BackgroundTexture : GWhiteTexture;	
-		const FTexture* LeftTexture = BorderLeftTexture ? BorderLeftTexture : GWhiteTexture;	
-		const FTexture* RightTexture = BorderRightTexture ? BorderRightTexture : GWhiteTexture;	
-		const FTexture* TopTexture = BorderTopTexture ? BorderTopTexture : GWhiteTexture;	
-		const FTexture* BottomTexture = BorderBottomTexture ? BorderBottomTexture : GWhiteTexture;	
+		const FTexture* const CornersTexture = BorderTexture ? BorderTexture : GWhiteTexture;	
+		const FTexture* const BackTexture = BackgroundTexture ? BackgroundTexture : GWhiteTexture;
+		const FTexture* const LeftTexture = BorderLeftTexture ? BorderLeftTexture : GWhiteTexture;
+		const FTexture* const RightTexture = BorderRightTexture ? BorderRightTexture : GWhiteTexture;
+		const FTexture* const TopTexture = BorderTopTexture ? BorderTopTexture : GWhiteTexture;
+		const FTexture* const BottomTexture = BorderBottomTexture ? BorderBottomTexture : GWhiteTexture;
 		FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, CornersTexture, BlendMode);
 		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
 
@@ -726,8 +726,8 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 			ActualColor,
 			HitProxyId);
 
-		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, BorderTopTexture, BlendMode );
-		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, BorderTopTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, TopTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, TopTexture, BlendMode );
 
 		//Bottom Frame Border
 		const float BottomFrameTilingX = (BorderRight-BorderLeft)/BorderBottomDrawSizeX;
@@ -753,8 +753,8 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 			ActualColor,
 			HitProxyId);
 
-		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, BorderBottomTexture, BlendMode );
-		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, BorderBottomTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, BottomTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, BottomTexture, BlendMode );
 
 
 		//Left Frame Border
@@ -781,8 +781,8 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 			ActualColor,
 			HitProxyId);
 
-		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, BorderLeftTexture, BlendMode );
-		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, BorderLeftTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, LeftTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, LeftTexture, BlendMode );
 
 
 		//Right Frame Border
@@ -809,8 +809,8 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 			ActualColor,
 			HitProxyId);
 
-		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, BorderRightTexture, BlendMode );
-		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, BorderRightTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V10, V11, BatchedElementParameters, RightTexture, BlendMode );
+		BatchedElements->AddTriangleExtensive( V00, V11, V01, BatchedElementParameters, RightTexture, BlendMode );
 
 	}
 
