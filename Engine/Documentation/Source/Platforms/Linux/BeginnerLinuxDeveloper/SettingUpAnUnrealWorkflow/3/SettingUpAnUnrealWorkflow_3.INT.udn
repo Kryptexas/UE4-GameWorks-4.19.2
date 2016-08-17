@@ -29,7 +29,7 @@ SkillLevel:Beginner
 
 In preparation for this critical step, you downloaded a copy of Unreal Engine's source code onto your hard disk. 
 During this part of the tutorial, you'll get to run several utilities from the terminal to build a binary of UE4 
-on your Linux machine. 
+on your Linux machine.
 
 [INCLUDE:Programming/Development/BuildingUnrealEngine#linuxcompile]
 

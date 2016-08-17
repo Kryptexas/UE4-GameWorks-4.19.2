@@ -46,7 +46,7 @@ The focus of this guide is to show you how to setup the primary workflow needed 
 
 After working through this tutorial, you'll know the following:
 
-* How to setup Git to download the source code for Unreal Engine.
+* How to set up Git to download the source code for Unreal Engine.
 * How to fork and clone Unreal Engine's source code.
 * How to build Unreal Engine from source.
 * How to run Unreal Engine on your Linux machine.
