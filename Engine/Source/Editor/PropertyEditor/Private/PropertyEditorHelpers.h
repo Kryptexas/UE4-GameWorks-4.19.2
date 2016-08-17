@@ -197,4 +197,14 @@ namespace PropertyEditorHelpers
 	 * @param OutObjectNodes	List of all object nodes found
 	 */
 	void CollectObjectNodes( TSharedPtr<FPropertyNode> StartNode, TArray<FObjectPropertyNode*>& OutObjectNodes );
+
+	/**
+	 * Returns any enums that are explicitly allowed by the "AllowedEnumValues" metadata on UProperty using the specified enum.
+	 *
+	 * @param Property	The property which may contain the "AllowedEnumValues" metadata
+	 * @param InEnum	The enum to search
+	 * @return The array of allowed enums.  NOTE: If an empty array is returned all enum values are allowed.  It is an error for a property to hide all enum values so that state is undefined here.
+	 */
+	TArray<FName> GetValidEnumsFromPropertyOverride(const UProperty* Property, const UEnum* InEnum);
+
 }
