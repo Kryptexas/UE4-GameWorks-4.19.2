@@ -412,7 +412,7 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	}
 }
 
-FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
+FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 {
 	TRefCountPtr<IDXGIFactory1> DXGIFactory1;
 	SafeCreateDXGIFactory(DXGIFactory1.GetInitReference());

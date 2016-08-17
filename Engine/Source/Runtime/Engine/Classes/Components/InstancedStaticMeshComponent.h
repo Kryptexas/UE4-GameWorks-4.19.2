@@ -108,6 +108,15 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 
+
+	/**
+	* Return whether this primitive should have data for texture streaming.
+	* Instanced Static Mesh component don't have valid build data yet.
+	*
+	* @return	true if a rebuild is required.
+	*/
+	virtual bool RequiresStreamingTextureData() const override { return false; }
+
 	/**
 	* Update the transform for the instance specified.
 	*

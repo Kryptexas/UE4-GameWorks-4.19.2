@@ -739,14 +739,14 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
 	}
 
+	//@TODO: SPLITSCREEN: This call will have an issue with splitscreen, as the show flags are shared across the view family
+	EngineShowFlagOrthographicOverride( ViewInitOptions.IsPerspectiveProjection(), ViewFamily->EngineShowFlags );
+
 	FSceneView* const View = new FSceneView(ViewInitOptions);
 	
 	View->ViewLocation = OutViewLocation;
 	View->ViewRotation = OutViewRotation;
 
-	//@TODO: SPLITSCREEN: This call will have an issue with splitscreen, as the show flags are shared across the view family
-	EngineShowFlagOrthographicOverride(View->IsPerspectiveProjection(), ViewFamily->EngineShowFlags);
-		
 	ViewFamily->Views.Add(View);
 
 	{

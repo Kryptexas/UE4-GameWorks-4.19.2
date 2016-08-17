@@ -214,9 +214,11 @@ public:
 
 	inline uint32 GetNumMips() const { return NumMips; }
 
-	static VkImageAspectFlags GetAspectMask(VkFormat Format);
-
-	VkImageAspectFlags GetAspectMask() const;
+	inline VkImageAspectFlags GetAspectMask() const
+	{
+		check(AspectMask != 0);
+		return AspectMask;
+	}
 
 	FVulkanDevice* Device;
 
@@ -227,6 +229,7 @@ public:
 	uint32 Width, Height, Depth;
 	TMap<uint32, void*>	MipMapMapping;
 	EPixelFormat Format;
+	uint32 UEFlags;
 	VkMemoryPropertyFlags MemProps;
 
 	// format->index key, used with the pipeline state object key
@@ -270,18 +273,14 @@ private:
 
 struct FVulkanTextureView
 {
-	FVulkanTextureView() :
-		View(VK_NULL_HANDLE)
+	FVulkanTextureView()
+		: View(VK_NULL_HANDLE)
 	{
 	}
 
-	void Create(FVulkanDevice& Device, VkImage Image, VkImageViewType ViewType, VkImageAspectFlags AspectFlags, EPixelFormat UEFormat, VkFormat Format, uint32 NumMips);
+	static VkImageView FVulkanTextureView::StaticCreate(FVulkanDevice& Device, VkImage Image, VkImageViewType ViewType, VkImageAspectFlags AspectFlags, EPixelFormat UEFormat, VkFormat Format, uint32 FirstMip, uint32 NumMips, uint32 ArraySliceIndex, uint32 NumArraySlices);
 
-	inline void Create(FVulkanDevice& Device, FVulkanSurface& Surface, VkImageViewType ViewType, VkFormat Format, uint32 NumMips)
-	{
-		Create(Device, Surface.Image, ViewType, Surface.GetAspectMask(), Surface.Format, Format, NumMips);
-	}
-
+	void Create(FVulkanDevice& Device, VkImage Image, VkImageViewType ViewType, VkImageAspectFlags AspectFlags, EPixelFormat UEFormat, VkFormat Format, uint32 NumMips, uint32 NumArraySlices);
 	void Destroy(FVulkanDevice& Device);
 
 	VkImageView View;
@@ -300,8 +299,12 @@ struct FVulkanTextureBase : public FVulkanBaseShaderResource
 	FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType ResourceType, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 SizeZ, VkImage InImage, VkDeviceMemory InMem, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo = FRHIResourceCreateInfo());
 	virtual ~FVulkanTextureBase();
 
+	VkImageView FVulkanTextureBase::CreateRenderTargetView(uint32 MipIndex, uint32 ArraySliceIndex);
+
 	FVulkanSurface Surface;
-	FVulkanTextureView View;
+
+	// View with all mips/layers
+	FVulkanTextureView DefaultView;
 
 #if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 	// Surface and view for MSAA render target, valid only when created with NumSamples > 1
@@ -312,6 +315,7 @@ struct FVulkanTextureBase : public FVulkanBaseShaderResource
 private:
 };
 
+class FVulkanBackBuffer;
 class FVulkanTexture2D : public FRHITexture2D, public FVulkanTextureBase
 {
 public:
@@ -332,9 +336,9 @@ public:
 		return FRHIResource::GetRefCount();
 	}
 
-	virtual bool IsBackBuffer() const
+	virtual FVulkanBackBuffer* GetBackBuffer()
 	{
-		return false;
+		return nullptr;
 	}
 
 protected:
@@ -348,9 +352,9 @@ public:
 	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags);
 	virtual ~FVulkanBackBuffer();
 
-	virtual bool IsBackBuffer() const override final
+	virtual FVulkanBackBuffer* GetBackBuffer() override final
 	{
-		return true;
+		return this;
 	}
 };
 
@@ -778,15 +782,19 @@ public:
 };
 
 
-class FVulkanShaderResourceView : public FRHIShaderResourceView
+class FVulkanShaderResourceView : public FRHIShaderResourceView, public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanShaderResourceView()
-		: VolatileLockCounter(MAX_uint32)
+	FVulkanShaderResourceView(FVulkanDevice* Device)
+		: VulkanRHI::FDeviceChild(Device)
+		, BufferViewFormat(PF_Unknown)
+		, MipLevel(0)
+		, NumMips(-1)
+		, VolatileLockCounter(MAX_uint32)
 	{
 	}
 
-	void UpdateView(FVulkanDevice* Device);
+	void UpdateView();
 
 	// The vertex buffer this SRV comes from (can be null)
 	TRefCountPtr<FVulkanBufferView> BufferView;
@@ -795,6 +803,9 @@ public:
 
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
+	FVulkanTextureView TextureView;
+	uint32 MipLevel;
+	uint32 NumMips;
 
 	~FVulkanShaderResourceView();
 
@@ -924,6 +935,7 @@ public:
 	void SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler);
 
 	void SetBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View);
+	void SetTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView);
 
 	void SetUniformBufferConstantData(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData);
 	void SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer);
@@ -1043,7 +1055,11 @@ private:
 	{
 		const FVulkanTextureBase* Textures[SF_Compute][32];
 		const FVulkanSamplerState* SamplerStates[SF_Compute][32];
-		const FVulkanBufferView* SRVs[SF_Compute][32];
+		union
+		{
+			const FVulkanTextureView* SRVIs[SF_Compute][32];
+			const FVulkanBufferView* SRVBs[SF_Compute][32];
+		};
 		const FVulkanUniformBuffer* UBs[SF_Compute][32];
 	};
 	FDebugInfo DebugInfo;

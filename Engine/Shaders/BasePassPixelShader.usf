@@ -41,11 +41,6 @@ float NormalCurvatureToRoughness(float3 WorldNormal)
 	 
 #endif
 
-#if MATERIALBLENDING_ANY_TRANSLUCENT
-// Downsampled translucency scale (eg 2.0 for r.SeparateTranslucencyScreenPercentage=50)
-float DownsampleFactorFromSceneBufferSize;
-#endif
-
 #if MATERIAL_SHADINGMODEL_HAIR || SIMPLE_FORWARD_DIRECTIONAL_LIGHT
 #include "ShadingModels.usf"
 #endif
@@ -733,23 +728,16 @@ void FPixelShaderInOut_MainPS(
 	MaterialParameters.AOMaterialMask = GetAOMaterialMask(LightmapUV0 * float2(1, 2));
 #endif
 
-	float4 SVPositionForComputingPositions = In.SvPosition;
-
-#if MATERIALBLENDING_ANY_TRANSLUCENT
-	// Modify SVPosition for passes that are rendering to a downsampled target so that ScreenPosition and WorldPosition will be computed correctly
-	//SVPositionForComputingPositions.xy *= DownsampleFactorFromSceneBufferSize;
-#endif
-
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
-			float4 ScreenPosition = SvPositionToResolvedScreenPosition(SVPositionForComputingPositions);
-			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
+			float4 ScreenPosition = SvPositionToResolvedScreenPosition(In.SvPosition);
+			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(In.SvPosition);
 			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
 		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SVPositionForComputingPositions);
-			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SVPositionForComputingPositions);
+			float4 ScreenPosition = SvPositionToScreenPosition(In.SvPosition);
+			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(In.SvPosition);
 			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
 		}
 	#endif
@@ -842,7 +830,7 @@ void FPixelShaderInOut_MainPS(
 	{
 		bool bChecker = CheckerFromPixelPos(MaterialParameters.SvPosition.xy);
 
-		AdjustBaseColorAndSpecularForCheckerDeferredLighting(LocalBaseColor, LocalSpecular, bChecker);
+		AdjustBaseColorAndSpecularForSubsurfaceProfileLighting(LocalBaseColor, LocalSpecular, bChecker);
 	}
 #endif
 
@@ -1107,7 +1095,13 @@ void FPixelShaderInOut_MainPS(
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
-			LightAccumulator_Add(LightAccumulator, Color * VertexFog.a + VertexFog.rgb, 0, 1.0f);
+			// Only accumulate subsurface if we actually need to
+#if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+			const bool bNeedsSeparateSubsurfaceLightAccumulation = true;
+#else
+			const bool bNeedsSeparateSubsurfaceLightAccumulation = false;
+#endif
+			LightAccumulator_Add(LightAccumulator, Color * VertexFog.a + VertexFog.rgb, 0, 1.0f, bNeedsSeparateSubsurfaceLightAccumulation);
 			Out.MRT[0] = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
 
 			#if SUBSURFACE_CHANNEL_MODE == 0

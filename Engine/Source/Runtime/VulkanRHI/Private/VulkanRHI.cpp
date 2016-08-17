@@ -243,7 +243,7 @@ bool FVulkanDynamicRHIModule::IsSupported()
 	return true;
 }
 
-FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI()
+FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequestedFeatureLevel)
 {
 	if (FParse::Param(FCommandLine::Get(), TEXT("SM5")))
 	{

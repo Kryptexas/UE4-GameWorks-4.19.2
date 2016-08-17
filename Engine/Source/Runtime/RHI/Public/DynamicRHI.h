@@ -1338,7 +1338,7 @@ public:
 	virtual bool IsSupported() = 0;
 
 	/** Creates a new instance of the dynamic RHI implemented by the module. */
-	virtual FDynamicRHI* CreateRHI() = 0;
+	virtual FDynamicRHI* CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num) = 0;
 };
 
 /**

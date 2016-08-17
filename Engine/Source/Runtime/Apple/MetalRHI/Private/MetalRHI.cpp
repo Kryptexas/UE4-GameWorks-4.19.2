@@ -25,7 +25,7 @@ bool FMetalDynamicRHIModule::IsSupported()
 	return true;
 }
 
-FDynamicRHI* FMetalDynamicRHIModule::CreateRHI()
+FDynamicRHI* FMetalDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 {
 	return new FMetalDynamicRHI();
 }

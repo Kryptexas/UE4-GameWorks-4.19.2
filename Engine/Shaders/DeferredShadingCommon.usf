@@ -484,11 +484,20 @@ bool CheckerFromSceneColorUV(float2 UVSceneColor)
 // SubsurfaceProfile does deferred lighting with a checker board pixel pattern
 // we separate the view from the non view dependent lighting and later recombine the two color constributions in a postprocess
 // We have the option to apply the BaseColor/Specular in the base pass or do it later in the postprocess (has implications to texture detail, fresnel and performance)
-void AdjustBaseColorAndSpecularForCheckerDeferredLighting(inout float3 BaseColor, inout float Specular, bool bChecker)
+void AdjustBaseColorAndSpecularForSubsurfaceProfileLighting(inout float3 BaseColor, inout float Specular, bool bChecker)
 {
-	// because we adjust the BaseColor here, we need StoredBaseColor
-	if (View.EnableSubsurfaceCheckboardOutput)
+#if SUBSURFACE_CHANNEL_MODE == 0
+	// If SUBSURFACE_CHANNEL_MODE is 0, we can't support full-resolution lighting, so we 
+	// ignore View.bCheckerboardSubsurfaceProfileRendering
+	const bool bCheckerboardRequired = View.bSubsurfacePostprocessEnabled > 0;
+#else
+	const bool bCheckerboardRequired = View.bSubsurfacePostprocessEnabled > 0 && View.bCheckerboardSubsurfaceProfileRendering > 0;
+	BaseColor = View.bSubsurfacePostprocessEnabled ? float3(1, 1, 1) : BaseColor;
+#endif
+	if (bCheckerboardRequired)
 	{
+		// because we adjust the BaseColor here, we need StoredBaseColor
+
 		// we apply the base color later in SubsurfaceRecombinePS()
 		BaseColor = bChecker;
 		// in SubsurfaceRecombinePS() does not multiply with Specular so we do it here
@@ -551,7 +560,7 @@ FGBufferData DecodeGBufferData(
 
 	if(GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
-		AdjustBaseColorAndSpecularForCheckerDeferredLighting(GBuffer.BaseColor, GBuffer.Specular, bChecker);
+		AdjustBaseColorAndSpecularForSubsurfaceProfileLighting(GBuffer.BaseColor, GBuffer.Specular, bChecker);
 	}
 
 	// derived from BaseColor, Metalness, Specular

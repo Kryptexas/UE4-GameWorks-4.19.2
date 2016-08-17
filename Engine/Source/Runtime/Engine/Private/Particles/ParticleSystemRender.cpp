@@ -1368,10 +1368,21 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	// Find the offset to the mesh type data 
 	if (InEmitterInstance->MeshTypeData != NULL)
 	{
+#if WITH_EDITOR
+		// if the mesh package is dirty, then the mesh has been re-imported and we need to clear the vertex factories
+		if (GIsEditor && InEmitterInstance->Component->SceneProxy)
+		{
+			UPackage* Package = InEmitterInstance->MeshTypeData->Mesh->GetOutermost();
+			if (Package && Package->IsDirty())
+			{
+				static_cast<FParticleSystemSceneProxy*>(InEmitterInstance->Component->SceneProxy)->MarkVertexFactoriesDirty();
+			}
+		}
+#endif
+
 		UParticleModuleTypeDataMesh* MeshTD = InEmitterInstance->MeshTypeData;
 		// offset to the mesh emitter type data
 		MeshTypeDataOffset = InEmitterInstance->TypeDataOffset;
-
 
 		FVector Mins, Maxs;
 		MeshTD->RollPitchYawRange.GetRange(Mins, Maxs);
@@ -6840,6 +6851,7 @@ void FParticleSystemSceneProxy::CreateRenderThreadResourcesForEmitterData()
 			}
 		}
 	}
+
 	ClearVertexFactoriesIfDirty();
 	UpdateVertexFactories();
 }

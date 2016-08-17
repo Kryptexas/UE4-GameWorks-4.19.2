@@ -44,7 +44,7 @@ public:
 	void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY);
 	void SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height);
 	void SetBlendState(FVulkanBlendState* NewState);
-	void SetDepthStencilState(FVulkanDepthStencilState* NewState);
+	void SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef);
 	void SetRasterizerState(FVulkanRasterizerState* NewState);
 
 	// Returns shader state

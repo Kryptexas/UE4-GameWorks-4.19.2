@@ -240,6 +240,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
 	ViewUniformShaderParameters.Random = FMath::Rand();
 	ViewUniformShaderParameters.FrameNumber = View->Family->FrameNumber;
+	ViewUniformShaderParameters.bCheckerboardSubsurfaceProfileRendering = 0;
 
 	// Update noise buffers
 	UpdateNoiseTextureParameters(ViewUniformShaderParameters);

@@ -20,15 +20,13 @@ void FVulkanPipelineState::Reset()
 
 	FMemory::Memzero(Scissor);
 	FMemory::Memzero(Viewport);
-	FMemory::Memzero(PrevScissor);
-	FMemory::Memzero(PrevViewport);
-	bNeedsScissorUpdate = bNeedsViewportUpdate = true;
+	bNeedsScissorUpdate = bNeedsViewportUpdate = bNeedsStencilRefUpdate = true;
+	StencilRef = PrevStencilRef = 0;
 	InitializeDefaultStates();
 }
 
 void FVulkanPipelineState::InitializeDefaultStates()
 {
-
 	// Input Assembly
 	FMemory::Memzero(InputAssembly);
 	InputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -43,6 +41,7 @@ void FVulkanPipelineState::InitializeDefaultStates()
 	FMemory::Memzero(DynamicStatesEnabled);
 	DynamicStatesEnabled[DynamicState.dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
 	DynamicStatesEnabled[DynamicState.dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
+	DynamicStatesEnabled[DynamicState.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
 }
 
 FVulkanPipeline::FVulkanPipeline(FVulkanDevice* InDevice)
@@ -154,7 +153,7 @@ void FVulkanPipeline::Destroy()
 }
 #endif
 
-void FVulkanPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate)
+void FVulkanPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate, bool bNeedsStencilRefUpdate)
 {
 	check(Device);
 	check(Cmd);
@@ -182,6 +181,12 @@ void FVulkanPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkan
 		VulkanRHI::vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &Scissor);
 
 		State.bNeedsScissorUpdate = false;
+	}
+
+	if (bNeedsStencilRefUpdate)
+	{
+		VulkanRHI::vkCmdSetStencilReference(Cmd->GetHandle(), VK_STENCIL_FRONT_AND_BACK, State.StencilRef);
+		State.bNeedsStencilRefUpdate = false;
 	}
 }
 
@@ -878,6 +883,7 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 	FMemory::Memzero(DynamicStatesEnabled);
 	DynamicStatesEnabled[DynamicState.dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
 	DynamicStatesEnabled[DynamicState.dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
+	DynamicStatesEnabled[DynamicState.dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
 
 	PipelineInfo.pDynamicState = &DynamicState;
 

@@ -17,6 +17,7 @@
 #include "PlanarReflectionSceneProxy.h"
 #include "Components/BoxComponent.h"
 #include "MessageLog.h"
+#include "RenderingObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SceneCaptureComponent"
 
@@ -148,7 +149,7 @@ void ASceneCaptureCube::PostActorCreated()
 void ASceneCaptureCube::PostEditMove(bool bFinished)
 {
 	Super::PostEditMove(bFinished);
-	if(bFinished)
+	if(bFinished && CaptureComponentCube->bCaptureOnMovement)
 	{
 		CaptureComponentCube->CaptureSceneDeferred();
 	}
@@ -159,6 +160,7 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 	: Super(ObjectInitializer), ShowFlags(FEngineShowFlags(ESFIM_Game))
 {
 	bCaptureEveryFrame = true;
+	bCaptureOnMovement = true;
 	MaxViewDistanceOverride = -1;
 
 	// Disable features that are not desired when capturing the scene
@@ -325,7 +327,10 @@ void USceneCaptureComponent2D::OnRegister()
 
 void USceneCaptureComponent2D::SendRenderTransform_Concurrent()
 {	
-	CaptureSceneDeferred();
+	if (bCaptureOnMovement)
+	{
+		CaptureSceneDeferred();
+	}
 
 	Super::SendRenderTransform_Concurrent();
 }
@@ -336,7 +341,7 @@ void USceneCaptureComponent2D::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld();
+		CaptureSceneDeferred();
 	}
 }
 
@@ -409,6 +414,10 @@ bool USceneCaptureComponent2D::CanEditChange(const UProperty* InProperty) const
 		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, OrthoWidth))
 		{
 			return ProjectionType == ECameraProjectionMode::Orthographic;
+		}
+		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent2D, CompositeMode))
+		{
+			return CaptureSource == SCS_SceneColorHDR;
 		}
 	}
 
@@ -518,8 +527,8 @@ void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVecto
 	UPlanarReflectionComponent* ReflectionComponent = Cast<UPlanarReflectionComponent>(GetPlanarReflectionComponent());
 	check(ReflectionComponent);
 	const FVector ModifiedScale = FVector(0, 0, DeltaScale.Z) * ( AActor::bUsePercentageBasedScaling ? 500.0f : 50.0f );
-	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeStart, ModifiedScale);
-	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeEnd, ModifiedScale);
+	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeoutStart, ModifiedScale);
+	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeoutEnd, ModifiedScale);
 	PostEditChange();
 }
 
@@ -554,8 +563,8 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 	PrefilterRoughnessDistance = 10000;
 	ScreenPercentage = 50;
 	NormalDistortionStrength = 500;
-	DistanceFromPlaneFadeStart = 400;
-	DistanceFromPlaneFadeEnd = 600;
+	DistanceFromPlaneFadeoutStart = 60;
+	DistanceFromPlaneFadeoutEnd = 100;
 	AngleFromPlaneFadeStart = 20;
 	AngleFromPlaneFadeEnd = 30;
 	ProjectionWithExtraFOV = FMatrix::Identity;
@@ -564,6 +573,20 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 
 	NextPlanarReflectionId++;
 	PlanarReflectionId = NextPlanarReflectionId;
+}
+
+
+void UPlanarReflectionComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ChangedPlanarReflectionFadeDefaults)
+	{
+		DistanceFromPlaneFadeoutEnd = DistanceFromPlaneFadeEnd_DEPRECATED;
+		DistanceFromPlaneFadeoutStart = DistanceFromPlaneFadeStart_DEPRECATED;
+	}
 }
 
 void UPlanarReflectionComponent::CreateRenderState_Concurrent()
@@ -654,7 +677,7 @@ void UPlanarReflectionComponent::UpdatePreviewShape()
 {
 	if (PreviewBox)
 	{
-		PreviewBox->InitBoxExtent(FVector(500 * 4, 500 * 4, DistanceFromPlaneFadeEnd));
+		PreviewBox->InitBoxExtent(FVector(500 * 4, 500 * 4, DistanceFromPlaneFadeoutEnd));
 	}
 }
 
@@ -682,7 +705,10 @@ void USceneCaptureComponentCube::OnRegister()
 
 void USceneCaptureComponentCube::SendRenderTransform_Concurrent()
 {	
-	CaptureSceneDeferred();
+	if (bCaptureOnMovement)
+	{
+		CaptureSceneDeferred();
+	}
 
 	Super::SendRenderTransform_Concurrent();
 }
@@ -693,7 +719,7 @@ void USceneCaptureComponentCube::TickComponent(float DeltaTime, enum ELevelTick 
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld();
+		CaptureSceneDeferred();
 	}
 }
 

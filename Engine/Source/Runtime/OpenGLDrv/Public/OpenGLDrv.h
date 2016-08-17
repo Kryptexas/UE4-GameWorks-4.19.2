@@ -694,8 +694,7 @@ public:
 	// IDynamicRHIModule
 	virtual bool IsSupported() override;
 
-	virtual FDynamicRHI* CreateRHI() override
-	{
-		return new FOpenGLDynamicRHI();
-	}
+	virtual FDynamicRHI* CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num) override;
 };
+
+extern ERHIFeatureLevel::Type GRequestedFeatureLevel;

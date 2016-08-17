@@ -1,5 +1,6 @@
 //
 //Copyright (C) 2016 Google, Inc.
+//Copyright (C) 2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -49,6 +50,7 @@ enum EHlslTokenClass {
     EHTokExtern,
     EHTokUniform,
     EHTokVolatile,
+    EHTokPrecise,
     EHTokShared,
     EHTokGroupShared,
     EHTokLinear,
@@ -59,6 +61,9 @@ enum EHlslTokenClass {
     EHTokRowMajor,
     EHTokColumnMajor,
     EHTokPackOffset,
+    EHTokIn,
+    EHTokOut,
+    EHTokInOut,
 
     // template types
     EHTokBuffer,
@@ -119,6 +124,38 @@ enum EHlslTokenClass {
     EHTokInt4x2,
     EHTokInt4x3,
     EHTokInt4x4,
+    EHTokUint1x1,
+    EHTokUint1x2,
+    EHTokUint1x3,
+    EHTokUint1x4,
+    EHTokUint2x1,
+    EHTokUint2x2,
+    EHTokUint2x3,
+    EHTokUint2x4,
+    EHTokUint3x1,
+    EHTokUint3x2,
+    EHTokUint3x3,
+    EHTokUint3x4,
+    EHTokUint4x1,
+    EHTokUint4x2,
+    EHTokUint4x3,
+    EHTokUint4x4,
+    EHTokBool1x1,
+    EHTokBool1x2,
+    EHTokBool1x3,
+    EHTokBool1x4,
+    EHTokBool2x1,
+    EHTokBool2x2,
+    EHTokBool2x3,
+    EHTokBool2x4,
+    EHTokBool3x1,
+    EHTokBool3x2,
+    EHTokBool3x3,
+    EHTokBool3x4,
+    EHTokBool4x1,
+    EHTokBool4x2,
+    EHTokBool4x3,
+    EHTokBool4x4,
     EHTokFloat1x1,
     EHTokFloat1x2,
     EHTokFloat1x3,
@@ -167,6 +204,9 @@ enum EHlslTokenClass {
     EHTokTexture2darray,
     EHTokTexture3d,
     EHTokTextureCube,
+    EHTokTextureCubearray,
+    EHTokTexture2DMS,
+    EHTokTexture2DMSarray,
 
     // variable, user type, ...
     EHTokIdentifier,

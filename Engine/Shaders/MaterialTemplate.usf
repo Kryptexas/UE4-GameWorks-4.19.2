@@ -711,6 +711,24 @@ float4 MaterialExpressionAtmosphericFog(FMaterialPixelParameters Parameters, flo
 #endif
 }
 
+float3 MaterialExpressionAtmosphericLightVector(FMaterialPixelParameters Parameters)
+{
+#if MATERIAL_ATMOSPHERIC_FOG
+	return View.AtmosphericFogSunDirection;
+#else
+	return float3(0.f, 0.f, 0.f);
+#endif
+}
+
+float3 MaterialExpressionAtmosphericLightColor(FMaterialPixelParameters Parameters)
+{
+#if MATERIAL_ATMOSPHERIC_FOG
+	return View.AtmosphericFogSunColor;
+#else
+	return float3(0.f, 0.f, 0.f);
+#endif
+}
+
 /**
  * Utility function to unmirror one coordinate value to the other side
  * UnMirrored == 1 if normal

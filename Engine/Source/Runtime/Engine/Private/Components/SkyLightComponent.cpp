@@ -237,7 +237,8 @@ void USkyLightComponent::CreateRenderState_Concurrent()
 
 void USkyLightComponent::PostInitProperties()
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	// Skip default object or object belonging to a default object (eg default ASkyLight's component)
+	if (!HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
 		// Enqueue an update by default, so that newly placed components will get an update
 		// PostLoad will undo this for components loaded from disk
@@ -254,7 +255,7 @@ void USkyLightComponent::PostLoad()
 	SanitizeCubemapSize();
 
 	// All components are queued for update on creation by default, remove if needed
-	if (!bVisible || HasAnyFlags(RF_ClassDefaultObject))
+	if (!bVisible || HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
 		SkyCapturesToUpdate.Remove(this);
 	}

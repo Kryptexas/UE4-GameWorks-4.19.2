@@ -30,6 +30,10 @@ class USceneCaptureComponent2D : public USceneCaptureComponent
 	UPROPERTY(interp, Category=SceneCapture, meta=(DisplayName = "Capture Source"))
 	TEnumAsByte<enum ESceneCaptureSource> CaptureSource;
 
+	/** When enabled, the scene capture will composite into the render target instead of overwriting its contents. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	TEnumAsByte<enum ESceneCaptureCompositeMode> CompositeMode;
+
 	UPROPERTY(interp, Category=PostProcessVolume, meta=(ShowOnlyInnerProperties))
 	struct FPostProcessSettings PostProcessSettings;
 

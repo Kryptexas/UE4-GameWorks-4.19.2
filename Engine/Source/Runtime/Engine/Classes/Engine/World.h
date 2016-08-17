@@ -1006,6 +1006,12 @@ public:
 	 **/
 	uint32 NumLightingUnbuiltObjects;
 
+	/** Num of components missing valid texture streaming data. Updated in map check. */
+	int32 NumTextureStreamingUnbuiltComponents;
+
+	/** Num of resources that have changed since the last texture streaming build. Updated in map check. */
+	int32 NumTextureStreamingDirtyResources;
+
 	/** frame rate is below DesiredFrameRate, so drop high detail actors */
 	uint32 bDropDetail:1;
 

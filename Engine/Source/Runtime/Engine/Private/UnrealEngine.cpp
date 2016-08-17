@@ -7682,6 +7682,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				Canvas->DrawItem( TextItem );
 			}
 
+			bool bDisplaySuppressInfo = false;
+
 			// Put the messages over fairly far to stay in the safe zone on consoles
 			if( World->NumLightingUnbuiltObjects > 0 )
 			{
@@ -7695,13 +7697,19 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				SmallTextItem.Text =  FText::FromString( FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects) );				
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
 
-				SmallTextItem.SetColor( FLinearColor(.05f, .05f, .05f, .2f) );
-				SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX + 50, MessageY + 16 ) );
-
 				MessageY += FontSizeY;
+				bDisplaySuppressInfo = true;
 			}
 			
+			if (World->NumTextureStreamingUnbuiltComponents > 0 || World->NumTextureStreamingDirtyResources > 0)
+			{
+				SmallTextItem.SetColor(FLinearColor::Red);
+				SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING NEEDS TO BE REBUILT (%u Components, %u Resource Refs)"), World->NumTextureStreamingUnbuiltComponents, World->NumTextureStreamingDirtyResources));
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+				MessageY += FontSizeY;
+				bDisplaySuppressInfo = true;
+			}
+
 			if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
 			{
 				auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
@@ -7711,7 +7719,16 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 					SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
 					Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 					MessageY += FontSizeY;
+					bDisplaySuppressInfo = true;
 				}
+			}
+
+			if (bDisplaySuppressInfo)
+			{
+				SmallTextItem.SetColor(FLinearColor(.05f, .05f, .05f, .2f));
+				SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX + 50, MessageY));
+				MessageY += FontSizeY;
 			}
 
 			// check navmesh

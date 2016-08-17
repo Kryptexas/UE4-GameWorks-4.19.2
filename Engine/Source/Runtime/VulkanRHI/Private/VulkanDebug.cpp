@@ -198,6 +198,20 @@ namespace VulkanRHI
 		TEXT("1 to enable dump layer, 0 to disable (default)")
 		);
 
+	static FString GetPipelineBindPointString(VkPipelineBindPoint BindPoint)
+	{
+		switch (BindPoint)
+		{
+		case VK_PIPELINE_BIND_POINT_GRAPHICS:
+			return TEXT("GFX");
+		case VK_PIPELINE_BIND_POINT_COMPUTE:
+			return TEXT("COMPUTE");
+		default:
+			break;
+		}
+		return FString::Printf(TEXT("Unknown VkPipelineBindPoint %d"), (int32)BindPoint);
+	}
+
 	static FString GetVkFormatString(VkFormat Format)
 	{
 		switch (Format)
@@ -564,7 +578,7 @@ namespace VulkanRHI
 		AppendBitFieldName(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, TEXT("COLOR_ATT_READ"));
 		AppendBitFieldName(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, TEXT("COLOR_ATT_WRITE"));
 		AppendBitFieldName(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, TEXT("DS_ATT_READ"));
-		AppendBitFieldName(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, TEXT("DS_ATT_WIRTE"));
+		AppendBitFieldName(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, TEXT("DS_ATT_WRITE"));
 		AppendBitFieldName(VK_ACCESS_TRANSFER_READ_BIT, TEXT("TRANSFER_READ"));
 		AppendBitFieldName(VK_ACCESS_TRANSFER_WRITE_BIT, TEXT("TRANSFER_WRITE"));
 		AppendBitFieldName(VK_ACCESS_HOST_READ_BIT, TEXT("HOST_READ"));
@@ -755,13 +769,30 @@ namespace VulkanRHI
 
 	void DumpCreateBuffer(VkDevice Device, const VkBufferCreateInfo* CreateInfo, VkBuffer* Buffer)
 	{
-		FlushDebugWrapperLog();
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateBuffer(Info=%p, OutBuffer=%p)[...]"), CreateInfo, Buffer));
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateBuffer(Info=%p, OutBuffer=%p)[...]"), CreateInfo, Buffer));
+
+			DebugLog += FString::Printf(TEXT("%sVkBufferCreateInfo: Flags=%d, Size=%d, Usage=%d"), Tabs, CreateInfo->flags, (uint32)CreateInfo->size, (uint32)CreateInfo->usage);
+		}
+/*
+		VkSharingMode          sharingMode;
+		uint32_t               queueFamilyIndexCount;
+		const uint32_t*        pQueueFamilyIndices;
+*/
 	}
 
 	void DumpCreateBufferView(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, VkBufferView* BufferView)
 	{
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("VkBufferViewCreateInfo(Info=%p, OutBufferView=%p)[...]"), CreateInfo, BufferView));
+/*
+		typedef struct VkBufferViewCreateInfo {
+			VkBufferViewCreateFlags    flags;
+			VkBuffer                   buffer;
+			VkFormat                   format;
+			VkDeviceSize               offset;
+			VkDeviceSize               range;
+		} VkBufferViewCreateInfo;*/
 	}
 
 	void DumpCreateImage(VkDevice Device, const VkImageCreateInfo* CreateInfo, VkImage* Image)
@@ -790,7 +821,8 @@ namespace VulkanRHI
 
 	void DumpFenceCreate(VkDevice Device, const VkFenceCreateInfo* CreateInfo, VkFence* Fence)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateFence(CreateInfo=%p, OutFence=%p)[...]"), CreateInfo, Fence));
+		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateFence(CreateInfo=%p%s, OutFence=%p)"),
+			CreateInfo, (CreateInfo->flags == VK_FENCE_CREATE_SIGNALED_BIT) ? TEXT("(SIGNALED)") : TEXT(""), Fence));
 	}
 
 	void DumpFenceList(uint32 FenceCount, const VkFence* Fences)
@@ -812,7 +844,7 @@ namespace VulkanRHI
 	
 	void DumpSemaphoreCreate(VkDevice Device, const VkSemaphoreCreateInfo* CreateInfo, VkSemaphore* Semaphore)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateSemaphore(CreateInfo=%p, OutSemaphore=%p)[...]"), CreateInfo, Semaphore));
+		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateSemaphore(CreateInfo=%p, OutSemaphore=%p)"), CreateInfo, Semaphore));
 	}
 
 	void DumpMappedMemoryRanges(uint32 memoryRangeCount, const VkMappedMemoryRange* MemoryRanges)
@@ -859,6 +891,16 @@ namespace VulkanRHI
 	void DumpCreateInstance(const VkInstanceCreateInfo* CreateInfo, VkInstance* Instance)
 	{
 		PrintfBegin(FString::Printf(TEXT("vkCreateInstance(Info=%p, OutInstance=%p)[...]"), CreateInfo, Instance));
+/*
+		typedef struct VkInstanceCreateInfo {
+			VkInstanceCreateFlags       flags;
+			const VkApplicationInfo*    pApplicationInfo;
+			uint32_t                    enabledLayerCount;
+			const char* const*          ppEnabledLayerNames;
+			uint32_t                    enabledExtensionCount;
+			const char* const*          ppEnabledExtensionNames;
+		} VkInstanceCreateInfo;
+*/
 	}
 
 	void DumpEnumeratePhysicalDevicesEpilog(uint32* PhysicalDeviceCount, VkPhysicalDevice* PhysicalDevices)
@@ -901,7 +943,7 @@ namespace VulkanRHI
 
 	void DumpBindDescriptorSets(VkCommandBuffer CommandBuffer, VkPipelineBindPoint PipelineBindPoint, VkPipelineLayout Layout, uint32 FirstSet, uint32 DescriptorSetCount, const VkDescriptorSet* DescriptorSets, uint32 DynamicOffsetCount, const uint32* DynamicOffsets)
 	{
-		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBindDescriptorSets(PipelineBindPoint=%d, Layout=%p, FirstSet=%d, NumDS=%d, DS=%p, NumDynamicOffset=%d, DynamicOffsets=%p)[...]"), (int32)PipelineBindPoint, Layout, FirstSet, DescriptorSetCount, DescriptorSets, DynamicOffsetCount, DynamicOffsets));
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBindDescriptorSets(BindPoint=%s, Layout=%p, FirstSet=%d, NumDS=%d, DS=%p, NumDynamicOffset=%d, DynamicOffsets=%p)"), *GetPipelineBindPointString(PipelineBindPoint), Layout, FirstSet, DescriptorSetCount, DescriptorSets, DynamicOffsetCount, DynamicOffsets));
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
 			for (uint32 Index = 0; Index < DescriptorSetCount; ++Index)
@@ -918,16 +960,42 @@ namespace VulkanRHI
 	void DumpCreateDescriptorSetLayout(VkDevice Device, const VkDescriptorSetLayoutCreateInfo* CreateInfo, VkDescriptorSetLayout* SetLayout)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateDescriptorSetLayout(Info=%p, OutLayout=%p)[...]"), CreateInfo, SetLayout));
+/*
+		typedef struct VkDescriptorSetLayoutCreateInfo {
+			VkDescriptorSetLayoutCreateFlags       flags;
+			uint32_t                               bindingCount;
+			const VkDescriptorSetLayoutBinding*    pBindings;
+		} VkDescriptorSetLayoutCreateInfo;
+*/
 	}
 
 	void DumpAllocateDescriptorSets(VkDevice Device, const VkDescriptorSetAllocateInfo* AllocateInfo, VkDescriptorSet* DescriptorSets)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkAllocateDescriptorSets(Info=%p, OutSets=%p)[...]"), AllocateInfo, DescriptorSets));
+/*
+		typedef struct VkDescriptorSetAllocateInfo {
+			VkDescriptorPool                descriptorPool;
+			uint32_t                        descriptorSetCount;
+			const VkDescriptorSetLayout*    pSetLayouts;
+		} VkDescriptorSetAllocateInfo;
+*/
 	}
 
 	void DumpUpdateDescriptorSets(VkDevice Device, uint32 DescriptorWriteCount, const VkWriteDescriptorSet* DescriptorWrites, uint32 DescriptorCopyCount, const VkCopyDescriptorSet* DescriptorCopies)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkUpdateDescriptorSets(NumWrites=%d, Writes=%p, NumCopies=%d, Copies=%p)[...]"), DescriptorWriteCount, DescriptorWrites, DescriptorCopyCount, DescriptorCopies));
+/*
+		typedef struct VkWriteDescriptorSet {
+			VkDescriptorSet                  dstSet;
+			uint32_t                         dstBinding;
+			uint32_t                         dstArrayElement;
+			uint32_t                         descriptorCount;
+			VkDescriptorType                 descriptorType;
+			const VkDescriptorImageInfo*     pImageInfo;
+			const VkDescriptorBufferInfo*    pBufferInfo;
+			const VkBufferView*              pTexelBufferView;
+		} VkWriteDescriptorSet;
+*/
 	}
 
 	void DumpCreateFramebuffer(VkDevice Device, const VkFramebufferCreateInfo* CreateInfo, VkFramebuffer* Framebuffer)
@@ -959,7 +1027,8 @@ namespace VulkanRHI
 						case VK_ATTACHMENT_LOAD_OP_LOAD: return TEXT("LOAD");
 						case VK_ATTACHMENT_LOAD_OP_CLEAR: return TEXT("CLEAR");
 						case VK_ATTACHMENT_LOAD_OP_DONT_CARE: return TEXT("DONT_CARE");
-						default: return FString::Printf(TEXT("Invalid(%d)"), (uint32)Op);
+						default: return FString::Printf(TEXT("Invalid(%d)"), (uint32)Op);
+
 						}
 					};
 				auto GetStoreOpString = [](VkAttachmentStoreOp Op) -> FString
@@ -968,7 +1037,8 @@ namespace VulkanRHI
 						{
 						case VK_ATTACHMENT_STORE_OP_STORE: return TEXT("STORE");
 						case VK_ATTACHMENT_STORE_OP_DONT_CARE: return TEXT("DONT_CARE");
-						default: return FString::Printf(TEXT("Invalid(%d)"), (uint32)Op);
+						default: return FString::Printf(TEXT("Invalid(%d)"), (uint32)Op);
+
 						}
 					};
 				/*
@@ -1081,6 +1151,15 @@ namespace VulkanRHI
 	void DumpCreateShaderModule(VkDevice Device, const VkShaderModuleCreateInfo* CreateInfo, VkShaderModule* ShaderModule)
 	{
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateShaderModule(CreateInfo=%p, OutShaderModule=%p)[...]"), CreateInfo, ShaderModule));
+/*
+		typedef struct VkShaderModuleCreateInfo {
+			VkStructureType              sType;
+			const void*                  pNext;
+			VkShaderModuleCreateFlags    flags;
+			size_t                       codeSize;
+			const uint32_t*              pCode;
+		} VkShaderModuleCreateInfo;
+*/
 	}
 
 	void DumpCreatePipelineCache(VkDevice Device, const VkPipelineCacheCreateInfo* CreateInfo, VkPipelineCache* PipelineCache)
@@ -1102,6 +1181,15 @@ namespace VulkanRHI
 	void DumpCreatePipelineLayout(VkDevice Device, const VkPipelineLayoutCreateInfo* CreateInfo, VkPipelineLayout* PipelineLayout)
 	{
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p)[...]"), CreateInfo, PipelineLayout));
+/*
+		typedef struct VkPipelineLayoutCreateInfo {
+			VkPipelineLayoutCreateFlags     flags;
+			uint32_t                        setLayoutCount;
+			const VkDescriptorSetLayout*    pSetLayouts;
+			uint32_t                        pushConstantRangeCount;
+			const VkPushConstantRange*      pPushConstantRanges;
+		} VkPipelineLayoutCreateInfo;
+*/
 	}
 
 	void DumpCreateDescriptorPool(VkDevice Device, const VkDescriptorPoolCreateInfo* CreateInfo, VkDescriptorPool* DescriptorPool)

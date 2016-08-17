@@ -37,8 +37,9 @@
 // this only applies to the standalone wrapper, not the front end in general
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "DefaultResourceLimits.h"
+#include "ResourceLimits.h"
 #include "Worklist.h"
+//#Epic
 #include "glslang/Include/ShHandle.h"
 #include "glslang/Include/revision.h"
 #include "glslang/Public/ShaderLang.h"
@@ -50,6 +51,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+//#Epic
 #include "glslang/OSDependent/osinclude.h"
 
 extern "C" {
@@ -58,24 +60,26 @@ extern "C" {
 
 // Command-line options
 enum TOptions {
-    EOptionNone               = 0x0000,
-    EOptionIntermediate       = 0x0001,
-    EOptionSuppressInfolog    = 0x0002,
-    EOptionMemoryLeakMode     = 0x0004,
-    EOptionRelaxedErrors      = 0x0008,
-    EOptionGiveWarnings       = 0x0010,
-    EOptionLinkProgram        = 0x0020,
-    EOptionMultiThreaded      = 0x0040,
-    EOptionDumpConfig         = 0x0080,
-    EOptionDumpReflection     = 0x0100,
-    EOptionSuppressWarnings   = 0x0200,
-    EOptionDumpVersions       = 0x0400,
-    EOptionSpv                = 0x0800,
-    EOptionHumanReadableSpv   = 0x1000,
-    EOptionVulkanRules        = 0x2000,
-    EOptionDefaultDesktop     = 0x4000,
-    EOptionOutputPreprocessed = 0x8000,
-    EOptionReadHlsl          = 0x10000,
+    EOptionNone               = 0,
+    EOptionIntermediate       = (1 <<  0),
+    EOptionSuppressInfolog    = (1 <<  1),
+    EOptionMemoryLeakMode     = (1 <<  2),
+    EOptionRelaxedErrors      = (1 <<  3),
+    EOptionGiveWarnings       = (1 <<  4),
+    EOptionLinkProgram        = (1 <<  5),
+    EOptionMultiThreaded      = (1 <<  6),
+    EOptionDumpConfig         = (1 <<  7),
+    EOptionDumpReflection     = (1 <<  8),
+    EOptionSuppressWarnings   = (1 <<  9),
+    EOptionDumpVersions       = (1 << 10),
+    EOptionSpv                = (1 << 11),
+    EOptionHumanReadableSpv   = (1 << 12),
+    EOptionVulkanRules        = (1 << 13),
+    EOptionDefaultDesktop     = (1 << 14),
+    EOptionOutputPreprocessed = (1 << 15),
+    EOptionOutputHexadecimal  = (1 << 16),
+    EOptionReadHlsl           = (1 << 17),
+    EOptionCascadingErrors    = (1 << 18),
 };
 
 //
@@ -134,206 +138,8 @@ void ProcessConfigFile()
         return;
     }
 
-    const char* delims = " \t\n\r";
-    const char* token = strtok(config, delims);
-    while (token) {
-        const char* valueStr = strtok(0, delims);
-        if (valueStr == 0 || ! (valueStr[0] == '-' || (valueStr[0] >= '0' && valueStr[0] <= '9'))) {
-            printf("Error: '%s' bad .conf file.  Each name must be followed by one number.\n", valueStr ? valueStr : "");
-            return;
-        }
-        int value = atoi(valueStr);
+    glslang::DecodeResourceLimits(&Resources,  config);
 
-        if (strcmp(token, "MaxLights") == 0)
-            Resources.maxLights = value;
-        else if (strcmp(token, "MaxClipPlanes") == 0)
-            Resources.maxClipPlanes = value;
-        else if (strcmp(token, "MaxTextureUnits") == 0)
-            Resources.maxTextureUnits = value;
-        else if (strcmp(token, "MaxTextureCoords") == 0)
-            Resources.maxTextureCoords = value;
-        else if (strcmp(token, "MaxVertexAttribs") == 0)
-            Resources.maxVertexAttribs = value;
-        else if (strcmp(token, "MaxVertexUniformComponents") == 0)
-            Resources.maxVertexUniformComponents = value;
-        else if (strcmp(token, "MaxVaryingFloats") == 0)
-            Resources.maxVaryingFloats = value;
-        else if (strcmp(token, "MaxVertexTextureImageUnits") == 0)
-            Resources.maxVertexTextureImageUnits = value;
-        else if (strcmp(token, "MaxCombinedTextureImageUnits") == 0)
-            Resources.maxCombinedTextureImageUnits = value;
-        else if (strcmp(token, "MaxTextureImageUnits") == 0)
-            Resources.maxTextureImageUnits = value;
-        else if (strcmp(token, "MaxFragmentUniformComponents") == 0)
-            Resources.maxFragmentUniformComponents = value;
-        else if (strcmp(token, "MaxDrawBuffers") == 0)
-            Resources.maxDrawBuffers = value;
-        else if (strcmp(token, "MaxVertexUniformVectors") == 0)
-            Resources.maxVertexUniformVectors = value;
-        else if (strcmp(token, "MaxVaryingVectors") == 0)
-            Resources.maxVaryingVectors = value;
-        else if (strcmp(token, "MaxFragmentUniformVectors") == 0)
-            Resources.maxFragmentUniformVectors = value;
-        else if (strcmp(token, "MaxVertexOutputVectors") == 0)
-            Resources.maxVertexOutputVectors = value;
-        else if (strcmp(token, "MaxFragmentInputVectors") == 0)
-            Resources.maxFragmentInputVectors = value;
-        else if (strcmp(token, "MinProgramTexelOffset") == 0)
-            Resources.minProgramTexelOffset = value;
-        else if (strcmp(token, "MaxProgramTexelOffset") == 0)
-            Resources.maxProgramTexelOffset = value;
-        else if (strcmp(token, "MaxClipDistances") == 0)
-            Resources.maxClipDistances = value;
-        else if (strcmp(token, "MaxComputeWorkGroupCountX") == 0)
-            Resources.maxComputeWorkGroupCountX = value;
-        else if (strcmp(token, "MaxComputeWorkGroupCountY") == 0)
-            Resources.maxComputeWorkGroupCountY = value;
-        else if (strcmp(token, "MaxComputeWorkGroupCountZ") == 0)
-            Resources.maxComputeWorkGroupCountZ = value;
-        else if (strcmp(token, "MaxComputeWorkGroupSizeX") == 0)
-            Resources.maxComputeWorkGroupSizeX = value;
-        else if (strcmp(token, "MaxComputeWorkGroupSizeY") == 0)
-            Resources.maxComputeWorkGroupSizeY = value;
-        else if (strcmp(token, "MaxComputeWorkGroupSizeZ") == 0)
-            Resources.maxComputeWorkGroupSizeZ = value;
-        else if (strcmp(token, "MaxComputeUniformComponents") == 0)
-            Resources.maxComputeUniformComponents = value;
-        else if (strcmp(token, "MaxComputeTextureImageUnits") == 0)
-            Resources.maxComputeTextureImageUnits = value;
-        else if (strcmp(token, "MaxComputeImageUniforms") == 0)
-            Resources.maxComputeImageUniforms = value;
-        else if (strcmp(token, "MaxComputeAtomicCounters") == 0)
-            Resources.maxComputeAtomicCounters = value;
-        else if (strcmp(token, "MaxComputeAtomicCounterBuffers") == 0)
-            Resources.maxComputeAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxVaryingComponents") == 0)
-            Resources.maxVaryingComponents = value;
-        else if (strcmp(token, "MaxVertexOutputComponents") == 0)
-            Resources.maxVertexOutputComponents = value;
-        else if (strcmp(token, "MaxGeometryInputComponents") == 0)
-            Resources.maxGeometryInputComponents = value;
-        else if (strcmp(token, "MaxGeometryOutputComponents") == 0)
-            Resources.maxGeometryOutputComponents = value;
-        else if (strcmp(token, "MaxFragmentInputComponents") == 0)
-            Resources.maxFragmentInputComponents = value;
-        else if (strcmp(token, "MaxImageUnits") == 0)
-            Resources.maxImageUnits = value;
-        else if (strcmp(token, "MaxCombinedImageUnitsAndFragmentOutputs") == 0)
-            Resources.maxCombinedImageUnitsAndFragmentOutputs = value;
-        else if (strcmp(token, "MaxCombinedShaderOutputResources") == 0)
-            Resources.maxCombinedShaderOutputResources = value;
-        else if (strcmp(token, "MaxImageSamples") == 0)
-            Resources.maxImageSamples = value;
-        else if (strcmp(token, "MaxVertexImageUniforms") == 0)
-            Resources.maxVertexImageUniforms = value;
-        else if (strcmp(token, "MaxTessControlImageUniforms") == 0)
-            Resources.maxTessControlImageUniforms = value;
-        else if (strcmp(token, "MaxTessEvaluationImageUniforms") == 0)
-            Resources.maxTessEvaluationImageUniforms = value;
-        else if (strcmp(token, "MaxGeometryImageUniforms") == 0)
-            Resources.maxGeometryImageUniforms = value;
-        else if (strcmp(token, "MaxFragmentImageUniforms") == 0)
-            Resources.maxFragmentImageUniforms = value;
-        else if (strcmp(token, "MaxCombinedImageUniforms") == 0)
-            Resources.maxCombinedImageUniforms = value;
-        else if (strcmp(token, "MaxGeometryTextureImageUnits") == 0)
-            Resources.maxGeometryTextureImageUnits = value;
-        else if (strcmp(token, "MaxGeometryOutputVertices") == 0)
-            Resources.maxGeometryOutputVertices = value;
-        else if (strcmp(token, "MaxGeometryTotalOutputComponents") == 0)
-            Resources.maxGeometryTotalOutputComponents = value;
-        else if (strcmp(token, "MaxGeometryUniformComponents") == 0)
-            Resources.maxGeometryUniformComponents = value;
-        else if (strcmp(token, "MaxGeometryVaryingComponents") == 0)
-            Resources.maxGeometryVaryingComponents = value;
-        else if (strcmp(token, "MaxTessControlInputComponents") == 0)
-            Resources.maxTessControlInputComponents = value;
-        else if (strcmp(token, "MaxTessControlOutputComponents") == 0)
-            Resources.maxTessControlOutputComponents = value;
-        else if (strcmp(token, "MaxTessControlTextureImageUnits") == 0)
-            Resources.maxTessControlTextureImageUnits = value;
-        else if (strcmp(token, "MaxTessControlUniformComponents") == 0)
-            Resources.maxTessControlUniformComponents = value;
-        else if (strcmp(token, "MaxTessControlTotalOutputComponents") == 0)
-            Resources.maxTessControlTotalOutputComponents = value;
-        else if (strcmp(token, "MaxTessEvaluationInputComponents") == 0)
-            Resources.maxTessEvaluationInputComponents = value;
-        else if (strcmp(token, "MaxTessEvaluationOutputComponents") == 0)
-            Resources.maxTessEvaluationOutputComponents = value;
-        else if (strcmp(token, "MaxTessEvaluationTextureImageUnits") == 0)
-            Resources.maxTessEvaluationTextureImageUnits = value;
-        else if (strcmp(token, "MaxTessEvaluationUniformComponents") == 0)
-            Resources.maxTessEvaluationUniformComponents = value;
-        else if (strcmp(token, "MaxTessPatchComponents") == 0)
-            Resources.maxTessPatchComponents = value;
-        else if (strcmp(token, "MaxPatchVertices") == 0)
-            Resources.maxPatchVertices = value;
-        else if (strcmp(token, "MaxTessGenLevel") == 0)
-            Resources.maxTessGenLevel = value;
-        else if (strcmp(token, "MaxViewports") == 0)
-            Resources.maxViewports = value;
-        else if (strcmp(token, "MaxVertexAtomicCounters") == 0)
-            Resources.maxVertexAtomicCounters = value;
-        else if (strcmp(token, "MaxTessControlAtomicCounters") == 0)
-            Resources.maxTessControlAtomicCounters = value;
-        else if (strcmp(token, "MaxTessEvaluationAtomicCounters") == 0)
-            Resources.maxTessEvaluationAtomicCounters = value;
-        else if (strcmp(token, "MaxGeometryAtomicCounters") == 0)
-            Resources.maxGeometryAtomicCounters = value;
-        else if (strcmp(token, "MaxFragmentAtomicCounters") == 0)
-            Resources.maxFragmentAtomicCounters = value;
-        else if (strcmp(token, "MaxCombinedAtomicCounters") == 0)
-            Resources.maxCombinedAtomicCounters = value;
-        else if (strcmp(token, "MaxAtomicCounterBindings") == 0)
-            Resources.maxAtomicCounterBindings = value;
-        else if (strcmp(token, "MaxVertexAtomicCounterBuffers") == 0)
-            Resources.maxVertexAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxTessControlAtomicCounterBuffers") == 0)
-            Resources.maxTessControlAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxTessEvaluationAtomicCounterBuffers") == 0)
-            Resources.maxTessEvaluationAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxGeometryAtomicCounterBuffers") == 0)
-            Resources.maxGeometryAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxFragmentAtomicCounterBuffers") == 0)
-            Resources.maxFragmentAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxCombinedAtomicCounterBuffers") == 0)
-            Resources.maxCombinedAtomicCounterBuffers = value;
-        else if (strcmp(token, "MaxAtomicCounterBufferSize") == 0)
-            Resources.maxAtomicCounterBufferSize = value;
-        else if (strcmp(token, "MaxTransformFeedbackBuffers") == 0)
-            Resources.maxTransformFeedbackBuffers = value;
-        else if (strcmp(token, "MaxTransformFeedbackInterleavedComponents") == 0)
-            Resources.maxTransformFeedbackInterleavedComponents = value;
-        else if (strcmp(token, "MaxCullDistances") == 0)
-            Resources.maxCullDistances = value;
-        else if (strcmp(token, "MaxCombinedClipAndCullDistances") == 0)
-            Resources.maxCombinedClipAndCullDistances = value;
-        else if (strcmp(token, "MaxSamples") == 0)
-            Resources.maxSamples = value;
-
-        else if (strcmp(token, "nonInductiveForLoops") == 0)
-            Resources.limits.nonInductiveForLoops = (value != 0);
-        else if (strcmp(token, "whileLoops") == 0)
-            Resources.limits.whileLoops = (value != 0);
-        else if (strcmp(token, "doWhileLoops") == 0)
-            Resources.limits.doWhileLoops = (value != 0);
-        else if (strcmp(token, "generalUniformIndexing") == 0)
-            Resources.limits.generalUniformIndexing = (value != 0);
-        else if (strcmp(token, "generalAttributeMatrixVectorIndexing") == 0)
-            Resources.limits.generalAttributeMatrixVectorIndexing = (value != 0);
-        else if (strcmp(token, "generalVaryingIndexing") == 0)
-            Resources.limits.generalVaryingIndexing = (value != 0);
-        else if (strcmp(token, "generalSamplerIndexing") == 0)
-            Resources.limits.generalSamplerIndexing = (value != 0);
-        else if (strcmp(token, "generalVariableIndexing") == 0)
-            Resources.limits.generalVariableIndexing = (value != 0);
-        else if (strcmp(token, "generalConstantMatrixVectorIndexing") == 0)
-            Resources.limits.generalConstantMatrixVectorIndexing = (value != 0);
-        else
-            printf("Warning: unrecognized limit (%s) in configuration file.\n", token);
-
-        token = strtok(0, delims);
-    }
     if (configStrings)
         FreeFileData(configStrings);
     else
@@ -420,7 +226,13 @@ void ProcessArguments(int argc, char* argv[])
             switch (argv[0][1]) {
             case 'H':
                 Options |= EOptionHumanReadableSpv;
-                // fall through to -V
+                if ((Options & EOptionSpv) == 0) {
+                    // default to Vulkan
+                    Options |= EOptionSpv;
+                    Options |= EOptionVulkanRules;
+                    Options |= EOptionLinkProgram;
+                }
+                break;
             case 'V':
                 Options |= EOptionSpv;
                 Options |= EOptionVulkanRules;
@@ -429,12 +241,17 @@ void ProcessArguments(int argc, char* argv[])
             case 'G':
                 Options |= EOptionSpv;
                 Options |= EOptionLinkProgram;
+                // undo a -H default to Vulkan
+                Options &= ~EOptionVulkanRules;
                 break;
             case 'E':
                 Options |= EOptionOutputPreprocessed;
                 break;
             case 'c':
                 Options |= EOptionDumpConfig;
+                break;
+            case 'C':
+                Options |= EOptionCascadingErrors;
                 break;
             case 'd':
                 Options |= EOptionDefaultDesktop;
@@ -492,6 +309,9 @@ void ProcessArguments(int argc, char* argv[])
             case 'w':
                 Options |= EOptionSuppressWarnings;
                 break;
+            case 'x':
+                Options |= EOptionOutputHexadecimal;
+                break;
             default:
                 usage();
                 break;
@@ -509,7 +329,7 @@ void ProcessArguments(int argc, char* argv[])
     if ((Options & EOptionOutputPreprocessed) && (Options & EOptionLinkProgram))
         Error("can't use -E when linking is selected");
 
-    // -o makes no sense if there is no target binary
+    // -o or -x makes no sense if there is no target binary
     if (binaryFileName && (Options & EOptionSpv) == 0)
         Error("no binary generation requested (e.g., -V)");
 }
@@ -533,6 +353,8 @@ void SetMessageOptions(EShMessages& messages)
         messages = (EShMessages)(messages | EShMsgOnlyPreprocessor);
     if (Options & EOptionReadHlsl)
         messages = (EShMessages)(messages | EShMsgReadHlsl);
+    if (Options & EOptionCascadingErrors)
+        messages = (EShMessages)(messages | EShMsgCascadingErrors);
 }
 
 //
@@ -680,8 +502,12 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
                     // Dump the spv to a file or stdout, etc., but only if not doing
                     // memory/perf testing, as it's not internal to programmatic use.
                     if (! (Options & EOptionMemoryLeakMode)) {
-                      printf("%s", logger.getAllMessages().c_str());
-                        glslang::OutputSpv(spirv, GetBinaryName((EShLanguage)stage));
+                        printf("%s", logger.getAllMessages().c_str());
+                        if (Options & EOptionOutputHexadecimal) {
+                            glslang::OutputSpvHex(spirv, GetBinaryName((EShLanguage)stage));
+                        } else {
+                            glslang::OutputSpvBin(spirv, GetBinaryName((EShLanguage)stage));
+                        }
                         if (Options & EOptionHumanReadableSpv) {
                             spv::Disassemble(std::cout, spirv);
                         }
@@ -949,7 +775,6 @@ void usage()
            "Each option must be specified separately.\n"
            "  -V          create SPIR-V binary, under Vulkan semantics; turns on -l;\n"
            "              default file name is <stage>.spv (-o overrides this)\n"
-           "              (unless -o is specified, which overrides the default file name)\n"
            "  -G          create SPIR-V binary, under OpenGL semantics; turns on -l;\n"
            "              default file name is <stage>.spv (-o overrides this)\n"
            "  -H          print human readable form of SPIR-V; turns on -V\n"
@@ -957,6 +782,7 @@ void usage()
            "              errors will appear on stderr.\n"
            "  -c          configuration dump;\n"
            "              creates the default configuration file (redirect to a .conf file)\n"
+           "  -C          cascading errors; risks crashes from accumulation of error recoveries\n"
            "  -d          default to desktop (#version 110) when there is no shader #version\n"
            "              (default is ES version 100)\n"
            "  -D          input is HLSL\n"
@@ -965,13 +791,14 @@ void usage()
            "  -i          intermediate tree (glslang AST) is printed out\n"
            "  -l          link all input files together to form a single module\n"
            "  -m          memory leak mode\n"
-           "  -o  <file>  save binary into <file>, requires a binary option (e.g., -V)\n"
+           "  -o  <file>  save binary to <file>, requires a binary option (e.g., -V)\n"
            "  -q          dump reflection query database\n"
            "  -r          relaxed semantic error-checking mode\n"
            "  -s          silent mode\n"
            "  -t          multi-threaded mode\n"
            "  -v          print version strings\n"
            "  -w          suppress warnings (except as required by #extension : warn)\n"
+           "  -x          save 32-bit hexadecimal numbers as text, requires a binary option (e.g., -V)\n"
            );
 
     exit(EFailUsage);

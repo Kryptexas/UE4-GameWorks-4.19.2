@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// Updated to SDK 1.0.8.0
-
+// Updated to SDK 1.0.21.1
 
 #include "VulkanShaderFormat.h"
 
@@ -226,7 +225,7 @@ bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString&
 		{
 			// Binary SpirV
 			FString SpirvFile = DumpDebugInfoPath / (TEXT("Output.spv"));
-			glslang::OutputSpv(Spirv, TCHAR_TO_ANSI(*SpirvFile));
+			glslang::OutputSpvBin(Spirv, TCHAR_TO_ANSI(*SpirvFile));
 
 			// Text spirv
 			FString SpirvTextFile = DumpDebugInfoPath / (TEXT("Output.spvasm"));

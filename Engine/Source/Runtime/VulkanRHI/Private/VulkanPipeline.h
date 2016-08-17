@@ -35,9 +35,10 @@ struct FVulkanPipelineState
 	TRefCountPtr<FVulkanBlendState> BlendState;
 	TRefCountPtr<FVulkanDepthStencilState> DepthStencilState;
 
-	VkRect2D Scissor, PrevScissor;
-	VkViewport Viewport, PrevViewport;
-	bool bNeedsScissorUpdate, bNeedsViewportUpdate;
+	VkRect2D Scissor;
+	VkViewport Viewport;
+	uint32 StencilRef, PrevStencilRef;
+	bool bNeedsScissorUpdate, bNeedsViewportUpdate, bNeedsStencilRefUpdate;
 
 private:
 	void InitializeDefaultStates();
@@ -98,14 +99,14 @@ public:
 
 	inline void UpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State)
 	{
-		if (State.bNeedsViewportUpdate || State.bNeedsScissorUpdate)
+		if (State.bNeedsViewportUpdate || State.bNeedsScissorUpdate || State.bNeedsStencilRefUpdate)
 		{
-			InternalUpdateDynamicStates(Cmd, State, State.bNeedsViewportUpdate, State.bNeedsScissorUpdate);
+			InternalUpdateDynamicStates(Cmd, State, State.bNeedsViewportUpdate, State.bNeedsScissorUpdate, State.bNeedsStencilRefUpdate);
 		}
 	}
 
 private:
-	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate);
+	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate, bool bNeedsStencilRefUpdate);
 
 	FVulkanDevice* Device;
 	VkPipeline Pipeline;

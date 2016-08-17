@@ -192,7 +192,7 @@ public:
 		return Framebuffer;
 	}
 
-	TArray<VkImageView> Attachments;
+	TArray<VkImageView> AttachmentViews;
 	TArray<VkImageSubresourceRange> SubresourceRanges;
 
 	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
@@ -435,6 +435,22 @@ namespace VulkanRHI
 		uint32 Size;
 		EResourceLockMode LockMode;
 	};
+
+	static VkImageAspectFlags GetAspectMaskFromUEFormat(EPixelFormat Format, bool bIncludeStencil, bool bIncludeDepth = true)
+	{
+		switch (Format)
+		{
+		case PF_X24_G8:
+			return VK_IMAGE_ASPECT_STENCIL_BIT;
+		case PF_DepthStencil:
+			return (bIncludeDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) | (bIncludeStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+		case PF_ShadowDepth:
+		case PF_D24:
+			return VK_IMAGE_ASPECT_DEPTH_BIT;
+		default:
+			return VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+	}
 }
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
@@ -474,6 +490,26 @@ static inline VkAttachmentStoreOp RenderTargetStoreActionToVulkan(ERenderTargetS
 	return OutStoreAction;
 }
 
+inline VkFormat UEToVkFormat(EPixelFormat UEFormat, const bool bIsSRGB)
+{
+	VkFormat Format = (VkFormat)GPixelFormats[UEFormat].PlatformFormat;
+	if (bIsSRGB && GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+	{
+		switch (Format)
+		{
+		case VK_FORMAT_B8G8R8A8_UNORM:			Format = VK_FORMAT_B8G8R8A8_SRGB; break;
+		case VK_FORMAT_R8G8B8A8_UNORM:			Format = VK_FORMAT_R8G8B8A8_SRGB; break;
+		case VK_FORMAT_BC1_RGB_UNORM_BLOCK:		Format = VK_FORMAT_BC1_RGB_SRGB_BLOCK; break;
+		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:	Format = VK_FORMAT_BC1_RGBA_SRGB_BLOCK; break;
+		case VK_FORMAT_BC2_UNORM_BLOCK:			Format = VK_FORMAT_BC2_SRGB_BLOCK; break;
+		case VK_FORMAT_BC3_UNORM_BLOCK:			Format = VK_FORMAT_BC3_SRGB_BLOCK; break;
+		case VK_FORMAT_BC7_UNORM_BLOCK:			Format = VK_FORMAT_BC7_SRGB_BLOCK; break;
+		default:	break;
+		}
+	}
+
+	return Format;
+}
 
 #if 0
 namespace FRCLog

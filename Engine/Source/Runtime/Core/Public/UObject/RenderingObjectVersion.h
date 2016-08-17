@@ -23,6 +23,10 @@ struct CORE_API FRenderingObjectVersion
 		// Reflection captures are no longer prenormalized
 		ReflectionCapturesStoreAverageBrightness,
 
+		ChangedPlanarReflectionFadeDefaults,
+
+		RemovedRenderTargetSize,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

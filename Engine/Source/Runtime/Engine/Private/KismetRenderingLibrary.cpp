@@ -5,6 +5,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
+#include "Runtime/Engine/Classes/Engine/CanvasRenderTarget2D.h"
 #include "ImageUtils.h"
 #include "FileManagerGeneric.h"
 #include "Paths.h"
@@ -17,6 +18,44 @@
 UKismetRenderingLibrary::UKismetRenderingLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, FLinearColor ClearColor)
+{
+	check(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	if (TextureRenderTarget
+		&& TextureRenderTarget->Resource
+		&& World)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			ClearRTCommand,
+			FTextureRenderTargetResource*,RenderTargetResource,TextureRenderTarget->GameThread_GetRenderTargetResource(),
+			FLinearColor,ClearColor,ClearColor,
+		{
+			SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
+			RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());
+		});
+	}
+}
+
+UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height)
+{
+	check(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	if (Width > 0 && Height > 0 && World)
+	{
+		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>(WorldContextObject);
+		check(NewRenderTarget2D);
+		NewRenderTarget2D->InitAutoFormat(Width, Height); 
+		NewRenderTarget2D->UpdateResourceImmediate(true);
+
+		return NewRenderTarget2D; 
+	}
+
+	return nullptr;
 }
 
 void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material)

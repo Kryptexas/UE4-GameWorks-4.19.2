@@ -97,7 +97,7 @@ FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias()
 
 	if (GReflectionEnvironmentLightmapMixing == 0)
 	{
-		RoughnessMixingRange = 0.0f;
+		return FVector2D(0, 0);
 	}
 
 	if (GReflectionEnvironmentEndMixingRoughness == 0.0f && GReflectionEnvironmentBeginMixingRoughness == 0.0f)

@@ -141,6 +141,8 @@
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialExpressionClearCoatNormalCustomOutput.h"
+#include "Materials/MaterialExpressionAtmosphericLightVector.h"
+#include "Materials/MaterialExpressionAtmosphericLightColor.h"
 
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
@@ -157,6 +159,7 @@
 #include "Engine/TextureRenderTargetCube.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
+#include "RenderingObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
@@ -6582,6 +6585,8 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	// Make a copy of the current code before we change it
 	const FString PreFixUp = Code;
 
@@ -6595,7 +6600,6 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			bDidUpdate = true;
 		}
 	}
-
 	// Fix up uniform references that were moved from View to Frame as part of the instanced stereo implementation
 	else if (Ar.UE4Ver() < VER_UE4_INSTANCED_STEREO_UNIFORM_REFACTOR)
 	{
@@ -6686,6 +6690,14 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			{
 				bDidUpdate = true;
 			}
+		}
+	}
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::RemovedRenderTargetSize)
+	{
+		if (Code.ReplaceInline(TEXT("View.RenderTargetSize"), TEXT("View.BufferSizeAndInvSize.xy"), ESearchCase::CaseSensitive) > 0)
+		{
+			bDidUpdate = true;
 		}
 	}
 
@@ -8022,12 +8034,7 @@ void UMaterialExpressionFunctionInput::ValidateName()
 #if WITH_EDITOR
 bool UMaterialExpressionFunctionInput::IsResultMaterialAttributes(int32 OutputIndex)
 {
-	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-	if( Preview.Expression && !Preview.Expression->ContainsInputLoop() )
-	{
-		return Preview.Expression->IsResultMaterialAttributes(Preview.OutputIndex);
-	}
-	else if( FunctionInput_MaterialAttributes == InputType )
+	if( FunctionInput_MaterialAttributes == InputType )
 	{
 		return true;
 	}
@@ -10152,5 +10159,71 @@ FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32
 {
 	return &Input;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionrAtmosphericLightVector
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionAtmosphericLightVector::UMaterialExpressionAtmosphericLightVector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionAtmosphericLightVector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+
+	return Compiler->AtmosphericLightVector();
+}
+
+void UMaterialExpressionAtmosphericLightVector::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("AtmosphericLightVector"));
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionrAtmosphericLightVector
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionAtmosphericLightColor ::UMaterialExpressionAtmosphericLightColor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionAtmosphericLightColor::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+
+	return Compiler->AtmosphericLightColor();
+}
+
+void UMaterialExpressionAtmosphericLightColor::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("AtmosphericLightColor"));
+}
+#endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE

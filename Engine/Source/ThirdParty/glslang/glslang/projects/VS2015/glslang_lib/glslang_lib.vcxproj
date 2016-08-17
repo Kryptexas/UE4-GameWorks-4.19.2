@@ -45,6 +45,7 @@
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\OSDependent\Windows\ossource.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslGrammar.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslOpMap.cpp" />
+    <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslParseables.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslParseHelper.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslScanContext.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslTokenStream.cpp" />
@@ -91,6 +92,7 @@
     <ClInclude Include="..\..\..\src\glslang_lib\glslang\Public\ShaderLang.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslGrammar.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslOpMap.h" />
+    <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslParseables.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslParseHelper.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslScanContext.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslTokens.h" />

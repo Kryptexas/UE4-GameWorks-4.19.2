@@ -13,6 +13,19 @@ namespace Lightmass
 //@todo - need to pass to Serialization
 class FLightmassImporter
 {
+protected:
+
+	/**
+	 * Finds existing or imports new object by Guid
+	 *
+	 * @param Key Key of object
+	 * @param Version Version of object to load
+	 * @param Extension Type of object to load (@todo UE4: This could be removed if Version could imply extension)
+	 * @return The object that was loaded or found, or NULL if the Guid failed
+	 */
+	template <class ObjType, class LookupMapType, class KeyType>
+	ObjType* ConditionalImportObjectWithKey(const KeyType& Key, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap);
+
 public:
 
 	FLightmassImporter( class FLightmassSwarm* InSwarm );
@@ -54,7 +67,24 @@ public:
 	 * @return The object that was loaded or found, or NULL if the Guid failed
 	 */
 	template <class ObjType, class LookupMapType>
-	ObjType* ConditionalImportObject(const FGuid& Guid, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap);
+	ObjType* ConditionalImportObject(const FGuid& Guid, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap)
+	{
+		return ConditionalImportObjectWithKey<ObjType, LookupMapType, FGuid>(Guid, Version, Extension, ChannelFlags, LookupMap);
+	}
+
+	/**
+	 * Finds existing or imports new object by Hash
+	 *
+	 * @param Hash Id of object
+	 * @param Version Version of object to load
+	 * @param Extension Type of object to load (@todo UE4: This could be removed if Version could imply extension)
+	 * @return The object that was loaded or found, or NULL if the Guid failed
+	 */
+	template <class ObjType, class LookupMapType>
+	ObjType* ConditionalImportObject(const FSHAHash& Hash, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap)
+	{
+		return ConditionalImportObjectWithKey<ObjType, LookupMapType, FSHAHash>(Hash, Version, Extension, ChannelFlags, LookupMap);
+	}
 
 	void SetLevelScale(float InScale) { LevelScale = InScale; }
 	float GetLevelScale() const
@@ -72,9 +102,10 @@ public:
 	TMap<FGuid,class FStaticMesh*>&									GetStaticMeshes()			{ return StaticMeshes; }
 	TMap<FGuid,class FFluidSurfaceStaticLightingTextureMapping*>&	GetFluidMappings()			{ return FluidMappings; }
 	TMap<FGuid,class FLandscapeStaticLightingTextureMapping*>&		GetLandscapeMappings()		{ return LandscapeMappings; }
-	TMap<FGuid,class FMaterial*>&									GetMaterials()				{ return Materials; }
-	
+	TMap<FSHAHash,class FMaterial*>&								GetMaterials()				{ return Materials; }
+
 private:
+
 	class FLightmassSwarm*	Swarm;
 
 	TMap<FGuid,class FLight*>										Lights;
@@ -86,7 +117,7 @@ private:
 	TMap<FGuid,class FBSPSurfaceStaticLighting*>					BSPTextureMappings;	
 	TMap<FGuid,class FFluidSurfaceStaticLightingTextureMapping*>	FluidMappings;
 	TMap<FGuid,class FLandscapeStaticLightingTextureMapping*>		LandscapeMappings;
-	TMap<FGuid,class FMaterial*>									Materials;
+	TMap<FSHAHash,class FMaterial*>									Materials;
 
 	float LevelScale;
 };
@@ -143,20 +174,20 @@ bool FLightmassImporter::ImportGuidArray( ArrayType& Array, int32 Count, const L
 /**
  * Finds existing or imports new object by Guid
  *
- * @param Guid Guid of object
+ * @param Key Key of object
  * @param Version Version of object to load
  * @param Extension Type of object to load (@todo UE4: This could be removed if Version could imply extension)
  * @return The object that was loaded or found, or NULL if the Guid failed
  */
-template <class ObjType, class LookupMapType>
-ObjType* FLightmassImporter::ConditionalImportObject(const FGuid& Guid, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap)
+template <class ObjType, class LookupMapType, class KeyType>
+ObjType* FLightmassImporter::ConditionalImportObjectWithKey(const KeyType& Key, const FGuid& Version, const TCHAR* Extension, int32 ChannelFlags, LookupMapType& LookupMap)
 {
 	// look to see if it exists already
-	ObjType* Obj = LookupMap.FindRef(Guid);
+	ObjType* Obj = LookupMap.FindRef(Key);
 	if (Obj == NULL)
 	{
 		// open a new channel and make it current
-		if (Swarm->OpenChannel(*CreateChannelName(Guid, Version, Extension), ChannelFlags, true) >= 0)
+		if (Swarm->OpenChannel(*CreateChannelName(Key, Version, Extension), ChannelFlags, true) >= 0)
 		{
 			Obj = new ObjType;
 
@@ -167,7 +198,7 @@ ObjType* FLightmassImporter::ConditionalImportObject(const FGuid& Guid, const FG
 			Swarm->CloseCurrentChannel();
 
 			// cache this object so it can be found later by another call to this function
-			LookupMap.Add(Guid, Obj);
+			LookupMap.Add(Key, Obj);
 		}
 	}
 

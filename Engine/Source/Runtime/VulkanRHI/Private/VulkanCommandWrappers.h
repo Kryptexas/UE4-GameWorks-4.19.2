@@ -962,11 +962,14 @@ namespace VulkanRHI
 		VkStencilFaceFlags                          faceMask,
 		uint32                                    writeMask);
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilReference(
-		VkCommandBuffer                             commandBuffer,
-		VkStencilFaceFlags                          faceMask,
-		uint32                                    reference);
 #endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilReference(VkCommandBuffer CommandBuffer, VkStencilFaceFlags FaceMask, uint32 Reference)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetStencilReference(FaceMask=%d, Ref=%d)"), (int32)FaceMask, (int32)Reference));
+		
+		::vkCmdSetStencilReference(CommandBuffer, FaceMask, Reference);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdBindDescriptorSets(VkCommandBuffer CommandBuffer, VkPipelineBindPoint PipelineBindPoint, VkPipelineLayout Layout, uint32 FirstSet, uint32 DescriptorSetCount, const VkDescriptorSet* DescriptorSets, uint32 DynamicOffsetCount, const uint32* DynamicOffsets)
 	{
 		DumpBindDescriptorSets(CommandBuffer, PipelineBindPoint, Layout, FirstSet, DescriptorSetCount, DescriptorSets, DynamicOffsetCount, DynamicOffsets);

@@ -466,7 +466,7 @@ void FVulkanCommandListContext::RHISetDepthStencilState(FDepthStencilStateRHIPar
 	check(NewState);
 
 	check(Device);
-	PendingState->SetDepthStencilState(NewState);
+	PendingState->SetDepthStencilState(NewState, StencilRef);
 }
 
 void FVulkanCommandListContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)

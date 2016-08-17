@@ -52,7 +52,7 @@ struct FStreamingTexture
 	int64 DropMaxResolution_Async(int32 NumDroppedMips);
 
 	/** Reduce BudgetedMip by 1 and return the size freed by doing so. */
-	int64 DropOneMip_Async(int32 MaxPerTextureMipBias = 0);
+	int64 DropOneMip_Async();
 
 	/** Increase BudgetedMip by 1, up to resident mips, and return the size taken. */
 	int64 KeepOneMip_Async();

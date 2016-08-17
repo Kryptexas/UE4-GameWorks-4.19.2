@@ -858,7 +858,7 @@ void UReflectionCaptureComponent::PostInitProperties()
 	// If not, this guid will be overwritten when serialized
 	FPlatformMisc::CreateGuid(StateId);
 
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	if (!HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
 		ReflectionCapturesToUpdateForLoad.AddUnique(this);
 		bCaptureDirty = true; 

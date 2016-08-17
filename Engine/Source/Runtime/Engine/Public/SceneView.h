@@ -60,6 +60,11 @@ public:
 			(ConstrainedViewRect.Height() > 0);
 	}
 
+	bool IsPerspectiveProjection() const
+	{
+		return ProjectionMatrix.M[3][3] < 1.0f;
+	}
+
 	const FIntRect& GetViewRect() const { return ViewRect; }
 	const FIntRect& GetConstrainedViewRect() const { return ConstrainedViewRect; }
 
@@ -430,7 +435,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldNearTransitionRegion) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldFarTransitionRegion) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, MotionBlurNormalizedToPixel) \
-	VIEW_UNIFORM_BUFFER_MEMBER(float, EnableSubsurfaceCheckboardOutput) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, bSubsurfacePostprocessEnabled) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GeneralPurposeTweak) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, DemosaicVposOffset, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector, IndirectLightingColorScale) \
@@ -454,7 +459,6 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, RenderingReflectionCaptureMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AmbientCubemapTint) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, AmbientCubemapIntensity) \
-	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, RenderTargetSize) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, SkyLightParameters) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, SceneTextureMinMax) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, SkyLightColor) \
@@ -470,7 +474,8 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps]) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeDimension_UB) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeTexelSize_UB) \
-	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB)
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, bCheckerboardSubsurfaceProfileRendering)
 
 #define VIEW_UNIFORM_BUFFER_MEMBER(type, identifier) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(type, identifier)
@@ -560,6 +565,7 @@ public:
 
 	/** The uniform buffer for the view's parameters. This is only initialized in the rendering thread's copies of the FSceneView. */
 	TUniformBufferRef<FViewUniformShaderParameters> ViewUniformBuffer;
+	TUniformBufferRef<FViewUniformShaderParameters> DownsampledTranslucencyViewUniformBuffer;
 
 	/** Mobile Directional Lighting uniform buffers, one for each lighting channel 
 	  * The first is used for primitives with no lighting channels set.
@@ -1073,6 +1079,9 @@ public:
 	 * If SCS_FinalColorLDR this indicates do nothing.
 	 */
 	ESceneCaptureSource SceneCaptureSource;
+	
+	/** When enabled, the scene capture will composite into the render target instead of overwriting its contents. */
+	ESceneCaptureCompositeMode SceneCaptureCompositeMode;
 
 	/**
 	 * GetWorld->IsPaused() && !Simulate

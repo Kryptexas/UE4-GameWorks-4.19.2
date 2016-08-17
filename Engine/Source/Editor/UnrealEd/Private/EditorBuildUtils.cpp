@@ -1053,13 +1053,35 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithT
 	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
 	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
 
-
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
 	FTexCoordScaleMap TexCoordScales;
+	FMaterialToLevelsMap MaterialToLevels;
 	if (bWithTexCoordScales)
 	{
-		if (!BuildTextureStreamingShaders(InWorld, QualityLevel, FeatureLevel, TexCoordScales, bDebugDataOnly, BuildTextureStreamingTask))
+		// Reset build warning data.
+		if (!bDebugDataOnly)
+		{
+			InWorld->NumTextureStreamingUnbuiltComponents = 0;
+			InWorld->NumTextureStreamingDirtyResources = 0;
+
+			for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+			{
+				ULevel* Level = InWorld->GetLevel(LevelIndex);
+				if (!Level) continue;
+
+				TArray<FGuid>& BuildGuids = Level->TextureStreamingBuildGuids;
+				if (Level->NumTextureStreamingUnbuiltComponents || Level->NumTextureStreamingDirtyResources || BuildGuids.Num())
+				{
+					Level->NumTextureStreamingUnbuiltComponents = 0;
+					Level->NumTextureStreamingDirtyResources = 0;
+					Level->TextureStreamingBuildGuids.Empty();
+					Level->MarkPackageDirty();
+				}
+			}
+		}
+
+		if (!BuildTextureStreamingShaders(InWorld, QualityLevel, FeatureLevel, TexCoordScales, MaterialToLevels, bDebugDataOnly, BuildTextureStreamingTask))
 		{
 			return false;
 		}
@@ -1080,8 +1102,27 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithT
 			UMaterialInterface* MaterialInterface = It.Key();
 			TArray<FMaterialTexCoordBuildInfo>& Scales = It.Value();
 
+			const bool bExportSuccess = FMaterialUtilities::ExportMaterialTexCoordScales(MaterialInterface, QualityLevel, FeatureLevel, Scales, ExportErrors);
 
-			FMaterialUtilities::ExportMaterialTexCoordScales(MaterialInterface, QualityLevel, FeatureLevel, Scales, ExportErrors);
+			// Materials not having the RF_Public are instances created dynamically.
+			const TArray<ULevel*>* MaterialLevels = MaterialToLevels.Find(MaterialInterface);
+			if (bExportSuccess && !!(MaterialInterface->GetFlags() & RF_Public) && MaterialLevels)
+			{
+				TArray<FGuid> MaterialGuids;
+				MaterialInterface->GetLightingGuidChain(false, MaterialGuids);
+
+				for (const FGuid& MaterialGuid : MaterialGuids)
+				{
+					if (MaterialGuid.IsValid())
+					{
+						// Add to the build Guids all exported materials.
+						for (ULevel* Level : *MaterialLevels)
+						{
+							Level->TextureStreamingBuildGuids.Add(MaterialGuid);
+						}
+					}
+				}
+			}
 		}
 		UE_LOG(LogLevel, Display, TEXT("Export Material TexCoord Scales took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 
@@ -1101,8 +1142,36 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithT
 		{
 			return false;
 		}
-	}
 
+		// Update build warning data.
+		if (bWithTexCoordScales)
+		{
+			for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+			{
+				ULevel* Level = InWorld->GetLevel(LevelIndex);
+				if (!Level) continue;
+
+				// If there is nothing related to texture streaming skip it.
+				TArray<FGuid>& BuildGuids = Level->TextureStreamingBuildGuids;
+				if (BuildGuids.Num())
+				{
+					// Remove duplicates
+					BuildGuids.Sort();
+					int32 WriteIndex = 1;
+					for (int32 ReadIndex = 1; ReadIndex < BuildGuids.Num(); ++ReadIndex)
+					{
+						if (BuildGuids[WriteIndex - 1] != BuildGuids[ReadIndex])
+						{
+							BuildGuids[WriteIndex] = BuildGuids[ReadIndex];
+							++WriteIndex;
+						}
+					}
+					BuildGuids.SetNum(WriteIndex);
+					Level->MarkPackageDirty();
+				}
+			}
+		}
+	}
 
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	return true;

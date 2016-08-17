@@ -2928,11 +2928,11 @@ protected:
 			// BufferSize
 			if(bInvert)
 			{
-				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize")));
+				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy")));
 			}
 			else
 			{
-				return AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize"));
+				return AddCodeChunk(MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy"));
 			}
 		}
 	}
@@ -4254,6 +4254,22 @@ protected:
 		{
 			return AddCodeChunk( MCT_Float4, TEXT("MaterialExpressionAtmosphericFog(Parameters, %s)"), *GetParameterCode(WorldPosition) );
 		}
+	}
+
+	virtual int32 AtmosphericLightVector() override
+	{
+		bUsesAtmosphericFog = true;
+
+		return AddCodeChunk(MCT_Float3, TEXT("MaterialExpressionAtmosphericLightVector(Parameters)"));
+
+	}
+
+	virtual int32 AtmosphericLightColor() override
+	{
+		bUsesAtmosphericFog = true;
+
+		return AddCodeChunk(MCT_Float3, TEXT("MaterialExpressionAtmosphericLightColor(Parameters)"));
+
 	}
 
 	virtual int32 CustomExpression( class UMaterialExpressionCustom* Custom, TArray<int32>& CompiledInputs ) override

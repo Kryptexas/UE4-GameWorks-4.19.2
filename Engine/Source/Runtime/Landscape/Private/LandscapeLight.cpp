@@ -126,7 +126,7 @@ FLandscapeStaticLightingMesh::FLandscapeStaticLightingMesh(ULandscapeComponent* 
 		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2 * InExpandQuadsX),
 		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2 * InExpandQuadsX),
 		0,
-		(InComponent->GetOwner() && InComponent->GetOwner()->bHidden) ? !!(InComponent->bCastHiddenShadow) : !!(InComponent->CastShadow),
+		!!(InComponent->CastShadow | InComponent->bCastHiddenShadow),
 		false,
 		InRelevantLights,
 		InComponent,

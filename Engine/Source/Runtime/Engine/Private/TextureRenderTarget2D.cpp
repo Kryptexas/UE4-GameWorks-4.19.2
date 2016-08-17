@@ -110,8 +110,27 @@ void UTextureRenderTarget2D::UpdateResourceImmediate(bool bClearRenderTarget/*=t
 #if WITH_EDITOR
 void UTextureRenderTarget2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	const int32 MaxSize = 2048; 
 	EPixelFormat Format = GetFormat();
+
+	const int32 WarnSize = 2048; 
+
+	if (SizeX > WarnSize || SizeY > WarnSize)
+	{
+		const float MemoryMb = SizeX * SizeY * GPixelFormats[Format].BlockBytes / 1024.0f / 1024.0f;
+		FNumberFormattingOptions FloatFormat;
+		FloatFormat.SetMaximumFractionalDigits(1);
+		FText Message = FText::Format( NSLOCTEXT("TextureRenderTarget2D", "LargeTextureRenderTarget2DWarning", "A TextureRenderTarget2D of size {0}x{1} will use {2}Mb ({3}Mb if used with a Scene Capture), which may result in extremely poor performance or an Out Of Video Memory crash.\nAre you sure?"), FText::AsNumber(SizeX), FText::AsNumber(SizeY), FText::AsNumber(MemoryMb, &FloatFormat), FText::AsNumber(10.0f * MemoryMb, &FloatFormat));
+		const EAppReturnType::Type Choice = FMessageDialog::Open(EAppMsgType::YesNo, Message);
+	
+		if (Choice == EAppReturnType::No)
+		{
+			SizeX = FMath::Clamp<int32>(SizeX,1,WarnSize);
+			SizeY = FMath::Clamp<int32>(SizeY,1,WarnSize);
+		}
+	}
+
+	const int32 MaxSize = 8192; 
+	
 	SizeX = FMath::Clamp<int32>(SizeX - (SizeX % GPixelFormats[Format].BlockSizeX),1,MaxSize);
 	SizeY = FMath::Clamp<int32>(SizeY - (SizeY % GPixelFormats[Format].BlockSizeY),1,MaxSize);
 

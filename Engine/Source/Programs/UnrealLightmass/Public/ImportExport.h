@@ -459,4 +459,17 @@ namespace Lightmass
 		return FString::Printf(TEXT("%08X%08X%08X%08X.%08X%08X%08X%08X.%s"), Version.A, Version.B, Version.C, Version.D, Guid.A, Guid.B, Guid.C, Guid.D, *Extension);
 	}
 
+	/**
+	 * Creates a standardized channel name based a FSA Hash, version and type
+	 *
+	 * @param Hash Unique ID of the channel
+	 * @param Version Version of the data inside
+	 * @param Extension Type of the data
+	 *
+	 * @return Standard channel name
+	 */
+	FORCEINLINE FString CreateChannelName(const FSHAHash& Hash, const FGuid& Version, const FString& Extension)
+	{
+		return FString::Printf(TEXT("%08X%08X%08X%08X.%s.%s"), Version.A, Version.B, Version.C, Version.D, *Hash.ToString(), *Extension);
+	}
 } // namespace Lightmass

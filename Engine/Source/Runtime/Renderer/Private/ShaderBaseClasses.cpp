@@ -94,11 +94,11 @@ void FMaterialShader::SetParameters(
 	const FMaterialRenderProxy* MaterialRenderProxy,
 	const FMaterial& Material,
 	const FSceneView& View,
+	const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer,
 	bool bDeferredPass,
-	ESceneRenderTargetsMode::Type TextureMode,
-	const bool bIsInstancedStereo)
+	ESceneRenderTargetsMode::Type TextureMode)
 {
-	SetParameters(RHICmdList, ShaderRHI, View);
+	SetViewParameters(RHICmdList, ShaderRHI, View, ViewUniformBuffer);
 
 	// If the material has cached uniform expressions for selection or hover
 	// and that is being overridden by show flags in the editor, recache
@@ -354,9 +354,9 @@ void FMaterialShader::SetParameters(
 		const FMaterialRenderProxy* MaterialRenderProxy,\
 		const FMaterial& Material,						\
 		const FSceneView& View,							\
+		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, \
 		bool bDeferredPass,								\
-		ESceneRenderTargetsMode::Type TextureMode,		\
-		const bool bIsInstancedStereo					\
+		ESceneRenderTargetsMode::Type TextureMode		\
 	);
 
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FVertexShaderRHIParamRef );

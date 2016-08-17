@@ -147,13 +147,11 @@ void FVulkanDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, 
 	FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(TextureRHI);
 	FVulkanSurface& Surface = Texture->Surface;
 
-	// By pass for now
-	#if 1
-		for(uint32 Index=0; Index<Surface.Width*Surface.Height; Index++)
-		{
-			OutData.Add(FFloat16Color(FLinearColor(0.5f, 0.5f, 0.5f, 1.0f)));
-		}
-	#endif
+	//#todo-rco: Properly fill in
+	for(uint32 Index = 0; Index < (Surface.Width >> MipIndex) * (Surface.Height >> MipIndex); Index++)
+	{
+		OutData.Add(FFloat16Color(FLinearColor(0.5f, 0.5f, 0.5f, 1.0f)));
+	}
 }
 
 void FVulkanDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,FIntRect InRect,FIntPoint ZMinMax,TArray<FFloat16Color>& OutData)
@@ -291,8 +289,8 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		    if (!bSetExtent)
 		    {
 			    bSetExtent = true;
-			    Extent.Extent3D.width = Texture->Surface.Width;
-			    Extent.Extent3D.height = Texture->Surface.Height;
+			    Extent.Extent3D.width = Texture->Surface.Width >> RTView.MipIndex;
+			    Extent.Extent3D.height = Texture->Surface.Height >> RTView.MipIndex;
 			    Extent.Extent3D.depth = 1;
 		    }
     
@@ -302,7 +300,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		    
 		    //@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
 		    CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
-		    CurrDesc.format = (VkFormat)GPixelFormats[RTView.Texture->GetFormat()].PlatformFormat;
+		    CurrDesc.format = UEToVkFormat(RTView.Texture->GetFormat(), (Texture->Surface.UEFlags & TexCreate_SRGB) == TexCreate_SRGB);
 		    CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTView.LoadAction);
 		    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
 		    CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -360,7 +358,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 
 		//@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
 		CurrDesc.samples = static_cast<VkSampleCountFlagBits>(RTInfo.DepthStencilRenderTarget.Texture->GetNumSamples());
-		CurrDesc.format = (VkFormat)GPixelFormats[RTInfo.DepthStencilRenderTarget.Texture->GetFormat()].PlatformFormat;
+		CurrDesc.format = UEToVkFormat(RTInfo.DepthStencilRenderTarget.Texture->GetFormat(), false);
 		CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthLoadAction);
 		CurrDesc.stencilLoadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.StencilLoadAction);
 		if (CurrDesc.samples == VK_SAMPLE_COUNT_1_BIT)

@@ -313,12 +313,20 @@ namespace ETranslucentSortPolicy
 UENUM()
 enum ESceneCaptureSource 
 { 
-	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Opacity in A"),
+	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Inv Opacity in A"),
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
 	SCS_Normal UMETA(DisplayName="Normal in RGB"),
 	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+};
+
+UENUM()
+enum ESceneCaptureCompositeMode
+{ 
+	SCCM_Overwrite UMETA(DisplayName="Overwrite"),
+	SCCM_Additive UMETA(DisplayName="Additive"),
+	SCCM_Composite UMETA(DisplayName="Composite")
 };
 
 #define NUM_LIGHTING_CHANNELS 3
@@ -409,7 +417,7 @@ enum EMaterialShadingModel
 	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
 	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
 	MSM_SubsurfaceProfile	UMETA(DisplayName="Subsurface Profile"),
-	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided"),
+	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided Foliage"),
 	MSM_Hair				UMETA(DisplayName="Hair"),
 	MSM_Cloth				UMETA(DisplayName="Cloth"),
 	MSM_Eye					UMETA(DisplayName="Eye"),

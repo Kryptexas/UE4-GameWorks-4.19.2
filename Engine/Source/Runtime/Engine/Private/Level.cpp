@@ -506,6 +506,8 @@ void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 				Actor->ClearCrossLevelReferences();
 			}
 		}
+
+		CheckTextureStreamingBuild(this);
 	}
 #endif // WITH_EDITOR
 }

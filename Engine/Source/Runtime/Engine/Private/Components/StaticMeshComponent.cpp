@@ -564,10 +564,7 @@ static void PackStreamingTextureData(TArray<UTexture2D*>& LevelTextures, TArray<
 void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel)
 {
 #if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
-	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
-	const bool bNeedsPrecomputedData = !bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && StaticMesh && StaticMesh->RenderData;
-
-	if (bUseMetrics && bNeedsPrecomputedData)
+	if (RequiresStreamingTextureData())
 	{
 		UpdateStreamingSectionData(TexCoordScales);
 
@@ -628,26 +625,34 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 		}
 
 		PackStreamingTextureData(LevelTextures, UnpackedData, StreamingTextureData, Bounds);
+		bStreamingTextureDataValid = true;
+		MarkPackageDirty();
 	}
-	else
+	else if (StreamingTextureData.Num() > 0)
 	{
 		StreamingTextureData.Empty();
 		StreamingSectionData.Reset();
+		bStreamingTextureDataValid = false; // Only meaningful if required (prevents having to set it for dynamic primitives)
+		MarkPackageDirty();
 	}
 #endif
 }
 
-bool UStaticMeshComponent::HasMissingStreamingSectionData(bool bCheckTexCoordScales) const
+bool UStaticMeshComponent::RequiresStreamingTextureData() const
 {
-#if WITH_EDITORONLY_DATA
 	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
 	const bool bNeedsPrecomputedData = !bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && StaticMesh && StaticMesh->RenderData;
+	return bUseMetrics && bNeedsPrecomputedData;
+}
 
-	if (bUseMetrics && bNeedsPrecomputedData)
+bool UStaticMeshComponent::HasStreamingSectionData(bool bCheckTexCoordScales) const
+{
+#if WITH_EDITORONLY_DATA
+	if (RequiresStreamingTextureData())
 	{
 		if (!StreamingSectionData.IsValid())
 		{
-			return true;
+			return false;
 		}
 		else if (bCheckTexCoordScales)
 		{
@@ -656,18 +661,27 @@ bool UStaticMeshComponent::HasMissingStreamingSectionData(bool bCheckTexCoordSca
 				// If at least one section has data, then it's enough to say it was built with TexCoordScales.
 				if (SectionData.TexCoordData.Num())
 				{
-					return false;
+					return true;
 				}
 			}
-			return true;
+			return false;
 		}
 		else
 		{
-			return !StreamingSectionData->Num();
+			return StreamingSectionData->Num() > 0;
 		}
 	}
 #endif
 	return false;
+}
+
+bool UStaticMeshComponent::HasStreamingTextureData() const
+{
+#if WITH_EDITORONLY_DATA
+	return RequiresStreamingTextureData() && bStreamingTextureDataValid;
+#else
+	return RequiresStreamingTextureData() && StreamingTextureData.Num() > 0;
+#endif
 }
 
 void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales)
@@ -675,7 +689,7 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 #if WITH_EDITORONLY_DATA
 	StreamingSectionData.Reset();
 
-	if (StaticMesh && StaticMesh->RenderData)
+	if (RequiresStreamingTextureData())
 	{
 		StreamingSectionData = TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe>(new TArray<FStreamingSectionBuildInfo>());
 
@@ -1457,7 +1471,7 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		if ( PropertyThatChanged->GetName() == TEXT("StaticMesh") )
 		{
 			InvalidateLightingCache();
-			
+
 			// If the owning actor is part of a cluster flag it as dirty
 			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
@@ -1474,6 +1488,10 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
 			Utilities->HandleActorModified(GetOwner());
 		}
+
+#if WITH_EDITORONLY_DATA
+		bStreamingTextureDataValid = false;
+#endif
 	}
 
 	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);

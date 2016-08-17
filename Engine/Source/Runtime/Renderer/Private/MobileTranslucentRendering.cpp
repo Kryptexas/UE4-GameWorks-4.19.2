@@ -271,7 +271,7 @@ FTranslucentPrimSet
 
 void FTranslucentPrimSet::DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const bool bRenderSeparateTranslucency) const
 {
-	ETranslucencyPass::Type TranslucencyPass = bRenderSeparateTranslucency ? ETranslucencyPass::TPT_SeparateTransluceny : ETranslucencyPass::TPT_NonSeparateTransluceny;
+	ETranslucencyPass::Type TranslucencyPass = bRenderSeparateTranslucency ? ETranslucencyPass::TPT_SeparateTranslucency : ETranslucencyPass::TPT_StandardTranslucency;
 
 	FInt32Range PassRange = SortedPrimsNum.GetPassRange(TranslucencyPass);
 

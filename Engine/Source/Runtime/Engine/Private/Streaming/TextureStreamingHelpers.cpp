@@ -153,6 +153,12 @@ TAutoConsoleVariable<int32> CVarStreamingUseAllMips(
 	TEXT("If non-zero, all available mips will be used"),
 	ECVF_Default);
 
+TAutoConsoleVariable<int32> CVarStreamingLimitPoolSizeToVRAM(
+	TEXT("r.Streaming.LimitPoolSizeToVRAM"),
+	0,
+	TEXT("If non-zero, texture pool size with be limited to how much GPU mem is available."),
+	ECVF_Scalability);
+
 
 void FTextureStreamingSettings::Update()
 {
@@ -163,8 +169,9 @@ void FTextureStreamingSettings::Update()
 	HiddenPrimitiveScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
 	MipBias = FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread());
 	PoolSize = CVarStreamingPoolSize.GetValueOnAnyThread();
-	bUsePerTextureBias = CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
+	bUsePerTextureBias = !GIsEditor && CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
 	bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
+	bLimitPoolSizeToVRAM = !GIsEditor && CVarStreamingLimitPoolSizeToVRAM.GetValueOnAnyThread() != 0;
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
 

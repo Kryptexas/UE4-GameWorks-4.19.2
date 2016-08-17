@@ -828,10 +828,12 @@ void FVulkanPendingState::SetBlendState(FVulkanBlendState* NewState)
 }
 
 
-void FVulkanPendingState::SetDepthStencilState(FVulkanDepthStencilState* NewState)
+void FVulkanPendingState::SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef)
 {
 	check(NewState);
 	CurrentState.DepthStencilState = NewState;
+	CurrentState.StencilRef = StencilRef;
+	CurrentState.bNeedsStencilRefUpdate = true;
 
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_TEST_ENABLED, NUMBITS_DEPTH_TEST_ENABLED, NewState->DepthStencilState.depthTestEnable);
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED, NewState->DepthStencilState.depthWriteEnable);

@@ -44,6 +44,8 @@ UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializ
 			SamplerTypeEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.EMaterialSamplerType"));
 			check(SamplerTypeEnum);
 		}
+
+		SetLightingGuid();
 	}
 }
 
@@ -190,6 +192,13 @@ void UMaterialInterface::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif // WITH_EDITOR
+
+void UMaterialInterface::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
+{
+#if WITH_EDITORONLY_DATA
+	OutGuids.Add(LightingGuid);
+#endif // WITH_EDITORONLY_DATA
+}
 
 bool UMaterialInterface::GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const
 {

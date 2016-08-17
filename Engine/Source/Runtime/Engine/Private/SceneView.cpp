@@ -1928,6 +1928,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	bDeferClear(CVS.bDeferClear),
 	bResolveScene(CVS.bResolveScene),
 	SceneCaptureSource(SCS_FinalColorLDR),
+	SceneCaptureCompositeMode(SCCM_Overwrite),
 	bWorldIsPaused(false),
 	GammaCorrection(CVS.GammaCorrection)
 {

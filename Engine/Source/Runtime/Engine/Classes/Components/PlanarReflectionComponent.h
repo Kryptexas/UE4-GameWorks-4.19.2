@@ -42,13 +42,19 @@ public:
 	UPROPERTY(EditAnywhere, Category=PlanarReflection, meta=(UIMin = "0", UIMax = "10.0"), AdvancedDisplay)
 	float ExtraFOV;
 
+	UPROPERTY()
+	float DistanceFromPlaneFadeStart_DEPRECATED;
+
+	UPROPERTY()
+	float DistanceFromPlaneFadeEnd_DEPRECATED;
+
 	/** Receiving pixels at this distance from the reflection plane will begin to fade out the planar reflection. */
 	UPROPERTY(EditAnywhere, Category=PlanarReflection, meta=(UIMin = "0", UIMax = "1500.0"))
-	float DistanceFromPlaneFadeStart;
+	float DistanceFromPlaneFadeoutStart;
 
 	/** Receiving pixels at this distance from the reflection plane will have completely faded out the planar reflection. */
-	UPROPERTY(EditAnywhere, Category=PlanarReflection, meta=(UIMin = "0", UIMax = "1000.0"))
-	float DistanceFromPlaneFadeEnd;
+	UPROPERTY(EditAnywhere, Category=PlanarReflection, meta=(UIMin = "0", UIMax = "1500.0"))
+	float DistanceFromPlaneFadeoutEnd;
 
 	/** Receiving pixels whose normal is at this angle from the reflection plane will begin to fade out the planar reflection. */
 	UPROPERTY(EditAnywhere, Category=PlanarReflection, meta=(UIMin = "0", UIMax = "90.0"))
@@ -67,6 +73,7 @@ public:
 	bool bRenderSceneTwoSided;
 
 	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual void FinishDestroy() override;

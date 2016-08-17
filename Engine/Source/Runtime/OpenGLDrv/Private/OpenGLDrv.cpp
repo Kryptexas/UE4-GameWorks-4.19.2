@@ -20,6 +20,9 @@ IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 DEFINE_LOG_CATEGORY(LogOpenGL);
 
 
+ERHIFeatureLevel::Type GRequestedFeatureLevel = ERHIFeatureLevel::Num;
+
+
 void FOpenGLDynamicRHI::RHIPushEvent(const TCHAR* Name, FColor Color)
 {
 #if ENABLE_OPENGL_DEBUG_GROUPS

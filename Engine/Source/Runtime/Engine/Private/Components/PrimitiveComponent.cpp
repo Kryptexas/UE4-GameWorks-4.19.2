@@ -739,8 +739,7 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
 		}
 
-		if (PropertyName == LightingChannelsName
-			|| PropertyName ==SingleSampleShadowFromStationaryLightsName)
+		if (PropertyName == SingleSampleShadowFromStationaryLightsName)
 		{
 			return Mobility != EComponentMobility::Static;
 		}

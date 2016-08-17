@@ -424,7 +424,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		{
 			float Radius = CVarSSSScale.GetValueOnRenderThread();
 			bool bSimpleDynamicLighting = IsAnyForwardShadingEnabled(View.GetShaderPlatform());
-			bool bScreenSpaceSubsurfacePassNeeded = ((View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0) && IsSubsurfaceCheckerboardRequired();
+			bool bScreenSpaceSubsurfacePassNeeded = ((View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0) && IsSubsurfacePostprocessRequired();
 			bool bSubsurfaceAllowed = CVarSubsurfaceScattering.GetValueOnRenderThread() == 1;
 
 			if (bScreenSpaceSubsurfacePassNeeded 
@@ -560,7 +560,7 @@ void FCompositionLighting::GfxWaitForAsyncSSAO(FRHICommandListImmediate& RHICmdL
 	}
 }
 
-bool FCompositionLighting::IsSubsurfaceCheckerboardRequired() const
+bool FCompositionLighting::IsSubsurfacePostprocessRequired() const
 {
 	const bool bSSSEnabled = CVarSubsurfaceScattering->GetInt() != 0;
 	const bool bSSSScaleEnabled = CVarSSSScale.GetValueOnAnyThread() > 0.0f;

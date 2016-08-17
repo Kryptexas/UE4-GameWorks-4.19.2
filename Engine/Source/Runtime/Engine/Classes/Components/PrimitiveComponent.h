@@ -1179,13 +1179,27 @@ public:
 	void GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
 	/**
-	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	* Return whether this primitive should have data for texture streaming. Used to optimize the texture streaming build.
+	*
+	* @return	true if a rebuild is required.
+	*/
+	virtual bool RequiresStreamingTextureData() const { return false; }
+
+	/**
+	* Return whether this primitive has (good) section data for texture streaming. Used in the texture streaming build and accuracy viewmodes.
 	*
 	* @param bCheckTexCoordScales - If true, section data must contains texcoord scales to be valid.
 	*
-	* @return - true if some sections have missing data. If this component is not expected to have data, this should return false.
+	* @return - true if streaming section data is valid.
 	*/
-	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const { return false; }
+	virtual bool HasStreamingSectionData(bool bCheckTexCoordScales) const { return false; }
+
+	/**
+	* Return whether this primitive has (good) built data for texture streaming. Used for the "Texture Streaming Needs Rebuilt" check.
+	*
+	* @return	true if all texture streaming data is valid.
+	*/
+	virtual bool HasStreamingTextureData() const { return false; }
 
 	/**
 	* Update section data for texture streaming. Note that this data is expected to be transient.
@@ -1194,6 +1208,16 @@ public:
 	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
 	*/
 	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) {}
+
+	/**
+	 *	Update the precomputed streaming data of this component.
+	 *
+	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
+	 *	@param	TexCoordScales	[in]		The texcoord scales for each texture register of each relevant materials.
+	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
+	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
+	 */
+	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) {}
 
 	/**
 	 * Determines the DPG the primitive's primary elements are drawn in.

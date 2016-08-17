@@ -64,13 +64,9 @@ class Module;
 const Id NoResult = 0;
 const Id NoType = 0;
 
-const unsigned int BadValue = 0xFFFFFFFF;
-const Decoration NoPrecision = (Decoration)BadValue;
+const Decoration NoPrecision = DecorationMax;
 const MemorySemanticsMask MemorySemanticsAllMemory = 
-                (MemorySemanticsMask)(MemorySemanticsAcquireMask |
-                                      MemorySemanticsReleaseMask |
-                                      MemorySemanticsAcquireReleaseMask |
-                                      MemorySemanticsSequentiallyConsistentMask |
+                (MemorySemanticsMask)(MemorySemanticsSequentiallyConsistentMask |
                                       MemorySemanticsUniformMemoryMask |
                                       MemorySemanticsSubgroupMemoryMask |
                                       MemorySemanticsWorkgroupMemoryMask |

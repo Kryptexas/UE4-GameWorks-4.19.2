@@ -43,51 +43,22 @@ float RandFast( uint2 PixelPos, float Magic = 3571.0 )
 	return Random;
 }
 
-// Blum-Blum-Shub-inspired pseudo random number generator
-// http://www.umbc.edu/~olano/papers/mNoise.pdf
-// real BBS uses ((s*s) mod M) with bignums and M as the product of two huge primes
-// instead, we use a single prime M just small enough not to overflow
 // This is the largest prime < 2^12 so s*s will fit in a 24-bit floating point mantissa
 #define BBS_PRIME24 4093
-// This is the largest prime < 2^16 so s*s will fit in a 32-bit unsigned integer
-#define BBS_PRIME32 65521
 
-// Blum-Blum-Shub-inspired pseudo random number generator - float version
+// Blum-Blum-Shub-inspired pseudo random number generator
+// http://www.umbc.edu/~olano/papers/mNoise.pdf
+// real BBS uses ((s*s) mod M) with bignums and M as the product of two huge Blum primes
+// instead, we use a single prime M just small enough not to overflow
+// note that the above paper used 61, which fits in a half, but is unusably bad
 // @param Integer valued floating point seed
 // @return random number in range [0,1)
-// uint version RandBBSint24(intseed) is equivalent to BBS_PRIME24 * RandBBSfloat(float(intseed))
-// ~7 ALU operations (4 *, 3 frac)
+// ~8 ALU operations (5 *, 3 frac)
 float RandBBSfloat(float seed)
 {
 	float s = frac(seed / BBS_PRIME24);
 	s = frac(s * s * BBS_PRIME24);
 	s = frac(s * s * BBS_PRIME24);
-	return s;
-}
-
-// BBS random number generator - 24-bit uint version
-// This version exists to match the float one, and because some hardware is faster for 24-bit int ops
-// @param seed - old seed, repeats every BBS_PRIME24 (so 0 and 4093 produce the same result)
-// @return random value (can be used as new seed) in range [0,BBS_PRIME24) = [0,4093)
-// ~5 ALU operations (3 %, 2 *)
-uint RandBBSuint24(uint seed)
-{
-	uint s = Mod(seed, BBS_PRIME24);
-	s = Mod(s * s, BBS_PRIME24);
-	s = Mod(s * s, BBS_PRIME24);
-	return s;
-}
-
-// BBS random number generator - 32-bit uint version
-// uses 65521 as the prime modulus, since it is the largest prime < 2^16
-// @param seed - old seed, repeats every BBS_PRIME32 (so 0 and 65521 produce the same result)
-// @return random value (can be used as new seed) in range [0,BBS_PRIME32) = [0,65521)
-// ~5 ALU operations (3 %, 2 *)
-uint RandBBSuint32(uint seed)
-{
-	uint s = Mod(seed, BBS_PRIME32);
-	s = Mod(s * s, BBS_PRIME32);
-	s = Mod(s * s, BBS_PRIME32);
 	return s;
 }
 
@@ -247,9 +218,9 @@ float4 PerlinRamp(float4 t)
 // @param seed - random seed for integer lattice position
 // @param offset - [-1,1] offset of evaluation point from lattice point
 // @return gradient contribution from this lattice point
-float MGradient(uint seed, float3 offset)
+float MGradient(int seed, float3 offset)
 {
-	uint rand = RandBBSuint24(seed);
+	uint rand = Rand3DPCG16(int3(seed,0,0)).x;
 	float3 direction = float3(rand & 1, rand & 2, rand & 4) * float3(2, 1, 0.5) - 1;
 	return dot(direction, offset);
 }
@@ -451,10 +422,10 @@ float FastGradientPerlinNoise3D_TEX(float3 xyz)
 // 3D jitter offset within a voronoi noise cell
 // @param pos - integer lattice corner
 // @return random offsets vector
-float3 VoronoiCornerSample(int3 pos, int Quality)
+float3 VoronoiCornerSample(float3 pos, int Quality)
 {
 	// random values in [-0.5, 0.5]
-	float3 noise = float3(Rand3DPCG16(pos)) / 0xffff - 0.5;
+	float3 noise = float3(Rand3DPCG16(int3(pos))) / 0xffff - 0.5;
 
 	// quality level 1 or 2: searches a 2x2x2 neighborhood with points distributed on a sphere
 	// scale factor to guarantee jittered points will be found within a 2x2x2 search
@@ -482,27 +453,25 @@ float VoronoiNoise3D_ALU(float3 v, int Quality, bool bTiling, float RepeatSize)
 
 	// with initial minimum distance = infinity (or at least bigger than 4), first min is optimized away
 	float mindist = 100;
-	float3 offset;
+	float3 p, offset;
 
-	// quality level 3: do 3x3x3 search centered on current location
+	// quality level 3: do a 3x3x3 search
 	if (Quality == 3)
 	{
-		float3 mincell = floor(v - 1), maxcell = floor(v + 1);
-		float3 cell;
-		LOOP for (cell.x = mincell.x; cell.x <= maxcell.x; ++cell.x)
+		UNROLL for (offset.x = -1; offset.x <= 1; ++offset.x)
 		{
-			LOOP for (cell.y = mincell.y; cell.y <= maxcell.y; ++cell.y)
+			UNROLL for (offset.y = -1; offset.y <= 1; ++offset.y)
 			{
-				LOOP for (cell.z = mincell.z; cell.z <= maxcell.z; ++cell.z)
+				UNROLL for (offset.z = -1; offset.z <= 1; ++offset.z)
 				{
-					float3 p = v - cell - VoronoiCornerSample(NoiseTileWrap(cell, bTiling, RepeatSize), Quality);
+					p = fv2 - offset - VoronoiCornerSample(NoiseTileWrap(iv2 + offset, bTiling, RepeatSize), Quality);
 					mindist = min(mindist, dot(p, p));
 				}
 			}
 		}
 	}
 
-	// all others, do 2x2x2 search (unrolled)
+	// everybody else searches a base 2x2x2 neighborhood
 	else
 	{
 		UNROLL for (offset.x = 0; offset.x <= 1; ++offset.x)
@@ -511,7 +480,7 @@ float VoronoiNoise3D_ALU(float3 v, int Quality, bool bTiling, float RepeatSize)
 			{
 				UNROLL for (offset.z = 0; offset.z <= 1; ++offset.z)
 				{
-					float3 p = fv - offset - VoronoiCornerSample(NoiseTileWrap(iv + offset, bTiling, RepeatSize), Quality);
+					p = fv - offset - VoronoiCornerSample(NoiseTileWrap(iv + offset, bTiling, RepeatSize), Quality);
 					mindist = min(mindist, dot(p, p));
 					// quality level 2, do extra set of points, offset by half a cell
 					if (Quality == 2)
@@ -528,7 +497,6 @@ float VoronoiNoise3D_ALU(float3 v, int Quality, bool bTiling, float RepeatSize)
 	// quality level 4: add extra sets of four cells in each direction
 	if (Quality >= 4)
 	{
-		float3 p;
 		UNROLL for (offset.x = -1; offset.x <= 2; offset.x += 3)
 		{
 			UNROLL for (offset.y = 0; offset.y <= 1; ++offset.y)

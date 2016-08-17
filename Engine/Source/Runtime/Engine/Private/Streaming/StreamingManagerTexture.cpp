@@ -412,12 +412,12 @@ void FStreamingManagerTexture::UpdateThreadData(bool bProcessEverything)
 	if (Stats.IsUsingLimitedPoolSize() && !bProcessEverything && !Settings.bFullyLoadUsedTextures)
 	{
 		const int64 TempMemoryBudget = Settings.MaxTempMemoryAllowed * 1024 * 1024;
-		AsyncTask.Reset(Stats.AllocatedMemorySize, Stats.TexturePoolSize, TempMemoryBudget, MemoryMargin);
+		AsyncTask.Reset(Stats.TotalGraphicsMemory, Stats.AllocatedMemorySize, Stats.TexturePoolSize, TempMemoryBudget, MemoryMargin);
 	}
 	else
 	{
 		// Temp must be smaller since membudget only updates if it has a least temp memory available.
-		AsyncTask.Reset(Stats.AllocatedMemorySize, MAX_int64, MAX_int64 / 2, 0);
+		AsyncTask.Reset(0, Stats.AllocatedMemorySize, MAX_int64, MAX_int64 / 2, 0);
 	}
 	AsyncTask.StreamingData.Init(CurrentViewInfos, LastWorldUpdateTime, LevelTextureManagers, DynamicComponentManager);
 }
@@ -881,7 +881,7 @@ void FStreamingManagerTexture::UpdateStats()
 	}
 	DisplayedStats = GatheredStats;
 	GatheredStats.MipIOBandwidth = 0;
-	MemoryOverBudget = FMath::Max<int64>(DisplayedStats.RequiredPool - DisplayedStats.StreamingPool, 0);
+	MemoryOverBudget = DisplayedStats.OverBudget;
 	MaxEverRequired = FMath::Max<int64>(MaxEverRequired, DisplayedStats.RequiredPool);
 }
 

@@ -821,7 +821,7 @@ public:
 
 	// IDynamicRHIModule
 	virtual bool IsSupported() override;
-	virtual FDynamicRHI* CreateRHI() override;
+	virtual FDynamicRHI* CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num) override;
 
 private:
 	FD3D11Adapter ChosenAdapter;

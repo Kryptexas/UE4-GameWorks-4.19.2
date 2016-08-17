@@ -12,10 +12,11 @@ FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionCompon
 {
 	RenderTarget = InRenderTarget;
 
-	DistanceFromPlaneFadeEnd = Component->DistanceFromPlaneFadeEnd;
+	float ClampedFadeStart = FMath::Max(Component->DistanceFromPlaneFadeoutStart, 0.0f);
+	float ClampedFadeEnd = FMath::Max(Component->DistanceFromPlaneFadeoutEnd, 0.0f);
 
-	float ClampedFadeStart = FMath::Max(Component->DistanceFromPlaneFadeStart, 0.0f);
-	float ClampedFadeEnd = FMath::Max(Component->DistanceFromPlaneFadeEnd, 0.0f);
+	DistanceFromPlaneFadeEnd = ClampedFadeEnd;
+
 	float DistanceFadeScale = 1.0f / FMath::Max(ClampedFadeEnd - ClampedFadeStart, DELTA);
 
 	PlanarReflectionParameters = FVector(

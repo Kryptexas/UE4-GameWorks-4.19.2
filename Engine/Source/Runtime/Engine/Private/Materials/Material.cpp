@@ -3629,12 +3629,6 @@ bool UMaterial::UpdateLightmassTextureTracking()
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	if ( bTexturesHaveChanged )
-	{
-		// This will invalidate any cached Lightmass material exports
-		SetLightingGuid();
-	}
-
 	return bTexturesHaveChanged;
 }
 
@@ -4396,5 +4390,19 @@ bool UMaterial::HasFlippedCoordinates()
 	return ReversedInputCount > StandardInputCount;
 }
 #endif //WITH_EDITORONLY_DATA
+
+void UMaterial::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
+{
+#if WITH_EDITORONLY_DATA
+	if (bIncludeTextures)
+	{
+		OutGuids.Append(ReferencedTextureGuids);
+	}
+	GetReferencedFunctionIds(OutGuids);
+	GetReferencedParameterCollectionIds(OutGuids);
+	OutGuids.Add(StateId);
+	Super::GetLightingGuidChain(bIncludeTextures, OutGuids);
+#endif
+}
 
 #undef LOCTEXT_NAMESPACE

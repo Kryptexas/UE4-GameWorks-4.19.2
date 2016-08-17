@@ -117,15 +117,15 @@ static inline std::string FixHlslName(const glsl_type* Type, bool bUseTextureIns
 	}
 	else if (Type->is_sampler() && !Type->sampler_buffer && bUseTextureInsteadOfSampler)
 	{
-		if (!strcmp(Type->HlslName, "texturecube"))
+		if (!FCStringAnsi::Strcmp(Type->HlslName, "texturecube"))
 		{
 			return "textureCube";
 		}
-		else if (!strcmp(Type->HlslName, "texture2d"))
+		else if (!FCStringAnsi::Strcmp(Type->HlslName, "texture2d"))
 		{
 			return "texture2D";
 		}
-		else if (!strcmp(Type->HlslName, "texture3d"))
+		else if (!FCStringAnsi::Strcmp(Type->HlslName, "texture3d"))
 		{
 			return "texture3D";
 		}
@@ -484,7 +484,7 @@ static bool UsesUEIntrinsic(exec_list* Instructions, const char * UEIntrinsic)
 
 		virtual ir_visitor_status visit_enter(ir_call* IR) override
 		{
-			if (IR->use_builtin && !strcmp(IR->callee_name(), UEIntrinsic))
+			if (IR->use_builtin && !FCStringAnsi::Strcmp(IR->callee_name(), UEIntrinsic))
 			{
 				bFound = true;
 				return visit_stop;
@@ -731,7 +731,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 			print_base_type(t->inner_type);
 		}
 		else if ((t->base_type == GLSL_TYPE_STRUCT)
-			&& (strncmp("gl_", t->name, 3) != 0))
+			&& (FCStringAnsi::Strncmp("gl_", t->name, 3) != 0))
 		{
 			ralloc_asprintf_append(buffer, "%s", t->name);
 		}
@@ -938,8 +938,8 @@ class FGenerateVulkanVisitor : public ir_visitor
 			}
 		}
 
-		if (var->name && strncmp(var->name, "gl_", 3) == 0 &&
-			var->centroid == 0 && var->interpolation == 0 &&
+		if (var->name && FCStringAnsi::Strncmp(var->name, "gl_", 3) == 0 &&
+			var->centroid == 0 && (var->interpolation == ir_interp_qualifier_none || var->interpolation == ir_interp_qualifier_flat) &&
 			var->invariant == 0 && var->origin_upper_left == 0 &&
 			var->pixel_center_integer == 0)
 		{
@@ -1024,7 +1024,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 					check(inner_type->is_record());
 					check(inner_type->length == 1);
 					const glsl_struct_field* field = &inner_type->fields.structure[0];
-					check(strcmp(field->name, "Data") == 0);
+					check(FCStringAnsi::Strcmp(field->name, "Data") == 0);
 
 					ralloc_asprintf_append(buffer, " { %s", interp_str[var->interpolation]);
 
@@ -1361,7 +1361,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 		{
 			uint32 SSIndex = AddUniqueSamplerState(tex->SamplerStateName);
 			char PackedName[256];
-			sprintf_s(PackedName, "%sz%d", glsl_variable_tag_from_parser_target(ShaderTarget), SSIndex);
+			FCStringAnsi::Sprintf(PackedName, "%sz%u", glsl_variable_tag_from_parser_target(ShaderTarget), SSIndex);
 			BindingTable.RegisterBinding(PackedName, "z", FVulkanBindingTable::TYPE_SAMPLER);
 
 			auto GetSamplerSuffix = [](int32 Dim)
@@ -2280,7 +2280,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 
 					if (type->base_type == GLSL_TYPE_STRUCT &&
 						type->name &&
-						!strcmp(var->name, block->name) &&
+						!FCStringAnsi::Strcmp(var->name, block->name) &&
 						!strncmp(type->name, "anon_struct_", 12))
 					{
 						hash_table_remove(used_structures, type);
@@ -2385,7 +2385,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 
 					if (type->base_type == GLSL_TYPE_STRUCT &&
 						type->name &&
-						!strcmp(var->name, block->name) &&
+						!FCStringAnsi::Strcmp(var->name, block->name) &&
 						!strncmp(type->name, "anon_struct_", 12))
 					{
 						for (unsigned j = 0; j < type->length; j++)
@@ -2731,7 +2731,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 		{
 			ir_variable* var = ((extern_var*)iter.get())->var;
 			const glsl_type* type = var->type;
-			if (!strcmp(var->name, "gl_in"))
+			if (!FCStringAnsi::Strcmp(var->name, "gl_in"))
 			{
 				// Ignore it, as we can't properly frame this information in current format, and it's not used anyway for geometry shaders
 				continue;
@@ -3229,12 +3229,12 @@ public:
 						{
 							for (auto& PackedEntry : state->GlobalPackedArraysMap['s'])
 							{
-								if (!strcmp(Pair.first.c_str(), PackedEntry.Name.c_str()))
+								if (!FCStringAnsi::Strcmp(Pair.first.c_str(), PackedEntry.Name.c_str()))
 								{
 									foreach_iter(exec_list_iterator, iter, sampler_variables)
 									{
 										ir_variable* var = ((extern_var*)iter.get())->var;
-										if (!strcmp(var->name, PackedEntry.CB_PackedSampler.c_str()))
+										if (!FCStringAnsi::Strcmp(var->name, PackedEntry.CB_PackedSampler.c_str()))
 										{
 											return GetPrecisionModifierName(GetPrecisionModifier(var->type));
 										}
@@ -4797,7 +4797,7 @@ static void GenerateAppendFunctionBody(
 /*
 	for (uint32 i = 0; i < output_type->length; i++)
 	{
-		if (output_type->fields.structure[i].semantic && (strcmp(output_type->fields.structure[i].semantic, "SV_RenderTargetArrayIndex") == 0))
+		if (output_type->fields.structure[i].semantic && (FCStringAnsi::Strcmp(output_type->fields.structure[i].semantic, "SV_RenderTargetArrayIndex") == 0))
 		{
 			indexof_RenderTargetArrayIndex = i;
 			break;
@@ -4916,7 +4916,7 @@ bool FVulkanCodeBackend::GenerateMain(
 					{
 						// Replace SV_RenderTargetArrayIndex in
 						// input structure semantic with custom semantic.
-						if (Variable->semantic && (strcmp(Variable->semantic, "SV_RenderTargetArrayIndex") == 0))
+						if (Variable->semantic && (FCStringAnsi::Strcmp(Variable->semantic, "SV_RenderTargetArrayIndex") == 0))
 						{
 							//							_mesa_glsl_warning(ParseState, "Replacing semantic of variable '%s' with our custom one", Variable->name);
 							Variable->semantic = ralloc_strdup(Variable, CUSTOM_LAYER_INDEX_SEMANTIC);
@@ -4929,7 +4929,7 @@ bool FVulkanCodeBackend::GenerateMain(
 /*
 							for (uint32 i = 0; i < output_type->length; i++)
 							{
-								if (Variable->type->fields.structure[i].semantic && (strcmp(Variable->type->fields.structure[i].semantic, "SV_RenderTargetArrayIndex") == 0))
+								if (Variable->type->fields.structure[i].semantic && (FCStringAnsi::Strcmp(Variable->type->fields.structure[i].semantic, "SV_RenderTargetArrayIndex") == 0))
 								{
 									indexof_RenderTargetArrayIndex = i;
 									break;
@@ -5085,7 +5085,7 @@ bool FVulkanCodeBackend::GenerateMain(
 				{
 					ir_instruction *ir = (ir_instruction *)Iter.get();
 					ir_function *Function = ir->as_function();
-					if (Function && strcmp(Function->name, "barrier") == 0)
+					if (Function && FCStringAnsi::Strcmp(Function->name, "barrier") == 0)
 					{
 						check(Function->signatures.get_head() == Function->signatures.get_tail());
 						exec_list VoidParameter;
@@ -5203,7 +5203,7 @@ ir_function_signature*  FVulkanCodeBackend::FindPatchConstantFunction(exec_list*
 	{
 		ir_instruction *ir = (ir_instruction *)Iter.get();
 		ir_function *Function = ir->as_function();
-		if (Function && strcmp(Function->name, ParseState->tessellation.patchconstantfunc) == 0)
+		if (Function && FCStringAnsi::Strcmp(Function->name, ParseState->tessellation.patchconstantfunc) == 0)
 		{
 			int NumSigs = 0;
 			foreach_iter(exec_list_iterator, SigIter, *Function)
@@ -5330,7 +5330,7 @@ void FVulkanCodeBackend::GenShaderPatchConstantFunctionInputs(_mesa_glsl_parse_s
 			continue;
 		}
 
-		if (0 != strcmp(OutputPatchArrayIndex->var->name, "gl_InvocationID"))
+		if (0 != FCStringAnsi::Strcmp(OutputPatchArrayIndex->var->name, "gl_InvocationID"))
 		{
 			continue;
 		}
@@ -5533,7 +5533,7 @@ int32 FVulkanBindingTable::RegisterBinding(const char* InName, const char* Block
 
 	for (int32 Index = 0; Index < Bindings.Num(); ++Index)
 	{
-		if (strcmp(Bindings[Index].Name, InName) == 0)
+		if (FCStringAnsi::Strcmp(Bindings[Index].Name, InName) == 0)
 		{
 			return Index;
 		}
@@ -5549,7 +5549,7 @@ int32 FVulkanBindingTable::FindBinding(const char* InName) const
 {
 	for (int32 Index = 0; Index < Bindings.Num(); ++Index)
 	{
-		if (strcmp(Bindings[Index].Name, InName) == 0)
+		if (FCStringAnsi::Strcmp(Bindings[Index].Name, InName) == 0)
 		{
 			return Index;
 		}

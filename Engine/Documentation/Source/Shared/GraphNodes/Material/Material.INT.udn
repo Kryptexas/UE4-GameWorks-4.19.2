@@ -11,6 +11,22 @@ Engine/Rendering/Materials/ExpressionReference/Atmosphere
 [/VAR]
 [/EXCERPT:UMaterialExpressionAtmosphericFogColor]
 
+[EXCERPT:UMaterialExpressionAtmosphericLightVector]
+The Atmospheric Light Vector Material Expression returns the Light Vector for the Directional Light in the scene with 'Atmosphere Sun Light' checked. Useful for effects materials that may want to perform some custom shading using the sun's Light Vector.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Atmosphere
+[/VAR]
+[/EXCERPT:UMaterialExpressionAtmosphericLightVector]
+
+[EXCERPT:UMaterialExpressionAtmosphericLightColor]
+The Atmospheric Light Color Material Expression returns the Light Color for the Directional Light in the scene with 'Atmosphere Sun Light' checked. Useful for effects materials that may want to perform some custom shading using the sun's Light Color.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Atmosphere
+[/VAR]
+[/EXCERPT:UMaterialExpressionAtmosphericLightColor]
+
 
 [EXCERPT:UMaterialExpressionDesaturation]
 The Desaturation expression desaturates its input, or converts the colors of its input into shades of gray, based a certain percentage. 

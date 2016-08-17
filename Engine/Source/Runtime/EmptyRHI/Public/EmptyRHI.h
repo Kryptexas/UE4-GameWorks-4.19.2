@@ -212,12 +212,8 @@ public:
 class FEmptyDynamicRHIModule : public IDynamicRHIModule
 {
 public:
-
-	// IModuleInterface
-	virtual bool SupportsShutdown() { return false; }
-
 	// IDynamicRHIModule
-	virtual bool IsSupported();
+	virtual bool IsSupported() override;
 
-	virtual FDynamicRHI* CreateRHI();
+	virtual FDynamicRHI* CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num) override;
 };

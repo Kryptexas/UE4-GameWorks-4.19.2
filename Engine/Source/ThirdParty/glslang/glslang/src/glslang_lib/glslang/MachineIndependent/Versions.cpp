@@ -162,7 +162,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_texture_gather]               = EBhDisable;
     extensionBehavior[E_GL_ARB_gpu_shader5]                  = EBhDisablePartial;
     extensionBehavior[E_GL_ARB_separate_shader_objects]      = EBhDisable;
-    extensionBehavior[E_GL_ARB_compute_shader]               = EBhDisablePartial;
+    extensionBehavior[E_GL_ARB_compute_shader]               = EBhDisable;
     extensionBehavior[E_GL_ARB_tessellation_shader]          = EBhDisable;
     extensionBehavior[E_GL_ARB_enhanced_layouts]             = EBhDisable;
     extensionBehavior[E_GL_ARB_texture_cube_map_array]       = EBhDisable;
@@ -176,11 +176,12 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_shader_texture_image_samples] = EBhDisable;
     extensionBehavior[E_GL_ARB_viewport_array]               = EBhDisable;
     extensionBehavior[E_GL_ARB_gpu_shader_int64]             = EBhDisable;
-    extensionBehavior[E_GL_ARB_gl_spirv]                     = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_ballot]                = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture2]              = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture_clamp]         = EBhDisable;
 //    extensionBehavior[E_GL_ARB_cull_distance]                = EBhDisable;    // present for 4.5, but need extension control over block members
+
+    extensionBehavior[E_GL_EXT_shader_non_constant_global_initializers] = EBhDisable;
 
     // #line and #include
     extensionBehavior[E_GL_GOOGLE_cpp_style_line_directive]          = EBhDisable;
@@ -256,6 +257,7 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_OES_tessellation_point_size 1\n"
             "#define GL_OES_texture_buffer 1\n"
             "#define GL_OES_texture_cube_map_array 1\n"
+            "#define GL_EXT_shader_non_constant_global_initializers 1\n"
             ;
     } else {
         preamble = 
@@ -279,11 +281,11 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_ARB_shader_texture_image_samples 1\n"
             "#define GL_ARB_viewport_array 1\n"
             "#define GL_ARB_gpu_shader_int64 1\n"
-            "#define GL_ARB_gl_spirv 1\n"
             "#define GL_ARB_shader_ballot 1\n"
             "#define GL_ARB_sparse_texture2 1\n"
             "#define GL_ARB_sparse_texture_clamp 1\n"
 //            "#define GL_ARB_cull_distance 1\n"    // present for 4.5, but need extension control over block members
+            "#define GL_EXT_shader_non_constant_global_initializers 1\n"
             ;
     }
 
@@ -293,8 +295,23 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_GOOGLE_include_directive 1\n"
             ;
 
-    if (vulkan > 0)
-        preamble += "#define VULKAN 100\n";
+    // #define VULKAN XXXX
+    const int numberBufSize = 12;
+    char numberBuf[numberBufSize];
+    if (spvVersion.vulkan > 0) {
+        preamble += "#define VULKAN ";
+        snprintf(numberBuf, numberBufSize, "%d", spvVersion.vulkan);
+        preamble += numberBuf;
+        preamble += "\n";
+    }
+    // #define GL_SPIRV XXXX
+    if (spvVersion.openGl > 0) {
+        preamble += "#define GL_SPIRV ";
+        snprintf(numberBuf, numberBufSize, "%d", spvVersion.openGl);
+        preamble += numberBuf;
+        preamble += "\n";
+    }
+
 }
 
 //
@@ -575,9 +592,6 @@ void TParseVersions::updateExtensionBehavior(int line, const char* extension, co
         updateExtensionBehavior(line, "GL_OES_shader_io_blocks", behaviorString);
     else if (strcmp(extension, "GL_GOOGLE_include_directive") == 0)
         updateExtensionBehavior(line, "GL_GOOGLE_cpp_style_line_directive", behaviorString);
-    // SPIR-V
-    else if (strcmp(extension, "GL_ARB_gl_spirv") == 0)
-        spv = 100;
 }
 
 void TParseVersions::updateExtensionBehavior(const char* extension, TExtensionBehavior behavior)
@@ -649,28 +663,28 @@ void TParseVersions::int64Check(const TSourceLoc& loc, const char* op, bool buil
 // Call for any operation removed because SPIR-V is in use.
 void TParseVersions::spvRemoved(const TSourceLoc& loc, const char* op)
 {
-    if (spv > 0)
+    if (spvVersion.spv != 0)
         error(loc, "not allowed when generating SPIR-V", op, "");
 }
 
 // Call for any operation removed because Vulkan SPIR-V is being generated.
 void TParseVersions::vulkanRemoved(const TSourceLoc& loc, const char* op)
 {
-    if (vulkan > 0)
+    if (spvVersion.vulkan >= 100)
         error(loc, "not allowed when using GLSL for Vulkan", op, "");
 }
 
 // Call for any operation that requires Vulkan.
 void TParseVersions::requireVulkan(const TSourceLoc& loc, const char* op)
 {
-    if (vulkan == 0)
+    if (spvVersion.vulkan == 0)
         error(loc, "only allowed when using GLSL for Vulkan", op, "");
 }
 
 // Call for any operation that requires SPIR-V.
 void TParseVersions::requireSpv(const TSourceLoc& loc, const char* op)
 {
-    if (spv == 0)
+    if (spvVersion.spv == 0)
         error(loc, "only allowed when generating SPIR-V", op, "");
 }
 

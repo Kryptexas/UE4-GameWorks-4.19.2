@@ -27,7 +27,7 @@ public:
 	void ProcessAsyncSSAO(FRHICommandListImmediate& RHICmdList, TArray<FViewInfo>& Views);
 	void GfxWaitForAsyncSSAO(FRHICommandListImmediate& RHICmdList);
 
-	bool IsSubsurfaceCheckerboardRequired() const;
+	bool IsSubsurfacePostprocessRequired() const;
 
 private:
 	void PrepareAsyncSSAO(FRHICommandListImmediate& RHICmdList, TArray<FViewInfo>& Views);

@@ -86,10 +86,6 @@ void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
     numPushConstants += unit.numPushConstants;
     callGraph.insert(callGraph.end(), unit.callGraph.begin(), unit.callGraph.end());
 
-    if ((profile != EEsProfile && unit.profile == EEsProfile) ||
-        (profile == EEsProfile && unit.profile != EEsProfile))
-        error(infoSink, "Cannot mix ES profile with non-ES profile shaders\n");
-
     if (originUpperLeft != unit.originUpperLeft || pixelCenterInteger != unit.pixelCenterInteger)
         error(infoSink, "gl_FragCoord redeclarations must match across shaders\n");
 
@@ -392,6 +388,8 @@ void TIntermediate::finalCheck(TInfoSink& infoSink)
 
     if (inIoAccessed("gl_ClipDistance") && inIoAccessed("gl_ClipVertex"))
         error(infoSink, "Can only use one of gl_ClipDistance or gl_ClipVertex (gl_ClipDistance is preferred)");
+    if (inIoAccessed("gl_CullDistance") && inIoAccessed("gl_ClipVertex"))
+        error(infoSink, "Can only use one of gl_CullDistance or gl_ClipVertex (gl_ClipDistance is preferred)");
 
     if (userOutputUsed() && (inIoAccessed("gl_FragColor") || inIoAccessed("gl_FragData")))
         error(infoSink, "Cannot use gl_FragColor or gl_FragData when using user-defined outputs");

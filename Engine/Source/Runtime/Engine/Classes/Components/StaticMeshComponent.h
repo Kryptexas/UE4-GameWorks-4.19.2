@@ -235,9 +235,8 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	TArray<struct FStaticMeshComponentLODInfo> LODData;
 
 	/** The list of texture, bounds and scales. As computed in the texture streaming build process. */
-	UPROPERTY(duplicatetransient, NonTransactional)
+	UPROPERTY(NonTransactional)
 	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
-
 
 	/** Use the collision profile specified in the StaticMesh asset.*/
 	UPROPERTY(EditAnywhere, Category = Collision)
@@ -254,6 +253,9 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** Derived data key of the static mesh, used to determine if an update from the source static mesh is required. */
 	UPROPERTY()
 	FString StaticMeshDerivedDataKey;
+
+	UPROPERTY()
+	bool bStreamingTextureDataValid;
 #endif
 
 	/** The Lightmass settings for this object. */
@@ -338,13 +340,26 @@ public:
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
 
 	/**
-	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	* Return whether this primitive should have data for texture streaming. Used to optimize the texture streaming build.
 	*
-	* @param	bCheckTexCoordScales		If true, section data must contains texcoord scales to be valid.
-	*
-	* @return	true if some sections have missing data. If this component is not expected to have data, this should return false.
+	* @return	true if a rebuild is required.
 	*/
-	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const override;
+	virtual bool RequiresStreamingTextureData() const override;
+
+	/**
+	* Return whether this primitive has (good) section data for texture streaming. Used in the texture streaming build and accuracy viewmodes.
+	*
+	* @param bCheckTexCoordScales - If true, section data must contains texcoord scales to be valid.
+	*
+	* @return - true if streaming section data is valid.
+	*/
+	virtual bool HasStreamingSectionData(bool bCheckTexCoordScales) const override;
+	/**
+	* Return whether this primitive has (good) built data for texture streaming. Used for the "Texture Streaming Needs Rebuilt" check.
+	*
+	* @return	true if all texture streaming data is valid.
+	*/
+	virtual bool HasStreamingTextureData() const override;
 
 	/**
 	*	Update the precomputed streaming debug data of this component.
@@ -361,7 +376,7 @@ public:
 	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
 	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
 	 */
-	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel);
+	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) override;
 
 	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;

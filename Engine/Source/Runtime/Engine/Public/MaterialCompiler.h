@@ -206,6 +206,8 @@ public:
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) = 0;
 	virtual int32 TextureCoordinateOffset() = 0;
 	virtual int32 EyeAdaptation() = 0;
+	virtual int32 AtmosphericLightVector() = 0;
+	virtual int32 AtmosphericLightColor() = 0;
 	// The compiler can run in a different state and this affects caching of sub expression, Expressions are different (e.g. View.PrevWorldViewOrigin) when using previous frame's values
 	// If possible we should re-factor this to avoid having to deal with compiler state
 	virtual bool IsCurrentlyCompilingForPreviousFrame() const { return false; }
@@ -393,6 +395,16 @@ public:
 	virtual int32 AtmosphericFogColor(int32 WorldPosition) override
 	{
 		return Compiler->AtmosphericFogColor(WorldPosition);
+	}
+
+	virtual int32 AtmosphericLightVector() override
+	{
+		return Compiler->AtmosphericLightVector();
+	}
+
+	virtual int32 AtmosphericLightColor() override
+	{
+		return Compiler->AtmosphericLightColor();
 	}
 
 	virtual int32 TextureCoordinateOffset() override

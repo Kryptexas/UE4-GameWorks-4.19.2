@@ -655,7 +655,8 @@ uint32 UTexture2D::CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const
 	}
 	else if( Enum == TMC_AllMipsBiased )
 	{
-		return CalcTextureMemorySize( GetNumMips() - LODBias );
+		int32 MinAllowedMips = GetMinTextureResidentMipCount();
+		return CalcTextureMemorySize( FMath::Max<int32>(MinAllowedMips,  GetNumMips() - LODBias) );
 	}
 	else
 	{

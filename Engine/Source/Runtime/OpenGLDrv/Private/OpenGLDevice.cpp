@@ -996,6 +996,13 @@ static void InitRHICapabilitiesForGL()
 	GPixelFormats[ PF_FloatRGBA			].BlockBytes	 = 8;
 }
 
+FDynamicRHI* FOpenGLDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequestedFeatureLevel)
+{
+	GRequestedFeatureLevel = InRequestedFeatureLevel;
+	return new FOpenGLDynamicRHI();
+}
+
+
 FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 :	SceneFrameCounter(0)
 ,	ResourceTableFrameCounter(INDEX_NONE)

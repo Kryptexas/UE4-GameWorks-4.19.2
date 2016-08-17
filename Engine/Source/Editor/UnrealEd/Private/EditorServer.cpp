@@ -3741,6 +3741,13 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 
 	Game_Map_Check(InWorld, Str, Ar, bCheckDeprecatedOnly);
 
+
+	CheckTextureStreamingBuild(InWorld);
+	if (InWorld->NumTextureStreamingUnbuiltComponents > 0 || InWorld->NumTextureStreamingDirtyResources > 0)
+	{
+		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt, run 'Build Texture Streaming'.")));
+	}
+
 	GWarn->StatusUpdate( 0, ProgressDenominator, CheckMapLocText );
 
 	int32 LastUpdateCount = 0;

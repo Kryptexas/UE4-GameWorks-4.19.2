@@ -3608,7 +3608,7 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 		// or also for PSCs that are attached to a SkelComp which is being attached and reattached but the PSC itself is not active!
 		if (bIsActive)
 		{
-			UpdateDynamicData(PSysSceneProxy);
+			UpdateDynamicData();
 		}
 		else
 		{
@@ -4029,7 +4029,7 @@ void UParticleSystemComponent::ClearDynamicData()
 	}
 }
 
-void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Proxy)
+void UParticleSystemComponent::UpdateDynamicData()
 {
 	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
 
@@ -4037,7 +4037,9 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	if (SceneProxy)
 	{
 		// Create the dynamic data for rendering this particle system
-		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(Proxy->GetScene().GetFeatureLevel());
+		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(SceneProxy->GetScene().GetFeatureLevel());
+
+		FParticleSystemSceneProxy* Proxy = (FParticleSystemSceneProxy*)SceneProxy;
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		//@todo.SAS. Remove thisline  - it is used for debugging purposes...

@@ -126,8 +126,8 @@ namespace ETranslucencyPass
 {
 	enum Type
 	{
-		TPT_NonSeparateTransluceny,
-		TPT_SeparateTransluceny,
+		TPT_StandardTranslucency,
+		TPT_SeparateTranslucency,
 
 		TPT_MAX
 	};
@@ -565,10 +565,15 @@ class FGlobalDistanceFieldInfo
 {
 public:
 
+	bool bInitialized;
 	TArray<FGlobalDistanceFieldClipmap> Clipmaps;
 	FGlobalDistanceFieldParameterData ParameterData;
 
 	void UpdateParameterData(float MaxOcclusionDistance);
+
+	FGlobalDistanceFieldInfo() :
+		bInitialized(false)
+	{}
 };
 
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FForwardGlobalLightData,)
@@ -619,6 +624,9 @@ public:
 	 * This should be used internally to the renderer module to avoid having to cast View.State to an FSceneViewState*
 	 */
 	FSceneViewState* ViewState;
+
+	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
+	TScopedPointer<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	FSceneBitArray PrimitiveVisibilityMap;
@@ -828,14 +836,22 @@ public:
 	*/
 	~FViewInfo();
 
-	/** Creates the view's uniform buffers given a set of view transforms. */
-	void CreateUniformBuffer(
-		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
-		FRHICommandList& RHICmdList,
+	/** Creates ViewUniformShaderParameters given a set of view transforms. */
+	void SetupUniformBufferParameters(
+		FSceneRenderTargets& SceneContext,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
 		const FMatrix& EffectiveViewToTranslatedWorld, 
 		FBox* OutTranslucentCascadeBoundsArray, 
-		int32 NumTranslucentCascades) const;
+		int32 NumTranslucentCascades,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+
+	void SetupViewRectUniformBufferParameters(
+		FIntPoint BufferSize,
+		FIntRect EffectiveViewRect,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+
+	void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+	void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 
 	/** Initializes the RHI resources used by this view. */
 	void InitRHIResources();
@@ -1371,3 +1387,35 @@ private:
 
 // The noise textures need to be set in Slate too.
 RENDERER_API void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters);
+
+inline FTextureRHIParamRef OrBlack2DIfNull(FTextureRHIParamRef Tex)
+{
+	FTextureRHIParamRef Result = Tex ? Tex : GBlackTexture->TextureRHI.GetReference();
+	check(Result);
+	return Result;
+}
+
+inline FTextureRHIParamRef OrBlack3DIfNull(FTextureRHIParamRef Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex : GBlackVolumeTexture->TextureRHI.GetReference());
+}
+
+inline void SetBlack2DIfNull(FTextureRHIParamRef& Tex)
+{
+	if (!Tex)
+	{
+		Tex = GBlackTexture->TextureRHI.GetReference();
+		check(Tex);
+	}
+}
+
+inline void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
+{
+	if (!Tex)
+	{
+		Tex = GBlackVolumeTexture->TextureRHI.GetReference();
+		// we fall back to 2D which are unbound es2 parameters
+		SetBlack2DIfNull(Tex);
+	}
+}
