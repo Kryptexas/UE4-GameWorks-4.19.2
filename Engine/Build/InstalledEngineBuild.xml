@@ -90,6 +90,13 @@
 		<Node Name="Compile UE4Editor Win64" Requires="Compile UnrealHeaderTool Win64" Produces="#UE4Editor Win64;#UE4Editor Win64 Unstripped;#UE4Editor Win64 Stripped;#UE4Editor Win64 Unsigned;#UE4Editor Win64 Signed;#UE4Editor Win64 Includes">
 			<Compile Target="UE4Editor" Platform="Win64" Configuration="Development" Tag="#UE4Editor Win64" Arguments="-precompile"/>
 
+			<Do If="$(EnableSymStore)">
+				<!-- Embed source info into the PDB files. Should be done from this machine to ensure that paths are correct. -->
+				<Log Message="Embedding source file information into PDB files..."/>
+				<Tag Files="Engine/Source/...;Engine/Plugins/..." Filter="*.c;*.h;*.cpp;*.hpp;*.inl" Except="Engine/Source/ThirdParty/..." With="#SourceFiles"/>
+				<SrcSrv BinaryFiles="#UE4Editor Win64" SourceFiles="#SourceFiles" Branch="$(Branch)" Change="$(Change)"/>
+			</Do>
+
 			<Tag Files="#UE4Editor Win64" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions)" With="#UE4Editor Win64 Unstripped"/>
 			<Strip BaseDir="$(RootDir)" OutputDir="$(SavedOutput)" Platform="Win64" Files="#UE4Editor Win64 Unstripped" Tag="#UE4Editor Win64 Stripped"/>
 
@@ -305,6 +312,13 @@
 			<Compile Target="BootstrapPackagedGame" Configuration="Shipping" Platform="Win32" Tag="#Build Tools Win64"/>
 			<Compile Target="BootstrapPackagedGame" Configuration="Shipping" Platform="Win64" Tag="#Build Tools Win64"/>
 			<Compile Target="BuildPatchTool" Configuration="Shipping" Platform="Win64" Tag="#Build Tools Win64"/>
+
+			<Do If="$(EnableSymStore)">
+				<!-- Embed source info into the PDB files. Should be done from this machine to ensure that paths are correct. -->
+				<Log Message="Embedding source file information into PDB files..."/>
+				<Tag Files="Engine/Source/...;Engine/Plugins/..." Filter="*.c;*.h;*.cpp;*.hpp;*.inl" Except="Engine/Source/ThirdParty/..." With="#SourceFiles"/>
+				<SrcSrv BinaryFiles="#Build Tools Win64" SourceFiles="#SourceFiles" Branch="$(Branch)" Change="$(Change)"/>
+			</Do>
 		</Node>
 		<Node Name="Build Tools CS">
 			<CsCompile Project="Engine/Source/Editor/SwarmInterface/DotNET/SwarmInterface.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS"/>
