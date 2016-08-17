@@ -692,7 +692,20 @@ bool ImportFBXProperty(FString NodeName, FString AnimatedPropertyName, FGuid Obj
 				{
 					MinTime = FMath::Min(MinTime, CurveHandle.Points[KeyIndex].InVal);
 					MaxTime = FMath::Max(MaxTime, CurveHandle.Points[KeyIndex].InVal);
-					FMatineeImportTools::SetOrAddKey(FloatCurve, CurveHandle.Points[KeyIndex].InVal, CurveHandle.Points[KeyIndex].OutVal, CurveHandle.Points[KeyIndex].ArriveTangent, CurveHandle.Points[KeyIndex].LeaveTangent, CurveHandle.Points[KeyIndex].InterpMode);
+
+					float ArriveTangent = CurveHandle.Points[KeyIndex].ArriveTangent;
+					if (KeyIndex > 0)
+					{
+						ArriveTangent = ArriveTangent / (CurveHandle.Points[KeyIndex].InVal - CurveHandle.Points[KeyIndex-1].InVal);
+					}
+					
+					float LeaveTangent = CurveHandle.Points[KeyIndex].LeaveTangent;
+					if (KeyIndex < CurveHandle.Points.Num() - 1)
+					{
+						LeaveTangent = LeaveTangent / (CurveHandle.Points[KeyIndex+1].InVal - CurveHandle.Points[KeyIndex].InVal);
+					}
+
+					FMatineeImportTools::SetOrAddKey(FloatCurve, CurveHandle.Points[KeyIndex].InVal, CurveHandle.Points[KeyIndex].OutVal, ArriveTangent, LeaveTangent, CurveHandle.Points[KeyIndex].InterpMode);
 				}
 
 				FloatCurve.RemoveRedundantKeys(KINDA_SMALL_NUMBER);
@@ -761,16 +774,25 @@ bool ImportFBXTransform(FString NodeName, FGuid ObjectBinding, UnFbx::FFbxCurves
 	
 			FInterpCurveFloat* CurveFloat = nullptr;
 			FRichCurve* ChannelCurve = nullptr;
-				
+			bool bNegative = false;
+
 			if (CurveIndex == 0)
 			{
 				CurveFloat = &Translation[ChannelIndex];
 				ChannelCurve = &TransformSection->GetTranslationCurve(ChannelAxis);
+				if (ChannelIndex == 1)
+				{
+					bNegative = true;
+				}
 			}
 			else if (CurveIndex == 1)
 			{
 				CurveFloat = &EulerRotation[ChannelIndex];
 				ChannelCurve = &TransformSection->GetRotationCurve(ChannelAxis);
+				if (ChannelIndex == 1 || ChannelIndex == 2)
+				{
+					bNegative = true;
+				}
 			}
 			else if (CurveIndex == 2)
 			{
@@ -786,7 +808,26 @@ bool ImportFBXTransform(FString NodeName, FGuid ObjectBinding, UnFbx::FFbxCurves
 				{
 					MinTime = FMath::Min(MinTime, CurveFloat->Points[KeyIndex].InVal);
 					MaxTime = FMath::Max(MaxTime, CurveFloat->Points[KeyIndex].InVal);
-					FMatineeImportTools::SetOrAddKey(*ChannelCurve, CurveFloat->Points[KeyIndex].InVal, CurveFloat->Points[KeyIndex].OutVal, CurveFloat->Points[KeyIndex].ArriveTangent, CurveFloat->Points[KeyIndex].LeaveTangent, CurveFloat->Points[KeyIndex].InterpMode);
+					
+					float ArriveTangent = CurveFloat->Points[KeyIndex].ArriveTangent;
+					if (KeyIndex > 0)
+					{
+						ArriveTangent = ArriveTangent / (CurveFloat->Points[KeyIndex].InVal - CurveFloat->Points[KeyIndex-1].InVal);
+					}
+					
+					float LeaveTangent = CurveFloat->Points[KeyIndex].LeaveTangent;
+					if (KeyIndex < CurveFloat->Points.Num() - 1)
+					{
+						LeaveTangent = LeaveTangent / (CurveFloat->Points[KeyIndex+1].InVal - CurveFloat->Points[KeyIndex].InVal);
+					}
+
+					if (bNegative)
+					{
+						ArriveTangent = -ArriveTangent;
+						LeaveTangent = -LeaveTangent;
+					}
+
+					FMatineeImportTools::SetOrAddKey(*ChannelCurve, CurveFloat->Points[KeyIndex].InVal, CurveFloat->Points[KeyIndex].OutVal, ArriveTangent, LeaveTangent, CurveFloat->Points[KeyIndex].InterpMode);
 				}
 
 				ChannelCurve->RemoveRedundantKeys(KINDA_SMALL_NUMBER);
