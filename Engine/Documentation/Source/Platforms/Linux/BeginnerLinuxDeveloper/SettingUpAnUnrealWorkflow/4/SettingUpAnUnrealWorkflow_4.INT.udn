@@ -33,6 +33,18 @@ games for the Linux platform.
 
 [INCLUDE:Programming/Development/BuildingUnrealEngine#linuxrun]
 
+## Launching UE4 on Linux
+
+Because you've compiled the engine from its source code on Linux, the engine will compile shaders for a few minutes after launching UE4.
+
+![](howTo_comilingshaders.png)
+
+## Creating your First Project
+
+If you haven't already set up an Integrated Development Environment (IDE) to work with UE4, we recommend that you start out by creating a **Blueprint** project. 
+
+![](howTo_creatingprrjwithoutIDE.png)
+
 ## End Result
 
 ![](howTo_endResult.png)
@@ -40,7 +52,7 @@ games for the Linux platform.
 If you're creating your first game on Linux, you just learned how to establish your primary UE4 workflow on Linux. As you worked your way through this tutorial, 
 you learned:
 
-&#x2713; How to setup Git to download the source code for Unreal Engine.  
+&#x2713; How to set up Git to download the source code for Unreal Engine.  
 &#x2713; How to fork and clone Unreal Engine's source code.  
 &#x2713; How to build Unreal Engine from source.  
 &#x2713; How to run Unreal Engine on your Linux machine.  

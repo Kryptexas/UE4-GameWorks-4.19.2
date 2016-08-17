@@ -149,9 +149,8 @@ Make sure that the latest version of XCode is installed prior to building Unreal
 
 [EXCERPT:linuxcompile]
 
-[REGION:note]
-Our development and support teams currently use the latest version of Ubuntu; as a result, we may not be able to provide support for other Linux distributions (including other versions of Ubuntu). Also, depending on your system's specifications, it may take anywhere from ten minutes to over an hour to compile the engine.
-[/REGION]
+Our development and support teams currently use the latest version of Ubuntu; as a result, we may not be able to provide support for other Linux distributions (including other versions of Ubuntu). Additionally, please make sure your system has at least ten (10) gigabytes of disk space before performing 
+the following steps.
 
 1.  Inside the root directory, run **Setup.sh** from the terminal to setup the files needed to generate the project files.
 
@@ -164,6 +163,9 @@ Our development and support teams currently use the latest version of Ubuntu; as
 1.	To build the project, run **make** from the terminal.
 
 	![](RunMakeFile_Linux.png)
+
+Depending on your system's specifications, it may take anywhere from ten minutes to over an hour to compile the engine. If you want to shorten the time it takes to compile the engine from source, we recommend compiling 
+the source code on a machine that has at least eight (8) gigabytes of RAM with a multi-core processor having at least eight (8) cores (including hyperthreading).
 
 [/EXCERPT:linuxcompile]
 -->
@@ -203,8 +205,7 @@ Our development and support teams currently use the latest version of Ubuntu; as
 [EXCERPT:linuxrun]
 
 [REGION:note]		
-If you're unable to create an OpenGL context as you're working through these steps, you may need to update your graphics drivers (refer to Ubuntu's documentation<!-- and our list of [](Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers) -->). 
-For an optimal experience, we recommend using NVIDIA binary drivers (versions equal to or greater than 343.xx).
+If you're unable to create an OpenGL context as you're working through these steps, you may need to update your graphics drivers (refer to our documentation on [](Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers)).
 [/REGION]
 
 1.	Navigate to the editor's binary path by entering `cd Engine/Binaries/Linux/` into the terminal.
