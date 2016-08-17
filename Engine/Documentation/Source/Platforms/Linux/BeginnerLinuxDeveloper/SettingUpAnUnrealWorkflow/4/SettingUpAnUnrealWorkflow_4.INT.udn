@@ -37,7 +37,7 @@ games for the Linux platform.
 
 Because you've compiled the engine from its source code on Linux, the engine will compile shaders for a few minutes after launching UE4.
 
-![](howTo_comilingshaders.png)
+![](howTo_compilingshaders.png)
 
 ## Creating your First Project
 
