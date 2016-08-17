@@ -142,6 +142,16 @@ void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollec
 }
 
 #if WITH_EDITOR
+void ULandscapeComponent::BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform)
+{
+	Super::BeginCacheForCookedPlatformData(TargetPlatform);
+
+	if (TargetPlatform->SupportsFeature(ETargetPlatformFeatures::MobileRendering) && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		CheckGenerateLandscapePlatformData(true);
+	}
+}
+
 void ULandscapeComponent::CheckGenerateLandscapePlatformData(bool bIsCooking)
 {
 #if ENABLE_LANDSCAPE_COOKING
@@ -214,6 +224,9 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 	if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject) && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::MobileRendering))
 	{
+		// for -oldcook:
+		// the old cooker calls BeginCacheForCookedPlatformData after the package export set is tagged, so the mobile material doesn't get saved, so we have to do CheckGenerateLandscapePlatformData in serialize
+		// the new cooker clears the texture source data before calling serialize, causing GeneratePlatformVertexData to crash, so we have to do CheckGenerateLandscapePlatformData in BeginCacheForCookedPlatformData
 		CheckGenerateLandscapePlatformData(true);
 	}
 

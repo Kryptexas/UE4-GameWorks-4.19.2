@@ -339,6 +339,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
+	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual void PostEditUndo() override;
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
