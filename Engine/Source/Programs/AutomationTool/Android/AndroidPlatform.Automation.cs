@@ -177,7 +177,15 @@ public class AndroidPlatform : Platform
 					}
 				};
 			ObbFile.AddDirectory(SC.StageDirectory+"/"+SC.ShortProjectName, SC.ShortProjectName);
-			ObbFile.Save();
+			try
+			{
+				ObbFile.Save();
+			}
+			catch (Exception)
+			{
+				Log("Failed to build OBB: " + LocalObbName);
+				throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
+			}
 		}
 
 		// collect plugin extra data paths from target receipts
