@@ -2634,6 +2634,7 @@ public:
 		static const FName TBasePassVSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy"));
 		static const FName TBasePassPSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy"));
 		static const FName TShadowDepthVSVertexShadowDepth_OutputDepthfalse = FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse"));
+		static const FName TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse = FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse"));
 
 		if (VertexFactoryType)
 		{
@@ -2642,11 +2643,14 @@ public:
 				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
 				if (VertexFactoryType->GetFName() == LocalVertexFactory)
 				{
+					// reduce the number of shaders compiled for the thumbnail materials by only compiling with shader types known to be used by the preview scene
+					// (out of 41 known total shader types)
 					if (ShaderType->GetFName() == TBasePassVSFNoLightMapPolicy ||
 						ShaderType->GetFName() == TBasePassPSFNoLightMapPolicy ||
 						ShaderType->GetFName() == TBasePassVSFCachedPointIndirectLightingPolicy ||
 						ShaderType->GetFName() == TBasePassPSFCachedPointIndirectLightingPolicy ||
-						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse)
+						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse ||
+						ShaderType->GetFName() == TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse)
 					{
 						return true;
 					}
