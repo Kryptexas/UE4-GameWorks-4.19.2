@@ -186,6 +186,11 @@ When painting meshes, the engine performs a number of line traces inside the sph
 **To erase foliage from the brush area:**  
 * Hold down **Shift** and **Left Mouse** button and **click** where you want to remove foliage.
 
+
+[REGION:tip]
+Foliage painting also works in the VR Editor. For the controls for foliage painting in VR, see the [](Engine/Editor/VR/Controls).
+[/REGION]
+
 ### Paint Settings
 
 Each Static mesh in the Mesh List has a number of properties that control how instances are placed, scaled or rotated when the selected Static mesh is painted. 
