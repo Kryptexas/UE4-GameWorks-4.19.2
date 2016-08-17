@@ -114,7 +114,7 @@ namespace UnrealBuildTool
 
 		public virtual string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
 		{
-			SetUpProjectEnvironment();
+			SetUpProjectEnvironment(Configuration);
 
 			// get the list of architectures to compile
 			string Archs =
@@ -134,6 +134,28 @@ namespace UnrealBuildTool
 
 			return Result;
 		}
+		
+		public virtual string GetRequiredCapabilities()
+		{
+			string	result = "";
+			
+			if(TargetConfiguration == UnrealTargetConfiguration.Shipping)
+			{
+				foreach (string arch in ShippingArchitectures.Split())
+				{
+               		result += "\t\t<string>" + arch + "</string>\n";
+				}
+			}
+			else
+			{
+				foreach (string arch in NonShippingArchitectures.Split())
+				{
+               		result += "\t\t<string>" + arch + "</string>\n";
+				}
+			}
+			
+			return result;
+		}
 
 		public string GetAdditionalLinkerFlags(CPPTargetConfiguration InConfiguration)
 		{
@@ -148,11 +170,31 @@ namespace UnrealBuildTool
 
 		}
 
-		public override void SetUpProjectEnvironment()
+		public void SetUpProjectEnvironment(CPPTargetConfiguration Configuration)
+		{
+			UnrealTargetConfiguration	unrealConfiguration;
+			
+			switch(Configuration)
+			{
+				case CPPTargetConfiguration.Shipping:
+					unrealConfiguration = UnrealTargetConfiguration.Shipping;
+					break;
+				case CPPTargetConfiguration.Development:
+					unrealConfiguration = UnrealTargetConfiguration.Development;
+					break;
+				default:
+					unrealConfiguration = UnrealTargetConfiguration.DebugGame;
+					break;
+			}
+			
+			SetUpProjectEnvironment(unrealConfiguration);
+		}
+		
+		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
 			if (!bInitializedProject)
 			{
-				base.SetUpProjectEnvironment();
+				base.SetUpProjectEnvironment(Configuration);
 
 				// update the configuration based on the project file
 				// look in ini settings for what platforms to compile for
@@ -370,7 +412,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
 		public override UEBuildDeploy CreateDeploymentHandler()
 		{
-			return new UEDeployIOS(ProjectFile);
+			return new UEDeployIOS(ProjectFile, this);
 		}
 	}
 

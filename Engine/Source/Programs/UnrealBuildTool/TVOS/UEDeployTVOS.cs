@@ -14,7 +14,7 @@ namespace UnrealBuildTool
 	public class UEDeployTVOS : UEDeployIOS
 	{
 
-		public UEDeployTVOS(FileReference InProjectFile) : base(InProjectFile)
+		public UEDeployTVOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext) : base(InProjectFile, inIOSPlatformContext)
 		{
 		}
 

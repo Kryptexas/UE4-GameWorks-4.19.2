@@ -30,6 +30,11 @@ namespace UnrealBuildTool
 		public readonly FileReference ProjectFile;
 
 		/// <summary>
+		/// The current overall target configuration being worked on
+		/// </summary>
+		public UnrealTargetConfiguration	TargetConfiguration;
+
+		/// <summary>
 		/// Constructor.
 		/// </summary>
 		/// <param name="InPlatform">The platform that this context is for</param>
@@ -172,10 +177,12 @@ namespace UnrealBuildTool
 		/// Setup the project environment for building
 		/// </summary>
 		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetUpProjectEnvironment()
+		public virtual void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
 			if (!bInitializedProject)
 			{
+				TargetConfiguration = Configuration;
+				
 				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
@@ -262,6 +269,13 @@ namespace UnrealBuildTool
 				}
 
 				bInitializedProject = true;
+			}
+			else
+			{
+				if(TargetConfiguration != Configuration)
+				{
+					throw new BuildException("SetUpProjectEnvironment: Can not setup a project for a different target configuration");
+				}
 			}
 		}
 
