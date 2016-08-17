@@ -19,7 +19,6 @@
 #include "MessageLog.h"
 
 #include "LevelUtils.h"
-#include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
 #include "Dialogs/DlgPickPath.h"
@@ -2112,6 +2111,72 @@ void FEditorFileUtils::LoadMap()
 	}
 }
 
+static void NotifyBSPNeedsRebuild(const FString& PackageName)
+{
+	static TSharedPtr<SNotificationItem> Notification;
+
+	// If there's still a notification present from the last time a map was loaded, get rid of it now.
+	if (Notification.IsValid())
+	{
+		Notification->SetEnabled(false);
+		Notification->ExpireAndFadeout();
+		Notification.Reset();
+	}
+
+	FNotificationInfo Info(LOCTEXT("BSPIssues", "Some issues were detected with BSP/Volume geometry in one or more of the loaded levels.\nWould you like to rebuild the geometry now?"));
+	Info.bFireAndForget = false;
+	Info.bUseLargeFont = false;
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("RebuildGeometry", "Rebuild Geometry"),
+		FText(),
+		FSimpleDelegate::CreateLambda([]{
+			GUnrealEd->RebuildAlteredBSP();
+			if (Notification.IsValid())
+			{
+				Notification->SetEnabled(false);
+				Notification->ExpireAndFadeout();
+				Notification.Reset();
+			}
+		}),
+		SNotificationItem::CS_None)
+	);
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("DontRebuild", "Don't Rebuild"),
+		FText(),
+		FSimpleDelegate::CreateLambda([]{
+			if (Notification.IsValid())
+			{
+				Notification->SetEnabled(false);
+				Notification->ExpireAndFadeout();
+				Notification.Reset();
+			}
+		}),
+		SNotificationItem::CS_None)
+	);
+
+	Info.Hyperlink = FSimpleDelegate::CreateLambda([PackageName]{
+		FMessageLog MessageLog("LoadErrors");
+		MessageLog.NewPage(FText::Format(LOCTEXT("GeometryErrors", "Geometry errors from loading map '{0}'"), FText::FromString(PackageName)));
+
+		TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+		ABrush::NeedsRebuild(&LevelsToRebuild);
+		for (const auto& Level : LevelsToRebuild)
+		{
+			if (Level.IsValid())
+			{
+				MessageLog.Message(EMessageSeverity::Info, FText::Format(LOCTEXT("GeometryErrorMap", "Level '{0}' has geometry with invalid normals."), FText::FromString(Level->GetOuter()->GetName())));
+			}
+		}
+
+		MessageLog.Open();
+	});
+	Info.HyperlinkText = LOCTEXT("WhichLevels", "Which levels need a geometry rebuild?");
+
+	Notification = FSlateNotificationManager::Get().AddNotification(Info);
+}
+
 /**
  * Loads the specified map.  Does not prompt the user to save the current map.
  *
@@ -2232,12 +2297,10 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	// If there are any old mirrored brushes in the map with inverted polys, fix them here
 	GUnrealEd->FixAnyInvertedBrushes(World);
 
-	// Rebuild BSP if the loading process flagged it as not up-to-date
-	TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
-	ABrush::NeedsRebuild(&LevelsToRebuild);
-	if (LevelsToRebuild.Num() > 0)
+	// Request to rebuild BSP if the loading process flagged it as not up-to-date
+	if (ABrush::NeedsRebuild())
 	{
-		GUnrealEd->RebuildAlteredBSP();
+		NotifyBSPNeedsRebuild(LongMapPackageName);
 	}
 
 	// Fire delegate when a new map is opened, with name of map
