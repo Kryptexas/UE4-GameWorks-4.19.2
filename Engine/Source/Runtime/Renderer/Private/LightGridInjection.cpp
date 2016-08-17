@@ -438,6 +438,14 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				FPlatformMemory::Memcpy(View.ForwardLightingResources->ForwardLocalLightBuffer.MappedBuffer, ForwardLocalLightData.GetData(), ForwardLocalLightData.Num() * ForwardLocalLightData.GetTypeSize());
 				View.ForwardLightingResources->ForwardLocalLightBuffer.Unlock();
 			}
+			else // Must always bind a resource - Metal does not permit unbound resources.
+			{
+				View.ForwardLightingResources->ForwardLocalLightBuffer.Release();
+				View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), 1, PF_A32B32G32R32F, BUF_Volatile);
+				View.ForwardLightingResources->ForwardLocalLightBuffer.Lock();
+				FMemory::Memzero(View.ForwardLightingResources->ForwardLocalLightBuffer.MappedBuffer, sizeof(FVector4));
+				View.ForwardLightingResources->ForwardLocalLightBuffer.Unlock();
+			}
 
 			const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
 			GlobalLightData.NumLocalLights = ForwardLocalLightData.Num();
