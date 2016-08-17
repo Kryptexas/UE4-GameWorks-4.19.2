@@ -1,83 +1,82 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3079307
 Availability:Docs
-Title: Widget Interaction Component
+Title:Widget Interaction コンポーネント
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Outlines how to use the Widget Interaction Component to interact with 3D Widgets.
-Version: 4.13
-Related: Engine/UMG/UserGuide
-Related: Engine/Blueprints
-Related: Engine/Components/Widget
+Description:Widget Interaction コンポーネントを使って 3D Widget とインタラクションする方法を説明します。
+Version:4.13
+Related:Engine/UMG/UserGuide
+Related:Engine/Blueprints
+Related:Engine/Components/Widget
 
 [REGION:warning]
-This feature is considered experimental and some aspects may not work as expected and may change in future updates. 
+この機能は実験的なものであり、一部の機能は期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。 
 [/REGION]
 
 [REGION:banner]
 ![](WidgetInteractionBanner.png)
 [/REGION]
 
-If you are using a [Widget Component](Engine/Components/Widget) to display UI that exists in 3D in your game world and you want to allow players to interact with that widget, the **Widget Interaction** component provides a way for that interaction to occur. 
+[Widget コンポーネント](Engine/Components/Widget) を使ってゲームワールドで 3D の UI を表示してプレイヤーがそのウィジェットとインタラクションできるようにする場合、**Widget Interaction** コンポーネントを使ってそのインタラクションを実現できます。 
 
-The Widget Interaction component performs a [Raycast](Gameplay/HowTo/UseRaycasts/) to see if it hits a Widget Component placed in the world and if it hits one, you can set up rules to determine how to interact with it. 
-The interaction is performed by simulating a defined key press, for example if a Button can be clicked on with the Left Mouse Button, you could tell other forms of input to simulate a Left Mouse Button click (controller button press, motion controller trigger press, etc.)
+Widget Interaction コンポーネントは、[Raycast](Gameplay/HowTo/UseRaycasts/) を使ってワールドに配置されている Widget コンポーネントにヒットしたかを確認し、どのようにインタラクションするかを決めるルールを設定することができます。 
+このインタラクションは、定義されたキー押下をシミュレートすることによって行われます。例えば、左マウスボタンであるボタンをクリックできれば、他の入力形態に左マウスボタンのクリックをシミュレートするよう伝えられます (コントローラーのボタンを押す、モーション コントローラーのトリガーを押すなど)。
 
 [REGION:note]
-For step-by-step examples, see [](Engine\UMG\HowTo\InWorldWidgetInteraction\) and [](Engine\UMG\HowTo\VirtualKeyboards). 
+手順を追った例としては、[](Engine\UMG\HowTo\InWorldWidgetInteraction\) と [](Engine\UMG\HowTo\VirtualKeyboards) をご覧ください。 
 [/REGION]
 
-## Adding a Widget Interaction Component
+## Widget Interaction コンポーネントを追加する
 
-Typically you will want to add the Widget Interaction component to your player [](Gameplay/Framework/Pawn) or [](Gameplay/Framework/Pawn/Character) class from the [](Engine/Blueprints/UserGuide/Components/). 
+通常は、Widget Interaction コンポーネントを [](Engine/Blueprints/UserGuide/Components/) からプレイヤー [](Gameplay/Framework/Pawn) または [](Gameplay/Framework/Pawn/Character) クラスに追加します。 
 
 ![](WidgetInteractionComponent.png)
 
-Above we add and attach it to a gun our character is carrying so that where the gun points, the Widget Interaction component points. 
+上の図では、銃が向けられている場所に、Widget Interaction コンポーネントが向くようにキャラクターが持っている銃に追加し、アタッチしています。 
 
 
-## Widget Interaction Property Reference
+## Widget Interaction のプロパティ リファレンス
 
-Once you have added a Widget Interaction component, you can adjust several properties forom the **Details** panel to define how it functions. 
-Aside from common component properties like **Transform**, **Rendering** or **Sockets**, the properties below are specifically used with the Widget Interaction Component. 
+Widget Interaction コンポーネントを追加したら **[Details (詳細)]** パネルからいくつかのプロパティを変更して、どのように機能するかを定義することができます。 
+**Transform**、**Rendering**、または **Sockets** のようなコンポーネントの共通プロパティ以外に、以下のプロパティは特に Widget Interaction コンポーネントで使用されます。 
 
-| Option | Description |
+| オプション| 説明 |
 | --- | ----------- |
-| [REGION:tablesection]**Interaction**[/REGION] ||
-| **Virtual User Index** | Represents the Virtual User Index. Widget Interaction Components operate by using this Virtual User Index which captures and handles focus states separately. Each Virtual User should be represented by a different Index to ensure that they will maintain separate capture and focus states for each. As each Widget Interaction component comes online it informs Slate of the Virtual User Index it has been assigned and can send events as if it were a real Slate user. |
-| **Pointer Index** | Each user Virtual Controller or virtual Finger Tips being simulated should use a different Pointer Index.|
-| **Interaction Distance** | The distance in game units the component should be able to interact with a widget component. |
-| **Interaction Source** | Determines where we should project from and start the trace (World, Mouse, Center Screen or Custom). If you set this to Custom, you'll need to call `SetCustomHitResult()` and provide the result of a custom hit test from whatever location you wish. |
-| **Enable Hit Testing** | Should the interaction component perform hit testing (Automatic or Custom) and attempt to simulate hover - if you were going to emulate a keyboard you would want to turn this option off if the virtual keyboard was separate from the virtual pointer device and used a secon interaction component.|
-| [REGION:tablesection]**Debugging**[/REGION] ||
-| **Show Debug** | Shows debugging lines and a hit sphere to help debug interaction. |
-| **Debug Color** | Determines the color of the debug lines when **Show Debug** is enabled. |
-| [REGION:tablesection]**Events**[/REGION] ||
-| **On Hovered Widget Changed** | Called when the hovered Widget Component changes. The interaction component functions at the Slate level - so it's unable to report anything about what Widget is under the hit result.|
+| [REGION:tablesection]**インタラクション**[/REGION] ||
+| **Virtual User Index** | Virtual User Index を表します。Widget Interaction コンポーネントは、この Virtual User Index を使って機能します。Virtual User Indexは、フォーカスのステートを個別にキャプチャーし、処理します。各 Virtual User は、異なる Index で表され、別個のキャプチャーとフォーカスのステートを維持するようにします。各 Widget Interaction コンポーネントがオンラインになると、割り当てられた Virtual User Index のスレートに通知し、実際のスレート ユーザーであるかのようにイベントを送ることができます。 |
+| **Pointer Index** | 各ユーザーがシミュレートした Virtual Controller や、Virtual Finger Tips は、異なる Pointer Index を使うようにします。|
+| **Interaction Distance** | コンポーネントが widget コンポーネントとインタラクションできるゲーム内の単位。 |
+| **Interaction Source** | どこから投影し、トレースを開始するかを決めます (World、 Mouse、 Center Screen、または Custom)。これを Custom に設定すると、`SetCustomHitResult()` を呼び出して、カスタムのヒット テストの結果をどこでも必要な場所から与える必要があります。 |
+| **Enable Hit Testing** | インタラクションするコンポーネントがヒット テスト (Automatic または Custom) を行い、カーソルを乗せることをシミュレートしようとするか否かを指定します。キーボードをエミュレートしようとすると、その仮想キーボードは仮想ポインター デバイスとは分けられます。このオプションをオフにして、そのポインター デバイスに対して 2 つめのインタラクション コンポーネントを使うようにします。
+| [REGION:tablesection]**デバッグ**[/REGION] ||
+| **Show Debug** | デバッグ インタラクションを支援するためにデバッグ行とヒット範囲を示します。 |
+| **Debug Color** | **Show Debug** が有効な場合に、デバッグ行の色を決めます。 |
+|[REGION:tablesection]**Events**[/REGION]||
+| **On Hovered Widget Changed** | カーソルを乗せた Widget コンポーネントが変化するときに呼び出されます。このインタラクション コンポーネントは、スレート レベルで機能します。そのため、ヒット結果がどの Widget であるかについて何もレポートできません。|
 
 
-## Widget Interaction Blueprint Node Reference
+## Widget Interaction ブループリントのノード リファレンス
 
-The Widget Interaction component can simulate different types of input methods (such as press, release or press + release) which you can find under the **Interaction** section in the Blueprint Context Menu. 
-You can also get information such as the last "hit" position registered by the Widget Interaction component or if a Widget Component in the world is currently being hovered upon. 
+Widget Interaction コンポーネントは、様々なタイプの入力方法をシミュレートできます (press、release、 または press + release)。これは、ブループリントのコンテキスト メニューの **[Interaction]** セクションにあります。 
+Widget Interaction コンポーネントによって登録される最後のヒット位置や、ワールドの Widget コンポーネントにカーソルを乗せているかなどの情報を得ることもできます。 
 
 ![](WidgetInteractionBlueprint.png)
 
-| Node | Description |
+| ノード | 説明 |
 | --- | ----------- |
-| **Get Hovered Widget Component** | Gets the currently hovered Widget Component. |
-| **Get Last Hit Result** | Gets the last hit result generated by the component. Returns the custom hit result if that was set. |
-| **Is Over Focusable Widget** | Returns true if a widget under the hit result is focusable. For example, Slate widgets that return true for `SupportsKeyboardFocus()`.|
-| **Is Over Hit Test Visible Widget** | Returns true if a widget under the hit result has a visibility setting that makes it hit test visible. For example, Slate widgets that return true for `GetVisibility().IsHitTestVisible()`.|
-| **Is Over Interactable Widget** | Returns true if a widget under the hit result is interactive. For example, Slate widgets that return true for `IsInteractble()`.|
-| **Press and Release Key** | Performs both the press and release of a simulated keyboard key.| 
-| **Press Key** | Performs a press of a simulated keyboard key. Avoid using this for `a-z|A-Z`, things like the Editable Textbox in Slate expect **OnKeyChar** to be called to signal a specific character being sent to the widget so for those cases you would use **SendKeyChar** instead. |
-| **Press Pointer Key** | Performs a press of a simulated mouse/pointer event (pointer could be mouse, could be touch, etc). Normally you would just use Left/Right Mouse Button for the Key, however advanced usage could be imagined where you send other keys to signal widgets to take special actions if they're under the cursor.  |
-| **Release Key** | Releases a key as if it had been released from the keyboard.  |
-| **Release Pointer Key** | Releases a key as if the mouse/pointer where the source of it. Similar to Press Pointer Key, normally you would use Left/Right Mouse Button for the key however advanced use cases are possible. |
-| **Scroll Wheel** | Sends a scroll wheel event to the widget under the last hit result. |
-| **Send Key Char** | Transmits a list of characters to a widget by simulating a OnKeyChar event for each key listed in the string. |
-| **Set Custom Hit Result** | Sets a custom hit result. This is only take into account if the Interaction Source is set to Custom.  |
+| **Get Hovered Widget Component** | 現在、カーソルが乗っている Widget コンポーネントを取得します。 |
+| **Get Last Hit Result** | コンポーネントが生成した最終ヒット結果を取得します。設定されている場合、カスタム ヒット結果を戻します。
+| **Is Over Focusable Widget** | ヒット結果にあるウィジェットがフォーカス可能であれば、 true を戻します。`SupportsKeyboardFocus()` に対して true を戻す Slate ウィジェットです。 |
+| **Is Over Hit Test Visible Widget** | ヒット結果にあるウィジェットの可視設定で、ヒット テストを可視にしていれば、 true を戻します。`GetVisibility().IsHitTestVisible()` に対して true を戻す Slate ウィジェットです。 |
+| **Is Over Interactable Widget** | ヒット結果にあるウィジェットがインタラクティブであれば、 true を戻します。`IsInteractble()` に対して true を戻す Slate ウィジェットです。 |
+| **Press and Release Key** | シミュレートしたキーボード キーの press (押下) と release (解放) の両方を行います。| 
+| **Press Key** | シミュレートしたキーボード キーの press を行います。これを、`a-z|A-Z` には使わないでください。スレートの Editable Textbox (編集可能なテキストボックス) のようなものでは、特定の文字がウィジェットに送られていることを示すために **OnKeyChar** が呼び出されることが求められるからです。このような場合は代わりに **SendKeyChar** を使用してください。 |
+| **Press Pointer Key** | マウス / ポインタでのキーの押下をシミュレートします。ほとんどの場合、指定されるキーは、マウスボタンですが、どのようなキーでも使用可能です。ウィジェットが特殊なアクションをすることを示すために他のキーを送るなど高度な使用例がサポートされています。 |
+| **Release Key** | キーボードから解放されたかのようにキーを解放します。 |
+| **Release Pointer Key** | Press Pointer Key と同様に、マウス / ポインタ上のキーの解放をシミュレートします。ほとんどの場合、指定されるキーは、マウスボタンですが、どのようなキーでも使用可能です。 |
+| **Scroll Wheel** | 最後にヒットした結果にあるウィジェットに scroll wheel event を送ります。 |
+| **Send Key Char** | 文字列にリストされている各キーに対して OnKeyChar event をシミュレートすることで文字のリストをウィジェットに送ります。 |
+| **Set Custom Hit Result** | カスタム ヒット結果を設定します。これは、Interaction Source が Custom に設定されている場合に限り、考慮されます。  |
 
-The properties for the Widget Interaction component can also be reterived in the form of a getter or set via setter nodes. 
+Widget Interaction コンポーネントのプロパティも、ゲッターで呼び出すことができます。または、セッター ノードで設定することもできます。 
 
 ![](WidgetInteractionVariables.png)
-
