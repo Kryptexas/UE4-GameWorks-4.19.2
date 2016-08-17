@@ -34,12 +34,6 @@ tags:BuildGraph
 
 The following table contains valid data types that can be contained by BuildGraph attributes:
 
-[INCLUDE:#TypesTable]
-
-[/EXCERPT:BuildGraphScriptTypes]
-
-<!--
-[EXCERPT:TypesTable]
 | **Type**                | **Description**                                                                                                                                                                                                                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **String**              | An arbitrary string.                                                                                                                                                                                                                                                                       |
@@ -57,5 +51,5 @@ The following table contains valid data types that can be contained by BuildGrap
 | **File Name**           | A path to a file. Unless otherwise specified, relative paths are resolved to the working root directory.                                                                                                                                                                                   |
 | **Directory Name**      | A path to a directory. Unless otherwise specified, relative paths are resolved relative to the working root directory.                                                                                                                                                                     |
 | **Condition**           | A [conditional expression](Programming/Development/BuildGraph/ScriptAnatomy/Conditions).                                                                                                                                                                                                      |
-[/EXCERPT:TypesTable]
--->
+
+[/EXCERPT:BuildGraphScriptTypes]
