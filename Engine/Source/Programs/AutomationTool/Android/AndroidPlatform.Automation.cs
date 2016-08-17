@@ -162,6 +162,8 @@ public class AndroidPlatform : Platform
 		{
 			ObbFile.CompressionMethod = CompressionMethod.None;
 			ObbFile.CompressionLevel = Ionic.Zlib.CompressionLevel.None;
+			ObbFile.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Never;
+
 			int ObbFileCount = 0;
 			ObbFile.AddProgress +=
 				delegate(object sender, AddProgressEventArgs e)
