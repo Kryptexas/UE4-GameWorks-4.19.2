@@ -55,16 +55,6 @@ case-insensitive for comparisons, which means that the strings "True" and 'true'
 
 A list of operators is specified below: 
 
-[INCLUDE:#OperatorTable]
-
-[REGION:note]
-The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML (referencing [XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd])).
-[/REGION]
-
-[/EXCERPT:BuildGraphScriptConditions]
-
-<!--
-[EXCERPT:OperatorTable]
 | **Operator**            | **Description**                                                             | **Precedence**  |
 | ----------------------- | --------------------------------------------------------------------------- | --------------- |
 | **(x)**                 | Subexpression                                                               | 1               |
@@ -79,5 +69,9 @@ The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML (
 | **x >= y**              | Compares whether the integer x is greater than or equal to the integer y.   | 2               |
 | **x and y**             | True if both arguments are `true`.                                          | 3               |
 | **x or y**              | True if either argument is `true`.                                          | 4               |
-[/EXCERPT:OperatorTable]
--->
+
+[REGION:note]
+The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML (referencing [XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd])).
+[/REGION]
+
+[/EXCERPT:BuildGraphScriptConditions]
