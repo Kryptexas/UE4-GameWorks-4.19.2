@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: BuildGraph
+Crumbs: %ROOT%, Programming, Programming/Development
+Description: Customize your Installed Builds by using our BuildGraph scripting system.
+Version: 4.13
+type:landing
+parent:Programming/Development
+tags:BuildGraph
+
+**BuildGraph** is a script-based build automation system that features graphs of building blocks common to Unreal Engine 4 (UE4) projects. 
+BuildGraph integrates with UnrealBuildTool, AutomationTool, and the editor, and can be extended and customized for your projects.
+
+BuildGraph scripts are written with [XML](https://www.w3.org/TR/NOTE-dcd]), specifying a graph of user-defined nodes with 
+dependencies between them. Each node consists of tasks executed in sequence to produce some sort of output (e.g., compile 
+this project, then cook, run this test, and so on). When asked to build a target (that is, a node or named output) BuildGraph 
+will execute all of the nodes in the graph required to make that happen.
+
+Unlike other build tools, BuildGraph is designed as a hybrid between a makefile-like scripting language and a build farm 
+configuration script. It allows annotations for the type of machine that steps are supposed to be executed on, providing a 
+list of recipients for failure notifications if a step fails, and groups nodes that should only be executed after an explicit 
+user trigger. It also tracks the creation of output files from task execution in a way that lends to graph execution being 
+distributed across a farm of machines (with nodes running in parallel where possible), and intermediate artifacts being 
+transferred to and from a network share automatically.
+
+Epic uses BuildGraph to prepare the UE4 binary release, package samples for the marketplace, and implement pipelines for our 
+own games (among other things). Several example BuildGraph scripts are provided in the 
+`[UE4Root]/Engine/Build/Graph/Examples` directory, and the script for creating a binary UE4 distribution can be found at 
+`[UE4Root]/Engine/Build/InstalledEngineBuild.xml`.
+
+Opening a script with Visual Studio will use the schema located at `[UE4Root]Engine/Build/Graph/Schema.xsd` to provide rich 
+tooltips, validation, and Intellisense features while editing.
+
+## Writing BuildGraph Scripts
+
+[REGION:topics third]
+%Programming/Development/BuildGraph/ScriptAnatomy:topiccompact%
+[/REGION]
+
+## Using BuildGraph
+
+[REGION:topics third]
+%Programming/Development/BuildGraph/Usage:topiccompact%
+%Programming/Development/InstalledBuildReference:topiccompact%
+[/REGION]
