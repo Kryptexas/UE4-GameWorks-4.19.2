@@ -421,7 +421,7 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
 {
-	MaxDescriptorSets = 2048;
+	MaxDescriptorSets = 8192;
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
 	FMemory::Memzero(NumAllocatedTypes);
 	FMemory::Memzero(PeakAllocatedTypes);
@@ -503,7 +503,6 @@ void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& 
 	}
 
 	NumAllocatedDescriptorSets -= Layout.GetLayouts().Num();
-	check(NumAllocatedDescriptorSets >= 0);
 }
 
 

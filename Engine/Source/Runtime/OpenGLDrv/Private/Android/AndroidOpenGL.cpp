@@ -587,9 +587,13 @@ void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 
 void FAndroidAppEntry::PlatformInit()
 {
-	// create an ES2 EGL here for gpu queries.
-	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
-	// FAndroidGPUInfo::Get();
+	// Note: UE-33593,
+	// Creating & destroying EGL context breaks vulkan initialization on mali devices.
+	if (!FAndroidMisc::ShouldUseVulkan())
+	{
+		// Create an ES2 EGL here for gpu queries.
+		AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+	}
 }
 
 void FAndroidAppEntry::ReleaseEGL()
