@@ -2419,6 +2419,9 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 	{
 		SpawnTransformGizmoIfNeeded();
 
+		// Make sure the gizmo is visible
+		TransformGizmoActor->GetRootComponent()->SetVisibility( true );
+
 		const ECoordSystem CurrentCoordSystem = GetTransformGizmoCoordinateSpace();
 		const bool bIsWorldSpaceGizmo = ( CurrentCoordSystem == COORD_World );
 
@@ -2591,11 +2594,10 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 	}
 	else
 	{
-		// Nothing selected, so kill our gizmo actor
-		if ( TransformGizmoActor != nullptr )
+		// Nothing selected, so hide our gizmo actor
+		if( TransformGizmoActor != nullptr )
 		{
-			DestroyTransientActor( TransformGizmoActor );
-			TransformGizmoActor = nullptr;
+			TransformGizmoActor->GetRootComponent()->SetVisibility( false );
 		}
 		GizmoLocalBounds = FBox( 0 );
 
