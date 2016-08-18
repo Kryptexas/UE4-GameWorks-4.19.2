@@ -793,6 +793,13 @@ void UPrimitiveComponent::UnWeldFromParent()
 		return;
 	}
 
+	// If we're purging (shutting down everything to kill the runtime) don't proceed
+	// to make new physics bodies and weld them, as they'll never be used.
+	if(GExitPurge)
+	{
+		return;
+	}
+
 	FName SocketName;
 	UPrimitiveComponent * RootComponent = GetRootWelded(this, GetAttachSocketName(), &SocketName);
 
