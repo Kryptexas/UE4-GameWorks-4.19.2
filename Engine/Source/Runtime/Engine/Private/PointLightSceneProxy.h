@@ -4,8 +4,8 @@
 	PointLightSceneProxy.h: Point light scene info definition.
 =============================================================================*/
 
-#ifndef __PointLightSceneProxy_H__
-#define __PointLightSceneProxy_H__
+#pragma once
+
 #include "Components/PointLightComponent.h"
 
 
@@ -178,4 +178,3 @@ public:
 	}
 };
 
-#endif

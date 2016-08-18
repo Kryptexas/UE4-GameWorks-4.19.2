@@ -27,9 +27,7 @@
 #include "DetourCommon.h"
 
 //@UE4 BEGIN
-#ifndef WITH_FIXED_AREA_ENTERING_COST
 #define WITH_FIXED_AREA_ENTERING_COST 1
-#endif
 
 #ifndef FLT_MAX
 #include <float.h>
@@ -59,7 +57,7 @@ struct NAVMESH_API dtQuerySpecialLinkFilter
 };
 
 // [UE4: moved all filter variables to struct, DO NOT mess with virtual functions here!]
-struct dtQueryFilterData
+struct NAVMESH_API dtQueryFilterData
 {
 	float m_areaCost[DT_MAX_AREAS];		///< Cost per area type. (Used by default implementation.)
 #if WITH_FIXED_AREA_ENTERING_COST

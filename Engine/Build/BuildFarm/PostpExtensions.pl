@@ -83,7 +83,7 @@ unshift @::gMatchers, (
     {
         id =>               "clangError",
         pattern =>          q{([^:]+):[\d:]+ error:},
-        action =>           q{incValue("errors"); diagnostic($1, "error", backWhile(": In (member )?function"), forwardWhile("^   "))},
+        action =>           q{incValue("errors"); diagnostic($1, "error", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
     },
     {
         id =>               "clangWarning",

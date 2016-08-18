@@ -4,6 +4,7 @@
 LandscapeEditInterface.cpp: Landscape editing interface
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 
 #if WITH_EDITOR

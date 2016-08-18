@@ -4,6 +4,7 @@
 	RenderCore.h: Render core module implementation.
 =============================================================================*/
 
+#include "RenderCorePrivatePCH.h"
 #include "RenderCore.h"
 #include "UniformBuffer.h"
 #include "ModuleManager.h"

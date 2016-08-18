@@ -757,7 +757,7 @@ inline GLenum GetOpenGLTargetFromRHITexture(FRHITexture* Texture)
 }
 
 
-class FOpenGLTextureBase
+class OPENGLDRV_API FOpenGLTextureBase
 {
 protected:
 	class FOpenGLDynamicRHI* OpenGLRHI;
@@ -1372,7 +1372,7 @@ protected:
 void OPENGLDRV_API OpenGLTextureDeleted(FRHITexture* Texture);
 void OPENGLDRV_API OpenGLTextureAllocated( FRHITexture* Texture , uint32 Flags);
 
-extern void ReleaseOpenGLFramebuffers(FOpenGLDynamicRHI* Device, FTextureRHIParamRef TextureRHI);
+void OPENGLDRV_API ReleaseOpenGLFramebuffers(FOpenGLDynamicRHI* Device, FTextureRHIParamRef TextureRHI);
 
 /** A OpenGL event query resource. */
 class FOpenGLEventQuery : public FRenderResource

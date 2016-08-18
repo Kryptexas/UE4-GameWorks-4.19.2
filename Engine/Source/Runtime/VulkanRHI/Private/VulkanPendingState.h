@@ -10,6 +10,8 @@
 #include "VulkanRHI.h"
 #include "VulkanPipeline.h"
 
+typedef uint32 FStateKey;
+
 class FVulkanPendingState
 {
 public:

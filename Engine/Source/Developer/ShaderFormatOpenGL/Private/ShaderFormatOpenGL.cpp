@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
 
-#include "ShaderFormatOpenGL.h"
 #include "Core.h"
+#include "ShaderFormatOpenGL.h"
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 #include "TargetPlatform.h"   

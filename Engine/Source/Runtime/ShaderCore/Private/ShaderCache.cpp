@@ -4,6 +4,7 @@
 	ShaderCache.cpp: Bound shader state cache implementation.
 =============================================================================*/
 
+#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
 #include "ShaderCache.h"
 #include "Shader.h"

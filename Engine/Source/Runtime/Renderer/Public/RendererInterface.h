@@ -4,8 +4,7 @@
 	RendererInterface.h: Renderer interface definition.
 =============================================================================*/
 
-#ifndef __RendererInterface_H__
-#define __RendererInterface_H__
+#pragma once
 
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
@@ -674,6 +673,3 @@ public:
 	virtual bool HasPostOpaqueExtentions() const = 0;
 };
 
-
-
-#endif

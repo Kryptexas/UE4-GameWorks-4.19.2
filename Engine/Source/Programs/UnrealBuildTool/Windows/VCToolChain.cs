@@ -406,7 +406,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if (WindowsPlatform.bUseVCCompilerArgs)
+				if (WindowsPlatform.bUseVCCompilerArgs && !WindowsPlatform.bCompileWithICL)
 				{
 					// Prompt the user before reporting internal errors to Microsoft.
 					Arguments.Append(" /errorReport:prompt");
@@ -545,8 +545,11 @@ namespace UnrealBuildTool
 					Arguments.Append(" /bigobj");
 				}
 
-				// Relaxes floating point precision semantics to allow more optimization.
-				Arguments.Append(" /fp:fast");
+				if (!WindowsPlatform.bCompileWithICL)
+				{
+					// Relaxes floating point precision semantics to allow more optimization.
+					Arguments.Append(" /fp:fast");
+				}
 
 				if (CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds)
 				{
@@ -559,7 +562,10 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						Arguments.Append(" /d2Zi+");
+						if (!WindowsPlatform.bCompileWithICL)
+						{
+							Arguments.Append(" /d2Zi+");
+						}
 					}
 				}
 			}
@@ -700,20 +706,28 @@ namespace UnrealBuildTool
 			// Set warning level.
 			if (WindowsPlatform.bUseVCCompilerArgs)
 			{
-				if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+				if (!BuildConfiguration.bRunUnrealCodeAnalyzer && !WindowsPlatform.bCompileWithICL)
 				{
 					// Restrictive during regular compilation.
 					Arguments.Append(" /W4");
 				}
 				else
 				{
-					// If we had /W4 with clang on windows we would be flooded with warnings. This will be fixed incrementally.
+					// If we had /W4 with clang or Intel on windows we would be flooded with warnings. This will be fixed incrementally.
 					Arguments.Append(" /W0");
 				}
 			}
 			else
 			{
 				Arguments.Append(" -Wall");
+			}
+
+			// Intel compiler options.
+			if (WindowsPlatform.bCompileWithICL)
+			{
+				Arguments.Append(" /Qstd=c++11");
+				Arguments.Append(" /fp:precise");
+				Arguments.Append(" /nologo");
 			}
 
 			if (WindowsPlatform.bCompileWithClang)
@@ -1155,7 +1169,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if (WindowsPlatform.bCompileWithClang)
+				if (WindowsPlatform.bCompileWithClang || WindowsPlatform.bCompileWithICL)
 				{
 					CompileAction.OutputEventHandler = new DataReceivedEventHandler(ClangCompilerOutputFormatter);
 				}
@@ -1745,7 +1759,7 @@ namespace UnrealBuildTool
 				LinkAction.bPrintDebugInfo = true;
 			}
 
-			if (WindowsPlatform.bCompileWithClang)
+			if (WindowsPlatform.bCompileWithClang || WindowsPlatform.bCompileWithICL)
 			{
 				LinkAction.OutputEventHandler = new DataReceivedEventHandler(ClangCompilerOutputFormatter);
 			}

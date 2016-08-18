@@ -23,19 +23,19 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// The directory to find files in
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string BaseDir;
 
 		/// <summary>
-		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
+		/// List of file specifications separated by semicolons (eg. Engine/.../*.pdb), or the name of a tag set
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
 		/// Output directory for the stripped files. Defaults to the input path (overwriting the input files).
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string OutputDir;
 
 		/// <summary>
@@ -46,7 +46,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Task which strips symbols from a set of files
+	/// Strips debugging information from a set of files.
 	/// </summary>
 	[TaskElement("Strip", typeof(StripTaskParameters))]
 	public class StripTask : CustomTask
@@ -59,7 +59,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Construct a spawn task
 		/// </summary>
-		/// <param name="Parameters">Parameters for the task</param>
+		/// <param name="InParameters">Parameters for the task</param>
 		public StripTask(StripTaskParameters InParameters)
 		{
 			Parameters = InParameters;

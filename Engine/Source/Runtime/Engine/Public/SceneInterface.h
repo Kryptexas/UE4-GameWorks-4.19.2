@@ -383,7 +383,7 @@ public:
 	/**
 	 * Returns the FPrimitiveComponentId for all primitives in the scene
 	 */
-	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const { return TArray<FPrimitiveComponentId>(); }
+	virtual ENGINE_API TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const;
 
 protected:
 	virtual ~FSceneInterface() {}

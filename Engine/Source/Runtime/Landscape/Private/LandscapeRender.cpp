@@ -4,6 +4,7 @@
 LandscapeRender.cpp: New terrain rendering
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 
 #include "Materials/MaterialExpressionTextureCoordinate.h"

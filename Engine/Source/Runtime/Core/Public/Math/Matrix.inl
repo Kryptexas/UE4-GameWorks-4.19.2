@@ -740,7 +740,13 @@ inline void FMatrix::Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis)
  */
 inline FMatrix FMatrix::ApplyScale(float Scale)
 {
-	return FScaleMatrix(Scale)*(*this);
+	FMatrix ScaleMatrix(
+		FPlane(Scale, 0.0f, 0.0f, 0.0f),
+		FPlane(0.0f, Scale, 0.0f, 0.0f),
+		FPlane(0.0f, 0.0f, Scale, 0.0f),
+		FPlane(0.0f, 0.0f, 0.0f, 1.0f)
+	);
+	return ScaleMatrix*(*this);
 }
 
 // Serializer.

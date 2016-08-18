@@ -14,6 +14,7 @@
 #include "RHIStaticStates.h"
 #include "GlobalDistanceFieldParameters.h"
 #include "DebugViewModeHelpers.h"
+#include "ShaderParameters.h"
 
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
@@ -323,8 +324,6 @@ private:
 		}
 	}
 };
-
-#include "ShaderParameters.h"
 
 //////////////////////////////////////////////////////////////////////////
 

@@ -12,8 +12,7 @@
 /* Public includes
  *****************************************************************************/
 
-JSON_API DECLARE_LOG_CATEGORY_EXTERN(LogJson, Log, All);
-
+#include "JsonGlobals.h"
 
 #include "JsonPrintPolicy.h"
 #include "PrettyJsonPrintPolicy.h"

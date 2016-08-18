@@ -22,7 +22,3 @@
 #include "Linux/LinuxPlatformString.h"
 #endif
 
-//TEXT macro, may or may not have come from OS includes
-#if !defined(TEXT) && !UE_BUILD_DOCS
-#define TEXT(s) L##s
-#endif

@@ -80,10 +80,10 @@ private:
 	void DiscoverAllPlugins();
 
 	/** Reads all the plugin descriptors */
-	static void ReadAllPlugins(TArray<TSharedRef<FPlugin>>& Plugins, const TSet<FString>& ExtraSearchPaths);
+	static void ReadAllPlugins(TMap<FString, TSharedRef<FPlugin>>& Plugins, const TSet<FString>& ExtraSearchPaths);
 
 	/** Reads all the plugin descriptors from disk */
-	static void ReadPluginsInDirectory(const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray<TSharedRef<FPlugin>>& Plugins);
+	static void ReadPluginsInDirectory(const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TMap<FString, TSharedRef<FPlugin>>& Plugins);
 
 	/** Finds all the plugin descriptors underneath a given directory */
 	static void FindPluginsInDirectory(const FString& PluginsDirectory, TArray<FString>& FileNames);
@@ -99,7 +99,7 @@ private:
 
 private:
 	/** All of the plugins that we know about */
-	TArray< TSharedRef< FPlugin > > AllPlugins;
+	TMap< FString, TSharedRef< FPlugin > > AllPlugins;
 
 	/** Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access
 	    content path mounting functionality from Core. */

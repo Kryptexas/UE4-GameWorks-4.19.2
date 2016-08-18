@@ -8,11 +8,12 @@ using BuildGraph;
 using System.Reflection;
 using System.Collections;
 using System.IO;
+using System.Xml;
 
 namespace AutomationTool
 {
 	/// <summary>
-	/// Tool to execute build processes for UE4 projects, which can be run locally or in parallel across a build farm (assuming synchronization and resource allocation implemented by a separate system).
+	/// Tool to execute build automation scripts for UE4 projects, which can be run locally or in parallel across a build farm (assuming synchronization and resource allocation implemented by a separate system).
 	///
 	/// Build graphs are declared using an XML script using syntax similar to MSBuild, ANT or NAnt, and consist of the following components:
 	///
@@ -23,14 +24,11 @@ namespace AutomationTool
 	/// - Triggers:     Container for agents which should only be executed when explicitly triggered (using the -Trigger=... or -SkipTriggers command line argument). Declared with the 'Trigger' element.
 	/// - Notifiers:    Specifies email recipients for failures in one or more nodes, whether they should receive notifications on warnings, and so on.
 	/// 
-	/// Properties can be passed in to a script on the command line, or set procedurally with the &ltProperty Name="Foo" Value="Bar"/&gt; syntax. Properties referenced with the $(Property Name) notation are valid within 
-	/// all strings, and will be expanded as macros when the script is read. If a property name is not set explicitly, it defaults to the contents of an environment variable with the same name. 
-	/// Local properties, which only affect the scope of the containing XML element (node, agent, etc...) are declared with the &lt;Local Name="Foo" Value="Bar"/&gt; element, and will override a similarly named global 
-	/// property for the local property's scope.
+	/// Scripts may set properties with the &lt;Property Name="Foo" Value="Bar"/&gt; syntax. Properties referenced with the $(Property Name) notation are valid within all strings, and will be expanded as macros when the 
+	/// script is read. If a property name is not set explicitly, it defaults to the contents of an environment variable with the same name. Properties may be sourced from environment variables or the command line using
+	/// the &lt;EnvVar&gt; and &lt;Option&gt; elements respectively.
 	///
-	/// Any elements can be conditionally defined via the "If" attribute, which follows a syntax similar to MSBuild. Literals in conditions may be quoted with single (') or double (") quotes, or an unquoted sequence of 
-	/// letters, digits and underscore characters. All literals are considered identical regardless of how they are declared, and are considered case-insensitive for comparisons (so true equals 'True', equals "TRUE"). 
-	/// Available operators are "==", "!=", "And", "Or", "!", "(...)", "Exists(...)" and "HasTrailingSlash(...)". A full grammar is written up in Condition.cs.
+	/// Any elements can be conditionally defined via the "If" attribute. A full grammar for conditions is written up in Condition.cs.
 	/// 
 	/// File manipulation is done using wildcards and tags. Any attribute that accepts a list of files may consist of: a Perforce-style wildcard (matching any number of "...", "*" and "?" patterns in any location), a 
 	/// full path name, or a reference to a tagged collection of files, denoted by prefixing with a '#' character. Files may be added to a tag set using the &lt;Tag&gt; Task, which also allows performing set union/difference 
@@ -73,13 +71,8 @@ namespace AutomationTool
 		{
 			// Parse the command line parameters
 			string ScriptFileName = ParseParamValue("Script", null);
-			if(ScriptFileName == null)
-			{
-				LogError("Missing -Script= parameter for BuildGraph");
-				return ExitCode.Error_Unknown;
-			}
-
 			string TargetNames = ParseParamValue("Target", null);
+			string DocumentationFileName = ParseParamValue("Documentation", null);
 			string SchemaFileName = ParseParamValue("Schema", null);
 			string ExportFileName = ParseParamValue("Export", null);
 			string PreprocessedFileName = ParseParamValue("Preprocess", null);
@@ -160,11 +153,28 @@ namespace AutomationTool
 				return ExitCode.Error_Unknown;
 			}
 
+			// Generate documentation
+			if(DocumentationFileName != null)
+			{
+				GenerateDocumentation(NameToTask, new FileReference(DocumentationFileName));
+				return ExitCode.Success;
+			}
+
 			// Create a schema for the given tasks
 			ScriptSchema Schema = new ScriptSchema(NameToTask);
 			if(SchemaFileName != null)
 			{
-				Schema.Export(new FileReference(SchemaFileName));
+				FileReference FullSchemaFileName = new FileReference(SchemaFileName);
+				Log("Writing schema to {0}...", FullSchemaFileName.FullName);
+				Schema.Export(FullSchemaFileName);
+				return ExitCode.Success;
+			}
+
+			// Check there was a script specified
+			if(ScriptFileName == null)
+			{
+				LogError("Missing -Script= parameter for BuildGraph");
+				return ExitCode.Error_Unknown;
 			}
 
 			// Read the script from disk
@@ -365,7 +375,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Find all the tasks which are available from the loaded assemblies
 		/// </summary>
-		/// <param name="TaskNameToReflectionInfo">Mapping from task name to information about how to serialize it</param>
+		/// <param name="NameToTask">Mapping from task name to information about how to serialize it</param>
 		/// <param name="bPublicTasksOnly">Whether to include just public tasks, or all the tasks in any loaded assemblies</param>
 		static bool FindAvailableTasks(Dictionary<string, ScriptTask> NameToTask, bool bPublicTasksOnly)
 		{
@@ -503,6 +513,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph instance</param>
+		/// <param name="Storage">The temp storage backend which stores the shared state</param>
 		/// <returns>True if everything built successfully</returns>
 		bool BuildAllNodes(JobContext Job, Graph Graph, TempStorage Storage)
 		{
@@ -545,6 +556,8 @@ namespace AutomationTool
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph to which the node belongs. Used to determine which outputs need to be transferred to temp storage.</param>
 		/// <param name="Node">The node to build</param>
+		/// <param name="Storage">The temp storage backend which stores the shared state</param>
+		/// <param name="bWithBanner">Whether to write a banner before and after this node's log output</param>
 		/// <returns>True if the node built successfully, false otherwise.</returns>
 		bool BuildNode(JobContext Job, Graph Graph, Node Node, TempStorage Storage, bool bWithBanner)
 		{
@@ -694,6 +707,165 @@ namespace AutomationTool
 			// Mark the node as succeeded
 			Storage.MarkAsComplete(Node.Name);
 			return true;
+		}
+
+		/// <summary>
+		/// Generate HTML documentation for all the tasks
+		/// </summary>
+		/// <param name="NameToTask">Map of task name to implementation</param>
+		/// <param name="OutputFile">Output file</param>
+		static void GenerateDocumentation(Dictionary<string, ScriptTask> NameToTask, FileReference OutputFile)
+		{
+			// Find all the assemblies containing tasks
+			Assembly[] TaskAssemblies = NameToTask.Values.Select(x => x.ParametersClass.Assembly).Distinct().ToArray();
+
+			// Read documentation for each of them
+			Dictionary<string, XmlElement> MemberNameToElement = new Dictionary<string, XmlElement>();
+			foreach(Assembly TaskAssembly in NameToTask.Values.Select(x => x.ParametersClass.Assembly).Distinct())
+			{
+				string XmlFileName = Path.ChangeExtension(TaskAssembly.Location, ".xml");
+				if(File.Exists(XmlFileName))
+				{
+					// Read the document
+					XmlDocument Document = new XmlDocument();
+					Document.Load(XmlFileName);
+
+					// Parse all the members, and add them to the map
+					foreach(XmlElement Element in Document.SelectNodes("/doc/members/member"))
+					{
+						string Name = Element.GetAttribute("name");
+						MemberNameToElement.Add(Name, Element);
+					}
+				}
+			}
+
+			// Create the output directory
+			OutputFile.Directory.CreateDirectory();
+			Log("Writing {0}...", OutputFile);
+
+			// Parse the engine version
+			BuildVersion Version;
+			if(!BuildVersion.TryRead(out Version))
+			{
+				throw new AutomationException("Couldn't read Build.version");
+			}
+
+			// Write the output file
+			using (StreamWriter Writer = new StreamWriter(OutputFile.FullName))
+			{
+				Writer.WriteLine("Availability: NoPublish");
+				Writer.WriteLine("Title: BuildGraph Predefined Tasks");
+				Writer.WriteLine("Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks");
+				Writer.WriteLine("Description: This is a procedurally generated markdown page.");
+				Writer.WriteLine("version: {0}.{1}", Version.MajorVersion, Version.MinorVersion);
+				Writer.WriteLine("parent:Programming/Development/BuildGraph/BuildGraphScriptTasks");
+				Writer.WriteLine();
+				foreach(string TaskName in NameToTask.Keys.OrderBy(x => x))
+				{
+					// Get the task object
+					ScriptTask Task = NameToTask[TaskName];
+
+					// Get the documentation for this task
+					XmlElement TaskElement;
+					if(MemberNameToElement.TryGetValue("T:" + Task.TaskClass.FullName, out TaskElement))
+					{
+						// Write the task heading
+						Writer.WriteLine("### {0}", TaskName);
+						Writer.WriteLine();
+						Writer.WriteLine(ConvertToMarkdown(TaskElement.SelectSingleNode("summary")));
+						Writer.WriteLine();
+
+						// Document the parameters
+						List<string[]> Rows = new List<string[]>();
+						foreach(string ParameterName in Task.NameToParameter.Keys)
+						{
+							// Get the parameter data
+							ScriptTaskParameter Parameter = Task.NameToParameter[ParameterName];
+
+							// Get the documentation for this parameter
+							XmlElement ParameterElement;
+							if(MemberNameToElement.TryGetValue("F:" + Parameter.FieldInfo.DeclaringType.FullName + "." + Parameter.Name, out ParameterElement))
+							{
+								string TypeName = Parameter.FieldInfo.FieldType.Name;
+								if(Parameter.ValidationType != TaskParameterValidationType.Default)
+								{
+									StringBuilder NewTypeName = new StringBuilder(Parameter.ValidationType.ToString());
+									for(int Idx = 1; Idx < NewTypeName.Length; Idx++)
+									{
+										if(Char.IsLower(NewTypeName[Idx - 1]) && Char.IsUpper(NewTypeName[Idx]))
+										{
+											NewTypeName.Insert(Idx, ' ');
+										}
+									}
+									TypeName = NewTypeName.ToString();
+								}
+
+								string[] Columns = new string[4];
+								Columns[0] = ParameterName;
+								Columns[1] = TypeName;
+								Columns[2] = Parameter.bOptional? "Optional" : "Required";
+								Columns[3] = ConvertToMarkdown(ParameterElement.SelectSingleNode("summary"));
+								Rows.Add(Columns);
+							}
+						}
+
+						// Always include the "If" attribute
+						string[] IfColumns = new string[4];
+						IfColumns[0] = "If";
+						IfColumns[1] = "Condition";
+						IfColumns[2] = "Optional";
+						IfColumns[3] = "Whether to execute this task. It is ignored if this condition evaluates to false.";
+						Rows.Add(IfColumns);
+
+						// Get the width of each column
+						int[] Widths = new int[4];
+						for(int Idx = 0; Idx < 4; Idx++)
+						{
+							Widths[Idx] = Rows.Max(x => x[Idx].Length);
+						}
+
+						// Format the markdown table
+						string Format = String.Format("| {{0,-{0}}} | {{1,-{1}}} | {{2,-{2}}} | {{3,-{3}}} |", Widths[0], Widths[1], Widths[2], Widths[3]);
+						Writer.WriteLine(Format, "", "", "", "");
+						Writer.WriteLine(Format, new string('-', Widths[0]), new string('-', Widths[1]), new string('-', Widths[2]), new string('-', Widths[3]));
+						for(int Idx = 0; Idx < Rows.Count; Idx++)
+						{
+							Writer.WriteLine(Format, Rows[Idx][0], Rows[Idx][1], Rows[Idx][2], Rows[Idx][3]);
+						}
+
+						// Blank line before next task
+						Writer.WriteLine();
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Converts an XML documentation node to markdown
+		/// </summary>
+		/// <param name="Node">The node to read</param>
+		/// <returns>Text in markdown format</returns>
+		static string ConvertToMarkdown(XmlNode Node)
+		{
+			string Text = Node.InnerXml;
+
+			StringBuilder Result = new StringBuilder();
+			for(int Idx = 0; Idx < Text.Length; Idx++)
+			{
+				if(Char.IsWhiteSpace(Text[Idx]))
+				{
+					Result.Append(' ');
+					while(Idx + 1 < Text.Length && Char.IsWhiteSpace(Text[Idx + 1]))
+					{
+						Idx++;
+					}
+				}
+				else
+				{
+					Result.Append(Text[Idx]);
+				}
+			}
+			return Result.ToString().Trim();
 		}
 	}
 

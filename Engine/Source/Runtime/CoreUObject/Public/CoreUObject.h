@@ -16,7 +16,7 @@
 #include "UObjectArray.h"
 #include "UObjectHash.h"
 #include "WeakObjectPtr.h"
-#include "UObject.h"
+#include "Object.h"
 #include "UObjectIterator.h"
 #include "CoreNet.h"					// Core networking.
 #include "ArchiveUObjectBase.h"			// UObject-related Archive classes.
@@ -30,6 +30,8 @@
 #include "AssetPtr.h"					// Object pointer types
 #include "Interface.h"					// Interface base classes.
 #include "CoreObject.h"					// Core object class definitions.
+#include "Package.h"					// Package class definition
+#include "MetaData.h"					// Metadata for packages
 #include "UnrealType.h"					// Base property type.
 #include "UTextProperty.h"				// FText property type
 #include "Stack.h"						// Script stack frame definition.

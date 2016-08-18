@@ -4,8 +4,7 @@
 LandscapeEdit.h: Classes for the editor to access to Landscape data
 =============================================================================*/
 
-#ifndef _LANDSCAPEEDIT_H
-#define _LANDSCAPEEDIT_H
+#pragma once
 
 #define MAX_LANDSCAPE_LOD_DISTANCE_FACTOR 10.f
 
@@ -237,4 +236,3 @@ void FLandscapeEditDataInterface::ShrinkData(TArray<T>& Data, int32 OldMinX, int
 
 #endif
 
-#endif // _LANDSCAPEEDIT_H

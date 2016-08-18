@@ -183,10 +183,10 @@ struct FOculusTouchControllerState
 	FVector2D ThumbstickAxes;
 
 	/** Button states */
-	FOculusButtonState Buttons[ EOculusTouchControllerButton::TotalButtonCount ];
+	FOculusButtonState Buttons[ (int32)EOculusTouchControllerButton::TotalButtonCount ];
 
 	/** Capacitive Touch axes */
-	FOculusTouchCapacitiveState CapacitiveAxes[EOculusTouchCapacitiveAxes::TotalAxisCount];
+	FOculusTouchCapacitiveState CapacitiveAxes[(int32)EOculusTouchCapacitiveAxes::TotalAxisCount];
 
 	/** Whether or not we're playing a haptic effect.  If true, force feedback calls will be early-outed in favor of the haptic effect */
 	bool bPlayingHapticEffect;
@@ -239,7 +239,7 @@ struct FOculusTouchControllerState
 struct FOculusRemoteControllerState
 {
 	/** Button states */
-	FOculusButtonState Buttons[EOculusRemoteControllerButton::TotalButtonCount];
+	FOculusButtonState Buttons[(int32)EOculusRemoteControllerButton::TotalButtonCount];
 
 	FOculusRemoteControllerState()
 	{

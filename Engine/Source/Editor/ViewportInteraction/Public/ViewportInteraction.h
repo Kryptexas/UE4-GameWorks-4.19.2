@@ -5,5 +5,4 @@
 #include "ViewportInteractableInterface.h"
 #include "IViewportInteractionModule.h"
 #include "ViewportWorldInteractionInterface.h"
-#include "ViewportInteraction.h"
 #include "ViewportInteractor.h"

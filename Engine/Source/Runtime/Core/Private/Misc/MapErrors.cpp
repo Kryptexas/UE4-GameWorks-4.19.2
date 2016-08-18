@@ -66,3 +66,8 @@ FMapErrorToken::FMapErrorToken(const FName& InErrorName)
 	: FDocumentationToken(MapErrorsPath, MapErrorsPath, InErrorName.ToString())
 {
 }
+
+TSharedRef<FMapErrorToken> FMapErrorToken::Create(const FName& InErrorName)
+{
+	return MakeShareable(new FMapErrorToken(InErrorName));
+}

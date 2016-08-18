@@ -635,6 +635,80 @@ public:
 	void UpdateDefaultStateCache();
 };
 
+/** Information about a D3D resource that is currently locked. */
+struct FD3D12LockedData
+{
+	TRefCountPtr<FD3D12Resource> StagingResource;
+	TRefCountPtr<FD3D12Resource> UploadHeapResource;
+	TRefCountPtr<FD3D12ResourceLocation> UploadHeapLocation;
+	uint32 Pitch;
+	uint32 DepthPitch;
+
+	// constructor
+	FD3D12LockedData()
+		: bAllocDataWasUsed(false)
+	{
+	}
+
+	// 16 byte alignment for best performance  (can be 30x faster than unaligned)
+	void AllocData(uint32 Size)
+	{
+		Data = (uint8*)FMemory::Malloc(Size, 16);
+		bAllocDataWasUsed = true;
+	}
+
+	// Some driver might return aligned memory so we don't enforce the alignment
+	void SetData(void* InData)
+	{
+		check(!bAllocDataWasUsed); Data = (uint8*)InData;
+	}
+
+	uint8* GetData() const
+	{
+		return Data;
+	}
+
+	// only call if AllocData() was used
+	void FreeData()
+	{
+		check(bAllocDataWasUsed);
+		FMemory::Free(Data);
+		Data = 0;
+	}
+
+private:
+	uint8* Data;
+	// then FreeData
+	bool bAllocDataWasUsed;
+};
+
+/**
+* Class for managing dynamic buffers.
+*/
+class FD3D12DynamicBuffer : public FRenderResource, public FRHIResource, public FD3D12DeviceChild
+{
+public:
+	/** Initialization constructor. */
+	FD3D12DynamicBuffer(FD3D12Device* InParent, class FD3D12FastAllocator& Allocator);
+	/** Destructor. */
+	~FD3D12DynamicBuffer();
+
+	/** Locks the buffer returning at least Size bytes. */
+	void* Lock(uint32 Size);
+	/** Unlocks the buffer returning the underlying D3D12 buffer to use as a resource. */
+	FD3D12ResourceLocation* Unlock();
+
+	// Begin FRenderResource interface.
+	virtual void InitRHI() override;
+	virtual void ReleaseRHI() override;
+	// End FRenderResource interface.
+
+	void ReleaseResourceLocation() { ResourceLocation = nullptr; }
+
+private:
+	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
+	class FD3D12FastAllocator& FastAllocator;
+};
 
 class FD3D12DeferredDeletionQueue : public FD3D12DeviceChild
 {
@@ -1968,22 +2042,11 @@ protected:
 		AllocateHeapSlot();
 	}
 
-	void AllocateHeapSlot()
-	{
-		FDescriptorHeapManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
-		Descriptor = DescriptorAllocator.AllocateHeapSlot(DescriptorHeapIndex);
-		check(Descriptor.ptr != 0);
-	}
+	// Implemented in D3D12Device.h due to dependency on FD3D12Device declaration
+	void AllocateHeapSlot();
 
-	void FreeHeapSlot()
-	{
-		if (Descriptor.ptr)
-		{
-			FDescriptorHeapManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
-			DescriptorAllocator.FreeHeapSlot(Descriptor, DescriptorHeapIndex);
-			Descriptor.ptr = 0;
-		}
-	}
+	// Implemented in D3D12Device.h due to dependency on FD3D12Device declaration
+	void FreeHeapSlot();
 
 	void UpdateViewSubresourceSubset(const FD3D12Resource* const InResource)
 	{
@@ -2011,40 +2074,11 @@ protected:
 
 
 public:
-	void CreateView(FD3D12Resource* InResource = nullptr, FD3D12Resource* InCounterResource = nullptr)
-	{
-		if (!InResource)
-		{
-			InResource = GetResource();
-		}
-		else
-		{
-			// Only need to update the view's subresource subset if a new resource is used
-			UpdateViewSubresourceSubset(InResource);
-		}
+	// Implemented in D3D12Device.h due to dependency on FD3D12Device declaration
+	void CreateView(FD3D12Resource* InResource = nullptr, FD3D12Resource* InCounterResource = nullptr);
 
-		check(Descriptor.ptr != 0);
-		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
-			InResource ? InResource->GetResource() : nullptr, &Desc, Descriptor);
-	}
-
-	void CreateViewWithCounter(FD3D12Resource* InResource, FD3D12Resource* InCounterResource)
-	{
-		if (!InResource)
-		{
-			InResource = GetResource();
-		}
-		else
-		{
-			// Only need to update the view's subresource subset if a new resource is used
-			UpdateViewSubresourceSubset(InResource);
-		}
-
-		check(Descriptor.ptr != 0);
-		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
-			InResource ? InResource->GetResource() : nullptr,
-			InCounterResource ? InCounterResource->GetResource() : nullptr, &Desc, Descriptor);
-	}
+	// Implemented in D3D12Device.h due to dependency on FD3D12Device declaration
+	void CreateViewWithCounter(FD3D12Resource* InResource, FD3D12Resource* InCounterResource);
 
 	const TDesc& GetDesc() const { return Desc; }
 	const CViewSubresourceSubset& GetViewSubresourceSubset() const { return ViewSubresourceSubset; }

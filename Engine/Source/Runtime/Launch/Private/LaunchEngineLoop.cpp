@@ -3322,6 +3322,8 @@ bool FEngineLoop::AppInit( )
 	// Print compiler version info
 #if defined(__clang__)
 	UE_LOG(LogInit, Log, TEXT("Compiled with Clang: %s"), ANSI_TO_TCHAR( __clang_version__ ) );
+#elif defined(__INTEL_COMPILER)
+	UE_LOG(LogInit, Log, TEXT("Compiled with ICL: %d"), __INTEL_COMPILER);
 #elif defined( _MSC_VER )
 	#ifndef __INTELLISENSE__	// Intellisense compiler doesn't support _MSC_FULL_VER
 	{

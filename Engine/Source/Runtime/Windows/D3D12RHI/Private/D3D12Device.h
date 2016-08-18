@@ -7,6 +7,7 @@ D3D12Device.h: D3D12 Device Interfaces
 #pragma once
 
 class FD3D12DynamicRHI;
+class FD3D12OcclusionQuery;
 
 struct FD3D12Adapter
 {
@@ -254,3 +255,62 @@ protected:
 
 	FD3D12ResidencyManager ResidencyManager;
 };
+
+// Inline functions for FD3D12View which are dependent on the full FD3DDevice declaration
+
+template <typename TDesc>
+void FD3D12View<TDesc>::AllocateHeapSlot()
+{
+	FDescriptorHeapManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+	Descriptor = DescriptorAllocator.AllocateHeapSlot(DescriptorHeapIndex);
+	check(Descriptor.ptr != 0);
+}
+
+template <typename TDesc>
+void FD3D12View<TDesc>::FreeHeapSlot()
+{
+	if (Descriptor.ptr)
+	{
+		FDescriptorHeapManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+		DescriptorAllocator.FreeHeapSlot(Descriptor, DescriptorHeapIndex);
+		Descriptor.ptr = 0;
+	}
+}
+
+
+template <typename TDesc>
+void FD3D12View<TDesc>::CreateView(FD3D12Resource* InResource, FD3D12Resource* InCounterResource)
+{
+	if (!InResource)
+	{
+		InResource = GetResource();
+	}
+	else
+	{
+		// Only need to update the view's subresource subset if a new resource is used
+		UpdateViewSubresourceSubset(InResource);
+	}
+
+	check(Descriptor.ptr != 0);
+	(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
+		InResource ? InResource->GetResource() : nullptr, &Desc, Descriptor);
+}
+
+template <typename TDesc>
+void FD3D12View<TDesc>::CreateViewWithCounter(FD3D12Resource* InResource, FD3D12Resource* InCounterResource)
+{
+	if (!InResource)
+	{
+		InResource = GetResource();
+	}
+	else
+	{
+		// Only need to update the view's subresource subset if a new resource is used
+		UpdateViewSubresourceSubset(InResource);
+	}
+
+	check(Descriptor.ptr != 0);
+	(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
+		InResource ? InResource->GetResource() : nullptr,
+		InCounterResource ? InCounterResource->GetResource() : nullptr, &Desc, Descriptor);
+}

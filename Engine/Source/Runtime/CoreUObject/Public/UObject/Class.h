@@ -7,7 +7,7 @@
 #pragma once
 
 #include "ObjectBase.h"
-#include "UObject.h"
+#include "Object.h"
 #include "GarbageCollection.h"
 
 /*-----------------------------------------------------------------------------
@@ -1783,21 +1783,21 @@ namespace EIncludeSuperFlag
 	class FFastIndexingClassTreeRegistrar
 	{
 	public:
-		FFastIndexingClassTreeRegistrar();
-		FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
-		~FFastIndexingClassTreeRegistrar();
+		COREUOBJECT_API FFastIndexingClassTreeRegistrar();
+		COREUOBJECT_API FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
+		COREUOBJECT_API ~FFastIndexingClassTreeRegistrar();
 
 	private:
 		friend class UClass;
 		friend class UObjectBaseUtility;
 		friend class FFastIndexingClassTree;
 
-		bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
+		FORCEINLINE bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
 		{
 			return ClassTreeIndex - Parent.ClassTreeIndex <= Parent.ClassTreeNumChildren;
 		}
 
-		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&);
+		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&) = delete;
 
 		uint32 ClassTreeIndex;
 		uint32 ClassTreeNumChildren;

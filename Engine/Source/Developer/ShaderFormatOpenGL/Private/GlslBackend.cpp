@@ -30,8 +30,8 @@
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "ShaderFormatOpenGL.h"
 #include "Core.h"
+#include "ShaderFormatOpenGL.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "GlslBackend.h"

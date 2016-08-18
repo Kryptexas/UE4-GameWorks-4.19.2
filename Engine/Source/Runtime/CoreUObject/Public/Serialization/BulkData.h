@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#ifndef _UNBULKDATA_H
-#define _UNBULKDATA_H
+#pragma once
 
 #include "Async/Async.h"
 
@@ -638,8 +637,4 @@ public:
 	}
 	COREUOBJECT_API void Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave = NULL, bool bSingleUse = true, uint32 InAlignment = DEFAULT_ALIGNMENT);
 };
-
-#endif
-
-
 

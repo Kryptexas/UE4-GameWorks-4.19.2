@@ -4,8 +4,7 @@
 	Engine.h: Unreal engine public header file.
 =============================================================================*/
 
-#ifndef _INC_ENGINE_UTILS
-#define _INC_ENGINE_UTILS
+#pragma once
 
 #include "Engine/Brush.h"
 #include "Engine/Level.h"
@@ -803,4 +802,3 @@ public:
 	}
 };
 
-#endif // _INC_ENGINE_UTILS

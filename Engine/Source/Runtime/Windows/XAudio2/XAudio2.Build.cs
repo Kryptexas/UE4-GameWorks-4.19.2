@@ -33,5 +33,7 @@ public class XAudio2 : ModuleRules
 			"Vorbis",
 			"VorbisFile"
 			);
+
+		Definitions.Add("WITH_OGGVORBIS=1");
 	}
 }

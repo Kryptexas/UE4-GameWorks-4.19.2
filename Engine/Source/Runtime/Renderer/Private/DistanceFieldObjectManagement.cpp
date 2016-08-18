@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "RendererPrivate.h"
-#include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"

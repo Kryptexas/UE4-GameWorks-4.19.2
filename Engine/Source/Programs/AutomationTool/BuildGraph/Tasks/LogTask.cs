@@ -24,7 +24,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// If specified, causes the given list of files to be printed after the given message.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>

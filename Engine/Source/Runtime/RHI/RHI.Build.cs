@@ -42,5 +42,7 @@ public class RHI : ModuleRules
 		{
 			PrivateIncludePathModuleNames.AddRange(new string[] { "TaskGraph" });
 		}
+
+		PrivateIncludePaths.Add("Runtime/RHI/Private");
 	}
 }

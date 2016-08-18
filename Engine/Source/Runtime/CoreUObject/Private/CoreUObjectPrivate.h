@@ -4,8 +4,7 @@
 	CoreUObjectPrivate.h: Unreal core private header file.
 =============================================================================*/
 
-#ifndef COREUOBJECT_PRIVATE_H
-#define COREUOBJECT_PRIVATE_H
+#pragma once
 
 #include "Core.h"
 
@@ -21,7 +20,7 @@
 #include "UObjectArray.h"
 #include "UObjectHash.h"
 #include "WeakObjectPtr.h"
-#include "UObject.h"
+#include "Object.h"
 #include "UObjectIterator.h"
 #include "CoreNet.h"					// Core networking.
 #include "ArchiveUObjectBase.h"			// UObject-related Archive classes.
@@ -47,5 +46,3 @@
 #include "WorldCompositionUtility.h"
 #include "StringClassReference.h"
 #include "Blueprint/BlueprintSupport.h"
-
-#endif // COREUOBJECT_PRIVATE_H

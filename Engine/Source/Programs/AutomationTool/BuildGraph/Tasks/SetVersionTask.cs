@@ -57,7 +57,7 @@ namespace AutomationTool.Tasks
 	}
 
 	/// <summary>
-	/// Task which updates the version files in the current branch
+	/// Updates the local version files (Engine/Source/Runtime/Launch/Resources/Version.h, Engine/Build/Build.version, and Engine/Source/Programs/DotNETCommon/Metadata.cs) with the given version information.
 	/// </summary>
 	[TaskElement("SetVersion", typeof(SetVersionTaskParameters))]
 	public class SetVersionTask : CustomTask

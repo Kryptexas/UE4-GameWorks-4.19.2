@@ -4,8 +4,7 @@
 	DynamicPrimitiveDrawing.inl: Dynamic primitive drawing implementation.
 =============================================================================*/
 
-#ifndef __DYNAMICPRIMITIVEDRAWING_INL__
-#define __DYNAMICPRIMITIVEDRAWING_INL__
+#pragma once
 
 template<class DrawingPolicyFactoryType>
 void DrawViewElementsInner(
@@ -307,4 +306,3 @@ inline int32 FViewElementPDI::DrawMesh(const FMeshBatch& Mesh)
 	return 0;
 }
 
-#endif

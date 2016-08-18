@@ -5,6 +5,7 @@
 	Functions to rasterize a spline into landscape heights/weights
   =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "LandscapeSplineRaster.h"
 #include "LandscapeStreamingProxy.h"

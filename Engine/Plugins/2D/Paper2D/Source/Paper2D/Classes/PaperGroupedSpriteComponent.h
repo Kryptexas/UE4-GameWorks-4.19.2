@@ -2,11 +2,11 @@
 
 #pragma once
 
-class FGroupedSpriteSceneProxy;
-
 #include "PaperSprite.h"
 
 #include "PaperGroupedSpriteComponent.generated.h"
+
+class FGroupedSpriteSceneProxy;
 
 USTRUCT()
 struct FSpriteInstanceData

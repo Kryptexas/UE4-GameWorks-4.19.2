@@ -2581,6 +2581,18 @@ namespace UnrealBuildTool
 				// Get all H files in all modules processed in the last makefile build
 				HashSet<string> AllUHTHeaders = new HashSet<string>(Target.FlatModuleCsData.Select(x => x.Value).SelectMany(x => x.UHTHeaderNames));
 
+				// Check whether any headers have been deleted. If they have, we need to regenerate the makefile since the module might now be empty. If we don't,
+				// and the file has been moved to a different module, we may include stale generated headers.
+				foreach(string FileName in AllUHTHeaders)
+				{
+					if(!File.Exists(FileName))
+					{
+						Log.TraceVerbose("File processed by UHT was deleted ({0}); invalidating makefile", FileName);
+						ReasonNotLoaded = string.Format("UHT file was deleted");
+						return null;
+					}
+				}
+
 				// Makefile is invalid if:
 				// * There are any newer files which contain no UHT data, but were previously in the makefile
 				// * There are any newer files contain data which needs processing by UHT, but weren't not previously in the makefile

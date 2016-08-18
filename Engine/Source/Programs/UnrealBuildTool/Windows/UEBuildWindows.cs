@@ -159,6 +159,16 @@ namespace UnrealBuildTool
 				}
 			}
 
+			if (WindowsPlatform.bCompileWithICL)
+			{
+				BuildConfiguration.bUseSharedPCHs = false;
+
+				if (WindowsPlatform.bUseVCCompilerArgs)
+				{
+					BuildConfiguration.bUsePCHFiles = false;
+				}
+			}
+
 			// A bug in the UCRT can cause XGE to hang on VS2015 builds. Figure out if this hang is likely to effect this build and workaround it if able.
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
@@ -243,6 +253,18 @@ namespace UnrealBuildTool
 
 				//on PS4 the SDK now handles distortion correction.  On PC we will still have to handle it manually,				
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("MORPHEUS_ENGINE_DISTORTION=1");
+			}
+
+			// Add path to Intel math libraries when using ICL based on target platform
+			if (WindowsPlatform.bCompileWithICL)
+			{
+				var Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "IntelSWTools", "compilers_and_libraries", "windows", "compiler", "lib", InBuildTarget.Platform == UnrealTargetPlatform.Win32 ? "ia32" : "intel64");
+				if (!Directory.Exists(Result))
+				{
+					throw new BuildException("ICL was selected but the required math libraries were not found.  Could not find: " + Result);
+				}
+
+				InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(Result);
 			}
 
 			if (InBuildTarget.Rules != null)
@@ -534,6 +556,12 @@ namespace UnrealBuildTool
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
 		public static readonly bool bAllowClangLinker = bCompileWithClang && false;
+
+		/// True if we should use the Intel Compiler instead of MSVC to compile code on Windows platform
+		public static readonly bool bCompileWithICL = false;
+
+		/// True if we should use the Intel linker (xilink) when bCompileWithICL is enabled, otherwise we use the MSVC linker
+		public static readonly bool bAllowICLLinker = bCompileWithICL && true;
 
 		/// Whether to compile against the Windows 10 SDK, instead of the Windows 8.1 SDK.  This requires the Visual Studio 2015
 		/// compiler or later, and the Windows 10 SDK must be installed.  The application will require at least Windows 8.x to run.

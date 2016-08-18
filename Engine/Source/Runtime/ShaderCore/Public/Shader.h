@@ -252,7 +252,7 @@ private:
 	uint32 Canary;
 
 	/** Initialize the shader RHI resources. */
-	void InitializeShaderRHI();
+	SHADERCORE_API void InitializeShaderRHI();
 
 	/** Tracks loaded shader resources by id. */
 	static TMap<FShaderResourceId, FShaderResource*> ShaderResourceIdMap;

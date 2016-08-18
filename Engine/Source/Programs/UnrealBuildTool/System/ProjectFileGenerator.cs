@@ -1415,9 +1415,10 @@ namespace UnrealBuildTool
 
 						Log.TraceVerbose( "Found target: " + TargetName );
 
-						string[] ArgumentsCopy = new string[ Arguments.Length + 1 ];
+						string[] ArgumentsCopy = new string[ Arguments.Length + 2 ];
 						ArgumentsCopy[ 0 ] = TargetName;
-						Array.Copy(Arguments, 0, ArgumentsCopy, 1, Arguments.Length);
+						ArgumentsCopy[ 1 ] = "-precompile";
+						Array.Copy(Arguments, 0, ArgumentsCopy, 2, Arguments.Length);
 
 						// We only want to update definitions and include paths for modules that are part of this target's project file.
 						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = TargetProjectFile;

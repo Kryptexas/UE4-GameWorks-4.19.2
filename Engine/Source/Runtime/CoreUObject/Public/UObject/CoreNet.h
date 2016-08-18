@@ -4,7 +4,7 @@
 
 #include "ObjectBase.h"
 #include "WeakObjectPtr.h"
-#include "UObject.h"
+#include "Object.h"
 
 
 DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);

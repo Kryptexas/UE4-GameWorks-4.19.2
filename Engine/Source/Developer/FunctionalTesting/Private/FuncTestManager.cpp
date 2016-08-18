@@ -2,7 +2,7 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 
-#include "UObject/UObject.h"
+#include "UObject/Object.h"
 #include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY(LogFunctionalTest);

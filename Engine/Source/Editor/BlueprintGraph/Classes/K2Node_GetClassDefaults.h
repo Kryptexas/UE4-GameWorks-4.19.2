@@ -52,14 +52,14 @@ protected:
 	 *
 	 * @param FromPins	A list of pins to search.
 	 */
-	UEdGraphPin* FindClassPin(const TArray<UEdGraphPin*>& FromPins) const;
+	BLUEPRINTGRAPH_API UEdGraphPin* FindClassPin(const TArray<UEdGraphPin*>& FromPins) const;
 
 	/**
 	* Determines the input class type from the given pin.
 	*
 	* @param FromPin	Input class pin.
 	*/
-	UClass* GetInputClass(const UEdGraphPin* FromPin) const;
+	BLUEPRINTGRAPH_API UClass* GetInputClass(const UEdGraphPin* FromPin) const;
 
 	/**
 	 * Creates the full set of output pins (properties) from the given input class.

@@ -4,6 +4,7 @@
 #if !UE_ENABLE_ICU
 
 #include "Culture.h"
+#include "Internationalization/Internationalization.h"
 #include "FastDecimalFormat.h"
 
 #define LOCTEXT_NAMESPACE "Internationalization"

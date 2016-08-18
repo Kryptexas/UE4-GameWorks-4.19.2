@@ -789,25 +789,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // UActorComponent inlines
 
-FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
-{
-#if WITH_EDITOR
-	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
-	if (bCanUseCachedOwner)
-	{
-		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-		return OwnerPrivate;
-	}
-	else
-	{
-		return GetTypedOuter<AActor>();
-	}
-#else
-	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-	return OwnerPrivate;
-#endif
-}
-
 FORCEINLINE bool UActorComponent::CanEverAffectNavigation() const
 {
 	return bCanEverAffectNavigation;

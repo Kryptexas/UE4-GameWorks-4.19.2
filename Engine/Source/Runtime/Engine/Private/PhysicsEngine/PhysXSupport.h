@@ -8,6 +8,8 @@
 
 #include "PhysXPublic.h"
 
+#include "../Collision/PhysicsFiltering.h"
+
 #if WITH_PHYSX
 
 // Whether to track PhysX memory allocations
@@ -617,9 +619,6 @@ public:
  **/
 ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection);
 #endif // WITH_PHYSX
-
-
-#include "../Collision/PhysicsFiltering.h"
 
 /** Helper struct holding physics body filter data during initialisation */
 struct FShapeFilterData

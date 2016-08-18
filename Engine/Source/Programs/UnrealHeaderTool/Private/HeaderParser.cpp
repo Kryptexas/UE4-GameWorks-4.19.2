@@ -6897,7 +6897,7 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 
 	TArray<FUnrealSourceFile*> SourceFilesRequired;
 
-	static const FString ObjectHeader = FString(TEXT("Object.h"));
+	static const FString ObjectHeader = FString(TEXT("NoExportTypes.h"));
 	for (auto& Include : SourceFile->GetIncludes())
 	{
 		if (Include.GetId() == ObjectHeader)

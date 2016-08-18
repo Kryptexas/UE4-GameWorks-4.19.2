@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // ..
 
-#include "MetalShaderFormat.h"
 #include "Core.h"
+#include "MetalShaderFormat.h"
 #include "ShaderCore.h"
 #include "MetalShaderResources.h"
 #include "ShaderCompilerCommon.h"

@@ -17,25 +17,25 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// Set the base directory to resolve relative paths and patterns against. If set, any absolute patterns (eg. /Engine/Build/...) are taken to be relative to this path. If not, they are taken to be truly absolute.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string BaseDir;
 
 		/// <summary>
 		/// Set of files to work from, including wildcards and tag names, separated by semicolons. Resolved relative to BaseDir if set, otherwise to the branch root directory.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
 		/// Patterns to filter the list of files by, including tag names or wildcards. May include patterns that apply to the base directory if set. Defaults to all files if not specified.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Filter;
 
 		/// <summary>
 		/// Set of patterns to exclude from the matched list. May include tag names of patterns that apply to the base directory.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Except;
 
 		/// <summary>
@@ -46,10 +46,8 @@ namespace AutomationTool.Tasks
 	}
 
 	/// <summary>
-	/// Task which applies a tag to a given set of files. Filtering is performed using the following method:
-	/// * A set of files is enumerated from the tags and file specifications given by the "Files" parameter
-	/// * Any files not matched by the "Filter" parameter are removed.
-	/// * Any files matched by the "Except" parameter are removed.
+	/// Applies a tag to a given set of files. The list of files is found by enumerating the tags and file specifications given by the 'Files' 
+	/// parameter. From this list, any files not matched by the 'Filter' parameter are removed, followed by any files matched by the 'Except' parameter.
 	/// </summary>
 	[TaskElement("Tag", typeof(TagTaskParameters))]
 	class TagTask : CustomTask
@@ -63,7 +61,6 @@ namespace AutomationTool.Tasks
 		/// Constructor
 		/// </summary>
 		/// <param name="InParameters">Parameters to select which files to match</param>
-		/// <param name="Type"></param>
 		public TagTask(TagTaskParameters InParameters)
 		{
 			Parameters = InParameters;

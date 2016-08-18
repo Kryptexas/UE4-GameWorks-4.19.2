@@ -66,9 +66,6 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define FUNCTION_CHECK_RETURN_END __attribute__ ((warn_unused_result))	/* Warn that callers should not ignore the return value. */
 #define FUNCTION_NO_RETURN_END __attribute__ ((noreturn))				/* Indicate that the function never returns. */
 
-#define TEXT_HELPER(a,b)	a ## b
-#define TEXT(s)				TEXT_HELPER(L, s)
-
 #define ABSTRACT abstract
 
 // Strings.

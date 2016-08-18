@@ -46,7 +46,7 @@ namespace AutomationTool
 	}
 
 	/// <summary>
-	/// Task which compiles a target with UnrealBuildTool
+	/// Compiles a target with UnrealBuildTool.
 	/// </summary>
 	[TaskElement("Compile", typeof(CompileTaskParameters))]
 	public class CompileTask : CustomTask
@@ -64,7 +64,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Construct a compile task
 		/// </summary>
-		/// <param name="InParameters">Parameters for this task</param>
+		/// <param name="Parameters">Parameters for this task</param>
 		public CompileTask(CompileTaskParameters Parameters)
 		{
 			UE4Build.BuildTarget Target = new UE4Build.BuildTarget { TargetName = Parameters.Target, Platform = Parameters.Platform, Config = Parameters.Configuration, UBTArgs = "-nobuilduht " + (Parameters.Arguments ?? "") };

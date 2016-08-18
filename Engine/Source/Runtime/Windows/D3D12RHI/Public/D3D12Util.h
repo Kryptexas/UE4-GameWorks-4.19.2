@@ -324,53 +324,6 @@ public:
 	}
 };
 
-/** Information about a D3D resource that is currently locked. */
-struct FD3D12LockedData
-{
-	TRefCountPtr<FD3D12Resource> StagingResource;
-	TRefCountPtr<FD3D12Resource> UploadHeapResource;
-	TRefCountPtr<FD3D12ResourceLocation> UploadHeapLocation;
-	uint32 Pitch;
-	uint32 DepthPitch;
-
-	// constructor
-	FD3D12LockedData()
-		: bAllocDataWasUsed(false)
-	{
-	}
-
-	// 16 byte alignment for best performance  (can be 30x faster than unaligned)
-	void AllocData(uint32 Size)
-	{
-		Data = (uint8*)FMemory::Malloc(Size, 16);
-		bAllocDataWasUsed = true;
-	}
-
-	// Some driver might return aligned memory so we don't enforce the alignment
-	void SetData(void* InData)
-	{
-		check(!bAllocDataWasUsed); Data = (uint8*)InData;
-	}
-
-	uint8* GetData() const
-	{
-		return Data;
-	}
-
-	// only call if AllocData() was used
-	void FreeData()
-	{
-		check(bAllocDataWasUsed);
-		FMemory::Free(Data);
-		Data = 0;
-	}
-
-private:
-	uint8* Data;
-	// then FreeData
-	bool bAllocDataWasUsed;
-};
-
 class FD3D12RenderTargetView;
 class FD3D12DepthStencilView;
 
@@ -400,34 +353,6 @@ private:
 
 	/** The number of active render targets. */
 	int32 NumActiveTargets;
-};
-
-/**
- * Class for managing dynamic buffers.
- */
-class FD3D12DynamicBuffer : public FRenderResource, public FRHIResource, public FD3D12DeviceChild
-{
-public:
-	/** Initialization constructor. */
-	FD3D12DynamicBuffer(FD3D12Device* InParent, class FD3D12FastAllocator& Allocator);
-	/** Destructor. */
-	~FD3D12DynamicBuffer();
-
-	/** Locks the buffer returning at least Size bytes. */
-	void* Lock(uint32 Size);
-	/** Unlocks the buffer returning the underlying D3D12 buffer to use as a resource. */
-	FD3D12ResourceLocation* Unlock();
-
-	// Begin FRenderResource interface.
-	virtual void InitRHI() override;
-	virtual void ReleaseRHI() override;
-	// End FRenderResource interface.
-
-	void ReleaseResourceLocation() { ResourceLocation = nullptr; }
-
-private:
-	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
-	class FD3D12FastAllocator& FastAllocator;
 };
 
 static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD(D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)

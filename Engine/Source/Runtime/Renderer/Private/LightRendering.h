@@ -4,8 +4,7 @@
 	LightRendering.h: Light rendering declarations.
 =============================================================================*/
 
-#ifndef __LIGHTRENDERING_H__
-#define __LIGHTRENDERING_H__
+#pragma once
 
 #include "UniformBuffer.h"
 
@@ -121,4 +120,3 @@ private:
 
 extern void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds);
 
-#endif

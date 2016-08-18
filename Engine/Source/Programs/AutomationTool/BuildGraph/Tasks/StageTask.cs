@@ -17,7 +17,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// The project that this target belongs to
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileName)]
 		public string Project;
 
 		/// <summary>
@@ -45,18 +45,6 @@ namespace BuildGraph.Tasks
 		public string Architecture;
 
 		/// <summary>
-		/// Subset of files which should be staged. This filter is run against the source directory.
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string Files;
-
-		/// <summary>
-		/// Files which should not be staged. This filter is run against the source directory.
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string Exclude;
-
-		/// <summary>
 		/// Directory the receipt files should be staged to
 		/// </summary>
 		[TaskParameter]
@@ -76,7 +64,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Stages files from a receipt to an output directory
+	/// Stages files listed in a build receipt to an output directory.
 	/// </summary>
 	[TaskElement("Stage", typeof(StageTaskParameters))]
 	public class StageTask : CustomTask
@@ -201,14 +189,7 @@ namespace BuildGraph.Tasks
 		/// <returns>The tag names which are read by this task</returns>
 		public override IEnumerable<string> FindConsumedTagNames()
 		{
-			foreach(string TagName in FindTagNamesFromFilespec(Parameters.Files))
-			{
-				yield return TagName;
-			}
-			foreach(string TagName in FindTagNamesFromFilespec(Parameters.Exclude))
-			{
-				yield return TagName;
-			}
+			yield break;
 		}
 
 		/// <summary>

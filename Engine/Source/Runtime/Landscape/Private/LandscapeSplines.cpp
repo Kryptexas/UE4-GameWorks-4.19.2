@@ -4,6 +4,7 @@
 	LandscapeSpline.cpp
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "Components/SplineMeshComponent.h"
 #include "LandscapeStreamingProxy.h"

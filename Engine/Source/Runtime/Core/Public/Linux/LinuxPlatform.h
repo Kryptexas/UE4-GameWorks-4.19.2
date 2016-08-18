@@ -67,9 +67,6 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define FUNCTION_CHECK_RETURN_END __attribute__ ((warn_unused_result))	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
 #define FUNCTION_NO_RETURN_END __attribute__ ((noreturn))				/* Wrap a function signature in this to indicate that the function never returns. */
 
-#define TEXT_HELPER(a,b)	a ## b
-#define TEXT(s)				TEXT_HELPER(L, s)
-
 // Optimization macros (uses _Pragma to enable inside a #define).
 // @todo linux: do these actually work with clang?  (no, they do not, but keeping in in case we switch to gcc)
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("optimize(\"\",off)")

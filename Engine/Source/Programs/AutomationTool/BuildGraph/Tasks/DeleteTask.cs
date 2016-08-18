@@ -18,18 +18,18 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
-		/// Whether to delete empty directories after deleting the files
+		/// Whether to delete empty directories after deleting the files. Defaults to true.
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public bool DeleteEmptyDirectories = true;
 	}
 
 	/// <summary>
-	/// Task which copies files from one directory to another
+	/// Delete a set of files.
 	/// </summary>
 	[TaskElement("Delete", typeof(DeleteTaskParameters))]
 	public class DeleteTask : CustomTask
@@ -92,7 +92,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Deletes a directory, if it's empty
 		/// </summary>
-		/// <param name="Directory">The directory to check</param>
+		/// <param name="CandidateDirectory">The directory to check</param>
 		/// <returns>True if the directory was deleted, false if not</returns>
 		static bool TryDeleteEmptyDirectory(DirectoryReference CandidateDirectory)
 		{

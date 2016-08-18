@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "VulkanRHI.h"
+#include "VulkanConfiguration.h"
+#include "VulkanState.h"
+#include "VulkanUtil.h"
 #include "BoundShaderStateCache.h"
 #include "VulkanShaderResources.h"
 #include "VulkanState.h"

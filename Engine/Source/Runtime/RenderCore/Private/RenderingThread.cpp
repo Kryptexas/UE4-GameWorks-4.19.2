@@ -4,6 +4,7 @@
 	RenderingThread.cpp: Rendering thread implementation.
 =============================================================================*/
 
+#include "RenderCorePrivatePCH.h"
 #include "RenderCore.h"
 #include "RenderingThread.h"
 #include "RHI.h"

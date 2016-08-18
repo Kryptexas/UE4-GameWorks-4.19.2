@@ -11,13 +11,13 @@
 #include "TimerManager.h"
 #include "Engine/Level.h"
 
+#include "Actor.generated.h"
+
 struct FHitResult;
 class AActor;
 class FTimerManager; 
 class UNetDriver;
 struct FNetViewer;
-
-#include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
@@ -3025,6 +3025,28 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
 {
 	NetUpdateTime = NewUpdateTime;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// UActorComponent inlines
+
+FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
+{
+#if WITH_EDITOR
+	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
+	if (bCanUseCachedOwner)
+	{
+		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+		return OwnerPrivate;
+	}
+	else
+	{
+		return GetTypedOuter<AActor>();
+	}
+#else
+	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+	return OwnerPrivate;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

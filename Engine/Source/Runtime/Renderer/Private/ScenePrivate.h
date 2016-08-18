@@ -4,8 +4,7 @@
 	ScenePrivate.h: Private scene manager definitions.
 =============================================================================*/
 
-#ifndef __SCENEPRIVATE_H__
-#define __SCENEPRIVATE_H__
+#pragma once
 
 class SceneRenderingAllocator;
 class USceneCaptureComponent;
@@ -2264,4 +2263,3 @@ private:
 
 #include "BasePassRendering.inl"
 
-#endif // __SCENEPRIVATE_H__

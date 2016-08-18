@@ -4,8 +4,7 @@
 	RendererPrivate.h: Renderer interface private definitions.
 =============================================================================*/
 
-#ifndef __RendererPrivate_h__
-#define __RendererPrivate_h__
+#pragma once
 
 #include "Engine.h"
 #include "ShaderCore.h"
@@ -86,4 +85,3 @@ private:
 
 extern ICustomCulling* GCustomCullingImpl;
 
-#endif

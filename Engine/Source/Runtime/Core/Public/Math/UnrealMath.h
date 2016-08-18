@@ -49,6 +49,7 @@
 #include "Vector2DHalf.h"
 #include "AlphaBlendType.h"
 #include "ScalarRegister.h"
+#include "Transform.h"
 #include "ConvexHull2d.h"
 
 

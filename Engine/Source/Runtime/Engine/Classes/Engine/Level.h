@@ -72,6 +72,12 @@ struct ENGINE_API FDynamicTextureInstance : public FStreamableTextureInstance
 	friend FArchive& operator<<( FArchive& Ar, FDynamicTextureInstance& TextureInstance );
 };
 
+/** Manually implement TPointerIsConvertibleFromTo for AActor so that TWeakObjectPtr can use it below when AActor is forward declared. */
+template<> struct TPointerIsConvertibleFromTo<AActor, const volatile UObject>
+{
+	enum { Value = 1 };
+};
+
 /** Struct that holds on to information about Actors that wish to be auto enabled for input before the player controller has been created */
 struct FPendingAutoReceiveInputActor
 {

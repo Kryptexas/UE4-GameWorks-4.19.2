@@ -2,8 +2,6 @@
 
 #pragma once
 
-class UGameplayCueSet;
-
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
 #include "GameplayCueNotify_Actor.h"
@@ -12,6 +10,8 @@ class UGameplayCueSet;
 #include "Engine/DataAsset.h"
 #include "Engine/StreamableManager.h"
 #include "GameplayCueManager.generated.h"
+
+class UGameplayCueSet;
 
 /**
  *	

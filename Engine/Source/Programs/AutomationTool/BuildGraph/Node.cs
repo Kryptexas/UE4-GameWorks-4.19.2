@@ -143,7 +143,6 @@ namespace AutomationTool
 		/// Build all the tasks for this node
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
-		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include. Should be set to contain the node inputs on entry.</param>
 		/// <returns>Whether the task succeeded or not. Exiting with an exception will be caught and treated as a failure.</returns>
 		public bool Build(JobContext Job, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)

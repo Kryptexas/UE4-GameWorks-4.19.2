@@ -732,6 +732,13 @@ namespace TypeTests
 	#error Unknown Compiler
 #endif
 
+// If we don't have a platform-specific define for the TEXT macro, define it now.
+#if !defined(TEXT) && !UE_BUILD_DOCS
+	#define TEXT_PASTE(x) L ## x
+	#define TEXT(x) TEXT_PASTE(x)
+#endif
+
 // Include defaults for defines that aren't explicitly set by the platform
 #include "UMemoryDefines.h"
 #include "../Misc/CoreMiscDefines.h"
+#include "../Misc/CoreDefines.h"

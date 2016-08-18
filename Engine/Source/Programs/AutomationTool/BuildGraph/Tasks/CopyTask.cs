@@ -17,19 +17,19 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set. Relative paths are based at FromDir.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
 		/// The base directory to copy from. 
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string FromDir;
 
 		/// <summary>
 		/// The directory to copy to
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string ToDir;
 
 		/// <summary>
@@ -40,7 +40,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Task which copies files from one directory to another
+	/// Copies files from one directory to another.
 	/// </summary>
 	[TaskElement("Copy", typeof(CopyTaskParameters))]
 	public class CopyTask : CustomTask

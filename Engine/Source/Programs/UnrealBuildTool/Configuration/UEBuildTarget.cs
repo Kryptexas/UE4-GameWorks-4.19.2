@@ -2711,6 +2711,12 @@ namespace UnrealBuildTool
 					}
 				}
 				AppBinaries = FilteredBinaries;
+
+				// Check we have at least one match
+				if(AppBinaries.Count == 0)
+				{
+					throw new BuildException("Couldn't find any module containing {0} in {1}.", SingleFileItem.Reference, TargetName);
+				}
 			}
 
 			if (ShouldCheckOutputDistributionLevel() && !ProjectFileGenerator.bGenerateProjectFiles)

@@ -11,6 +11,7 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
+#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "XAudio2Effects.h"
 #include "Engine.h"

@@ -1626,13 +1626,22 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public IEnumerable<PluginInfo> EnumeratePlugins()
 		{
+			return global::UnrealBuildTool.Plugins.FilterPlugins(EnumeratePluginsInternal());
+		}
+
+		/// <summary>
+		/// Enumerates all the plugins that are available
+		/// </summary>
+		/// <returns></returns>
+		protected IEnumerable<PluginInfo> EnumeratePluginsInternal()
+		{
 			if (Parent == null)
 			{
 				return Plugins;
 			}
 			else
 			{
-				return Plugins.Concat(Parent.EnumeratePlugins());
+				return Plugins.Concat(Parent.EnumeratePluginsInternal());
 			}
 		}
 

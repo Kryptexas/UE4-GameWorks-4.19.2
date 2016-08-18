@@ -91,10 +91,10 @@ namespace UnrealBuildTool
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker and can handle large linking jobs)
 			string LinkerVSToolPath = VSToolPath64Bit;
 
-			CompilerPath = GetCompilerToolPath(CompilerVSToolPath);
+			CompilerPath = GetCompilerToolPath(InPlatform, CompilerVSToolPath);
 			CLExeVersion = FindCLExeVersion(CompilerPath);
-			LinkerPath = GetLinkerToolPath(LinkerVSToolPath);
-			LibraryLinkerPath = GetLibraryLinkerToolPath(LinkerVSToolPath);
+			LinkerPath = GetLinkerToolPath(InPlatform, LinkerVSToolPath);
+			LibraryLinkerPath = GetLibraryLinkerToolPath(InPlatform, LinkerVSToolPath);
 			ResourceCompilerPath = GetResourceCompilerToolPath(Platform, bSupportWindowsXP);
 
             // Make sure the base 32-bit VS tool path is in the PATH, regardless of which configuration we're using. The toolchain may need to reference support DLLs from this directory (eg. mspdb120.dll).
@@ -327,7 +327,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the path to the compiler.
 		/// </summary>
-		static string GetCompilerToolPath(string PlatformVSToolPath)
+		static string GetCompilerToolPath(CPPTargetPlatform Platform, string PlatformVSToolPath)
 		{
 			// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
 			if (WindowsPlatform.bCompileWithClang)
@@ -359,6 +359,17 @@ namespace UnrealBuildTool
 				return Result;
 			}
 
+			if (WindowsPlatform.bCompileWithICL)
+			{
+				var Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "IntelSWTools", "compilers_and_libraries", "windows", "bin", Platform == CPPTargetPlatform.Win32 ? "ia32" : "intel64", "icl.exe");
+				if (!File.Exists(Result))
+				{
+					throw new BuildException("ICL was selected as the Windows compiler, but does not appear to be installed.  Could not find: " + Result);
+				}
+
+				return Result;
+			}
+
 			return Path.Combine(PlatformVSToolPath, "cl.exe");
 		}
 
@@ -384,7 +395,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the path to the linker.
 		/// </summary>
-		static string GetLinkerToolPath(string PlatformVSToolPath)
+		static string GetLinkerToolPath(CPPTargetPlatform Platform, string PlatformVSToolPath)
 		{
 			// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
 			if (WindowsPlatform.bCompileWithClang && WindowsPlatform.bAllowClangLinker)
@@ -402,16 +413,39 @@ namespace UnrealBuildTool
 				return Result;
 			}
 
+			if (WindowsPlatform.bCompileWithICL && WindowsPlatform.bAllowICLLinker)
+			{
+				var Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "IntelSWTools", "compilers_and_libraries", "windows", "bin", Platform == CPPTargetPlatform.Win32 ? "ia32" : "intel64", "xilink.exe");
+				if (!File.Exists(Result))
+				{
+					throw new BuildException("ICL was selected as the Windows compiler, but does not appear to be installed.  Could not find: " + Result);
+				}
+
+				return Result;
+			}
+
 			return Path.Combine(PlatformVSToolPath, "link.exe");
 		}
 
 		/// <summary>
 		/// Gets the path to the library linker.
 		/// </summary>
-		static string GetLibraryLinkerToolPath(string PlatformVSToolPath)
+		static string GetLibraryLinkerToolPath(CPPTargetPlatform Platform, string PlatformVSToolPath)
 		{
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker)
 			//@todo.WIN32: Using the 64-bit linker appears to be broken at the moment.
+
+			if (WindowsPlatform.bCompileWithICL && WindowsPlatform.bAllowICLLinker)
+			{
+				var Result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "IntelSWTools", "compilers_and_libraries", "windows", "bin", Platform == CPPTargetPlatform.Win32 ? "ia32" : "intel64", "xilib.exe");
+				if (!File.Exists(Result))
+				{
+					throw new BuildException("ICL was selected as the Windows compiler, but does not appear to be installed.  Could not find: " + Result);
+				}
+
+				return Result;
+			}
+
 			return Path.Combine(PlatformVSToolPath, "lib.exe");
 		}
 

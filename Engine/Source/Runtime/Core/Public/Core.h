@@ -71,6 +71,7 @@
 #include "MapBuilder.h"					// Builder template for maps.
 #include "List.h"						// Dynamic list definitions.
 #include "ResourceArray.h"				// Resource array definitions.
+#include "DynamicRHIResourceArray.h"	// Default to the dynamically bound RHI.
 #include "RefCounting.h"				// Reference counting definitions.
 #include "ScriptDelegates.h"
 #include "Delegate.h"					// C++ delegate system

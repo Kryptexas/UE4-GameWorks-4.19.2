@@ -247,3 +247,5 @@ public:
 	TArray< TWeakPtr<SWidget> > Widgets;
 	TWeakPtr< SWindow > Window;
 };
+
+#include "WidgetPath.inl"

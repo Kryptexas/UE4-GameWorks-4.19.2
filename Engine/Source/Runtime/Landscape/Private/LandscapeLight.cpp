@@ -4,6 +4,7 @@
 LandscapeLight.cpp: Static lighting for LandscapeComponents
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "LandscapeLight.h"
 #include "LandscapeInfo.h"

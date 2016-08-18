@@ -1082,3 +1082,37 @@ public:
 };
 
 #endif
+
+#if CPP
+
+// Include the real definitions of the noexport classes above, to allow the generated cpp file to compile.
+
+#include "Misc/Guid.h"
+#include "Misc/DateTime.h"
+#include "Misc/Timespan.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
+
+#include "Math/InterpCurvePoint.h"
+#include "Math/UnitConversion.h"
+#include "Math/Vector.h"
+#include "Math/Vector4.h"
+#include "Math/Vector2D.h"
+#include "Math/TwoVectors.h"
+#include "Math/Plane.h"
+#include "Math/Rotator.h"
+#include "Math/Quat.h"
+#include "Math/IntPoint.h"
+#include "Math/IntVector.h"
+#include "Math/Color.h"
+#include "Math/Box.h"
+#include "Math/Box2D.h"
+#include "Math/BoxSphereBounds.h"
+#include "Math/OrientedBox.h"
+#include "Math/Matrix.h"
+#include "Math/ScalarRegister.h"
+#include "Math/RandomStream.h"
+#include "Math/RangeBound.h"
+#include "Math/Interval.h"
+
+#endif

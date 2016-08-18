@@ -4,6 +4,7 @@
 Landscape.cpp: Terrain rendering
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "LandscapeStreamingProxy.h"
 #include "EditorSupportDelegates.h"

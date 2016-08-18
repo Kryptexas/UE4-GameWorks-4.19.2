@@ -14,7 +14,7 @@
 #include "Engine.h"
 #include "SlateBasics.h"
 #include "SlateStyle.h"
-
+#include "Editor.h"
 
 /* Private includes
  *****************************************************************************/

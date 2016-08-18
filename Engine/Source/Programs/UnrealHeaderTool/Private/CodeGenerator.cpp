@@ -5432,6 +5432,9 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	FString DepHeaderPathname = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".dep.h");
 	SaveHeaderIfChanged(*DepHeaderPathname, *(GeneratedCPPPreamble + ListOfPublicClassesUObjectHeaderModuleIncludes));
 
+	// Write out an include for the generated header boilerplate code
+	GeneratedCPPClassesIncludes.Logf(TEXT("#include \"GeneratedCppIncludes.h\"") LINE_TERMINATOR, *FPaths::GetCleanFilename(DepHeaderPathname));
+
 	// Write out our include to the .dep.h file
 	GeneratedCPPClassesIncludes.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *FPaths::GetCleanFilename(DepHeaderPathname));
 

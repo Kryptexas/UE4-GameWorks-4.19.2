@@ -134,5 +134,3 @@ private:
 	FString CachedScript;
 	FString CachedVariant;
 };
-
-#include "CulturePointer.h"

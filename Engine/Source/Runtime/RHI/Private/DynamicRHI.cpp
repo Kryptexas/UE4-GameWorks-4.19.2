@@ -4,6 +4,7 @@
 	DynamicRHI.cpp: Dynamically bound Render Hardware Interface implementation.
 =============================================================================*/
 
+#include "RHIPrivatePCH.h"
 #include "RHI.h"
 #include "ModuleManager.h"
 #include "GenericPlatformDriver.h" // FGPUDriverInfo

@@ -2,9 +2,9 @@
 
 #pragma once
 
-class UPaperGroupedSpriteComponent;
-
 #include "PaperRenderSceneProxy.h"
+
+class UPaperGroupedSpriteComponent;
 
 //////////////////////////////////////////////////////////////////////////
 // FGroupedSpriteSceneProxy

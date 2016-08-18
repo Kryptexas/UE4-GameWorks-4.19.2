@@ -4,6 +4,7 @@
 	ShaderCore.h: Shader core module implementation.
 =============================================================================*/
 
+#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
 #include "SecureHash.h"
 #include "Shader.h"

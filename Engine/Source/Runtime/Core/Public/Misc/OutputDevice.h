@@ -5,8 +5,10 @@
 #include "HAL/Platform.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/CoreMiscDefines.h"
-#include "Templates/IsValidVariadicFunctionArg.h"
-#include "Templates/AndOr.h"
+#if HACK_HEADER_GENERATOR
+	#include "Templates/IsValidVariadicFunctionArg.h"
+	#include "Templates/AndOr.h"
+#endif
 #include "LogVerbosity.h"
 
 class FText;

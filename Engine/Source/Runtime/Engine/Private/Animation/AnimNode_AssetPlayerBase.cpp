@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AnimNode_AssetPlayerBase.h"
+#include "Animation/AnimNode_AssetPlayerBase.h"
 #include "Animation/AnimInstanceProxy.h"
 
 FAnimNode_AssetPlayerBase::FAnimNode_AssetPlayerBase()

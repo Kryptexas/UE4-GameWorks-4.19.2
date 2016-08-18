@@ -4,8 +4,7 @@
 	OpenGLDrvPrivate.h: Private OpenGL RHI definitions.
 =============================================================================*/
 
-#ifndef __OPENGLDRVPRIVATE_H__
-#define __OPENGLDRVPRIVATE_H__
+#pragma once
 
 #include "OpenGLDrv.h"
 
@@ -547,4 +546,3 @@ inline bool OpenGLShaderPlatformSeparable(const EShaderPlatform InShaderPlatform
 	}
 }
 
-#endif // __OPENGLDRVPRIVATE_H__

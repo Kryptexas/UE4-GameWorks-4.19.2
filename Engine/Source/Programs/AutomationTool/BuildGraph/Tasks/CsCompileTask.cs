@@ -38,18 +38,6 @@ namespace AutomationTool.Tasks
 		public string Arguments;
 
 		/// <summary>
-		/// Directory containing output files
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string OutputDir;
-
-		/// <summary>
-		/// Patterns for output files
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string OutputFiles;
-
-		/// <summary>
 		/// Only enumerate build products; do not actually compile the projects.
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -70,7 +58,7 @@ namespace AutomationTool.Tasks
 	}
 
 	/// <summary>
-	/// Compile a C# project file
+	/// Compiles C# project files, and their dependencies.
 	/// </summary>
 	[TaskElement("CsCompile", typeof(CsCompileTaskParameters))]
 	public class CsCompileTask : CustomTask
@@ -487,7 +475,7 @@ namespace AutomationTool.Tasks
 		/// </summary>
 		/// <param name="BaseDirectory">Directory to resolve relative paths against</param>
 		/// <param name="ParentElement">The parent 'Reference' element</param>
-		/// <param name="ProjectReferences">Dictionary of project files to a bool indicating whether the assembly should be copied locally to the referencing project.</param>
+		/// <param name="References">Dictionary of project files to a bool indicating whether the assembly should be copied locally to the referencing project.</param>
 		static void ParseReference(DirectoryReference BaseDirectory, XmlElement ParentElement, Dictionary<FileReference, bool> References)
 		{
 			string HintPath = GetChildElementString(ParentElement, "HintPath", null);

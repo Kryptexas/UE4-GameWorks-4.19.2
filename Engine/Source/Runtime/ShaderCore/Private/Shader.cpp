@@ -4,6 +4,7 @@
 	Shader.cpp: Shader implementation.
 =============================================================================*/
 
+#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
 #include "Shader.h"
 #include "VertexFactory.h"

@@ -4,8 +4,7 @@
 	ShadowRendering.h: Shadow rendering definitions.
 =============================================================================*/
 
-#ifndef __ShadowRendering_H__
-#define __ShadowRendering_H__
+#pragma once
 
 #include "ShaderParameterUtils.h"
 #include "SceneCore.h"
@@ -1887,4 +1886,3 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 	}
 };
 
-#endif

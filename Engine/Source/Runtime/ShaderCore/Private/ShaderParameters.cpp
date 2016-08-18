@@ -4,6 +4,7 @@
 	ShaderParameters.cpp: Shader parameter implementation.
 =============================================================================*/
 
+#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
 #include "Shader.h"
 #include "VertexFactory.h"

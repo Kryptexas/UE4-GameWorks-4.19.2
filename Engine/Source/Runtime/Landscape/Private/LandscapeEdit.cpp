@@ -4,6 +4,7 @@
 LandscapeEdit.cpp: Landscape editing
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "LandscapeStreamingProxy.h"
 #include "Materials/MaterialInstanceDynamic.h"

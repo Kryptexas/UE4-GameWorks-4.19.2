@@ -177,7 +177,7 @@ public:
 	 * @param SubsystemName - Name of the requested online service
 	 * @return true if instance exists, false otherwise
 	 */
-	static bool DoesInstanceExist(const FName& SubsystemName = NAME_None)
+	FORCENOINLINE static bool DoesInstanceExist(const FName& SubsystemName = NAME_None)
 	{
 		if (FModuleManager::Get().IsModuleLoaded("OnlineSubsystem"))
 		{

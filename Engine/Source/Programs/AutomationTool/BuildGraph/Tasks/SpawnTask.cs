@@ -17,7 +17,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Executable to spawn
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileName)]
 		public string Exe;
 
 		/// <summary>
@@ -34,7 +34,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Task which spawns an external executable
+	/// Spawns an external executable and waits for it to complete.
 	/// </summary>
 	[TaskElement("Spawn", typeof(SpawnTaskParameters))]
 	public class SpawnTask : CustomTask
@@ -47,7 +47,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Construct a spawn task
 		/// </summary>
-		/// <param name="Parameters">Parameters for the task</param>
+		/// <param name="InParameters">Parameters for the task</param>
 		public SpawnTask(SpawnTaskParameters InParameters)
 		{
 			Parameters = InParameters;

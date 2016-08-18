@@ -4,8 +4,7 @@
 	RHI.h: Render Hardware Interface definitions.
 =============================================================================*/
 
-#ifndef __RHI_h__
-#define __RHI_h__
+#pragma once
 
 #include "Core.h"
 #include "RHIDefinitions.h"
@@ -1253,5 +1252,3 @@ extern RHI_API void RHIExit();
 
 // RHI utility functions that depend on the RHI definitions.
 #include "RHIUtilities.h"
-
-#endif // __RHI_h__

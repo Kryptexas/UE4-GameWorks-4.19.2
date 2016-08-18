@@ -7,6 +7,7 @@
 
 
 class SWindow;
+class FWidgetPath;
 
 
 /**
@@ -318,15 +319,9 @@ public:
 	}
 
 	/** The event path provides additional context for handling */
-	FGeometry FindGeometry( const TSharedRef<SWidget>& WidgetToFind ) const
-	{
-		return EventPath->FindArrangedWidget(WidgetToFind).Get(FArrangedWidget::NullWidget).Geometry;
-	}
+	SLATECORE_API FGeometry FindGeometry(const TSharedRef<SWidget>& WidgetToFind) const;
 
-	TSharedRef<SWindow> GetWindow() const
-	{
-		return EventPath->GetWindow();
-	}
+	SLATECORE_API TSharedRef<SWindow> GetWindow() const;
 
 	/** Set the widget path along which this event will be routed */
 	void SetEventPath( const FWidgetPath& InEventPath )

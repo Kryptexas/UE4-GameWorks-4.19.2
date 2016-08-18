@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // .
 
+#include "ShaderCompilerCommonPrivatePCH.h"
 #include "ShaderCompilerCommon.h"
 #include "ModuleManager.h"
 #include "CrossCompilerCommon.h"
