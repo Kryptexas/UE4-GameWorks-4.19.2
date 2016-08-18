@@ -88,9 +88,6 @@ In the following section, we will take a look at some of the parameters that all
 	[/OBJECT]
 	[/region]
 
-
-
-
 ## Car Paint Material
 
 The Car Paint Material is a very robust Material that has 29 unique parameters that can be adjusted. When trying to modify this Material for your project, we recommend you starting adjusting and experimenting with the following parameters:
@@ -110,6 +107,12 @@ By adjusting just these four different parameters you can achieve vastly differe
 	![Car Paint 02](AP_03_Carpaint_02.png)
 	[/PARAM]
 [/OBJECT]
+
+The following image sequence shows off the variety of paint colors and surface looks that can be achieved by using just  the parameters listed above.
+
+[REGION:fullwidth]
+[INCLUDE:Enterprise\Automotive\AutomotiveMaterialPack\#CP]
+[/REGION]
 
 ## Orange Peel Material Parameter
 
@@ -215,15 +218,7 @@ The rubber Material that comes with the Automotive Material Pack can be used for
 * **Interior Pieces**
 * **Tires**
 
-When looking at the rubber Material Instance you will notice that it has a tire-specific option called **Use Sidewall**. Enabling this option will add a new Normal Map Texture that is for display the lettering that can be found on the tire sidewalls. 
-
-![](AP_Tire_UV_00.png)
-
-[region:note]
-Keep in mind that when using the sidewall option for a tire you will need to make sure that the UV for the tire sidewall mesh line up with the Normal Map.
-[/region]
-
-Failing to properly line up the UV of the tire sidewall to the Normal map of the tire will result in the tire lettering and logos not show up correctly on the tire sidewall like in the image below. 
+When looking at the rubber Material Instance you will notice that it has a tire-specific option called **Use Sidewall**. Enabling this option will add a new Normal Map Texture that is for display the lettering that can be found on the tire sidewalls. Failing to properly line up the UV of the tire sidewall to the Normal map of the tire will result in the tire lettering and logos not show up correctly on the tire sidewall like in the image below. 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -233,6 +228,27 @@ Failing to properly line up the UV of the tire sidewall to the Normal map of the
 	![Wrong Way](AP_09_Rubber_04_Wrong.png)
 	[/PARAM]
 [/OBJECT]
+
+[region:note]
+When using the sidewall option for a tire you will need to make sure that the UV for the tire sidewall mesh line up with the Normal Map like in the image marked Correct UV Layout.
+[/region]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Correct UV Layout](AP_09_Rubber_05_UV_LineUp.png)
+	[/PARAM]
+	[PARAM:after]
+	![Wrong UV Layout](AP_09_Rubber_06_UV_Wrong.png)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:lightbox]
+[![](AP_Tire_Sidewall.png)(w:800)](AP_Tire_Sidewall.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
 
 ## Leather / Perforated Material
 
@@ -322,4 +338,39 @@ If you are unfamiliar with how to capture and use Cubemap in UE4 please check ou
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RM]
+-->
+
+<!-----
+[EXCERPT:CP]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	14
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	CP
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Drag the slider to see the different colors of paint.**
+	[/PARAM]
+	[PARAM:image_list]
+	![](CP_1.png)
+	![](CP_2.png)
+	![](CP_3.png)
+	![](CP_4.png)
+	![](CP_5.png)
+	![](CP_6.png)
+	![](CP_7.png)
+	![](CP_8.png)
+	![](CP_9.png)
+	![](CP_10.png)
+	![](CP_11.png)
+	![](CP_12.png)
+	![](CP_13.png)
+	![](CP_14.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:CP]
 -->
