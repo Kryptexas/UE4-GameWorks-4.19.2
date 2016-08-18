@@ -1,33 +1,33 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Importing & Exporting Edit Decision Lists (EDLs)
+﻿INTSourceChangelist:3092382
+Availability:Docs
+Title:Edit Decision Lists (EDLs) をインポート、エクスポートする
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Illustrates how you can import and export EDLs for use in external video editing software applications. 
-Version: 4.13
-SkillLevel: Advanced
+Description:外部の映像編集ソフト アプリケーションで使用するために EDL をインポート、エクスポートする方法を説明します。 
+Version:4.13
+SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
 
 [EXCERPT:intro]
-Sequencer in Unreal Engine 4 not only allows you to render and export out your entire cinematic, but you can also export your cinematic split up into each of your shots along with an **Edit Decision List** or **EDL** which is a file that can be used with most video editing applications like Premiere, Avid or Final Cut. 
+UE4 のシーケンサーは、シネマティックス全体をレンダリングしたり、エクスポートできるだけでなく、シネマティックスを各ショットに分けて、**Edit Decision List** すなわち **EDL** と合わせてエクスポートすることもできます。これは、Premiere、 Avid、 Final Cut などのようなほとんどの映像編集アプリケーションで使用可能なファイルです。 
 [/EXCERPT:intro]
 
-The EDL contains an ordered list of reel and time code data representing where each video clip can be obtained in order to produce the final cut. 
-In this how-to we export a cinematic and EDL file, take it into an external program like Premiere, make edits to it and re-import the edited cinematic back into Unreal along with those changes. 
+EDL には、最終カットを制作するために各ビデオ クリップがどこにあるかを示すリールと時間コードを順番に示したリストがあります。 
+この操作ガイドでは、シネマティックスと EDL ファイルをエクスポートし、Premiere などの外部プログラムに取り込み、編集し、編集したシネマティックスを加えた変更とともにアンリアル エンジンに再インポートします。 
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project and have created a sample cinematic however you can use your own project and cinematic sequence. 
-We are also using Adobe Premiere Pro CS6 as our external editing software; however you can use any software that supports EDL importing. 
+ここでは **Blueprint Third Person Template** プロジェクトを使い、サンプル シネマティックスを作成しましたが、ご自身のプロジェクトとシネマティック シーケンスをご利用いただくこともできます。 
+外部編集ソフトウェアとして Adobe Premiere Pro CS6 も使用していますが、EDL のインポートをサポートしているソフトウェアなら何でもご利用いただけます。 
 [/REGION]
 
-1.	Make sure your cinematic you want to export includes a **Shot Track** containing your shots, then click the **Render Movie** button.
+1.	エクスポートするシネマティックスには、ショットが入っている **Shot Track** を含むようにします。次に、**[Render Movie]** ボタンをクリックします。
 
-1.	Define an **Output Directory** and **Filename Format** using the **{shot}** token and make sure **Write Edit Decision List** is checked. 
+1.	**{shot}** トークンを使って **Output Directory ** と **Filename Format** を定義し、**Write Edit Decision List** に必ずチェックを入れるようにします。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -41,11 +41,11 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Above we show the sample cinematic that we want to export along with an EDL and click the **Render Movie** button to bring up the settings dialog window. 
-	Inside the settings window, we create a new folder to export the cinematic to and prefix our {shot} token with the name of our cinematic. 
-	By using the {shot} token each of our shots will be exported as individual video files along with the full cinematic. 
+	上の画像は、EDL と共にエクスポートするサンプル シネマティックスです。**[Render Movie]** ボタンをクリックして、設定のダイアログ ウィンドウを表示します。 
+	設定ウィンドウ内で、シネマティックスのエクスポート先の新規フォルダを作成し、{shot} トークンにシネマティックスの名前のプレフィックスを付けます。 
+	各ショットで {shot} トークンを使うことで、シネマティックス全体と共にショットが個々の映像ファイルとしてエクスポートされます。 
 
-1.	Inside your software editing suite, **Import** the **EDL** file exported from the previous step. 
+1.	ご利用のソフトウェアの編集スイート内で、この前のステップでエクスポートした **EDL** ファイルを **Import** します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -59,10 +59,10 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	In Premiere Pro, you can **Right-click** in the window in the lower-left and choose **Import** then point to the EDL file. 
-	We left the EDL Information and New Sequence dialog windows with the default information. 
+	Premiere Pro では、左下のウィンドウで **右クリック** して、**Import** を選択して、EDL ファイルをポイントします。 
+	EDL Information と New Sequence のダイアログウィンドウをデフォルト情報のままにしています。 
 
-1.	Next you'll need to link the data from the EDL to the exported media files in your editing software. 
+1.	次に EDL からのデータを、ご利用の編集ソフトウェアのエクスポートしたメディア ファイルにリンクする必要があります。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -76,9 +76,9 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	In Premeire Pro, **Right-click** the media folder and select **Link Media** then point each file to its corresponding media file. 
+	Premeire Pro でそのメディア フォルダを **右クリック** して **Link Media** を選択し、各ファイルを対応するメディア ファイルにポイントさせます。 
 
-1.	Modify the shots in your editing software as desired, then **Export** as an **EDL**. 
+1.	必要に応じて編集ソフトウェアでショットを修正して、**EDL** として **Export** します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -92,9 +92,9 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Above for our sample scene, we adjust the length of the shots as well as re-arrange their position in the sequence. 
+	上のサンプル シーンの図では、ショットの長さを調整し、シーケンス内の位置も並べ替えました。 
 
-1.	Return to **Unreal Engine 4** and in your Sequence, **Right-click** your **Shot Track** and **Import EDL**. 
+1.	**アンリアル エンジン 4** に戻って、シーケンス内で、**Shot Track** と **Import EDL** で **右クリック** します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -108,15 +108,15 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	The changes we made externally are now reflected inside our Sequence in Unreal Engine 4. 
+	外部で加えた変更が、UE4 のシーケンス内に反映されるようになります。 
 
-## End Result
+## 最終結果
 
-The import/export EDL option within Sequencer gives you the flexibility to determine where you want to do your editing. 
+シーケンサー内の EDL のインポート / エクスポートのオプションを使うと、どこで編集したいかをフレキシブルに決めることができます。 
 
-You can do most of your setup inside Sequencer, then pass your sequence off to an editor who works inside an external application like Premiere to perform the final touches who can then pass it back to you to tweak in Sequencer. 
+ほとんどのセットアップはシーケンサー内でできます。その後、シーケンスを外部アプリケーションにエクスポートして、そのエディタで最終的な仕上げをしてから、シーケンサーに戻して微調整することができます。 
 
-By exporting your sequence as an EDL and working externally, you have the ability to add post production effects or after effects to your scene before you rendering out the final cinematic. 
+シーケンスを EDL としてエクスポートして外部で作業することで、最終的なシネマティックスをレンダリングする前にポスト プロダクション エフェクトやアフター エフェクトをシーンに加えることができます。 
 
 
 
