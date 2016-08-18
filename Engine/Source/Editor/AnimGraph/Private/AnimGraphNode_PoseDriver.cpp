@@ -18,7 +18,7 @@ UAnimGraphNode_PoseDriver::UAnimGraphNode_PoseDriver(const FObjectInitializer& O
 
 FText UAnimGraphNode_PoseDriver::GetTooltipText() const
 {
-	return LOCTEXT("UAnimGraphNode_PoseDriver_ToolTip", "Interpolate parameters between defined orientation poses.");
+	return LOCTEXT("UAnimGraphNode_PoseDriver_ToolTip", "Drive parameters base on a bones distance from a set of defined poses.");
 }
 
 FText UAnimGraphNode_PoseDriver::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -28,7 +28,7 @@ FText UAnimGraphNode_PoseDriver::GetNodeTitle(ENodeTitleType::Type TitleType) co
 
 FText UAnimGraphNode_PoseDriver::GetControllerDescription() const
 {
-	return LOCTEXT("PoseDriver", "Orientation Driver");
+	return LOCTEXT("PoseDriver", "Pose Driver");
 }
 
 void UAnimGraphNode_PoseDriver::Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const
