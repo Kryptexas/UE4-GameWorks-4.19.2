@@ -208,6 +208,25 @@ bool FSmartNameMapping::AddSmartName(FSmartName& OutName)
 {
 	return AddName(OutName.DisplayName, OutName.UID, OutName.Guid);
 }
+
+#else 
+
+// in cooked build, we don't have Guid, so just register with empty guid. 
+// you only should come here if it it hasn't found yet. 
+bool FSmartNameMapping::FindOrAddSmartName(FName Name, UID& OutUid)
+{
+	FSmartName FoundName;
+	if (FindSmartName(Name, FoundName))
+	{
+		OutUid = FoundName.UID;
+		return true;
+	}
+	else
+	{
+		// the guid is discarded, just we want to make sure it's not same
+		return AddName(Name, OutUid, FGuid::NewGuid());
+	}
+}
 #endif // WITH_EDITOR
 
 bool FSmartNameMapping::FindSmartName(FName Name, FSmartName& OutName) const

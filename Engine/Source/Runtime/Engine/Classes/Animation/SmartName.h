@@ -81,6 +81,9 @@ struct ENGINE_API FSmartNameMapping
 #if WITH_EDITOR
 	bool FindOrAddSmartName(FName Name, FSmartName& OutName);
 	bool AddSmartName(FSmartName& OutName);
+#else
+	// in cooked build, you don't have GUID, so register without GUID
+	bool FindOrAddSmartName(FName Name, UID& OutUid);
 #endif // WITH_EDITOR
 	bool FindSmartName(FName Name, FSmartName& OutName) const;
 	bool FindSmartNameByUID(FSmartNameMapping::UID UID, FSmartName& OutName) const;
