@@ -1,35 +1,36 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 4 - Adding Character Animation
+﻿INTSourceChangelist:3069483
+Availability:Public
+Title:4 - 添加角色动画
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
-Description: How to add animations to your First Person Shooter character.
-prereq: Programming/Tutorials/FirstPersonShooter/3
-Related: Programming/Tutorials/FirstPersonShooter
-SkillLevel: Beginner
-Version: 4.9
+Description:如何为第一人称射击游戏角色添加动画。
+prereq:Programming/Tutorials/FirstPersonShooter/3
+Related:Programming/Tutorials/FirstPersonShooter
+SkillLevel:Beginner
+Version:4.9
 
-<!--TODO: Insert Cover Image-->
+![](FinalShot.png)
+_上图是该部分完成后的效果。_
 
-## Goals
+## 目标
 
-The purpose of this section is to show you how to add animations for your First Person Shooter character.
+此部分旨在说明如何为第一人称射击游戏的角色添加动画。
 
-## Objectives
+## 目的
 
-By the end of this section of the tutorial you'll be able to:
+完成此部分教程后您将学会：
 
-* Animate your Character
-* Set-up your Event Graph
-* Add an Animation State Machine
-* Add Transition States to your Animation
-* Associate the Animation Blueprint with the Character Blueprint
+* 设置角色动画
+* 设置事件图表
+* 添加动画状态机
+* 为动画添加转换状态
+* 将动画蓝图和角色蓝图关联起来
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
