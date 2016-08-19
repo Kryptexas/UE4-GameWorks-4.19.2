@@ -1,34 +1,34 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 1 - Setting up your Project
+﻿INTSourceChangelist:3069483
+Availability:Public
+Title:1 - 设置项目
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
-Description: How to set up your First Person Shooter project.
-prereq: Programming/Tutorials/FirstPersonShooter
-SkillLevel: Beginner
-Version: 4.9
+Description:如何设置第一人称射击游戏项目。
+SkillLevel:Beginner
+Version:4.11
 
-<!--TODO: Insert Cover Image-->
+![](SectionResult.png)
+_上图是该部分完成后的效果。_
 
-## Goals
+## 目标
 
-The purpose of this section is to show you how to set up your First Person Shooter project.
+此部分旨在说明如何设置第一人称射击游戏项目。
 
-## Objectives
+## 目的
 
-By the end of this section of the tutorial you'll be able to:
+完成此部分教程后您将学会：
 
-* Set up a New Project
-* Use the C++ Class Wizard
-* Add Log Messaging to your Project
-* Compile your First C++ Class
-* Set the Default Game Mode
+* 设置新项目
+* 在 Visual Studio 中打开项目
+* 为项目添加日志消息
+* 编译首个 C++ 类
+* 设置默认游戏模式
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

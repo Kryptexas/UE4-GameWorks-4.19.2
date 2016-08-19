@@ -1,38 +1,39 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 2 - Implementing your Character
+﻿INTSourceChangelist:3069483
+Availability:Public
+Title:2 - 实现角色
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
-Description: How to implement your First Person Shooter character.
-prereq: Programming/Tutorials/FirstPersonShooter/1
-Related: Programming/Tutorials/FirstPersonShooter
-SkillLevel: Beginner
-Version: 4.9
+Description:如何实现第一人称射击游戏中的角色。
+prereq:Programming/Tutorials/FirstPersonShooter/1
+Related:Programming/Tutorials/FirstPersonShooter
+SkillLevel:Beginner
+Version:4.9
 
-<!--TODO: Insert Cover Image-->
+![](FreeMovingCamera.png)
+_上图是该部分完成后的效果。_
 
-## Goals
+## 目标
 
-The purpose of this section is to show you how to implement your First Person Shooter character.
+此部分旨在说明如何实现第一人称射击游戏中的角色。
 
-## Objectives
+## 目的
 
-By the end of this section of the tutorial you'll be able to:
+完成此部分教程后您将学会：
 
-* Make a New Character
-* Set-up Axis Mapping
-* Implement Character Movement Functions
-* Implement Mouse Camera Control
-* Implement Character Jumping
-* Add a Mesh to your Character
-* Change the Camera View
-* Add a First Person Mesh to your Character
+* 制作新角色
+* 设置轴映射
+* 实现角色移动函数
+* 实现鼠标摄像机控制
+* 实现角色跳跃
+* 为角色添加模型
+* 更改摄像机视图
+* 为角色添加第一人称模型
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
