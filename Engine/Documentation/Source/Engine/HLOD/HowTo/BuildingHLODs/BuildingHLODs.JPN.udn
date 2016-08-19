@@ -1,80 +1,74 @@
-﻿INTSourceChangelist:0
-title:How-To Build Hierarchical Level of Detail Meshes
-description:This how to covers how to generate the HLOD meshes for your HLOD enabled Unreal Engine 4 project.
+﻿INTSourceChangelist:3080238
+title:HLOD （Hierarchical Level of Detail）メッシュのビルド方法
+Description:HLOD が有効な UE4 プロジェクト用に HLOD メッシュを準備する方法を学習しましょう。
 crumbs:
 availability:docs
 version:4.12
 related:Engine/HLOD/Overview
 related:Engine/HLOD/Reference
 
-To build your Hierarchical Level of Detail (HLOD) Meshes, there are 2 major steps. Firstly, you must **Generate Clusters**, which groups Actors in your level together based on the setting you specify in the **Cluster Generation Settings**. This process is fairly . Then you have to Generate Proxy Meshes, which can take a very long time based on scene complexity and settings specified in the **Mesh Generation Settings**.
-
-For each LOD level you'll need to specify the settings for that LOD (such as 
+**Hierarchical Level of Detail** (HLOD、階層的 LOD) メッシュをビルドするには、主に 2 つのステップがあります。まず、**Generate Clusters (クラスタを生成)** しなければなりません。これは **Cluster Generation Settings** で指定する設定に基づきレベル内の **アクタ** をグルーピングします。次に、**Generate Proxy Meshes (プロキシ メッシュを生成)** する必要があります。これは、シーンの複雑度と **Mesh Generation Settings** で指定した設定に応じてかなりの時間がかかることがあります。
 
 [REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+HLOD は現在、動的シャドウ (シャドウのキャストとレシーブ) でうまく機能しません。そのため、HLOD システムが生成するメッシュに静的なライティングとシャドウイングを使うようにします。
 [/REGION]
 
-## Steps
+## ステップ
 
-Below are the steps to generate your HLOD meshes broken into 2 major sections: Generate Clusters and Generate Proxy Meshes.
+以下は、**Generate Clusters (クラスタの生成)** と **Generate Proxy Meshes (プロキシ メッシュの生成)** の 2 つの主なセクションに分けられる **HLOD メッシュ** を生成する手順です。
 
-### Generate Clusters
+### クラスタの生成
 
-Cluster generation uses the settings from the individual HLOD Levels to decide how it should group static mesh actors in the scene together. This generation process can take some time depending on the settings use, the number of actors being groups, whether materials are generated, and generally on your hardware’s specs. 
+クラスタの生成では、個々の HLOD レベルの設定を使ってシーン内の **Static Mesh アクタ** をどのようにグルーピングするかを決めます。この生成プロセスは、使用する設定、グルーピングする **アクタ** の数、マテリアルが生成されるかどうか、一般的にご利用のハードウェアの仕様に応じて時間がかかることがあります。 
 
-1. Once you’ve setup your specific settings for the individual HLOD levels you need, click the Generate Clusters button.
-	
+1. 必要な個々の HLOD レベルのセットアップをしたら、**[Generate Clusters (クラスタ生成)]** ボタンをクリックします。
+
 	![image alt text](Engine/HLOD/Overview/image_3.png)(h:28 w:112 convert:false)
 
-	Once the process starts you’ll see a progress bar appear that indicates the LOD level being generated.
+	プロセスが開始したら、生成されている LOD レベルを示す進捗バーが表示されます。
 
 	![image alt text](Engine/HLOD/Overview/image_4.png)(h:58 w:398 convert:false)
 
-1. Now that the process has completed you’ll see the HLOD Outliner populated with all the clustered actors. 
+1. プロセスが完了すると、**HLOD アウトライナー** にクラスタ化されたすべての **アクタ** が表示されます。 
 
 	![image alt text](Engine/HLOD/Overview/image_5.png)(h:350 w:624 convert:false)
 
-1. You can expand the individual LODActors to see what static meshes make up this cluster by clicking the arrow button to the left of the name.
+1. 個々の **LODActors** を展開して、名前の左側にある矢印ボタンをクリックすることで、どの **スタティックメッシュ** がクラスタを構成しているかを確認することができます。
 
 	![image alt text](Engine/HLOD/Overview/image_6.png)(h:350 w:624 convert:false)
 
-1. You can visualize the clusters in the level by selecting a LODActor from the HLOD Outliner and locating it in the editor viewport.
+1. **HLOD アウトライナー** から **LODActor** を選択することでレベル内のクラスタを視覚化することが可能であり、Editor ビューポートで確認することができます。
 
 	![image alt text](Engine/HLOD/Overview/image_7.png)(h:481 w:624 convert:false)
 
-To visualize how the generated clusters work in the editor you can use the "Forced Viewing Level" slider to see the HLOD in action without the need to have it transition at a specific screen size. This is helpful for troubleshooting any issues appearing on screen that may be part of the generated cluster.
+生成されたクラスタがどのように機能するかをエディタで視覚化するために、**Forced Viewing Level** スライダーを使って機能している HLOD を見ることができます。特定のスクリーンサイズに変える必要はありません。これは生成されたクラスタの一部の可能性がある画面上の問題のトラブルシューティングに役立ちます。
 
 ![image alt text](Engine/HLOD/Overview/image_8.png)(h:17 w:624 convert:false)
 
-Should you run into any issues you don’t like with the generated cluster you can expand the specified cluster and select the offending static mesh actor. You can then click and drag it to another cluster or by right-clicking on the actor you have the option to **Remove** or **Exclude** it from the generation of the cluster. 
+生成されたクラスタが気に入らない場合は、指定されたクラスタを展開して、問題になっている **Static Mesh アクタ** を選択します。それをクリックして別のクラスタにドラッグするか、リストの **アクタ** 名を右クリックすることで、クラスタの生成からそれを **Remove** または **Exclude** するオプションがあります。 
 
-![image alt text](Engine/HLOD/Overview/image_9.png)(h:101 w:392 convert:false)
-
-You also have some Right-Click options that work for a single LODActor or the selection.
-
-![image alt text](Engine/HLOD/Overview/image_10.png)(h:132 w:234 convert:false)
-
-Actors can also be excluded on a per-instance basis by selecting them in the level and in their Details panel set the option for **Enable Auto LODGeneration** to false.
+**アクタ** は、インスタンス毎に除外することもできます。これを行うには、レベルでインスタンスを選択してその **[Details Panel (詳細パネル)]** で、**[Enable Auto LODGeneration (自動 LOD 生成を有効にする)]** のオプションを false に設定します。
 
 ![image alt text](Engine/HLOD/Overview/image_11.png)(h:236 w:269 convert:false)
 
-Repeat this process while adjusting the values in the HLOD's level **Cluster Generation Settings** until you are happy with the clusters being generated, then continue on to the next section: [**Generate Proxy Meshes**](#generateproxymeshes).
+HLOD のレベルの **Cluster Generation Settings** で値を調整しながら、生成されるクラスタが満足のゆくものになるまでこのプロセスを繰り返します。その後、次のセクション、[**プロキシ メッシュの生成**](#プロキシメッシュの生成) に進みます。
 
-### Generate Proxy Meshes
+### プロキシメッシュの生成
 
-After you’re happy with the results of the generated cluster you can move on to the option to Build the clusters into a Proxy Mesh. This proxy mesh will be a newly created static mesh actor that combines materials (if enabled), has it’s own lightmaps, and it’s own editable static mesh that can be opened in the static mesh editor. 
+生成されたクラスタの結果が満足のゆくものになったら、クラスタをプロキシ メッシュにビルドするオプションに進むことができます。このプロキシ メッシュはマテリアルを結合する (有効な場合) 新規作成された **Static Mesh アクタ** であり、独自のライトマップを持ち、スタティックメッシュ エディタで開くことができる編集可能なスタティックメッシュがあります。 
 
-1. If you’re ready to build the proxy meshes you can now click the button  "Generate Proxy Mesh" button to start the process. 
+1. プロキシ メッシュをビルドする準備が整ったら、 [Generate Proxy Mesh (プロキシ メッシュの生成)] ボタンをクリックしてこのプロセスを開始することができます。 
 
 	![image alt text](Engine/HLOD/Overview/image_13.png)(h:28 w:148 convert:false)
 
-	Once the process starts you’ll see the progress bar appear that indicates the HLOD Level being worked on and the number of Proxy Meshes being generated. This progress bar does not show all the HLOD Levels and total number of proxy meshes being created, only that specific level.
+	プロセスが開始したら、作業中の HLOD レベルと生成中のプロキシ メッシュ数を示す進捗バーが表示されます。この進捗バーには、すべての HLOD レベルや作成されているプロキシ メッシュの合計数を表示するわけではなく、各レベルに対する情報だけが表示されます。
 
 	![image alt text](Engine/HLOD/Overview/image_14.png)(h:94 w:458 convert:false)
 
-	Depending on your HLOD Level settings, the number of proxy meshes being created, and your system specs this process can take a while, even for high-end machines!
+	HLOD レベルの設定、作成されるプロキシ メッシュ数とシステムの仕様に応じて、このプロセスはハイエンド マシンであっても時間がかかることがあります。
 
 	[REGION:note]
-	As a reference the Proxy Mesh Generation process for my machine (12-core i7 processor, GTX-980, and 64GB of RAM) took ~10-12 minutes with default settings for both HLOD Levels and ~100+ LODActors per HLOD level.
+	参考までに、自分が使っているマシン (12-core i7 プロセッサー、 GTX-980、64GB の RAM) ではプロキシ メッシュの生成プロセスに、HLOD レベルと HLOD レベルごとに、~100+ **LODActors** のデフォルト設定で、10 分から12 分程度かかりました。
 	[/REGION]
+
+
