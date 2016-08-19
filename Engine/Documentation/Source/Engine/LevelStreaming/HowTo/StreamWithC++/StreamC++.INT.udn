@@ -121,7 +121,6 @@ will allow us to get and check for our Character. You can use the GameplayStatic
 			OverlapVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("OverlapVolume"));
 			RootComponent = OverlapVolume;
 
-
 			OverlapVolume->OnComponentBeginOverlap.AddUniqueDynamic(this, &ALevelStreamerActor::OverlapBegins);
 		}
 		// Called when the game starts or when spawned
