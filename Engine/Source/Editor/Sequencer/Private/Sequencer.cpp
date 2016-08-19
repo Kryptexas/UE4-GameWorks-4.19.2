@@ -5861,8 +5861,18 @@ void FSequencer::ExportFBX()
 			if (Node->GetType() == ESequencerNode::Object)
 			{
 				auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
-
 				Bindings.Add(ObjectBindingNode.Get().GetObjectBinding());
+
+				TSet<TSharedRef<FSequencerDisplayNode> > DescendantNodes;
+				SequencerHelpers::GetDescendantNodes(Node, DescendantNodes);
+				for (auto DescendantNode : DescendantNodes)
+				{
+					if (!Selection.IsSelected(DescendantNode) && DescendantNode->GetType() == ESequencerNode::Object)
+					{
+						auto DescendantObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(DescendantNode);
+						Bindings.Add(DescendantObjectBindingNode.Get().GetObjectBinding());
+					}
+				}
 			}
 		}
 
