@@ -30,7 +30,8 @@ For this how-to we are using the **Blueprint Third Person Template** project wit
 
 	![](StreamMedia_03.png)
 
-	Your Stream URL must link directly to a [Supported Format](Engine\MediaFramework\TechReference\) in order to play back the video. If you do not have a link, **Right-click** this [Sample URL](http://s3.amazonaws.com/akamai.netstorage/mp4/AirSTAR.mp4) and copy the link address then paste it in the Stream URL field. 
+	Above we are using a fake address, however your Stream URL must link directly to a [Supported Format](Engine\MediaFramework\TechReference\) in order to play back the video. 
+	If you do not have your own file to link to, you can **Right-click** this [Sample Video](Infiltrator Demo.mp4) and copy the link address then paste it in the Stream URL field. 
 
 1.	**Right-click** in the **Content Browser** then under **Media** select the **Media Player** asset. 
 
@@ -93,7 +94,7 @@ When you play in the editor, the video will start playing on the Static Mesh.
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-0gxc69-M-Fk
+ncHIQ0QteC8
 [/PARAMLITERAL]
 [/OBJECT]
 
