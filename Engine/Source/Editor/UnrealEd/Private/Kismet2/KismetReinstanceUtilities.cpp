@@ -1474,7 +1474,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					AActor*  OldActor = Cast<AActor>(OldObject);
 					UObject* NewUObject = nullptr;
 					// if the object to replace is an actor...
-					if (OldActor != nullptr)
+					if (OldActor != nullptr && OldActor->GetLevel())
 					{
 						FVector  Location = FVector::ZeroVector;
 						FRotator Rotation = FRotator::ZeroRotator;

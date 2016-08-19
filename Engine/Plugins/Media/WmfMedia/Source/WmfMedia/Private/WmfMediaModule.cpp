@@ -2,14 +2,17 @@
 
 #include "WmfMediaPCH.h"
 #include "IWmfMediaModule.h"
-#include "WmfMediaPlayer.h"
-#include "WmfMediaSettings.h"
 
-#pragma comment(lib, "mf")
-#pragma comment(lib, "mfplat")
-#pragma comment(lib, "mfplay")
-#pragma comment(lib, "mfuuid")
-#pragma comment(lib, "shlwapi")
+#if WMFMEDIA_SUPPORTED_PLATFORM
+	#include "WmfMediaPlayer.h"
+	#include "WmfMediaSettings.h"
+
+	#pragma comment(lib, "mf")
+	#pragma comment(lib, "mfplat")
+	#pragma comment(lib, "mfplay")
+	#pragma comment(lib, "mfuuid")
+	#pragma comment(lib, "shlwapi")
+#endif
 
 
 DEFINE_LOG_CATEGORY(LogWmfMedia);
@@ -36,12 +39,14 @@ public:
 
 	virtual TSharedPtr<IMediaPlayer> CreatePlayer() override
 	{
-		if (!Initialized)
+#if WMFMEDIA_SUPPORTED_PLATFORM
+		if (Initialized)
 		{
-			return nullptr;
+			return MakeShareable(new FWmfMediaPlayer());
 		}
+#endif
 
-		return MakeShareable(new FWmfMediaPlayer());
+		return nullptr;
 	}
 
 public:
@@ -50,6 +55,7 @@ public:
 
 	virtual void StartupModule() override
 	{
+#if WMFMEDIA_SUPPORTED_PLATFORM
 		// load required libraries
 		if (!LoadRequiredLibraries())
 		{
@@ -80,13 +86,16 @@ public:
 				GetMutableDefault<UWmfMediaSettings>()
 			);
 		}
-#endif // WITH_EDITOR
+#endif //WITH_EDITOR
 
 		Initialized = true;
+
+#endif //WMFMEDIA_SUPPORTED_PLATFORM
 	}
 
 	virtual void ShutdownModule() override
 	{
+#if WMFMEDIA_SUPPORTED_PLATFORM
 		Initialized = false;
 
 		if (Initialized)
@@ -94,6 +103,7 @@ public:
 			// shutdown Windows Media Foundation
 			MFShutdown();
 		}
+#endif
 	}
 
 protected:

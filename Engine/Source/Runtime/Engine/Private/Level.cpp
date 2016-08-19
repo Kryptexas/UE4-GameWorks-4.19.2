@@ -18,6 +18,7 @@ Level.cpp: Level-related functions
 #include "BlueprintUtilities.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/LevelBounds.h"
+#include "ReleaseObjectVersion.h"
 #include "RenderingObjectVersion.h"
 #include "PhysicsEngine/BodySetup.h"
 #if WITH_EDITOR
@@ -257,7 +258,7 @@ TMap<FName, TWeakObjectPtr<UWorld> > ULevel::StreamedLevelsOwningWorld;
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	:	UObject( ObjectInitializer )
-	,	Actors(this)
+	,	Actors()
 	,	OwningWorld(NULL)
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 	,	PrecomputedLightVolume(new FPrecomputedLightVolume())
@@ -290,7 +291,7 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	{
 		Collector.AddReferencedObject(Actor, This);
 	}
-	UObject* ActorsOwner = This->Actors.GetOwner();
+	UObject* ActorsOwner = This;
 	Collector.AddReferencedObject(ActorsOwner, This);
 
 	Super::AddReferencedObjects( This, Collector );
@@ -302,7 +303,23 @@ void ULevel::Serialize( FArchive& Ar )
 
 	Super::Serialize( Ar );
 
-	Ar << Actors;
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
+	if (Ar.IsLoading() && Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::LevelTransArrayConvertedToTArray)
+	{
+		TTransArray<AActor*> OldActors(this);
+		Ar << OldActors;
+		Actors.Reserve(OldActors.Num());
+		for (AActor* Actor : OldActors)
+		{
+			Actors.Push(Actor);
+		}
+	}
+	else
+	{
+		Ar << Actors;
+	}
+
 	Ar << URL;
 
 	Ar << Model;
@@ -421,34 +438,37 @@ void ULevel::SortActorList()
 	}
 
 	TArray<AActor*> NewActors;
+	TArray<AActor*> NewNetActors;
 	NewActors.Reserve(Actors.Num());
+	NewNetActors.Reserve(Actors.Num());
 
 	check(WorldSettings);
 
 	// The WorldSettings tries to stay at index 0
 	NewActors.Add(WorldSettings);
 
-	// Static not net relevant actors.
+	// Add non-net actors to the NewActors immediately, cache off the net actors to Append after
 	for (AActor* Actor : Actors)
 	{
-		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill() && !IsNetActor(Actor))
+		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill())
 		{
-			NewActors.Add(Actor);
+			if (IsNetActor(Actor))
+			{
+				NewNetActors.Add(Actor);
+			}
+			else
+			{
+				NewActors.Add(Actor);
+			}
 		}
+
 	}
 	iFirstNetRelevantActor = NewActors.Num();
 
-	// Static net relevant actors.
-	for (AActor* Actor : Actors)
-	{
-		if (Actor != nullptr && !Actor->IsPendingKill() && IsNetActor(Actor))
-		{
-			NewActors.Add(Actor);
-		}
-	}
+	NewActors.Append(MoveTemp(NewNetActors));
 
 	// Replace with sorted list.
-	Actors.AssignButKeepOwner(MoveTemp(NewActors));
+	Actors = MoveTemp(NewActors);
 
 	// Add all network actors to the owning world
 	if ( OwningWorld != nullptr )
@@ -462,7 +482,7 @@ void ULevel::SortActorList()
 
 		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )
 		{
-			if ( Actors[ i ] != NULL )
+			if ( Actors[ i ] != nullptr )
 			{
 				OwningWorld->AddNetworkActor( Actors[ i ] );
 			}
@@ -641,9 +661,8 @@ void ULevel::BeginDestroy()
 	{
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
 		OwningWorld->Scene->SetPrecomputedVolumeDistanceField(NULL);
-
-		RemoveFromSceneFence.BeginFence();
 	}
+	RemoveFromSceneFence.BeginFence();
 }
 
 bool ULevel::IsReadyForFinishDestroy()
@@ -768,7 +787,7 @@ namespace FLevelSortUtils
 *	Sorts actors such that parent actors will appear before children actors in the list
 *	Stable sort
 */
-static void SortActorsHierarchy(TTransArray<AActor*>& Actors, UObject* Level)
+static void SortActorsHierarchy(TArray<AActor*>& Actors, UObject* Level)
 {
 	const double StartTime = FPlatformTime::Seconds();
 

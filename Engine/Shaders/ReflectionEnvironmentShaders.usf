@@ -197,7 +197,7 @@ void FilterPS(
 	float2 ScaledUVs = Input.UV * 2 - 1;
 	float3 CubeCoordinates = GetCubemapVector(ScaledUVs);
 
-#if ES2_PROFILE
+#if ES2_PROFILE || METAL_PROFILE
 //@todo - mwassmer.  Write filtering that works for ES2 so specular will work.
 #define FILTER_CUBEMAP 0
 #else

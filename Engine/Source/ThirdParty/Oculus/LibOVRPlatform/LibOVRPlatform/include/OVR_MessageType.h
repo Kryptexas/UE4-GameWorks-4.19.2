@@ -20,6 +20,7 @@ typedef enum ovrMessageType_ {
   ovrMessage_Achievements_GetProgressByName                      = 0x152663B1, ///< Generated in response to ovr_Achievements_GetProgressByName()
   ovrMessage_Achievements_Unlock                                 = 0x593CCBDD, ///< Generated in response to ovr_Achievements_Unlock()
   ovrMessage_Application_GetVersion                              = 0x68670A0E, ///< Generated in response to ovr_Application_GetVersion()
+  ovrMessage_CloudStorage_Delete                                 = 0x28DA456D, ///< Generated in response to ovr_CloudStorage_Delete()
   ovrMessage_CloudStorage_GetNextCloudStorageMetadataArrayPage   = 0x5C07A2EF, ///< Generated in response to ovr_CloudStorage_GetNextCloudStorageMetadataArrayPage()
   ovrMessage_CloudStorage_Load                                   = 0x40846B41, ///< Generated in response to ovr_CloudStorage_Load()
   ovrMessage_CloudStorage_LoadBucketMetadata                     = 0x7327A50D, ///< Generated in response to ovr_CloudStorage_LoadBucketMetadata()
@@ -48,6 +49,7 @@ typedef enum ovrMessageType_ {
   ovrMessage_Matchmaking_CreateRoom                              = 0x033B132A, ///< Generated in response to ovr_Matchmaking_CreateRoom()
   ovrMessage_Matchmaking_Enqueue                                 = 0x40C16C71, ///< Generated in response to ovr_Matchmaking_Enqueue()
   ovrMessage_Matchmaking_EnqueueRoom                             = 0x708A4064, ///< Generated in response to ovr_Matchmaking_EnqueueRoom()
+  ovrMessage_Matchmaking_GetStats                                = 0x42FC9438, ///< Generated in response to ovr_Matchmaking_GetStats()
   ovrMessage_Matchmaking_JoinRoom                                = 0x4D32D7FD, ///< Generated in response to ovr_Matchmaking_JoinRoom()
   ovrMessage_Matchmaking_ReportResultInsecure                    = 0x1A36D18D, ///< Generated in response to ovr_Matchmaking_ReportResultInsecure()
   ovrMessage_Matchmaking_StartMatch                              = 0x44D40945, ///< Generated in response to ovr_Matchmaking_StartMatch()
@@ -64,9 +66,11 @@ typedef enum ovrMessageType_ {
   ovrMessage_Room_InviteUser                                     = 0x4129EC13, ///< Generated in response to ovr_Room_InviteUser()
   ovrMessage_Room_Join                                           = 0x16CA8F09, ///< Generated in response to ovr_Room_Join()
   ovrMessage_Room_KickUser                                       = 0x49835736, ///< Generated in response to ovr_Room_KickUser()
+  ovrMessage_Room_LaunchInvitableUserFlow                        = 0x323FE273, ///< Generated in response to ovr_Room_LaunchInvitableUserFlow()
   ovrMessage_Room_Leave                                          = 0x72382475, ///< Generated in response to ovr_Room_Leave()
   ovrMessage_Room_SetDescription                                 = 0x3044852F, ///< Generated in response to ovr_Room_SetDescription()
   ovrMessage_Room_UpdateDataStore                                = 0x026E4028, ///< Generated in response to ovr_Room_UpdateDataStore()
+  ovrMessage_Room_UpdateMembershipLockStatus                     = 0x370BB7AC, ///< Generated in response to ovr_Room_UpdateMembershipLockStatus()
   ovrMessage_Room_UpdateOwner                                    = 0x32B63D1D, ///< Generated in response to ovr_Room_UpdateOwner()
   ovrMessage_Room_UpdatePrivateRoomJoinPolicy                    = 0x1141029B, ///< Generated in response to ovr_Room_UpdatePrivateRoomJoinPolicy()
   ovrMessage_User_Get                                            = 0x6BCF9E47, ///< Generated in response to ovr_User_Get()
@@ -74,14 +78,15 @@ typedef enum ovrMessageType_ {
   ovrMessage_User_GetLoggedInUser                                = 0x436F345D, ///< Generated in response to ovr_User_GetLoggedInUser()
   ovrMessage_User_GetLoggedInUserFriends                         = 0x587C2A8D, ///< Generated in response to ovr_User_GetLoggedInUserFriends()
   ovrMessage_User_GetNextUserArrayPage                           = 0x267CF743, ///< Generated in response to ovr_User_GetNextUserArrayPage()
+  ovrMessage_User_GetOrgScopedID                                 = 0x18F0B01B, ///< Generated in response to ovr_User_GetOrgScopedID()
   ovrMessage_User_GetUserProof                                   = 0x22810483, ///< Generated in response to ovr_User_GetUserProof()
 
   /// Indicates that a match has been found, for example after calling
   /// ovr_Matchmaking_Enqueue(). Use ovr_Message_GetRoom() to extract the
   /// matchmaking room.
   ///
-  /// The message will contain a payload of type ::ovrRoomHandle.
-  /// Extract the payload from the message handle with ::ovr_Message_GetRoom().
+  /// The message will contain a payload of type ::ovrMatchmakingNotificationHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetMatchmakingNotification().
   ovrMessage_Notification_Matchmaking_MatchFound = 0x0BC3FCD7,
 
   /// Indicates that a connection has been established or there's been an error.
@@ -98,8 +103,11 @@ typedef enum ovrMessageType_ {
   ovrMessage_Notification_Networking_PingResult = 0x51153012,
 
   /// Indicates that the user has accepted an invitation, for example in Oculus
-  /// Home. Use ovr_Message_GetRoom() to extract the room that the user has been
-  /// invited to. Note that you must call ovr_Room_Join() to actually join the
+  /// Home. Use ovr_Message_GetString() to extract the ID of the room that the
+  /// user has been inivted to as a string. Then call ovrID_FromString() to parse
+  /// it into an ovrID.
+  /// 
+  /// Note that you must call ovr_Room_Join() if you want to actually join the
   /// room.
   ///
   /// The message will contain a payload of type const char *.
@@ -112,6 +120,16 @@ typedef enum ovrMessageType_ {
   /// The message will contain a payload of type ::ovrRoomHandle.
   /// Extract the payload from the message handle with ::ovr_Message_GetRoom().
   ovrMessage_Notification_Room_RoomUpdate = 0x60EC3C2F,
+
+  /// Sent when another user is attempting to establish a VoIP connection. Use
+  /// ovr_Message_GetNetworkingPeer() to extract information about the user, and
+  /// ovr_Voip_Accept() to accept the connection.
+  ovrMessage_Notification_Voip_ConnectRequest = 0x36243816,
+
+  /// Sent to indicate that the state of the VoIP connection changed. Use
+  /// ovr_Message_GetNetworkingPeer() and ovr_NetworkingPeer_GetState() to
+  /// extract the current state.
+  ovrMessage_Notification_Voip_StateChange = 0x34EFA660,
 
 } ovrMessageType;
 

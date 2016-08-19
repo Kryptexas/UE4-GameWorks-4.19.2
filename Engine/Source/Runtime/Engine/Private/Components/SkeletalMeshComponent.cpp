@@ -435,6 +435,9 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 
 			if (AnimScriptInstance)
 			{
+				// If we have any sub-instances left we need to clear them out now, we're about to have a new master instance
+				SubInstances.Empty();
+
 				AnimScriptInstance->InitializeAnimation();
 				bCalledInitialize = true;
 			}
@@ -473,7 +476,7 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		}		
 
 		// refresh morph targets - this can happen when re-registration happens
-		InitializeAnimationMorphTargets();
+		RefreshMorphTargets();
 	}
 	return bCalledInitialize;
 }
@@ -712,22 +715,8 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 	}
 }
 
-static TAutoConsoleVariable<int32> CVarAnimationDelaysEndGroup(
-	TEXT("tick.AnimationDelaysEndGroup"),
-	1,
-	TEXT("If > 0, then skeletal meshes that do not rely on physics simulation will set their animation end tick group to TG_PostPhysics."));
-static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
-	TEXT("tick.HiPriSkinnedMeshes"),
-	1,
-	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
-
-
-void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void USkeletalMeshComponent::UpdateMorphTargetCurves()
 {
-	UpdatePostPhysicsTickRegisteredState();
-	UpdateClothTickRegisteredState();
-
-	// clear and add morphtarget curves that are added via SetMorphTarget
 	ActiveMorphTargets.Reset();
 	if (SkeletalMesh)
 	{
@@ -750,6 +739,25 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	{
 		MorphTargetWeights.Reset();
 	}
+}
+
+static TAutoConsoleVariable<int32> CVarAnimationDelaysEndGroup(
+	TEXT("tick.AnimationDelaysEndGroup"),
+	1,
+	TEXT("If > 0, then skeletal meshes that do not rely on physics simulation will set their animation end tick group to TG_PostPhysics."));
+static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
+	TEXT("tick.HiPriSkinnedMeshes"),
+	1,
+	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
+
+
+void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	UpdatePostPhysicsTickRegisteredState();
+	UpdateClothTickRegisteredState();
+
+	// clear and add morphtarget curves that are added via SetMorphTarget
+	UpdateMorphTargetCurves();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -1295,6 +1303,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	if(AnimScriptInstance)
 	{
 		AnimScriptInstance->PreEvaluateAnimation();
+
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->PreEvaluateAnimation();
+		}
 	}
 
 	if (bDoParallelEvaluation)
@@ -1427,6 +1440,11 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 #endif 
 		// curve update happens first
 		AnimScriptInstance->UpdateCurves(EvaluationContext.Curve);
+
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->UpdateCurves(EvaluationContext.Curve);
+		}
 	}
 
 	bNeedToFlipSpaceBaseBuffers = true;
@@ -2290,9 +2308,9 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 	}
 }
 
-void USkeletalMeshComponent::InitializeAnimationMorphTargets()
+void USkeletalMeshComponent::RefreshMorphTargets()
 {
-	ActiveMorphTargets.Empty();
+	UpdateMorphTargetCurves();
 
 	if (SkeletalMesh && AnimScriptInstance)
 	{
@@ -2466,6 +2484,11 @@ void USkeletalMeshComponent::FinalizeBoneTransform()
 {
 	Super::FinalizeBoneTransform();
 
+	for(UAnimInstance* SubInstance : SubInstances)
+	{
+		SubInstance->PostEvaluateAnimation();
+	}
+
 	if (AnimScriptInstance)
 	{
 		AnimScriptInstance->PostEvaluateAnimation();
@@ -2498,13 +2521,17 @@ void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateH
 bool USkeletalMeshComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit /*= NULL*/, EMoveComponentFlags MoveFlags /*= MOVECOMP_NoFlags*/, ETeleportType Teleport /*= ETeleportType::None*/)
 {
 #if WITH_EDITOR
-	if (FBodyInstance* BI = GetBodyInstance())
+	UWorld* World = GetWorld();
+	if(World && World->IsGameWorld())
 	{
-		//If the root body is simulating and we're told to move without teleportation we warn. This is hard to support because of bodies chained together which creates some ambiguity
-		if(BI->IsInstanceSimulatingPhysics() && Teleport == ETeleportType::None && (MoveFlags&EMoveComponentFlags::MOVECOMP_SkipPhysicsMove) == 0)
+		if (FBodyInstance* BI = GetBodyInstance())
 		{
-			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("MovingSimulatedSkeletalMesh", "Attempting to move a fully simulated skeletal mesh {0}. Please use the Teleport flag"),
-				FText::FromString(GetNameSafe(this))));
+			//If the root body is simulating and we're told to move without teleportation we warn. This is hard to support because of bodies chained together which creates some ambiguity
+			if (BI->IsInstanceSimulatingPhysics() && Teleport == ETeleportType::None && (MoveFlags&EMoveComponentFlags::MOVECOMP_SkipPhysicsMove) == 0)
+			{
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("MovingSimulatedSkeletalMesh", "Attempting to move a fully simulated skeletal mesh {0}. Please use the Teleport flag"),
+					FText::FromString(GetNameSafe(this))));
+			}
 		}
 	}
 #endif

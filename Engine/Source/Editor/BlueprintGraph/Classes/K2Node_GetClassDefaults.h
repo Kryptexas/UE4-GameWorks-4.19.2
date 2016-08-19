@@ -46,6 +46,8 @@ public:
 		return GetInputClass(FindClassPin());
 	}
 
+	void OnBlueprintClassModified(UBlueprint* TargetBlueprint);
+
 protected:
 	/**
 	 * Finds and returns the class input pin.

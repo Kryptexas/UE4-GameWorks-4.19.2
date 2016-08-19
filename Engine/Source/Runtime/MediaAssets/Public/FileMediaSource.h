@@ -6,8 +6,8 @@
 #include "FileMediaSource.generated.h"
 
 
-UCLASS(BlueprintType, MinimalAPI)
-class UFileMediaSource
+UCLASS(BlueprintType)
+class MEDIAASSETS_API UFileMediaSource
 	: public UMediaSource
 {
 	GENERATED_BODY()
@@ -15,11 +15,11 @@ class UFileMediaSource
 public:
 
 	/** The path to the media file to be played. */
-	UPROPERTY(EditAnywhere, Category=File, AssetRegistrySearchable)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=File, AssetRegistrySearchable)
 	FString FilePath;
 
 	/** Load entire media file into memory and play from there (if possible). */
-	UPROPERTY(EditAnywhere, Category=File)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=File)
 	bool PrecacheFile;
 
 public:

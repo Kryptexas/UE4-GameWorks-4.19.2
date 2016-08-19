@@ -69,6 +69,7 @@ void WorldCreationEventFunction(UWorld* World)
  */
 void WorldDestroyEventFunction(UWorld* World);
 
+#if WITH_EDITOR
 /**
  * Gets array of Landscape-specific textures and materials connected with given
  * level.
@@ -118,6 +119,7 @@ void WorldRenameEventFunction(UWorld* World, const TCHAR* InName, UObject* NewOu
 		}
 	}
 }
+#endif
 
 /**
  * A function that fires everytime a world is duplicated.

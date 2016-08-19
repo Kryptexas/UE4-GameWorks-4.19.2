@@ -15,6 +15,26 @@
 
 class FMetalContext;
 
+/** The MTLVertexDescriptor and a pre-calculated hash value used to simplify comparisons (as vendor MTLVertexDescriptor implementations aren't all comparable) */
+struct FMetalHashedVertexDescriptor
+{
+	NSUInteger VertexDescHash;
+	MTLVertexDescriptor* VertexDesc;
+	
+	FMetalHashedVertexDescriptor();
+	FMetalHashedVertexDescriptor(MTLVertexDescriptor* Desc);
+	FMetalHashedVertexDescriptor(FMetalHashedVertexDescriptor const& Other);
+	~FMetalHashedVertexDescriptor();
+	
+	FMetalHashedVertexDescriptor& operator=(FMetalHashedVertexDescriptor const& Other);
+	bool operator==(FMetalHashedVertexDescriptor const& Other) const;
+	
+	friend uint32 GetTypeHash(FMetalHashedVertexDescriptor const& Hash)
+	{
+		return Hash.VertexDescHash;
+	}
+};
+
 /** This represents a vertex declaration that hasn't been combined with a specific shader to create a bound shader. */
 class FMetalVertexDeclaration : public FRHIVertexDeclaration
 {
@@ -28,7 +48,7 @@ public:
 	FVertexDeclarationElementList Elements;
 
 	/** This is the layout for the vertex elements */
-	MTLVertexDescriptor* Layout;
+	FMetalHashedVertexDescriptor Layout;
 
 protected:
 	void GenerateLayout(const FVertexDeclarationElementList& Elements);
@@ -112,7 +132,7 @@ typedef uint64 FMetalRenderPipelineHash;
 #endif
 
 /**
- * Combined shader state and vertex definition for rendering geometry. 
+ * Combined shader state and vertex definition for rendering geometry.
  * Each unique instance consists of a vertex decl, vertex shader, and pixel shader.
  */
 class FMetalBoundShaderState : public FRHIBoundShaderState
@@ -152,26 +172,11 @@ public:
 	/**
 	 * Prepare a pipeline state object for the current state right before drawing
 	 */
-	void PrepareToDraw(FMetalContext* Context, MTLVertexDescriptor* VertexDesc, const struct FMetalRenderPipelineDesc& RenderPipelineDesc);
+	void PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const struct FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection = nil);
 
 protected:
 	FCriticalSection PipelineMutex;
-	
-	struct FMetalPipelineHash
-	{
-		FMetalRenderPipelineHash RenderPipelineHash;
-		NSUInteger VertexDescHash;
-		MTLVertexDescriptor* VertexDesc;
-		
-		bool operator==(FMetalPipelineHash const& Other) const;
-		
-		friend uint32 GetTypeHash(FMetalPipelineHash const& Hash)
-		{
-			return GetTypeHash(Hash.RenderPipelineHash) ^ GetTypeHash((uint64)Hash.VertexDescHash);
-		}
-	};
-	
-	TMap<FMetalPipelineHash, id<MTLRenderPipelineState> > PipelineStates;
+	TMap<FMetalRenderPipelineHash, TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>> PipelineStates;
 };
 
 
@@ -252,8 +257,8 @@ public:
 	class FMetalViewport* Viewport;
 
 private:
-	// The movie playback IOSurface wrapper to avoid page-off
-	CVImageBufferRef IB;
+	// The movie playback IOSurface/CVTexture wrapper to avoid page-off
+	CFTypeRef CoreVideoImageRef;
 	
 	// next format for the pixel format mapping
 	static uint8 NextKey;

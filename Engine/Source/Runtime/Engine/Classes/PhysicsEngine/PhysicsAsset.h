@@ -35,10 +35,10 @@ class UPhysicsAsset : public UObject
 	UPROPERTY()
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
-	UPROPERTY(EditAnywhere, Category = Profiles)
+	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
 	TArray<FName> PhysicalAnimationProfiles;
 
-	UPROPERTY(EditAnywhere, Category = Profiles)
+	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
 	TArray<FName> ConstraintProfiles;
 
 	UPROPERTY(transient)
@@ -68,6 +68,13 @@ class UPhysicsAsset : public UObject
 	TArray<class UPhysicsConstraintTemplate*> ConstraintSetup;
 
 public:
+
+	/**
+	* If true, bodies of the physics asset will be put into the asynchronous physics scene. If false, they will be put into the synchronous physics scene.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Physics)
+	uint8 bUseAsyncScene:1;
+
 	/** This caches the BodySetup Index by BodyName to speed up FindBodyIndex */
 	TMap<FName, int32>					BodySetupIndexMap;
 
@@ -212,6 +219,8 @@ public:
 	ENGINE_API void RemovePhysicalAnimationProfile(FName ProfileName);
 
 	ENGINE_API void UpdatePhysicalAnimationProfiles(const TArray<FName>& Profiles);
+
+	ENGINE_API void DuplicatePhysicalAnimationProfile(FName DuplicateFromName, FName DuplicateToName);
 
 	ENGINE_API void RenamePhysicalAnimationProfile(FName CurrentName, FName NewName);
 #endif

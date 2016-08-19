@@ -2,9 +2,9 @@
 
 #pragma once
 
-/**
+	/**
 * Include the current implementation of a FTransform, depending on the vector processing mode
-*/
+	 */
 
 #include "ScalarRegister.h"
 

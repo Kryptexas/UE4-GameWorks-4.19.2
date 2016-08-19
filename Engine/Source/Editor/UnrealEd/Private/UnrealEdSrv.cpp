@@ -2761,6 +2761,8 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				// Get the filename from dialog
 				FString FileName = SaveFilenames[0];
 				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, FPaths::GetPath(FileName)); // Save path as default for next time.
+
+				INodeNameAdapter NodeNameAdapter;
 				UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 				Exporter->CreateDocument();
 				for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
@@ -2770,15 +2772,15 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 					{
 						if (Actor->IsA(AStaticMeshActor::StaticClass()))
 						{
-							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NULL);
+							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter);
 						}
 						else if (Actor->IsA(ASkeletalMeshActor::StaticClass()))
 						{
-							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent());
+							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent(), NodeNameAdapter);
 						}
 						else if (Actor->IsA(ABrush::StaticClass()))
 						{
-							Exporter->ExportBrush( CastChecked<ABrush>(Actor), NULL, true );
+							Exporter->ExportBrush( CastChecked<ABrush>(Actor), NULL, true, NodeNameAdapter );
 						}
 					}
 				}

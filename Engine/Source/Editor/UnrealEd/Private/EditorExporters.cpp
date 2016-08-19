@@ -1453,7 +1453,9 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 			Exporter->ExportBSP( World->GetModel(), true );
 		}
 
-		Exporter->ExportLevelMesh( Level, NULL, bSelectedOnly );
+		INodeNameAdapter NodeNameAdapter;
+
+		Exporter->ExportLevelMesh( Level, bSelectedOnly, NodeNameAdapter );
 
 		// Export streaming levels and actors
 		for( int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex )
@@ -1461,7 +1463,7 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 			ULevel* CurLevel = World->GetLevel( CurLevelIndex );
 			if( CurLevel != NULL && CurLevel != Level )
 			{
-				Exporter->ExportLevelMesh( CurLevel, NULL, bSelectedOnly );
+				Exporter->ExportLevelMesh( CurLevel, bSelectedOnly, NodeNameAdapter );
 			}
 		}
 	}

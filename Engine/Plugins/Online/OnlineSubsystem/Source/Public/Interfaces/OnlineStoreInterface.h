@@ -19,6 +19,7 @@ namespace EInAppPurchaseState
 		Invalid UMETA(DisplayName = "Invalid"),
 		NotAllowed UMETA(DisplayName = "NotAllowed"),
 		Restored UMETA(DisplayName = "Restored"),
+		AlreadyOwned UMETA(DisplayName = "AlreadyOwned"),
 	};
 }
 

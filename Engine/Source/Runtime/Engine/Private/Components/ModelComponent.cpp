@@ -273,6 +273,12 @@ SIZE_T UModelComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 }
 
 
+bool UModelComponent::IsNameStableForNetworking() const
+{
+	// UModelComponent is always persistent for the duration of a game session, and so can be considered to have a stable name
+	return true;
+}
+
 void UModelComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
 {
 	for( int32 ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex )

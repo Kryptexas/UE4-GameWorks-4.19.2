@@ -7,6 +7,8 @@
 #include "EngineTypes.h"
 #include "TextureStreamingTypes.generated.h"
 
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(TextureStreamingBuild, Log, All);
+
 class UTexture;
 class UTexture2D;
 struct FStreamingTextureBuildInfo;

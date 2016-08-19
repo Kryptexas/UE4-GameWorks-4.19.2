@@ -128,6 +128,9 @@ public:
 	/** If the interactor laser is currently hovering */
 	bool IsHovering() const;
 
+	/** If the interactor laser is currently hovering over a gizmo handle */
+	bool IsHoveringOverGizmo();
+
 	/** Sets the current dragging mode for this interactor */
 	void SetDraggingMode( const EViewportInteractionDraggingMode NewDraggingMode );
 

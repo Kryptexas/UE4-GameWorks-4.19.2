@@ -1579,8 +1579,8 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 		const ULandscapeComponent* LandscapeComp = LandscapeLightingMesh->LandscapeComponent;
 		if (LandscapeComp && LandscapeComp->GetLandscapeProxy())
 		{
-			UMaterialInterface* Material = LandscapeComp->MaterialInstance;
-			if (Material == NULL)
+			UMaterialInterface* Material = LandscapeComp->MaterialInstances[0];
+			if (!Material)
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
 			}

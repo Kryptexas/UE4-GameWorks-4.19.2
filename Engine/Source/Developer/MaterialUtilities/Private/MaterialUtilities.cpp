@@ -71,6 +71,12 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 		return SF_Pixel;
 	}
 
+	virtual EMaterialShadingModel GetMaterialShadingModel() const override
+	{
+		// not used by Lightmass
+		return MSM_MAX;
+	}
+
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
 #if WITH_EDITOR
@@ -1860,11 +1866,11 @@ void FMaterialUtilities::FExportErrorManager::OutputToLog()
 
 				if (CurrentMaterial == CurrentMaterial->GetMaterial())
 				{
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("Error generating scales for %s%s: %s"), *CurrentMaterial->GetName(), *SimilarCount, *TextureErrors);
+					UE_LOG(TextureStreamingBuild, Verbose, TEXT("Incomplete texcoord scale analysis for %s%s: %s"), *CurrentMaterial->GetName(), *SimilarCount, *TextureErrors);
 				}
 				else
 				{
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("Error generating scales for %s, UMaterial=%s%s: %s"), *CurrentMaterial->GetName(), *CurrentMaterial->GetMaterial()->GetName(), *SimilarCount, *TextureErrors);
+					UE_LOG(TextureStreamingBuild, Verbose, TEXT("Incomplete texcoord scale analysis for %s, UMaterial=%s%s: %s"), *CurrentMaterial->GetName(), *CurrentMaterial->GetMaterial()->GetName(), *SimilarCount, *TextureErrors);
 				}
 			}
 

@@ -348,31 +348,40 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	);
 }
 
+
 bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )
 {
-	if( Customization->HasPropertyNode() || Customization->GetWidgetRow().IsCopyPasteBound() )
+	const bool bIsCopyPasteBound = Customization->GetWidgetRow().IsCopyPasteBound();
+
+	FUIAction CopyAction;
+	FUIAction PasteAction;
+
+	if(bIsCopyPasteBound)
 	{
-		FUIAction CopyAction  = Customization->GetWidgetRow().CopyMenuAction;
-		FUIAction PasteAction = Customization->GetWidgetRow().PasteMenuAction;
+		CopyAction = Customization->GetWidgetRow().CopyMenuAction;
+		PasteAction = Customization->GetWidgetRow().PasteMenuAction;
+	}
+	else if(Customization->HasPropertyNode())
+	{
+		static const FName DisableCopyPasteMetaDataName("DisableCopyPaste");
 
-		if( !CopyAction.ExecuteAction.IsBound() && Customization->HasPropertyNode() )
+		if(!Customization->GetPropertyNode()->ParentOrSelfHasMetaData(DisableCopyPasteMetaDataName))
 		{
-			CopyAction.ExecuteAction = FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnCopyProperty );
+			CopyAction.ExecuteAction = FExecuteAction::CreateSP(this, &SDetailSingleItemRow::OnCopyProperty);
+			PasteAction.ExecuteAction = FExecuteAction::CreateSP(this, &SDetailSingleItemRow::OnPasteProperty);
+			PasteAction.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SDetailSingleItemRow::CanPasteProperty);
 		}
+	}
 
-		if( !PasteAction.ExecuteAction.IsBound() && Customization->HasPropertyNode() )
-		{
-			PasteAction.ExecuteAction = FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnPasteProperty );
-			PasteAction.CanExecuteAction = FCanExecuteAction::CreateSP( this, &SDetailSingleItemRow::CanPasteProperty );
-		}
-
+	if (CopyAction.IsBound() && PasteAction.IsBound())
+	{
 		MenuBuilder.AddMenuSeparator();
 
-		MenuBuilder.AddMenuEntry(	
+		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "CopyProperty", "Copy"),
 			NSLOCTEXT("PropertyView", "CopyProperty_ToolTip", "Copy this property value"),
 			FSlateIcon(),
-			CopyAction );
+			CopyAction);
 
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "PasteProperty", "Paste"),

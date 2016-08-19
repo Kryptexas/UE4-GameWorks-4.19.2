@@ -16,7 +16,7 @@ class VIEWPORTINTERACTION_API IViewportWorldInteractionInterface
 
 public:
 	/** Initializes the world interaction */
-	virtual void Init( class FEditorViewportClient* InEditorViewportClient ) = 0;
+	virtual void Init( const TSharedPtr<class FEditorViewportClient>& InEditorViewportClient ) = 0;
 
 	/** Shuts down the world interaction */
 	virtual void Shutdown() = 0;

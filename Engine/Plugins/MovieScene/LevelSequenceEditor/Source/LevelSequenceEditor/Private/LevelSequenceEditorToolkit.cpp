@@ -28,6 +28,7 @@
 #include "LevelSequencePlayer.h"
 #include "SequencerSettings.h"
 #include "SequencerSpawnRegister.h"
+#include "MovieSceneCaptureDialogModule.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
 #include "MovieScene3DTransformSection.h"
@@ -77,6 +78,35 @@ TArray<UObject*> GetLevelSequenceEditorEventContexts()
 	}
 
 	return Contexts;
+}
+
+UObject* GetLevelSequenceEditorPlaybackContext()
+{
+	UWorld* PIEWorld = nullptr;
+	UWorld* EditorWorld = nullptr;
+
+	IMovieSceneCaptureDialogModule* CaptureDialogModule = FModuleManager::GetModulePtr<IMovieSceneCaptureDialogModule>("MovieSceneCaptureDialog");
+	UWorld* RecordingWorld = CaptureDialogModule ? CaptureDialogModule->GetCurrentlyRecordingWorld() : nullptr;
+
+	// Return PIE worlds if there are any
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			UWorld* ThisWorld = Context.World();
+			if (RecordingWorld != ThisWorld)
+			{
+				PIEWorld = ThisWorld;
+			}
+		}
+		else if (Context.WorldType == EWorldType::Editor)
+		{
+			// We can always animate PIE worlds
+			EditorWorld = Context.World();
+		}
+	}
+
+	return PIEWorld ? PIEWorld : EditorWorld;
 }
 
 static TArray<FLevelSequenceEditorToolkit*> OpenToolkits;
@@ -174,6 +204,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 		SequencerInitParams.SpawnRegister = SpawnRegister;
 		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
+		SequencerInitParams.PlaybackContext.BindStatic(GetLevelSequenceEditorPlaybackContext);
 
 		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
 

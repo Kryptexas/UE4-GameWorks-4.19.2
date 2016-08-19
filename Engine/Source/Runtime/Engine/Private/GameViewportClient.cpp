@@ -267,6 +267,22 @@ FString UGameViewportClient::ConsoleCommand( const FString& Command)
 	return *ConsoleOut;
 }
 
+void UGameViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
+{
+	EnabledStats = InEnabledStats;
+
+#if !UE_BUILD_SHIPPING
+	if (UWorld* MyWorld = GetWorld())
+	{
+		if (FAudioDevice* AudioDevice = MyWorld->GetAudioDevice())
+		{
+			AudioDevice->ResolveDesiredStats(this);
+		}
+	}
+#endif
+}
+
+
 void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance, bool bCreateNewAudioDevice)
 {
 	// set reference to world context
@@ -2663,10 +2679,6 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 	check(CVar);
 	auto FullScreenMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
-	{
-		FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
-	}
 
 	if (PLATFORM_WINDOWS && FullScreenMode == EWindowMode::Fullscreen)
 	{

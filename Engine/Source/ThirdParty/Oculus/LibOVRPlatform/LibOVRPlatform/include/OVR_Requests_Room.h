@@ -8,6 +8,7 @@
 
 #include "OVR_RoomArray.h"
 #include "OVR_RoomJoinPolicy.h"
+#include "OVR_RoomMembershipLockStatus.h"
 #include <stdbool.h>
 
 /// \file
@@ -125,9 +126,9 @@
 /// This type of room is good for matches where the user wants to play with
 /// friends, as they're primarially discoverable by examining which rooms your
 /// friends are in.
-/// \param joinPolicy determines who's able to join the room without invites
-/// \param maxUsers the maximum number of users allowed in the room, including the creator
-/// \param subscribeToUpdates if true will send a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
+/// \param joinPolicy Specifies who can join the room without an invite.
+/// \param maxUsers The maximum number of users allowed in the room, including the creator.
+/// \param subscribeToUpdates If true, sends a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
 ///
 /// A message with type ::ovrMessage_Room_CreateAndJoinPrivate will be generated in response.
 ///
@@ -138,7 +139,7 @@
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_CreateAndJoinPrivate(ovrRoomJoinPolicy joinPolicy, unsigned int maxUsers, bool subscribeToUpdates);
 
 /// Allows arbitrary rooms for the application to be loaded.
-/// \param roomID the room to load
+/// \param roomID The room to load.
 ///
 /// A message with type ::ovrMessage_Room_Get will be generated in response.
 ///
@@ -149,8 +150,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_CreateAndJoinPrivate(ovrRoomJoinPolicy
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_Get(ovrID roomID);
 
 /// Easy loading of the room you're currently in. If you don't want live
-/// updates on your current room (by using subscribeToUpdates) you can use this
-/// to refresh the data.
+/// updates on your current room (by using subscribeToUpdates), you can use
+/// this to refresh the data.
 ///
 /// A message with type ::ovrMessage_Room_GetCurrent will be generated in response.
 ///
@@ -162,9 +163,9 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetCurrent();
 
 /// Allows the current room for a given user to be loaded. Remember that the
 /// user's privacy settings may not allow their room to be loaded. Because of
-/// this it's often possible to load the users in a room, but not to take those
-/// users and load their room.
-/// \param userID to load the room of
+/// this, it's often possible to load the users in a room, but not to take
+/// those users and load their room.
+/// \param userID ID of the user for which to load the room.
 ///
 /// A message with type ::ovrMessage_Room_GetCurrentForUser will be generated in response.
 ///
@@ -176,7 +177,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetCurrentForUser(ovrID userID);
 
 /// Loads a list of users you can invite to your current room. These are pulled
 /// from your friends list and filtered for relevance and interest. If your
-/// current room cannot be joined this list will be empty.
+/// current room cannot be joined, this list will be empty.
 ///
 /// A message with type ::ovrMessage_Room_GetInvitableUsers will be generated in response.
 ///
@@ -206,9 +207,9 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetModeratedRooms();
 /// Extract the payload from the message handle with ::ovr_Message_GetRoomArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetNextRoomArrayPage(ovrRoomArrayHandle handle);
 
-/// Invites a given user to the room you're currently in.
-/// \param roomID the ID of your current room
-/// \param inviteToken is from a user fetched with ovr_Room_GetInvitableUsers
+/// Invites a user to the specified room.
+/// \param roomID The ID of your current room.
+/// \param inviteToken A user's invite token, returned by ovr_Room_GetInvitableUsers.
 ///
 /// A message with type ::ovrMessage_Room_InviteUser will be generated in response.
 ///
@@ -219,8 +220,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_GetNextRoomArrayPage(ovrRoomArrayHandl
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_InviteUser(ovrID roomID, const char *inviteToken);
 
 /// Joins the target room (leaving the one you're currently in).
-/// \param roomID the room to join
-/// \param subscribeToUpdates if true will send a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
+/// \param roomID The room to join.
+/// \param subscribeToUpdates If true, sends a message with type ovrMessage_RoomUpdateNotification when room data changes, such as when users join or leave.
 ///
 /// A message with type ::ovrMessage_Room_Join will be generated in response.
 ///
@@ -230,10 +231,10 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_InviteUser(ovrID roomID, const char *i
 /// Extract the payload from the message handle with ::ovr_Message_GetRoom().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_Join(ovrID roomID, bool subscribeToUpdates);
 
-/// Allows the room owner to kick a user from the current room.
-/// \param roomID is the room you're the current owner of (check ovr_Room_GetOwner)
-/// \param userID the user to be kicked (cannot be yourself)
-/// \param kickDurationSeconds how long to ban the user from re-joining
+/// Allows the room owner to kick a user out of the current room.
+/// \param roomID The room that you currently own (check ovr_Room_GetOwner).
+/// \param userID The user to be kicked (cannot be yourself).
+/// \param kickDurationSeconds Length of the ban, in seconds.
 ///
 /// A message with type ::ovrMessage_Room_KickUser will be generated in response.
 ///
@@ -243,8 +244,20 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_Join(ovrID roomID, bool subscribeToUpd
 /// Extract the payload from the message handle with ::ovr_Message_GetRoom().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_KickUser(ovrID roomID, ovrID userID, int kickDurationSeconds);
 
+/// Launch the invitable user flow to invite to the logged in user's current
+/// room. This is intended to be a nice shortcut for developers not wanting to
+/// build out their own Invite UI although it has the same rules as if you
+/// build it yourself.
+///
+/// A message with type ::ovrMessage_Room_LaunchInvitableUserFlow will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// This response has no payload. If no error occured, the request was successful. Yay!
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_LaunchInvitableUserFlow(ovrID roomID);
+
 /// Removes you from your current room.
-/// \param roomID the room you're currently in
+/// \param roomID The room you're currently in.
 ///
 /// A message with type ::ovrMessage_Room_Leave will be generated in response.
 ///
@@ -255,8 +268,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_KickUser(ovrID roomID, ovrID userID, i
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_Leave(ovrID roomID);
 
 /// Allows the room owner to set the description of their room.
-/// \param roomID the room you're the current owner of (check ovr_Room_GetOwner)
-/// \param description the new name of the room
+/// \param roomID The room that you currently own (check ovr_Room_GetOwner).
+/// \param description The new name of the room.
 ///
 /// A message with type ::ovrMessage_Room_SetDescription will be generated in response.
 ///
@@ -270,10 +283,10 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_SetDescription(ovrID roomID, const cha
 /// their room.
 /// 
 /// NOTE: Room datastores only allow string values. If you provide int or
-/// double values, this will return an error.
-/// \param roomID the room you're the current owner of (check ovr_Room_GetOwner)
-/// \param data the key/value pairs to add or update, null values clear a given key
-/// \param numItems the length of data
+/// double values, this returns an error.
+/// \param roomID The room that you currently own (check ovr_Room_GetOwner).
+/// \param data The key/value pairs to add or update; null values clear a given key.
+/// \param numItems The length of the data.
 ///
 /// A message with type ::ovrMessage_Room_UpdateDataStore will be generated in response.
 ///
@@ -283,9 +296,23 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_SetDescription(ovrID roomID, const cha
 /// Extract the payload from the message handle with ::ovr_Message_GetRoom().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_UpdateDataStore(ovrID roomID, ovrKeyValuePair *data, unsigned int numItems);
 
+/// Disallow new members from being able to join the room. This will prevent
+/// joins from ovr_Room_Join, invites, 'Join From Home', etc. Users that are in
+/// the room at the time of lockdown WILL be able to rejoin.
+/// \param roomID The room whose membership you want to lock or unlock.
+/// \param membershipLockStatus The new LockStatus for the room
+///
+/// A message with type ::ovrMessage_Room_UpdateMembershipLockStatus will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrRoomHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetRoom().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_UpdateMembershipLockStatus(ovrID roomID, ovrRoomMembershipLockStatus membershipLockStatus);
+
 /// Allows the room owner to transfer ownership to someone else.
-/// \param roomID the room you're the current owner of (check ovr_Room_GetOwner)
-/// \param userID the new user to make an owner, they must be in the room
+/// \param roomID The room that the user owns (check ovr_Room_GetOwner).
+/// \param userID The new user to make an owner; the user must be in the room.
 ///
 /// A message with type ::ovrMessage_Room_UpdateOwner will be generated in response.
 ///
@@ -294,9 +321,9 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_UpdateDataStore(ovrID roomID, ovrKeyVa
 /// This response has no payload. If no error occured, the request was successful. Yay!
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_UpdateOwner(ovrID roomID, ovrID userID);
 
-/// Allows the room owner to set the join policy of their private room.
-/// \param roomID the room you're the current owner of (check ovr_Room_GetOwner)
-/// \param newJoinPolicy the new join policy of the room
+/// Sets the join policy of the user's private room.
+/// \param roomID The room ID that the user owns (check ovr_Room_GetOwner).
+/// \param newJoinPolicy The new join policy for the room.
 ///
 /// A message with type ::ovrMessage_Room_UpdatePrivateRoomJoinPolicy will be generated in response.
 ///

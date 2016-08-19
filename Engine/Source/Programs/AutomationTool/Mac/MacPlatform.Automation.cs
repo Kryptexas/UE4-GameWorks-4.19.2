@@ -76,6 +76,27 @@ public class MacPlatform : Platform
 			StageAppBundle(SC, StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "CrashReportClient.app"), CrashReportClientPath);
 		}
 
+		// Find the app bundle path
+		List<string> Exes = GetExecutableNames(SC);
+		foreach (var Exe in Exes)
+		{
+			string AppBundlePath = "";
+			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
+			{
+				AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+			}
+			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
+			{
+				AppBundlePath = CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+			}
+
+			// Copy the custom icon
+			if (!string.IsNullOrEmpty(AppBundlePath))
+			{
+				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, CombinePaths(AppBundlePath, "Contents/Resources"), true);
+			}
+		}
+
 		// Copy the splash screen, Mac specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
@@ -297,10 +318,18 @@ public class MacPlatform : Platform
 				if (File.Exists(CustomIconSrcPath))
 				{
 					File.Delete(DefaultIconPath);
+					if (File.Exists(CustomIconDestPath))
+					{
+						File.Delete(CustomIconDestPath);
+					}
 					File.Move(CustomIconSrcPath, CustomIconDestPath);
 				}
 				else if (File.Exists(DefaultIconPath))
 				{
+					if (File.Exists(CustomIconDestPath))
+					{
+						File.Delete(CustomIconDestPath);
+					}
 					File.Move(DefaultIconPath, CustomIconDestPath);
 				}
 

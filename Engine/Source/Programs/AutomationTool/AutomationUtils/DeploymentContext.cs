@@ -397,7 +397,11 @@ public class DeploymentContext //: ProjectParams
 			}
 			else if(BuildProduct.Type == BuildProductType.SymbolFile)
 			{
-				StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
+				// Symbol files aren't true dependencies so we can skip if they don't exist
+				if (File.Exists(BuildProduct.Path))
+				{
+					StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
+				}
 			}
 		}
 	}
@@ -424,7 +428,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true)
+    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true, bool bConvertToLower = false)
 	{
 		int FilesAdded = 0;
 		// make sure any ..'s are removed
@@ -573,6 +577,11 @@ public class DeploymentContext //: ProjectParams
 				{
 					Dest = StageTargetPlatform.Remap(Dest);
 				}
+
+                if (bConvertToLower)
+                {
+                    Dest = Dest.ToLowerInvariant();
+                }
 
 				if (FileType == StagedFileType.UFS)
 				{

@@ -331,6 +331,32 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Skips the given triggers, collapsing everything inside them into their parent trigger.
+		/// </summary>
+		/// <param name="Triggers">Set of triggers to skip</param>
+		public void SkipTriggers(HashSet<ManualTrigger> Triggers)
+		{
+			foreach(ManualTrigger Trigger in Triggers)
+			{
+				NameToTrigger.Remove(Trigger.Name);
+			}
+			foreach(Node Node in NameToNode.Values)
+			{
+				while(Triggers.Contains(Node.ControllingTrigger))
+				{
+					Node.ControllingTrigger = Node.ControllingTrigger.Parent;
+				}
+			}
+			foreach(GraphDiagnostic Diagnostic in Diagnostics)
+			{
+				while(Triggers.Contains(Diagnostic.EnclosingTrigger))
+				{
+					Diagnostic.EnclosingTrigger = Diagnostic.EnclosingTrigger.Parent;
+				}
+			}
+		}
+
+		/// <summary>
 		/// Writes a preprocessed build graph to a script file
 		/// </summary>
 		/// <param name="File">The file to load</param>
@@ -402,20 +428,17 @@ namespace AutomationTool
 		/// Export the build graph to a Json file, for parallel execution by the build system
 		/// </summary>
 		/// <param name="File">Output file to write</param>
-		/// <param name="ActivatedTriggers">Set of triggers which have been activated</param>
+		/// <param name="Trigger">The trigger whose nodes to run. Null for the default nodes.</param>
 		/// <param name="CompletedNodes">Set of nodes which have been completed</param>
-		public void Export(FileReference File, HashSet<ManualTrigger> ActivatedTriggers, HashSet<Node> CompletedNodes)
+		public void Export(FileReference File, ManualTrigger Trigger, HashSet<Node> CompletedNodes)
 		{
 			// Find all the nodes which we're actually going to execute. We'll use this to filter the graph.
 			HashSet<Node> NodesToExecute = new HashSet<Node>();
 			foreach(Node Node in Agents.SelectMany(x => x.Nodes))
 			{
-				if(!CompletedNodes.Contains(Node))
+				if(!CompletedNodes.Contains(Node) && Node.IsBehind(Trigger))
 				{
-					if(Node.ControllingTrigger == null || ActivatedTriggers.Contains(Node.ControllingTrigger))
-					{
-						NodesToExecute.Add(Node);
-					}
+					NodesToExecute.Add(Node);
 				}
 			}
 
@@ -428,7 +451,7 @@ namespace AutomationTool
 				JsonWriter.WriteArrayStart("Groups");
 				foreach(Agent Agent in Agents)
 				{
-					Node[] Nodes = Agent.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					Node[] Nodes = Agent.Nodes.Where(x => NodesToExecute.Contains(x) && x.ControllingTrigger == Trigger).ToArray();
 					if(Nodes.Length > 0)
 					{
 						JsonWriter.WriteObjectStart();
@@ -508,21 +531,17 @@ namespace AutomationTool
 						JsonWriter.WriteObjectEnd();
 					}
 				}
-				foreach (ManualTrigger Trigger in NameToTrigger.Values)
+				foreach (ManualTrigger DownstreamTrigger in NameToTrigger.Values)
 				{
-					if(!ActivatedTriggers.Contains(Trigger) && NodesToExecute.Any(x => x.ControllingTrigger == Trigger.Parent))
+					if(DownstreamTrigger.Parent == Trigger)
 					{
 						// Find all the nodes that this trigger is dependent on
 						HashSet<Node> Dependencies = new HashSet<Node>();
-						foreach(Node Node in Agents.SelectMany(x => x.Nodes))
+						foreach(Node NodeToExecute in NodesToExecute)
 						{
-							for(ManualTrigger ControllingTrigger = Node.ControllingTrigger; ControllingTrigger != null; ControllingTrigger = ControllingTrigger.Parent)
+							if(NodeToExecute.IsBehind(DownstreamTrigger))
 							{
-								if(ControllingTrigger == Trigger)
-								{
-									Dependencies.UnionWith(Node.OrderDependencies.Where(x => x.ControllingTrigger != Trigger && NodesToExecute.Contains(x)));
-									break;
-								}
+								Dependencies.UnionWith(NodeToExecute.OrderDependencies.Where(x => x.ControllingTrigger == Trigger));
 							}
 						}
 
@@ -535,10 +554,10 @@ namespace AutomationTool
 
 						// Write out the object
 						JsonWriter.WriteObjectStart();
-						JsonWriter.WriteValue("Name", Trigger.Name);
+						JsonWriter.WriteValue("Name", DownstreamTrigger.Name);
 						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("DirectDependencies", String.Join(";", Dependencies.Where(x => DirectDependencies.Contains(x)).Select(x => x.Name)));
-						JsonWriter.WriteValue("Notify", String.Join(";", Trigger.NotifyUsers));
+						JsonWriter.WriteValue("Notify", String.Join(";", DownstreamTrigger.NotifyUsers));
 						JsonWriter.WriteValue("IsTrigger", true);
 						JsonWriter.WriteObjectEnd();
 					}

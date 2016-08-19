@@ -279,12 +279,6 @@ public:
 	}
 
 	/**
-	 * Called to notify the proxy when its actor position has been updated.
-	 * Called in the thread that owns the proxy; game or rendering.
-	 */
-	virtual void OnActorPositionChanged() {}
-
-	/**
 	 * Called to notify the proxy that the level has been fully added to
 	 * the world and the primitive will now be rendered.
 	 * Only called if bNeedsLevelAddedToWorldNotification is set to true.
@@ -822,9 +816,6 @@ private:
 	*/
 	int32 NumUncachedStaticLightingInteractions;
 #endif
-
-	/** Updates the proxy's actor position, called from the game thread. */
-	ENGINE_API void UpdateActorPosition(FVector InActorPosition);
 
 	/**
 	 * Updates the primitive proxy's cached transforms, and calls OnUpdateTransform to notify it of the change.

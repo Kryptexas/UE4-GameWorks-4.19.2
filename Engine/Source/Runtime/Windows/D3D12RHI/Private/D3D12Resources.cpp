@@ -438,7 +438,7 @@ void FD3D12Heap::BeginTrackingResidency(uint64 Size)
 #endif
 }
 
-HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
+HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC& InDesc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 {
 	HRESULT hr = S_OK;
 
@@ -453,13 +453,13 @@ HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC&
 	const D3D12_RESOURCE_HEAP_TIER ResourceHeapTier = ParentDevice->GetResourceHeapTier();
 
 	TRefCountPtr<ID3D12Resource> pResource;
-	hr = D3DDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &Desc, InitialUsage, ClearValue, IID_PPV_ARGS(pResource.GetInitReference()));
+	hr = D3DDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &InDesc, InitialUsage, ClearValue, IID_PPV_ARGS(pResource.GetInitReference()));
 	check(SUCCEEDED(hr));
 
 	if (SUCCEEDED(hr))
 	{
 		// Set the output pointer
-		*ppResource = new FD3D12Resource(ParentDevice, pResource, InitialUsage, Desc, nullptr, HeapProps.Type);
+		*ppResource = new FD3D12Resource(ParentDevice, pResource, InitialUsage, InDesc, nullptr, HeapProps.Type);
 		(*ppResource)->AddRef();
 
 		// Only track resources in local VRam
@@ -472,7 +472,7 @@ HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC&
 	return hr;
 }
 
-HRESULT FD3D12ResourceHelper::CreatePlacedResource(const D3D12_RESOURCE_DESC& Desc, FD3D12Heap* BackingHeap, uint64 HeapOffset, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
+HRESULT FD3D12ResourceHelper::CreatePlacedResource(const D3D12_RESOURCE_DESC& InDesc, FD3D12Heap* BackingHeap, uint64 HeapOffset, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 {
 	HRESULT hr = S_OK;
 
@@ -491,13 +491,13 @@ HRESULT FD3D12ResourceHelper::CreatePlacedResource(const D3D12_RESOURCE_DESC& De
 	const D3D12_HEAP_DESC heapDesc = Heap->GetDesc();
 
 	TRefCountPtr<ID3D12Resource> pResource;
-	hr = D3DDevice->CreatePlacedResource(Heap, HeapOffset, &Desc, InitialUsage, nullptr, IID_PPV_ARGS(pResource.GetInitReference()));
+	hr = D3DDevice->CreatePlacedResource(Heap, HeapOffset, &InDesc, InitialUsage, nullptr, IID_PPV_ARGS(pResource.GetInitReference()));
 	check(SUCCEEDED(hr));
 
 	if (SUCCEEDED(hr))
 	{
 		// Set the output pointer
-		*ppResource = new FD3D12Resource(ParentDevice, pResource, InitialUsage, Desc, BackingHeap, heapDesc.Properties.Type);
+		*ppResource = new FD3D12Resource(ParentDevice, pResource, InitialUsage, InDesc, BackingHeap, heapDesc.Properties.Type);
 		(*ppResource)->AddRef();
 	}
 

@@ -183,9 +183,7 @@ void FAnimationPotentialTransition::Clear()
 {
 	TargetState = INDEX_NONE;
 	TransitionRule = NULL;
-#if WITH_EDITORONLY_DATA
 	SourceTransitionIndices.Reset();
-#endif
 }
 
 
@@ -435,9 +433,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousTransitionForNextState, PreviousState, ReferenceTransition);
 			NewTransition->InitializeCustomGraphLinks(Context, *(PotentialTransition.TransitionRule));
 
-#if WITH_EDITORONLY_DATA
 			NewTransition->SourceTransitionIndices = PotentialTransition.SourceTransitionIndices;
-#endif
 
 			if(!bFirstUpdate)
 			{
@@ -615,9 +611,8 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 			{
 				if (FindValidTransition(Context, NextStateInfo, /*out*/ OutPotentialTransition, /*out*/ OutVisitedStateIndices))
 				{
-#if WITH_EDITORONLY_DATA	
 					OutPotentialTransition.SourceTransitionIndices.Add(TransitionRule.TransitionIndex);
-#endif		
+
 					return true;
 				}					
 			}
@@ -631,9 +626,8 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 				OutPotentialTransition.TransitionRule = &TransitionRule;
 				OutPotentialTransition.TargetState = NextState;
 
-#if WITH_EDITORONLY_DATA	
 				OutPotentialTransition.SourceTransitionIndices.Add(TransitionRule.TransitionIndex);
-#endif
+
 				return true;
 			}
 		}
@@ -963,7 +957,6 @@ float FAnimNode_StateMachine::GetStateWeight(int32 StateIndex) const
 	}
 }
 
-#if WITH_EDITORONLY_DATA
 bool FAnimNode_StateMachine::IsTransitionActive(int32 TransIndex) const
 {
 	for (int32 Index = 0; Index < ActiveTransitionArray.Num(); ++Index)
@@ -976,7 +969,6 @@ bool FAnimNode_StateMachine::IsTransitionActive(int32 TransIndex) const
 
 	return false;
 }
-#endif
 
 void FAnimNode_StateMachine::UpdateState(int32 StateIndex, const FAnimationUpdateContext& Context)
 {

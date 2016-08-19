@@ -961,9 +961,9 @@ private:
 	FVector GetTypedSkinnedVertexPosition(const FSkelMeshSection& Section, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 
 	/**
-	 * Gets called when register, verifies all ActiveMorphTargets is still valid 
-	 */
-	virtual void InitializeAnimationMorphTargets() {};
+	* This refresh all morphtarget curves including SetMorphTarget as well as animation curves
+	*/
+	virtual void RefreshMorphTargets() {};
 
 	// Animation update rate control.
 public:

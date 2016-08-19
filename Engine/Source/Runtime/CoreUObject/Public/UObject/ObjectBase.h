@@ -401,6 +401,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_NativeAccessSpecifierPublic		DECLARE_UINT64(0x0010000000000000)		// Public native access specifier
 #define CPF_NativeAccessSpecifierProtected	DECLARE_UINT64(0x0020000000000000)		// Protected native access specifier
 #define CPF_NativeAccessSpecifierPrivate	DECLARE_UINT64(0x0040000000000000)		// Private native access specifier
+#define CPF_SkipSerialization				DECLARE_UINT64(0x0080000000000000)		// Property shouldn't be serialized, can still be exported to text
 
 #define CPF_NonPIETransient \
 	EMIT_DEPRECATED_WARNING_MESSAGE("CPF_NonPIETransient is deprecated. Please use CPF_NonPIEDuplicateTransient instead.") \
@@ -934,6 +935,9 @@ namespace UP
 
 		/// Property shouldn't be exported to text format (e.g. copy/paste)
 		TextExportTransient,
+
+		/// Property shouldn't be serialized, can still be exported to text
+		SkipSerialization,
 	};
 }
 

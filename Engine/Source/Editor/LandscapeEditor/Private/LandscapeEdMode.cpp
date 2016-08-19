@@ -122,10 +122,7 @@ void ALandscape::SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLe
 		Comp->HeightmapScaleBias = FVector4(1.0f / (float)HeightmapSizeU, 1.0f / (float)HeightmapSizeV, 0.0f, 0.0f);
 		Comp->HeightmapTexture = HeightmapTexture;
 
-		if (Comp->MaterialInstance)
-		{
-			Comp->MaterialInstance->SetTextureParameterValueEditorOnly(FName(TEXT("Heightmap")), HeightmapTexture);
-		}
+		Comp->UpdateMaterialInstances();
 
 		for (int32 i = 0; i < HeightmapTextureMipData.Num(); i++)
 		{

@@ -373,7 +373,26 @@ protected:
 			if (Track->IsA(UInterpTrackMove::StaticClass()))					
 			{
 				UInterpTrackMove* MatineeMoveTrack = StaticCast<UInterpTrackMove*>(Track);
-				if (MatineeMoveTrack->GetNumKeyframes() != 0 && PossessableGuid.IsValid())
+
+				bool bHasKeyframes = MatineeMoveTrack->GetNumKeyframes() != 0;
+
+				for (auto SubTrack : MatineeMoveTrack->SubTracks)
+				{
+					if (SubTrack->IsA(UInterpTrackMoveAxis::StaticClass()))
+					{
+						UInterpTrackMoveAxis* MoveSubTrack = Cast<UInterpTrackMoveAxis>(SubTrack);
+						if (MoveSubTrack)
+						{
+							if (MoveSubTrack->FloatTrack.Points.Num() > 0)
+							{
+								bHasKeyframes = true;
+								break;
+							}
+						}
+					}
+				}
+
+				if ( bHasKeyframes && PossessableGuid.IsValid())
 				{
 					UMovieScene3DTransformTrack* TransformTrack = NewMovieScene->AddTrack<UMovieScene3DTransformTrack>(PossessableGuid);								
 					FMatineeImportTools::CopyInterpMoveTrack(MatineeMoveTrack, TransformTrack);

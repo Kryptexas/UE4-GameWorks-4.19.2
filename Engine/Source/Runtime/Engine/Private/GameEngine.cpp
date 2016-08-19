@@ -42,6 +42,8 @@
 #include "Engine/CoreSettings.h"
 #include "EngineAnalytics.h"
 
+#include "Tickable.h"
+
 ENGINE_API bool GDisallowNetworkTravel = false;
 
 // How slow must a frame be (in seconds) to be logged out (<= 0 to disable)
@@ -1120,6 +1122,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// ----------------------------
 	//	End per-world ticking
 	// ----------------------------
+
+	FTickableGameObject::TickObjects(nullptr, LEVELTICK_All, false, DeltaSeconds);
 
 	// Restore original GWorld*. This will go away one day.
 	if (OriginalGWorldContext != NAME_None)

@@ -420,6 +420,10 @@ private:
 	// Active body list
 	TArray<FAnimPhysLinkedBody> Bodies;
 
+	// Pointers to bodies that need to be reset to their bound bone.
+	// This happens on LOD change so we don't make the simulation unstable
+	TArray<FAnimPhysLinkedBody*> BodiesToReset;
+
 	// Pointers back to the base bodies to pass to the simulation
 	TArray<FAnimPhysRigidBody*> BaseBodyPtrs;
 
@@ -437,6 +441,10 @@ private:
 
 	// List of bone references for all bodies in this node
 	TArray<FBoneReference> BoundBoneReferences;
+
+	// Depending on the LOD we might not be runnning all of the bound bodies (for chains)
+	// this tracks the active bodies.
+	TArray<int32> ActiveBoneIndices;
 
 	// Gravity direction in sim space
 	FVector SimSpaceGravityDirection;

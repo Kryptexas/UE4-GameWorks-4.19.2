@@ -6,6 +6,7 @@
 #include "OnlineAchievementsInterfaceOculus.h"
 #include "OnlineFriendsInterfaceOculus.h"
 #include "OnlineIdentityOculus.h"
+#include "OnlineLeaderboardInterfaceOculus.h"
 #include "OnlineSessionInterfaceOculus.h"
 
 #if !OVRPL_DISABLED && WITH_EDITOR
@@ -44,7 +45,7 @@ IOnlineEntitlementsPtr FOnlineSubsystemOculus::GetEntitlementsInterface() const
 
 IOnlineLeaderboardsPtr FOnlineSubsystemOculus::GetLeaderboardsInterface() const
 {
-	return nullptr;
+	return LeaderboardsInterface;
 }
 
 IOnlineVoicePtr FOnlineSubsystemOculus::GetVoiceInterface() const
@@ -185,6 +186,7 @@ bool FOnlineSubsystemOculus::Init()
 		AchievementsInterface = MakeShareable(new FOnlineAchievementsOculus(*this));
 		FriendsInterface = MakeShareable(new FOnlineFriendsOculus(*this));
 		SessionInterface = MakeShareable(new FOnlineSessionOculus(*this));
+		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardOculus(*this));
 	}
 	else
 	{
@@ -223,6 +225,7 @@ bool FOnlineSubsystemOculus::Shutdown()
 	FriendsInterface.Reset();
 	IdentityInterface.Reset();
 	SessionInterface.Reset();
+	LeaderboardsInterface.Reset();
 
 	if (MessageTaskManager.IsValid())
 	{

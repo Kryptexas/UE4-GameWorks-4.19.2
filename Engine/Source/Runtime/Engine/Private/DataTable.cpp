@@ -178,6 +178,19 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 	Super::AddReferencedObjects( This, Collector );
 }
 
+SIZE_T UDataTable::GetResourceSize(EResourceSizeMode::Type Mode)
+{
+	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
+
+	ResourceSize += RowMap.GetAllocatedSize();
+	if (RowStruct)
+	{
+		ResourceSize += RowMap.Num() * RowStruct->PropertiesSize;
+	}
+	
+	return ResourceSize;
+}
+
 void UDataTable::FinishDestroy()
 {
 	Super::FinishDestroy();

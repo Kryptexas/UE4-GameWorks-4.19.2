@@ -516,7 +516,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		const bool bIsInstancedStereoEmulated = View->bIsInstancedStereoEnabled && !View->bIsMultiViewEnabled && View->StereoPass != eSSP_FULL;
 		if (bIsInstancedStereoEmulated)
 		{
-			RHICmdList.SetViewport(0, 0, 0, View->Family->FamilySizeX, View->ViewRect.Max.Y, 1);
+			RHICmdList.SetViewport(0, 0, 0, View->Family->InstancedStereoWidth, View->ViewRect.Max.Y, 1);
 		}
 
 		// Set stencil to one.
@@ -1340,8 +1340,11 @@ void FMobileSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmed
 	{
 		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
-		TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
-		SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
-		FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+		if(LightSceneInfo->ShouldRenderLightViewIndependent() && LightSceneInfo->Proxy && LightSceneInfo->Proxy->CastsModulatedShadows())
+		{
+			TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
+			SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
+			FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+		}
 	}
 }

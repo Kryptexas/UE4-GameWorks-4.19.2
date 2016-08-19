@@ -96,6 +96,8 @@ struct FAbcPolyMeshObject
 	bool bConstant;
 	/** Flag whether or not this object has constant topology (used for eligiblity for PCA compression) */
 	bool bConstantTopology;
+	/** Flag whether or not this object has a constant world matrix (used whether to incorporate into PCA compression) */
+	bool bConstantTransformation;
 	/** Number of samples taken for this object */
 	uint32 NumSamples;
 	/** Array of samples taken for this object */
@@ -143,6 +145,8 @@ struct FAbcTransformObject
 	FString Name;
 	/** Number of matrix samples for this object */
 	uint32 NumSamples;
+	/** Flag whether or not this transformation object is constant */
+	bool bConstant;
 
 	/** GUID identifying the hierarchy for this object (parent structure) */
 	FGuid HierarchyGuid;
@@ -150,6 +154,13 @@ struct FAbcTransformObject
 	/** Matrix samples taken for this object */
 	TArray<FMatrix> MatrixSamples;
 	/** Corresponding time values for the matrix samples taken for this object */
+	TArray<float> TimeSamples;
+};
+
+/** Structure used to store the cached hierarchy matrices*/
+struct FCachedHierarchyTransforms
+{
+	TArray<FMatrix> MatrixSamples;
 	TArray<float> TimeSamples;
 };
 
@@ -169,6 +180,21 @@ struct FAbcSkeletalMeshImportData
 	uint32 TotalNumSmoothingGroups;
 };
 
+/** Mesh section used for chunking the mesh data during Skeletal mesh building */
+struct FMeshSection
+{
+	FMeshSection() : MaterialIndex(0), NumFaces(0) {}
+	int32 MaterialIndex;
+	TArray<uint32> Indices;
+	TArray<uint32> OriginalIndices;
+	TArray<FVector> TangentX;
+	TArray<FVector> TangentY;
+	TArray<FVector> TangentZ;
+	TArray<FVector2D> UVs;
+	TArray<FColor> Colours;
+	uint32 NumFaces;
+};
+
 /** Structure encapsulating all the (intermediate) data retrieved from an Alembic file by the AbcImporter*/
 struct FAbcImportData
 {
@@ -183,13 +209,26 @@ public:
 	{		
 	}
 
+	~FAbcImportData()
+	{
+		// Clear up unused materials (this could be due to reimporting, or overriding existing assets)
+		for (TPair<FString, UMaterial*>& Pair : MaterialMap)
+		{
+			if (Pair.Value != nullptr && Pair.Value->IsValidLowLevel() && Pair.Value->GetOutermost() == GetTransientPackage())
+			{
+				Pair.Value->MarkPendingKill();
+			}
+		}
+	}
+
 public:
 	/** Hierarchies (parenting structure) stored for retrieving matrix samples */
-	TMap<FGuid, TArray<FAbcTransformObject*>> Hierarchies;
+	TMap<FGuid, TArray<TSharedPtr<FAbcTransformObject>>> Hierarchies;
+	TMap<FGuid, TSharedPtr<FCachedHierarchyTransforms>> CachedHierarchyTransforms;
 
 	/** Arrays of imported Alembic objects */
 	TArray<TSharedPtr<FAbcPolyMeshObject>> PolyMeshObjects;
-	TArray<FAbcTransformObject> TransformObjects;
+	TArray<TSharedPtr<FAbcTransformObject>> TransformObjects;
 
 	/** Resulting compressed data from PCA compression */
 	TArray<FCompressedAbcData> CompressedMeshData;

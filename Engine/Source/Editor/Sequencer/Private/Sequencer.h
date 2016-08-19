@@ -402,9 +402,6 @@ public:
 	void AssignActor(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
 	void DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
 
-	/** Called when a user executes the import fbx to track menu item */
-	void ImportFBX(FGuid ObjectBinding);	
-
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
@@ -479,8 +476,11 @@ public:
 	/** Moves all time data for the current scene onto a valid frame. */
 	void FixFrameTiming();
 
-	/** Exports the current scene and sequence to an fbx file. */
-	void ExportSceneAndSequence();
+	/** Imports the animation from an fbx file. */
+	void ImportFBX();
+
+	/** Exports the animation to an fbx file. */
+	void ExportFBX();
 
 public:
 	
@@ -1009,9 +1009,15 @@ private:
 
 	FDelegateHandle LevelViewportExtenderHandle;
 
+	/** Attribute used to retrieve the playback context for this frame */
+	TAttribute<UObject*> PlaybackContextAttribute;
+
+	/** Cached playback context for this frame */
+	TWeakObjectPtr<UObject> CachedPlaybackContext;
+
 	/** Attribute used to retrieve event contexts */
 	TAttribute<TArray<UObject*>> EventContextsAttribute;
 
 	/** Event contexts retrieved from the above attribute once per frame */
-	TArray<UObject*> CachedEventContexts;
+	TArray<TWeakObjectPtr<UObject>> CachedEventContexts;
 };

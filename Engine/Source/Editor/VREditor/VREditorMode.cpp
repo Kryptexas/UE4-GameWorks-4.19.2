@@ -7,8 +7,8 @@
 #include "VREditorTransformGizmo.h"
 #include "VREditorFloatingText.h"
 #include "VREditorFloatingUI.h"
+#include "VREditorAvatarActor.h"
 #include "Teleporter/VREditorTeleporter.h"
-
 
 #include "CameraController.h"
 #include "DynamicMeshBuilder.h"
@@ -35,26 +35,7 @@
 namespace VREd
 {
 	static FAutoConsoleVariable UseMouseAsHandInForcedVRMode( TEXT( "VREd.UseMouseAsHandInForcedVRMode" ), 1, TEXT( "When in forced VR mode, enabling this setting uses the mouse cursor as a virtual hand instead of motion controllers" ) );
-
-	static FAutoConsoleVariable GridMovementTolerance( TEXT( "VREd.GridMovementTolerance" ), 0.1f, TEXT( "Tolerance for movement when the grid must disappear" ) );
-	static FAutoConsoleVariable GridScaleMultiplier( TEXT( "VREd.GridScaleMultiplier" ), 35.0f, TEXT( "Scale of the grid" ) );
-	static FAutoConsoleVariable GridFadeMultiplier( TEXT( "VREd.GridFadeMultiplier" ), 3.0f, TEXT( "Grid fade in/out speed, in 'fades per second'" ) );
-	static FAutoConsoleVariable GridFadeStartVelocity( TEXT( "VREd.GridFadeStartVelocity" ), 10.f, TEXT( "Grid fade duration" ) );
-	static FAutoConsoleVariable GridMaxOpacity( TEXT( "VREd.GridMaxFade" ), 0.8f, TEXT( "Grid maximum opacity" ) );
-	static FAutoConsoleVariable GridHeightOffset( TEXT( "VREd.GridHeightOffset" ), 0.0f, TEXT( "Height offset for the world movement grid.  Useful when tracking space is not properly calibrated" ) );
-
-	static FAutoConsoleVariable WorldMovementFogOpacity( TEXT( "VREd.WorldMovementFogOpacity" ), 0.8f, TEXT( "How opaque the fog should be at the 'end distance' (0.0 - 1.0)" ) );
-	static FAutoConsoleVariable WorldMovementFogStartDistance( TEXT( "VREd.WorldMovementFogStartDistance" ), 300.0f, TEXT( "How far away fog will start rendering while in world movement mode" ) );
-	static FAutoConsoleVariable WorldMovementFogEndDistance( TEXT( "VREd.WorldMovementFogEndDistance" ), 800.0f, TEXT( "How far away fog will finish rendering while in world movement mode" ) );
-	static FAutoConsoleVariable WorldMovementFogSkyboxDistance( TEXT( "VREd.WorldMovementFogSkyboxDistance" ), 20000.0f, TEXT( "Anything further than this distance will be completed fogged and not visible" ) );
-
-	static FAutoConsoleVariable ScaleProgressBarLength( TEXT( "VREd.ScaleProgressBarLength" ), 50.0f, TEXT( "Length of the progressbar that appears when scaling" ) );
-	static FAutoConsoleVariable ScaleProgressBarRadius( TEXT( "VREd.ScaleProgressBarRadius" ), 1.0f, TEXT( "Radius of the progressbar that appears when scaling" ) );
-
 	static FAutoConsoleVariable ForceOculusMirrorMode( TEXT( "VREd.ForceOculusMirrorMode" ), 3, TEXT( "Which Oculus display mirroring mode to use (see MirrorWindowModeType in OculusRiftHMD.h)" ) );
-
-	static FAutoConsoleVariable ShowMovementGrid( TEXT( "VREd.ShowMovementGrid" ), 1, TEXT( "Showing the ground movement grid" ) );
-	static FAutoConsoleVariable ShowWorldMovementPostProcess( TEXT( "VREd.ShowWorldMovementPostProcess" ), 1, TEXT( "Showing the movement post processing" ) );
 }
 
 FEditorModeID FVREditorMode::VREditorModeID( "VREditor" );
@@ -66,19 +47,9 @@ FVREditorMode::FVREditorMode()
 	: bWantsToExitMode( false ),
 	  bIsFullyInitialized( false ),
 	  AppTimeModeEntered( FTimespan::Zero() ),
-	  AvatarMeshActor( nullptr ),
-	  HeadMeshComponent( nullptr ),
+	  AvatarActor( nullptr ),
       FlashlightComponent( nullptr ),
 	  bIsFlashlightOn( false ),
-	  WorldMovementGridMeshComponent( nullptr ),
-	  WorldMovementGridMID( nullptr ),
-	  WorldMovementGridOpacity( 0.0f ),	// NOTE: Intentionally not quite zero so that we update the MIDs on the first frame
-	  bIsDrawingWorldMovementPostProcess( false ),
-	  WorldMovementPostProcessMaterial( nullptr ),
-	  ScaleProgressMeshComponent( nullptr ),
-	  CurrentScaleProgressMeshComponent( nullptr ),
-	  UserScaleIndicatorText( nullptr ),
-	  PostProcessComponent( nullptr ),
 	  MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
 	  UISystem( nullptr ),
 	  TeleporterSystem( nullptr ),
@@ -113,9 +84,6 @@ void FVREditorMode::Enter()
 	bWantsToExitMode = false;
 
 	AppTimeModeEntered = FTimespan::FromSeconds( FApp::GetCurrentTime() );
-
-	WorldMovementGridOpacity = 0.0f;
-	bIsDrawingWorldMovementPostProcess = false;
 
 	// Take note of VREditor activation
 	if( FEngineAnalytics::IsAvailable() )
@@ -233,7 +201,7 @@ void FVREditorMode::Enter()
 			}
 		}
 		this->VREditorLevelViewportWeakPtr = VREditorLevelViewport;
-
+		
 		{
 			FLevelEditorViewportClient& VRViewportClient = VREditorLevelViewport->GetLevelViewportClient();
 			FEditorViewportClient& VREditorViewportClient = VRViewportClient;
@@ -321,20 +289,12 @@ void FVREditorMode::Enter()
 		}
 	}
 
-	// Load our post process material for the world movement grid
-	{
-		UMaterial* Material = LoadObject<UMaterial>( nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/GridPostProcess" ) );
-		check( Material != nullptr );
-		WorldMovementPostProcessMaterial = UMaterialInstanceDynamic::Create( Material, GetTransientPackage() );
-		check( WorldMovementPostProcessMaterial != nullptr );
-	}
-
 	// Setup sub systems
 	{
 		// Setup world interaction
 		WorldInteraction = NewObject<UVREditorWorldInteraction>();
 		WorldInteraction->SetOwner( this );
-		WorldInteraction->Init( VREditorLevelViewportWeakPtr.Pin()->GetViewportClient().Get() );
+		WorldInteraction->Init( VREditorLevelViewportWeakPtr.Pin()->GetViewportClient() );
 
 		// Motion controllers
 		{
@@ -384,26 +344,12 @@ void FVREditorMode::Exit()
 
 	FSlateApplication::Get().SetInputPreProcessor(false);
 
-	if( WorldMovementPostProcessMaterial != nullptr )
+	//Destroy the avatar
 	{
-		WorldMovementPostProcessMaterial->MarkPendingKill();
-		WorldMovementPostProcessMaterial = nullptr;
-	}
+		DestroyTransientActor( AvatarActor );
+		AvatarActor = nullptr;
 
-	check( WorldInteraction->GetViewportClient() != nullptr );
-
-	{
-		DestroyTransientActor( AvatarMeshActor );
-		AvatarMeshActor = nullptr;
-		
-		HeadMeshComponent = nullptr;
 		FlashlightComponent = nullptr;
-		WorldMovementGridMeshComponent = nullptr;
-		WorldMovementGridMID = nullptr;
-		PostProcessComponent = nullptr;
-		ScaleProgressMeshComponent = nullptr;
-		CurrentScaleProgressMeshComponent = nullptr;
-		UserScaleIndicatorText = nullptr;
 	}
 
 	{
@@ -510,182 +456,18 @@ void FVREditorMode::StartExitingVRMode( const EVREditorExitType InExitType /*= E
 void FVREditorMode::SpawnAvatarMeshActor()
 {
 	// Setup our avatar
-	if( AvatarMeshActor == nullptr )
+	if( AvatarActor == nullptr )
 	{
 		{
 			const bool bWithSceneComponent = true;
-			AvatarMeshActor = SpawnTransientSceneActor( AActor::StaticClass(), TEXT( "AvatarMesh" ), bWithSceneComponent );
-		}
-
-		// Give us a head mesh
-		{
-			HeadMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
-			AvatarMeshActor->AddOwnedComponent( HeadMeshComponent );
-			HeadMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
-			HeadMeshComponent->RegisterComponent();
-
-			// @todo vreditor: This needs to adapt based on the device you're using
-			UStaticMesh* HeadMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/Devices/Generic/GenericHMD" ) );
-			check( HeadMesh != nullptr );
-
-			HeadMeshComponent->SetStaticMesh( HeadMesh );
-			HeadMeshComponent->SetMobility( EComponentMobility::Movable );
-			HeadMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			AvatarActor = SpawnTransientSceneActor<AVREditorAvatarActor>( TEXT( "AvatarActor" ), bWithSceneComponent );
+			AvatarActor->Init( this );
 		}
 
 		//@todo VREditor: Hardcoded interactors
-		LeftHandInteractor->SetupComponent( AvatarMeshActor );
-		RightHandInteractor->SetupComponent( AvatarMeshActor );
-		
-		// World movement grid mesh
-		{
-			WorldMovementGridMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
-			AvatarMeshActor->AddOwnedComponent( WorldMovementGridMeshComponent );
-			WorldMovementGridMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
-			WorldMovementGridMeshComponent->RegisterComponent();
-
-			UStaticMesh* GridMesh = LoadObject<UStaticMesh>(nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/PlaneMesh" ) );
-			check( GridMesh != nullptr );
-			WorldMovementGridMeshComponent->SetStaticMesh( GridMesh );
-			WorldMovementGridMeshComponent->SetMobility( EComponentMobility::Movable );
-			WorldMovementGridMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-
-			UMaterialInterface* GridMaterial = LoadObject<UMaterialInterface>( nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/GridMaterial" ) );
-			check( GridMaterial != nullptr );
-			
-			WorldMovementGridMID = UMaterialInstanceDynamic::Create( GridMaterial, GetTransientPackage() );
-			check( WorldMovementGridMID != nullptr );
-			WorldMovementGridMeshComponent->SetMaterial( 0, WorldMovementGridMID );
-
-			// The grid starts off hidden
-			WorldMovementGridMeshComponent->SetVisibility( false );
-		}
-
-		{
-			{
-				UMaterialInterface* UserScaleIndicatorMaterial = LoadObject<UMaterialInterface>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/LaserPointerMaterialInst" ) );
-				check( UserScaleIndicatorMaterial != nullptr );
-
-				UMaterialInstance* TranslucentUserScaleIndicatorMaterial = LoadObject<UMaterialInstance>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/TranslucentLaserPointerMaterialInst" ) );
-				check( TranslucentUserScaleIndicatorMaterial != nullptr );
-
-				UStaticMesh* ScaleLineMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/LaserPointerMesh" ) );
-				check( ScaleLineMesh != nullptr );
-
-				// Creating the background bar progress of the scale 
-				{
-					ScaleProgressMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
-					AvatarMeshActor->AddOwnedComponent( ScaleProgressMeshComponent );
-					ScaleProgressMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
-					ScaleProgressMeshComponent->RegisterComponent();
-				
-					ScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
-					ScaleProgressMeshComponent->SetMobility( EComponentMobility::Movable );
-					ScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-
-					UMaterialInstanceDynamic* UserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
-					check( UserScaleMID != nullptr );
-					ScaleProgressMeshComponent->SetMaterial( 0, UserScaleMID );
-
-					UMaterialInstanceDynamic* TranslucentUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
-					check( TranslucentUserScaleMID != nullptr );
-					ScaleProgressMeshComponent->SetMaterial( 1, TranslucentUserScaleMID );
-
-					static FName StaticLaserColorName( "LaserColor" );
-					const FLinearColor Color = GetColor( EColors::WorldDraggingColor_TwoHands );
-					UserScaleMID->SetVectorParameterValue( StaticLaserColorName, Color );
-					TranslucentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, Color );
-
-					// The user scale indicator starts invisible
-					ScaleProgressMeshComponent->SetVisibility( false );
-				}
-
-
-				// Creating the current progress of the scale 
-				{
-					CurrentScaleProgressMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
-					AvatarMeshActor->AddOwnedComponent( CurrentScaleProgressMeshComponent );
-					CurrentScaleProgressMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
-					CurrentScaleProgressMeshComponent->RegisterComponent();
-
-					CurrentScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
-					CurrentScaleProgressMeshComponent->SetMobility( EComponentMobility::Movable );
-					CurrentScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-
-					UMaterialInstanceDynamic* UserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
-					check( UserScaleMID != nullptr );
-					CurrentScaleProgressMeshComponent->SetMaterial( 0, UserScaleMID );
-
-					UMaterialInstanceDynamic* TranslucentUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
-					check( TranslucentUserScaleMID != nullptr );
-					CurrentScaleProgressMeshComponent->SetMaterial( 1, TranslucentUserScaleMID );
-
-					static FName StaticLaserColorName( "LaserColor" );
-					const FLinearColor Color = GetColor( EColors::GreenGizmoColor );
-					UserScaleMID->SetVectorParameterValue( StaticLaserColorName, Color );
-					TranslucentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, Color );
-
-					// The user scale indicator starts invisible
-					CurrentScaleProgressMeshComponent->SetVisibility( false );
-				}
-			}
-
-			// Creating the text for scaling
-			{
-				UFont* TextFont = LoadObject<UFont>( nullptr, TEXT( "/Engine/VREditor/Fonts/VRText_RobotoLarge" ) );
-				check( TextFont != nullptr );
-
-				UMaterialInterface* UserScaleIndicatorMaterial = LoadObject<UMaterialInterface>( nullptr, TEXT( "/Engine/VREditor/Fonts/VRTextMaterial" ) );
-				check( UserScaleIndicatorMaterial != nullptr );
-
-				UserScaleIndicatorText = NewObject<UTextRenderComponent>( AvatarMeshActor );
-				AvatarMeshActor->AddOwnedComponent( UserScaleIndicatorText );
-				UserScaleIndicatorText->SetupAttachment( AvatarMeshActor->GetRootComponent() );
-				UserScaleIndicatorText->RegisterComponent();
-
-				UserScaleIndicatorText->SetMobility( EComponentMobility::Movable );
-				UserScaleIndicatorText->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-				UserScaleIndicatorText->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
-
-				UserScaleIndicatorText->bGenerateOverlapEvents = false;
-				UserScaleIndicatorText->SetCanEverAffectNavigation( false );
-				UserScaleIndicatorText->bCastDynamicShadow = false;
-				UserScaleIndicatorText->bCastStaticShadow = false;
-				UserScaleIndicatorText->bAffectDistanceFieldLighting = false;
-				UserScaleIndicatorText->bAffectDynamicIndirectLighting = false;
-
-				// Use a custom font.  The text will be visible up close.
-				UserScaleIndicatorText->SetFont( TextFont );
-				UserScaleIndicatorText->SetWorldSize( 8.0f );
-				UserScaleIndicatorText->SetTextMaterial( UserScaleIndicatorMaterial );
-				UserScaleIndicatorText->SetTextRenderColor( GetColor( EColors::WorldDraggingColor_TwoHands ).ToFColor( false ) );
-
-				// Center the text horizontally
-				UserScaleIndicatorText->SetHorizontalAlignment( EHTA_Center );
-				UserScaleIndicatorText->SetVisibility( false );
-			}
-		}
-
-		// Post processing
-		{
-			PostProcessComponent = NewObject<UPostProcessComponent>( AvatarMeshActor );
-			AvatarMeshActor->AddOwnedComponent( PostProcessComponent );
-			PostProcessComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
-			PostProcessComponent->RegisterComponent();
-
-			// Unlimited size
-			PostProcessComponent->bEnabled = VREd::ShowWorldMovementPostProcess->GetInt() == 1 ? true : false;
-			PostProcessComponent->bUnbound = true;
-		}
+		LeftHandInteractor->SetupComponent( AvatarActor );
+		RightHandInteractor->SetupComponent( AvatarActor );
 	}
-}
-
-
-UPostProcessComponent* FVREditorMode::GetPostProcessComponent()
-{
-	SpawnAvatarMeshActor();
-	check( PostProcessComponent != nullptr );
-	return PostProcessComponent;
 }
 
 
@@ -727,7 +509,7 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 		SetRoomTransform( ResultToWorld );
 	}
 
-	if ( AvatarMeshActor == nullptr )
+	if ( AvatarActor == nullptr )
 	{
 		SpawnAvatarMeshActor();
 	}
@@ -741,106 +523,8 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 	// Update avatar meshes
 	{
 		// Move our avatar mesh along with the room.  We need our hand components to remain the same coordinate space as the 
-		{
-			const FTransform RoomTransform = GetRoomTransform();
-			AvatarMeshActor->SetActorTransform( RoomTransform );
-		}
-
-		// Our head will lock to the HMD position
-		{
-			FTransform RoomSpaceTransformWithWorldToMetersScaling = GetRoomSpaceHeadTransform();
-			RoomSpaceTransformWithWorldToMetersScaling.SetScale3D( RoomSpaceTransformWithWorldToMetersScaling.GetScale3D() * FVector( GetWorldScaleFactor() ) );
-
-			// @todo vreditor urgent: Head disabled until we can fix late frame update issue
-			if( false && bActuallyUsingVR && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() )
-			{
-				HeadMeshComponent->SetVisibility( true );
-
-				// Apply late frame update to the head mesh
-				HeadMeshComponent->ResetRelativeTransform();
-				const FTransform ParentToWorld = HeadMeshComponent->GetComponentToWorld();
-				GEngine->HMDDevice->SetupLateUpdate( ParentToWorld, HeadMeshComponent );
-				HeadMeshComponent->SetRelativeTransform( RoomSpaceTransformWithWorldToMetersScaling );
-			}
-			else
-			{
-				HeadMeshComponent->SetVisibility( false );
-			}
-		}
-
-		// Scale the grid so that it stays the same size in the tracking space
-		WorldMovementGridMeshComponent->SetRelativeScale3D( FVector( GetWorldScaleFactor() ) * VREd::GridScaleMultiplier->GetFloat() );
-		WorldMovementGridMeshComponent->SetRelativeLocation( FVector( GetWorldScaleFactor() ) * FVector( 0.0f, 0.0f, VREd::GridHeightOffset->GetFloat() ) );
-
-		// Update the user scale indicator //@todo
-		{
-			if ( ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World && RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::AssistingDrag ) ||
-				 ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::AssistingDrag && RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World ) )
-			{
-				// Setting all components to be visible
-				CurrentScaleProgressMeshComponent->SetVisibility( true );
-				ScaleProgressMeshComponent->SetVisibility( true );
-				UserScaleIndicatorText->SetVisibility( true );
-
-				// Here we calculate the distance, direction and center of the two hands
-				const FVector ScaleIndicatorStartPosition = LeftHandInteractor->GetTransform().GetLocation();
-				const FVector ScaleIndicatorEndPosition = RightHandInteractor->GetTransform().GetLocation();
-				const FVector ScaleIndicatorDirection = (ScaleIndicatorEndPosition - ScaleIndicatorStartPosition).GetSafeNormal();
-
-				const float ScaleIndicatorLength = FMath::Max( 0.000001f, (ScaleIndicatorEndPosition - ScaleIndicatorStartPosition).Size() );
-				const float Radius = ( VREd::ScaleProgressBarRadius->GetFloat() * GetWorldScaleFactor() );
-				const float ProgressbarLength = VREd::ScaleProgressBarLength->GetFloat();
-				const float Scale = GetWorldScaleFactor();
-				 
-				// Add an offset to the center, we don't want the hands to clip through the hand meshes
-				FVector MiddleLocation = ScaleIndicatorEndPosition - ( ScaleIndicatorLength * 0.5f ) * ScaleIndicatorDirection;
-				MiddleLocation.Z += Scale * 5.f;
-				
-				// Setting the transform for the scale progressbar
-				{
-					const FVector ProgressbarStart = MiddleLocation - ((ProgressbarLength * 0.5f) * Scale) * ScaleIndicatorDirection;
-
-					ScaleProgressMeshComponent->SetWorldTransform( FTransform( ScaleIndicatorDirection.ToOrientationRotator(),
-						ProgressbarStart,
-						 FVector( ProgressbarLength * Scale, Radius, Radius )
-						) );
-				}
-
-				// Setting the transform for the current scale progressbar from the center
-				{
-					const float CurrentProgressScale = (Scale * Scale) * (ProgressbarLength / ( WorldInteraction->GetMaxScale() / 100));
-					const FVector CurrentProgressStart = MiddleLocation - (CurrentProgressScale * 0.5f) * ScaleIndicatorDirection;
-					
-					CurrentScaleProgressMeshComponent->SetWorldTransform( FTransform (  ScaleIndicatorDirection.ToOrientationRotator(),
-							CurrentProgressStart,
-							FVector( CurrentProgressScale, Radius * 2, Radius * 2 )
-						) );
-				}
-
-				//Setting the transform for the scale text
-				{
-					MiddleLocation.Z += Scale * 5.0f;
-					UserScaleIndicatorText->SetWorldTransform( FTransform( ( GetHeadTransform().GetLocation() - MiddleLocation ).ToOrientationRotator(),
-						MiddleLocation,
-						GetRoomSpaceHeadTransform().GetScale3D()  * Scale
-						) );
-					
-					FNumberFormattingOptions NumberFormat;
-					NumberFormat.MinimumIntegralDigits = 1;
-					NumberFormat.MaximumIntegralDigits = 10000;
-					NumberFormat.MinimumFractionalDigits = 1;
-					NumberFormat.MaximumFractionalDigits = 1;
-					UserScaleIndicatorText->SetText( FText::AsNumber( Scale, &NumberFormat ) );
-				}
-			}
-			else
-			{
-				//Setting all components invisible
-				CurrentScaleProgressMeshComponent->SetVisibility( false );
-				ScaleProgressMeshComponent->SetVisibility( false );
-				UserScaleIndicatorText->SetVisibility( false );
-			}
-		}
+		AvatarActor->SetActorTransform( GetRoomTransform() );
+		AvatarActor->TickManually( DeltaTime );
 	}
 
 	// Updating the scale and intensity of the flashlight according to the world scale
@@ -850,113 +534,6 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 		//@todo vreditor tweak
 		float UpdatedFalloffExponent = FMath::Clamp(CurrentFalloffExponent / GetWorldScaleFactor(), 2.0f, 16.0f);
 		FlashlightComponent->SetLightFalloffExponent(UpdatedFalloffExponent);
-	}
-
-	// Updating the opacity and visibility of the grid according to the controllers //@todo
-	{
-		if( VREd::ShowMovementGrid->GetInt() == 1)
-		{
-			// Show the grid full opacity when dragging or scaling
-			float GoalOpacity = 0.f;
-			if ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World || RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World )
-			{
-				GoalOpacity = 1.0f;
-			}
-			else if ( ( LeftHandInteractor->GetLastDraggingMode() == EViewportInteractionDraggingMode::World && !LeftHandInteractor->GetDragTranslationVelocity().IsNearlyZero( VREd::GridMovementTolerance->GetFloat() ) ) )
-			{
-				GoalOpacity = FMath::Clamp( LeftHandInteractor->GetDragTranslationVelocity().Size() / VREd::GridFadeStartVelocity->GetFloat(), 0.0f, 1.0f );
-			}
-			else if( ( RightHandInteractor->GetLastDraggingMode() == EViewportInteractionDraggingMode::World && !RightHandInteractor->GetDragTranslationVelocity().IsNearlyZero( VREd::GridMovementTolerance->GetFloat() ) ) )
-			{
-				GoalOpacity = FMath::Clamp( RightHandInteractor->GetDragTranslationVelocity().Size() / VREd::GridFadeStartVelocity->GetFloat(), 0.0f, 1.0f );
-			}
-
-			// Check the current opacity and add or subtract to reach the goal
-			float NewOpacity = WorldMovementGridOpacity;
-			if( NewOpacity < GoalOpacity )
-			{
-				NewOpacity = FMath::Min( GoalOpacity, NewOpacity + DeltaTime * VREd::GridFadeMultiplier->GetFloat() );
-			}
-			else if( NewOpacity > GoalOpacity )
-			{
-				NewOpacity = FMath::Max( GoalOpacity, NewOpacity - DeltaTime * VREd::GridFadeMultiplier->GetFloat() );
-			}
-
-			// Only update when the opacity is different
-			if( !FMath::IsNearlyEqual( WorldMovementGridOpacity, GoalOpacity ) )
-			{
-				WorldMovementGridOpacity = NewOpacity;
-
-				// See if the opacity is almost zero and if the goal opacity is lower than the new opacity set it to zero if so. Otherwise it will flicker
-				if( WorldMovementGridOpacity < SMALL_NUMBER )
-				{
-					WorldMovementGridOpacity = 0.f;
-					WorldMovementGridMeshComponent->SetVisibility( false );
-				}
-				else
-				{
-					WorldMovementGridMeshComponent->SetVisibility( true );
-				}
-
-				static const FName OpacityName( "OpacityParam" );
-				WorldMovementGridMID->SetScalarParameterValue( OpacityName, WorldMovementGridOpacity * VREd::GridMaxOpacity->GetFloat() );
-			}
-		}
-		else
-		{
-			WorldMovementGridMeshComponent->SetVisibility( false );
-		}
-	}
-
-	// Apply a post process effect while the user is moving the world around.  The effect "greys out" any pixels
-	// that are not nearby, and completely hides the skybox and other very distant objects.  This is to help
-	// prevent simulation sickness when moving/rotating/scaling the entire world around them.
-	{
-		PostProcessComponent->bEnabled = VREd::ShowWorldMovementPostProcess->GetInt() == 1 ? true : false;
-
-		// Make sure our world size is reflected in the post process material
-		static FName WorldScaleFactorParameterName( "WorldScaleFactor" );
-		WorldMovementPostProcessMaterial->SetScalarParameterValue( WorldScaleFactorParameterName, GetWorldScaleFactor() );
-
-		static FName RoomOriginParameterName( "RoomOrigin" );
-		WorldMovementPostProcessMaterial->SetVectorParameterValue( RoomOriginParameterName, GetRoomTransform().GetLocation() );
-
-		static FName FogColorParameterName( "FogColor" );
-		// WorldMovementPostProcessMaterial->SetVectorParameterValue( FogColorParameterName, FLinearColor::Black );
-
-		static FName StartDistanceParameterName( "StartDistance" );
-		WorldMovementPostProcessMaterial->SetScalarParameterValue( StartDistanceParameterName, VREd::WorldMovementFogStartDistance->GetFloat() );
-
-		static FName EndDistanceParameterName( "EndDistance" );
-		WorldMovementPostProcessMaterial->SetScalarParameterValue( EndDistanceParameterName, VREd::WorldMovementFogEndDistance->GetFloat() );
-
-		static FName FogOpacityParameterName( "FogOpacity" );
-		WorldMovementPostProcessMaterial->SetScalarParameterValue( FogOpacityParameterName, VREd::WorldMovementFogOpacity->GetFloat() );
-
-		static FName SkyboxDistanceParameterName( "SkyboxDistance" );
-		WorldMovementPostProcessMaterial->SetScalarParameterValue( SkyboxDistanceParameterName, VREd::WorldMovementFogSkyboxDistance->GetFloat() );
-
-		const bool bShouldDrawWorldMovementPostProcess = WorldMovementGridOpacity > KINDA_SMALL_NUMBER;
-		if( bShouldDrawWorldMovementPostProcess != bIsDrawingWorldMovementPostProcess )
-		{
-			UPostProcessComponent* PostProcess = GetPostProcessComponent();
-			if( bShouldDrawWorldMovementPostProcess )
-			{
-				PostProcess->AddOrUpdateBlendable( WorldMovementPostProcessMaterial );
-				bIsDrawingWorldMovementPostProcess = true;
-			}
-			else
-			{
-				bIsDrawingWorldMovementPostProcess = false;
-				PostProcess->Settings.RemoveBlendable( WorldMovementPostProcessMaterial );
-			}
-		}
-
-		if( bIsDrawingWorldMovementPostProcess )
-		{
-			static FName OpacityParameterName( "Opacity" );
-			WorldMovementPostProcessMaterial->SetScalarParameterValue( OpacityParameterName, FMath::Clamp( WorldMovementGridOpacity, 0.0f, 1.0f ) );
-		}
 	}
 
 	StopOldHapticEffects();
@@ -1007,16 +584,8 @@ bool FVREditorMode::IsCompatibleWith(FEditorModeID OtherModeID) const
 
 void FVREditorMode::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	Collector.AddReferencedObject( AvatarMeshActor );
-	Collector.AddReferencedObject( HeadMeshComponent );
-	Collector.AddReferencedObject( FlashlightComponent );
-	Collector.AddReferencedObject( WorldMovementGridMeshComponent );
-	Collector.AddReferencedObject( PostProcessComponent );
-	Collector.AddReferencedObject( WorldMovementGridMID );
-	Collector.AddReferencedObject( WorldMovementPostProcessMaterial );
-	Collector.AddReferencedObject( ScaleProgressMeshComponent );
-	Collector.AddReferencedObject( CurrentScaleProgressMeshComponent );
-	Collector.AddReferencedObject( UserScaleIndicatorText );	
+	Collector.AddReferencedObject( AvatarActor );
+	Collector.AddReferencedObject( FlashlightComponent );	
 	Collector.AddReferencedObject( UISystem );
 	Collector.AddReferencedObject( WorldInteraction );
 	Collector.AddReferencedObject( TeleporterSystem );
@@ -1045,7 +614,7 @@ void FVREditorMode::Render( const FSceneView* SceneView, FViewport* Viewport, FP
 
 AActor* FVREditorMode::GetAvatarMeshActor()
 {
-	return AvatarMeshActor;
+	return AvatarActor;
 }
 
 UWorld* FVREditorMode::GetWorld() const
@@ -1123,21 +692,7 @@ AActor* FVREditorMode::SpawnTransientSceneActor( TSubclassOf<AActor> ActorClass,
 
 void FVREditorMode::DestroyTransientActor( AActor* Actor ) const
 {
-	if( Actor != nullptr )
-	{
-		const bool bWasWorldPackageDirty = GetWorld()->GetOutermost()->IsDirty();
-
-		const bool bNetForce = false;
-		const bool bShouldModifyLevel = false;	// Don't modify level for transient actor destruction
-		GetWorld()->DestroyActor( Actor, bNetForce, bShouldModifyLevel );
-		Actor = nullptr;
-
-		// Don't dirty the level file after destroying a transient actor
-		if( !bWasWorldPackageDirty )
-		{
-			GetWorld()->GetOutermost()->SetDirtyFlag( false );
-		}
-	}
+	WorldInteraction->DestroyTransientActor( Actor );
 }
 
 const SLevelViewport& FVREditorMode::GetLevelViewportPossessedForVR() const
@@ -1182,39 +737,18 @@ void FVREditorMode::OnSwitchBetweenPIEAndSIE( const bool bIsSimulatingInEditor )
 
 void FVREditorMode::CleanUpActorsBeforeMapChangeOrSimulate()
 {
-	// NOTE: This will be called even when this mode is not currently active!
-
-	DestroyTransientActor( AvatarMeshActor );
-	AvatarMeshActor = nullptr;
-	HeadMeshComponent = nullptr;
-	FlashlightComponent = nullptr;
-
-	WorldMovementGridMeshComponent = nullptr;
-
-	if( WorldMovementGridMID != nullptr )
+	if ( WorldInteraction != nullptr )
 	{
-		WorldMovementGridMID->MarkPendingKill();
-		WorldMovementGridMID = nullptr;
-	}
+		// NOTE: This will be called even when this mode is not currently active!
+		DestroyTransientActor( AvatarActor );
+		AvatarActor = nullptr;
+		FlashlightComponent = nullptr;
 
-	if( WorldMovementPostProcessMaterial != nullptr )
-	{
-		WorldMovementPostProcessMaterial->MarkPendingKill();
-		WorldMovementPostProcessMaterial = nullptr;
-	}
+		if ( UISystem != nullptr )
+		{
+			UISystem->CleanUpActorsBeforeMapChangeOrSimulate();
+		}
 
-	PostProcessComponent = nullptr;
-	ScaleProgressMeshComponent = nullptr;
-	CurrentScaleProgressMeshComponent = nullptr;
-	UserScaleIndicatorText = nullptr;
-
-	if( UISystem != nullptr )
-	{
-		UISystem->CleanUpActorsBeforeMapChangeOrSimulate();
-	}
-
-	if( WorldInteraction != nullptr )
-	{
 		WorldInteraction->Shutdown();
 	}
 }
@@ -1226,8 +760,8 @@ void FVREditorMode::ToggleFlashlight( UVREditorInteractor* Interactor )
 	{
 		if ( FlashlightComponent == nullptr )
 		{
-			FlashlightComponent = NewObject<USpotLightComponent>( AvatarMeshActor );
-			AvatarMeshActor->AddOwnedComponent( FlashlightComponent );
+			FlashlightComponent = NewObject<USpotLightComponent>( AvatarActor );
+			AvatarActor->AddOwnedComponent( FlashlightComponent );
 			FlashlightComponent->RegisterComponent();
 			FlashlightComponent->SetMobility( EComponentMobility::Movable );
 			FlashlightComponent->SetCastShadows( false );

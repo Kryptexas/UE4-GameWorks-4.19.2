@@ -415,7 +415,7 @@ void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
-void SWidget::CachePrepass(ILayoutCache* InLayoutCache)
+void SWidget::CachePrepass(const TWeakPtr<ILayoutCache>& InLayoutCache)
 {
 	if ( bCanHaveChildren )
 	{

@@ -712,6 +712,8 @@ public:
 	 */
 	const FString* GetInstanceMetaData(const FName& Key) const;
 
+	bool ParentOrSelfHasMetaData(const FName& MetaDataKey) const;
+
 	/**
 	 * Invalidates the cached state of this node in all children;
 	 */

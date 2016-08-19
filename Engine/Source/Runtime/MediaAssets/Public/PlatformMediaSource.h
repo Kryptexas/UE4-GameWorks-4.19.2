@@ -11,8 +11,8 @@
  *
  * Use this asset to override media sources on a per-platform basis.
  */
-UCLASS(BlueprintType, MinimalAPI)
-class UPlatformMediaSource
+UCLASS(BlueprintType)
+class MEDIAASSETS_API UPlatformMediaSource
 	: public UMediaSource
 {
 	GENERATED_BODY()
@@ -24,7 +24,7 @@ public:
 	 *
 	 * This media source will be used if no source was specified for a target platform.
 	 */
-	UPROPERTY(EditAnywhere, Category=Sources)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Sources)
 	UMediaSource* DefaultSource;
 
 #if WITH_EDITORONLY_DATA

@@ -365,6 +365,11 @@ namespace UnrealBuildTool
 				// Get all link actions which have no out-of-date prerequisites
 				HashSet<Action> UnlinkedActions = ActionsToExecute.Where(Action => Action.ActionType == ActionType.Link && !ProducedItems.Overlaps(Action.PrerequisiteItems)).ToHashSet();
 
+				// Don't regard an action as unlinked if there is an associated 'failed.hotreload' file.
+				UnlinkedActions.RemoveWhere(Action => Action.ProducedItems.Any(Item => File.Exists(Path.Combine(Path.GetDirectoryName(Item.AbsolutePath), "failed.hotreload"))));
+
+				HashSet<Action> UnlinkedActionsWithFailedHotreload = ActionsToExecute.Where(Action => Action.ActionType == ActionType.Link && !ProducedItems.Overlaps(Action.PrerequisiteItems)).ToHashSet();
+
 				// Remove unlinked items
 				ActionsToExecute.ExceptWith(UnlinkedActions);
 
@@ -407,7 +412,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Executes a list of actions.
 		/// </summary>
-		public static bool ExecuteActions(List<Action> ActionsToExecute, out string ExecutorName, string TargetInfoForTelemetry)
+		public static bool ExecuteActions(List<Action> ActionsToExecute, out string ExecutorName, string TargetInfoForTelemetry, bool bIsHotReload = false)
 		{
 			bool Result = true;
 			bool bUsedXGE = false;
@@ -520,6 +525,32 @@ namespace UnrealBuildTool
 									FileInfo ItemInfo = new FileInfo(Item.AbsolutePath);
 									bExists = ItemInfo.Exists;
 								}
+
+								if (bIsHotReload)
+								{
+									string FailedFilename = Path.Combine(Path.GetDirectoryName(Item.AbsolutePath), "failed.hotreload");
+									if (!bExists)
+									{
+										// Create a failed.hotreload file here to indicate that we need to attempt another hotreload link
+										// step in future, even though no source files have changed.
+										// This is necessary because we also don't want to link a brand new instance of a module every time
+										// a user hits the Compile button when nothing has changed.
+										FileItem.CreateIntermediateTextFile(new FileReference(FailedFilename), "");
+									}
+									else
+									{
+										try
+										{
+											File.Delete(FailedFilename);
+										}
+										catch
+										{
+											// Ignore but log failed deletions
+											Log.TraceVerbose("Failed to delete failed.hotreload file \"{0}\" - this may cause redundant hotreloads", FailedFilename);
+										}
+									}
+								}
+
 								if (!bExists)
 								{
 									throw new BuildException("UBT ERROR: Failed to produce item: " + Item.AbsolutePath);

@@ -35,7 +35,7 @@ namespace UnrealBuildTool
 			{
 				NDKArches.Add(GetNDKArch(Arch));
 			}
-			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "xmlns:android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
+			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "http://schemas.android.com/apk/res/android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
 		}
 

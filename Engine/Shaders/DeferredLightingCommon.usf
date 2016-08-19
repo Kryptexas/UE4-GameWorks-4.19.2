@@ -576,7 +576,7 @@ float3 GetSimpleDynamicLighting(float3 WorldPosition, float3 CameraVector, FScre
 		// Apply SSAO to the direct lighting since we're not going to have any other shadowing
 		float Attenuation = DistanceAttenuation * ScreenSpaceData.AmbientOcclusion;
 
-		OutLighting += LightColor * (NoL * Attenuation) * SimpleShading( ScreenSpaceData.GBuffer.DiffuseColor, ScreenSpaceData.GBuffer.SpecularColor, ScreenSpaceData.GBuffer.Roughness, L, V, N );
+		OutLighting += LightColor * (NoL * Attenuation) * SimpleShading( ScreenSpaceData.GBuffer.DiffuseColor, ScreenSpaceData.GBuffer.SpecularColor, max(ScreenSpaceData.GBuffer.Roughness, .04f), L, V, N );
 	}
 
 	return OutLighting;

@@ -913,7 +913,7 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneColor, meta=(editcondition = "bOverride_ColorGradingLUT", DisplayName = "Color Grading"))
 	class UTexture* ColorGradingLUT;
 
-	/** BokehDOF, Simple gaussian, ... */
+	/** BokehDOF, Simple gaussian, ... Mobile supports Gaussian only. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DepthOfField, meta=(editcondition = "bOverride_DepthOfFieldMethod", DisplayName = "Method"))
 	TEnumAsByte<enum EDepthOfFieldMethod> DepthOfFieldMethod;
 

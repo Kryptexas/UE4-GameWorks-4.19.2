@@ -15,6 +15,7 @@
 #include "TransformTrackEditor.h"
 #include "MatineeImportTools.h"
 #include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
 #include "FloatCurveKeyArea.h"
 #include "ContentBrowserModule.h"
 #include "Animation/AnimSequence.h"
@@ -247,6 +248,36 @@ void CopyInterpMoveTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackMove* Mov
 	}
 }
 
+
+bool CanCopyInterpMoveTrack(UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack)
+{
+	if (!MoveTrack || !TransformTrack)
+	{
+		return false;
+	}
+
+	bool bHasKeyframes = MoveTrack->GetNumKeyframes() != 0;
+
+	for (auto SubTrack : MoveTrack->SubTracks)
+	{
+		if (SubTrack->IsA(UInterpTrackMoveAxis::StaticClass()))
+		{
+			UInterpTrackMoveAxis* MoveSubTrack = Cast<UInterpTrackMoveAxis>(SubTrack);
+			if (MoveSubTrack)
+			{
+				if (MoveSubTrack->FloatTrack.Points.Num() > 0)
+				{
+					bHasKeyframes = true;
+					break;
+				}
+			}
+		}
+	}
+		
+	return bHasKeyframes;
+}
+
+
 void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
 {
 	UInterpTrackMove* MoveTrack = nullptr;
@@ -265,7 +296,9 @@ void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, 
 		FSlateIcon(),
 		FUIAction(
 			FExecuteAction::CreateStatic( &CopyInterpMoveTrack, GetSequencer().ToSharedRef(), MoveTrack, TransformTrack ),
-			FCanExecuteAction::CreateLambda( [=]()->bool { return MoveTrack != nullptr && MoveTrack->GetNumKeys() > 0 && TransformTrack != nullptr; } ) ) );
+			FCanExecuteAction::CreateStatic( &CanCopyInterpMoveTrack, MoveTrack, TransformTrack ) ) );
+
+	//		FCanExecuteAction::CreateLambda( [=]()->bool { return MoveTrack != nullptr && MoveTrack->GetNumKeys() > 0 && TransformTrack != nullptr; } ) ) );
 
 	auto AnimSubMenuDelegate = [](FMenuBuilder& InMenuBuilder, TSharedRef<ISequencer> InSequencer, UMovieScene3DTransformTrack* InTransformTrack)
 	{

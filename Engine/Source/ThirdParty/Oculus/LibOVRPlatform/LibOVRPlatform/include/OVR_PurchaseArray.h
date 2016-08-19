@@ -12,6 +12,7 @@
 typedef struct ovrPurchaseArray *ovrPurchaseArrayHandle;
 
 OVRP_PUBLIC_FUNCTION(ovrPurchaseHandle) ovr_PurchaseArray_GetElement(const ovrPurchaseArrayHandle obj, size_t index);
+OVRP_PUBLIC_FUNCTION(const char *)      ovr_PurchaseArray_GetNextUrl(const ovrPurchaseArrayHandle obj);
 OVRP_PUBLIC_FUNCTION(size_t)            ovr_PurchaseArray_GetSize(const ovrPurchaseArrayHandle obj);
 OVRP_PUBLIC_FUNCTION(bool)              ovr_PurchaseArray_HasNextPage(const ovrPurchaseArrayHandle obj);
 

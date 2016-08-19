@@ -1332,7 +1332,7 @@ namespace UnrealBuildTool
 
 		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
-			if (BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true)
+			if (BuildConfiguration.bUsePDBFiles == true)
 			{
 				KeyValuePair<FileReference, BuildProductType>[] BuildProductsArray = BuildProducts.ToArray();
 
@@ -1671,7 +1671,7 @@ namespace UnrealBuildTool
 			}
 
 			// For Mac, generate the dSYM file if the config file is set to do so
-			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
+			if (BuildConfiguration.bUsePDBFiles == true && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
 			{
 				// We want dsyms to be created after all dylib dependencies are fixed. If FixDylibDependencies action was not created yet, save the info for later.
 				if (FixDylibOutputFile != null)

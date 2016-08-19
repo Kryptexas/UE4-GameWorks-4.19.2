@@ -27,15 +27,15 @@ void FMovieScene3DRotationKeyStruct::PropagateChanges(const FPropertyChangedEven
 {
 	if(RotationKeys[0] != nullptr)
 	{
-		RotationKeys[0]->Value = Rotation.Pitch;
+		RotationKeys[0]->Value = Rotation.Roll;
 	}
 	if(RotationKeys[1] != nullptr)
 	{	
-		RotationKeys[1]->Value = Rotation.Yaw;
+		RotationKeys[1]->Value = Rotation.Pitch;
 	}
 	if(RotationKeys[2] != nullptr)
 	{
-		RotationKeys[2]->Value = Rotation.Roll;
+		RotationKeys[2]->Value = Rotation.Yaw;
 	}
 }
 
@@ -74,15 +74,15 @@ void FMovieScene3DTransformKeyStruct::PropagateChanges(const FPropertyChangedEve
 
 	if(RotationKeys[0] != nullptr)
 	{
-		RotationKeys[0]->Value = Rotation.Pitch;
+		RotationKeys[0]->Value = Rotation.Roll;
 	}
 	if(RotationKeys[1] != nullptr)
 	{	
-		RotationKeys[1]->Value = Rotation.Yaw;
+		RotationKeys[1]->Value = Rotation.Pitch;
 	}
 	if(RotationKeys[2] != nullptr)
 	{
-		RotationKeys[2]->Value = Rotation.Roll;
+		RotationKeys[2]->Value = Rotation.Yaw;
 	}
 }
 
@@ -305,15 +305,15 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 
 			if(RotationKeys[0] != nullptr)
 			{
-				Struct->Rotation.Pitch = RotationKeys[0]->Value;
+				Struct->Rotation.Roll = RotationKeys[0]->Value;
 			}
 			if(RotationKeys[1] != nullptr)
 			{
-				Struct->Rotation.Yaw = RotationKeys[1]->Value;
+				Struct->Rotation.Pitch = RotationKeys[1]->Value;
 			}
 			if(RotationKeys[2] != nullptr)
 			{
-				Struct->Rotation.Roll = RotationKeys[2]->Value;
+				Struct->Rotation.Yaw = RotationKeys[2]->Value;
 			}
 		}
 
@@ -351,9 +351,20 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 				}
 			}
 
-			Struct->Rotation.Pitch = Struct->RotationKeys[0]->Value;
-			Struct->Rotation.Yaw = Struct->RotationKeys[1]->Value;
-			Struct->Rotation.Roll = Struct->RotationKeys[2]->Value;
+			if (Struct->RotationKeys[0] != nullptr)
+			{
+				Struct->Rotation.Roll = Struct->RotationKeys[0]->Value;
+			}
+
+			if (Struct->RotationKeys[1] != nullptr)
+			{
+				Struct->Rotation.Pitch = Struct->RotationKeys[1]->Value;
+			}
+			
+			if (Struct->RotationKeys[2] != nullptr)
+			{
+				Struct->Rotation.Yaw = Struct->RotationKeys[2]->Value;
+			}
 		}
 
 		return KeyStruct;

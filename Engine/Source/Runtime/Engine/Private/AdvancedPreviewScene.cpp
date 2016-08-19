@@ -83,44 +83,65 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 
 	bRotateLighting = Profile.bRotateLightingRig;
 	CurrentRotationSpeed = Profile.RotationSpeed;
+	bSkyChanged = false;
 }
 
 void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpdateSkyLight /*= true*/, bool bUpdateEnvironment  /*= true*/, bool bUpdatePostProcessing /*= true*/, bool bUpdateDirectionalLight /*= true*/)
 {
+
 	if (bUpdateSkyLight)
 	{
-		SkyLightComponent->Cubemap = Profile.EnvironmentCubeMap;
-		SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
-
 		// Threshold to ensure we only update the intensity if it is going to make a difference
-		if (!FMath::IsNearlyEqual(SkyLightComponent->Intensity, Profile.SkyLightIntensity, KINDA_SMALL_NUMBER))
+		if (!FMath::IsNearlyEqual(SkyLightComponent->Intensity, Profile.SkyLightIntensity, 0.05f))
 		{
+			static const FName IntensityName("Intensity");
 			SkyLightComponent->SetIntensity(Profile.SkyLightIntensity);
-			InstancedSkyMaterial->SetScalarParameterValueEditorOnly(FName("Intensity"), Profile.SkyLightIntensity);
-			InstancedSkyMaterial->PostEditChange();
+			InstancedSkyMaterial->SetScalarParameterValueEditorOnly(IntensityName, Profile.SkyLightIntensity);
+			bSkyChanged = true;
 		}
-
-		SkyLightComponent->SetCaptureIsDirty();
-		SkyLightComponent->MarkRenderStateDirty();
-		SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);		
 	}
 
 	if (bUpdateEnvironment)
 	{
-		InstancedSkyMaterial->SetTextureParameterValueEditorOnly(FName("SkyBox"), Profile.EnvironmentCubeMap);		
-		InstancedSkyMaterial->SetScalarParameterValueEditorOnly(FName("CubemapRotation"), Profile.LightingRigRotation / 360.0f);
-		InstancedSkyMaterial->PostEditChange();		
-	}
+		static const FName SkyBoxName("SkyBox");
+		static const FName CubeMapRotationName("CubemapRotation");
+
+		UTexture* Texture = Profile.EnvironmentCubeMap;
+		InstancedSkyMaterial->GetTextureParameterValue(SkyBoxName, Texture);
+		if (Texture != Profile.EnvironmentCubeMap)
+		{
+			InstancedSkyMaterial->SetTextureParameterValueEditorOnly(SkyBoxName, Profile.EnvironmentCubeMap);
+			SkyLightComponent->Cubemap = Profile.EnvironmentCubeMap;
+			bSkyChanged = true;
+		}
+		
+		static const float OneOver360 = 1.0f / 360.0f;
+		float Rotation = Profile.LightingRigRotation;
+		InstancedSkyMaterial->GetScalarParameterValue(CubeMapRotationName, Rotation);
+		if (!FMath::IsNearlyEqual(Rotation, Profile.LightingRigRotation, 0.05f))
+		{			
+			InstancedSkyMaterial->SetScalarParameterValueEditorOnly(CubeMapRotationName, Profile.LightingRigRotation * OneOver360);
+
+			// Update light direction as well
+			FRotator LightDir = GetLightDirection();
+			LightDir.Yaw -= Profile.LightingRigRotation - (Rotation * 360.0f);
+			SetLightDirection(LightDir);
+			DefaultSettings->Profiles[CurrentProfileIndex].DirectionalLightRotation = LightDir;
+			SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
+			bSkyChanged = true;
+		}
+	}		
 
 	if (bUpdatePostProcessing)
 	{
 		PostProcessComponent->Settings = Profile.PostProcessingSettings;
 		PostProcessComponent->bEnabled = Profile.bPostProcessingEnabled;
+		bPostProcessing = Profile.bPostProcessingEnabled;
 	}
 
 	if (bUpdateDirectionalLight)
 	{
-		if (!FMath::IsNearlyEqual(DirectionalLight->Intensity, Profile.DirectionalLightIntensity, KINDA_SMALL_NUMBER))
+		if (!FMath::IsNearlyEqual(DirectionalLight->Intensity, Profile.DirectionalLightIntensity, 0.05f))
 		{
 			DirectionalLight->SetIntensity(Profile.DirectionalLightIntensity);
 		}
@@ -164,7 +185,7 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 		DefaultSettings->Profiles[CurrentProfileIndex].DirectionalLightRotation = LightDir;
 	}
 
-	if (!FMath::IsNearlyEqual(PreviousRotation, Profile.LightingRigRotation, KINDA_SMALL_NUMBER))
+	if (!FMath::IsNearlyEqual(PreviousRotation, Profile.LightingRigRotation, 0.05f))
 	{		
 		SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
 		SkyLightComponent->SetCaptureIsDirty();
@@ -178,6 +199,16 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 		PreviewWorld->UpdateAllSkyCaptures();
 
 		PreviousRotation = Profile.LightingRigRotation;
+	}
+
+	// Update the sky every tick rather than every mouse move (UpdateScene call)
+	if (bSkyChanged)
+	{
+		SkyLightComponent->SetCaptureIsDirty();
+		SkyLightComponent->MarkRenderStateDirty();
+		SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+		InstancedSkyMaterial->PostEditChange();
+		bSkyChanged = false;
 	}
 }
 
@@ -232,29 +263,37 @@ const bool FAdvancedPreviewScene::HandleInputKey(FViewport* InViewport, int32 Co
 	const bool bHideFloor = InViewport->KeyState(EKeys::O);
 	if (bHideSky)
 	{
-		UProperty* EnvironmentProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bShowEnvironment));
-		DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment = !DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment;
-
-		FPropertyChangedEvent PropertyEvent(EnvironmentProperty);
-		DefaultSettings->PostEditChangeProperty(PropertyEvent);
-
+		SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
 		bResult = true;
 	}
 
 	if (bHideFloor)
 	{
-		FName PropertyName("bShowFloor");
-
-		UProperty* FloorProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), PropertyName);
-		DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor = !DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor;
-
-		FPropertyChangedEvent PropertyEvent(FloorProperty);
-		DefaultSettings->PostEditChangeProperty(PropertyEvent);
-
+		SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
 		bResult = true;
 	}
 
 	return bResult;
+}
+
+void FAdvancedPreviewScene::SetFloorVisibility(const bool bVisible)
+{
+	FName PropertyName("bShowFloor");
+
+	UProperty* FloorProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), PropertyName);
+	DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor = bVisible;
+
+	FPropertyChangedEvent PropertyEvent(FloorProperty);
+	DefaultSettings->PostEditChangeProperty(PropertyEvent);
+}
+
+void FAdvancedPreviewScene::SetEnvironmentVisibility(const bool bVisible)
+{
+	UProperty* EnvironmentProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bShowEnvironment));
+	DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment = bVisible;
+
+	FPropertyChangedEvent PropertyEvent(EnvironmentProperty);
+	DefaultSettings->PostEditChangeProperty(PropertyEvent);
 }
 
 const float FAdvancedPreviewScene::GetSkyRotation() const
@@ -274,6 +313,16 @@ void FAdvancedPreviewScene::SetSkyRotation(const float SkyRotation)
 		ClampedSkyRotation += 360.0f;
 	}
 	DefaultSettings->Profiles[CurrentProfileIndex].LightingRigRotation = ClampedSkyRotation;
+}
+
+const bool FAdvancedPreviewScene::IsUsingPostProcessing() const
+{
+	return bPostProcessing;
+}
+
+const int32 FAdvancedPreviewScene::GetCurrentProfileIndex() const
+{
+	return CurrentProfileIndex;
 }
 
 const UStaticMeshComponent* FAdvancedPreviewScene::GetFloorMeshComponent() const

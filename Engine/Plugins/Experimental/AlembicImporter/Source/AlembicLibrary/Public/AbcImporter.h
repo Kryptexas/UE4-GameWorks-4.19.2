@@ -76,7 +76,7 @@ public:
 	* @param Mesh - Current StaticMesh instance
 	* @return FStaticMesh*
 	*/
-	UStaticMesh* ReimportSingleAsStaticMesh(UStaticMesh* Mesh);
+	const TArray<UStaticMesh*> ReimportAsStaticMesh(UStaticMesh* Mesh);
 
 	/**
 	* Reimport an Alembic file as a GeometryCache
@@ -106,14 +106,14 @@ private:
 	/**
 	* Creates an template object instance taking into account existing Instances and Objects (on reimporting)
 	*
-	* @param InParent - ParentObject for the geometry cache
+	* @param InParent - ParentObject for the geometry cache, this can be changed when parent is deleted/re-created
 	* @param ObjectName - Name to be used for the created object
 	* @param Flags - Object creation flags
 	*/
-	template<typename T> T* CreateObjectInstance(UObject* InParent, const FString& ObjectName, const EObjectFlags Flags);
+	template<typename T> T* CreateObjectInstance(UObject*& InParent, const FString& ObjectName, const EObjectFlags Flags);
 
 	/** Recursive functionality to traverse a whole Alembic Archive and caching all the object type/data */
-	void TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<FAbcTransformObject*>& InObjectHierarchy, FGuid InGuid);
+	void TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, TArray<TSharedPtr<FAbcTransformObject>>& InObjectHierarchy, FGuid InGuid);
 
 	/** Templated function to parse a specific Alembic typed object from the archive */
 	template<typename T> void ParseAbcObject(T& InObject, FGuid InHierarchyGuid) {};
@@ -172,28 +172,35 @@ private:
 	/** Generates and populate a FRawMesh instance from the given sample*/
 	void GenerateRawMeshFromSample(FAbcMeshSample* Sample, FRawMesh& RawMesh);
 	
-	/** Temporary functionality for retrieving matrix data for a given Alembic object */
-	void GetMatrixSamplesForObject(const Alembic::Abc::IObject& Object, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes);
+	/** Retrieves matrix samples using the Hierarchy linked to the given GUID */
+	void GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform);
 
 	/** Temporary functionality for retrieving the object hierarchy for a given Alembic object */
 	void GetHierarchyForObject(const Alembic::Abc::IObject& Object, TDoubleLinkedList<Alembic::AbcGeom::IXform>& Hierarchy);
+
+	/** Caches the matrix transform samples for all the object hierarchies retrieved from the Alembic archive */
+	void CacheHierarchyTransforms();
 	
 	/** Retrieves a material according to the given name and resaves it into the parent package*/
 	UMaterial* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );
-	
-	/** Compresses the imported animation data */
-	void CompressAnimationDataUsingPCA(const FAbcCompressionSettings& InCompressionSettings, const bool bRunComparison = false);	
+		
+	/** Compresses the imported animation data, returns true if compression was successful and compressed data was populated */
+	const bool CompressAnimationDataUsingPCA(const FAbcCompressionSettings& InCompressionSettings, const bool bRunComparison = false);	
 	/** Performs the actual SVD compression to retrieve the bases and weights used to set up the Skeletal mesh's morph targets */
 	const int32 PerformSVDCompression(TArray<float>& OriginalMatrix, const uint32 NumRows, const uint32 NumSamples, TArray<float>& OutU, TArray<float>& OutV, const float InPercentage, const int32 InFixedNumValue);
 	/** Functionality for comparing the matrices and calculating the difference from the original animation */
 	void CompareCompressionResult(const TArray<float>& OriginalMatrix, const uint32 NumSamples, const uint32 NumRows, const uint32 NumUsedSingularValues, const uint32 NumVertices, const TArray<float>& OutU, const TArray<float>& OutV, const TArray<FVector>& AverageFrame);
 	
-	/** Populates the skeletal mesh import data structure using the data retrieved for the given sample index */
-	void GenerateSkeletalMeshDataFromCompressedData(FSkeletalMeshImportData& SkeletalMeshData, const TArray<FCompressedAbcData>& CompressedMeshData);
-
-	void GenerateMorphTargetVertices(FAbcMeshSample* BaseSample, TArray<FMorphTargetDelta> &MorphDeltas, FAbcMeshSample* AverageSample, uint32 WedgeOffset);
+	/** Build a skeletal mesh from the PCA compressed data */
+	bool BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, FAbcMeshSample* Sample, TArray<int32>& OutMorphTargetVertexRemapping);
+	
+	/** Generate morph target vertices from the PCA compressed bases */
+	void GenerateMorphTargetVertices(FAbcMeshSample* BaseSample, TArray<FMorphTargetDelta> &MorphDeltas, FAbcMeshSample* AverageSample, uint32 WedgeOffset, const TArray<int32>& RemapIndices);
+	
+	/** Set up correct morph target weights from the PCA compressed data */
 	void SetupMorphTargetCurves(USkeleton* Skeleton, FName ConstCurveName, UAnimSequence* Sequence, const TArray<float> &CurveValues, const TArray<float>& TimeValues);
 	
 private:
 	FAbcImportData* ImportData;
+	static const int32 FirstSampleIndex;
 };

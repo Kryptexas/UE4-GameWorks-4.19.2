@@ -806,7 +806,7 @@ bool FSequenceRecorder::IsActorValidForRecording(AActor* Actor)
 	// check class if any
 	for(const TSubclassOf<AActor>& ActorClass : Settings->ActorFilter.ActorClassesToRecord)
 	{
-		if(Actor->IsA(*ActorClass))
+		if(*ActorClass != nullptr && Actor->IsA(*ActorClass))
 		{
 			return true;
 		}

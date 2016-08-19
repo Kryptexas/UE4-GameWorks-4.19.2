@@ -10,7 +10,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLevelSequence, Log, All);
 
 static TAutoConsoleVariable<int32> CVarFixedFrameIntervalPlayback(
 	TEXT("LevelSequence.DefaultFixedFrameIntervalPlayback"),
-	1,
+	0,
 	TEXT("When non-zero, all newly created level sequences will default to fixed frame interval playback."),
 	ECVF_Default);
 

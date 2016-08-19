@@ -89,7 +89,7 @@ namespace ProxyMaterialUtilities
 		UMaterial* BaseMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/BaseFlattenMaterial.BaseFlattenMaterial"), NULL, LOAD_None, NULL);
 		check(BaseMaterial);
 
-		UMaterialInstanceConstant* OutMaterial = FMaterialUtilities::CreateInstancedMaterial(BaseMaterial, InOuter, AssetBaseName, RF_Public | RF_Standalone);
+		UMaterialInstanceConstant* OutMaterial = FMaterialUtilities::CreateInstancedMaterial(BaseMaterial, InOuter, AssetBasePath + AssetBaseName, RF_Public | RF_Standalone);
 
 		OutMaterial->BasePropertyOverrides.TwoSided = false;
 		OutMaterial->BasePropertyOverrides.bOverride_TwoSided = true;

@@ -72,6 +72,9 @@ struct FSequencerInitParams
 
 	/** Accessor for event contexts */
 	TAttribute<TArray<UObject*>> EventContexts;
+
+	/** Accessor for playback context */
+	TAttribute<UObject*> PlaybackContext;
 };
 
 

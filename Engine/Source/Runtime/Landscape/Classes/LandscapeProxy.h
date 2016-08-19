@@ -448,6 +448,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
+	/**
+	 * If true, Landscape will generate overlap events when other components are overlapping it (eg Begin Overlap).
+	 * Both the Landscape and the other component must have this flag enabled for overlap events to occur.
+	 *
+	 * @see [Overlap Events](https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents)
+	 * @see UpdateOverlaps(), BeginComponentOverlap(), EndComponentOverlap()
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Collision)
+	uint32 bGenerateOverlapEvents : 1;
+
 	/** Whether to bake the landscape material's vertical world position offset into the collision heightfield.
 		Note: Only z (vertical) offset is supported. XY offsets are ignored.
 		Does not work with an XY offset map (mesh collision) */
@@ -530,7 +540,7 @@ public:
 
 	//~ Begin AActor Interface
 	virtual void PostRegisterAllComponents() override;
-	virtual void UnregisterAllComponents() override;
+	virtual void UnregisterAllComponents(bool bForReregister = false) override;
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return true; }
 

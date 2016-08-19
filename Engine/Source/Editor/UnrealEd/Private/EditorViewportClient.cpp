@@ -32,6 +32,7 @@
 #include "SceneViewExtension.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "EditorBuildUtils.h"
+#include "AudioDevice.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -5186,6 +5187,16 @@ const TArray<FString>* FEditorViewportClient::GetEnabledStats() const
 void FEditorViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
 {
 	EnabledStats = InEnabledStats;
+
+#if !UE_BUILD_SHIPPING
+	if (UWorld* MyWorld = GetWorld())
+	{
+		if (FAudioDevice* AudioDevice = MyWorld->GetAudioDevice())
+		{
+			AudioDevice->ResolveDesiredStats(this);
+		}
+	}
+#endif
 }
 
 bool FEditorViewportClient::IsStatEnabled(const FString& InName) const

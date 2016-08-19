@@ -1493,7 +1493,10 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 						if (LinkedTo)
 						{
 							// case 1:
-							check(*LinkedTo == RequestingPin);
+							// The second condition here is to avoid asserting when PinIds are reused.
+							// This occur frequently due to current copy paste implementation, which does 
+							// not generate/fixup PinIds at any point:
+							check(*LinkedTo == RequestingPin || (*ExistingPin)->LinkedTo.FindByPredicate([RequestingPin](const UEdGraphPin* Pin) { return Pin == RequestingPin; }));
 							PinRef = *ExistingPin;
 						}
 						else

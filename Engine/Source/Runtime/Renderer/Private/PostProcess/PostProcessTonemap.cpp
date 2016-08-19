@@ -12,6 +12,7 @@
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
 #include "PostProcessCombineLUTs.h"
+#include "PostProcessMobile.h"
 #include "SceneUtils.h"
 
 static TAutoConsoleVariable<float> CVarTonemapperSharpen(
@@ -558,8 +559,6 @@ static uint32 TonemapperGenerateBitmask(const FViewInfo* RESTRICT View, bool bGa
 {
 	check(View);
 
-	bGammaOnly |= !IsMobileHDR();
-
 	const FSceneViewFamily* RESTRICT Family = View->Family;
 	if(
 		bGammaOnly ||
@@ -699,7 +698,7 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 		// add full mobile post if FP16 is supported.
 		Bitmask += TonemapperGenerateBitmaskPost(View);
 
-		bool bUseDof = View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f && (!View->FinalPostProcessSettings.bMobileHQGaussian || (View->GetFeatureLevel() < ERHIFeatureLevel::ES3_1));
+		bool bUseDof = GetMobileDepthOfFieldScale(*View) > 0.0f && (!View->FinalPostProcessSettings.bMobileHQGaussian || (View->GetFeatureLevel() < ERHIFeatureLevel::ES3_1));
 
 		Bitmask += (bUseDof)					? TonemapperDOF : 0;
 		Bitmask += (View->bLightShaftUse)		? TonemapperLightShafts : 0;

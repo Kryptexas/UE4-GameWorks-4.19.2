@@ -2200,7 +2200,7 @@ public:
 	bool HasValidRootComponent();
 
 	/** Unregister all currently registered components */
-	virtual void UnregisterAllComponents();
+	virtual void UnregisterAllComponents(bool bForReregister = false);
 
 	/** Called after all currently registered components are cleared */
 	virtual void PostUnregisterAllComponents() {}

@@ -1094,6 +1094,10 @@ struct FDrawWindowArgs
 
 void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& WindowToDraw, FDrawWindowArgs& DrawWindowArgs )
 {
+	// On Mac, where child windows can be on screen even if their parent is hidden or minimized, we want to always draw child windows.
+	// On other platforms we set bDrawChildWindows to true only if we draw the current window.
+	bool bDrawChildWindows = PLATFORM_MAC;
+
 	// Only draw visible windows
 	if( WindowToDraw->IsVisible() && (!WindowToDraw->IsWindowMinimized() || FApp::UseVRFocus()) )
 	{
@@ -1196,6 +1200,12 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 
 #endif
 
+		// This window is visible, so draw its child windows as well
+		bDrawChildWindows = true;
+	}
+
+	if (bDrawChildWindows)
+	{
 		// Draw the child windows
 		const TArray< TSharedRef<SWindow> >& WindowChildren = WindowToDraw->GetChildWindows();
 		for (int32 ChildIndex=0; ChildIndex < WindowChildren.Num(); ++ChildIndex)

@@ -630,7 +630,7 @@ namespace APIDocTool
 				Console.WriteLine("Building target info...");
 				Utility.SafeCreateDirectory(Path.GetDirectoryName(TargetInfoPath));
 
-				string Arguments = String.Format("DocumentationEditor Win64 Debug -noxge -project=\"{0}\"", Path.Combine(EngineDir, "Documentation\\Extras\\API\\Build\\Documentation.uproject"));
+				string Arguments = String.Format("DocumentationEditor Win64 Debug -ignorejunk -noxge -project=\"{0}\"", Path.Combine(EngineDir, "Documentation\\Extras\\API\\Build\\Documentation.uproject"));
 				if (!RunUnrealBuildTool(EngineDir, Arguments + " -clean"))
 				{
 					return false;
@@ -681,6 +681,7 @@ namespace APIDocTool
 				NewProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 				NewProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 
+				Console.WriteLine("Running {0} {1}", NewProcess.StartInfo.FileName, NewProcess.StartInfo.Arguments);
 				try
 				{
 					NewProcess.Start();

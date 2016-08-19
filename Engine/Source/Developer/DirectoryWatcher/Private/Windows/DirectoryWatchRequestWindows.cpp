@@ -216,7 +216,7 @@ void FDirectoryWatchRequestWindows::ProcessChange(uint32 Error, uint32 NumBytes)
 	}
 
 	// No need to process the change if we can not execute any delegates
-	if ( !HasDelegates() )
+	if ( !HasDelegates() || !bValidNotification )
 	{
 		return;
 	}

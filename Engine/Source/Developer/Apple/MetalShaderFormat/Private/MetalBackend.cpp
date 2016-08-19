@@ -640,6 +640,36 @@ protected:
 		check(0 && "ir_rvalue not handled for GLSL export.");
 	}
 
+	void print_zero_initialiser(const glsl_type * type)
+	{
+		check(type->base_type != GLSL_TYPE_STRUCT);
+		{
+			if (type->base_type != GLSL_TYPE_ARRAY)
+			{
+				ir_constant* zero = ir_constant::zero(mem_ctx, type);
+				if (zero)
+				{
+					zero->accept(this);
+				}
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "{");
+				
+				for (uint32 i = 0; i < type->length; i++)
+				{
+					if (i > 0)
+					{
+						ralloc_asprintf_append(buffer, ", ");
+					}
+					print_zero_initialiser(type->element_type());
+				}
+				
+				ralloc_asprintf_append(buffer, "}");
+			}
+		}
+	}
+
 	virtual void visit(ir_variable *var) override
 	{
 		// Check for an initialized const variable
@@ -921,13 +951,13 @@ protected:
 				var->constant_value->accept(this);
 			}
 		}
-		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT && var->type->base_type != GLSL_TYPE_ARRAY) && (var->mode == ir_var_auto || var->mode == ir_var_temporary))
+		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT) && (var->mode == ir_var_auto || var->mode == ir_var_temporary || var->mode == ir_var_shared) && (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end()))
 		{
-			ir_constant* zero = ir_constant::zero(mem_ctx, var->type);
-			if (zero)
+			// @todo UE-34355 temporary workaround for 10.12 shader compiler error - really all arrays should be zero'd but only threadgroup shared initialisation works on the Beta drivers.
+			if (var->type->base_type != GLSL_TYPE_ARRAY || var->mode == ir_var_shared)
 			{
 				ralloc_asprintf_append(buffer, " = ");
-				zero->accept(this);
+				print_zero_initialiser(var->type);
 			}
 		}
 	}

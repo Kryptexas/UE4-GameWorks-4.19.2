@@ -44,9 +44,9 @@ public class OnlineSubsystemOculus : ModuleRules
 				PublicDelayLoadDLLs.Add("LibOVRPlatform64_1.dll");
 			}
 		}
-        else
-        {
-            PrecompileForTargets = PrecompileTargetsType.None;
-        }
-    }
+		else
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
+	}
 }

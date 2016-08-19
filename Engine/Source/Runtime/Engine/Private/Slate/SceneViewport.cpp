@@ -1073,6 +1073,48 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 		{
 			NewWindowMode = GetWindowModeType(NewWindowMode);
 
+			const FVector2D WindowPos = WindowToResize->GetPositionInScreen();
+			const FVector2D WindowSize = WindowToResize->GetClientSizeInScreen();
+
+			TOptional<FVector2D> NewWindowPos;
+			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
+
+			const FSlateRect BestWorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(WindowPos, WindowSize));
+
+			// A switch to window mode should position the window to be in the center of the work-area (we don't do this if we were already in window mode to allow the user to move the window)
+			// Fullscreen modes should position the window to the top-left of the work-area
+			if (NewWindowMode == EWindowMode::Windowed)
+			{
+				if (WindowMode == EWindowMode::Windowed && NewWindowSize == WindowSize)
+				{
+					// Leave the window position alone!
+					NewWindowPos.Reset();
+				}
+				else
+				{
+					const FVector2D BestWorkAreaTopLeft = BestWorkArea.GetTopLeft();
+					const FVector2D BestWorkAreaSize = BestWorkArea.GetSize();
+
+					FVector2D CenteredWindowPos = BestWorkAreaTopLeft;
+
+					if (NewWindowSize.X < BestWorkAreaSize.X)
+					{
+						CenteredWindowPos.X += FMath::Max(0.0f, (BestWorkAreaSize.X - NewWindowSize.X) * 0.5f);
+					}
+
+					if (NewWindowSize.Y < BestWorkAreaSize.Y)
+					{
+						CenteredWindowPos.Y += FMath::Max(0.0f, (BestWorkAreaSize.Y - NewWindowSize.Y) * 0.5f);
+					}
+
+					NewWindowPos = CenteredWindowPos;
+				}
+			}
+			else
+			{
+				NewWindowPos = BestWorkArea.GetTopLeft();
+			}
+
 			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
 			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
 			// scaling so we actual render to the resolution we've been asked for.
@@ -1080,15 +1122,14 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			{
 				FDisplayMetrics DisplayMetrics;
 				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
-				NewWindowSizeX = DisplayMetrics.PrimaryDisplayWidth;
-				NewWindowSizeY = DisplayMetrics.PrimaryDisplayHeight;
-			}
 
-			// Resize window
-			FVector2D WindowPos = WindowToResize->GetPositionInScreen();
-			FVector2D WindowSize = WindowToResize->GetClientSizeInScreen();
-			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
-			TOptional<FVector2D> NewWindowPos;
+				// todo: this assumes that all your displays have the same resolution as your primary display
+				// we need a way to query the display size for a rect (the work area size isn't the same thing), but for now we force the window to be on the primary display
+				NewWindowPos = FVector2D(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+
+				NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
+				NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+			}
 
 			IHeadMountedDisplay::MonitorInfo MonitorInfo;
 			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
@@ -1101,6 +1142,7 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 				}
 			}
 
+			// Resize window
 			if (NewWindowSize != WindowSize || (NewWindowPos.IsSet() && NewWindowPos != WindowPos) || NewWindowMode != WindowMode)
 			{
 				WindowToResize->SetWindowMode(NewWindowMode);
@@ -1180,8 +1222,6 @@ void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMod
 		bIsResizing = true;
 
 		UpdateViewportRHI(false, NewSizeX, NewSizeY, NewWindowMode);
-
-		FSystemResolution::RequestResolutionChange(NewSizeX, NewSizeY, NewWindowMode);
 
 		if (ViewportClient)
 		{

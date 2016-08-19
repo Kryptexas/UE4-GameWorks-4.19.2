@@ -69,8 +69,10 @@ class VIEWPORTINTERACTION_API UViewportWorldInteraction : public UObject, public
 	
 public:
 
+	~UViewportWorldInteraction();
+
 	// IViewportWorldInteraction overrides
-	virtual void Init( class FEditorViewportClient* InEditorViewportClient ) override;
+	virtual void Init( const TSharedPtr<class FEditorViewportClient>& InEditorViewportClient ) override;
 	virtual void Shutdown() override;
 	virtual void Tick( class FEditorViewportClient* ViewportClient, const float DeltaTime ) override;
 	virtual void AddInteractor( UViewportInteractor* Interactor ) override;
@@ -215,6 +217,9 @@ public:
 	/** Switch which transform gizmo coordinate space we're using. */
 	void CycleTransformGizmoCoordinateSpace();
 
+	/** Destroys a transient actor we created earlier and nulls out the pointer */
+	void DestroyTransientActor(AActor* Actor) const;
+
 protected:
 
 	/** Allow base class to refresh on selection changed */
@@ -312,9 +317,6 @@ private:
 	/** Spawns a transient actor that we can use in the editor world */
 	AActor* SpawnTransientSceneActor( TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent ) const;
 
-	/** Destroys a transient actor we created earlier and nulls out the pointer */
-	void DestroyTransientActor( AActor* Actor ) const;
-
 	/** Gets the snap grid mesh actor */
 	AActor* GetSnapGridActor()
 	{
@@ -387,7 +389,7 @@ private:
 	//
 
 	/** The viewport that the worldinteraction is used for */
-	class FEditorViewportClient* EditorViewportClient;
+	TSharedPtr<class FEditorViewportClient> EditorViewportClient;
 
 	/** The last frame that input was polled.  We keep track of this so that we can make sure to poll for latest input right before
 	its first needed each frame */

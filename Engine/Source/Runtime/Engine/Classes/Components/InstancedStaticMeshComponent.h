@@ -66,7 +66,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Array of instances, bulk serialized. */
-	UPROPERTY(EditAnywhere, Transient, DuplicateTransient, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
+	UPROPERTY(EditAnywhere, SkipSerialization, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
 	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
 	/** Value used to seed the random number stream that generates random numbers for each of this mesh's instances.
@@ -187,8 +187,10 @@ public:
 
 	//~ Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual void CreatePhysicsState() override;
-	virtual void DestroyPhysicsState() override;
+protected:
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
+public:
 	virtual bool CanEditSimulatePhysics() override;
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;

@@ -2022,7 +2022,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			bool bUseEncodedHDR = IsMobileHDR32bpp() && !bUseMosaic;
 
 			bool bUseSun = !bUseEncodedHDR && View.bLightShaftUse;
-			bool bUseDof = !bUseEncodedHDR && View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f && !Context.View.Family->EngineShowFlags.VisualizeDOF;
+			bool bUseDof = !bUseEncodedHDR && GetMobileDepthOfFieldScale(View) > 0.0f && !Context.View.Family->EngineShowFlags.VisualizeDOF;
 			bool bUseBloom = View.FinalPostProcessSettings.BloomIntensity > 0.0f;
 			bool bUseVignette = View.FinalPostProcessSettings.VignetteIntensity > 0.0f;
 

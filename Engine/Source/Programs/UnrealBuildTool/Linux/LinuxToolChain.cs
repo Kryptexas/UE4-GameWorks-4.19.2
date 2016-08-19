@@ -296,18 +296,6 @@ namespace UnrealBuildTool
 			Result += " -c";
 			Result += " -pipe";
 
-			if (CrossCompiling())
-			{
-				// There are exceptions used in the code base (e.g. UnrealHeadTool).  @todo: weed out exceptions
-				// So this flag cannot be used, at least not for native Linux builds.
-				Result += " -fno-exceptions";               // no exceptions
-				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=1";
-			}
-			else
-			{
-				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
-			}
-
 			Result += " -nostdinc++";
 			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/";
 			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/c++/v1";
@@ -395,19 +383,13 @@ namespace UnrealBuildTool
 				//Result += " -fsanitize=address";            // detect address based errors (support properly and link to libasan)
 			}
 
-			// debug info (bCreateDebugInfo is normally set for all configurations, and we don't want it to affect Shipping performance)
-			if (CompileEnvironment.Config.bCreateDebugInfo && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
+			// debug info 
+			// bCreateDebugInfo is normally set for all configurations, including Shipping - this is needed to enable callstack in Shipping builds (proper resolution: UEPLAT-205, separate files with debug info)
+			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
-				Result += " -g3";
+				// libdwarf (from elftoolchain 0.6.1) doesn't support DWARF4
+				Result += " -gdwarf-3";
 			}
-			// Applying to all configurations, including Shipping @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
-			else
-			{
-				Result += " -gline-tables-only"; // include debug info for meaningful callstacks
-			}
-
-			// libdwarf (from elftoolchain 0.6.1) doesn't support DWARF4
-			Result += " -gdwarf-3";
 
 			// optimization level
 			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
@@ -427,9 +409,15 @@ namespace UnrealBuildTool
 				Result += " -ftls-model=local-dynamic";
 			}
 
-			if (CompileEnvironment.Config.bEnableExceptions)
+			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
 			{
 				Result += " -fexceptions";
+				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
+			}
+			else
+			{
+				Result += " -fno-exceptions";               // no exceptions
+				Result += " -DPLATFORM_EXCEPTIONS_DISABLED=1";
 			}
 
 			//Result += " -v";                            // for better error diagnosis
@@ -545,7 +533,7 @@ namespace UnrealBuildTool
 			Result += " -Wl,-rpath=${ORIGIN}/..";	// for modules that are in sub-folders of the main Engine/Binary/Linux folder
 			// FIXME: really ugly temp solution. Modules need to be able to specify this
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu";
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/LinuxNativeDialogs/Linux/x86_64-unknown-linux-gnu";
+			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/Steamworks/Steamv132/Linux";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
 			// this breaks the editor on such systems. See https://kenai.com/projects/maxine/lists/users/archive/2011-01/message/12 for details

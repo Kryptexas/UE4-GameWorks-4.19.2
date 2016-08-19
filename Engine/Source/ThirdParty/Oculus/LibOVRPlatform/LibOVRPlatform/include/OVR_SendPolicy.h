@@ -8,11 +8,11 @@
 typedef enum ovrSendPolicy_ {
   /// Sends a message using an unreliable data channel (UDP-based). No delivery
   /// or ordering guarantees are provided. Sending will fail unless a connection
-  /// to the peer has already been established, either via a previous call to
+  /// to the peer is already established, either via a previous call to
   /// ovr_Net_SendPacket() or an explicit ovr_Net_Connect().
   /// 
-  /// Ideally, each message should fit into a single packet; therefore, it's
-  /// recommended to keep them under ~1200 bytes.
+  /// Ideally, each message should fit into a single packet. Therefore, it is
+  /// recommended to keep them under 1200 bytes.
   ovrSend_Unreliable,
   /// Messages are delivered reliably and in order. The networking layer retries
   /// until each message is acknowledged by the peer. Outgoing messages are

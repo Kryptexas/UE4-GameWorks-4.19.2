@@ -86,6 +86,11 @@ void UAnimGraphNode_SubInstance::ValidateAnimNodeDuringCompilation(USkeleton* Fo
 		}
 	}
 
+	if(HasInstanceLoop())
+	{
+		MessageLog.Error(TEXT("Detected loop in sub instance chain starting at @@ inside class @@"), this, AnimBP->GetAnimBlueprintGeneratedClass());
+	}
+
 	// Check we don't try to spawn our own blueprint
 	if(*Node.InstanceClass == AnimBP->GetAnimBlueprintGeneratedClass())
 	{
@@ -339,6 +344,47 @@ void UAnimGraphNode_SubInstance::RebuildExposedProperties(UClass* InNewClass)
 			KnownExposableProperties.Add(Property->GetFName());
 		}
 	}
+}
+
+bool UAnimGraphNode_SubInstance::HasInstanceLoop()
+{
+	TArray<FGuid> VisitedList;
+	TArray<FGuid> CurrentStack;
+	return HasInstanceLoop_Recursive(this, VisitedList, CurrentStack);
+}
+
+bool UAnimGraphNode_SubInstance::HasInstanceLoop_Recursive(UAnimGraphNode_SubInstance* CurrNode, TArray<FGuid>& VisitedNodes, TArray<FGuid>& NodeStack)
+{
+	if(!VisitedNodes.Contains(CurrNode->NodeGuid))
+	{
+		VisitedNodes.Add(CurrNode->NodeGuid);
+		NodeStack.Add(CurrNode->NodeGuid);
+
+		if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(CurrNode->Node.InstanceClass)))
+		{
+			// Check for cycles from other sub instance nodes
+			TArray<UEdGraph*> Graphs;
+			AnimBP->GetAllGraphs(Graphs);
+
+			for(UEdGraph* Graph : Graphs)
+			{
+				TArray<UAnimGraphNode_SubInstance*> SubInstanceNodes;
+				Graph->GetNodesOfClass(SubInstanceNodes);
+
+				for(UAnimGraphNode_SubInstance* SubInstanceNode : SubInstanceNodes)
+				{
+					// If we haven't visited this node, then check it for loops, otherwise if we're pointing to a previously visited node that is in the current instance stack we have a loop
+					if((!VisitedNodes.Contains(SubInstanceNode->NodeGuid) && HasInstanceLoop_Recursive(SubInstanceNode, VisitedNodes, NodeStack)) || NodeStack.Contains(SubInstanceNode->NodeGuid))
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	NodeStack.Remove(CurrNode->NodeGuid);
+	return false;
 }
 
 ECheckBoxState UAnimGraphNode_SubInstance::IsPropertyExposed(FName PropertyName) const

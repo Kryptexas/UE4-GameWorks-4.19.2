@@ -548,7 +548,7 @@ TRefCountPtr<ID3D11Texture2D> FD3D11DynamicRHI::GetStagingTexture(FTextureRHIPar
 	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	Desc.MiscFlags = 0;
 	TRefCountPtr<ID3D11Texture2D> TempTexture2D;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateTexture2D(&Desc,NULL,TempTexture2D.GetInitReference()));
+	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateTexture2D(&Desc,NULL,TempTexture2D.GetInitReference()), Direct3DDevice);
 
 	// Staging rectangle is now the whole surface.
 	StagingRectOUT.Min = FIntPoint::ZeroValue;
@@ -596,7 +596,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataNoMSAARaw(FTextureRHIParamRef TextureRHI,F
 
 	// Lock the staging resource.
 	D3D11_MAPPED_SUBRESOURCE LockedRect;
-	VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(TempTexture2D,0,D3D11_MAP_READ,0,&LockedRect));
+	VERIFYD3D11RESULT_EX(Direct3DDeviceIMContext->Map(TempTexture2D,0,D3D11_MAP_READ,0,&LockedRect), Direct3DDevice);
 
 	uint32 BytesPerLine = BytesPerPixel * InRect.Width();
 	uint8* DestPtr = OutData.GetData();
@@ -1004,7 +1004,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous
 	NonMSAADesc.CPUAccessFlags = 0;
 	NonMSAADesc.MiscFlags = 0;
 	TRefCountPtr<ID3D11Texture2D> NonMSAATexture2D;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateTexture2D(&NonMSAADesc,NULL,NonMSAATexture2D.GetInitReference()));
+	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateTexture2D(&NonMSAADesc,NULL,NonMSAATexture2D.GetInitReference()), Direct3DDevice);
 
 	TRefCountPtr<ID3D11RenderTargetView> NonMSAARTV;
 	D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
@@ -1015,7 +1015,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous
 
 	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 	RTVDesc.Texture2D.MipSlice = 0;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateRenderTargetView(NonMSAATexture2D,&RTVDesc,NonMSAARTV.GetInitReference()));
+	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateRenderTargetView(NonMSAATexture2D,&RTVDesc,NonMSAARTV.GetInitReference()), Direct3DDevice);
 
 	// Create a CPU-accessible staging texture to copy the resolved sample data to.
 	TRefCountPtr<ID3D11Texture2D> StagingTexture2D;
@@ -1032,7 +1032,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous
 	StagingDesc.BindFlags = 0;
 	StagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	StagingDesc.MiscFlags = 0;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateTexture2D(&StagingDesc,NULL,StagingTexture2D.GetInitReference()));
+	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateTexture2D(&StagingDesc,NULL,StagingTexture2D.GetInitReference()), Direct3DDevice);
 
 	// Determine the subresource index for cubemaps.
 	uint32 Subresource = 0;
@@ -1068,7 +1068,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous
 
 		// Lock the staging texture.
 		D3D11_MAPPED_SUBRESOURCE LockedRect;
-		VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(StagingTexture2D,0,D3D11_MAP_READ,0,&LockedRect));
+		VERIFYD3D11RESULT_EX(Direct3DDeviceIMContext->Map(StagingTexture2D,0,D3D11_MAP_READ,0,&LockedRect), Direct3DDevice);
 
 		// Read the data out of the buffer, could be optimized
 		for(int32 Y = InRect.Min.Y; Y < InRect.Max.Y; Y++)
@@ -1100,29 +1100,13 @@ void FD3D11DynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*
 	uint32 BytesPerPixel = ComputeBytesPerPixel(TextureDesc.Format);
 
 	D3D11_MAPPED_SUBRESOURCE LockedRect;
-	HRESULT Result = Direct3DDeviceIMContext->Map(Texture,0,D3D11_MAP_READ,0,&LockedRect);
-	if (Result == DXGI_ERROR_DEVICE_REMOVED)
-	{
-		// When reading back to the CPU, we have to watch out for DXGI_ERROR_DEVICE_REMOVED
-		bDeviceRemoved = true;
+	VERIFYD3D11RESULT_EX(Direct3DDeviceIMContext->Map(Texture,0,D3D11_MAP_READ,0,&LockedRect), Direct3DDevice);
 
-		OutData = NULL;
-		OutWidth = OutHeight = 0;
+	OutData = LockedRect.pData;
+	OutWidth = LockedRect.RowPitch / BytesPerPixel;
+	OutHeight = LockedRect.DepthPitch / LockedRect.RowPitch;
 
-		HRESULT hRes = Direct3DDevice->GetDeviceRemovedReason();
-
-		UE_LOG(LogD3D11RHI, Warning, TEXT("FD3D11DynamicRHI::RHIMapStagingSurface failed (GetDeviceRemovedReason(): %d)"), hRes);
-	}
-	else
-	{
-		VERIFYD3D11RESULT_EX(Result, GetDevice());
-
-		OutData = LockedRect.pData;
-		OutWidth = LockedRect.RowPitch / BytesPerPixel;
-		OutHeight = LockedRect.DepthPitch / LockedRect.RowPitch;
-
-		check(OutData);
-	}
+	check(OutData);
 }
 
 void FD3D11DynamicRHI::RHIUnmapStagingSurface(FTextureRHIParamRef TextureRHI)
@@ -1172,7 +1156,7 @@ void FD3D11DynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,FI
 	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	Desc.MiscFlags = 0;
 	TRefCountPtr<ID3D11Texture2D> TempTexture2D;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateTexture2D(&Desc,NULL,TempTexture2D.GetInitReference()));
+	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateTexture2D(&Desc,NULL,TempTexture2D.GetInitReference()), Direct3DDevice);
 
 	// Copy the data to a staging resource.
 	uint32 Subresource = 0;
@@ -1185,7 +1169,7 @@ void FD3D11DynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,FI
 
 	// Lock the staging resource.
 	D3D11_MAPPED_SUBRESOURCE LockedRect;
-	VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(TempTexture2D,0,D3D11_MAP_READ,0,&LockedRect));
+	VERIFYD3D11RESULT_EX(Direct3DDeviceIMContext->Map(TempTexture2D,0,D3D11_MAP_READ,0,&LockedRect), Direct3DDevice);
 
 	// Presize the array
 	int32 TotalCount = SizeX * SizeY;
@@ -1544,7 +1528,7 @@ void FD3D11DynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	Desc.MiscFlags = 0;
 	TRefCountPtr<ID3D11Texture3D> TempTexture3D;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateTexture3D(&Desc,NULL,TempTexture3D.GetInitReference()));
+	VERIFYD3D11RESULT_EX(Direct3DDevice->CreateTexture3D(&Desc,NULL,TempTexture3D.GetInitReference()), Direct3DDevice);
 
 	// Copy the data to a staging resource.
 	uint32 Subresource = 0;
@@ -1552,7 +1536,7 @@ void FD3D11DynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 
 	// Lock the staging resource.
 	D3D11_MAPPED_SUBRESOURCE LockedRect;
-	VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(TempTexture3D,0,D3D11_MAP_READ,0,&LockedRect));
+	VERIFYD3D11RESULT_EX(Direct3DDeviceIMContext->Map(TempTexture3D,0,D3D11_MAP_READ,0,&LockedRect), Direct3DDevice);
 
 	// Presize the array
 	int32 TotalCount = SizeX * SizeY * SizeZ;

@@ -1318,16 +1318,6 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
 		FApp::SetIdleTime(ActualWaitTime);
 
-		if (IsRunningDedicatedServer())
-		{
-			// if we slept longer than intended, log this out
-			const double PermissibleDelayInMs = 10;	// server kernel may be configured to tick at 100 HZ, so forgive scheduler some imprecision
-			if (UNLIKELY(AdditionalWaitTimeInMs > PermissibleDelayInMs))
-			{
-				UE_LOG(LogEngine, Warning, TEXT("HITCHHUNTER: spent %f ms sleeping instead of %f ms intended (overshot by %f ms)"), ActualWaitTime * 1000.0, WaitTime * 1000.0f, AdditionalWaitTimeInMs);
-			}
-		}
-
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
 		{
@@ -1605,38 +1595,32 @@ void UEngine::InitializeObjectReferences()
 	// set the font object pointers, unless on server
 	if (!IsRunningDedicatedServer())
 	{
-		if (TinyFont == NULL && TinyFontName.ToString().Len())
+		auto ConditionalLoadEngineFont = [](UFont*& FontPtr, const FString& FontName)
 		{
-			TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (SmallFont == NULL && SmallFontName.ToString().Len())
-		{
-			SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (MediumFont == NULL && MediumFontName.ToString().Len())
-		{
-			MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (LargeFont == NULL && LargeFontName.ToString().Len())
-		{
-			LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
-		{
-			SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
-		}
+			if (!FontPtr && FontName.Len() > 0)
+			{
+				FontPtr = LoadObject<UFont>(nullptr, *FontName, nullptr, LOAD_None, nullptr);
+			}
+			if (FontPtr)
+			{
+				FontPtr->ForceLoadFontData();
+			}
+		};
+
+		// Standard fonts.
+		ConditionalLoadEngineFont(TinyFont, TinyFontName.ToString());
+		ConditionalLoadEngineFont(SmallFont, SmallFontName.ToString());
+		ConditionalLoadEngineFont(MediumFont, MediumFontName.ToString());
+		ConditionalLoadEngineFont(LargeFont, LargeFontName.ToString());
+		ConditionalLoadEngineFont(SubtitleFont, SubtitleFontName.ToString());
 
 		// Additional fonts.
-		AdditionalFonts.Empty( AdditionalFontNames.Num() );
-		for ( int32 FontIndex = 0 ; FontIndex < AdditionalFontNames.Num() ; ++FontIndex )
+		AdditionalFonts.Empty(AdditionalFontNames.Num());
+		for (const FString& FontName : AdditionalFontNames)
 		{
-			const FString& FontName = AdditionalFontNames[FontIndex];
-			UFont* NewFont = NULL;
-			if( FontName.Len() )
-			{
-				NewFont = LoadObject<UFont>(NULL,*FontName,NULL,LOAD_None,NULL);
-			}
-			AdditionalFonts.Add( NewFont );
+			UFont* NewFont = nullptr;
+			ConditionalLoadEngineFont(NewFont, FontName);
+			AdditionalFonts.Add(NewFont);
 		}
 	}
 
@@ -2131,7 +2115,8 @@ bool UEngine::InitializeHMDDevice()
 			if (HMDDevice.IsValid())
 			{
 				StereoRenderingDevice = HMDDevice;
-				if (FParse::Param(FCommandLine::Get(), TEXT("vr")))
+				const bool bShouldStartInVR = FParse::Param(FCommandLine::Get(), TEXT("vr")) || GetDefault<UGeneralProjectSettings>()->bStartInVR;
+				if (bShouldStartInVR)
 				{
 					HMDDevice->EnableStereo(true);
 				}
@@ -8234,8 +8219,9 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, const bool bCh
 
 	check(Object);
 
+	// @note : GetWorldChecked is not thread safe, so we can't call if called by another thread
 	bool bSupported = true;
-	UWorld* World = (bChecked ? Object->GetWorldChecked(bSupported) : Object->GetWorld());
+	UWorld* World = ((bChecked && IsInGameThread() )? Object->GetWorldChecked(bSupported) : Object->GetWorld());
 	return (bSupported ? World : GWorld);
 }
 
@@ -12419,6 +12405,41 @@ void FAudioDevice::UpdateSoundShowFlags(const uint8 OldSoundShowFlags, const uin
 			UpdateRequestedStat(RequestedStatChange);
 		}
 	}
+}
+
+void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
+{
+	check(IsInGameThread());
+
+	uint8 SetStats = 0;
+	uint8 ClearStats = 0;
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundCues")))
+	{
+		SetStats |= ERequestedAudioStats::SoundCues;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundCues;
+	}
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundWaves")))
+	{
+		SetStats |= ERequestedAudioStats::SoundWaves;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundWaves;
+	}
+
+	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
+
+	FAudioDevice* AudioDevice = this;
+	FAudioThread::RunCommandOnAudioThread([AudioDevice, SetStats, ClearStats]()
+	{
+		AudioDevice->RequestedAudioStats |= SetStats;
+		AudioDevice->RequestedAudioStats &= ~ClearStats;
+	}, GET_STATID(STAT_AudioResolveDesiredStats));
 }
 
 void FAudioDevice::UpdateRequestedStat(const uint8 RequestedStat)

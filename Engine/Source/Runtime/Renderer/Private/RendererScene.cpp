@@ -507,7 +507,7 @@ FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
 	bEnableLowQualityLightmaps = !CVarSupportLowQualityLightmaps || CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnableVertexFoggingForOpaque = !CVarVertexFoggingForOpaque || CVarVertexFoggingForOpaque->GetValueOnAnyThread() != 0;
 
-	const bool bShowMissmatchedLowQualityLightmapsWarning = (bEnableLowQualityLightmaps) != (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
+	const bool bShowMissmatchedLowQualityLightmapsWarning = (!bEnableLowQualityLightmaps) && (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
 	if ( bShowMissmatchedLowQualityLightmapsWarning )
 	{
 		UE_LOG(LogRenderer, Warning, TEXT("Mismatch between bShouldGenerateLowQualityLightmaps(%d) and r.SupportLowQualityLightmaps(%d), UEngine::bShouldGenerateLowQualityLightmaps has been deprecated please use r.SupportLowQualityLightmaps instead"), GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED, bEnableLowQualityLightmaps);
@@ -750,30 +750,6 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 	{
 		// First call for the new frame?
 		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
-	}
-
-	AActor* Owner = Primitive->GetOwner();
-
-	// If the root component of an actor is being moved, update all the actor position of the other components sharing that actor
-	if (Owner && Owner->GetRootComponent() == Primitive)
-	{
-		TInlineComponentArray<UPrimitiveComponent*> Components;
-		Owner->GetComponents(Components);
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
-
-			// Only update components that are already attached
-			if (PrimitiveComponent 
-				&& PrimitiveComponent->SceneProxy 
-				&& PrimitiveComponent != Primitive
-				// Don't bother if it is going to have its transform updated anyway
-				&& !PrimitiveComponent->IsRenderTransformDirty()
-				&& !PrimitiveComponent->IsRenderStateDirty())
-			{
-				PrimitiveComponent->SceneProxy->UpdateActorPosition(Owner->GetActorLocation());
-			}
-		}
 	}
 
 	if(Primitive->SceneProxy)
@@ -2487,7 +2463,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	IndirectLightingCache.SetLightingCacheDirty();
 
 	// Primitives octree
-	PrimitiveOctree.ApplyOffset(InOffset);
+	PrimitiveOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
 
 	// Primitive bounds
 	for (auto It = PrimitiveBounds.CreateIterator(); It; ++It)
@@ -2510,7 +2486,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 
 	// Lights octree
-	LightOctree.ApplyOffset(InOffset);
+	LightOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
 
 	// Cached preshadows
 	for (auto It = CachedPreshadows.CreateIterator(); It; ++It)

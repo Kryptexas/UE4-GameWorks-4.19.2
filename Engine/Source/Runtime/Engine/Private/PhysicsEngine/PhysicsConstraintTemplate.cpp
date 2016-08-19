@@ -107,6 +107,19 @@ void UPhysicsConstraintTemplate::RenameConstraintProfile(FName CurrentName, FNam
 	}
 }
 
+void UPhysicsConstraintTemplate::DuplicateConstraintProfile(FName DuplicateFromName, FName DuplicateToName)
+{
+	for (FPhysicsConstraintProfileHandle& Handle : ProfileHandles)
+	{
+		if (Handle.ProfileName == DuplicateFromName)
+		{
+			FPhysicsConstraintProfileHandle* Duplicate = new (ProfileHandles) FPhysicsConstraintProfileHandle(Handle);
+			Duplicate->ProfileName = DuplicateToName;
+			break;
+		}
+	}
+}
+
 FName UPhysicsConstraintTemplate::GetCurrentConstraintProfileName() const
 {
 	FName CurrentProfileName;

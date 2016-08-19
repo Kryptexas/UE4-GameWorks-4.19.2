@@ -13,9 +13,10 @@ class ULandscapeMaterialInstanceConstant : public UMaterialInstanceConstant
 	UPROPERTY()
 	uint32 bIsLayerThumbnail:1;
 
+	UPROPERTY()
+	uint32 bDisableTessellation:1;
+
 	virtual FMaterialResource* AllocatePermutationResource() override;
 	virtual bool HasOverridenBaseProperties() const override;
 };
-
-
 

@@ -25,57 +25,28 @@ public abstract class BaseLinuxPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-		// FIXME: use build architecture
-		string BuildArchitecture = "x86_64-unknown-linux-gnu";
-
 		if (SC.bStageCrashReporter)
 		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient", false, null, null, true);
-		}
-
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU/icu4c-53_1/", SC.PlatformDir, BuildArchitecture), Params.bDebugBuildsActuallyUseDebugCRT ? "*d.so*" : "*.so*", false, new[] { Params.bDebugBuildsActuallyUseDebugCRT ? "*.so*" : "*d.so*" }, CombinePaths("Engine/Binaries", SC.PlatformDir));
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			if (File.Exists(ReceiptFileName))
+			{
+				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null) ? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				SC.StageBuildProductsFromReceipt(Receipt, true, false);
+			}
 		}
 
 		// Stage all the build products
+		Console.WriteLine("Staging all {0} build products", SC.StageTargets.Count);
+		int BuildProductIdx = 0;
 		foreach (StageTarget Target in SC.StageTargets)
 		{
+			Console.WriteLine(" Product {0}: {1}", BuildProductIdx, Target.Receipt.TargetName);
 			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.bTreatNonShippingBinariesAsDebugFiles);
-		}
-
-		// assume that we always have to deploy Steam (FIXME: should be automatic - UEPLAT-807)
-		{
-			string SteamVersion = "Steamv132";
-
-			// Check if the Steam directory exists. We need it for Steam controller support, so we include it whenever we can.
-			if (Directory.Exists(CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion)))
-			{
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion, SC.PlatformDir), "libsteam_api.so", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
-			}
-
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "controller.vdf", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Saved/Config"));
-			// copy optional perfcounters definition file
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Config"), "PerfCounters.json", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Saved/Config"), true);
-		}
-
-		// stage libLND (omit it for dedservers and Installed Engine - proper resolution is to use build receipts, see UEPLAT-807)
-		if (!SC.DedicatedServer && (!Automation.IsEngineInstalled() || Directory.Exists(CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/LinuxNativeDialogs/", SC.PlatformDir, BuildArchitecture))))
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/LinuxNativeDialogs/", SC.PlatformDir, BuildArchitecture), "libLND*.so");
-		}
-
-		// assume that we always have to deploy OpenAL (FIXME: should be automatic - UEPLAT-807)
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenAL/", SC.PlatformDir), "libopenal.so.1", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
-		}
+			++BuildProductIdx;
+        }
 
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
-
-		// Stage all the build products
-		foreach (StageTarget Target in SC.StageTargets)
-		{
-			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.bTreatNonShippingBinariesAsDebugFiles);
-		}
 
 		// Stage the bootstrap executable
 		if (!Params.NoBootstrapExe)

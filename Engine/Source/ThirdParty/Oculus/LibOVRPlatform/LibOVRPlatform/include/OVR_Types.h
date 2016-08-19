@@ -3,6 +3,7 @@
 
 #include "OVR_KeyValuePairType.h"
 #include "OVR_MatchmakingCriterionImportance.h"
+#include "OVR_VoipSampleRate.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -44,6 +45,20 @@ typedef struct {
   unsigned int customQueryCriterionArrayCount;
 } ovrMatchmakingCustomQueryData;
 
+/// Describes the various results possible when attempting to initialize the platform.
+/// Anything other than ovrPlatformInitialize_Success should generally be considered a
+/// fatal error with respect to using the platform, as the platform is not guaranteed
+/// to be legitimate or work correctly.
+typedef enum ovrPlatformInitializeResult_ {
+	ovrPlatformInitialize_Success = 0,
+	ovrPlatformInitialize_Uninitialized = -1,
+	ovrPlatformInitialize_PreLoaded = -2,
+	ovrPlatformInitialize_FileInvalid = -3,
+	ovrPlatformInitialize_SignatureInvalid = -4,
+	ovrPlatformInitialize_UnableToVerify = -5,
+	ovrPlatformInitialize_VersionMismatch = -6,
+} ovrPlatformInitializeResult;
+
 
 /// A unique identifier for some entity in the system (user, room, etc).
 ///
@@ -64,6 +79,14 @@ bool ovrID_FromString(ovrID *outId, const char* inId);
  * Length of outParam should be > 20.
  */
 bool ovrID_ToString(char *outParam, size_t bufferLength, ovrID id);
+
+typedef void(*LogFunctionPtr)(const char *, const char *);
+extern LogFunctionPtr DoLogging;
+
+/// Callback used by the Voip subsystem for audio filtering
+///
+typedef void(*VoipFilterCallback)(int16_t pcmData[], size_t pcmDataLength, int frequency, int numChannels);
+
 
 #ifdef __cplusplus
 }

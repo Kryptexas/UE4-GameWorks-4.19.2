@@ -35,12 +35,14 @@ void FAnimNode_AssetPlayerBase::CreateTickRecordForNode(const FAnimationUpdateCo
 {
 	// Create a tick record and fill it out
 	const float FinalBlendWeight = Context.GetFinalBlendWeight();
+
 	FAnimGroupInstance* SyncGroup;
 	const int32 GroupIndexToUse = ((GroupRole != EAnimGroupRole::TransitionLeader) || bHasBeenFullWeight) ? GroupIndex : INDEX_NONE;
 
 	FAnimTickRecord& TickRecord = Context.AnimInstanceProxy->CreateUninitializedTickRecord(GroupIndexToUse, /*out*/ SyncGroup);
 
 	Context.AnimInstanceProxy->MakeSequenceTickRecord(TickRecord, Sequence, bLooping, PlayRate, FinalBlendWeight, /*inout*/ InternalTimeAccumulator, MarkerTickRecord);
+	TickRecord.RootMotionWeightModifier = Context.GetRootMotionWeightModifier();
 
 	// Update the sync group if it exists
 	if (SyncGroup != NULL)

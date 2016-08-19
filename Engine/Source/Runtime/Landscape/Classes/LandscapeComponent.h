@@ -188,8 +188,13 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LandscapeComponent, AdvancedDisplay)
 	UMaterialInterface* OverrideHoleMaterial;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	UMaterialInstanceConstant* MaterialInstance_DEPRECATED;
+#endif
+
 	UPROPERTY(TextExportTransient)
-	UMaterialInstanceConstant* MaterialInstance;
+	TArray<UMaterialInstanceConstant*> MaterialInstances;
 
 	/** List of layers, and the weightmap and channel they are stored */
 	UPROPERTY()
@@ -334,6 +339,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
+	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual void PostEditUndo() override;
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
@@ -431,8 +437,10 @@ public:
 	/** Get the level in which the owning actor resides */
 	ULevel* GetLevel() const;
 
+#if WITH_EDITOR
 	/** Returns all generated textures and material instances used by this component. */
 	LANDSCAPE_API void GetGeneratedTexturesAndMaterialInstances(TArray<UObject*>& OutTexturesAndMaterials) const;
+#endif
 
 	/** Gets the landscape proxy actor which owns this component */
 	LANDSCAPE_API ALandscapeProxy* GetLandscapeProxy() const;

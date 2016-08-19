@@ -713,6 +713,12 @@ public:
 					Component->Rename(nullptr, LandscapeProxy);
 					LandscapeProxy->LandscapeComponents.Add(Component);
 					Component->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+					
+					// clear transient mobile data
+					Component->MobileDataSourceHash.Invalidate();
+					Component->MobileMaterialInterface = nullptr;
+					Component->MobileWeightNormalmapTexture = nullptr;
+					
 					Component->UpdateMaterialInstances();
 
 					FFormatNamedArguments Args;

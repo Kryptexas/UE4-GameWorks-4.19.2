@@ -153,7 +153,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 				check(StructProperty->Struct);
 				if (bGenerateEmptyStructConstructor)
 				{
-					ValueStr = FString::Printf(TEXT("%s{}"), *FEmitHelper::GetCppName(StructProperty->Struct)); //don;t override existing values
+					ValueStr = FString::Printf(TEXT("%s%s"), *FEmitHelper::GetCppName(StructProperty->Struct), FEmitHelper::EmptyDefaultConstructor(StructProperty->Struct)); //don;t override existing values
 				}
 				bComplete = false;
 			}
@@ -1094,6 +1094,11 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
+
+	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
+	Context.ResetPropertiesForInaccessibleStructs();
+
+	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 }
 
 void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
@@ -1274,8 +1279,6 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	}
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
-
-	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 }
 
 FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsType, bool bCreate, bool bInitilize)

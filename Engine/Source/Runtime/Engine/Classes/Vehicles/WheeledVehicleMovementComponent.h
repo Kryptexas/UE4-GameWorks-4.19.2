@@ -276,10 +276,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	virtual void UpdateDrag( float DeltaTime );
 
 	/** Used to create any physics engine information for this component */
-	virtual void CreatePhysicsState() override;
+	virtual void OnCreatePhysicsState() override;
 
 	/** Used to shut down and pysics engine structure for this component */
-	virtual void DestroyPhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
 
 	virtual bool ShouldCreatePhysicsState() const override;
 

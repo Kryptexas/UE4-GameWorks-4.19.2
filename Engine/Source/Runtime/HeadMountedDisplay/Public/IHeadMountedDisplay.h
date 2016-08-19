@@ -17,6 +17,12 @@ class HEADMOUNTEDDISPLAY_API IHeadMountedDisplay : public IModuleInterface, publ
 public:
 	IHeadMountedDisplay();
 
+	virtual FName GetDeviceName() const
+	{
+		static FName DefaultName(TEXT("Unknown"));
+		return DefaultName;
+	}
+
 	/**
 	 * Returns true if HMD is currently connected.
 	 */

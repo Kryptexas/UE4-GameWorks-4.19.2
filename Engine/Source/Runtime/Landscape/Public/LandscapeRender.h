@@ -536,7 +536,7 @@ protected:
 	FLandscapeSharedBuffers*	SharedBuffers;
 	FLandscapeVertexFactory*	VertexFactory;
 
-	UMaterialInterface* MaterialInterface;
+	TArray<UMaterialInterface*, TInlineAllocator<2>> MaterialInterfacesByLOD;
 	FMaterialRelevance MaterialRelevance;
 
 	// Reference counted vertex and index buffer shared among all landscape scene proxies of the same component size

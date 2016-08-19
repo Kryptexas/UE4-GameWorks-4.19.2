@@ -811,7 +811,7 @@ void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRe
 			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 		}
 
-#if PLATFORM_PS4 // @todo ps4 - this should be done a different way
+#if PLATFORM_PS4 || PLATFORM_XBOXONE // @todo ps4 - this should be done a different way
 		// PS4 needs some code here to process the scene
 		extern void TEMP_PostReflectionCaptureRender();
 		TEMP_PostReflectionCaptureRender();

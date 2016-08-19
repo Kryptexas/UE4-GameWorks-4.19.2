@@ -64,6 +64,14 @@ class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionL
 	static bool EnableHMD(bool bEnable);
 
 	/**
+	 * Returns the name of the device, so scripts can modify their behaviour appropriately
+	 *
+	 * @return	FName specific to the currently active HMD device type.  "None" implies no device, "Unknown" implies a device with no description.
+	 */
+	UFUNCTION(BlueprintPure, Category="Input|HeadMountedDisplay")
+	static FName GetHMDDeviceName();
+
+	/**
 	 * Grabs the current orientation and position for the HMD.  If positional tracking is not available, DevicePosition will be a zero vector
 	 *
 	 * @param DeviceRotation	(out) The device's current rotation

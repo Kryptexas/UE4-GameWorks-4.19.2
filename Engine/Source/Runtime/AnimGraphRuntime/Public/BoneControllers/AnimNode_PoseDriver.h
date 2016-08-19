@@ -3,12 +3,12 @@
 #pragma once
 
 #include "AnimNode_SkeletalControlBase.h"
-#include "AnimNode_OrientationDriver.generated.h"
+#include "AnimNode_PoseDriver.generated.h"
 
 class UPoseAsset;
 
 /** One named parameter being driven by the orientation of a bone. */
-struct FOrientationDriverParam
+struct FPoseDriverParam
 {
 	/** Information about this curve (name etc) */
 	FAnimCurveParam ParamInfo;
@@ -18,7 +18,7 @@ struct FOrientationDriverParam
 };
 
 /** One target pose for the bone, with parameters to drive bone approaches this orientation. */
-struct FOrientationDriverPoseInfo
+struct FPoseDriverPoseInfo
 {
 	/** Name of pose, from PoseAsset */
 	FName PoseName;
@@ -35,22 +35,22 @@ struct FOrientationDriverPoseInfo
 	/** Last distance calculated from this pose */
 	float PoseDistance;
 
-	FOrientationDriverPoseInfo()
+	FPoseDriverPoseInfo()
 	: PoseQuat(FQuat::Identity)
 	{}
 };
 
 /** Set of parameters being driven */
-struct FOrientationDriverParamSet
+struct FPoseDriverParamSet
 {
 	/** Array of parameters that makes up a set */
-	TArray<FOrientationDriverParam> Params;
+	TArray<FPoseDriverParam> Params;
 
 	/** Increase value of a named parameter in a set. */
-	void AddParam(const FOrientationDriverParam& InParam, float InScale);
+	void AddParam(const FPoseDriverParam& InParam, float InScale);
 
 	/** Add a set of params to another set */
-	void AddParams(const TArray<FOrientationDriverParam>& InParams, float InScale);
+	void AddParams(const TArray<FPoseDriverParam>& InParams, float InScale);
 
 	/** Scale all params in a set */
 	void ScaleAllParams(float InScale);
@@ -61,7 +61,7 @@ struct FOrientationDriverParamSet
 
 /** Orientation aspect used to drive interpolation */
 UENUM()
-enum class EOrientationDriverType : uint8
+enum class EPoseDriverType : uint8
 {
 	/** Consider full rotation for interpolation */
 	SwingAndTwist,
@@ -72,45 +72,45 @@ enum class EOrientationDriverType : uint8
 
 /** RBF based orientation driver */
 USTRUCT()
-struct ANIMGRAPHRUNTIME_API FAnimNode_OrientationDriver : public FAnimNode_SkeletalControlBase
+struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_BODY()
 
 	/** Bone to use for driving parameters based on its orientation */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
 	FBoneReference SourceBone;
 
 	/** Scaling of radial basis, applied to max distance between poses */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver, meta = (ClampMin = "0.01"))
+	UPROPERTY(EditAnywhere, Category = PoseDriver, meta = (ClampMin = "0.01"))
 	float RadialScaling;
 
 	/** PoseAsset used as source of  */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
 	UPoseAsset* PoseSource;
 
 	/** Should we consider the mesh ref pose of SourceBone as a 'neutral' pose (zero curves)   */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
 	bool bIncludeRefPoseAsNeutralPose;
 
 	/** Type of orientation for driving parameter  */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver)
-	EOrientationDriverType Type;
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	EPoseDriverType Type;
 
 	/** Axis to use when Type is SwingOnly */
-	UPROPERTY(EditAnywhere, Category = OrientationDriver)
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
 	TEnumAsByte<EBoneAxis> TwistAxis;
 
 	/** Previous set of interpolated params, kept for debugging */
-	FOrientationDriverParamSet ResultParamSet;
+	FPoseDriverParamSet ResultParamSet;
 
 	/** Cached set of info for each pose */
-	TArray<FOrientationDriverPoseInfo> PoseInfos;
+	TArray<FPoseDriverPoseInfo> PoseInfos;
 
 	// FAnimNode_Base interface
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 
-	FAnimNode_OrientationDriver();
+	FAnimNode_PoseDriver();
 
 	// FAnimNode_SkeletalControlBase interface
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;
@@ -121,7 +121,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_OrientationDriver : public FAnimNode_Skele
 	/** Find max distance between any of the poses */
 	void UpdateCachedPoseInfo(const FQuat& RefQuat);
 
-	/** Util to return unit vector for curent twist axis */
+	/** Util to return unit vector for current twist axis */
 	FVector GetTwistAxisVector();
 	/** Util to find distance between 2 quats, using Type and TwistAxis settings */
 	float FindDistanceBetweenPoses(const FQuat& A, const FQuat& B);

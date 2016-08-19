@@ -205,9 +205,9 @@ namespace UnrealBuildTool
 			switch (InBinaryType)
 			{
 				case UEBuildBinaryType.DynamicLinkLibrary:
-					return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+					return BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
 				case UEBuildBinaryType.Executable:
-					return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+					return BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
 				case UEBuildBinaryType.StaticLibrary:
 					return "";
 				case UEBuildBinaryType.Object:

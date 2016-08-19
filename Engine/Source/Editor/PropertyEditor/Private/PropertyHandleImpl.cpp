@@ -1481,7 +1481,7 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 			FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[0], ChildNodePtr);
 		}
 
-		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet, &TopLevelObjects);
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Duplicate, &TopLevelObjects);
 		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 
 		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);

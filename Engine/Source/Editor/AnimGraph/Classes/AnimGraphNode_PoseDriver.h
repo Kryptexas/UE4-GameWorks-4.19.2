@@ -6,17 +6,17 @@ class IDetailCategoryBuilder;
 class IPropertyHandle;
 
 #include "AnimGraphNode_SkeletalControlBase.h"
-#include "BoneControllers/AnimNode_OrientationDriver.h"
+#include "BoneControllers/AnimNode_PoseDriver.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
-#include "AnimGraphNode_OrientationDriver.generated.h"
+#include "AnimGraphNode_PoseDriver.generated.h"
 
 UCLASS()
-class ANIMGRAPH_API UAnimGraphNode_OrientationDriver : public UAnimGraphNode_SkeletalControlBase
+class ANIMGRAPH_API UAnimGraphNode_PoseDriver : public UAnimGraphNode_SkeletalControlBase
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category = Settings)
-	FAnimNode_OrientationDriver Node;
+	FAnimNode_PoseDriver Node;
 
 public:
 

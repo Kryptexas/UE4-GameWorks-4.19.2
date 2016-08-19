@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
 #include "LightPropagationVolumeBlendable.h"
+#include "CapsuleShadowRendering.h"
 
 static float GMinScreenRadiusForShadowCaster = 0.03f;
 static FAutoConsoleVariableRef CVarMinScreenRadiusForShadowCaster(
@@ -467,7 +468,8 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 	BorderSize = InBorderSize;
 	MaxScreenPercent = InMaxScreenPercent;
 	bDirectionalLight = InLightSceneInfo->Proxy->GetLightType() == LightType_Directional;
-	bCapsuleShadow = InParentSceneInfo->Proxy->CastsCapsuleDirectShadow() && !bInPreShadow;
+	const ERHIFeatureLevel::Type FeatureLevel = LightSceneInfo->Scene->GetFeatureLevel();
+	bCapsuleShadow = InParentSceneInfo->Proxy->CastsCapsuleDirectShadow() && !bInPreShadow && SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]);
 	bTranslucentShadow = bInTranslucentShadow;
 	bPreShadow = bInPreShadow;
 	bSelfShadowOnly = InParentSceneInfo->Proxy->CastsSelfShadowOnly();
@@ -2000,12 +2002,16 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 							// Create a convex volume out of the frustum so it can be used for object culling
 							GetViewFrustumBounds(ProjectedShadowInfo->OnePassShadowFrustums[FaceIndex], ShadowViewProjectionMatrix, false);
 
-							// We are assuming here that the last plane is the far plane
-							// we need to incorporate PreShadowTranslation (so it can be disincorporated later)
-							FPlane Src = ProjectedShadowInfo->OnePassShadowFrustums[FaceIndex].Planes.Last();
-							// add world space preview translation
-							Src.W += (FVector(Src) | ProjectedShadowInfo->PreShadowTranslation);
-							ProjectedShadowInfo->CasterFrustum.Planes.Add(Src);
+							// Check we have a valid frustum
+							if (ProjectedShadowInfo->OnePassShadowFrustums[FaceIndex].Planes.Num() > 0 )
+							{
+								// We are assuming here that the last plane is the far plane
+								// we need to incorporate PreShadowTranslation (so it can be disincorporated later)
+								FPlane Src = ProjectedShadowInfo->OnePassShadowFrustums[FaceIndex].Planes.Last();
+								// add world space preview translation
+								Src.W += (FVector(Src) | ProjectedShadowInfo->PreShadowTranslation);
+								ProjectedShadowInfo->CasterFrustum.Planes.Add(Src);
+							}
 						}
 						ProjectedShadowInfo->CasterFrustum.Init();
 					}

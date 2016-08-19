@@ -259,6 +259,8 @@ float3 ACESOutputTransformsP3D60PQ2000( float3 SceneReferredLinearsRGBColor )
 	return OutputReferredLinearAP1Color;
 }
 
+static const float3x3 GamutMappingIdentityMatrix = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 };
+
 //
 // Gamut conversion matrices
 //
@@ -276,17 +278,16 @@ float3x3 OuputGamutMappingMatrix( uint OutputGamut )
 	// 3 = ACES AP0 - D60
 	// 4 = ACES AP1 - D60
 
-	float3x3 GamutMappingMatrix = AP1_2_sRGB;
 	if( OutputGamut == 1 )
-		GamutMappingMatrix = AP1_2_DCI_D65;
+		return AP1_2_DCI_D65;
 	else if( OutputGamut == 2 )
-		GamutMappingMatrix = AP1_2_Rec2020;
+		return AP1_2_Rec2020;
 	else if( OutputGamut == 3 )
-		GamutMappingMatrix = AP1_2_AP0_MAT;
+		return AP1_2_AP0_MAT;
 	else if( OutputGamut == 4 )
-		GamutMappingMatrix = float3x3(1,0,0,0,1,0,0,0,1);
-
-	return GamutMappingMatrix;
+		return GamutMappingIdentityMatrix;
+	else
+		return AP1_2_sRGB;
 }
 
 float3x3 OuputInverseGamutMappingMatrix( uint OutputGamut )

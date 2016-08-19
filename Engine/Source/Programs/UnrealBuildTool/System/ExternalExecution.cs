@@ -582,6 +582,18 @@ namespace UnrealBuildTool
 					FlatModuleCsData[Module.Name].UHTHeaderNames = UHTModuleInfo.HeaderFilenames.ToList();
 					Log.TraceVerbose("Detected UObject module: " + UHTModuleInfo.Info.ModuleName);
 				}
+				else
+				{
+					// Remove any stale generated code directory
+					if(!UnrealBuildTool.IsEngineInstalled() || !Module.GeneratedCodeDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+					{
+						if (Module.GeneratedCodeDirectory != null && Module.GeneratedCodeDirectory.Exists())
+						{
+							Log.TraceVerbose("Deleting stale generated code directory: " + Module.GeneratedCodeDirectory.ToString());
+							Directory.Delete(Module.GeneratedCodeDirectory.FullName, true);
+						}
+					}
+				}
 			}
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
@@ -1042,7 +1054,7 @@ namespace UnrealBuildTool
 							UBTArguments.Append(" -noxge");
 						}
 
-						// Propagate command-line option
+						// Propagate command-line options
 						if ( UnrealBuildTool.CommandLineContains( "-2015" ) )
 						{
 							UBTArguments.Append( " -2015" );
@@ -1050,6 +1062,10 @@ namespace UnrealBuildTool
 						if ( UnrealBuildTool.CommandLineContains( "-2013" ) )
 						{
 							UBTArguments.Append(" -2013");
+						}
+						if ( UnrealBuildTool.CommandLineContains( "-ignorejunk" ) )
+						{
+							UBTArguments.Append(" -ignorejunk");
 						}
 
 						// Add UHT plugins to UBT command line as external plugins
@@ -1123,7 +1139,16 @@ namespace UnrealBuildTool
 							UHTResult = ((int)(UHTResult) == 130) ? ECompilationResult.Canceled : ECompilationResult.CrashOrAssert;
 						}
 
-						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int)UHTResult, UHTResult.ToString());
+						if ((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32 || 
+							BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64) && 
+							(int)(UHTResult) < 0)
+						{
+							Log.TraceInformation("Error: Failed to generate code for {0} - Prerequests may not be installed", ActualTargetName);
+						}
+						else
+						{
+							Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int)UHTResult, UHTResult.ToString());
+						}
 						return false;
 					}
 

@@ -88,12 +88,15 @@ struct FAnimationUpdateContext : public FAnimationBaseContext
 {
 private:
 	float CurrentWeight;
+	float RootMotionWeightModifier;
+
 	float DeltaTime;
 public:
 	DEPRECATED(4.11, "Please use constructor that uses an FAnimInstanceProxy*")
 	FAnimationUpdateContext(UAnimInstance* InAnimInstance, float InDeltaTime)
 		: FAnimationBaseContext(InAnimInstance)
 		, CurrentWeight(1.0f)
+		, RootMotionWeightModifier(1.f)
 		, DeltaTime(InDeltaTime)
 	{
 	}
@@ -101,6 +104,7 @@ public:
 	FAnimationUpdateContext(FAnimInstanceProxy* InAnimInstanceProxy, float InDeltaTime)
 		: FAnimationBaseContext(InAnimInstanceProxy)
 		, CurrentWeight(1.0f)
+		, RootMotionWeightModifier(1.f)
 		, DeltaTime(InDeltaTime)
 	{
 	}
@@ -109,6 +113,16 @@ public:
 	{
 		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime);
 		Result.CurrentWeight = CurrentWeight * Multiplier;
+		Result.RootMotionWeightModifier = RootMotionWeightModifier;
+		return Result;
+	}
+
+	FAnimationUpdateContext FractionalWeightAndRootMotion(float WeightMultiplier, float RootMotionMultiplier) const
+	{
+		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime);
+		Result.CurrentWeight = CurrentWeight * WeightMultiplier;
+		Result.RootMotionWeightModifier = RootMotionMultiplier * RootMotionMultiplier;
+
 		return Result;
 	}
 
@@ -116,11 +130,24 @@ public:
 	{
 		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime * TimeMultiplier);
 		Result.CurrentWeight = CurrentWeight * WeightMultiplier;
+		Result.RootMotionWeightModifier = RootMotionWeightModifier;
+		return Result;
+	}
+
+	FAnimationUpdateContext FractionalWeightTimeAndRootMotion(float WeightMultiplier, float TimeMultiplier, float RootMotionMultiplier) const
+	{
+		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime * TimeMultiplier);
+		Result.CurrentWeight = CurrentWeight * WeightMultiplier;
+		Result.RootMotionWeightModifier = RootMotionMultiplier * RootMotionMultiplier;
+
 		return Result;
 	}
 
 	// Returns the final blend weight contribution for this stage
 	float GetFinalBlendWeight() const { return CurrentWeight; }
+
+	// Returns the weight modifier for root motion (as root motion weight wont always match blend weight)
+	float GetRootMotionWeightModifier() const { return RootMotionWeightModifier; }
 
 	// Returns the delta time for this update, in seconds
 	float GetDeltaTime() const { return DeltaTime; }

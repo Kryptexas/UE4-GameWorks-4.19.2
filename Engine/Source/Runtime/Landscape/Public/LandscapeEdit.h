@@ -60,11 +60,41 @@ private:
 	TArray<FMipInfo> MipInfo;
 };
 
-struct LANDSCAPE_API FLandscapeEditDataInterface
+struct LANDSCAPE_API FLandscapeTextureDataInterface
 {
-	// tors
+	// tor
+	virtual ~FLandscapeTextureDataInterface();
+
+	// Texture data access
+	FLandscapeTextureDataInfo* GetTextureDataInfo(UTexture2D* Texture);
+
+	// Flush texture updates
+	void Flush();
+
+	// Texture bulk operations for weightmap reallocation
+	void CopyTextureChannel(UTexture2D* Dest, int32 DestChannel, UTexture2D* Src, int32 SrcChannel);
+	void ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel);
+	void CopyTextureFromHeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, int32 SrcChannel);
+	void CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo);
+
+	template<typename TData>
+	void SetTextureValueTempl(UTexture2D* Dest, TData Value);
+	void ZeroTexture(UTexture2D* Dest);
+	void SetTextureValue(UTexture2D* Dest, FColor Value);
+
+	template<typename TData>
+	bool EqualTextureValueTempl(UTexture2D* Src, TData Value);
+	bool EqualTextureValue(UTexture2D* Src, FColor Value);
+
+private:
+	TMap<UTexture2D*, FLandscapeTextureDataInfo*> TextureDataMap;
+};
+
+
+struct LANDSCAPE_API FLandscapeEditDataInterface : public FLandscapeTextureDataInterface
+{
+	// tor
 	FLandscapeEditDataInterface(ULandscapeInfo* InLandscape);
-	virtual ~FLandscapeEditDataInterface();
 
 	// Misc
 	bool GetComponentsInRegion(int32 X1, int32 Y1, int32 X2, int32 Y2, TSet<ULandscapeComponent*>* OutComponents = NULL);
@@ -155,27 +185,6 @@ struct LANDSCAPE_API FLandscapeEditDataInterface
 	void GetXYOffsetDataFast(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, FVector* Data, int32 Stride);
 	void GetXYOffsetDataFast(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, TMap<FIntPoint, FVector>& SparseData);
 
-	// Texture data access
-	FLandscapeTextureDataInfo* GetTextureDataInfo(UTexture2D* Texture);
-
-	// Flush texture updates
-	void Flush();
-
-	// Texture bulk operations for weightmap reallocation
-	void CopyTextureChannel(UTexture2D* Dest, int32 DestChannel, UTexture2D* Src, int32 SrcChannel);
-	void ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel);
-	void CopyTextureFromHeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, int32 SrcChannel);
-	void CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo);
-
-	template<typename TData>
-	void SetTextureValueTempl(UTexture2D* Dest, TData Value);
-	void ZeroTexture(UTexture2D* Dest);
-	void SetTextureValue(UTexture2D* Dest, FColor Value);
-
-	template<typename TData>
-	bool EqualTextureValueTempl(UTexture2D* Src, TData Value);
-	bool EqualTextureValue(UTexture2D* Src, FColor Value);
-
 	template<typename T>
 	static void ShrinkData(TArray<T>& Data, int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY, int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY);
 
@@ -185,7 +194,6 @@ private:
 	int32 ComponentNumSubsections;
 	FVector DrawScale;
 
-	TMap<UTexture2D*, FLandscapeTextureDataInfo*> TextureDataMap;
 	ULandscapeInfo* LandscapeInfo;
 
 	// Only for Missing Data interpolation... only internal usage

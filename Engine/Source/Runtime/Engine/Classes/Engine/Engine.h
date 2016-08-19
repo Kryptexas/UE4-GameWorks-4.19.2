@@ -2139,6 +2139,7 @@ public:
 	 *
 	 * @param Object		Object whose owning world we require.
 	 * @param bChecked      Allows calling function to specify not to do ensure check and that a nullptr return value is acceptable
+	 *						This flag is only used when called by main game thread. 
 	 * returns				The world to which the object belongs.
 	 */
 	UWorld* GetWorldFromContextObject(const UObject* Object, bool bChecked = true) const;

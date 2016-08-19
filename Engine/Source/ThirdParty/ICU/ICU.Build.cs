@@ -123,7 +123,9 @@ public class ICU : ModuleRules
                 "d" : string.Empty;
 
             // Library Paths
-			EICULinkType ICULinkType = (Target.Platform == UnrealTargetPlatform.Android || Target.IsMonolithic) ? EICULinkType.Static : EICULinkType.Dynamic;
+            // Temporarily? only link statically on Linux too
+			//EICULinkType ICULinkType = (Target.Platform == UnrealTargetPlatform.Android || Target.IsMonolithic) ? EICULinkType.Static : EICULinkType.Dynamic;
+			EICULinkType ICULinkType = EICULinkType.Static;
             switch (ICULinkType)
             {
                 case EICULinkType.Static:

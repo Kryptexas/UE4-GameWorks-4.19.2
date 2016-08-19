@@ -42,6 +42,11 @@ public:
 	virtual void GenerateFullyConvertedClasses() override;
 	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr) override;
 	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() override;
+
+	FFileHelper::EEncodingOptions::Type ForcedEncoding() const
+	{
+		return FFileHelper::EEncodingOptions::ForceUTF8;
+	}
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) override;
 	virtual void InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets) override;
@@ -342,7 +347,9 @@ void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCH
 
 	if (!FileContents.IsEmpty())
 	{
-		FFileHelper::SaveStringToFile(FileContents, *(GetManifest(PlatformName).CreateUnconvertedDependencyRecord(AssetInfo.PackageName, AssetInfo).GeneratedWrapperPath));
+		FFileHelper::SaveStringToFile(FileContents
+			, *(GetManifest(PlatformName).CreateUnconvertedDependencyRecord(AssetInfo.PackageName, AssetInfo).GeneratedWrapperPath)
+			, ForcedEncoding());
 	}
 	// The stub we generate still may have dependencies on other modules, so make sure the module dependencies are 
 	// still recorded so that the .build.cs is generated correctly. Without this you'll get include related errors 
@@ -373,7 +380,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 	// FConvertedAssetRecord::IsValid)
 	if (!CppSource->IsEmpty())
 	{
-		if (!FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath))
+		if (!FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath, ForcedEncoding()))
 		{
 			bSuccess &= false;
 			ConversionRecord.GeneratedCppPath.Empty();
@@ -387,7 +394,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 
 	if (bSuccess && !HeaderSource->IsEmpty())
 	{
-		if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath))
+		if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath, ForcedEncoding()))
 		{
 			bSuccess &= false;
 			ConversionRecord.GeneratedHeaderPath.Empty();

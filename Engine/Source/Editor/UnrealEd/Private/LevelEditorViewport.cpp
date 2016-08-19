@@ -3061,6 +3061,24 @@ void FLevelEditorViewportClient::MoveCameraToLockedActor()
 	}
 }
 
+void FLevelEditorViewportClient::SetActorLock(AActor* Actor)
+{
+	if (ActorLockedToCamera != Actor)
+	{
+		SetIsCameraCut();
+	}
+	ActorLockedToCamera = Actor;
+}
+
+void FLevelEditorViewportClient::SetMatineeActorLock(AActor* Actor)
+{
+	if (ActorLockedByMatinee != Actor)
+	{
+		SetIsCameraCut();
+	}
+	ActorLockedByMatinee = Actor;
+}
+
 bool FLevelEditorViewportClient::IsActorLocked(const TWeakObjectPtr<AActor> InActor) const
 {
 	return (InActor.IsValid() && GetActiveActorLock() == InActor);

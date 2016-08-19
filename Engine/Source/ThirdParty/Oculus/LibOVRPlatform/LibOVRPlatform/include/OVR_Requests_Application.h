@@ -8,8 +8,8 @@
 
 #include "OVR_ApplicationVersion.h"
 
-/// Requests version information including the currently installed and latest
-/// available version name and version code
+/// Requests version information, including the currently installed and latest
+/// available version name and version code.
 ///
 /// A message with type ::ovrMessage_Application_GetVersion will be generated in response.
 ///

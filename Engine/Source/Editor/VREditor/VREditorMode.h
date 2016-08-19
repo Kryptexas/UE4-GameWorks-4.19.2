@@ -154,9 +154,6 @@ public:
 	/** Sets up our avatar mesh, if not already spawned */
 	void SpawnAvatarMeshActor();
 
-	/** Gets our VR post process component, creating it if it doesn't exist yet */
-	UPostProcessComponent* GetPostProcessComponent();
-
 	/** Called internally when the user changes maps, enters/exits PIE or SIE, or switched between PIE/SIE */
 	void CleanUpActorsBeforeMapChangeOrSimulate();
 
@@ -259,57 +256,18 @@ protected:
 	//
 
 	/** Actor with components to represent the VR avatar in the world, including motion controller meshes */
-	class AActor* AvatarMeshActor;
+	class AVREditorAvatarActor* AvatarActor;
 
-	/** Our avatar's head mesh */
-	class UStaticMeshComponent* HeadMeshComponent;
+
+	//
+	// Flashlight
+	//
 
 	/** Spotlight for the flashlight */
 	class USpotLightComponent* FlashlightComponent;
 
 	/** If there is currently a flashlight in the scene */
 	bool bIsFlashlightOn;
-
-
-	//
-	// World movement grid & FX
-	//
-
-	/** The grid that appears while the user is dragging the world around */
-	class UStaticMeshComponent* WorldMovementGridMeshComponent;
-
-	/** Grid mesh component dynamic material instance to set the opacity */
-	class UMaterialInstanceDynamic* WorldMovementGridMID;
-
-	/** Opacity of the movement grid and post process */
-	float WorldMovementGridOpacity;
-
-	/** True if we're currently drawing our world movement post process */
-	bool bIsDrawingWorldMovementPostProcess;
-
-	/** Post process material for "greying out" the world while in world movement mode */
-	class UMaterialInstanceDynamic* WorldMovementPostProcessMaterial;
-
-	//
-	// World scaling progress bar
-	//
-
-	/** Background progressbar scaling mesh */
-	class UStaticMeshComponent* ScaleProgressMeshComponent;
-
-	/** Current scale progressbar mesh */
-	class UStaticMeshComponent* CurrentScaleProgressMeshComponent;
-
-	/** Current scale text */
-	class UTextRenderComponent* UserScaleIndicatorText;
-
-
-	//
-	// Post process
-	//
-
-	/** Post process for drawing VR-specific post effects */
-	class UPostProcessComponent* PostProcessComponent;
 
 	//
 	// Input

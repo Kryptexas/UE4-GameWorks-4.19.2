@@ -398,7 +398,7 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 				Pin->PinType = NewPinType;
 
 				//break bad links
-				for(TArray<class UEdGraphPin*>::TIterator OtherPinIt(BadLinks);OtherPinIt;)
+				for(TArray<class UEdGraphPin*>::TIterator OtherPinIt(BadLinks);OtherPinIt;++OtherPinIt)
 				{
 					Pin->BreakLinkTo(*OtherPinIt);
 				}

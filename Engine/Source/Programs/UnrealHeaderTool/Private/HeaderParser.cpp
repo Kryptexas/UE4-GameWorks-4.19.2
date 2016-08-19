@@ -3073,6 +3073,12 @@ FIndexRange*                    ParsedVarIndexRange
 				}
 				break;
 
+				case EVariableSpecifier::SkipSerialization:
+				{
+					Flags |= CPF_SkipSerialization;
+				}
+				break;
+
 				default:
 				{
 					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);

@@ -850,6 +850,18 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, ViewFamily.EngineShowFlags.ShaderComplexity);
 	}
 
+	//Single point to catch UE-31578, UE-32536 and UE-22073 and attempt to recover by reallocating Deferred Render Targets
+	if(!SceneContext.TranslucencyLightingVolumeAmbient[0] || !SceneContext.TranslucencyLightingVolumeDirectional[0] ||
+	   !SceneContext.TranslucencyLightingVolumeAmbient[1] || !SceneContext.TranslucencyLightingVolumeDirectional[1])
+	{
+		const char* str = SceneContext.ScreenSpaceAO ? "Allocated" : "Unallocated"; //ScreenSpaceAO is determining factor of detecting render target allocation
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeAmbient[0], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeAmbient0", str);
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeDirectional[0], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeDirectional0", str);
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeAmbient[1], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeAmbient1", str);
+		ensureMsgf(SceneContext.TranslucencyLightingVolumeDirectional[1], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeDirectional1", str);
+		SceneContext.AllocateDeferredShadingPathRenderTargets(RHICmdList);
+	}
+
 	if (GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute)
 	{
 		ClearTranslucentVolumeLightingAsyncCompute(RHICmdList);
@@ -1053,7 +1065,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.FinishRenderingSceneColor(RHICmdList);
 
 		// Render reflections that only operate on opaque pixels
-		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO);
+		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
 		ServiceLocalQueue();
 
 		// Post-lighting composition lighting stage
@@ -1063,13 +1075,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
 			GCompositionLighting.ProcessAfterLighting(RHICmdList, Views[ViewIndex]);
 		}
-		ServiceLocalQueue();
-	}
-
-	if (ViewFamily.EngineShowFlags.StationaryLightOverlap &&
-		FeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		RenderStationaryLightOverlap(RHICmdList);
 		ServiceLocalQueue();
 	}
 
@@ -1184,9 +1189,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
+	// Draw visualizations just before use to avoid target contamination
 	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields)
 	{
 		RenderMeshDistanceFieldVisualization(RHICmdList, FDistanceFieldAOParameters(Scene->DefaultMaxDistanceFieldOcclusionDistance));
+		ServiceLocalQueue();
+	}
+
+	if (ViewFamily.EngineShowFlags.StationaryLightOverlap &&
+		FeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		RenderStationaryLightOverlap(RHICmdList);
 		ServiceLocalQueue();
 	}
 

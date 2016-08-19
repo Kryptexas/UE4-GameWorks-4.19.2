@@ -756,7 +756,8 @@ FText SPropertyEditorAsset::GetOnBrowseToolTip() const
 
 void SPropertyEditorAsset::OnUse()
 {
-	if(PropertyEditor.IsValid())
+	// Use the property editor path if it is valid and there is no custom filtering required
+	if(PropertyEditor.IsValid() && !OnShouldFilterAsset.IsBound() && CustomClassFilters.Num() == 0)
 	{
 		PropertyEditor->GetPropertyHandle()->SetObjectValueFromSelection();
 	}

@@ -141,6 +141,8 @@ static bool IsPixelFormatBCCompressed(EPixelFormat Format)
 		case PF_BC5:
 		case PF_BC6H:
 		case PF_BC7:
+		case PF_PVRTC2:
+		case PF_PVRTC4:
 			return true;
 		default:
 			return false;
@@ -192,7 +194,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
 , WriteLock(0)
 , TotalTextureSize(0)
 , Viewport(nullptr)
-, IB(nullptr)
+, CoreVideoImageRef(nullptr)
 {
 	MTLPixelFormat MetalFormat = (MTLPixelFormat)GPixelFormats[PixelFormat].PlatformFormat;
 	
@@ -256,7 +258,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 , WriteLock(0)
 , TotalTextureSize(0)
 , Viewport(nullptr)
-, IB(nullptr)
+, CoreVideoImageRef(nullptr)
 {
 	// You can't format convert an MSAA texture in Metal, so you can't create an SRV via this API for that.
 	// Nor can you access the stencil component of an MSAA packed depth-stencil surface, but separate MSAA depth & stencil will be fine.
@@ -422,7 +424,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
     , WriteLock(0)
 	, TotalTextureSize(0)
 	, Viewport(nullptr)
-	, IB(nullptr)
+	, CoreVideoImageRef(nullptr)
 {
 	// get a unique key for this surface's format
 	static TMap<uint32, uint8> PixelFormatKeyMap;
@@ -443,16 +445,6 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 #endif
 	}
 	
-	// Dirty, filty hacks to pass through via an IOSurfaceRef which is required if in-game movie playback is to render at more than 5fps
-#if PLATFORM_MAC
-	bool const bIOSurfaceData = (BulkData && BulkData->GetResourceBulkDataSize() == ~0u);
-	if(bIOSurfaceData)
-	{
-		// This won't ever be SRGB as IOSurface doesn't support it...
-		Flags &= ~TexCreate_SRGB;
-	}
-#endif
-
 	MTLPixelFormat MTLFormat = (MTLPixelFormat)GPixelFormats[Format].PlatformFormat;
 #if PLATFORM_MAC
 	if (Flags & TexCreate_SRGB)
@@ -605,15 +597,19 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	}
 #endif
 
-#if PLATFORM_MAC
-	// Dirty, filty hacks to pass through via an IOSurfaceRef
+	// Dirty, filty hacks to pass through via an CVImageBufferRef or CVMetalTextureRef
+	bool const bIOSurfaceData = (BulkData && BulkData->GetResourceBulkDataSize() == ~0u);
 	if(bIOSurfaceData)
 	{
-		checkf(NumMips == 1&& ArraySize == 1, TEXT("Only handling bulk data with 1 mip and 1 array length"));
-		IB = (CVImageBufferRef)BulkData->GetResourceBulkData();
-		CVPixelBufferRetain(IB);
+		checkf(NumMips == 1 && ArraySize == 1, TEXT("Only handling bulk data with 1 mip and 1 array length"));
+		CoreVideoImageRef = (CFTypeRef)BulkData->GetResourceBulkData();
+		CFRetain(CoreVideoImageRef);
 		{
-			Texture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc iosurface:CVPixelBufferGetIOSurface(IB) plane:0];
+#if PLATFORM_MAC
+			Texture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc iosurface:CVPixelBufferGetIOSurface((CVPixelBufferRef)CoreVideoImageRef) plane:0];
+#else
+			Texture = [CVMetalTextureGetTexture((CVMetalTextureRef)CoreVideoImageRef) retain];
+#endif
 			
 			if (Texture == nil)
 			{
@@ -625,7 +621,6 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 		BulkData->Discard();
 	}
 	else
-#endif
 	{
 		Texture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
 		if (Texture == nil)
@@ -833,12 +828,12 @@ FMetalSurface::~FMetalSurface()
 		}
 	}
 	
-	if(IB)
+	if(CoreVideoImageRef)
 	{
-		CVPixelBufferRelease(IB);
+		CFRelease(CoreVideoImageRef);
 	}
 
-	IB = nullptr;
+	CoreVideoImageRef = nullptr;
 	MSAATexture = nil;
 	Texture = nil;
 	StencilTexture = nil;

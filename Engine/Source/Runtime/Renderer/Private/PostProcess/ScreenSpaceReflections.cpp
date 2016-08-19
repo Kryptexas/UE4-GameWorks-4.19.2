@@ -78,6 +78,20 @@ bool ShouldRenderScreenSpaceReflections(const FViewInfo& View)
 	return true;
 }
 
+bool IsSSRTemporalPassRequired(const FViewInfo& View, bool bCheckSSREnabled)
+{
+	if (bCheckSSREnabled && !ShouldRenderScreenSpaceReflections(View))
+	{
+		return false;
+	}
+	if (!View.State)
+	{
+		return false;
+	}
+	return View.AntiAliasingMethod != AAM_TemporalAA || CVarSSRTemporal.GetValueOnRenderThread() != 0;
+}
+
+
 static float ComputeRoughnessMaskScale(const FRenderingCompositePassContext& Context, uint32 SSRQuality)
 {
 	float MaxRoughness = FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionMaxRoughness, 0.01f, 1.0f);
@@ -460,7 +474,7 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 	return Ret;
 }
 
-void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
+void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);	
 	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View );
@@ -493,7 +507,7 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 		Context.FinalOutput = FRenderingCompositeOutputRef( TracePass );
 	}
 
-	const bool bTemporalFilter = View.AntiAliasingMethod != AAM_TemporalAA || CVarSSRTemporal.GetValueOnRenderThread() != 0;
+	const bool bTemporalFilter = IsSSRTemporalPassRequired(View, false);
 
 	if( ViewState && bTemporalFilter )
 	{
@@ -509,10 +523,23 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 				HistoryInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSystemTextures.BlackDummy));
 			}
 
+			FRenderingCompositeOutputRef VelocityInput;
+			if ( VelocityRT )
+			{
+				VelocityInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(VelocityRT));
+			}
+			else
+			{
+				// No velocity, use black
+				VelocityInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSystemTextures.BlackDummy));
+			}
+
+
 			FRenderingCompositePass* TemporalAAPass = Context.Graph.RegisterPass( new FRCPassPostProcessSSRTemporalAA );
 			TemporalAAPass->SetInput( ePId_Input0, Context.FinalOutput );
 			TemporalAAPass->SetInput( ePId_Input1, HistoryInput );
-			//TemporalAAPass->SetInput( ePId_Input2, VelocityInput );
+			TemporalAAPass->SetInput( ePId_Input2, HistoryInput );
+			TemporalAAPass->SetInput( ePId_Input3, VelocityInput );
 
 			Context.FinalOutput = FRenderingCompositeOutputRef( TemporalAAPass );
 		}

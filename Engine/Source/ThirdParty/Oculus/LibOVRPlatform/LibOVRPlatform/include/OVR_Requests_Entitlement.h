@@ -48,20 +48,19 @@
 ///  2. Be able to see a binary package for the application by being in a release
 ///       channel that has a binary package, which can be set up on the developer
 ///       website at https://dashboard.oculus.com/application/[YOUR_APP_ID]/build.
-///  3. (Windows Only) Use the Oculus store to download the application. The
-///       developer does not need to run the downloaded copy of the application,
-///       which is why the package does not need to be functional.
 ///
 /// NOTE: If some of your developers are not part of the application's organization,
 /// and they need to run your application outside the normal install directory, that
 /// can be enabled by adding a special registry key "AllowDevSideloaded" as DWORD(1)
-/// to the registry folder at  HKLM\\SOFTWARE\\Wow6432Node\\Oculus VR, LLC\\Oculus. This
-/// does not bypass having a valid entitlement, it bypasses the directory check.
+/// to the registry folder at  HKLM\\SOFTWARE\\Wow6432Node\\Oculus VR, LLC\\Oculus.
+/// This does not bypass having a valid entitlement, it just bypasses the directory
+/// check.
+///
 ///
 /// Once the above steps are completed, the entitlement check should succeed even if
 /// running a local build of your application.
 
-/// Get whether or not the current user is entitled to the current app.
+/// Returns whether the current user is entitled to the current app.
 ///
 /// A message with type ::ovrMessage_Entitlement_GetIsViewerEntitled will be generated in response.
 ///

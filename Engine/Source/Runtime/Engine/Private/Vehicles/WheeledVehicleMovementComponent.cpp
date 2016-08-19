@@ -610,9 +610,9 @@ void LogVehicleSettings( PxVehicleWheels* Vehicle )
 	}
 }
 
-void UWheeledVehicleMovementComponent::CreatePhysicsState()
+void UWheeledVehicleMovementComponent::OnCreatePhysicsState()
 {
-	Super::CreatePhysicsState();
+	Super::OnCreatePhysicsState();
 
 	VehicleSetupTag = FPhysXVehicleManager::VehicleSetupTag;
 
@@ -648,9 +648,9 @@ void UWheeledVehicleMovementComponent::CreatePhysicsState()
 	}
 }
 
-void UWheeledVehicleMovementComponent::DestroyPhysicsState()
+void UWheeledVehicleMovementComponent::OnDestroyPhysicsState()
 {
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 
 	if ( PVehicle )
 	{

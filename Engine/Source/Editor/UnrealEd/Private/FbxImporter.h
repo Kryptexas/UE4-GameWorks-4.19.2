@@ -165,6 +165,147 @@ struct FBXImportOptions
 	}
 };
 
+#define INVALID_UNIQUE_ID 0xFFFFFFFFFFFFFFFF
+
+class FFbxAnimCurveHandle
+{
+public:
+	enum CurveTypeDescription
+	{
+		Transform_Translation_X,
+		Transform_Translation_Y,
+		Transform_Translation_Z,
+		Transform_Rotation_X,
+		Transform_Rotation_Y,
+		Transform_Rotation_Z,
+		Transform_Scaling_X,
+		Transform_Scaling_Y,
+		Transform_Scaling_Z,
+		NotTransform,
+	};
+
+	FFbxAnimCurveHandle()
+	{
+		UniqueId = INVALID_UNIQUE_ID;
+		Name.Empty();
+		ChannelIndex = 0;
+		CompositeIndex = 0;
+		KeyNumber = 0;
+		AnimationTimeSecond = 0.0f;
+		AnimCurve = nullptr;
+		CurveType = NotTransform;
+	}
+
+	FFbxAnimCurveHandle(const FFbxAnimCurveHandle &CurveHandle)
+	{
+		UniqueId = CurveHandle.UniqueId;
+		Name = CurveHandle.Name;
+		ChannelIndex = CurveHandle.ChannelIndex;
+		CompositeIndex = CurveHandle.CompositeIndex;
+		KeyNumber = CurveHandle.KeyNumber;
+		AnimationTimeSecond = CurveHandle.AnimationTimeSecond;
+		AnimCurve = CurveHandle.AnimCurve;
+		CurveType = CurveHandle.CurveType;
+	}
+
+	//Identity Data
+	uint64 UniqueId;
+	FString Name;
+	int32 ChannelIndex;
+	int32 CompositeIndex;
+
+	//Curve Information
+	int32 KeyNumber;
+	float AnimationTimeSecond;
+
+	//Pointer to the curve data
+	FbxAnimCurve* AnimCurve;
+
+	CurveTypeDescription CurveType;
+};
+
+class FFbxAnimPropertyHandle
+{
+public:
+	FFbxAnimPropertyHandle()
+	{
+		Name.Empty();
+		DataType = eFbxFloat;
+	}
+
+	FFbxAnimPropertyHandle(const FFbxAnimPropertyHandle &PropertyHandle)
+	{
+		Name = PropertyHandle.Name;
+		DataType = PropertyHandle.DataType;
+		CurveHandles = PropertyHandle.CurveHandles;
+	}
+
+	FString Name;
+	EFbxType DataType;
+	TArray<FFbxAnimCurveHandle> CurveHandles;
+};
+
+class FFbxAnimNodeHandle
+{
+public:
+	FFbxAnimNodeHandle()
+	{
+		UniqueId = INVALID_UNIQUE_ID;
+		Name.Empty();
+		AttributeUniqueId = INVALID_UNIQUE_ID;
+		AttributeType = FbxNodeAttribute::eUnknown;
+	}
+
+	FFbxAnimNodeHandle(const FFbxAnimNodeHandle &NodeHandle)
+	{
+		UniqueId = NodeHandle.UniqueId;
+		Name = NodeHandle.Name;
+		AttributeUniqueId = NodeHandle.AttributeUniqueId;
+		AttributeType = NodeHandle.AttributeType;
+		NodeProperties = NodeHandle.NodeProperties;
+		AttributeProperties = NodeHandle.AttributeProperties;
+	}
+
+	uint64 UniqueId;
+	FString Name;
+	TMap<FString, FFbxAnimPropertyHandle> NodeProperties;
+
+	uint64 AttributeUniqueId;
+	FbxNodeAttribute::EType AttributeType;
+	TMap<FString, FFbxAnimPropertyHandle> AttributeProperties;
+};
+
+class FFbxCurvesAPI
+{
+public:
+	FFbxCurvesAPI()
+	{
+		Scene = nullptr;
+	}
+	//Name API
+	UNREALED_API void GetAnimatedNodeNameArray(TArray<FString> &AnimatedNodeNames) const;
+	UNREALED_API void GetNodeAnimatedPropertyNameArray(const FString &NodeName, TArray<FString> &AnimatedPropertyNames) const;
+	UNREALED_API void GetCurveData(const FString& NodeName, const FString& PropertyName, int32 ChannelIndex, int32 CompositeIndex, FInterpCurveFloat& CurveData, bool bNegative) const;
+	UNREALED_API void GetBakeCurveData(const FString& NodeName, const FString& PropertyName, int32 ChannelIndex, int32 CompositeIndex, TArray<float>& CurveData, float PeriodTime, float StartTime = 0.0f, float StopTime= -1.0f, bool bNegative = false) const;
+
+	//Handle API
+	UNREALED_API void GetAllNodePropertyCurveHandles(const FString& NodeName, const FString& PropertyName, TArray<FFbxAnimCurveHandle> &PropertyCurveHandles) const;
+	UNREALED_API void GetCurveHandle(const FString& NodeName, const FString& PropertyName, int32 ChannelIndex, int32 CompositeIndex, FFbxAnimCurveHandle &CurveHandle) const;
+	UNREALED_API void GetCurveData(const FFbxAnimCurveHandle &CurveHandle, FInterpCurveFloat& CurveData, bool bNegative) const;
+	UNREALED_API void GetBakeCurveData(const FFbxAnimCurveHandle &CurveHandle, TArray<float>& CurveData, float PeriodTime, float StartTime = 0.0f, float StopTime = -1.0f, bool bNegative = false) const;
+
+	//Conversion API
+	UNREALED_API void GetConvertedTransformCurveData(const FString& NodeName, FInterpCurveFloat& TranslationX, FInterpCurveFloat& TranslationY, FInterpCurveFloat& TranslationZ,
+													 FInterpCurveFloat& EulerRotationX, FInterpCurveFloat& EulerRotationY, FInterpCurveFloat& EulerRotationZ, 
+													 FInterpCurveFloat& ScaleX, FInterpCurveFloat& ScaleY, FInterpCurveFloat& ScaleZ) const;
+
+	FbxScene* Scene;
+	TMap<uint64, FFbxAnimNodeHandle> CurvesData;
+
+private:
+	EInterpCurveMode GetUnrealInterpMode(FbxAnimCurveKey FbxKey) const;
+};
+
 struct FbxMeshInfo
 {
 	FString Name;
@@ -1047,6 +1188,19 @@ protected:
 	* @param ParentInfo  The parent FbxNodeInfo
 	*/
 	void TraverseHierarchyNodeRecursively(FbxSceneInfo& SceneInfo, FbxNode *ParentNode, FbxNodeInfo &ParentInfo);
+
+
+	//
+	// for sequencer import
+	//
+public:
+	UNREALED_API void PopulateAnimatedCurveData(FFbxCurvesAPI &CurvesAPI);
+
+protected:
+	void LoadNodeKeyframeAnimationRecursively(FFbxCurvesAPI &CurvesAPI, FbxNode* NodeToQuery);
+	void LoadNodeKeyframeAnimation(FbxNode* NodeToQuery, FFbxCurvesAPI &CurvesAPI);
+	void SetupTransformForNode(FbxNode *Node);
+
 
 	//
 	// for matinee export

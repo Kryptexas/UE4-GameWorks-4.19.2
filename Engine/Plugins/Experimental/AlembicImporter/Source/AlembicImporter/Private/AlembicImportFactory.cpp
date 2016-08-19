@@ -54,7 +54,7 @@ UClass* UAlembicImportFactory::ResolveSupportedClass()
 	return UStaticMesh::StaticClass();
 }
 
-UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
+UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
@@ -72,60 +72,84 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();	
 	ShowImportOptionsWindow(Options, UFactory::CurrentFilename, Importer);
 
-	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+	// Set whether or not the user canceled
+	bOutOperationCanceled = !Options->ShouldImport();
 
-	UObject* ResultAsset = nullptr;
+	// Set up message log page name to separate different assets
+	const FString PageName = "Importing " + InName.ToString() + ".abc";
 
 	TArray<UObject*> ResultAssets;
-	if(Options->ShouldImport())
+	if (!bOutOperationCanceled)
 	{
-		int32 NumThreads = 1;
-		if (FPlatformProcess::SupportsMultithreading())
+		FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+		
+		if (Options->ShouldImport())
 		{
-			NumThreads = FPlatformMisc::NumberOfCores(); 
+			int32 NumThreads = 1;
+			if (FPlatformProcess::SupportsMultithreading())
+			{
+				NumThreads = FPlatformMisc::NumberOfCores();
+			}
+
+			// Import file		
+			ErrorCode = Importer.ImportTrackData(NumThreads, ImportSettings);
+
+			if (ErrorCode != AbcImportError_NoError)
+			{
+				// Failed to read the file info, fail the import
+				FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
+				FAbcImportLogger::OutputMessages(PageName);
+				return nullptr;
+			}
+			else
+			{
+				if (ImportSettings->ImportType == EAlembicImportType::StaticMesh)
+				{
+					const TArray<UObject*> ResultStaticMeshes = ImportStaticMesh(Importer, InParent, Flags);
+					ResultAssets.Append(ResultStaticMeshes);
+				}
+				else if (ImportSettings->ImportType == EAlembicImportType::GeometryCache)
+				{
+					UObject* GeometryCache = ImportGeometryCache(Importer, InParent, Flags);
+					if (GeometryCache)
+					{
+						ResultAssets.Add(GeometryCache);
+					}
+				}
+				else if (ImportSettings->ImportType == EAlembicImportType::Skeletal)
+				{
+					UObject* SkeletalMesh = ImportSkeletalMesh(Importer, InParent, Flags);
+					if (SkeletalMesh)
+					{
+						ResultAssets.Add(SkeletalMesh);
+					}
+				}
+			}
 		}
 
-		// Import file		
-		ErrorCode = Importer.ImportTrackData(NumThreads, ImportSettings);
-
-		if (ErrorCode != AbcImportError_NoError)
+		for (UObject* Object : ResultAssets)
 		{
-			// Failed to read the file info, fail the import
-			FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
-			FAbcImportLogger::OutputMessages();
-			return nullptr;
+			if (Object)
+			{
+				FEditorDelegates::OnAssetPostImport.Broadcast(this, Object);
+				Object->MarkPackageDirty();
+				Object->PostEditChange();
+			}
 		}
-		else
-		{
-			if (ImportSettings->ImportType == EAlembicImportType::StaticMesh)
-			{
-				const TArray<UObject*> ResultStaticMeshes = ImportStaticMesh(Importer, InParent, Flags);
-				ResultAssets.Append(ResultStaticMeshes);
-			}
-			else if (ImportSettings->ImportType == EAlembicImportType::GeometryCache)
-			{
-				ResultAssets.Add(ImportGeometryCache(Importer, InParent, Flags));
-			}
-			else if (ImportSettings->ImportType == EAlembicImportType::Skeletal)
-			{
-				ResultAssets.Add(ImportSkeletalMesh(Importer, InParent, Flags));
-			}
-		}		
+
+		FAbcImportLogger::OutputMessages(PageName);
 	}
-
-	for (UObject* Object : ResultAssets)
-	{
-		FEditorDelegates::OnAssetPostImport.Broadcast(this, Object);
-
-		Object->MarkPackageDirty();		
-		Object->PostEditChange();
-	}
-
-	return (ResultAssets.Num() > 0) ? InParent : nullptr;
+	
+	// Determine out parent according to the generated assets outer
+	UObject* OutParent = (ResultAssets.Num() > 0 && InParent != ResultAssets[0]->GetOutermost()) ? ResultAssets[0]->GetOutermost() : InParent;
+	return (ResultAssets.Num() > 0) ? OutParent : nullptr;
 }
 
 TArray<UObject*> UAlembicImportFactory::ImportStaticMesh(FAbcImporter& Importer, UObject* InParent, EObjectFlags Flags)
 {
+	// Flush commands before importing
+	FlushRenderingCommands();
+
 	TArray<UObject*> Objects;
 
 	const uint32 NumMeshes = Importer.GetNumMeshTracks();
@@ -136,15 +160,17 @@ TArray<UObject*> UAlembicImportFactory::ImportStaticMesh(FAbcImporter& Importer,
 
 		for (UStaticMesh* StaticMesh : StaticMeshes)
 		{
-			// Setup asset import data
-			if (!StaticMesh->AssetImportData)
+			if (StaticMesh)
 			{
-				StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
+				// Setup asset import data
+				if (!StaticMesh->AssetImportData)
+				{
+					StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
+				}
+				StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
+				Objects.Add(StaticMesh);
 			}
-			StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
 		}	
-
-		Objects.Append(StaticMeshes);
 	}
 
 	return Objects;
@@ -152,6 +178,9 @@ TArray<UObject*> UAlembicImportFactory::ImportStaticMesh(FAbcImporter& Importer,
 
 UObject* UAlembicImportFactory::ImportGeometryCache(FAbcImporter& Importer, UObject* InParent, EObjectFlags Flags)
 {
+	// Flush commands before importing
+	FlushRenderingCommands();
+
 	const uint32 NumMeshes = Importer.GetNumMeshTracks();
 	// Check if the alembic file contained any meshes
 	if (NumMeshes > 0)
@@ -182,6 +211,9 @@ UObject* UAlembicImportFactory::ImportGeometryCache(FAbcImporter& Importer, UObj
 
 UObject* UAlembicImportFactory::ImportSkeletalMesh(FAbcImporter& Importer, UObject* InParent, EObjectFlags Flags)
 {
+	// Flush commands before importing
+	FlushRenderingCommands();
+
 	const uint32 NumMeshes = Importer.GetNumMeshTracks();
 	// Check if the alembic file contained any meshes
 	if (NumMeshes > 0)
@@ -221,6 +253,11 @@ bool UAlembicImportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilena
 	else if (Obj->GetClass() == UGeometryCache::StaticClass())
 	{
 		UGeometryCache* Cache = Cast<UGeometryCache>(Obj);
+		ImportData = Cache->AssetImportData;
+	}
+	else if (Obj->GetClass() == USkeletalMesh::StaticClass())
+	{
+		USkeletalMesh* Cache = Cast<USkeletalMesh>(Obj);
 		ImportData = Cache->AssetImportData;
 	}
 	
@@ -355,6 +392,11 @@ EReimportResult::Type UAlembicImportFactory::ReimportGeometryCache(UGeometryCach
 	ImportSettings->ImportType = EAlembicImportType::GeometryCache;
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 	
+	if (!Options->ShouldImport())
+	{
+		return EReimportResult::Cancelled;
+	}
+
 	int32 NumThreads = 1;
 	if (FPlatformProcess::SupportsMultithreading())
 	{
@@ -410,6 +452,11 @@ EReimportResult::Type UAlembicImportFactory::ReimportSkeletalMesh(USkeletalMesh*
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::Skeletal;
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
+
+	if (!Options->ShouldImport())
+	{
+		return EReimportResult::Cancelled;
+	}
 
 	int32 NumThreads = 1;
 	if (FPlatformProcess::SupportsMultithreading())
@@ -467,6 +514,11 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 	ImportSettings->ImportType = EAlembicImportType::StaticMesh;
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
+	if (!Options->ShouldImport())
+	{
+		return EReimportResult::Cancelled;
+	}
+
 	int32 NumThreads = 1;
 	if (FPlatformProcess::SupportsMultithreading())
 	{
@@ -482,33 +534,25 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 	}
 	else
 	{
-		const uint32 NumMeshes = Importer.GetNumMeshTracks();
-		// Check if the alembic file contained any meshes
-		if (NumMeshes > 0)
+		const TArray<UStaticMesh*>& StaticMeshes = Importer.ReimportAsStaticMesh(Mesh);
+		for (UStaticMesh* StaticMesh : StaticMeshes)
 		{
-			UStaticMesh* StaticMesh = Importer.ReimportSingleAsStaticMesh(Mesh);
-
-			if (!StaticMesh)
+			if (StaticMesh)
 			{
-				return EReimportResult::Failed;
-			}
-			else
-			{
-				// Update file path/timestamp (Path could change if user has to browse for it manually)
+				// Setup asset import data
 				if (!StaticMesh->AssetImportData)
 				{
 					StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
 				}
-
-				StaticMesh->AssetImportData->Update(CurrentFilename);
+				StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
 			}
 		}
-		else
+
+		if (!StaticMeshes.Num())
 		{
-			// Not able to re-import a static mesh					
 			return EReimportResult::Failed;
-		}
-	}	
+		}		
+	}
 
 	return EReimportResult::Succeeded;
 }

@@ -830,6 +830,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	uint32 NumImportedVertices = ImportData.Positions.Num();
 
 	TempSection.SoftVertices.Empty(NumImportedVertices);
+	TempSection.NumVertices = NumImportedVertices;
 
 	FSkelMeshSection& TempOrigSection = LODModel.Sections[SectionIndex];
 	TArray<int32> VertMapping;
@@ -947,6 +948,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	// Copy 'chunk' properties from TempSection
 	ClothSection.SoftVertices = TempSection.SoftVertices;
+	ClothSection.NumVertices = ClothSection.SoftVertices.Num();
 	ClothSection.BoneMap = TempSection.BoneMap;
 	ClothSection.MaxBoneInfluences = TempSection.MaxBoneInfluences;
 	ClothSection.CorrespondClothAssetIndex = TempSection.CorrespondClothAssetIndex;

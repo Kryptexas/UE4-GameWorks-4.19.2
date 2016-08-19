@@ -23,12 +23,19 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 		if ( DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance))->IsValidHandle() )
 		{
 			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
+			TSharedPtr<IPropertyHandle> BodyInstanceHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
+
+			const bool bInPhat = ObjectsCustomized.Num() && (Cast<USkeletalBodySetup>(ObjectsCustomized[0].Get()) != nullptr);
+			if (bInPhat)
+			{
+				TSharedRef<IPropertyHandle> AsyncEnabled = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bUseAsyncScene)).ToSharedRef();
+				AsyncEnabled->MarkHiddenByCustomization();
+			}
+
 			BodyInstanceCustomizationHelper = MakeShareable(new FBodyInstanceCustomizationHelper(ObjectsCustomized));
 			BodyInstanceCustomizationHelper->CustomizeDetails(DetailBuilder, DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance)));
 
 			IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Collision");
-
-			TSharedPtr<IPropertyHandle> BodyInstanceHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
 			DetailBuilder.HideProperty(BodyInstanceHandler);
 
 			TSharedPtr<IPropertyHandle> CollisionTraceHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, CollisionTraceFlag));
@@ -49,12 +56,6 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 				{
 					CollisionCategory.AddProperty(ChildProperty);
 				}
-			}
-
-			const bool bInPhat = ObjectsCustomized.Num() && (Cast<USkeletalBodySetup>(ObjectsCustomized[0].Get()) != nullptr);
-			if(bInPhat)
-			{
-				//AddPhysicalAnimation(DetailBuilder);
 			}
 		}
 	}
@@ -107,6 +108,7 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 				FName ProfileName = BS->GetCurrentPhysicalAnimationProfileName();
 				if (!BS->FindPhysicalAnimationProfile(ProfileName))
 				{
+					BS->CurrentPhysicalAnimationProfile = FPhysicalAnimationProfile();
 					BS->AddPhysicalAnimationProfile(ProfileName);
 				}
 			}

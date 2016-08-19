@@ -288,12 +288,12 @@ namespace UnrealBuildTool
 	 * If you must remove files (like development-only files from distribution builds) you can
 	 * use this node:
 	 * 
-	 *	<removeFiles mask=""/>
+	 *	<deleteFiles filespec=""/>
 	 *	
 	 * It is restricted to only removing files from the BuildDir.  Here is example usage to remove
 	 * the Oculus Signature Files (osig) from the assets directory:
 	 * 
-	 *	<removeFiles mask="assets/oculussig_*"/>
+	 *	<deleteFiles filespec="assets/oculussig_*"/>
 	 *	
 	 * The following sections are evaluated during the packaging or deploy stages:
 	 * 

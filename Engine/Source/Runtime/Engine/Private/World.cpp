@@ -1271,7 +1271,7 @@ void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 		
 		if (!IsGameWorld())
 		{
-			CheckLevel->Actors.ModifyItem(ActorListIndex);
+			CheckLevel->Actors[ActorListIndex]->Modify();
 		}
 		
 		CheckLevel->Actors[ActorListIndex] = NULL;
@@ -2045,6 +2045,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		// Keep track of timing.
 		double StartTime = FPlatformTime::Seconds();	
 
+		Level->bIsBeingRemoved = true;
+
 		for (int32 ActorIdx = 0; ActorIdx < Level->Actors.Num(); ActorIdx++)
 		{
 			AActor* Actor = Level->Actors[ActorIdx];
@@ -2129,6 +2131,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		BroadcastLevelsChanged();
 
 		ULevelStreaming::BroadcastLevelVisibleStatus(this, Level->GetOutermost()->GetFName(), false);
+
+		Level->bIsBeingRemoved = false;
 
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		UE_LOG(LogStreaming, Display, TEXT("UWorld::RemoveFromWorld for %s took %5.2f ms"), *Level->GetOutermost()->GetName(), (FPlatformTime::Seconds() - StartTime) * 1000.0);
@@ -4776,10 +4780,6 @@ void FSeamlessTravelHandler::CopyWorldData()
 	LoadedWorld->WorldType = CurrentWorld->WorldType;
 	LoadedWorld->SetGameInstance(CurrentWorld->GetGameInstance());
 
-	if (!bSwitchedToDefaultMap)
-	{
-		LoadedWorld->CopyGameState(CurrentWorld->GetAuthGameMode(), CurrentWorld->GameState);
-	}
 	LoadedWorld->TimeSeconds = CurrentWorld->TimeSeconds;
 	LoadedWorld->RealTimeSeconds = CurrentWorld->RealTimeSeconds;
 	LoadedWorld->AudioTimeSeconds = CurrentWorld->AudioTimeSeconds;
@@ -4810,7 +4810,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 	UNetDriver* NetDriver = CurrentWorld->GetNetDriver();
 
-	if ( ( LoadedPackage != NULL || LoadedWorld != NULL ) && CurrentWorld->NextURL == TEXT( "" ) )
+	if ( ( LoadedPackage != nullptr || LoadedWorld != nullptr ) && CurrentWorld->NextURL == TEXT( "" ) )
 	{
 		// Wait for async loads to finish before finishing seamless. (E.g., we've loaded the persistent map but are still loading 'always loaded' sub levels)
 		if (LoadedWorld)
@@ -4830,7 +4830,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// abort
 			CancelTravel();			
 		}
-		else if ( LoadedWorld->PersistentLevel == NULL)
+		else if ( LoadedWorld->PersistentLevel == nullptr)
 		{
 			// Package isn't a level
 			FString Error = FString::Printf(TEXT("Unable to travel to '%s' - package is not a level"), *LoadedPackage->GetName());
@@ -4864,12 +4864,14 @@ UWorld* FSeamlessTravelHandler::Tick()
 				AuthGameMode->GetSeamlessTravelActorList(!bSwitchedToDefaultMap, KeepActors);
 			}
 
+			const bool bIsClient = (CurrentWorld->GetNetMode() == NM_Client);
+
 			// always keep Controllers that belong to players
-			if (CurrentWorld->GetNetMode() == NM_Client)
+			if (bIsClient)
 			{
 				for (FLocalPlayerIterator It(GEngine, CurrentWorld); It; ++It)
 				{
-					if (It->PlayerController != NULL)
+					if (It->PlayerController != nullptr)
 					{
 						KeepAnnotation.Set(It->PlayerController);
 					}
@@ -4880,7 +4882,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				for( FConstControllerIterator Iterator = CurrentWorld->GetControllerIterator(); Iterator; ++Iterator )
 				{
 					AController* Player = *Iterator;
-					if (Player->PlayerState || Cast<APlayerController>(Player) != NULL)
+					if (Player->PlayerState || Cast<APlayerController>(Player) != nullptr)
 					{
 						KeepAnnotation.Set(Player);
 					}
@@ -4890,21 +4892,22 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// ask players what else we should keep
 			for (FLocalPlayerIterator It(GEngine, CurrentWorld); It; ++It)
 			{
-				if (It->PlayerController != NULL)
+				if (It->PlayerController != nullptr)
 				{
 					It->PlayerController->GetSeamlessTravelActorList(!bSwitchedToDefaultMap, KeepActors);
 				}
 			}
 			// mark all valid actors specified
-			for (int32 i = 0; i < KeepActors.Num(); i++)
+			for (AActor* KeepActor : KeepActors)
 			{
-				if (KeepActors[i] != NULL)
+				if (KeepActor != nullptr)
 				{
-					KeepAnnotation.Set(KeepActors[i]);
+					KeepAnnotation.Set(KeepActor);
 				}
 			} 
 
 			TArray<AActor*> ActuallyKeptActors;
+			ActuallyKeptActors.Reserve(KeepAnnotation.Num());
 
 			// rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
 			for (FActorIterator It(CurrentWorld); It; ++It)
@@ -4935,36 +4938,57 @@ UWorld* FSeamlessTravelHandler::Tick()
 					// otherwise, set to be deleted
 					KeepAnnotation.Clear(TheActor);
 					// close any channels for this actor
-					if (NetDriver != NULL)
+					if (NetDriver != nullptr)
 					{
 						NetDriver->NotifyActorLevelUnloaded(TheActor);
 					}
 				}
 			}
 
-			// Second pass to rename and move actors that need to transition into the new world
-			// This is done after cleaning up actors that aren't transitioning in case those actors depend on these
-			// actors being in the same world.
-			for (AActor* const TheActor : ActuallyKeptActors)
+ 			bool bCreateNewGameMode = !bIsClient;
 			{
-				KeepAnnotation.Clear(TheActor);
-				TheActor->Rename(NULL, LoadedWorld->PersistentLevel);
-				// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
-				if (Cast<AController>(TheActor))
-				{
-					LoadedWorld->AddController(static_cast<AController*>(TheActor));
-				}
-				else if (Cast<APawn>(TheActor))
-				{
-					LoadedWorld->AddPawn(static_cast<APawn*>(TheActor));
-				}
-				// add to new world's actor list and remove from old
-				LoadedWorld->PersistentLevel->Actors.Add(TheActor);
+				// scope because after GC the kept pointers will be bad
+				AGameMode* KeptGameMode = nullptr;
+				AGameState* KeptGameState = nullptr;
 
-				TheActor->bActorSeamlessTraveled = true;
+				// Second pass to rename and move actors that need to transition into the new world
+				// This is done after cleaning up actors that aren't transitioning in case those actors depend on these
+				// actors being in the same world.
+				for (AActor* const TheActor : ActuallyKeptActors)
+				{
+					KeepAnnotation.Clear(TheActor);
+					TheActor->Rename(nullptr, LoadedWorld->PersistentLevel);
+					// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
+					if (TheActor->IsA<AController>())
+					{
+						LoadedWorld->AddController(static_cast<AController*>(TheActor));
+					}
+					else if (TheActor->IsA<APawn>())
+					{
+						LoadedWorld->AddPawn(static_cast<APawn*>(TheActor));
+					}
+					else if (TheActor->IsA<AGameMode>())
+					{
+						KeptGameMode = static_cast<AGameMode*>(TheActor);
+					}
+					else if (TheActor->IsA<AGameState>())
+					{
+						KeptGameState = static_cast<AGameState*>(TheActor);
+					}
+					// add to new world's actor list and remove from old
+					LoadedWorld->PersistentLevel->Actors.Add(TheActor);
+
+					TheActor->bActorSeamlessTraveled = true;
+				}
+
+				if (KeptGameMode)
+				{
+					LoadedWorld->CopyGameState(KeptGameMode, KeptGameState);
+					bCreateNewGameMode = false;
+				}
+
+				CopyWorldData(); // This copies the net driver too (LoadedWorld now has whatever NetDriver was previously held by CurrentWorld)
 			}
-
-			CopyWorldData(); // This copies the net driver too (LoadedWorld now has whatever NetDriver was previously held by CurrentWorld)
 
 			// only consider session ended if we're making the final switch so that HUD, etc. UI elements stay around until the end
 			CurrentWorld->CleanupWorld(bSwitchedToDefaultMap);
@@ -5001,7 +5025,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				NetDriver->PreSeamlessTravelGarbageCollect();
 			}
 
-			GWorld = NULL;
+			GWorld = nullptr;
 
 			// mark everything else contained in the world to be deleted
 			for (auto LevelIt(CurrentWorld->GetLevelIterator()); LevelIt; ++LevelIt)
@@ -5013,7 +5037,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			}
 
-			CurrentWorld = NULL;
+			CurrentWorld = nullptr;
 
 			// collect garbage to delete the old world
 			// because we marked everything in it pending kill, references will be NULL'ed so we shouldn't end up with any dangling pointers
@@ -5047,11 +5071,17 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Track session change on seamless travel.
 			NETWORK_PROFILER(GNetworkProfiler.TrackSessionChange(true, LoadedWorld->URL));
 
-			// if we've already switched to entry before and this is the transition to the new map, re-create the gameinfo
-			if (bSwitchedToDefaultMap && LoadedWorld->GetNetMode() != NM_Client)
+
+			checkSlow((LoadedWorld->GetNetMode() == NM_Client) == bIsClient);
+
+			if (bCreateNewGameMode)
 			{
 				LoadedWorld->SetGameMode(PendingTravelURL);
+			}
 
+			// if we've already switched to entry before and this is the transition to the new map, re-create the gameinfo
+			if (bSwitchedToDefaultMap && !bIsClient)
+			{
 				if (FAudioDevice* AudioDevice = LoadedWorld->GetAudioDevice())
 				{
 					AudioDevice->SetDefaultBaseSoundMix(LoadedWorld->GetWorldSettings()->DefaultBaseSoundMix);
@@ -5059,7 +5089,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 				// Copy cheat flags if the game info is present
 				// @todo UE4 FIXMELH - see if this exists, it should not since it's created in GameMode or it's garbage info
-				if (LoadedWorld->NetworkManager != NULL)
+				if (LoadedWorld->NetworkManager != nullptr)
 				{
 					LoadedWorld->NetworkManager->bHasStandbyCheatTriggered = bHasStandbyCheatTriggered;
 				}
@@ -5084,7 +5114,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			for (FLocalPlayerIterator It(GEngine, LoadedWorld); It; ++It)
 			{
 				UE_LOG(LogWorld, Log, TEXT("Sending NotifyLoadedWorld for LP: %s PC: %s"), *It->GetName(), It->PlayerController ? *It->PlayerController->GetName() : TEXT("NoPC"));
-				if (It->PlayerController != NULL)
+				if (It->PlayerController != nullptr)
 				{
 #if !UE_BUILD_SHIPPING
 					LOG_SCOPE_VERBOSITY_OVERRIDE(LogNet, ELogVerbosity::VeryVerbose);
@@ -5146,13 +5176,13 @@ UWorld* FSeamlessTravelHandler::Tick()
 			}			
 		}		
 	}
-	UWorld* OutWorld = NULL;
+	UWorld* OutWorld = nullptr;
 	if( bWorldChanged )
 	{
 		OutWorld = LoadedWorld;
 		// Cleanup the old pointers
-		LoadedPackage = NULL;
-		LoadedWorld = NULL;
+		LoadedPackage = nullptr;
+		LoadedWorld = nullptr;
 	}
 	
 	return OutWorld;
@@ -5846,6 +5876,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
+		UE_LOG(LogWorld, Log, TEXT("Changing Feature Level (Enum) from %i to %i"), (int)FeatureLevel, (int)InFeatureLevel);
 		FScopedSlowTask SlowTask(100.f, NSLOCTEXT("Engine", "ChangingPreviewRenderingLevelMessage", "Changing Preview Rendering Level"), bShowSlowProgressDialog);
         SlowTask.MakeDialog();
         {

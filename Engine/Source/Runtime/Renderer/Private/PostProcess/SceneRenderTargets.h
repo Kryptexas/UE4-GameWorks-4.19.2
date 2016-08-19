@@ -359,11 +359,7 @@ public:
 	const FTexture2DRHIRef& GetSceneAlphaCopySurface() const						{ return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSceneDepthSurface() const							{ return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSmallDepthSurface() const							{ return (const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface() const 
-	{ 
-		return (const FTexture2DRHIRef&)OptionalShadowDepthColor->GetRenderTargetItem().TargetableTexture; 
-	}
-
+	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface(FRHICommandList& RHICmdList, int32 Width, int32 Height) const;
 	const FTexture2DRHIRef& GetLightAttenuationSurface() const					{ return (const FTexture2DRHIRef&)GetLightAttenuation()->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetAuxiliarySceneDepthSurface() const 
 	{	
@@ -539,8 +535,8 @@ public:
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
 	// used by the CustomDepth material feature for stencil
 	TRefCountPtr<FRHIShaderResourceView> CustomStencilSRV;
-	// optional in case this RHI requires a color render target
-	TRefCountPtr<IPooledRenderTarget> OptionalShadowDepthColor;
+	// optional in case this RHI requires a color render target (adjust up if necessary)
+	TRefCountPtr<IPooledRenderTarget> OptionalShadowDepthColor[4];
 
 	/** 2 scratch cubemaps used for filtering reflections. */
 	TRefCountPtr<IPooledRenderTarget> ReflectionColorScratchCubemap[2];
@@ -598,8 +594,11 @@ private:
 	/** Allocates render targets for use with the mobile path. */
 	void AllocateMobileRenderTargets(FRHICommandList& RHICmdList);
 
+public:
 	/** Allocates render targets for use with the deferred shading path. */
+	// Temporarily Public to call from DefferedShaderRenderer to attempt recovery from a crash until cause is found.
 	void AllocateDeferredShadingPathRenderTargets(FRHICommandList& RHICmdList);
+private:
 
 	/** Allocates render targets for use with the current shading path. */
 	void AllocateRenderTargets(FRHICommandList& RHICmdList);

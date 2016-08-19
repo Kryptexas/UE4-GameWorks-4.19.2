@@ -97,8 +97,7 @@ struct FPlatformOpenGLDevice
 
 FPlatformOpenGLDevice::~FPlatformOpenGLDevice()
 {
-	AndroidEGL::GetInstance()->DestroyBackBuffer();
-	AndroidEGL::GetInstance()->Terminate();
+	FAndroidAppEntry::ReleaseEGL();
 }
 
 FPlatformOpenGLDevice::FPlatformOpenGLDevice()
@@ -206,16 +205,17 @@ bool PlatformInitOpenGL()
 
 		if (bES31Supported && bBuildForES31 && CVarDisableES31->GetValueOnAnyThread() == 0)
 		{
+			// shut down existing ES2 egl.
+			FAndroidAppEntry::ReleaseEGL();
+			// Re-init gles for 3.1
 			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, false);
 		}
 		else
 		{
 			bool bBuildForES2 = false;
 			GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES2"), bBuildForES2, GEngineIni);
-
 			// If we're here and there's no ES2 data then we're in trouble.
 			check(bBuildForES2);
-			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
 		}
 	}
 	return true;
@@ -589,9 +589,17 @@ void FAndroidAppEntry::PlatformInit()
 {
 	// create an ES2 EGL here for gpu queries.
 	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
-	FAndroidGPUInfo::Get();
-	AndroidEGL::GetInstance()->DestroyBackBuffer();
-	AndroidEGL::GetInstance()->Terminate();
+	// FAndroidGPUInfo::Get();
+}
+
+void FAndroidAppEntry::ReleaseEGL()
+{
+	AndroidEGL* EGL = AndroidEGL::GetInstance();
+	if (EGL->IsInitialized())
+	{
+		EGL->DestroyBackBuffer();
+		EGL->Terminate();
+	}
 }
 
 #endif

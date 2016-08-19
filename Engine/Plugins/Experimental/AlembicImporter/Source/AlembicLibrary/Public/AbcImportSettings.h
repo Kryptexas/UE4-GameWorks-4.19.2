@@ -126,7 +126,6 @@ struct FAbcNormalGenerationSettings
 		HardEdgeAngleThreshold = 0.9f;
 		bForceOneSmoothingGroupPerObject = false;
 		bIgnoreDegenerateTriangles = true;
-		bBlendOverlappingNormals = true;
 	}
 
 	/** Whether or not to force smooth normals for each individual object rather than calculating smoothing groups */
@@ -144,10 +143,6 @@ struct FAbcNormalGenerationSettings
 	/** Determines whether or not the degenerate triangles should be ignored when calculating tangents/normals */
 	UPROPERTY(EditAnywhere, Category = NormalCalculation)
 	bool bIgnoreDegenerateTriangles;
-
-	/** Determines whether or not the normals for overlapping vertex positions should be blended when calculating tangents/normals */
-	UPROPERTY(EditAnywhere, Category = NormalCalculation)
-	bool bBlendOverlappingNormals;
 };
 
 USTRUCT()
@@ -172,7 +167,7 @@ struct FAbcStaticMeshSettings
 
 	FAbcStaticMeshSettings()
 		: bMergeMeshes(true),
-		bPropogateMatrixTransformations(true)
+		bPropagateMatrixTransformations(true)
 	{}
 	
 	// Whether or not to merge the static meshes on import (remember this can cause problems with overlapping UV-sets)
@@ -181,7 +176,7 @@ struct FAbcStaticMeshSettings
 
 	// This will, if applicable, apply matrix transformations to the meshes before merging
 	UPROPERTY(EditAnywhere, Category = StaticMesh, meta=(editcondition="bMergeMeshes"))
-	bool bPropogateMatrixTransformations;
+	bool bPropagateMatrixTransformations;
 };
 
 /** Class that contains all options for importing an alembic file */

@@ -921,7 +921,7 @@ void FViewInfo::SetupUniformBufferParameters(
 	if ((Family != nullptr) && (StereoPass != eSSP_FULL) && (Family->Views.Num() > 1))
 	{
 		check(Family->Views.Num() == 2);
-		const float FamilySizeX = static_cast<float>(Family->FamilySizeX);
+		const float FamilySizeX = static_cast<float>(Family->InstancedStereoWidth);
 		const float EyePaddingSize = static_cast<float>(Family->Views[1]->ViewRect.Min.X - Family->Views[0]->ViewRect.Max.X);
 		ViewUniformShaderParameters.HMDEyePaddingOffset = (FamilySizeX - EyePaddingSize) / FamilySizeX;
 	}

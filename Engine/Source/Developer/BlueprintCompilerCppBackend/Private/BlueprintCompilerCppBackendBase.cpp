@@ -304,6 +304,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 			FBackendHelperStaticSearchableValues::EmitFunctionDefinition(EmitterContext);
 		}
 		FEmitDefaultValueHelper::GenerateConstructor(EmitterContext);
+		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
 	}
 
 	// Create the state map
@@ -334,7 +335,6 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	{
 		// must be called after GenerateConstructor
 		// now we knows which assets are directly used in source code
-		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
 		FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
 		FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
 	}
@@ -404,7 +404,9 @@ static void DeclareLocalVariables(FEmitterLocalContext& EmitterContext, TArray<U
 		if (!bUseExecutionGroup || PropertiesUsedByCurrentExecutionGroup.Contains(LocalVariable))
 		{
 			const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
-			EmitterContext.AddLine(CppDeclaration + TEXT("{};"));
+			UStructProperty* StructProperty = Cast<UStructProperty>(LocalVariable);
+			const TCHAR* EmptyDefaultConstructor = FEmitHelper::EmptyDefaultConstructor(StructProperty ? StructProperty->Struct : nullptr);
+			EmitterContext.AddLine(CppDeclaration + EmptyDefaultConstructor + TEXT(";"));
 		}
 	}
 }

@@ -129,15 +129,12 @@ public:
         }
         
         //@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
-        FSteamVRHMD::VRInitFn = (pVRInit)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Init"));
-        FSteamVRHMD::VRShutdownFn = (pVRShutdown)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Shutdown"));
         FSteamVRHMD::VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
-        FSteamVRHMD::VRGetStringForHmdErrorFn = (pVRGetStringForHmdError)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetStringForHmdError"));
         FSteamVRHMD::VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
-        FSteamVRHMD::VRExtendedDisplayFn = (pVRExtendedDisplay)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VRExtendedDisplay"));
-        
+        vr::VR_SetGenericInterfaceCallback(FSteamVRHMD::VRGetGenericInterfaceFn);
+
         // Verify that we've bound correctly to the DLL functions
-        if (!FSteamVRHMD::VRInitFn || !FSteamVRHMD::VRShutdownFn || !FSteamVRHMD::VRIsHmdPresentFn || !FSteamVRHMD::VRGetStringForHmdErrorFn || !FSteamVRHMD::VRGetGenericInterfaceFn || !FSteamVRHMD::VRExtendedDisplayFn)
+        if (!FSteamVRHMD::VRIsHmdPresentFn || !FSteamVRHMD::VRGetGenericInterfaceFn)
         {
             UE_LOG(LogHMD, Log, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
             UnloadOpenVRModule();
@@ -212,12 +209,8 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 
 bool FSteamVRHMD::bIsQuitting = false;
 
-pVRInit FSteamVRHMD::VRInitFn = nullptr;
-pVRShutdown FSteamVRHMD::VRShutdownFn = nullptr;
 pVRIsHmdPresent FSteamVRHMD::VRIsHmdPresentFn = nullptr;
-pVRGetStringForHmdError FSteamVRHMD::VRGetStringForHmdErrorFn = nullptr;
 pVRGetGenericInterface FSteamVRHMD::VRGetGenericInterfaceFn = nullptr;
-pVRExtendedDisplay FSteamVRHMD::VRExtendedDisplayFn = nullptr;
 
 bool FSteamVRHMD::IsHMDEnabled() const
 {
@@ -366,8 +359,7 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 
 void FSteamVRHMD::GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height)
 {
-	// (vr::IVRExtendedDisplay*)vr::VRExtendedDisplay();
-	if (vr::IVRExtendedDisplay *VRExtDisplay = VRExtendedDisplayFn())
+	if (vr::IVRExtendedDisplay *VRExtDisplay = vr::VRExtendedDisplay())
 	{
 		VRExtDisplay->GetWindowBounds(X, Y, Width, Height);
 	}
@@ -750,6 +742,8 @@ void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 
 bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 {
+	
+	
 	if (VRSystem == nullptr)
 	{
 		return false;
@@ -768,7 +762,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 
 	// Poll SteamVR events
 	vr::VREvent_t VREvent;
-	while (VRSystem->PollNextEvent(&VREvent))
+	while (VRSystem->PollNextEvent(&VREvent, sizeof(VREvent)))
 	{
 		switch (VREvent.eventType)
 		{
@@ -783,28 +777,49 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			break;
 		case vr::VREvent_TrackedDeviceUserInteractionStarted:
 			// if the event was sent by the HMD
-			if(VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd) )
 			{
-				HmdWornState = EHMDWornState::Worn;
+				// Save the position we are currently at and put us in the state where we could move to a worn state
+				bShouldCheckHMDPosition = true;
+				HMDStartLocation = Position;
 			}
 			break;
 		case vr::VREvent_TrackedDeviceUserInteractionEnded:
-			// if the event was sent by the HMD. Don't change our state to "not worn" unless we are currently wearing it.
-			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd) && (HmdWornState == EHMDWornState::Worn)) 
+			// if the event was sent by the HMD. 
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)) 
 			{
-				HmdWornState = EHMDWornState::NotWorn;
+				// Don't check to see if we might be wearing the HMD anymore.
+				bShouldCheckHMDPosition = false;
+				// Don't change our state to "not worn" unless we are currently wearing it.
+				if (HmdWornState == EHMDWornState::Worn)
+				{
+					HmdWornState = EHMDWornState::NotWorn;
+				}
 			}
 			break;
 		}
 	}
 
-	// SteamVR gives 5 seconds from VREvent_Quit till it's process is killed
+
+	// SteamVR gives 5 seconds from VREvent_Quit till its process is killed
 	if (bIsQuitting)
 	{
+		bShouldCheckHMDPosition = false;
 		Shutdown();
- 		GEngine->HMDDevice.Reset();
- 		GEngine->StereoRenderingDevice.Reset();
+		GEngine->HMDDevice.Reset();
+		GEngine->StereoRenderingDevice.Reset();
 	}
+
+	// If the HMD is being interacted with, but we haven't decided the HMD is worn yet.  
+	if (bShouldCheckHMDPosition)
+	{
+		if (FVector::Dist(HMDStartLocation, Position) > HMDWornMovementThreshold)
+		{
+			HmdWornState = EHMDWornState::Worn;
+			bShouldCheckHMDPosition = false;
+		}
+	}
+
 
 	return true;
 }
@@ -885,7 +900,16 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 		TSharedPtr<SWindow> Window = SceneVP->FindWindow();
 		if (Window.IsValid() && SceneVP->GetViewportWidget().IsValid())
 		{
-			FSystemResolution::RequestResolutionChange(1280, 720, EWindowMode::WindowedFullscreen);
+			int32 ResX = 2160;
+			int32 ResY = 1200;
+
+			MonitorInfo MonitorDesc;
+			if (GetHMDMonitorInfo(MonitorDesc))
+			{
+				ResX = MonitorDesc.ResolutionX;
+				ResY = MonitorDesc.ResolutionY;
+			}
+			FSystemResolution::RequestResolutionChange(ResX, ResY, EWindowMode::WindowedFullscreen);
 
 			if( bStereo )
 			{
@@ -987,6 +1011,13 @@ void FSteamVRHMD::InitCanvasFromView(FSceneView* InView, UCanvas* Canvas)
 {
 }
 
+void FSteamVRHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
+{
+	const float HudOffset = 50.0f;
+	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.f, 0.f));
+	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RTWidth * .5, 0.f, 0.f));
+}
+
 void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
 {
 	if (Context.View.StereoPass == eSSP_LEFT_EYE)
@@ -1054,12 +1085,10 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	check(IsInRenderingThread());
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
-	const float WorldToMetersScale = ViewFamily.Views[ 0 ]->WorldToMetersScale;
+	const FSceneView* MainView = ViewFamily.Views[0];
+	const float WorldToMetersScale = MainView->WorldToMetersScale;
 
-	FVector OldPosition;
-	FQuat OldOrientation;
-	GetCurrentPose(OldOrientation, OldPosition, vr::k_unTrackedDeviceIndex_Hmd);
-	const FTransform OldRelativeTransform(OldOrientation, OldPosition);
+	const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
 
 	FVector NewPosition;
 	FQuat NewOrientation;
@@ -1153,16 +1182,19 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	WindowMirrorMode(1),
 	WindowMirrorBoundsWidth(2160),
 	WindowMirrorBoundsHeight(1200),
+	HMDWornMovementThreshold(50.0f),
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
 	LastHmdPosition(FVector::ZeroVector),
+	HMDStartLocation(FVector::ZeroVector),
 	BaseOrientation(FQuat::Identity),
 	BaseOffset(FVector::ZeroVector),
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),
 	SteamVRPlugin(SteamVRPlugin),
-	RendererModule(nullptr)
+	RendererModule(nullptr),
+	bShouldCheckHMDPosition(false)
 {
 	Startup();
 }
@@ -1185,7 +1217,7 @@ void FSteamVRHMD::Startup()
 
 	vr::EVRInitError VRInitErr = vr::VRInitError_None;
 	// Attempt to initialize the VRSystem device
-	VRSystem = (*FSteamVRHMD::VRInitFn)(&VRInitErr, vr::VRApplication_Scene);
+	VRSystem = vr::VR_Init(&VRInitErr, vr::VRApplication_Scene);
 	if (!VRSystem || (VRInitErr != vr::VRInitError_None))
 	{
 		UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR with code %d"), (int32)VRInitErr);
@@ -1319,6 +1351,13 @@ void FSteamVRHMD::LoadFromIni()
 	{
 		WindowMirrorBoundsHeight = i;
 	}
+
+	float ConfigFloat = 0.0f;
+
+	if (GConfig->GetFloat(SteamVRSettings, TEXT("HMDWornMovementThreshold"), ConfigFloat, GEngineIni))
+	{
+		HMDWornMovementThreshold = ConfigFloat;
+	}
 }
 
 void FSteamVRHMD::SaveToIni()
@@ -1340,7 +1379,7 @@ void FSteamVRHMD::Shutdown()
 		VROverlay = nullptr;
 		VRChaperone = nullptr;
 
-		(*VRShutdownFn)();
+		vr::VR_Shutdown();
 
 		SteamVRPlugin->Reset();
 	}

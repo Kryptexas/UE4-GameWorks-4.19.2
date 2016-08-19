@@ -2065,150 +2065,155 @@ void FAnimMontageInstance::BranchingPointEventHandler(const FBranchingPointMarke
 	}
 }
 
-void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping)
+UAnimMontage* FAnimMontageInstance::InitializeMatineeControl(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, bool bLooping)
 {
-	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-	if(AnimInst)
+	UAnimMontage* MontageToPlay = Cast<UAnimMontage>(InAnimSequence);
+
+	if (UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance())
 	{
-		UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
-		if(SingleNodeInst)
+		// Single node anim instance
+		if (SingleNodeInst->GetCurrentAsset() != InAnimSequence)
 		{
-			if(SingleNodeInst->GetCurrentAsset() != InAnimSequence)
+			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
+			SingleNodeInst->SetPosition(0.0f);
+		}
+
+		if (SingleNodeInst->IsLooping() != bLooping)
+		{
+			SingleNodeInst->SetLooping(bLooping);
+		}
+
+		return MontageToPlay;
+	}
+	else if (UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance())
+	{
+		UAnimMontage* PlayingMontage = nullptr;
+
+		if (MontageToPlay)
+		{
+			if (!AnimInst->Montage_IsPlaying(MontageToPlay))
 			{
-				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
-				SingleNodeInst->SetPosition(0.0f);
+				// Will reuse an existing montage instance for this montage, if one already exists
+				AnimInst->Montage_Play(MontageToPlay, 0.f);
 			}
 
-			if(SingleNodeInst->IsLooping()!=bLooping)
+			return MontageToPlay;
+		}
+		else if (!AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage))
+		{
+			// set an existing instance's weight to 0
+			FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(PlayingMontage);
+			if(PrevAnimMontageInst)
 			{
-				SingleNodeInst->SetLooping(bLooping);
+				// set weight to be 0
+				PrevAnimMontageInst->Blend.SetDesiredValue(0.f);
+				PrevAnimMontageInst->Blend.SetAlpha(1.f);
 			}
-			if(SingleNodeInst->GetCurrentTime() != InPosition)
-			{
-				SingleNodeInst->SetPosition(InPosition);
-			}
+
+			return AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 		}
 		else
 		{
-			UAnimMontage* PlayingMontage = nullptr;
-			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage) == false;
-			if(bShouldChange)
-			{
-				if(CurrentlyPlayingMontage.IsValid())
-				{
-					// set it's weight to 0
-					struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
-					if(PrevAnimMontageInst)
-					{
-						// set weight to be 0
-						PrevAnimMontageInst->Blend.SetDesiredValue(0.f);
-						PrevAnimMontageInst->Blend.SetAlpha(1.f);
-					}
-				}
-
-				AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
-				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
-			}
-			else
-			{
-				CurrentlyPlayingMontage = PlayingMontage;
-				ensure(CurrentlyPlayingMontage.IsValid());
-			}
-
-			FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
-			if(AnimMontageInst)
-			{
-				// need to set weight to be 1
-				AnimMontageInst->Blend.SetDesiredValue(1.f);
-				AnimMontageInst->Blend.SetAlpha(1.f);
-
-				if (UAnimMontage* Montage = CurrentlyPlayingMontage.Get())
-				{
-					if (FAnimMontageInstance* MontageInst = AnimInst->GetActiveInstanceForMontage(Montage))
-					{
-						MontageInst->SetNextPositionWithEvents(InPosition);
-					}
-				}
-			}
-			else
-			{
-				UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid Slot Node Name: %s"), *SlotName.ToString());
-			}
+			return PlayingMontage;
 		}
 	}
+
+	return nullptr;
 }
 
-void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
+UAnimMontage* FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping)
 {
+	UAnimMontage* PlayingMontage = InitializeMatineeControl(SlotName, SkeletalMeshComponent, InAnimSequence, bLooping);
 	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-	UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
-	if(SingleNodeInst)
+	if (UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance())
 	{
-		if(SingleNodeInst->GetCurrentAsset() != InAnimSequence)
+		if (SingleNodeInst->GetCurrentTime() != InPosition)
 		{
-			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
+			SingleNodeInst->SetPosition(InPosition);
+		}
+	}
+	else if (PlayingMontage && AnimInst)
+	{
+		FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(PlayingMontage);
+		if (!AnimMontageInst)
+		{
+			UE_LOG(LogSkeletalMesh, Warning, TEXT("Unable to set animation position for montage on slot name: %s"), *SlotName.ToString());
+			return nullptr;
 		}
 
+		// ensure full weighting to this instance
+		AnimMontageInst->Blend.SetDesiredValue(1.f);
+		AnimMontageInst->Blend.SetAlpha(1.f);
 
-		SingleNodeInst->SetLooping(bLooping);
+		AnimMontageInst->SetNextPositionWithEvents(InPosition);
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid animation configuration when attempting to set animation possition with : %s"), *InAnimSequence->GetName());
+	}
 
-		// Anim notifies are fired from the previous evaluation time to the current time. When the delta time is 0, explicitly set the previous time to the current time so that anim notifies prior are not fired.
+	return PlayingMontage;
+}
+
+UAnimMontage* FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
+{
+	// Codepath for updating an animation when the skeletal mesh component is not going to be ticked (ie in editor)
+	UAnimMontage* PlayingMontage = InitializeMatineeControl(SlotName, SkeletalMeshComponent, InAnimSequence, bLooping);
+
+	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+
+	FAnimMontageInstance* MontageInstanceToUpdate = AnimInst && PlayingMontage ? AnimInst->GetActiveInstanceForMontage(PlayingMontage) : nullptr;
+	float PreviousPosition = InPosition;
+
+	if (UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance())
+	{
+		PreviousPosition = SingleNodeInst->GetCurrentTime();
+
+		// If we're playing a montage, we fire notifies explicitly below (rather than allowing the single node instance to do it)
+		const bool bFireNotifiesHere = bFireNotifies && PlayingMontage == nullptr;
+
 		if (DeltaTime == 0.f)
 		{
 			const float PreviousTime = InPosition;
-			SingleNodeInst->SetPositionWithPreviousTime(InPosition, PreviousTime, bFireNotifies);
+			SingleNodeInst->SetPositionWithPreviousTime(InPosition, PreviousTime, bFireNotifiesHere);
 		}
 		else
 		{
-			SingleNodeInst->SetPosition(InPosition, bFireNotifies);
+			SingleNodeInst->SetPosition(InPosition, bFireNotifiesHere);
 		}
 	}
-	else if (AnimInst)
+	else if (MontageInstanceToUpdate)
 	{
-		UAnimMontage* PlayingMontage = nullptr;
-		bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage) == false;
-		if(bShouldChange)
-		{
-			if(CurrentlyPlayingMontage.IsValid())
-			{
-				// set it's weight to 0
-				struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
-				if(PrevAnimMontageInst)
-				{
-					// set weight to be 0
-					PrevAnimMontageInst->Blend.SetDesiredValue(0.f);
-					PrevAnimMontageInst->Blend.SetAlpha(1.f);
-				}
-			}
+		// ensure full weighting to this instance
+		MontageInstanceToUpdate->Blend.SetDesiredValue(1.f);
+		MontageInstanceToUpdate->Blend.SetAlpha(1.f);
 
-			AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
-			CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
-		}
-		else
+		PreviousPosition = AnimInst->Montage_GetPosition(PlayingMontage);
+		AnimInst->Montage_SetPosition(PlayingMontage, InPosition);
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid animation configuration when attempting to set animation possition with : %s"), *InAnimSequence->GetName());
+	}
+
+	// Now force the animation system to update, if we have a montage instance
+	if (MontageInstanceToUpdate)
+	{
+		AnimInst->UpdateAnimation(DeltaTime, false);
+
+		// since we don't advance montage in the tick, we manually have to handle notifies
+		MontageInstanceToUpdate->HandleEvents(PreviousPosition, InPosition, NULL);
+
+		if (!bFireNotifies)
 		{
-			CurrentlyPlayingMontage = PlayingMontage;
-			ensure(CurrentlyPlayingMontage.IsValid());
+			AnimInst->NotifyQueue.Reset(SkeletalMeshComponent);
 		}
 
-		struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(CurrentlyPlayingMontage.Get());
-		if(AnimMontageInst)
-		{
-			// set weight to be 1
-			AnimMontageInst->Blend.SetDesiredValue(1.f);
-			AnimMontageInst->Blend.SetAlpha(1.f);
+		// Allow the proxy to update (this also filters unfiltered notifies)
+		AnimInst->ParallelUpdateAnimation();
 
-			float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
-			AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
-			AnimInst->UpdateAnimation(DeltaTime, false);
-
-			// since we don't advance montage in the tick, we manually have to handle notifies
-			AnimMontageInst->HandleEvents(OldMontagePosition, InPosition, NULL);
-			AnimInst->TriggerAnimNotifies(DeltaTime);
-		}
-		else
-		{
-			UE_LOG(LogSkeletalMesh, Warning, TEXT("Invalid Slot Node Name: %s"), *SlotName.ToString());
-		}
+		// Explicitly call post update (also triggers notifies)
+		AnimInst->PostUpdateAnimation();
 	}
 
 	// Update space bases so new animation position has an effect.
@@ -2218,6 +2223,8 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 	SkeletalMeshComponent->FinalizeBoneTransform();
 	SkeletalMeshComponent->MarkRenderTransformDirty();
 	SkeletalMeshComponent->MarkRenderDynamicDataDirty();
+
+	return PlayingMontage;
 }
 
 bool FAnimMontageInstance::CanUseMarkerSync() const

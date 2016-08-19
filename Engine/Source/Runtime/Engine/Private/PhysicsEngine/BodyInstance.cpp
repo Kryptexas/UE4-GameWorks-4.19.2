@@ -246,8 +246,6 @@ bool FCollisionResponse::operator==(const FCollisionResponse& Other) const
 }
 ////////////////////////////////////////////////////////////////////////////
 
-FBodyInstanceInit FBodyInstance::InitBodyDelegate;
-FBodyInstanceTerm FBodyInstance::TermBodyDelegate;
 
 FBodyInstance::FBodyInstance()
 	: InstanceBodyIndex(INDEX_NONE)
@@ -1794,8 +1792,6 @@ void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transfor
 
 	Bodies.Reset();
 	Transforms.Reset();
-
-	InitBodyDelegate.Broadcast(this);
 }
 
 TSharedPtr<TArray<ANSICHAR>> GetDebugDebugName(const UPrimitiveComponent* PrimitiveComp, const UBodySetup* BodySetup, FString& DebugName)
@@ -1995,8 +1991,6 @@ void TermBodyHelper(int16& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
  */
 void FBodyInstance::TermBody()
 {
-	TermBodyDelegate.Broadcast(this);
-
 	SCOPE_CYCLE_COUNTER(STAT_TermBody);
 #if WITH_BOX2D
 	if (BodyInstancePtr != NULL)

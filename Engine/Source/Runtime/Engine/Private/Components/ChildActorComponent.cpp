@@ -10,6 +10,7 @@ UChildActorComponent::UChildActorComponent(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 {
 	bWantsBeginPlay = true;
+	bAllowReregistration = false;
 }
 
 void UChildActorComponent::OnRegister()
@@ -358,6 +359,7 @@ void UChildActorComponent::CreateChildActor()
 				}
 
 				// Spawn actor of desired class
+				ConditionalUpdateComponentToWorld();
 				FVector Location = GetComponentLocation();
 				FRotator Rotation = GetComponentRotation();
 				ChildActor = World->SpawnActor(ChildActorClass, &Location, &Rotation, Params);
@@ -393,7 +395,9 @@ void UChildActorComponent::CreateChildActor()
 void UChildActorComponent::DestroyChildActor()
 {
 	// If we own an Actor, kill it now unless we don't have authority on it, for that we rely on the server
-	if (ChildActor && ChildActor->HasAuthority())
+	// If the level that the child actor is being removed then don't destory the child actor so re-adding it doesn't
+	// need to create a new actor
+	if (ChildActor && ChildActor->HasAuthority() && !GetOwner()->GetLevel()->bIsBeingRemoved)
 	{
 		if (!GExitPurge)
 		{

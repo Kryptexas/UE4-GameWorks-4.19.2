@@ -7,15 +7,15 @@
 
 typedef enum ovrPeerConnectionState_ {
   ovrPeerState_Unknown,
-  /// Connection to the peer has been established.
+  /// Connection to the peer is established.
   ovrPeerState_Connected,
   /// A timeout expired while attempting to (re)establish a connection. This can
   /// happen if peer is unreachable or rejected the connection.
   ovrPeerState_Timeout,
-  /// Connection to the peer has been closed. A connection transitions into this
-  /// state when it's explicitly closed by either the local or remote peer
-  /// calling ovr_Net_Close(), but also if the remote peer no longer responds to
-  /// our keep-alive probes.
+  /// Connection to the peer is closed. A connection transitions into this state
+  /// when it is explicitly closed by either the local or remote peer calling
+  /// ovr_Net_Close(). It also enters this state if the remote peer no longer
+  /// responds to our keep-alive probes.
   ovrPeerState_Closed,
 } ovrPeerConnectionState;
 

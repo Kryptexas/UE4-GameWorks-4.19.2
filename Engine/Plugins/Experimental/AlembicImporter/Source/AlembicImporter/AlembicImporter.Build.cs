@@ -23,8 +23,10 @@ public class AlembicImporter : ModuleRules
                 "MainFrame",
                 "PropertyEditor",
                 "AlembicLibrary",
-                "GeometryCache"
-			}
+                "GeometryCache",
+                "RenderCore",
+                "RHI"
+            }
 		);
 	}
 }

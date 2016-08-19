@@ -5819,6 +5819,10 @@ bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>
 				//This skeletal mesh was import with a scene import, we cannot reimport it here
 				return false;
 			}
+			else if (SkeletalMesh->AssetImportData != nullptr && (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()).ToLower() == "abc"))
+			{
+				return false;
+			}
 			SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
 		}
 		else

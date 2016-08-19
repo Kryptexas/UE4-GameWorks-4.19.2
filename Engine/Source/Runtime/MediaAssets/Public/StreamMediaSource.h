@@ -6,8 +6,8 @@
 #include "StreamMediaSource.generated.h"
 
 
-UCLASS(BlueprintType, MinimalAPI)
-class UStreamMediaSource
+UCLASS(BlueprintType)
+class MEDIAASSETS_API UStreamMediaSource
 	: public UMediaSource
 {
 	GENERATED_BODY()
@@ -15,7 +15,7 @@ class UStreamMediaSource
 public:
 
 	/** The URL to the media stream to be played. */
-	UPROPERTY(EditAnywhere, Category=Stream, AssetRegistrySearchable)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Stream, AssetRegistrySearchable)
 	FString StreamUrl;
 
 public:

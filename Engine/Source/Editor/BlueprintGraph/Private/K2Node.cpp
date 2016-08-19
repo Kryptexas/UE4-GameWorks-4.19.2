@@ -692,16 +692,24 @@ void UK2Node::RewireOldPinsToNewPins(TArray<UEdGraphPin*>& InOldPins, TArray<UEd
 	}
 
 	// Rewire any connection to pins that are matched by name (O(N^2) right now)
-	//@TODO: Can do moderately smart things here if only one pin changes name by looking at it's relative position, etc...,
-	// rather than just failing to map it and breaking the links
-	for (int32 OldPinIndex = 0; OldPinIndex < InOldPins.Num(); ++OldPinIndex)
+	// @TODO: Can do moderately smart things here if only one pin changes name 
+	//        by looking at it's relative position, etc..., rather than just 
+	//        failing to map it and breaking the links
+	//
+	// NOTE: we iterate backwards through the list because ReconstructSinglePin()
+	//       destroys pins as we go along (clearing out parent pointers, etc.); 
+	//       we need the parent pin chain intact for DoPinsMatchForReconstruction();              
+	//       we want to destroy old pins from the split children (leafs) up, so 
+	//       we do this since split child pins are ordered later in the list 
+	//       (after their parents) 
+	for (int32 OldPinIndex = InOldPins.Num()-1; OldPinIndex >= 0; --OldPinIndex)
 	{
 		UEdGraphPin* OldPin = InOldPins[OldPinIndex];
 
 		// common case is for InOldPins and InNewPins to match, so we start searching from the current index:
 		const int32 NumNewPins = InNewPins.Num();
 		int32 NewPinIndex = OldPinIndex % InNewPins.Num();
-		for (int32 NewPinCount = 0; NewPinCount < InNewPins.Num(); ++NewPinCount)
+		for (int32 NewPinCount = InNewPins.Num()-1; NewPinCount >= 0; --NewPinCount)
 		{
 			// if InNewPins grows in this loop then we may skip entries and fail to find a match:
 			check(NumNewPins == InNewPins.Num());

@@ -211,20 +211,6 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	if (RTLayout.GetHasDepthStencil())
 	{
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(InRTInfo.DepthStencilRenderTarget.Texture);
-		const VkImageAspectFlags AspectFlags = VulkanRHI::GetAspectMaskFromUEFormat(Texture->Surface.Format, true);
-
-		//#todo-rco: Check this got fixed with a new driver/OS
-		if (PLATFORM_ANDROID)
-		{
-			//@HACK: Re-create the ImageView for the depth buffer, because the original view doesn't work for some unknown reason (it's a bug in the device system software)
-			Texture->DefaultView.Destroy(Device);
-			Texture->DefaultView.Create(Device, Texture->Surface.Image,
-				Texture->Surface.GetViewType(),
-				Texture->Surface.GetAspectMask(),
-				Texture->Surface.Format,
-				Texture->Surface.InternalFormat,
-				Texture->Surface.GetNumMips(), 1);
-		}
 
 		bool bHasStencil = (Texture->Surface.Format == PF_DepthStencil);
 

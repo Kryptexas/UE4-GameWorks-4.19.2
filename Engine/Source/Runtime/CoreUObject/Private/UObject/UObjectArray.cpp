@@ -33,7 +33,7 @@ void FUObjectArray::AllocateObjectPool(int32 InMaxUObjects, int32 InMaxObjectsNo
 
 	// Pre-size array.
 	check(ObjObjects.Num() == 0);
-	UE_CLOG(((InMaxUObjects - 1) & (int32)EInternalObjectFlags::AllFlags) != 0, LogUObjectArray, Fatal, TEXT("Max UObject count is incompatible with internal object flags. Try decreasing the max UObject count in ini."));
+	UE_CLOG(InMaxUObjects <= 0, LogUObjectArray, Fatal, TEXT("Max UObject count is invalid. It must be a number that is greater than 0."));
 	ObjObjects.PreAllocate(InMaxUObjects);
 
 	if (MaxObjectsNotConsideredByGC > 0)
@@ -186,7 +186,8 @@ void FUObjectArray::FreeUObjectIndex(UObjectBase* Object)
 	}
 
 	// @todo: threading: delete listeners should be locked while we're doing this
-	for (int32 ListenerIndex = 0; ListenerIndex < UObjectDeleteListeners.Num(); ListenerIndex++)
+	// Iterate in reverse order so that when one of the listeners removes itself from the array inside of NotifyUObjectDeleted we don't skip the next listener.
+	for (int32 ListenerIndex = UObjectDeleteListeners.Num() - 1; ListenerIndex >= 0; --ListenerIndex)
 	{
 		UObjectDeleteListeners[ListenerIndex]->NotifyUObjectDeleted(Object, Index);
 	}

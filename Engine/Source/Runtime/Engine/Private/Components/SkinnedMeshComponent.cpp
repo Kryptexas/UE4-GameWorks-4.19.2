@@ -542,6 +542,17 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			RefreshBoneTransforms(ThisTickFunction);
 		}
 	}
+#if WITH_EDITOR
+	else 
+	{
+		// only do this for level viewport actors
+		UWorld* World = GetWorld();
+		if (World && World->WorldType == EWorldType::Editor)
+		{
+			RefreshMorphTargets();
+		}
+	}
+#endif // WITH_EDITOR
 }
 
 UObject const* USkinnedMeshComponent::AdditionalStatObject() const

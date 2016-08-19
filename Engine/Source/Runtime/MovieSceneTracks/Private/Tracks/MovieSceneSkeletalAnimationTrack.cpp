@@ -5,7 +5,7 @@
 #include "MovieSceneSkeletalAnimationTrack.h"
 #include "IMovieScenePlayer.h"
 #include "MovieSceneSkeletalAnimationTrackInstance.h"
-#include "Animation/AnimSequence.h"
+#include "Animation/AnimSequenceBase.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"
@@ -26,7 +26,7 @@ UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack(const FObje
 /* UMovieSceneSkeletalAnimationTrack interface
  *****************************************************************************/
 
-void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
+void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequenceBase* AnimSequence)
 {
 	UMovieSceneSkeletalAnimationSection* NewSection = Cast<UMovieSceneSkeletalAnimationSection>(CreateNewSection());
 	{
@@ -38,17 +38,18 @@ void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequ
 }
 
 
-UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
+TArray<UMovieSceneSection*> UMovieSceneSkeletalAnimationTrack::GetAnimSectionsAtTime(float Time)
 {
+	TArray<UMovieSceneSection*> Sections;
 	for (auto Section : AnimationSections)
 	{
 		if (Section->IsTimeWithinSection(Time))
 		{
-			return Section;
+			Sections.Add(Section);
 		}
 	}
 
-	return nullptr;
+	return Sections;
 }
 
 

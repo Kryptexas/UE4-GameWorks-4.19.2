@@ -1453,8 +1453,8 @@ protected:
 	virtual void OnRegister()  override;
 	virtual void OnUnregister()  override;
 	virtual void DestroyRenderState_Concurrent() override;
-	virtual void CreatePhysicsState() override;
-	virtual void DestroyPhysicsState() override;
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
 	virtual void OnActorEnableCollisionChanged() override;
 	/**
 	 * Called to get the Component To World Transform from the Root BodyInstance

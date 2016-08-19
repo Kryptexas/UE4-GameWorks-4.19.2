@@ -92,8 +92,12 @@ FMalloc* FAndroidPlatformMemory::BaseAllocator()
 	// this then causes the MemoryLimit to be 0 and crashing the app
 	uint64 MemoryLimit = FMath::Min<uint64>( uint64(1) << FMath::CeilLogTwo(MemoryConstants.TotalPhysical), 0x100000000);
 
-	//return new FMallocAnsi();
+#if PLATFORM_ANDROID_ARM64
+	// todo: track down why FMallocBinned is failing on ARM64
+	return new FMallocAnsi();
+#else
 	return new FMallocBinned(MemoryConstants.PageSize, MemoryLimit);
+#endif
 }
 
 void* FAndroidPlatformMemory::BinnedAllocFromOS(SIZE_T Size)

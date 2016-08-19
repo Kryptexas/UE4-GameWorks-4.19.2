@@ -18,7 +18,7 @@
 
 	<Property Name="WindowsSignFilter" Value="*.exe;*.dll"/>
 	<Property Name="MacSignFilter" Value="*.dylib;*.app"/>
-	
+
 	<!-- List of projects to build DDC for -->
 	<Property Name="ProjectsToBuildDDC" Value="Templates/FP_FirstPersonBP/FP_FirstPersonBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_FlyingBP/TP_FlyingBP.uproject"/>
@@ -44,7 +44,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/OneSky.dll"/>
 
 	<!-- API docs -->
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm"/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm" If="Exists('Engine/Documentation/CHM/API.chm')"/>
 	<!-- In-editor documentation -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Source/Shared/..."/>
 
@@ -87,6 +87,9 @@
 
 	<!-- Exclude all the intermediate files in the Engine/Saved folder -->
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Saved/..."/>
+	
+	<!-- Exclude generated config files from Engine/Programs folder -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealBuildTool/..."/>
 
 	<!-- Starter content -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Samples/StarterContent/Content/..."/>
@@ -135,6 +138,79 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/Build.version"/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/Target.cs.template"/>
 
+	<!-- Win64-specific dependencies -->
+	<Do If="'$(HostPlatform)' == 'Win64'">
+		<!-- Exclude Mac binaries on windows here, because previous wildcard for plugin resources matches OSX dsym resources on Windows -->
+		<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Plugins/.../Binaries/Mac/..."/>
+
+		<!-- Leap SDK -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/Runtime/LeapMotion/ThirdParty/LeapSDK/..."/>
+
+		<!-- Build batch files -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Build.bat"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Clean.bat"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Rebuild.bat"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/RunUAT.bat"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/GetVSComnToolsPath.bat"/>
+
+		<!-- Binaries which are explicitly staged by UAT rather than listing runtime dependencies -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/OpenSSL/..."/>
+
+		<!-- Extra tools -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/3dsMaxScripts/..."/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/VisualStudioDebugging/UE4.natvis"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/MayaTools/..."/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/MayaVelocityGridExporter/..."/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/UnrealVS/..."/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Redist/en-us/*"/>
+	</Do>
+
+	<!-- Mac-specific dependencies -->
+	<Do If="'$(HostPlatform)' == 'Mac'">
+		<!-- Exclude Windows binaries on Mac here -->
+		<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Plugins/.../Binaries/Win64/...;Engine/Plugins/.../Binaries/Win32/..."/>
+
+		<!-- Build batch files -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/Build.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/GenerateLLDBInit.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/FixDependencyFiles.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/SetupMono.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/FixMonoFiles.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/RunMono.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Mac/RunXBuild.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/RunUAT.command"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/RunUAT.sh"/>
+
+		<!-- Mono -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/Mono/Mac/..."/>
+
+		<!-- Extra tools -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/LLDBDataFormatters/UE4DataFormatters.py"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/..."/>
+
+		<!-- Don't want these folders, even if they're part of Windows tools -->
+		<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Binaries/Win64/...;Engine/Binaries/Win32/..."/>
+	</Do>
+
+	<!-- Linux-specific dependencies -->
+	<Do If="'$(HostPlatform)' == 'Linux'">
+		<!-- Build batch files -->
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/Build.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/BuildThirdParty.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/GenerateProjectFiles.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/GitDependencies.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/QASmokeManual.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/RunMono.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/RunXBuild.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/Setup.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Linux/UpdateDeps.sh"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/RunUAT.sh"/>
+
+		<!-- Should be included by RuntimeDependencies -->
+		<!--<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/..."/>-->
+	</Do>
+
 	<!-- Target Platform Filters/Exceptions -->
 
 	<!-- Win64 -->
@@ -160,6 +236,16 @@
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/GoogleVR/..."/>
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_3/Libs/..."/>
 	<Property Name="CopyAndroidExceptions" Value="$(CopyAndroidExceptions);Engine/Binaries/Android/....apk"/>
+	
+	<!-- Win64 Specific -->
+	<Do If="'$(HostPlatform)' == 'Win64'">
+		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Win64/*.exe"/>
+	</Do>
+	
+	<!-- Mac Specific -->
+	<Do If="'$(HostPlatform)' == 'Mac'">
+		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Mac/*.dmg"/>
+	</Do>
 
 	<!-- IOS -->
 	<Property Name="CopyIOSFilter" Value=""/>
@@ -170,11 +256,7 @@
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/....psd"/>
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/....mobileprovision"/>
 	<Property Name="CopyIOSExceptions" Value="$(CopyIOSExceptions);Engine/Build/IOS/UnrealRemoteTool"/>
-	
-	<!-- Temporary until CsCompile includes .dll.config files -->
-	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/iOS/DeploymentInterface.dll.config"/>
-	<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/iOS/MobileDeviceInterface.dll.config"/>
-	
+
 	<!-- Win64 specific -->
 	<Do If="'$(HostPlatform)' == 'Win64'">
 		<Property Name="CopyIOSFilter" Value="$(CopyIOSFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
@@ -191,18 +273,29 @@
 	<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Build/TVOS/..."/>
 	<Property Name="CopyTVOSExceptions" Value="$(CopyTVOSExceptions);Engine/Build/TVOS/....psd"/>
 	<Property Name="CopyTVOSExceptions" Value="$(CopyTVOSExceptions);Engine/Build/TVOS/....mobileprovision"/>
-	
+
+	<!-- Win64 specific -->
+	<Do If="'$(HostPlatform)' == 'Win64'">
+		<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Binaries/DotNET/IOS/openssl.exe"/>
+		<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Binaries/ThirdParty/IOS/*"/>
+		<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Build/BatchFiles/MakeAndInstallSSHKey.bat"/>
+		<Property Name="CopyTVOSFilter" Value="$(CopyTVOSFilter);Engine/Extras/ThirdPartyNotUE/DeltaCopy/..."/>
+	</Do>
+
 	<!-- Linux -->
 	<Property Name="CopyLinuxFilter" Value=""/>
 	<Property Name="CopyLinuxExceptions" Value=""/>
-	
-	<!-- Content only - exclude things we only need for code projects -->
-	<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Binaries/Linux/....a"/>
-	<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Plugins/.../Binaries/Linux/....a"/>
-	<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Source/ThirdParty/.../Linux/....a"/>
-	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/Linux/CrashReportClient"/>
+
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/OpenAL/..."/>
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu/*.so"/>
+
+	<!-- Win64 specific -->
+	<Do If="'$(HostPlatform)' == 'Win64'">
+		<!-- Content only - exclude things we only need for code projects -->
+		<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Binaries/Linux/....a"/>
+		<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Plugins/.../Binaries/Linux/....a"/>
+		<Property Name="CopyLinuxExceptions" Value="$(CopyLinuxExceptions);Engine/Source/ThirdParty/.../Linux/....a"/>
+	</Do>
 
 	<!-- HTML5 -->
 	<Property Name="CopyHTML5Filter" Value=""/>

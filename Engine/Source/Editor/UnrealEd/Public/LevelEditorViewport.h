@@ -162,13 +162,11 @@ public:
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
-	void SetIsCameraCut( bool bInIsCameraCut )
+	/** Sets a flag for this frame indicating that the camera has been cut, and temporal effects (such as motion blur) should be reset */
+	void SetIsCameraCut()
 	{
-		bEditorCameraCut = bInIsCameraCut;
-		if (bEditorCameraCut)
-		{
-			bWasEditorCameraCut = false;
-		}
+		bEditorCameraCut = true;
+		bWasEditorCameraCut = false;
 	}
 
 	/** 
@@ -487,18 +485,12 @@ public:
 	/** 
 	 * Set the actor lock. This is the actor locked to the viewport via the viewport menus.
 	 */
-	void SetActorLock(AActor* Actor)
-	{
-		return ActorLockedToCamera = Actor;
-	}
+	void SetActorLock(AActor* Actor);
 
 	/** 
 	 * Set the actor locked to the viewport by Matinee.
 	 */
-	void SetMatineeActorLock(AActor* Actor)
-	{
-		return ActorLockedByMatinee = Actor;
-	}
+	void SetMatineeActorLock(AActor* Actor);
 
 	/** 
 	 * Check whether this viewport is locked to the specified actor

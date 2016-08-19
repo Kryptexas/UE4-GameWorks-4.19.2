@@ -463,14 +463,14 @@ FIntPoint FVideoPlayer::AddStreamToTopology(IMFTopology* Topology, IMFPresentati
 			HResult = MFCreateSampleGrabberSinkActivate(InputType, SampleGrabberCallback, &SinkActivate);
 		
 			check(SUCCEEDED(HResult));
-			InputType->Release();
+			SAFE_RELEASE(InputType);
 
-			OutputType->Release();
+			SAFE_RELEASE(OutputType);
 
 			OutDimensions = FIntPoint(Width, Height);
 		}
 
-		Handler->Release();
+		SAFE_RELEASE(Handler);
 	}
 	
 	IMFTopologyNode* SourceNode = NULL;
@@ -504,9 +504,9 @@ FIntPoint FVideoPlayer::AddStreamToTopology(IMFTopology* Topology, IMFPresentati
 	HResult = SourceNode->ConnectOutput(0, OutputNode, 0);
 	check(SUCCEEDED(HResult));
 
-	SourceNode->Release();
-	OutputNode->Release();
-	SinkActivate->Release();
+	SAFE_RELEASE(SourceNode);
+	SAFE_RELEASE(OutputNode);
+	SAFE_RELEASE(SinkActivate);
 
 	return OutDimensions;
 }

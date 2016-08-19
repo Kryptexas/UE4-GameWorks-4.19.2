@@ -2716,6 +2716,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		PaintRays.Reset();
 		
 
+
 		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
 
 		// Check to see if VREditorMode is active. If so, we're painting with interactor

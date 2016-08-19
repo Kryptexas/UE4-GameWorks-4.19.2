@@ -1097,7 +1097,7 @@ inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVu
 	}
 
 	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
-	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Context->GetDescriptorPool());
+	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Context);
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
@@ -1277,4 +1277,31 @@ FBoundShaderStateRHIRef FVulkanDynamicRHI::RHICreateBoundShaderState(
 	}
 
 	return new FVulkanBoundShaderState(Device, VertexDeclarationRHI,VertexShaderRHI,PixelShaderRHI,HullShaderRHI,DomainShaderRHI,GeometryShaderRHI);
+}
+
+FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& InDescriptorSetAllocateInfo, VkDescriptorSet* OutSets)
+{
+	FVulkanDescriptorPool* Pool = DescriptorPools.Last();
+	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo = InDescriptorSetAllocateInfo;
+	DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
+
+	VkResult Result = VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets);
+
+	if (Result < VK_SUCCESS)
+	{
+		if (Pool->IsEmpty())
+		{
+			VERIFYVULKANRESULT(Result);
+		}
+		else
+		{
+			// Spec says any negative value could be due to fragmentation, so create a new Pool. If it fails here then we really are out of memory!
+			Pool = new FVulkanDescriptorPool(Device);
+			DescriptorPools.Add(Pool);
+			DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
+			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets));
+		}
+	}
+
+	return Pool;
 }

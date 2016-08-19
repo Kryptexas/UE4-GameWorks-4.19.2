@@ -215,12 +215,10 @@ void FApp::SetUnfocusedVolumeMultiplier(float InVolumeMultiplier)
 
 void FApp::SetUseVRFocus(bool bInUseVRFocus)
 {
-	UE_CLOG(bUseVRFocus != bInUseVRFocus, LogApp, Log, TEXT("UseVRFocus has changed to %d"), int(bInUseVRFocus));
 	bUseVRFocus = bInUseVRFocus;
 }
 
 void FApp::SetHasVRFocus(bool bInHasVRFocus)
 {
-	UE_CLOG(bHasVRFocus != bInHasVRFocus, LogApp, Log, TEXT("HasVRFocus has changed to %d"), int(bInHasVRFocus));
 	bHasVRFocus = bInHasVRFocus;
 }

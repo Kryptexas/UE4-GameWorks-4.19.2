@@ -63,7 +63,9 @@ public:
 };
 
 DECLARE_DELEGATE_ThreeParams(FProxyCompleteDelegate, struct FRawMesh&, struct FFlattenMaterial&, const FGuid);
+DECLARE_DELEGATE_TwoParams(FProxyFailedDelegate, const FGuid, const FString&);
 DECLARE_DELEGATE_TwoParams(FCreateProxyDelegate, const FGuid, TArray<UObject*>&);
+
 /** Data used for passing back the data resulting from a completed mesh merging operation*/
 struct FMergeCompleteData
 {
@@ -91,6 +93,7 @@ public:
 	virtual void AggregateLOD() {}
 
 	FProxyCompleteDelegate CompleteDelegate;
+	FProxyFailedDelegate FailedDelegate;
 };
 
 /**
@@ -417,5 +420,5 @@ public:
 	 * @param OutTangentX Array to hold calculated Tangents
 	 * @param OutNormals Array to hold calculated normals (if already contains normals will use those instead for the tangent calculation	
 	*/
-	virtual void CalculateTangents(const TArray<FVector> InVertices, const TArray<uint32> InIndices, const TArray<FVector2D> InUVs, const TArray<uint32> InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const = 0;
+	virtual void CalculateTangents(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const = 0;
 };

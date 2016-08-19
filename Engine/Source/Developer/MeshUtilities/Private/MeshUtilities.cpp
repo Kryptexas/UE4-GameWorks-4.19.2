@@ -241,7 +241,7 @@ private:
 
 	virtual bool RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const override;
 
-	virtual void CalculateTangents(const TArray<FVector> InVertices, const TArray<uint32> InIndices, const TArray<FVector2D> InUVs, const TArray<uint32> InSmoothingGroupIndices, const uint32 TangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const override;
+	virtual void CalculateTangents(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const override;
 
 	// Need to call some members from this class, (which is internal to this module)
 	friend class FStaticMeshUtilityBuilder;
@@ -310,6 +310,20 @@ public:
 			GenerationData->MergeData = Data;
 
 			ToProcessJobDataMap.Add(OutJobGUID, GenerationData);
+		}
+	}
+
+	void ProxyGenerationFailed(const FGuid OutJobGUID, const FString& ErrorMessage )
+	{
+		FScopeLock Lock(&StateLock);
+		FMergeCompleteData** FindData = ProxyMeshJobs.Find(OutJobGUID);
+		if (FindData)
+		{
+			ProxyMeshJobs.Remove(OutJobGUID);
+			if (*FindData)
+			{
+				UE_LOG(LogMeshUtilities, Log, TEXT("Failed to generate proxy mesh for cluster %s, %s"), *(*FindData)->ProxyBasePackageName, *ErrorMessage);
+			}
 		}
 	}
 
@@ -1382,6 +1396,9 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 			LODModel.MeshToImportVertexMap.Add(RawVertIndex);
 			LODModel.MaxImportVertex = FMath::Max<float>(LODModel.MaxImportVertex, RawVertIndex);
 		}
+
+		// update NumVertices
+		Section.NumVertices = Section.SoftVertices.Num();
 
 		// update max bone influences
 		Section.CalcMaxBoneInfluences();
@@ -2472,7 +2489,7 @@ static void ComputeTangents_MikkTSpace(
 		RawMesh.WedgeTangentZ.AddZeroed(NumWedges);
 
 		// we need to calculate normals for MikkTSpace
-		UE_LOG(LogMeshUtilities, Warning, TEXT("Invalid vertex normals found for mesh. Forcing recomputation of vertex normals for MikkTSpace. Fix mesh or disable \"Use MikkTSpace Tangent Space\" to avoid forced recomputation of normals."));
+		UE_LOG(LogMeshUtilities, Log, TEXT("Invalid vertex normals found for mesh. Forcing recomputation of vertex normals for MikkTSpace. Fix mesh or disable \"Use MikkTSpace Tangent Space\" to avoid forced recomputation of normals."));
 
 		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
 		{
@@ -7717,6 +7734,7 @@ void FMeshUtilities::StartupModule()
 		else
 		{
 			MeshMerging->CompleteDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationComplete);
+			MeshMerging->FailedDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationFailed);
 		}
 
 		if (!DistributedMeshMerging)
@@ -7726,6 +7744,7 @@ void FMeshUtilities::StartupModule()
 		else
 		{
 			DistributedMeshMerging->CompleteDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationComplete);
+			DistributedMeshMerging->FailedDelegate.BindRaw(Processor, &FProxyGenerationProcessor::ProxyGenerationFailed);
 		}
 	}
 
@@ -7845,7 +7864,7 @@ bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LOD
 	return bPackSuccess;
 }
 
-void FMeshUtilities::CalculateTangents(const TArray<FVector> InVertices, const TArray<uint32> InIndices, const TArray<FVector2D> InUVs, const TArray<uint32> InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const
+void FMeshUtilities::CalculateTangents(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const
 {
 	const float ComparisonThreshold = (InTangentOptions & ETangentOptions::IgnoreDegenerateTriangles ) ? THRESH_POINTS_ARE_SAME : 0.0f;
 

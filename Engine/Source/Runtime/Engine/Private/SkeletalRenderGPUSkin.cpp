@@ -38,6 +38,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogSkeletalGPUSkinMesh, Warning, All);
 
 // 0/1
 #define UPDATE_PER_BONE_DATA_ONLY_FOR_OBJECT_BEEN_VISIBLE 1
+#define MORPH_TARGETS_USE_BYTE_BUFFER_UAV	0
 
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Update"),STAT_MorphVertexBuffer_Update,STATGROUP_MorphTarget);
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Init"),STAT_MorphVertexBuffer_Init,STATGROUP_MorphTarget);
@@ -86,6 +87,9 @@ void FMorphVertexBuffer::InitDynamicRHI()
 	EBufferUsageFlags Flags = BUF_Dynamic;
 #else
 	EBufferUsageFlags Flags = bUsesComputeShader ? (EBufferUsageFlags)(BUF_Static | BUF_UnorderedAccess) : BUF_Dynamic;
+#if MORPH_TARGETS_USE_BYTE_BUFFER_UAV
+	Flags = (EBufferUsageFlags)(Flags | (bUsesComputeShader ? BUF_ByteAddressBuffer : 0));
+#endif
 #endif
 
 	// BUF_ShaderResource is needed for Morph support of the SkinCache
@@ -549,6 +553,11 @@ public:
 	{
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("USE_BYTE_BUFFER"), MORPH_TARGETS_USE_BYTE_BUFFER_UAV);
+	}
+
 	void Dispatch(FRHICommandList& RHICmdList, int32 NumLODVertices, int32 NumMorphVertices, FShaderResourceViewRHIRef MorphWeightsSRV, FShaderResourceViewRHIRef PerVertexInfoListSRV, FShaderResourceViewRHIRef FlattenedDeltaListSRV, FUnorderedAccessViewRHIParamRef UAV)
 	{
 		FComputeShaderRHIRef CS = GetComputeShader();
@@ -589,7 +598,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 		MorphVertexBuffer.RecreateResourcesIfRequired(GUseGPUMorphTargets != 0);
 
-		if (GUseGPUMorphTargets)
+		if (GUseGPUMorphTargets && RHISupportsComputeShaders(GMaxRHIShaderPlatform))
 		{
 			SCOPED_DRAW_EVENTF(RHICmdList, MorphUpdate,
 				TEXT("MorphUpdate LodVertices=%d InflVerts=%d"),

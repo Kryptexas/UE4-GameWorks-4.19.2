@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPCH.h"
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
 #include "WmfMediaByteStream.h"
 #include "WmfMediaResolver.h"
 #include "WmfMediaResolveState.h"
@@ -124,7 +127,7 @@ STDMETHODIMP FWmfMediaResolver::Invoke(IMFAsyncResult* AsyncResult)
 	}
 
 	// is this the resolve state we care about?
-	FWmfMediaResolveState* State = NULL;
+	TComPtr<FWmfMediaResolveState> State;
 
 	if (FAILED(AsyncResult->GetState((IUnknown**)&State)) || (State != ResolveStateCopy))
 	{
@@ -199,3 +202,5 @@ STDMETHODIMP_(ULONG) FWmfMediaResolver::Release()
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

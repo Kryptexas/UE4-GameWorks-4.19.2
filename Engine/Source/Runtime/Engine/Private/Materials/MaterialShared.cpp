@@ -2263,13 +2263,10 @@ void FMaterial::GetReferencedTexturesHash(EShaderPlatform Platform, FSHAHash& Ou
 		HashState.UpdateWithString(*TextureName, TextureName.Len());
 	}
 
-	// TODO:
-	// Appending the quality settings for this platform,
-	// this is being done here to avoid bumping EUnrealEngineObjectUE4Version for 4.10
-	// must be fixed for 4.11.
-	if (bHasQualityLevelUsage)
+	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
+	if(MaterialShaderQualitySettings->HasPlatformQualitySettings(Platform, QualityLevel))
 	{
-		UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(GetQualityLevelForShaderMapId(), HashState);
+		MaterialShaderQualitySettings->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(QualityLevel, HashState);
 	}
 
 	HashState.Final();
@@ -2613,7 +2610,18 @@ int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMate
 		case MP_DiffuseColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_SpecularColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_BaseColor:				return Compiler->Constant3(0, 0, 0);
-		case MP_SubsurfaceColor:		return Compiler->Constant3(1, 1, 1);
+		case MP_SubsurfaceColor:		
+		{
+			// Two-sided foliage should default to black
+			if (Compiler->GetMaterialShadingModel() == MSM_TwoSidedFoliage)
+			{
+				return Compiler->Constant3(0, 0, 0);
+			}
+			else
+			{
+				return Compiler->Constant3(1, 1, 1);
+			}
+		}
 		case MP_Normal:					return Compiler->Constant3(0, 0, 1);
 		case MP_WorldPositionOffset:	return Compiler->Constant3(0, 0, 0);
 		case MP_WorldDisplacement:		return Compiler->Constant3(0, 0, 0);

@@ -94,18 +94,27 @@ namespace AbcImporterUtilities
 		}
 	}
 
-	template<typename T, typename U> static void RetrieveTypedAbcData(T InSampleDataPtr, TArray<U>& OutDataArray )
+	template<typename T, typename U> static const bool RetrieveTypedAbcData(T InSampleDataPtr, TArray<U>& OutDataArray )
 	{
 		// Allocate required memory for the OutData
 		const int32 NumEntries = InSampleDataPtr->size();
-		OutDataArray.AddZeroed(NumEntries);
-
-		auto DataPtr = InSampleDataPtr->get();
-		auto OutDataPtr = &OutDataArray[0];
+		bool bSuccess = false; 
 		
-		// Ensure that the destination and source data size corresponds (otherwise we will end up with an invalid memcpy and means we have a type mismatch)
-		check(sizeof(DataPtr[0]) == sizeof(OutDataArray[0]));		
-		FMemory::Memcpy(OutDataPtr, DataPtr, sizeof(U) * NumEntries);
+		if (NumEntries)
+		{
+			OutDataArray.AddZeroed(NumEntries);
+			auto DataPtr = InSampleDataPtr->get();
+			auto OutDataPtr = &OutDataArray[0];
+
+			// Ensure that the destination and source data size corresponds (otherwise we will end up with an invalid memcpy and means we have a type mismatch)
+			if (sizeof(DataPtr[0]) == sizeof(OutDataArray[0]))
+			{
+				FMemory::Memcpy(OutDataPtr, DataPtr, sizeof(U) * NumEntries);
+				bSuccess = true;
+			}
+		}	
+
+		return bSuccess;
 	}
 
 	/** Expands the given vertex attribute array to not be indexed */
@@ -246,13 +255,15 @@ namespace AbcImporterUtilities
 		Alembic::AbcGeom::IPolyMeshSchema::Sample MeshSample;
 		Schema.get(MeshSample, FrameSelector);
 
+		bool bRetrievalResult = true;
+
 		// Retrieve all available mesh data
 		Alembic::Abc::P3fArraySamplePtr PositionsSample = MeshSample.getPositions();
-		RetrieveTypedAbcData<Alembic::Abc::P3fArraySamplePtr, FVector>(PositionsSample, Sample->Vertices);
+		bRetrievalResult &= RetrieveTypedAbcData<Alembic::Abc::P3fArraySamplePtr, FVector>(PositionsSample, Sample->Vertices);	
 
 		Alembic::Abc::Int32ArraySamplePtr FaceCountsSample = MeshSample.getFaceCounts();
 		TArray<uint32> FaceCounts;
-		RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(FaceCountsSample, FaceCounts);
+		bRetrievalResult &= RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(FaceCountsSample, FaceCounts);
 		const bool bNeedsTriangulation = FaceCounts.Contains(4);
 
 		const uint32* Result = FaceCounts.FindByPredicate([](uint32 FaceCount) { return FaceCount < 3 || FaceCount > 4; });
@@ -266,7 +277,7 @@ namespace AbcImporterUtilities
 		}
 
 		Alembic::Abc::Int32ArraySamplePtr IndicesSample = MeshSample.getFaceIndices();
-		RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(IndicesSample, Sample->Indices);
+		bRetrievalResult &= RetrieveTypedAbcData<Alembic::Abc::Int32ArraySamplePtr, uint32>(IndicesSample, Sample->Indices);
 		if (bNeedsTriangulation)
 		{
 			TriangulateIndexBuffer(FaceCounts, Sample->Indices);
@@ -296,7 +307,12 @@ namespace AbcImporterUtilities
 			}
 			else
 			{
-				if (bNeedsTriangulation)
+				// For vertex only normals (and no normal indices available), expand using the regular indices
+				if (Sample->UVs.Num() != Sample->Indices.Num())
+				{
+					ExpandVertexAttributeArray<FVector2D>(Sample->Indices, Sample->UVs);
+				}
+				else if(bNeedsTriangulation)
 				{
 					TriangulateVertexAttributeBuffer(FaceCounts, Sample->UVs);
 				}
@@ -336,7 +352,12 @@ namespace AbcImporterUtilities
 			}
 			else
 			{
-				if (bNeedsTriangulation)
+				// For vertex only normals (and no normal indices available), expand using the regular indices
+				if (Sample->Normals.Num() != Sample->Indices.Num())
+				{
+					ExpandVertexAttributeArray<FVector>(Sample->Indices, Sample->Normals);
+				}
+				else if (bNeedsTriangulation)
 				{
 					TriangulateVertexAttributeBuffer(FaceCounts, Sample->Normals);
 				}
@@ -353,6 +374,12 @@ namespace AbcImporterUtilities
 			TriangulateMateriaIndices(FaceCounts, Sample->MaterialIndices);
 		}
 
+		if (!bRetrievalResult)
+		{
+			delete Sample;
+			Sample = nullptr;
+		}
+
 		return Sample;
 	}
 
@@ -361,6 +388,9 @@ namespace AbcImporterUtilities
 	static void GenerateSmoothingGroups(TMultiMap<uint32, uint32> &TouchingFaces, const TArray<FVector>& FaceNormals,
 		TArray<uint32>& FaceSmoothingGroups, uint32& HighestSmoothingGroup, const float HardAngleDotThreshold)
 	{
+		// Cache whether or not the hard angle thresshold is set to 0.0 by the user
+		const bool bZeroThreshold = FMath::IsNearlyZero(HardAngleDotThreshold);
+
 		// MultiMap holding connected face indices of which is determined they belong to the same smoothing group (angle between face normals tested)
 		TMultiMap<uint32, uint32> SmoothingGroupConnectedFaces;
 		// Loop over all the faces
@@ -380,11 +410,11 @@ namespace AbcImporterUtilities
 				const uint32 ConnectedFaceIndex = ConnectedFaceIndices[i];
 				FVector ConnectedFaceNormal = FaceNormals[ConnectedFaceIndex];
 
-				// Calculate the Angle between the two connected face normals
-				const float DotProduct = FaceNormal | ConnectedFaceNormal;
+				// Calculate the Angle between the two connected face normals and clamp from 0-1
+				const float DotProduct = FMath::Clamp(FaceNormal | ConnectedFaceNormal, 0.0f, 1.0f);
 
-				// Compare DotProduct against threshold
-				if (DotProduct > HardAngleDotThreshold)
+				// Compare DotProduct against threshold and handle 0.0 case correctly
+				if (DotProduct > HardAngleDotThreshold || (bZeroThreshold && FMath::IsNearlyZero(DotProduct)))
 				{
 					// If the faces have a "similar" normal we can determine that they should belong to the same smoothing group so mark them as SmoothingGroupConnectedFaces
 					SmoothingGroupConnectedFaces.Add(FaceIndex, ConnectedFaceIndex);
@@ -418,10 +448,12 @@ namespace AbcImporterUtilities
 				SmoothingGroupFaces.Add(FaceIndex, SmoothingGroupIndex);
 				SmoothingGroupFaces.Add(ConnectedFaceIndices[ConnectedFaceIndex], SmoothingGroupIndex);
 
-				// Store the SmoothingGroupIndex in the RawMesh data structure (used for tangent calculation)
-				FaceSmoothingGroups[FaceIndex] = SmoothingGroupIndex;
+				// Store the SmoothingGroupIndex in the RawMesh data structure (used for tangent calculation)				
 				FaceSmoothingGroups[ConnectedFaceIndices[ConnectedFaceIndex]] = SmoothingGroupIndex;
 			}
+
+			// Store the smoothing group index for the face we are currently handling
+			FaceSmoothingGroups[FaceIndex] = SmoothingGroupIndex;
 
 			HighestSmoothingGroup = FMath::Max(HighestSmoothingGroup, SmoothingGroupIndex);
 		}
@@ -440,6 +472,7 @@ namespace AbcImporterUtilities
 
 		// Pre-initialize RawMesh arrays
 		const int32 NumFaces = MeshSample->Indices.Num() / 3;
+		MeshSample->SmoothingGroupIndices.Empty(NumFaces);
 		MeshSample->SmoothingGroupIndices.AddZeroed(NumFaces);
 
 		// Loop over faces
@@ -619,9 +652,10 @@ namespace AbcImporterUtilities
 	
 	static void CalculateNormalsWithSmoothingGroups(FAbcMeshSample* Sample, const TArray<uint32>& SmoothingMasks, const uint32 NumSmoothingGroups)
 	{
-		if (NumSmoothingGroups == 0)
+		if (NumSmoothingGroups == 1)
 		{
 			CalculateSmoothNormals(Sample);
+			return;
 		}
 
 		TArray<FVector> PerVertexNormals;
@@ -692,7 +726,6 @@ namespace AbcImporterUtilities
 	static void ComputeTangents(FAbcMeshSample* Sample, UAbcImportSettings* ImportSettings, IMeshUtilities& MeshUtilities)
 	{
 		uint32 TangentOptions = 0x0;
-		TangentOptions |= ImportSettings->NormalGenerationSettings.bBlendOverlappingNormals ? ETangentOptions::BlendOverlappingNormals : 0;
 		TangentOptions |= ImportSettings->NormalGenerationSettings.bIgnoreDegenerateTriangles ? ETangentOptions::IgnoreDegenerateTriangles : 0;
 
 		MeshUtilities.CalculateTangents(Sample->Vertices, Sample->Indices, Sample->UVs, Sample->SmoothingGroupIndices, TangentOptions, Sample->TangentX, Sample->TangentY, Sample->Normals);

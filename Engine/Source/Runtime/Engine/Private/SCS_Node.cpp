@@ -110,8 +110,10 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewActorComp);
 		if (NewSceneComp != nullptr)
 		{
-			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
-			if (ParentComponent == nullptr || (ParentComponent && ParentComponent->IsPendingKill()))
+			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor, similarly if the 
+			// NewSceneComp is the ParentComponent then we are the root component. This happens when the root component is recycled
+			// by StaticAllocateObject.
+			if (ParentComponent == nullptr || (ParentComponent && ParentComponent->IsPendingKill()) || ParentComponent == NewSceneComp)
 			{
 				FTransform WorldTransform = *RootTransform;
 				if(bIsDefaultTransform)

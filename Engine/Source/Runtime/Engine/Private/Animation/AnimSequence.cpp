@@ -323,7 +323,7 @@ void UAnimSequence::PreSave(const class ITargetPlatform* TargetPlatform)
 	if (DoesNeedRecompress())
 	{
 		RequestSyncAnimRecompression();
-		ensureAlways(!bUseRawDataOnly);
+		ensureAlwaysMsgf(!bUseRawDataOnly,  TEXT("Animation : %s failed to compress"), *GetName());
 	}
 #endif
 

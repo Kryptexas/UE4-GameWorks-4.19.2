@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPCH.h"
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
 #include "WmfMediaSession.h"
 #include "WmfMediaUtils.h"
 #include "AllowWindowsPlatformTypes.h"
@@ -627,3 +630,5 @@ void FWmfMediaSession::UpdateState(EMediaState CompletedState)
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

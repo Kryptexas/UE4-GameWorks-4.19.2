@@ -23,12 +23,8 @@ struct FBoundingQuad
 };
 
 //@todo steamvr: remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
-typedef vr::IVRSystem*(VR_CALLTYPE *pVRInit)(vr::HmdError* peError, vr::EVRApplicationType eApplicationType);
-typedef void(VR_CALLTYPE *pVRShutdown)();
 typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
-typedef const char*(VR_CALLTYPE *pVRGetStringForHmdError)(vr::HmdError error);
 typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
-typedef vr::IVRExtendedDisplay *(VR_CALLTYPE *pVRExtendedDisplay)();
 
 
 /**
@@ -38,6 +34,12 @@ class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, publ
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("SteamVR"));
+		return DefaultName;
+	}
+
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual bool IsHMDConnected() override { return true; }
@@ -109,6 +111,7 @@ public:
 	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const override;
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
 	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override;
+	virtual void GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const override;
 	virtual void GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
 	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) override;
@@ -400,6 +403,8 @@ private:
 	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
+	/** How far the HMD has to move before it's considered to be worn */
+	float HMDWornMovementThreshold;
 
 	/** Player's orientation tracking */
 	mutable FQuat			CurHmdOrientation;
@@ -408,6 +413,9 @@ private:
 	FQuat					DeltaControlOrientation; // same as DeltaControlRotation but as quat
 
 	mutable FVector			CurHmdPosition;
+
+	/** used to check how much the HMD has moved for changing the Worn status */
+	FVector					HMDStartLocation; 
 
 	mutable FQuat			LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
 	FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position
@@ -418,6 +426,9 @@ private:
 
 	// State for tracking quit operation
 	static bool				bIsQuitting;
+
+	/**  True if the HMD sends an event that the HMD is being interacted with */
+	bool					bShouldCheckHMDPosition;
 
 	/** Mapping from Unreal Controller Id and Hand to a tracked device id.  Passed in from the controller plugin */
 	int32 UnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2];
@@ -438,12 +449,8 @@ private:
 
 //@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
 public:
-	static pVRInit VRInitFn;
-	static pVRShutdown VRShutdownFn;
 	static pVRIsHmdPresent VRIsHmdPresentFn;
-	static pVRGetStringForHmdError VRGetStringForHmdErrorFn;
 	static pVRGetGenericInterface VRGetGenericInterfaceFn;
-	static pVRExtendedDisplay VRExtendedDisplayFn;
 };
 
 

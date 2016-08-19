@@ -431,7 +431,7 @@ void FD3D11DynamicRHI::FlushPendingLogs()
 	if (D3D11RHI_ShouldCreateWithD3DDebug())
 	{
 		TRefCountPtr<ID3D11InfoQueue> InfoQueue = nullptr;
-		VERIFYD3D11RESULT(Direct3DDevice->QueryInterface(IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()));
+		VERIFYD3D11RESULT_EX(Direct3DDevice->QueryInterface(IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()), Direct3DDevice);
 		if (InfoQueue)
 		{
 			FString FullMessage;
@@ -469,17 +469,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 	// Wait for the rendering thread to go idle.
 	SCOPED_SUSPEND_RENDERING_THREAD(false);
 
-	// If the device we were using has been removed, release it and the resources we created for it.
-	if(bDeviceRemoved)
-	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("Init due to bDeviceRemoved"));
-		check(Direct3DDevice);
-
-		VERIFYD3D11RESULT_EX(DXGI_ERROR_DEVICE_REMOVED, Direct3DDevice);
-
-		// UE4 no longer supports clean-up and recovery.
-		//CleanupD3DDevice();
-	}
+	// UE4 no longer supports clean-up and recovery on DEVICE_LOST.
 
 	// If we don't have a device yet, either because this is the first viewport, or the old device was removed, create a device.
 	if(!Direct3DDevice)
@@ -653,7 +643,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 		// Check for async texture creation support.
 		D3D11_FEATURE_DATA_THREADING ThreadingSupport = {0};
-		VERIFYD3D11RESULT(Direct3DDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING,&ThreadingSupport,sizeof(ThreadingSupport)));
+		VERIFYD3D11RESULT_EX(Direct3DDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &ThreadingSupport, sizeof(ThreadingSupport)), Direct3DDevice);
 		GRHISupportsAsyncTextureCreation = !!ThreadingSupport.DriverConcurrentCreates
 			&& (DeviceFlags & D3D11_CREATE_DEVICE_SINGLETHREADED) == 0;
 
@@ -692,7 +682,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		if(DeviceFlags & D3D11_CREATE_DEVICE_DEBUG)
 		{
 			TRefCountPtr<ID3D11InfoQueue> InfoQueue;
-			VERIFYD3D11RESULT(Direct3DDevice->QueryInterface( IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()));
+			VERIFYD3D11RESULT_EX(Direct3DDevice->QueryInterface( IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()), Direct3DDevice);
 			if (InfoQueue)
 			{
 				D3D11_INFO_QUEUE_FILTER NewFilter;

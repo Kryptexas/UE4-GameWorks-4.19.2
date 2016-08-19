@@ -2213,6 +2213,11 @@ const FString* FPropertyNode::GetInstanceMetaData(const FName& Key) const
 	return InstanceMetaData.Find(Key);
 }
 
+bool FPropertyNode::ParentOrSelfHasMetaData(const FName& MetaDataKey) const
+{
+	return (Property.IsValid() && Property->HasMetaData(MetaDataKey)) || (ParentNode && ParentNode->ParentOrSelfHasMetaData(MetaDataKey));
+}
+
 void FPropertyNode::InvalidateCachedState()
 {
 	bUpdateDiffersFromDefault = true;
@@ -2465,6 +2470,88 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 			uint8* Addr = GetValueBaseAddress( (uint8*)ActualObjToChange );
 			if (Addr != nullptr)
 			{
+				class FMemoryWriterWithObjects : public FArchive
+				{
+				public:
+					explicit FMemoryWriterWithObjects(TArray<uint8>& InArray)
+						: Array(InArray)
+						, Offset(0)
+					{
+						ArIsSaving = true;
+					}
+
+					virtual FArchive& operator<<(FName&                 Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(UObject*&              Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+
+					void Serialize(void* Data, int64 Num)
+					{
+						const int64 NumBytesToAdd = Offset + Num - Array.Num();
+						if( NumBytesToAdd > 0 )
+						{
+							const int64 NewArrayCount = Array.Num() + NumBytesToAdd;
+							if( NewArrayCount >= MAX_int32 )
+							{
+								UE_LOG( LogSerialization, Fatal, TEXT( "FMemoryWriterWithObjects does not support data larger than 2GB." ));
+							}
+
+							Array.AddUninitialized( (int32)NumBytesToAdd );
+						}
+
+						check((Offset + Num) <= Array.Num());
+
+						if( Num )
+						{
+							FMemory::Memcpy( &Array[Offset], Data, Num );
+							Offset+=Num;
+						}
+					}
+
+				protected:
+					TArray<uint8>& Array;
+					int64 Offset;
+				};
+
+				class FMemoryReaderWithObjects : public FArchive
+				{
+				public:
+					explicit FMemoryReaderWithObjects(const TArray<uint8>& InArray)
+						: Array(InArray)
+						, Offset(0)
+					{
+						ArIsLoading = true;
+					}
+
+					virtual FArchive& operator<<(FName&                 Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(UObject*&              Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+
+					void Serialize(void* Data, int64 Num)
+					{
+						if (Num && !ArIsError)
+						{
+							// Only serialize if we have the requested amount of data
+							if (Offset + Num <= TotalSize())
+							{
+								FMemory::Memcpy( Data, &Array[Offset], Num );
+								Offset += Num;
+							}
+							else
+							{
+								ArIsError = true;
+							}
+						}
+					}
+
+				protected:
+					const TArray<uint8>& Array;
+					int64 Offset;
+				};
+
 				if (MapProp != nullptr)
 				{
 					// Read previous value back into object
@@ -2484,18 +2571,16 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 
 					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
 
-					auto ModifiedObjectAddrPtr = (TMap<int32, FString>*)ModifiedObjectAddr;
-
 					// Serialize differences from the 'default' (the old object)
 					TArray<uint8> Data;
 					{
-						FMemoryWriter Ar(Data);
+						FMemoryWriterWithObjects Ar(Data);
 						MapProp->SerializeItem(Ar, Addr, PreviousMap);
 					}
 
 					// Deserialize differences back over the new object
 					{
-						FMemoryReader Ar(Data);
+						FMemoryReaderWithObjects Ar(Data);
 						MapProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
 					}
 				}
@@ -2518,20 +2603,18 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 
 					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
 
-					auto ModifiedObjectAddrPtr = (TMap<int32, FString>*)ModifiedObjectAddr;
-
 					// Serialize differences from the 'default' (the old object)
 					TArray<uint8> Data;
 					{
-						FMemoryWriter Ar(Data);
+						FMemoryWriterWithObjects Ar(Data);
 						SetProp->SerializeItem(Ar, Addr, PreviousSet);
 					}
 
 					// Deserialize differences back over the new object
 					{
-						FMemoryReader Ar(Data);
+						FMemoryReaderWithObjects Ar(Data);
 						SetProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
-					}				
+					}
 				}
 				else
 				{

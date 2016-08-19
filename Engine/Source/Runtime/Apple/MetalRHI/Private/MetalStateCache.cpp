@@ -334,6 +334,14 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				ConditionalUpdateBackBuffer(Surface);
 	
 				BoundTargets |= 1 << RenderTargetIndex;
+            
+#if !PLATFORM_MAC
+                if (Surface.Texture == nil)
+                {
+                    PipelineDesc.SampleCount = OldCount;
+                    return;
+                }
+#endif
 				
 				// The surface cannot be nil - we have to have a valid render-target array after this call.
 				check (Surface.Texture != nil);
@@ -810,7 +818,9 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// set the texture into the backbuffer
 			Surface.GetDrawableTexture();
 		}
+#if PLATFORM_MAC
 		check (Surface.Texture);
+#endif
 	}
 }
 

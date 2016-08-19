@@ -717,6 +717,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingGrid));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.AutoAlignFloorToMesh,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAutoAlignFloor));
 	
 	//Bind LOD preview menu commands
 	const FAnimViewportPlaybackCommands& ViewportPlaybackCommands = FAnimViewportPlaybackCommands::Get();
@@ -1038,6 +1044,18 @@ bool SAnimationEditorViewportTabBody::IsShowingGrid() const
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	return AnimViewportClient->IsShowingGrid();
+}
+
+void SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->OnToggleAutoAlignFloor();
+}
+
+bool SAnimationEditorViewportTabBody::IsAutoAlignFloor() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return AnimViewportClient->IsAutoAlignFloor();
 }
 
 /** Function to set the current playback speed*/

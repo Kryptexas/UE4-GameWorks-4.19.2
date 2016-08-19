@@ -11,9 +11,9 @@
 
 typedef struct ovrCloudStorageUpdateResponse *ovrCloudStorageUpdateResponseHandle;
 
-OVRP_PUBLIC_FUNCTION(const char *)                ovr_CloudStorageUpdateResponse_GetBucket(const ovrCloudStorageUpdateResponseHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrCloudStorageSaveHandle)   ovr_CloudStorageUpdateResponse_GetHandle(const ovrCloudStorageUpdateResponseHandle obj);
-OVRP_PUBLIC_FUNCTION(const char *)                ovr_CloudStorageUpdateResponse_GetKey(const ovrCloudStorageUpdateResponseHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrCloudStorageUpdateStatus) ovr_CloudStorageUpdateResponse_GetStatus(const ovrCloudStorageUpdateResponseHandle obj);
+OVRP_PUBLIC_FUNCTION(const char *)                 ovr_CloudStorageUpdateResponse_GetBucket(const ovrCloudStorageUpdateResponseHandle obj);
+OVRP_PUBLIC_FUNCTION(const char *)                 ovr_CloudStorageUpdateResponse_GetKey(const ovrCloudStorageUpdateResponseHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrCloudStorageUpdateStatus)  ovr_CloudStorageUpdateResponse_GetStatus(const ovrCloudStorageUpdateResponseHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrCloudStorageVersionHandle) ovr_CloudStorageUpdateResponse_GetVersionHandle(const ovrCloudStorageUpdateResponseHandle obj);
 
 #endif

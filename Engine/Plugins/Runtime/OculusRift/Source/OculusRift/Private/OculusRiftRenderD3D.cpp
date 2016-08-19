@@ -267,7 +267,7 @@ FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 				RTVDesc.Texture2D.MipSlice = MipIndex;
 
 				TRefCountPtr<ID3D11RenderTargetView> RenderTargetView;
-				VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateRenderTargetView(pD3DTexture, &RTVDesc, RenderTargetView.GetInitReference()));
+				VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateRenderTargetView(pD3DTexture, &RTVDesc, RenderTargetView.GetInitReference()), InD3D11RHI->GetDevice());
 				RenderTargetViews.Add(RenderTargetView);
 			}
 		}
@@ -285,7 +285,7 @@ FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 			SRVDesc.Texture2D.MostDetailedMip = 0;
 			SRVDesc.Texture2D.MipLevels = InDsDesc.MipLevels;
 
-			VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateShaderResourceView(pD3DTexture, &SRVDesc, ShaderResourceView.GetInitReference()));
+			VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateShaderResourceView(pD3DTexture, &SRVDesc, ShaderResourceView.GetInitReference()), InD3D11RHI->GetDevice());
 
 			check(IsValidRef(ShaderResourceView));
 		}
@@ -340,7 +340,7 @@ static FD3D11Texture2D* D3D11CreateTexture2DAlias(
 			RTVDesc.Texture2D.MipSlice = MipIndex;
 
 			TRefCountPtr<ID3D11RenderTargetView> RenderTargetView;
-			VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateRenderTargetView(InResource, &RTVDesc, RenderTargetView.GetInitReference()));
+			VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateRenderTargetView(InResource, &RTVDesc, RenderTargetView.GetInitReference()), InD3D11RHI->GetDevice());
 			RenderTargetViews.Add(RenderTargetView);
 		}
 	}
@@ -358,7 +358,7 @@ static FD3D11Texture2D* D3D11CreateTexture2DAlias(
 		SRVDesc.Texture2D.MostDetailedMip = 0;
 		SRVDesc.Texture2D.MipLevels = InNumMips;
 
-		VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateShaderResourceView(InResource, &SRVDesc, ShaderResourceView.GetInitReference()));
+		VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateShaderResourceView(InResource, &SRVDesc, ShaderResourceView.GetInitReference()), InD3D11RHI->GetDevice());
 
 		check(IsValidRef(ShaderResourceView));
 	}

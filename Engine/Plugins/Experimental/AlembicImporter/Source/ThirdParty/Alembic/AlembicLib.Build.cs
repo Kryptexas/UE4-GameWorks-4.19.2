@@ -57,6 +57,11 @@ public class AlembicLib : ModuleRules
 			}
 
             PublicIncludePaths.Add( ModuleDirectory + "/Deploy/include/" );
+
+            if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT && bDebug)
+            {                
+                RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Plugins/Experimental/AlembicImporter/Binaries/ThirdParty/zlib/zlibd1.dll"));
+            }
         }
     }
 }

@@ -112,6 +112,8 @@ public:
 
 void UEditorEngine::EndPlayMap()
 {
+	FlushAsyncLoading();
+
 	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
 	{
 		TArray<ULevel*> Levels = EditorWorld->GetLevels();
@@ -244,6 +246,8 @@ void UEditorEngine::EndPlayMap()
 	// Clean up each world individually
 	TArray<FName> OnlineIdentifiers;
 	TArray<UWorld*> WorldsBeingCleanedUp;
+	bool bSeamlessTravelActive = false;
+
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
 		FWorldContext &ThisContext = WorldList[WorldIdx];
@@ -252,6 +256,11 @@ void UEditorEngine::EndPlayMap()
 			if (ThisContext.World())
 			{
 				WorldsBeingCleanedUp.Add(ThisContext.World());
+			}
+
+			if (ThisContext.SeamlessTravelHandler.IsInTransition())
+			{
+				bSeamlessTravelActive = true;
 			}
 
 			TeardownPlaySession(ThisContext);
@@ -267,6 +276,18 @@ void UEditorEngine::EndPlayMap()
 		
 			// Remove world list after online has shutdown in case any async actions require the world context
 			WorldList.RemoveAt(WorldIdx);
+		}
+	}
+
+	// If seamless travel is happening then there is likely additional PIE worlds that need tearing down so seek them out
+	if (bSeamlessTravelActive)
+	{
+		for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
+		{
+			if (WorldIt->IsPlayInEditor())
+			{
+				WorldsBeingCleanedUp.AddUnique(*WorldIt);
+			}
 		}
 	}
 
@@ -334,11 +355,22 @@ void UEditorEngine::EndPlayMap()
 	// mark everything contained in the PIE worlds to be deleted
 	for (UWorld* World : WorldsBeingCleanedUp)
 	{
+		// Occasionally during seamless travel the Levels array won't yet be populated so mark this world first
+		// then pick up the sub-levels via the level iterator
+		World->MarkObjectsPendingKill();
+		
+		// Because of the seamless travel the world might still be in the root set too, so also clear that
+		World->RemoveFromRoot();
+
 		for (auto LevelIt(World->GetLevelIterator()); LevelIt; ++LevelIt)
 		{
 			if (const ULevel* Level = *LevelIt)
 			{
-				CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
+				// We already picked up the persistent level with the top level mark objects
+				if (Level->GetOuter() != World)
+				{
+					CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
+				}
 			}
 		}
 	}

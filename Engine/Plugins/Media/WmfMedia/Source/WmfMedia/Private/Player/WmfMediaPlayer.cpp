@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPCH.h"
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
 #include "WmfMediaPlayer.h"
 #include "WmfMediaResolver.h"
 #include "WmfMediaSession.h"
@@ -143,15 +146,15 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 
 		if (Options.GetMediaOption("PrecacheFile", false))
 		{
-			FBufferArchive* Buffer = new FBufferArchive;
+			FArrayReader* Reader = new FArrayReader;
 
-			if (FFileHelper::LoadFileToArray(*Buffer, FilePath))
+			if (FFileHelper::LoadFileToArray(*Reader, FilePath))
 			{
-				Archive = MakeShareable(Buffer);
+				Archive = MakeShareable(Reader);
 			}
 			else
 			{
-				delete Buffer;
+				delete Reader;
 			}
 		}
 		else
@@ -718,3 +721,5 @@ void FWmfMediaPlayer::HandleSessionEvent(MediaEventType EventType)
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

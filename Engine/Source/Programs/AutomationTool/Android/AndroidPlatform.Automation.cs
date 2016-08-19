@@ -633,7 +633,7 @@ public class AndroidPlatform : Platform
 		// Try retrieving the UFS files manifest files from the device
 		string UFSManifestFileName = CombinePaths(SC.StageDirectory, SC.UFSDeployedManifestFileName + "_" + SanitizedDeviceName);
 		ProcessResult UFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
-		if (!UFSResult.Output.Contains("bytes"))
+		if (!(UFSResult.Output.Contains("bytes") || UFSResult.Output.Contains("[100%]")))
 		{
 			return false;
 		}
@@ -641,7 +641,7 @@ public class AndroidPlatform : Platform
 		// Try retrieving the non UFS files manifest files from the device
 		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, SC.NonUFSDeployedManifestFileName + "_" + SanitizedDeviceName);
 		ProcessResult NonUFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
-		if (!NonUFSResult.Output.Contains("bytes"))
+		if (!(NonUFSResult.Output.Contains("bytes") || NonUFSResult.Output.Contains("[100%]")))
 		{
 			// Did not retrieve both so delete one we did retrieve
 			File.Delete(UFSManifestFileName);

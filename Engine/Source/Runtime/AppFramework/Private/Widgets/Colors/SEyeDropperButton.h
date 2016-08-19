@@ -42,6 +42,7 @@ public:
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
+	virtual void OnMouseCaptureLost() override;
 
 private:
 
@@ -54,6 +55,7 @@ private:
 	bool IsMouseOver(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
 
 	void OnPreTick(float DeltaTime);
+	void ResetDropperModeStates();
 
 private:
 

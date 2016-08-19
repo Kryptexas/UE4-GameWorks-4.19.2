@@ -158,9 +158,9 @@ const FCollisionResponseContainer& ULandscapeHeightfieldCollisionComponent::GetC
 	return Proxy->BodyInstance.GetResponseToChannels();
 }
 
-void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
+void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 {
-	USceneComponent::CreatePhysicsState(); // route CreatePhysicsState, skip PrimitiveComponent implementation
+	USceneComponent::OnCreatePhysicsState(); // route OnCreatePhysicsState, skip PrimitiveComponent implementation
 
 	if (!BodyInstance.IsValidBodyInstance())
 	{
@@ -929,9 +929,9 @@ void ULandscapeMeshCollisionComponent::CreateCollisionObject()
 #endif //WITH_PHYSX
 }
 
-void ULandscapeMeshCollisionComponent::CreatePhysicsState()
+void ULandscapeMeshCollisionComponent::OnCreatePhysicsState()
 {
-	USceneComponent::CreatePhysicsState(); // route CreatePhysicsState, skip PrimitiveComponent implementation
+	USceneComponent::OnCreatePhysicsState(); // route OnCreatePhysicsState, skip PrimitiveComponent implementation
 
 	if (!BodyInstance.IsValidBodyInstance())
 	{
@@ -1059,7 +1059,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 			}
 			else
 			{
-				UE_LOG(LogLandscape, Log, TEXT("ULandscapeMeshCollisionComponent::CreatePhysicsState(): TriMesh invalid"));
+				UE_LOG(LogLandscape, Log, TEXT("ULandscapeMeshCollisionComponent::OnCreatePhysicsState(): TriMesh invalid"));
 			}
 		}
 #endif // WITH_PHYSX
@@ -1631,7 +1631,7 @@ void ULandscapeHeightfieldCollisionComponent::PreSave(const class ITargetPlatfor
 			{
 				if (!RenderComponent->CanRenderGrassMap())
 				{
-					RenderComponent->MaterialInstance->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
+					RenderComponent->MaterialInstances[0]->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
 				}
 				RenderComponent->RenderGrassMap();
 			}

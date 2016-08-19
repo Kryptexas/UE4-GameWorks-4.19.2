@@ -72,6 +72,7 @@
 #include "IPortalServiceLocator.h"
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -506,9 +507,24 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatform)
 {
-	UMaterialShaderQualitySettings::Get()->SetPreviewPlatform(MaterialQualityPlatform);
+	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
+	const FName InitialPreviewPlatform = MaterialShaderQualitySettings->GetPreviewPlatform();
 
+	const ERHIFeatureLevel::Type InitialFeatureLevel = GetWorld()->FeatureLevel;
+	MaterialShaderQualitySettings->SetPreviewPlatform(MaterialQualityPlatform);
 	SetFeatureLevelPreview(ERHIFeatureLevel::ES2);
+
+	if (
+		// Rebuild materials if the preview platform has changed. 
+		InitialPreviewPlatform != MaterialQualityPlatform
+		// If the feature level changed then materials have been rebuilt already.
+		&& InitialFeatureLevel == ERHIFeatureLevel::ES2 )
+	{
+		FGlobalComponentRecreateRenderStateContext Recreate;
+		FlushRenderingCommands();
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+	}
 }
 
 bool FLevelEditorActionCallbacks::IsPreviewPlatformChecked(FName MaterialQualityPlatform)

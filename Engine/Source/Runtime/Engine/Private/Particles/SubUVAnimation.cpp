@@ -116,7 +116,14 @@ void USubUVAnimation::Serialize(FArchive& Ar)
 void USubUVAnimation::CacheDerivedData()
 {
 #if WITH_EDITORONLY_DATA
-	const FString KeyString = FSubUVDerivedData::GetDDCKeyString(SubUVTexture->Source.GetId(), SubImages_Horizontal, SubImages_Vertical, (int32)BoundingMode, AlphaThreshold, (int32)OpacitySourceMode);
+
+	if (!SubUVTexture)
+	{
+		UE_LOG(LogParticles, Warning, TEXT("SubUVAnimation %s set with a NULL texture, particle geometry will be a quad by default."), *GetName());
+	}
+	
+	FGuid SubUVGuid = SubUVTexture ? SubUVTexture->Source.GetId() : FGuid(0, 0, 0, 0);
+	const FString KeyString = FSubUVDerivedData::GetDDCKeyString(SubUVGuid, SubImages_Horizontal, SubImages_Vertical, (int32)BoundingMode, AlphaThreshold, (int32)OpacitySourceMode);
 	TArray<uint8> Data;
 
 	COOK_STAT(auto Timer = SubUVAnimationCookStats::UsageStats.TimeSyncWork());
@@ -621,6 +628,28 @@ struct FSubUVFrameData
 void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizontal, int32 SubImages_Vertical, ESubUVBoundingVertexCount BoundingMode, float AlphaThreshold, EOpacitySourceMode OpacitySourceMode)
 {
 #if WITH_EDITORONLY_DATA
+	FSubUVFrameData DefaultFrame;
+	if (BoundingMode == BVC_FourVertices)
+	{
+		DefaultFrame.BoundingVertices.Empty(4);
+		DefaultFrame.BoundingVertices.Add(FVector2D(0, 0));
+		DefaultFrame.BoundingVertices.Add(FVector2D(0, 1));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 1));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
+	}
+	else
+	{
+		DefaultFrame.BoundingVertices.Empty(8);
+		DefaultFrame.BoundingVertices.Add(FVector2D(0, 0));
+		DefaultFrame.BoundingVertices.Add(FVector2D(0, 1));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 1));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
+		DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
+	}
+
 	if (SubUVTexture)
 	{
 		TArray<uint8> MipData;
@@ -635,30 +664,7 @@ void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizont
 
 		check(!bSuccess || MipData.Num() == TextureSizeX * TextureSizeY * 4);
 
-		FSubUVFrameData DefaultFrame;
-
 		const int32 TargetNumBoundingVertices = BoundingMode == BVC_FourVertices ? 4 : 8;
-
-		if (BoundingMode == BVC_FourVertices)
-		{
-			DefaultFrame.BoundingVertices.Empty(4);
-			DefaultFrame.BoundingVertices.Add(FVector2D(0, 0));
-			DefaultFrame.BoundingVertices.Add(FVector2D(0, 1));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 1));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
-		}
-		else
-		{
-			DefaultFrame.BoundingVertices.Empty(8);
-			DefaultFrame.BoundingVertices.Add(FVector2D(0, 0));
-			DefaultFrame.BoundingVertices.Add(FVector2D(0, 1));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 1));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
-			DefaultFrame.BoundingVertices.Add(FVector2D(1, 0));
-		}
 
 		BoundingGeometry.Empty(NumSubImages * TargetNumBoundingVertices);
 
@@ -761,7 +767,19 @@ void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizont
 	}
 	else
 	{
-		BoundingGeometry.Empty();
+		// No texture set, fill with default vertices
+		const int32 TargetNumBoundingVertices = BoundingMode == BVC_FourVertices ? 4 : 8;
+		const int32 NumSubImages = SubImages_Horizontal * SubImages_Vertical;
+
+		BoundingGeometry.Empty(NumSubImages * TargetNumBoundingVertices);
+
+		for (int32 SubImageY = 0; SubImageY < SubImages_Vertical; SubImageY++)
+		{
+			for (int32 SubImageX = 0; SubImageX < SubImages_Horizontal; SubImageX++)
+			{
+				BoundingGeometry.Append(DefaultFrame.BoundingVertices);
+			}
+		}
 	}
 #endif
 }

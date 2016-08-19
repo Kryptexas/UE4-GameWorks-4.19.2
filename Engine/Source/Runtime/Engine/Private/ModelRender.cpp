@@ -556,13 +556,13 @@ private:
 		/** Initialization constructor. */
 		FElementInfo(const FModelElement& InModelElement)
 			: FLightCacheInterface(InModelElement.LightMap, InModelElement.ShadowMap)
-			, ModelElement(InModelElement)
-			, Bounds(ModelElement.BoundingBox)
+			, IrrelevantLights(InModelElement.IrrelevantLights)
+			, Bounds(InModelElement.BoundingBox)
 		{
-			const bool bHasStaticLighting = ModelElement.LightMap != nullptr || ModelElement.ShadowMap != nullptr;
+			const bool bHasStaticLighting = InModelElement.LightMap != nullptr || InModelElement.ShadowMap != nullptr;
 
 			// Determine the material applied to the model element.
-			Material = ModelElement.Material;
+			Material = InModelElement.Material;
 
 			if (RequiresAdjacencyInformation(Material, InModelElement.Component->GetModel()->VertexFactory.GetType(), InModelElement.Component->GetScene()->GetFeatureLevel()))
 			{
@@ -580,9 +580,8 @@ private:
 		// FLightCacheInterface.
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override
 		{
-			// ask base class
-			ELightInteractionType LightInteraction = GetStaticInteraction(LightSceneProxy, ModelElement.IrrelevantLights);
-			
+			ELightInteractionType LightInteraction = GetStaticInteraction(LightSceneProxy, IrrelevantLights);
+		
 			if(LightInteraction != LIT_MAX)
 			{
 				return FLightInteraction(LightInteraction);
@@ -601,16 +600,14 @@ private:
 
 		// Accessors.
 		UMaterialInterface* GetMaterial() const { return Material; }
-		/** Associated model element. */
-		const FModelElement* GetModelElement() const { return &ModelElement; }
 
 	private:
 
 		/** The element's material. */
 		UMaterialInterface* Material;
 
-		/** Associated model element. */
-		const FModelElement& ModelElement;
+		/** The statically irrelevant lights for this element. */
+		TArray<FGuid> IrrelevantLights;
 
 		/** The element's bounding volume. */
 		FBoxSphereBounds Bounds;

@@ -102,7 +102,6 @@ public:
 		SupportedPlatforms.Add(TEXT("Mac"));
 
 		// supported file extensions
-		SupportedFileExtensions.Add(TEXT("avi"));
 		SupportedFileExtensions.Add(TEXT("m4v"));
 		SupportedFileExtensions.Add(TEXT("mov"));
 		SupportedFileExtensions.Add(TEXT("mp4"));

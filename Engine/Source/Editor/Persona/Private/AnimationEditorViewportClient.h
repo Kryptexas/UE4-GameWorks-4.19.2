@@ -118,6 +118,12 @@ public:
 	/** Function to check whether grid is displayed or not */
 	bool IsShowingGrid() const;
 
+	/** Function to enable/disable floor auto align */
+	void OnToggleAutoAlignFloor();
+
+	/** Function to check whether floor is auto align or not */
+	bool IsAutoAlignFloor() const;
+
 	/** Function to mute/unmute audio in the viewport */
 	void OnToggleMuteAudio();
 
@@ -353,5 +359,12 @@ private:
 	// to check whether we should update literal values in selected AnimGraphNode
 	bool bShouldUpdateDefaultValues;
 
-	FAdvancedPreviewScene* GetAdvancedPreviewScene() const;
+	/** Delegate for preview profile is changed (used for updating show flags) */
+	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
+
+	/** Sets up the ShowFlag according to the current preview scene profile */
+	void SetAdvancedShowFlagsForScene();
+
+	/** Direct pointer to preview scene */
+	FAdvancedPreviewScene* AdvancedPreviewScene;
 };

@@ -406,12 +406,6 @@ public:
 	UPROPERTY(transient)
 	uint32 bHasValidBodies:1;
 
-	/** Set during InitArticulated, to indicate if there are bodies in the sync scene */
-	uint32 bHasBodiesInSyncScene:1;
-
-	/** Set during InitArticulated, to indicate if there are bodies in the async scene */
-	uint32 bHasBodiesInAsyncScene:1;
-
 	/** Indicates that this SkeletalMeshComponent has deferred kinematic bone updates until next physics sim.  */
 	uint32 bDeferredKinematicUpdate:1;
 
@@ -849,6 +843,8 @@ private:
 	 **/
 	TMap<FName, float>	MorphTargetCurves;
 
+	static uint32 GetPhysicsSceneType(const UPhysicsAsset& PhysAsset, const FPhysScene& PhysScene);
+
 public:
 	const TMap<FName, float>& GetMorphTargetCurves() const { return MorphTargetCurves;  }
 	// 
@@ -947,15 +943,17 @@ public:
 	//~ End UObject Interface.
 
 	//~ Begin UActorComponent Interface.
+protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual bool ShouldCreatePhysicsState() const override;
-	virtual void CreatePhysicsState() override;
-	virtual void DestroyPhysicsState() override;
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
+public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 
 	//Handle registering our pre cloth tick function
 	void RegisterPostPhysicsTick(bool bRegister);
@@ -1460,7 +1458,7 @@ private:
 	bool DoAnyPhysicsBodiesHaveWeight() const;
 
 	void ClearAnimScriptInstance();
-	virtual void InitializeAnimationMorphTargets() override;
+	virtual void RefreshMorphTargets() override;
 
 #if WITH_APEX_CLOTHING
 	void GetWindForCloth_GameThread(FVector& WindVector, float& WindAdaption) const;
@@ -1568,6 +1566,12 @@ private:
 
 	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (used for FBlendedCurve::InitFrom) */
 	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
+
+	/*
+	 * Update MorphTargetCurves - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
+	 */
+	void UpdateMorphTargetCurves();
+
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */
 	UPROPERTY(Transient)

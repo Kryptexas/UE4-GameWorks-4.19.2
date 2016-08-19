@@ -15,6 +15,7 @@ class ICompressedAudioInfo;
 class IAudioSpatializationPlugin;
 class IAudioSpatializationAlgorithm;
 class UReverbEffect;
+class FViewportClient;
 
 /** 
  * Debug state of the audio system
@@ -996,6 +997,7 @@ public:
 
 	void UpdateSoundShowFlags(const uint8 OldSoundShowFlags, const uint8 NewSoundShowFlags);
 	void UpdateRequestedStat(const uint8 InRequestedStat);
+	void ResolveDesiredStats(FViewportClient* ViewportClient);
 
 	FAudioStats& GetAudioStats()
 	{

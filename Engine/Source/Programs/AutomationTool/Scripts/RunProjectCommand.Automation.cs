@@ -886,7 +886,12 @@ public partial class Project : CommandUtils
 		if (SC.StageTargetPlatform.LaunchViaUFE)
 		{
 			ClientCmdLine = "-run=Launch ";
-			ClientCmdLine += "-Device=" + Params.Devices[0] + " ";
+            ClientCmdLine += "-Device=" + Params.Devices[0];
+            for (int DeviceIndex = 1; DeviceIndex < Params.Devices.Count; DeviceIndex++)
+            {
+                ClientCmdLine += "+" + Params.Devices[DeviceIndex];
+            }
+            ClientCmdLine += " ";
 			ClientCmdLine += "-Exe=\"" + ClientApp + "\" ";
 			ClientCmdLine += "-Targetplatform=" + Params.ClientTargetPlatforms[0].ToString() + " ";
 			ClientCmdLine += "-Params=\"" + TempCmdLine + "\"";

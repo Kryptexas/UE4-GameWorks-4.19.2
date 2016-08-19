@@ -1393,7 +1393,8 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 		RootMotionParams.Set( WorldSpaceRootMotionTransform );
 
 		// Compute root motion velocity to be used by physics
-		Velocity = CalcRootMotionVelocity(WorldSpaceRootMotionTransform.GetTranslation(), DeltaSeconds, Velocity);
+		AnimRootMotionVelocity = CalcAnimRootMotionVelocity(WorldSpaceRootMotionTransform.GetTranslation(), DeltaSeconds, Velocity);
+		Velocity = ConstrainAnimRootMotionVelocity(AnimRootMotionVelocity, Velocity);
 
 		// Update replicated movement mode.
 		if (bNetworkMovementModeChanged)
@@ -1420,18 +1421,18 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 }
 
 
+// TODO: Deprecated, remove.
 FVector UCharacterMovementComponent::CalcRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const
+{
+	return CalcAnimRootMotionVelocity(RootMotionDeltaMove, DeltaSeconds, CurrentVelocity);
+}
+
+
+FVector UCharacterMovementComponent::CalcAnimRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const
 {
 	if (ensure(DeltaSeconds > 0.f))
 	{
 		FVector RootMotionVelocity = RootMotionDeltaMove / DeltaSeconds;
-
-		// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
-		if (IsFalling())
-		{
-			RootMotionVelocity.Z = CurrentVelocity.Z;
-		}
-
 		return RootMotionVelocity;
 	}
 	else
@@ -1440,6 +1441,19 @@ FVector UCharacterMovementComponent::CalcRootMotionVelocity(const FVector& RootM
 	}
 }
 
+
+FVector UCharacterMovementComponent::ConstrainAnimRootMotionVelocity(const FVector& RootMotionVelocity, const FVector& CurrentVelocity) const
+{
+	FVector Result = RootMotionVelocity;
+
+	// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
+	if (IsFalling())
+	{
+		Result.Z = CurrentVelocity.Z;
+	}
+
+	return Result;
+}
 
 void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 {
@@ -1937,7 +1951,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 				// Then turn root motion to velocity to be used by various physics modes.
 				if( DeltaSeconds > 0.f )
 				{
-					Velocity = CalcRootMotionVelocity(RootMotionParams.GetRootMotionTransform().GetTranslation(), DeltaSeconds, Velocity);
+					AnimRootMotionVelocity = CalcAnimRootMotionVelocity(RootMotionParams.GetRootMotionTransform().GetTranslation(), DeltaSeconds, Velocity);
+					Velocity = ConstrainAnimRootMotionVelocity(AnimRootMotionVelocity, Velocity);
 				}
 				
 				UE_LOG(LogRootMotion, Log,  TEXT("PerformMovement WorldSpaceRootMotion Translation: %s, Rotation: %s, Actor Facing: %s, Velocity: %s")
@@ -3276,7 +3291,7 @@ void UCharacterMovementComponent::ApplyRootMotionToVelocity(float deltaTime)
 	// Animation root motion is distinct from root motion sources right now and takes precedence
 	if( HasAnimRootMotion() && deltaTime > 0.f )
 	{
-		Velocity = CalcRootMotionVelocity(RootMotionParams.GetRootMotionTransform().GetTranslation(), deltaTime, Velocity);
+		Velocity = ConstrainAnimRootMotionVelocity(AnimRootMotionVelocity, Velocity);
 		return;
 	}
 

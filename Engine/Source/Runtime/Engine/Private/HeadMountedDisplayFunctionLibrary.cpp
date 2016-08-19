@@ -34,6 +34,18 @@ bool UHeadMountedDisplayFunctionLibrary::EnableHMD(bool bEnable)
 	return false;
 }
 
+FName UHeadMountedDisplayFunctionLibrary::GetHMDDeviceName()
+{
+	FName DeviceName(NAME_None);
+
+	if (GEngine->HMDDevice.IsValid())
+	{
+		DeviceName = GEngine->HMDDevice->GetDeviceName();
+	}
+
+	return DeviceName;
+}
+
 void UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(FRotator& DeviceRotation, FVector& DevicePosition)
 {
 	if(GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
@@ -219,6 +231,13 @@ TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTra
 
 void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)
 {
-	bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
-	bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+	if (GEngine->HMDDevice.IsValid())
+	{
+		bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
+		bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+	}
+	else
+	{
+		bUseFocus = bHasFocus = false;
+	}
 }

@@ -31,6 +31,8 @@ void FCachedWidgetNode::RecordHittestGeometry(FHittestGrid& Grid, int32 LastHitt
 		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
 		if ( SafeWidget.IsValid() )
 		{
+			LastRecordedHittestIndex = LastHittestIndex;
+
 			const int32 ChildCount = Children.Num();
 			for ( int32 i = 0; i < ChildCount; i++ )
 			{

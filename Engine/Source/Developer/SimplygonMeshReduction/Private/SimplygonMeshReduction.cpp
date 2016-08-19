@@ -895,6 +895,7 @@ public:
 			if (!GeometryData)
 			{
 				UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
+				FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Simplygon failed to generate Geometry Data"));
 				continue;
 			}
 
@@ -902,9 +903,7 @@ public:
 
 			//Validate the geometry
 			ValidateGeometry(GeometryValidator, GeometryData);
-
-			check(GeometryData)
-
+			
 #ifdef DEBUG_PROXY_MESH
 				SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
 			objexp->SetExportFilePath("d:/BeforeProxyMesh.obj");
@@ -974,27 +973,32 @@ public:
 			}
 		}
 
-		checkf(ProxyMesh != nullptr, TEXT("Unable to find resulting proxy mesh in SimplygonScene"));
-
+		if (ProxyMesh == nullptr)
+		{
+			FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Simplygon failed to generate a proxy mesh"));
+		}
+		else
+		{
 #ifdef DEBUG_PROXY_MESH
-		SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
-		objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
-		objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
-		objexp->RunExport();
+			SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
+			objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
+			objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
+			objexp->RunExport();
 #endif
 
-		//Convert geometry data to raw mesh data
-		SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
-		CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
+			//Convert geometry data to raw mesh data
+			SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
+			CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
 		
-		// Default smoothing
-		OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
-		for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
-		{
-			SmoothingMask = 1;
-		}
+			// Default smoothing
+			OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
+			for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
+			{
+				SmoothingMask = 1;
+			}
 				
-		CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
+			CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
+		}
 	}
 
 private:

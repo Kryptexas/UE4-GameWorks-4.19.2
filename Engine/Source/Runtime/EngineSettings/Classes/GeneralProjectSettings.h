@@ -66,8 +66,12 @@ class ENGINESETTINGS_API UGeneralProjectSettings
 	/** Should the game's window preserve its aspect ratio when resized by user. */
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bShouldWindowPreserveAspectRatio;
-	
-		/** Should the game use a borderless Slate window instead of a window with system title bar and border */
+
+	/** Should the game use a borderless Slate window instead of a window with system title bar and border */
 	UPROPERTY(config, EditAnywhere, Category = Settings)
 	bool bUseBorderlessWindow;
+
+	/** Should the game attempt to start in VR, regardless of whether -vr was set on the commandline */
+	UPROPERTY(config, EditAnywhere, Category = Settings)
+	bool bStartInVR;
 };

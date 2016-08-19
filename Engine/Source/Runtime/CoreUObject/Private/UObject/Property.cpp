@@ -594,7 +594,7 @@ bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 		return false;
 	}
 
-	const uint64 SkipFlags = CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient | CPF_NonTransactional | CPF_Deprecated | CPF_DevelopmentAssets;
+	const uint64 SkipFlags = CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient | CPF_NonTransactional | CPF_Deprecated | CPF_DevelopmentAssets | CPF_SkipSerialization;
 	if (!(PropertyFlags & SkipFlags))
 	{
 		return true;
@@ -606,6 +606,7 @@ bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 		||	((PropertyFlags & CPF_NonPIEDuplicateTransient) && !(Ar.GetPortFlags() & PPF_DuplicateForPIE) && (Ar.GetPortFlags() & PPF_Duplicate))
 		||	((PropertyFlags & CPF_NonTransactional) && Ar.IsTransacting())
 		||	((PropertyFlags & CPF_Deprecated) && !Ar.HasAllPortFlags(PPF_UseDeprecatedProperties) && (Ar.IsSaving() || Ar.IsTransacting() || Ar.WantBinaryPropertySerialization()))
+		||  ((PropertyFlags & CPF_SkipSerialization))
 		||  (IsEditorOnlyProperty() && Ar.IsFilterEditorOnly());
 
 	return !Skip;

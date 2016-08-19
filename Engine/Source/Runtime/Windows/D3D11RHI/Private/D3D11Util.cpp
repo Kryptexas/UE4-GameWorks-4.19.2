@@ -385,7 +385,7 @@ void FD3D11DynamicBuffer::InitRHI()
 	{
 		TRefCountPtr<ID3D11Buffer> Buffer;
 		Desc.ByteWidth = BufferSizes[Buffers.Num()];
-		VERIFYD3D11RESULT(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()));
+		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()), D3DRHI->GetDevice());
 		UpdateBufferStats(Buffer,true);
 		Buffers.Add(Buffer);
 	}
@@ -422,7 +422,7 @@ void* FD3D11DynamicBuffer::Lock(uint32 Size)
 		Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		Desc.MiscFlags = 0;
 		Desc.ByteWidth = Size;
-		VERIFYD3D11RESULT(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()));
+		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()), D3DRHI->GetDevice());
 		UpdateBufferStats(Buffers[BufferIndex],false);
 		UpdateBufferStats(Buffer,true);
 		Buffers[BufferIndex] = Buffer;
@@ -431,7 +431,7 @@ void* FD3D11DynamicBuffer::Lock(uint32 Size)
 
 	LockedBufferIndex = BufferIndex;
 	D3D11_MAPPED_SUBRESOURCE MappedSubresource;
-	VERIFYD3D11RESULT( D3DRHI->GetDeviceContext()->Map( Buffers[BufferIndex],0,D3D11_MAP_WRITE_DISCARD,0,&MappedSubresource ) );
+	VERIFYD3D11RESULT_EX(D3DRHI->GetDeviceContext()->Map(Buffers[BufferIndex],0,D3D11_MAP_WRITE_DISCARD,0,&MappedSubresource), D3DRHI->GetDevice());
 	return MappedSubresource.pData;
 }
 

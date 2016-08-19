@@ -1528,6 +1528,12 @@ protected:
 		return ShaderFrequency;
 	}
 
+	virtual EMaterialShadingModel GetMaterialShadingModel() const override
+	{
+		check(Material);
+		return Material->GetShadingModel();
+	}
+
 	virtual int32 Error(const TCHAR* Text) override
 	{
 		FString ErrorString;

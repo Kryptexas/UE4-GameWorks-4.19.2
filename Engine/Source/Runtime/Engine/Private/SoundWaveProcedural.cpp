@@ -13,9 +13,9 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 	checkf(NumSamplesToGeneratePerCallback >= NumBufferUnderrunSamples, TEXT("Should generate more samples than this per callback."));
 }
 
-void USoundWaveProcedural::QueueAudio( const uint8* AudioData, const int32 BufferSize )
+void USoundWaveProcedural::QueueAudio(const uint8* AudioData, const int32 BufferSize)
 {
-	if (BufferSize == 0 || !ensure( ( BufferSize % sizeof( int16 ) ) == 0 ))
+	if (BufferSize == 0 || !ensure((BufferSize % sizeof(int16)) == 0))
 	{
 		return;
 	}
@@ -38,7 +38,7 @@ void USoundWaveProcedural::PumpQueuedAudio()
 	}
 }
 
-int32 USoundWaveProcedural::GeneratePCMData( uint8* PCMData, const int32 SamplesNeeded )
+int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded)
 {
 	// Check if we've been told to reset our audio buffer
 	if (bReset)
@@ -123,13 +123,13 @@ FByteBulkData* USoundWaveProcedural::GetCompressedData(FName Format)
 	return nullptr;
 }
 
-void USoundWaveProcedural::Serialize( FArchive& Ar )
+void USoundWaveProcedural::Serialize(FArchive& Ar)
 {
 	// Do not call the USoundWave version of serialize
-	USoundBase::Serialize( Ar );
+	USoundBase::Serialize(Ar);
 }
 
-void USoundWaveProcedural::InitAudioResource( FByteBulkData& CompressedData )
+void USoundWaveProcedural::InitAudioResource(FByteBulkData& CompressedData)
 {
 	// Should never be pushing compressed data to a SoundWaveProcedural
 	check(false);

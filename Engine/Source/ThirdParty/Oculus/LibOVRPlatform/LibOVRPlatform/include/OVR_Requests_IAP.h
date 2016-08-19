@@ -103,7 +103,7 @@
 /// * All IAP operations require online access.  A future update will support offline caching of IAP purchases.
 
 /// Allow the consumable IAP product to be purchased again. Conceptually, this
-/// indicates that the item has been used or consumed.
+/// indicates that the item was used or consumed.
 ///
 /// A message with type ::ovrMessage_IAP_ConsumePurchase will be generated in response.
 ///
@@ -133,8 +133,8 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_IAP_GetNextProductArrayPage(ovrProductArray
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_IAP_GetNextPurchaseArrayPage(ovrPurchaseArrayHandle handle);
 
 /// Retrieve a list of IAP products that can be purchased.
-/// \param skus the skus of the products to retrieve
-/// \param count number of items you provided in 'skus'
+/// \param skus The SKUs of the products to retrieve.
+/// \param count Number of items you provided in the SKUs.
 ///
 /// A message with type ::ovrMessage_IAP_GetProductsBySKU will be generated in response.
 ///
@@ -155,11 +155,11 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_IAP_GetProductsBySKU(const char **skus, int
 /// Extract the payload from the message handle with ::ovr_Message_GetPurchaseArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_IAP_GetViewerPurchases();
 
-/// Launch the checkout flow to purchase the existing product. Home tries to be
-/// intelligent and handle and help fix as many errors as possible. Home will
-/// show the appropriate error message and how to resolve if possible. Returns
-/// an purchase on success, empty purchase on cancel, and an error on error.
-/// \param sku IAP sku for the item the user wishes to purchase
+/// Launch the checkout flow to purchase the existing product. Oculus Home
+/// tries handle and fix as many errors as possible. Home returns the
+/// appropriate error message and how to resolveit, if possible. Returns a
+/// purchase on success, empty purchase on cancel, and an error on error.
+/// \param sku IAP sku for the item the user wishes to purchase.
 ///
 /// A message with type ::ovrMessage_IAP_LaunchCheckoutFlow will be generated in response.
 ///

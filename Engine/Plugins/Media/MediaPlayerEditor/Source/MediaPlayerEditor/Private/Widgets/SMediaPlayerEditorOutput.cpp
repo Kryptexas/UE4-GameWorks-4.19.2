@@ -41,8 +41,27 @@ SMediaPlayerEditorOutput::~SMediaPlayerEditorOutput()
 	if (MediaPlayer != nullptr)
 	{
 		MediaPlayer->OnMediaEvent().RemoveAll(this);
+	
+		// remove default sinks from native player
+		TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
+
+		if (Player.IsValid())
+		{
+			IMediaOutput& Output = Player->GetOutput();
+
+			if (MediaPlayer->GetSoundWave() == nullptr)
+			{
+				Output.SetAudioSink(nullptr);
+			}
+
+			if (MediaPlayer->GetVideoTexture() == nullptr)
+			{
+				Output.SetVideoSink(nullptr);
+			}
+		}
 	}
 
+	// release default sinks
 	if (AudioComponent != nullptr)
 	{
 		AudioComponent->Stop();

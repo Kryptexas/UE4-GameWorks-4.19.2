@@ -828,13 +828,13 @@ void SDetailsViewBase::FilterView(const FString& InFilterText)
 
 void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruct* Class)
 {
-	LayoutData.DetailLayout->SetCurrentCustomizationClass(CastChecked<UClass>(Class), NAME_None);
+	LayoutData.DetailLayout->SetCurrentCustomizationClass(Class, NAME_None);
 
 	FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
 
 	// Check the instanced map first
-	FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(TWeakObjectPtr<UStruct>(Class));
+	FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
 
 	if (!Callback)
 	{
@@ -893,21 +893,27 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 
 	for (auto ClassIt = LayoutData.ClassesWithProperties.CreateConstIterator(); ClassIt; ++ClassIt)
 	{
+		// Must be a class
+		UClass* Class = Cast<UClass>(ClassIt->Get());
+		if (!Class)
+		{
+			continue;
+		}
+
 		// Check the instanced map first
-		FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(*ClassIt);
+		FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
 
 		if (!Callback)
 		{
 			// callback wasn't found in the per instance map, try the global instances instead
-			Callback = GlobalCustomLayoutNameMap.Find((*ClassIt)->GetFName());
+			Callback = GlobalCustomLayoutNameMap.Find(Class->GetFName());
 		}
 
 		if (Callback)
 		{
-			FinalCallbackMap.Add(*ClassIt, Callback);
+			FinalCallbackMap.Add(Class, Callback);
 		}
 	}
-
 
 	FinalCallbackMap.ValueSort(FCompareFDetailLayoutCallback());
 
@@ -968,16 +974,16 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 		{
 			ParentClassesToQuery.Add(ParentStruct);
 			ParentStruct = ParentStruct->GetSuperStruct();
-
 		}
 	}
 
 	// Query extra base classes
 	for (auto ParentIt = ParentClassesToQuery.CreateConstIterator(); ParentIt; ++ParentIt)
 	{
-		if (Cast<UClass>(*ParentIt))
+		UClass* ParentClass = Cast<UClass>(*ParentIt);
+		if (ParentClass)
 		{
-			QueryLayoutForClass(LayoutData, *ParentIt);
+			QueryLayoutForClass(LayoutData, ParentClass);
 		}
 	}
 }

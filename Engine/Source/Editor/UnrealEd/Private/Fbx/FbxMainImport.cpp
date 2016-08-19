@@ -1712,7 +1712,7 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 			}
 		}
 	}
-	
+
 	//Skeletalmesh node can have child so let's always iterate trough child
 	{
 		int32 ChildIndex;
@@ -1724,15 +1724,19 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 		for (ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
 		{
 			FbxNode *ChildNode = Node->GetChild(ChildIndex);
-			FbxVector4 ChildScaling = ChildNode->EvaluateLocalScaling();
-			FbxVector4 NoScale(1.0, 1.0, 1.0);
-			if (ChildScaling == NoScale)
+
+			if(!Node->GetNodeAttribute() || Node->GetNodeAttribute()->GetAttributeType() != FbxNodeAttribute::eLODGroup)
 			{
-				ChildNoScale.Add(ChildNode);
-			}
-			else
-			{
-				ChildScale.Add(ChildNode);
+				FbxVector4 ChildScaling = ChildNode->EvaluateLocalScaling();
+				FbxVector4 NoScale(1.0, 1.0, 1.0);
+				if(ChildScaling == NoScale)
+				{
+					ChildNoScale.Add(ChildNode);
+				}
+				else
+				{
+					ChildScale.Add(ChildNode);
+				}
 			}
 		}
 		for (FbxNode *ChildNode : ChildNoScale)

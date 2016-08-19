@@ -559,7 +559,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	SCOPED_DRAW_EVENT(RHICmdList, MediaTextureConvertResource);
 
 	// configure media shaders
-	auto ShaderMap = GetGlobalShaderMap(ERHIFeatureLevel::SM5);
+	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
@@ -569,7 +569,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharAYUV:
 		{
 			TShaderMapRef<FAYUVConvertPS> ConvertShader(ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, ERHIFeatureLevel::SM5, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
 		break;
@@ -577,7 +577,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharNV12:
 		{
 			TShaderMapRef<FNV12ConvertPS> ConvertShader(ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, ERHIFeatureLevel::SM5, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
 		break;
@@ -585,7 +585,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharNV21:
 		{
 			TShaderMapRef<FNV21ConvertPS> ConvertShader(ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, ERHIFeatureLevel::SM5, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
 		break;
@@ -593,7 +593,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharUYVY:
 		{
 			TShaderMapRef<FUYVYConvertPS> ConvertShader(ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, ERHIFeatureLevel::SM5, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
 		break;
@@ -601,7 +601,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharYUY2:
 		{
 			TShaderMapRef<FYUY2ConvertPS> ConvertShader(ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, ERHIFeatureLevel::SM5, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
 		break;
@@ -609,7 +609,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharYVYU:
 		{
 			TShaderMapRef<FYVYUConvertPS> ConvertShader(ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, ERHIFeatureLevel::SM5, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
 		break;
@@ -659,19 +659,16 @@ void FMediaTextureResource::InitializeResource(FIntPoint Dimensions, EMediaTextu
 {
 	check(IsInRenderingThread());
 
-	// use existing buffers if possible
-	if ((Dimensions != BufferDimensions) || (Format != SinkFormat) || (Mode != SinkMode))
+	if ((Dimensions == OutputDimensions) && (Format == SinkFormat) && (Mode == SinkMode))
 	{
-		ReleaseDynamicRHI();
-		OutputDimensions = Dimensions;
-		SinkFormat = Format;
-		SinkMode = Mode;
-		InitDynamicRHI();
+		return; // reuse existing texture
 	}
-	else
-	{
-		State = EState::Initialized;
-	}
+
+	ReleaseDynamicRHI();
+	OutputDimensions = Dimensions;
+	SinkFormat = Format;
+	SinkMode = Mode;
+	InitDynamicRHI();
 }
 
 

@@ -52,8 +52,9 @@ namespace AutomationTool
 	[Help("ListOnly", "Shows the contents of the preprocessed graph, but does not execute it")]
 	[Help("ShowDeps", "Show node dependencies in the graph output")]
 	[Help("ShowNotifications", "Show notifications that will be sent for each node in the output")]
-	[Help("Trigger=<Name>[+<Name>...]", "Activates the given triggers, including all the nodes behind them in the graph")]
-	[Help("SkipTriggers", "Activate all triggers")]
+	[Help("Trigger=<Name>", "Executes only nodes behind the given trigger")]
+	[Help("SkipTrigger=<Name>[+<Name>...]", "Skips the given triggers, including all the nodes behind them in the graph")]
+	[Help("SkipTriggers", "Skips all triggers")]
 	[Help("TokenSignature=<Name>", "Specifies the signature identifying the current job, to be written to tokens for nodes that require them. Tokens are ignored if this parameter is not specified.")]
 	[Help("SkipTargetsWithoutTokens", "Excludes targets which we can't acquire tokens for, rather than failing")]
 	[Help("Preprocess=<FileName>", "Writes the preprocessed graph to the given file")]
@@ -78,7 +79,8 @@ namespace AutomationTool
 			string PreprocessedFileName = ParseParamValue("Preprocess", null);
 			string SharedStorageDir = ParseParamValue("SharedStorageDir", null);
 			string SingleNodeName = ParseParamValue("SingleNode", null);
-			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+			string TriggerName = ParseParamValue("Trigger", null);
+			string[] SkipTriggerNames = ParseParamValue("SkipTrigger", "").Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
 			bool bSkipTriggers = ParseParam("SkipTriggers");
 			string TokenSignature = ParseParamValue("TokenSignature", null);
 			bool bSkipTargetsWithoutTokens = ParseParam("SkipTargetsWithoutTokens");
@@ -167,7 +169,10 @@ namespace AutomationTool
 				FileReference FullSchemaFileName = new FileReference(SchemaFileName);
 				Log("Writing schema to {0}...", FullSchemaFileName.FullName);
 				Schema.Export(FullSchemaFileName);
-				return ExitCode.Success;
+				if(ScriptFileName == null)
+				{
+					return ExitCode.Success;
+				}
 			}
 
 			// Check there was a script specified
@@ -276,6 +281,27 @@ namespace AutomationTool
 			// Cull the graph to include only those nodes
 			Graph.Select(TargetNodes);
 
+			// Collapse any triggers in the graph which are marked to be skipped
+			HashSet<ManualTrigger> SkipTriggers = new HashSet<ManualTrigger>();
+			if(bSkipTriggers)
+			{
+				SkipTriggers.UnionWith(Graph.NameToTrigger.Values);
+			}
+			else
+			{
+				foreach(string SkipTriggerName in SkipTriggerNames)
+				{
+					ManualTrigger SkipTrigger;
+					if(!Graph.NameToTrigger.TryGetValue(TriggerName, out SkipTrigger))
+					{
+						LogError("Couldn't find trigger '{0}'", TriggerName);
+						return ExitCode.Error_Unknown;
+					}
+					SkipTriggers.Add(SkipTrigger);
+				}
+			}
+			Graph.SkipTriggers(SkipTriggers);
+
 			// If a report for the whole build was requested, insert it into the graph
 			if (ReportName != null)
 			{
@@ -290,26 +316,13 @@ namespace AutomationTool
 				Graph.Write(new FileReference(PreprocessedFileName), (SchemaFileName != null)? new FileReference(SchemaFileName) : null);
 			}
 
-			// Find the triggers which are explicitly activated, and all of its upstream triggers.
-			HashSet<ManualTrigger> Triggers = new HashSet<ManualTrigger>();
-			foreach(string TriggerName in TriggerNames)
-			{
-				ManualTrigger Trigger;
-				if(!Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
+			// Find the triggers which we are explicitly running.
+			ManualTrigger Trigger = null;
+			if(TriggerName != null && !Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
 				{
 					LogError("Couldn't find trigger '{0}'", TriggerName);
 					return ExitCode.Error_Unknown;
 				}
-				while(Trigger != null)
-				{
-					Triggers.Add(Trigger);
-					Trigger = Trigger.Parent;
-				}
-			}
-			if(bSkipTriggers)
-			{
-				Triggers.UnionWith(Graph.NameToTrigger.Values);
-			}
 
 			// If we're just building a single node, find it 
 			Node SingleNode = null;
@@ -330,7 +343,7 @@ namespace AutomationTool
 			// Print out all the diagnostic messages which still apply, unless we're running a step as part of a build system or just listing the contents of the file. 
 			if(SingleNode == null)
 			{
-				IEnumerable<GraphDiagnostic> Diagnostics = Graph.Diagnostics.Where(x => x.EnclosingTrigger == null || Triggers.Contains(x.EnclosingTrigger));
+				IEnumerable<GraphDiagnostic> Diagnostics = Graph.Diagnostics.Where(x => x.EnclosingTrigger == Trigger);
 				foreach(GraphDiagnostic Diagnostic in Diagnostics)
 				{
 					if(Diagnostic.EventType == LogEventType.Warning)
@@ -353,7 +366,7 @@ namespace AutomationTool
 			{
 				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
 				Graph.Print(CompletedNodes, PrintOptions);
-				Graph.Export(new FileReference(ExportFileName), Triggers, CompletedNodes);
+				Graph.Export(new FileReference(ExportFileName), Trigger, CompletedNodes);
 			}
 			else if(SingleNode != null)
 			{

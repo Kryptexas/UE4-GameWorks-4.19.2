@@ -684,7 +684,7 @@ void SPoseViewer::CreatePoseList(const FString& SearchText)
 		{
 			bool bDoFiltering = !SearchText.IsEmpty();
 
-			for (const auto& PoseSmartName : PoseNames)
+			for (const FSmartName& PoseSmartName : PoseNames)
 			{
 				FName PoseName = PoseSmartName.DisplayName;
 				if (bDoFiltering && !PoseName.ToString().Contains(SearchText))
@@ -692,7 +692,7 @@ void SPoseViewer::CreatePoseList(const FString& SearchText)
 					continue; // Skip items that don't match our filter
 				}
 
-				TSharedRef<FDisplayedPoseInfo> Info = FDisplayedPoseInfo::Make(PoseName);
+				const TSharedRef<FDisplayedPoseInfo> Info = FDisplayedPoseInfo::Make(PoseName);
 				float* Weight = OverrideCurves.Find(PoseName);
 				if (Weight)
 				{
@@ -718,11 +718,11 @@ void SPoseViewer::CreateCurveList(const FString& SearchText)
 		TArray<FSmartName> CurveNames = PoseAsset->GetCurveNames();
 		if (CurveNames.Num() > 0)
 		{
-			for (const auto& CurveSmartName : CurveNames)
+			for (const FSmartName& CurveSmartName : CurveNames)
 			{
 				FName CurveName = CurveSmartName.DisplayName;
 
-				TSharedRef<FDisplayedCurveInfo> Info = FDisplayedCurveInfo::Make(CurveName);
+				const TSharedRef<FDisplayedCurveInfo> Info = FDisplayedCurveInfo::Make(CurveName);
 				CurveList.Add(Info);
 			}
 		}

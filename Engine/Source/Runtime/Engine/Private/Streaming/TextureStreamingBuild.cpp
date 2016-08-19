@@ -9,6 +9,8 @@ TextureStreamingBuild.cpp : Contains definitions to build texture streaming data
 #include "ShaderCompiler.h"
 #include "TextureStreamingHelpers.h"
 
+DEFINE_LOG_CATEGORY(TextureStreamingBuild);
+
 bool WaitForShaderCompilation(const FText& Message, FSlowTask& BuildTextureStreamingTask)
 {
 	const int32 NumShadersToBeCompiled = GShaderCompilingManager->GetNumRemainingJobs();
@@ -59,10 +61,10 @@ void GetTextureStreamingPrimitives(ULevel* InLevel, TArray<UPrimitiveComponent*>
 				if (!bOnlyThoseRequiringStreamingData || Primitive->RequiresStreamingTextureData())
 				{
 					OutComponents.Push(Primitive);
-				}
 			}
 		}
 	}
+}
 }
 
 void GetTextureStreamingPrimitives(UWorld* InWorld, TArray<UPrimitiveComponent*>& OutComponents)
@@ -148,40 +150,40 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 			{
 				ULevel* Level = InWorld->GetLevel(LevelIndex);
 
-				TArray<UPrimitiveComponent*> Components;
+			TArray<UPrimitiveComponent*> Components;
 				GetTextureStreamingPrimitives(Level, Components);
-				for (UPrimitiveComponent* Primitive : Components)
-				{
-					SlowTask.EnterProgressFrame();
+			for (UPrimitiveComponent* Primitive : Components)
+			{
+				SlowTask.EnterProgressFrame();
 					BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
-					if (GWarn->ReceivedUserCancel())
+				if (GWarn->ReceivedUserCancel())
+				{
+					FDebugViewModeMaterialProxy::ClearAllShaders();
+					return false;
+				}
+
+				// When only updating (viewmode path), skip primitives that already have data.
+					if (bIncremental && Primitive->HasStreamingSectionData(true))
+					continue;
+
+				TArray<UMaterialInterface*> Materials;
+				Primitive->GetUsedMaterials(Materials);
+
+				for (UMaterialInterface* MaterialInterface : Materials)
+				{
+					if (!MaterialInterface) continue;
+
+					// Landscape material resources can not be used. See logic in FLandscapeMaterialResource::ShouldCache().
+					const FMaterial* Material = MaterialInterface->GetMaterialResource(FeatureLevel);
+					if (!Material || Material->IsUsedWithLandscape())
 					{
-						FDebugViewModeMaterialProxy::ClearAllShaders();
-						return false;
+						UE_LOG(TextureStreamingBuild, Verbose, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
+						continue;
 					}
 
-					// When only updating (viewmode path), skip primitives that already have data.
-					if (bIncremental && Primitive->HasStreamingSectionData(true))
-						continue;
-
-					TArray<UMaterialInterface*> Materials;
-					Primitive->GetUsedMaterials(Materials);
-
-					for (UMaterialInterface* MaterialInterface : Materials)
+					if (!TexCoordScales.Contains(MaterialInterface))
 					{
-						if (!MaterialInterface) continue;
-
-						// Landscape material resources can not be used. See logic in FLandscapeMaterialResource::ShouldCache().
-						const FMaterial* Material = MaterialInterface->GetMaterialResource(FeatureLevel);
-						if (!Material || Material->IsUsedWithLandscape())
-						{
-							UE_LOG(LogLevel, Warning, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
-							continue;
-						}
-
-						if (!TexCoordScales.Contains(MaterialInterface))
-						{
-							TexCoordScales.Add(MaterialInterface);
+						TexCoordScales.Add(MaterialInterface);
 							FDebugViewModeMaterialProxy::AddShader(MaterialInterface, QualityLevel, FeatureLevel, EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
 						}
 						MaterialToLevels.FindOrAdd(MaterialInterface).AddUnique(Level);
@@ -208,7 +210,7 @@ ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 	}
 
 #else
-	UE_LOG(LogLevel, Fatal,TEXT("Build Texture Streaming Shaders should not be called on a console"));
+	UE_LOG(TextureStreamingBuild, Fatal,TEXT("Build Texture Streaming Shaders should not be called on a console"));
 	return false;
 #endif
 }
@@ -230,18 +232,18 @@ ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexC
 		TArray<UPrimitiveComponent*> Components;
 		GetTextureStreamingPrimitives(InWorld->GetLevel(LevelIndex), Components);
 		for (UPrimitiveComponent* Primitive : Components)
-		{
-			SlowTask.EnterProgressFrame();
-			BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
-			if (GWarn->ReceivedUserCancel()) return false;
+			{
+				SlowTask.EnterProgressFrame();
+				BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
+				if (GWarn->ReceivedUserCancel()) return false;
 
 			if (bIncremental && Primitive->HasStreamingSectionData(InTexCoordScales.Num() > 0))
-				continue;
+					continue;
 
-			Primitive->UpdateStreamingSectionData(InTexCoordScales);
+				Primitive->UpdateStreamingSectionData(InTexCoordScales);
 		}
 	}
-	UE_LOG(LogLevel, Display, TEXT("Update Texture Streaming Data took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+	UE_LOG(TextureStreamingBuild, Display, TEXT("Update Texture Streaming Data took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 	return true;
 #else
 	return false;
@@ -329,10 +331,10 @@ ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleM
 			Actor->MarkComponentsRenderStateDirty();
 		}
 	}
-	UE_LOG(LogLevel, Display, TEXT("Build Texture Streaming took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+	UE_LOG(TextureStreamingBuild, Display, TEXT("Build Texture Streaming took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 	return true;
 #else
-	UE_LOG(LogLevel, Fatal,TEXT("Build Texture Streaming should not be called on a console"));
+	UE_LOG(TextureStreamingBuild, Fatal,TEXT("Build Texture Streaming should not be called on a console"));
 	return false;
 #endif
 }

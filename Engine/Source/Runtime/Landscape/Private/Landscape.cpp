@@ -107,6 +107,8 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 	CollisionMipLevel = 0;
 	StaticLightingResolution = 0.f; // Default value 0 means no overriding
 
+	MaterialInstances.Add(nullptr); // make sure we always have a MaterialInstances[0]
+
 	HeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 	WeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -141,6 +143,16 @@ void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollec
 }
 
 #if WITH_EDITOR
+void ULandscapeComponent::BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform)
+{
+	Super::BeginCacheForCookedPlatformData(TargetPlatform);
+
+	if (TargetPlatform->SupportsFeature(ETargetPlatformFeatures::MobileRendering) && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		CheckGenerateLandscapePlatformData(true);
+	}
+}
+
 void ULandscapeComponent::CheckGenerateLandscapePlatformData(bool bIsCooking)
 {
 #if ENABLE_LANDSCAPE_COOKING
@@ -213,6 +225,9 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 	if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject) && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::MobileRendering))
 	{
+		// for -oldcook:
+		// the old cooker calls BeginCacheForCookedPlatformData after the package export set is tagged, so the mobile material doesn't get saved, so we have to do CheckGenerateLandscapePlatformData in serialize
+		// the new cooker clears the texture source data before calling serialize, causing GeneratePlatformVertexData to crash, so we have to do CheckGenerateLandscapePlatformData in BeginCacheForCookedPlatformData
 		CheckGenerateLandscapePlatformData(true);
 	}
 
@@ -221,19 +236,19 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		// These properties are only used for SM4+ so we back them up and clear them before serializing them.
 		UTexture2D* BackupHeightmapTexture = nullptr;
 		UTexture2D* BackupXYOffsetmapTexture = nullptr;
-		UMaterialInstanceConstant* BackupMaterialInstance = nullptr;
+		TArray<UMaterialInstanceConstant*> BackupMaterialInstances;
 		TArray<UTexture2D*> BackupWeightmapTextures;
 
 		Exchange(HeightmapTexture, BackupHeightmapTexture);
 		Exchange(BackupXYOffsetmapTexture, XYOffsetmapTexture);
-		Exchange(BackupMaterialInstance, MaterialInstance);
+		Exchange(BackupMaterialInstances, MaterialInstances);
 		Exchange(BackupWeightmapTextures, WeightmapTextures);
 
 		Super::Serialize(Ar);
 
 		Exchange(HeightmapTexture, BackupHeightmapTexture);
 		Exchange(BackupXYOffsetmapTexture, XYOffsetmapTexture);
-		Exchange(BackupMaterialInstance, MaterialInstance);
+		Exchange(BackupMaterialInstances, MaterialInstances);
 		Exchange(BackupWeightmapTextures, WeightmapTextures);
 	}
 	else
@@ -555,27 +570,42 @@ void ULandscapeComponent::PostLoad()
 		}
 	}
 
+#if WITH_EDITORONLY_DATA
+	// Handle old MaterialInstance
+	if (MaterialInstance_DEPRECATED)
+	{
+		MaterialInstances.Empty(1);
+		MaterialInstances.Add(MaterialInstance_DEPRECATED);
+		MaterialInstance_DEPRECATED = nullptr;
+
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+			UpdateMaterialInstances();
+		}
+#endif // WITH_EDITOR
+	}
+#endif
+
 #if WITH_EDITOR
 	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// Move the MICs and Textures back to the Package if they're currently in the level
 		// Moving them into the level caused them to be duplicated when running PIE, which is *very very slow*, so we've reverted that change
 		// Also clear the public flag to avoid various issues, e.g. generating and saving thumbnails that can never be seen
+		ULevel* Level = GetLevel();
+		if (ensure(Level))
 		{
-			ULevel* Level = GetLevel();
-			if (ensure(Level))
-			{
-				TArray<UObject*> ObjectsToMoveFromLevelToPackage;
-				GetGeneratedTexturesAndMaterialInstances(ObjectsToMoveFromLevelToPackage);
+			TArray<UObject*> ObjectsToMoveFromLevelToPackage;
+			GetGeneratedTexturesAndMaterialInstances(ObjectsToMoveFromLevelToPackage);
 
-				UPackage* MyPackage = GetOutermost();
-				for (auto* Obj : ObjectsToMoveFromLevelToPackage)
+			UPackage* MyPackage = GetOutermost();
+			for (auto* Obj : ObjectsToMoveFromLevelToPackage)
+			{
+				Obj->ClearFlags(RF_Public);
+				if (Obj->GetOuter() == Level)
 				{
-					Obj->ClearFlags(RF_Public);
-					if (Obj->GetOuter() == Level)
-					{
-						Obj->Rename(NULL, MyPackage, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
-					}
+					Obj->Rename(NULL, MyPackage, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 				}
 			}
 		}
@@ -622,6 +652,7 @@ ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	bUsedForNavigation = true;
 	CollisionThickness = 16;
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	bGenerateOverlapEvents = false;
 #if WITH_EDITORONLY_DATA
 	MaxPaintedLayersPerComponent = 0;
 #endif
@@ -712,11 +743,13 @@ ULandscapeInfo* ALandscapeProxy::GetLandscapeInfo() const
 	check(LandscapeGuid.IsValid());
 	UWorld* OwningWorld = GetWorld();
 	check(OwningWorld);
-	check(!OwningWorld->IsGameWorld());
-
-	auto& LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
-	LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
-
+	
+	//check(!OwningWorld->IsGameWorld());
+	if (!OwningWorld->IsGameWorld())
+	{
+		auto& LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
+		LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
+	}
 	return LandscapeInfo;
 }
 #endif
@@ -737,6 +770,7 @@ ULevel* ULandscapeComponent::GetLevel() const
 	return MyOwner ? MyOwner->GetLevel() : NULL;
 }
 
+#if WITH_EDITOR
 void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObject*>& OutTexturesAndMaterials) const
 {
 	if (HeightmapTexture)
@@ -754,23 +788,20 @@ void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObjec
 		OutTexturesAndMaterials.Add(XYOffsetmapTexture);
 	}
 
-	for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC && CurrentMIC->IsA<ULandscapeMaterialInstanceConstant>(); CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
+	for (UMaterialInstanceConstant* MaterialInstance : MaterialInstances)
 	{
-		OutTexturesAndMaterials.Add(CurrentMIC);
-
-		// Sometimes weight map is not registered in the WeightmapTextures, so
-		// we need to get it from here.
-		if (CurrentMIC->IsA<ULandscapeMaterialInstanceConstant>())
+		for (ULandscapeMaterialInstanceConstant* CurrentMIC = Cast<ULandscapeMaterialInstanceConstant>(MaterialInstance); CurrentMIC; CurrentMIC = Cast<ULandscapeMaterialInstanceConstant>(CurrentMIC->Parent))
 		{
-			auto* LandscapeMIC = Cast<ULandscapeMaterialInstanceConstant>(CurrentMIC);
+			OutTexturesAndMaterials.Add(CurrentMIC);
 
-			auto* WeightmapPtr = LandscapeMIC->TextureParameterValues.FindByPredicate(
+			// Sometimes weight map is not registered in the WeightmapTextures, so
+			// we need to get it from here.
+			auto* WeightmapPtr = CurrentMIC->TextureParameterValues.FindByPredicate(
 				[](const FTextureParameterValue& ParamValue)
 			{
 				static const FName WeightmapParamName("Weightmap0");
 				return ParamValue.ParameterName == WeightmapParamName;
-			}
-			);
+			});
 
 			if (WeightmapPtr != nullptr &&
 				!OutTexturesAndMaterials.Contains(WeightmapPtr->ParameterValue))
@@ -780,6 +811,7 @@ void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObjec
 		}
 	}
 }
+#endif
 
 ALandscapeProxy* ULandscapeComponent::GetLandscapeProxy() const
 {
@@ -943,10 +975,8 @@ void ULandscapeComponent::OnUnregister()
 
 void ULandscapeComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
 {
-	if (MaterialInstance != NULL)
-	{
-		OutMaterials.Add(MaterialInstance);
-	}
+	// TODO - investigate whether this is correct
+	OutMaterials.Append(MaterialInstances.FilterByPredicate([](UMaterialInstance* MaterialInstance) { return MaterialInstance != nullptr; }));
 }
 
 void ALandscapeProxy::PostRegisterAllComponents()
@@ -968,7 +998,7 @@ void ALandscapeProxy::PostRegisterAllComponents()
 #endif
 }
 
-void ALandscapeProxy::UnregisterAllComponents()
+void ALandscapeProxy::UnregisterAllComponents(const bool bForReregister)
 {
 #if WITH_EDITOR
 	// Game worlds don't have landscape infos
@@ -987,7 +1017,7 @@ void ALandscapeProxy::UnregisterAllComponents()
 	}
 #endif
 
-	Super::UnregisterAllComponents();
+	Super::UnregisterAllComponents(bForReregister);
 }
 
 // FLandscapeWeightmapUsage serializer
@@ -2299,9 +2329,9 @@ void ULandscapeMeshProxyComponent::InitializeForLandscape(ALandscapeProxy* Lands
 #if WITH_EDITOR
 void ULandscapeComponent::SerializeStateHashes(FArchive& Ar)
 {
-	if (MaterialInstance)
+	if (MaterialInstances[0])
 	{
-		Ar << MaterialInstance->GetMaterial()->StateId;
+		Ar << MaterialInstances[0]->GetMaterial()->StateId;
 	}
 
 	FGuid HeightmapGuid = HeightmapTexture->Source.GetId();
@@ -2393,7 +2423,7 @@ void ALandscapeProxy::UpdateBakedTextures()
 			}
 
 			// Check we can render the material
-			UMaterialInstance* MaterialInstance = Component->MaterialInstance;
+			UMaterialInstance* MaterialInstance = Component->MaterialInstances[0];
 			if (!MaterialInstance)
 			{
 				// Cannot render this component yet as it doesn't have a material; abandon the atlas for this heightmap

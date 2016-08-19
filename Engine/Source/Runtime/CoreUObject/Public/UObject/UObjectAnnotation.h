@@ -198,7 +198,7 @@ public:
 	 * Return the annotation map. Caution, this is for low level use 
 	 * @return A mapping from UObjectBase to annotation for non-default annotations
 	 */
-	const TMap<const UObjectBase *,TAnnotation>& GetAnnotationMap()
+	const TMap<const UObjectBase *,TAnnotation>& GetAnnotationMap() const
 	{
 		return AnnotationMap;
 	}
@@ -438,6 +438,11 @@ public:
 	FORCEINLINE void Reserve(int32 ExpectedNumElements)
 	{
 		FUObjectAnnotationSparse<FBoolAnnotation,true>::Reserve(ExpectedNumElements);
+	}
+
+	FORCEINLINE int32 Num() const
+	{
+		return this->GetAnnotationMap().Num();
 	}
 };
 

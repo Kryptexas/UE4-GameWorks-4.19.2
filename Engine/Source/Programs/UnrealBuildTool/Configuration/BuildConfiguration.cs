@@ -577,7 +577,7 @@ namespace UnrealBuildTool
 			bDisableDebugInfo = false;
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
-			bGeneratedSYMFile = false;
+			bGeneratedSYMFile = true;
 			bGeneratedSYMBundle = false;
 			bStripSymbolsOnIOS = bGeneratedSYMFile;
 
@@ -660,7 +660,7 @@ namespace UnrealBuildTool
 
 			// Switch for fast semantics D3D contexts
 			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
-			bUseFastSemanticsRenderContexts = false;
+			bUseFastSemanticsRenderContexts = true;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces

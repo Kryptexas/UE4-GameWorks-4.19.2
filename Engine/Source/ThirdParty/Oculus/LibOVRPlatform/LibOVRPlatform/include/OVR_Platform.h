@@ -39,9 +39,10 @@
 #include "OVR_LeaderboardStartAt.h"
 #include "OVR_LeaderboardFilterType.h"
 #include "OVR_KeyValuePairType.h"
+#include "OVR_MatchmakingBrowseResult.h"
 #include "OVR_MatchmakingEnqueueResult.h"
 #include "OVR_MatchmakingEnqueueResultAndRoom.h"
-#include "OVR_Voip.h"
+#include "OVR_Voip_LowLevel.h"
 #include "OVR_Requests_Achievements.h"
 #include "OVR_Requests_Application.h"
 #include "OVR_Requests_CloudStorage.h"
@@ -53,27 +54,12 @@
 #include "OVR_Requests_Room.h"
 #include "OVR_Requests_User.h"
 
-
 #ifdef __ANDROID__
 #include <jni.h>
-OVRP_PUBLIC_FUNCTION(void) ovr_PlatformInitializeAndroid(const char* appId, jobject activityObject, JNIEnv * jni);
+OVRP_PUBLIC_FUNCTION(ovrPlatformInitializeResult) ovr_PlatformInitializeAndroid(const char* appId, jobject activityObject, JNIEnv * jni);
 #endif
 
 OVRPL_PUBLIC_FUNCTION(void) ovr_PlatformInitializeStandaloneAccessToken(const char* accessToken);
-
-/// Describes the various results possible when attempting to initialize the platform.
-/// Anything other than ovrPlatformInitialize_Success should generally be considered a
-/// fatal error with respect to using the platform, as the platform is not guaranteed
-/// to be legitimate or work correctly.
-typedef enum ovrPlatformInitializeResult_ {
-	ovrPlatformInitialize_Success = 0,
-	ovrPlatformInitialize_Uninitialized = -1,
-	ovrPlatformInitialize_PreLoaded = -2,
-	ovrPlatformInitialize_FileInvalid = -3,
-	ovrPlatformInitialize_SignatureInvalid = -4,
-	ovrPlatformInitialize_UnableToVerify = -5,
-	ovrPlatformInitialize_VersionMismatch = -6,
-} ovrPlatformInitializeResult;
 
 #if defined(OVRPL_DISABLED)
 
@@ -111,8 +97,6 @@ OVRP_PUBLIC_FUNCTION(ovrID) ovr_GetLoggedInUserID();
 OVRPL_PUBLIC_FUNCTION(ovrMessageHandle) ovr_PopMessage();
 
 OVRP_PUBLIC_FUNCTION(void) ovr_FreeMessage(ovrMessageHandle);
-
-OVRP_PUBLIC_FUNCTION(ovrID) ovr_Message_MatchmakingRoom_GetID(ovrMessageHandle message);
 
 OVRP_PUBLIC_FUNCTION(void) ovr_SetDeveloperAccessToken(const char *accessToken);
 

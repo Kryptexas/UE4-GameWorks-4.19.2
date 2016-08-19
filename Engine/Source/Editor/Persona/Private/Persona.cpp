@@ -2227,6 +2227,12 @@ void FPersona::PostUndo(bool bSuccess)
 	// PostUndo broadcast
 	OnPostUndo.Broadcast();	
 
+	// Re-init preview instance
+	if (PreviewComponent && PreviewComponent->AnimScriptInstance)
+	{
+		PreviewComponent->AnimScriptInstance->InitializeAnimation();
+	}
+
 	RefreshPreviewInstanceTrackCurves();
 
 	// clear up preview anim notify states
@@ -2776,6 +2782,11 @@ void FPersona::PostRedo(bool bSuccess)
 
 	// PostUndo broadcast, OnPostRedo
 	OnPostUndo.Broadcast();
+
+	if (PreviewComponent && PreviewComponent->AnimScriptInstance)
+	{
+		PreviewComponent->AnimScriptInstance->InitializeAnimation();
+	}
 
 	// clear up preview anim notify states
 	// animnotify states are saved in AnimInstance

@@ -3,8 +3,6 @@
 	#include "FastMath.usf"
 	#include "PS4/RTWriteMaskProcessing.usf"
 #else
-	#define THREADGROUP_SIZEX		16
-	#define THREADGROUP_SIZEY		16
 
 	[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 	void RTWriteMaskCombineMain(

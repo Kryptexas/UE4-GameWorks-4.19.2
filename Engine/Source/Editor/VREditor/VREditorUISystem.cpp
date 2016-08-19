@@ -923,7 +923,7 @@ void UVREditorUISystem::ShowEditorUIPanel( const UWidgetComponent* WidgetCompone
 	AVREditorFloatingUI* Panel = nullptr;
 	for( AVREditorFloatingUI* CurrentPanel : EditorUIPanels )
 	{
-		if( CurrentPanel->GetWidgetComponent() == WidgetComponent )
+		if( CurrentPanel && CurrentPanel->GetWidgetComponent() == WidgetComponent )
 		{
 			Panel = CurrentPanel;
 			break;
@@ -1346,7 +1346,8 @@ void UVREditorUISystem::ShowAssetEditor()
 	{
 		// Always spawn on a hand.  But which hand?  Well, we'll choose the hand that isn't actively clicking on something using a laser.
 		UVREditorInteractor* VREditorInteractor = GetOwner().GetHandInteractor( EControllerHand::Left ); // Hand that did not clicked with a laser
-		if ( VREditorInteractor->IsClickingOnUI() )
+		//@todo VREditor: This should include a check on VREditorInteractor->IsClickingOnUI(), however that is broken because of double click on UI.
+		if( !VREditorInteractor->HasUIInFront() )
 		{
 			VREditorInteractor = GetOwner().GetHandInteractor( EControllerHand::Right );
 		}

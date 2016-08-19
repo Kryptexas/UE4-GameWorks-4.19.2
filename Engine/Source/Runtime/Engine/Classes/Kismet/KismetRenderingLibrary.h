@@ -24,6 +24,7 @@ UCLASS(MinimalAPI)
 class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
+	
 
 	/** 
 	 * Clears the specified render target with the given ClearColor.

@@ -220,7 +220,7 @@ FHMDGameFrame* FHeadMountedDisplay::GetCurrentFrame() const
 		return nullptr;
 	}
 
-	check(IsInGameThread());
+	check(!IsInActualRenderingThread());
 	// A special case, when the game frame is over but rendering hasn't started yet
 	if (Frame->Flags.bOutOfFrame && RenderFrame.IsValid() && RenderFrame->Flags.bOutOfFrame)
 	{
@@ -1122,7 +1122,7 @@ void FHeadMountedDisplay::GetCurrentHMDPose(FQuat& CurrentOrientation, FVector& 
 	bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera, const FVector& PositionScale)
 {
 	// only supposed to be used from the game thread
-	check(IsInGameThread());
+	check(!IsInActualRenderingThread());
 	auto frame = GetCurrentFrame();
 	if (!frame)
 	{
