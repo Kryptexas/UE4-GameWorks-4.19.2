@@ -52,7 +52,7 @@ When a Component is registered, the events below are fired off.
 | -------- | ----------- |
 | UActorComponent::OnRegister() | Event to allow for additional initialization when registering a Component, if necessary. |
 | UActorComponent::CreateRenderState() | Initializes the render state for the Component. |
-| UActorComponent::CreatePhysicsState() | Initializes the physics state for the Component. |
+| UActorComponent::OnCreatePhysicsState() | Initializes the physics state for the Component. |
 
 
 ### UnRegistering Components
@@ -69,7 +69,7 @@ The events below are fired off when a Component is unregistered.
 | -------- | ----------- |
 | UActorComponent::OnUnRegister() | Event to allow for additional actions when unregistering a Component, if necessary. |
 | UActorComponent::DestroyRenderState() | Uninitializes the render state for the Component. |
-| UActorComponent::DestroyPhysicsState() | Uninitializes the physics state for the Component. |
+| UActorComponent::OnDestroyPhysicsState() | Uninitializes the physics state for the Component. |
 
 
 ### Updating
