@@ -7,6 +7,11 @@
 
 DECLARE_DELEGATE(FNextTickDelegate);
 
+namespace OSSConsoleVariables
+{
+	extern ONLINESUBSYSTEM_API TAutoConsoleVariable<int32> CVarVoiceLoopback;
+}
+
 /**
  *	FOnlineSubsystemImpl - common functionality to share across online platforms, not intended for direct use
  */

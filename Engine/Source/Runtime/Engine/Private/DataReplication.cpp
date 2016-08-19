@@ -55,7 +55,8 @@ public:
 				}
 				else
 				{
-					RepLayout->ReceiveProperties_BackwardsCompatible( PackageMapClient->GetConnection(), nullptr, Data, static_cast< FNetBitReader& >( Ar ), bHasUnmapped, false );
+					bool bHasGuidsChanged = false;
+					RepLayout->ReceiveProperties_BackwardsCompatible( PackageMapClient->GetConnection(), nullptr, Data, static_cast< FNetBitReader& >( Ar ), bHasUnmapped, false, bHasGuidsChanged );
 				}
 			}
 			else
@@ -209,6 +210,7 @@ void FObjectReplicator::InitWithObject( UObject* InObject, UNetConnection * InCo
 	bOpenAckCalled				= false;
 	RepState					= NULL;
 	OwningChannel				= NULL;		// Initially NULL until StartReplicating is called
+	TrackedGuidMemoryBytes		= 0;
 
 	RepLayout = Connection->Driver->GetObjectClassRepLayout( ObjectClass );
 
@@ -315,7 +317,27 @@ static FORCEINLINE void ValidateRetirementHistory( const FPropertyRetirement & R
 void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 {
 	check( OwningChannel != NULL );
+	check( OwningChannel->Connection == Connection );
 	check( OwningChannel == InActorChannel );
+
+	for ( const FNetworkGUID& GUID : ReferencedGuids )
+	{
+		TSet< FObjectReplicator* >& Replicators = Connection->Driver->GuidToReplicatorMap.FindChecked( GUID );
+
+		Replicators.Remove( this );
+
+		if ( Replicators.Num() == 0 )
+		{
+			Connection->Driver->GuidToReplicatorMap.Remove( GUID );
+		}
+	}
+
+	Connection->Driver->UnmappedReplicators.Remove( this );
+
+	ReferencedGuids.Empty();
+	
+	Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
+	TrackedGuidMemoryBytes = 0;
 
 	OwningChannel = NULL;
 
@@ -442,6 +464,8 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 		return false;
 	}
 
+	bool bGuidsChanged = false;
+
 	// Handle replayout properties
 	if ( bHasRepLayout )
 	{
@@ -462,7 +486,7 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 
 		bool bLocalHasUnmapped = false;
 
-		if ( !RepLayout->ReceiveProperties( OwningChannel, ObjectClass, RepState, ( void* )Object, Bunch, bLocalHasUnmapped, bShouldReceiveRepNotifies ) )
+		if ( !RepLayout->ReceiveProperties( OwningChannel, ObjectClass, RepState, ( void* )Object, Bunch, bLocalHasUnmapped, bShouldReceiveRepNotifies, bGuidsChanged ) )
 		{
 			UE_LOG( LogRep, Error, TEXT( "RepLayout->ReceiveProperties FAILED: %s" ), *Object->GetFullName() );
 			return false;
@@ -613,6 +637,11 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 				bOutHasUnmapped = true;
 			}
 
+			if ( Parms.bGuidListsChanged )
+			{
+				bGuidsChanged = true;
+			}
+
 			// Successfully received it.
 			UE_LOG(LogRepTraffic, Log, TEXT(" %s - %s"), *Object->GetName(), *ReplicatedProp->GetName());
 
@@ -717,8 +746,139 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			return false;
 		}
 	}
+	
+	// If guids changed, then rebuild acceleration tables
+	if ( !bIsServer && bGuidsChanged )
+	{
+		UpdateGuidToReplicatorMap();
+	}
 
 	return true;
+}
+
+void FObjectReplicator::UpdateGuidToReplicatorMap()
+{
+	SCOPE_CYCLE_COUNTER( STAT_NetUpdateGuidToReplicatorMap );
+
+	const bool bIsServer = Connection->Driver->IsServer();
+
+	if ( bIsServer )
+	{
+		return;
+	}
+
+	TSet< FNetworkGUID > LocalReferencedGuids;
+	int32 LocalTrackedGuidMemoryBytes = 0;
+
+	// Gather guids on rep layout
+	if ( RepLayout.IsValid() && RepState )
+	{
+		RepLayout->GatherGuidReferences( RepState, LocalReferencedGuids, LocalTrackedGuidMemoryBytes );
+	}
+
+	UObject* Object = GetObject();
+
+	// Gather guids on fast tarray
+	for ( const int32 CustomIndex : LifetimeCustomDeltaProperties )
+	{
+		FRepRecord* Rep	= &ObjectClass->ClassReps[CustomIndex];
+
+		UStructProperty* StructProperty = CastChecked< UStructProperty >( Rep->Property );
+
+		FNetDeltaSerializeInfo Parms;
+
+		FNetSerializeCB NetSerializeCB( Connection->Driver );
+
+		Parms.NetSerializeCB			= &NetSerializeCB;
+		Parms.GatherGuidReferences		= &LocalReferencedGuids;
+		Parms.TrackedGuidMemoryBytes	= &LocalTrackedGuidMemoryBytes;
+
+		UScriptStruct::ICppStructOps* CppStructOps = StructProperty->Struct->GetCppStructOps();
+
+		Parms.Struct = StructProperty->Struct;
+
+		if ( Object != nullptr )
+		{
+			CppStructOps->NetDeltaSerialize( Parms, StructProperty->ContainerPtrToValuePtr<void>( Object, Rep->Index ) );
+		}
+	}
+
+	// Go over all referenced guids, and make sure we're tracking them in the GuidToReplicatorMap
+	for ( const FNetworkGUID& GUID : LocalReferencedGuids )
+	{
+		if ( !ReferencedGuids.Contains( GUID ) )
+		{
+			Connection->Driver->GuidToReplicatorMap.FindOrAdd( GUID ).Add( this );
+		}
+	}
+
+	// Remove any guids that we were previously tracking but no longer should
+	for ( const FNetworkGUID& GUID : ReferencedGuids )
+	{
+		if ( !LocalReferencedGuids.Contains( GUID ) )
+		{
+			TSet< FObjectReplicator* >& Replicators = Connection->Driver->GuidToReplicatorMap.FindChecked( GUID );
+
+			Replicators.Remove( this );
+
+			if ( Replicators.Num() == 0 )
+			{
+				Connection->Driver->GuidToReplicatorMap.Remove( GUID );
+			}
+		}
+	}
+
+	Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
+	TrackedGuidMemoryBytes = LocalTrackedGuidMemoryBytes;
+	Connection->Driver->TotalTrackedGuidMemoryBytes += TrackedGuidMemoryBytes;
+
+	ReferencedGuids = MoveTemp( LocalReferencedGuids );
+}
+
+bool FObjectReplicator::MoveMappedObjectToUnmapped( const FNetworkGUID& GUID )
+{
+	bool bFound = false;
+
+	if ( RepLayout.IsValid() )
+	{
+		if ( RepLayout->MoveMappedObjectToUnmapped( RepState, GUID ) )
+		{
+			bFound = true;
+		}
+	}
+
+	UObject* Object = GetObject();
+
+	for ( const int32 CustomIndex : LifetimeCustomDeltaProperties )
+	{
+		FRepRecord* Rep	= &ObjectClass->ClassReps[CustomIndex];
+
+		UStructProperty* StructProperty = CastChecked< UStructProperty >( Rep->Property );
+
+		FNetDeltaSerializeInfo Parms;
+
+		FNetSerializeCB NetSerializeCB( Connection->Driver );
+
+		Parms.NetSerializeCB			= &NetSerializeCB;
+		Parms.MoveGuidToUnmapped		= &GUID;
+
+		UScriptStruct::ICppStructOps* CppStructOps = StructProperty->Struct->GetCppStructOps();
+
+		Parms.Struct = StructProperty->Struct;
+
+		if ( Object != nullptr )
+		{
+			void* Data = StructProperty->ContainerPtrToValuePtr<void>( Object, Rep->Index );
+
+			if ( CppStructOps->NetDeltaSerialize( Parms, Data ) )
+			{
+				UnmappedCustomProperties.Add( (uint8*)Data - (uint8*)Object, StructProperty );
+				bFound = true;
+			}
+		}
+	}
+
+	return bFound;
 }
 
 void FObjectReplicator::PostReceivedBunch()
@@ -1310,6 +1470,8 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 	{
 		// If we mapped some objects, make sure to call PostNetReceive (some game code will need to think this was actually replicated to work)
 		PostNetReceive();
+
+		UpdateGuidToReplicatorMap();
 	}
 }
 

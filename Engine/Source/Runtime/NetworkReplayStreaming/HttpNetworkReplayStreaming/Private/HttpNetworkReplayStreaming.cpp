@@ -421,7 +421,7 @@ static FString BuildRequestErrorString( FHttpRequestPtr HttpRequest, FHttpRespon
 	return FString::Printf( TEXT( "Response code: %d, Extra info: %s" ), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0, *ExtraInfo );
 }
 
-bool FHttpNetworkReplayStreamer::RetryRequest( TSharedPtr< FQueuedHttpRequest > Request, FHttpResponsePtr HttpResponse )
+bool FHttpNetworkReplayStreamer::RetryRequest( TSharedPtr< FQueuedHttpRequest > Request, FHttpResponsePtr HttpResponse, const bool bIgnoreResponseCode )
 {
 	if ( !Request.IsValid() )
 	{
@@ -438,9 +438,12 @@ bool FHttpNetworkReplayStreamer::RetryRequest( TSharedPtr< FQueuedHttpRequest > 
 		return false;
 	}
 
-	if ( HttpResponse->GetResponseCode() < 500 || HttpResponse->GetResponseCode() >= 600 )
+	if ( !bIgnoreResponseCode )
 	{
-		return false;		// Only retry on 5xx return codes
+		if ( HttpResponse->GetResponseCode() < 500 || HttpResponse->GetResponseCode() >= 600 )
+		{
+			return false;		// Only retry on 5xx return codes
+		}
 	}
 
 	Request->RetryProgress++;
@@ -1139,7 +1142,7 @@ void FHttpNetworkReplayStreamer::RefreshViewer( const bool bFinal )
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpRefreshViewerFinished );
 
-	AddRequestToQueue( EQueuedHttpRequestType::RefreshingViewer, HttpRequest );
+	AddRequestToQueue( EQueuedHttpRequestType::RefreshingViewer, HttpRequest, 2, 2.0f );
 
 	LastRefreshViewerTime = FPlatformTime::Seconds();
 }
@@ -1948,10 +1951,17 @@ void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr
 
 void FHttpNetworkReplayStreamer::HttpRefreshViewerFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	TSharedPtr< FQueuedHttpRequest > SavedFlightHttpRequest = InFlightHttpRequest;
+
 	RequestFinished( EStreamerState::StreamingDown, EQueuedHttpRequestType::RefreshingViewer, HttpRequest );
 
 	if ( !bSucceeded || HttpResponse->GetResponseCode() != EHttpResponseCodes::NoContent )
 	{
+		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse, true ) )
+		{
+			return;
+		}
+
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpRefreshViewerFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}

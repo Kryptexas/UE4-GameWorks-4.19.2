@@ -1532,6 +1532,52 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	ActorReplicator = NULL;
 }
 
+static TAutoConsoleVariable<int32> CVarRelinkMappedReferences( TEXT( "net.RelinkMappedReferences" ), 1, TEXT( "" ) );
+
+void UActorChannel::MoveMappedObjectToUnmapped( const UObject* Object )
+{
+	if ( !Object )
+	{
+		return;
+	}
+
+	if ( !CVarRelinkMappedReferences.GetValueOnGameThread() )
+	{
+		return;
+	}
+
+	UNetDriver* Driver = Connection ? Connection->Driver : nullptr;
+
+	if ( !Driver || Driver->IsServer() )
+	{
+		return;
+	}
+
+	// Find all replicators that are referencing this object, and make sure to mark the references as unmapped
+	// This is so when/if this object is instantiated again (using same network guid), we can re-establish the old references
+	FNetworkGUID NetGuid = Driver->GuidCache->NetGUIDLookup.FindRef( Object );
+
+	if ( NetGuid.IsValid() )
+	{
+		TSet< FObjectReplicator* >* Replicators = Driver->GuidToReplicatorMap.Find( NetGuid );
+
+		if ( Replicators != nullptr )
+		{
+			for ( FObjectReplicator* Replicator : *Replicators )
+			{
+				if ( Replicator->MoveMappedObjectToUnmapped( NetGuid ) )
+				{
+					Driver->UnmappedReplicators.Add( Replicator );
+				}
+				else if ( !Driver->UnmappedReplicators.Contains( Replicator ) )
+				{
+					UE_LOG( LogNet, Warning, TEXT( "UActorChannel::MoveMappedObjectToUnmapped: MoveMappedObjectToUnmapped didn't find object: %s" ), *GetPathNameSafe( Replicator->GetObject() ) );
+				}
+			}
+		}
+	}
+}
+
 void UActorChannel::DestroyActorAndComponents()
 {
 	// Destroy any sub-objects we created
@@ -1540,6 +1586,9 @@ void UActorChannel::DestroyActorAndComponents()
 		if ( CreateSubObjects[i].IsValid() )
 		{
 			UObject *SubObject = CreateSubObjects[i].Get();
+
+			// Unmap this object so we can remap it if it becomes relevant again in the future
+			MoveMappedObjectToUnmapped( SubObject );
 
 			if ( Connection != nullptr && Connection->Driver != nullptr )
 			{
@@ -1557,6 +1606,9 @@ void UActorChannel::DestroyActorAndComponents()
 	// Destroy the actor
 	if ( Actor != NULL )
 	{
+		// Unmap this object so we can remap it if it becomes relevant again in the future
+		MoveMappedObjectToUnmapped( Actor );
+
 		Actor->PreDestroyFromReplication();
 		Actor->Destroy( true );
 	}
@@ -2112,7 +2164,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 
 		if ( bHasUnmapped )
 		{
-			Connection->Driver->UnmappedReplicators.Add( Replicator );
+			Connection->Driver->UnmappedReplicators.Add( &Replicator.Get() );
 		}
 	}
 
@@ -2719,6 +2771,9 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch, bool& bObjectD
 	{
 		if ( SubObj )
 		{
+			// Unmap this object so we can remap it if it becomes relevant again in the future
+			MoveMappedObjectToUnmapped( SubObj );
+
 			// Stop tracking this sub-object
 			CreateSubObjects.Remove( SubObj );
 

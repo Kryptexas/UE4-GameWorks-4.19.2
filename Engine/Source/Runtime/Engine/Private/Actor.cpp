@@ -1779,6 +1779,11 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 			MyWorld->AddNetworkActor( this );
 
 			NetDriver->FlushActorDormancy(this);
+
+			if (MyWorld->DemoNetDriver && MyWorld->DemoNetDriver != NetDriver)
+			{
+				MyWorld->DemoNetDriver->FlushActorDormancy(this);
+			}
 		}
 	}
 }
@@ -1803,13 +1808,20 @@ void AActor::FlushNetDormancy()
 		return;
 	}
 
+	UWorld* MyWorld = GetWorld();
+
 	// Add to network actors list if needed
-	GetWorld()->AddNetworkActor( this );
+	MyWorld->AddNetworkActor( this );
 	
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
 		NetDriver->FlushActorDormancy(this);
+
+		if (MyWorld->DemoNetDriver && MyWorld->DemoNetDriver!= NetDriver)
+		{
+			MyWorld->DemoNetDriver->FlushActorDormancy(this);
+		}
 	}
 }
 

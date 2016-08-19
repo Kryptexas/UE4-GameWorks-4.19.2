@@ -97,32 +97,31 @@ public:
 	bool				Resend;
 };
 
-class FUnmappedGuidMgrElement
+class FGuidReferences;
+
+typedef TMap< int32, FGuidReferences > FGuidReferencesMap;
+
+class FGuidReferences
 {
 public:
-	FUnmappedGuidMgrElement() : NumBufferBits( 0 ), Array( NULL ) {}
-	FUnmappedGuidMgrElement( FBitReader & InReader, FBitReaderMark & InMark, const TArray< FNetworkGUID > & InUnmappedGUIDs, const int32 InParentIndex, const int32 InCmdIndex ) : UnmappedGUIDs( InUnmappedGUIDs ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) 
+	FGuidReferences() : NumBufferBits( 0 ), Array( NULL ) {}
+	FGuidReferences( FBitReader& InReader, FBitReaderMark& InMark, const TSet< FNetworkGUID >& InUnmappedGUIDs, const TSet< FNetworkGUID >& InMappedDynamicGUIDs, const int32 InParentIndex, const int32 InCmdIndex ) : UnmappedGUIDs( InUnmappedGUIDs ), MappedDynamicGUIDs( InMappedDynamicGUIDs ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex )
 	{
 		NumBufferBits = InReader.GetPosBits() - InMark.GetPos();
 		InMark.Copy( InReader, Buffer );
 	}
-	FUnmappedGuidMgrElement( class FUnmappedGuidMgr * InArray, const int32 InParentIndex, const int32 InCmdIndex ) : NumBufferBits( 0 ), Array( InArray ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
+	FGuidReferences( FGuidReferencesMap* InArray, const int32 InParentIndex, const int32 InCmdIndex ) : NumBufferBits( 0 ), Array( InArray ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
 
-	~FUnmappedGuidMgrElement();
+	~FGuidReferences();
 
-	TArray< FNetworkGUID >		UnmappedGUIDs;
+	TSet< FNetworkGUID >		UnmappedGUIDs;
+	TSet< FNetworkGUID >		MappedDynamicGUIDs;
 	TArray< uint8 >				Buffer;
 	int32						NumBufferBits;
 
-	class FUnmappedGuidMgr *	Array;
+	FGuidReferencesMap*			Array;
 	int32						ParentIndex;
 	int32						CmdIndex;
-};
-
-class FUnmappedGuidMgr
-{
-public:
-	TMap< int32, FUnmappedGuidMgrElement > Map;
 };
 
 /** FRepState
@@ -146,7 +145,7 @@ public:
 	// Properties will be copied in here so memory needs aligned to largest type
 	TArray< uint8, TAlignedHeapAllocator<16> >				StaticBuffer;
 
-	FUnmappedGuidMgr			UnmappedGuids;
+	FGuidReferencesMap			GuidReferencesMap;
 
 	TSharedPtr< FRepLayout >	RepLayout;
 	
@@ -305,7 +304,12 @@ public:
 
 	ENGINE_API void InitFromObjectClass( UClass * InObjectClass );
 
-	bool ReceiveProperties( UActorChannel* OwningChannel, UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies ) const;
+	bool ReceiveProperties( UActorChannel* OwningChannel, UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies, bool& bOutGuidsChanged ) const;
+
+	void GatherGuidReferences( FRepState* RepState, TSet< FNetworkGUID >& OutReferencedGuids, int32& OutTrackedGuidMemoryBytes ) const;
+
+	bool MoveMappedObjectToUnmapped( FRepState* RepState, const FNetworkGUID& GUID ) const;
+
 	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject* Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
 
 	void CallRepNotifies( FRepState * RepState, UObject* Object ) const;
@@ -347,11 +351,13 @@ public:
 		TArray< uint16 >&			Changed ) const;
 
 	bool ReceiveProperties_BackwardsCompatible(
-		UNetConnection* Connection,
-		FRepState* RESTRICT RepState,
-		void* RESTRICT Data, FNetBitReader & InBunch,
-		bool& bOutHasUnmapped,
-		const bool bEnableRepNotifies ) const;
+		UNetConnection*				Connection,
+		FRepState* RESTRICT			RepState,
+		void* RESTRICT				Data,
+		FNetBitReader&				InBunch,
+		bool&						bOutHasUnmapped,
+		const bool					bEnableRepNotifies,
+		bool&						bOutGuidsChanged ) const;
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
@@ -451,19 +457,24 @@ private:
 		uint8* RESTRICT			ShadowData,
 		uint8* RESTRICT			OldData,
 		uint8* RESTRICT			Data,
-		FUnmappedGuidMgr*		UnmappedGuids,
-		bool &					bOutHasUnmapped ) const;
+		FGuidReferencesMap*		GuidReferencesMap,
+		bool&					bOutHasUnmapped,
+		bool&					bOutGuidsChanged ) const;
+
+	void GatherGuidReferences_r( FGuidReferencesMap* GuidReferencesMap, TSet< FNetworkGUID >& OutReferencedGuids, int32& OutTrackedGuidMemoryBytes ) const;
+
+	bool MoveMappedObjectToUnmapped_r( FGuidReferencesMap* GuidReferencesMap, const FNetworkGUID& GUID ) const;
 
 	void UpdateUnmappedObjects_r(
-		FRepState *			RepState, 
-		FUnmappedGuidMgr *	UnmappedGuids, 
-		UObject *			OriginalObject,
-		UPackageMap *		PackageMap, 
-		uint8* RESTRICT		StoredData, 
-		uint8* RESTRICT		Data, 
-		const int32			MaxAbsOffset,
-		bool &				bOutSomeObjectsWereMapped,
-		bool &				bOutHasMoreUnmapped ) const;
+		FRepState*				RepState, 
+		FGuidReferencesMap*		GuidReferencesMap,
+		UObject*				OriginalObject,
+		UPackageMap*			PackageMap, 
+		uint8* RESTRICT			StoredData, 
+		uint8* RESTRICT			Data, 
+		const int32				MaxAbsOffset,
+		bool&					bOutSomeObjectsWereMapped,
+		bool&					bOutHasMoreUnmapped ) const;
 
 	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data, FArchive & Ar ) const;
 	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT Data, FArchive & Ar ) const;

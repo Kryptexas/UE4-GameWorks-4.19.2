@@ -59,7 +59,6 @@ class ENGINE_API UActorChannel
 	uint32  bActorMustStayDirty:1;	// ActorDirty may not be cleared at end of this tick
 	uint32  bActorStillInitial:1;	// Not all properties sent while bNetInitial, so still bNetInitial next tick
 	uint32  bIsReplicatingActor:1;	// true when in this channel's ReplicateActor() to avoid recursion as that can cause invalid data to be sent
-	uint32  bPendingCheckpoint:1;	// true when this channel is currently waiting to replicate for a checkpoint
 	
 	/** whether we should nullptr references to this channel's Actor in other channels' Recent data when this channel is closed
 	 * set to false in cases where the Actor can't become relevant again (e.g. destruction) as it's unnecessary in that case
@@ -267,6 +266,9 @@ protected:
 	
 	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
+
+	/** Unmap all references to this object, so that if later we receive this object again, we can remap the original references */
+	void MoveMappedObjectToUnmapped( const UObject* Object );
 
 	void DestroyActorAndComponents();
 

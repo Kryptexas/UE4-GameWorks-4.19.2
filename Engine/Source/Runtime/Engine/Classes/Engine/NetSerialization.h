@@ -334,10 +334,11 @@ struct FFastArraySerializerItem
 	FORCEINLINE void PostReplicatedChange(const struct FFastArraySerializer& InArraySerializer) { }
 };
 
-/** Struct for holding information about a element that has unmapped network guids */
-struct FFastArraySerializerUnmappedItem
+/** Struct for holding guid references */
+struct FFastArraySerializerGuidReferences
 {
-	TArray< FNetworkGUID >		UnmappedGUIDs;		// List of guids that were unmapped so we can quickly check
+	TSet< FNetworkGUID >		UnmappedGUIDs;		// List of guids that were unmapped so we can quickly check
+	TSet< FNetworkGUID >		MappedDynamicGUIDs;	// List of guids that were mapped so we can move them to unmapped when necessary (i.e. actor channel closes)
 	TArray< uint8 >				Buffer;				// Buffer of data to re-serialize when the guids are mapped
 	int32						NumBufferBits;		// Number of bits in the buffer
 };
@@ -358,7 +359,7 @@ struct FFastArraySerializer
 	int32				IDCounter;
 	int32				ArrayReplicationKey;
 
-	TMap< int32, FFastArraySerializerUnmappedItem > UnmappedItems;	// List of items that need to be re-serialized when the referenced objects are mapped
+	TMap< int32, FFastArraySerializerGuidReferences > GuidReferencesMap;	// List of items that need to be re-serialized when the referenced objects are mapped
 
 	/** This must be called if you add or change an item in the array */
 	void MarkItemDirty(FFastArraySerializerItem & Item)
@@ -461,21 +462,61 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		}
 	}
 
+	if ( Parms.GatherGuidReferences )
+	{
+		// Loop over all tracked guids, and return what we have
+		for ( const auto& GuidReferencesPair : ArraySerializer.GuidReferencesMap )
+		{
+			const FFastArraySerializerGuidReferences& GuidReferences = GuidReferencesPair.Value;
+
+			Parms.GatherGuidReferences->Append( GuidReferences.UnmappedGUIDs );
+			Parms.GatherGuidReferences->Append( GuidReferences.MappedDynamicGUIDs );
+
+			if ( Parms.TrackedGuidMemoryBytes )
+			{
+				*Parms.TrackedGuidMemoryBytes += GuidReferences.Buffer.Num();
+			}
+		}
+
+		return true;
+	}
+
+	if ( Parms.MoveGuidToUnmapped )
+	{
+		bool bFound = false;
+
+		const FNetworkGUID GUID = *Parms.MoveGuidToUnmapped;
+
+		// Try to find the guid in the list, and make sure it's on the unmapped lists now
+		for ( auto& GuidReferencesPair : ArraySerializer.GuidReferencesMap )
+		{
+			FFastArraySerializerGuidReferences& GuidReferences = GuidReferencesPair.Value;
+
+			if ( GuidReferences.MappedDynamicGUIDs.Contains( GUID ) )
+			{
+				GuidReferences.MappedDynamicGUIDs.Remove( GUID );
+				GuidReferences.UnmappedGUIDs.Add( GUID );
+				bFound = true;
+			}
+		}
+
+		return bFound;
+	}
+
 	if ( Parms.bUpdateUnmappedObjects )
 	{
 		// Loop over each item that has unmapped objects
-		for ( auto It = ArraySerializer.UnmappedItems.CreateIterator(); It; ++It )
+		for ( auto It = ArraySerializer.GuidReferencesMap.CreateIterator(); It; ++It )
 		{
 			// Get the element id
 			const int32 ElementID = It.Key();
 			
 			// Get a reference to the unmapped item itself
-			FFastArraySerializerUnmappedItem& UnmappedItem = It.Value();
+			FFastArraySerializerGuidReferences& GuidReferences = It.Value();
 
-			if ( UnmappedItem.UnmappedGUIDs.Num() == 0 || ArraySerializer.ItemMap.Find( ElementID ) == NULL )
+			if ( ( GuidReferences.UnmappedGUIDs.Num() == 0 && GuidReferences.MappedDynamicGUIDs.Num() == 0 ) || ArraySerializer.ItemMap.Find( ElementID ) == NULL )
 			{
 				// If for some reason the item is gone (or all guids were removed), we don't need to track guids for this item anymore
-				UnmappedItem.UnmappedGUIDs.Empty();
 				It.RemoveCurrent();
 				continue;		// We're done with this unmapped item
 			}
@@ -483,15 +524,15 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			// Loop over all the guids, and check to see if any of them are loaded yet
 			bool bMappedSomeGUIDs = false;
 
-			for ( int32 i = UnmappedItem.UnmappedGUIDs.Num() - 1; i >= 0 ; i-- )
-			{			
-				const FNetworkGUID& GUID = UnmappedItem.UnmappedGUIDs[i];
+			for ( auto UnmappedIt = GuidReferences.UnmappedGUIDs.CreateIterator(); UnmappedIt; ++UnmappedIt )
+			{
+				const FNetworkGUID& GUID = *UnmappedIt;
 
 				if ( Parms.Map->IsGUIDBroken( GUID, false ) )
 				{
 					// Stop trying to load broken guids
 					UE_LOG( LogNetFastTArray, Warning, TEXT( "FastArrayDeltaSerialize: Broken GUID. NetGuid: %s" ), *GUID.ToString() );
-					UnmappedItem.UnmappedGUIDs.RemoveAt( i );
+					UnmappedIt.RemoveCurrent();
 					continue;
 				}
 
@@ -500,7 +541,11 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				if ( Object != NULL )
 				{
 					// This guid loaded!
-					UnmappedItem.UnmappedGUIDs.RemoveAt( i );
+					if ( GUID.IsDynamic() )
+					{
+						GuidReferences.MappedDynamicGUIDs.Add( GUID );		// Move back to mapped list
+					}
+					UnmappedIt.RemoveCurrent();
 					bMappedSomeGUIDs = true;
 				}
 			}
@@ -520,7 +565,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				Type* ThisElement = &Items[ArraySerializer.ItemMap.FindChecked( ElementID )];
 
 				// Initialize the reader with the stored buffer that we need to read from
-				FNetBitReader Reader( Parms.Map, UnmappedItem.Buffer.GetData(), UnmappedItem.NumBufferBits );
+				FNetBitReader Reader( Parms.Map, GuidReferences.Buffer.GetData(), GuidReferences.NumBufferBits );
 
 				// Read the property (which should serialize any newly mapped objects as well)
 				bool bHasUnmapped = false;
@@ -530,15 +575,15 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				ThisElement->PostReplicatedChange( ArraySerializer );
 			}
 
-			// If we have no more guids, we can remove this item
-			if ( UnmappedItem.UnmappedGUIDs.Num() == 0 )
+			// If we have no more guids, we can remove this item for good
+			if ( GuidReferences.UnmappedGUIDs.Num() == 0 && GuidReferences.MappedDynamicGUIDs.Num() == 0 )
 			{
 				It.RemoveCurrent();
 			}
 		}
 
 		// If we still have unmapped items, then communicate this to the outside
-		if ( ArraySerializer.UnmappedItems.Num() > 0 )
+		if ( ArraySerializer.GuidReferencesMap.Num() > 0 )
 		{
 			Parms.bOutHasMoreUnmapped = true;
 		}
@@ -797,7 +842,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				int32 ElementID;
 				Reader << ElementID;
 
-				ArraySerializer.UnmappedItems.Remove( ElementID );
+				ArraySerializer.GuidReferencesMap.Remove( ElementID );
 
 				int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
 				if (ElementIndexPtr)
@@ -852,7 +897,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			ThisElement->ReplicationKey++;
 
 			// Let package map know we want to track and know about any guids that are unmapped during the serialize call
-			Parms.Map->ResetTrackedUnmappedGuids( true );
+			Parms.Map->ResetTrackedGuids( true );
 
 			// Remember where we started reading from, so that if we have unmapped properties, we can re-deserialize from this data later
 			FBitReaderMark Mark( Reader );
@@ -863,34 +908,51 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			if ( !Reader.IsError() )
 			{
 				// Track unmapped guids
-				const TArray< FNetworkGUID > & TrackedUnmappedGuids = Parms.Map->GetTrackedUnmappedGuids();
+				const TSet< FNetworkGUID >& TrackedUnmappedGuids = Parms.Map->GetTrackedUnmappedGuids();
+				const TSet< FNetworkGUID >& TrackedMappedDynamicGuids = Parms.Map->GetTrackedDynamicMappedGuids();
 
-				if ( TrackedUnmappedGuids.Num() )
+				if ( TrackedUnmappedGuids.Num() || TrackedMappedDynamicGuids.Num() )
 				{	
-					FFastArraySerializerUnmappedItem& UnmappedItem = ArraySerializer.UnmappedItems.FindOrAdd( ElementID );
+					FFastArraySerializerGuidReferences& GuidReferences = ArraySerializer.GuidReferencesMap.FindOrAdd( ElementID );
 
-					// Copy the unmapped guid list to this unmapped item
-					UnmappedItem.UnmappedGUIDs = TrackedUnmappedGuids;
-					UnmappedItem.Buffer.Empty();
+					// If guid lists are different, make note of that, and copy respective list
+					if ( !NetworkGuidSetsAreSame( GuidReferences.UnmappedGUIDs, TrackedUnmappedGuids ) )
+					{
+						// Copy the unmapped guid list to this unmapped item
+						GuidReferences.UnmappedGUIDs = TrackedUnmappedGuids;
+						Parms.bGuidListsChanged = true;
+					}
+
+					if ( !NetworkGuidSetsAreSame( GuidReferences.MappedDynamicGUIDs, TrackedMappedDynamicGuids ) )
+					{ 
+						// Copy the mapped guid list
+						GuidReferences.MappedDynamicGUIDs = TrackedMappedDynamicGuids;
+						Parms.bGuidListsChanged = true;
+					}
+
+					GuidReferences.Buffer.Empty();
 
 					// Remember the number of bits in the buffer
-					UnmappedItem.NumBufferBits = Reader.GetPosBits() - Mark.GetPos();
+					GuidReferences.NumBufferBits = Reader.GetPosBits() - Mark.GetPos();
 					
 					// Copy the buffer itself
-					Mark.Copy( Reader, UnmappedItem.Buffer );
+					Mark.Copy( Reader, GuidReferences.Buffer );
 
 					// Hijack this property to communicate that we need to be tracked since we have some unmapped guids
-					Parms.bOutHasMoreUnmapped = true;	
+					if ( TrackedUnmappedGuids.Num() )
+					{
+						Parms.bOutHasMoreUnmapped = true;
+					}
 				}
 				else
 				{
 					// If we don't have any unmapped objects, make sure we're no longer tracking this item in the unmapped lists
-					ArraySerializer.UnmappedItems.Remove( ElementID );
+					ArraySerializer.GuidReferencesMap.Remove( ElementID );
 				}
 			}
 
 			// Stop tracking unmapped objects
-			Parms.Map->ResetTrackedUnmappedGuids( false );
+			Parms.Map->ResetTrackedGuids( false );
 
 			if ( Reader.IsError() )
 			{

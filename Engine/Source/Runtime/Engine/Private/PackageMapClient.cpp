@@ -169,9 +169,16 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 				Object = NULL;
 			}
 
-			if (NetGUID.IsValid() && Object == NULL && bShouldTrackUnmappedGuids && !GuidCache->IsGUIDBroken(NetGUID, false))
+			if ( NetGUID.IsValid() && bShouldTrackUnmappedGuids && !GuidCache->IsGUIDBroken( NetGUID, false ) )
 			{
-				TrackedUnmappedNetGuids.AddUnique(NetGUID);
+				if ( Object == nullptr )
+				{
+					TrackedUnmappedNetGuids.Add( NetGUID );
+				}
+				else if ( NetGUID.IsDynamic() )
+				{
+					TrackedMappedDynamicNetGuids.Add( NetGUID );
+				}
 			}
 
 			UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("UPackageMapClient::SerializeObject Serialized Object %s as <%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString());
@@ -247,6 +254,11 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 	{
 		UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::SerializeNewActor: Ar.IsError after SerializeObject 1" ) );
 		return false;
+	}
+
+	if ( GuidCache.IsValid() )
+	{
+		GuidCache->ImportedNetGuids.Add( NetGUID );
 	}
 
 	Channel->ActorNetGUID = NetGUID;
@@ -702,6 +714,11 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 			Object = NULL;
 			return NetGUID;
 		}
+	}
+
+	if ( GuidCache->IsExportingNetGUIDBunch )
+	{
+		GuidCache->ImportedNetGuids.Add( NetGUID );
 	}
 
 	if ( ExportFlags.bHasPath )

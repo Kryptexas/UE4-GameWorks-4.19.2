@@ -47,6 +47,8 @@ public:
 	virtual bool ClientHasInitializedLevelFor( const UObject* TestObject ) const override;
 	virtual TSharedPtr<FObjectReplicator> CreateReplicatorForNewActorChannel(UObject* Object);
 
+	virtual void FlushDormancy( class AActor* Actor ) override;
+
 public:
 
 	/** @return The DemoRecording driver object */

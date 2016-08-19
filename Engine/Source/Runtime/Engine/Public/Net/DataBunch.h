@@ -113,7 +113,7 @@ public:
 	{
 		// String cating like this is super slow! Only enable in non shipping builds
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		FString Str(TEXT("FOutBunch: "));
+		FString Str(TEXT("FInBunch: "));
 		Str += FString::Printf(TEXT("Channel[%d] "), ChIndex);
 		Str += FString::Printf(TEXT("ChSequence: %d "), ChSequence);
 		Str += FString::Printf(TEXT("NumBits: %lld "), GetNumBits());

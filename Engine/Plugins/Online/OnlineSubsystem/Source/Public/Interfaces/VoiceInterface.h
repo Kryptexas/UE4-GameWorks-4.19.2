@@ -7,7 +7,7 @@
 class FUniqueNetId;
 
 /** Enable to pipe local voice data back to this client as remote data */
-#define VOICE_LOOPBACK 0
+#define VOICE_LOOPBACK !UE_BUILD_SHIPPING
 
 /**
  * Delegate called when a player is talking either remotely or locally

@@ -1385,15 +1385,15 @@ class FReceivedPropertiesStackState : public FCmdIteratorBaseStackState
 public:
 	FReceivedPropertiesStackState( const int32 InCmdStart, const int32 InCmdEnd, FScriptArray*	InShadowArray, FScriptArray* InDataArray, uint8* RESTRICT InShadowBaseData, uint8* RESTRICT	InBaseData ) : 
 		FCmdIteratorBaseStackState( InCmdStart, InCmdEnd, InShadowArray, InDataArray, InShadowBaseData, InBaseData ),
-        UnmappedGuids( NULL )
+		GuidReferencesMap( NULL )
 	{}
 
-	FUnmappedGuidMgr* UnmappedGuids;
+	FGuidReferencesMap* GuidReferencesMap;
 };
 
 static bool ReceivePropertyHelper( 
 	FNetBitReader&					Bunch, 
-	FUnmappedGuidMgr*				UnmappedGuids,
+	FGuidReferencesMap*				GuidReferencesMap,
 	const int32						ElementOffset, 
 	uint8* RESTRICT					ShadowData,
 	uint8* RESTRICT					Data,
@@ -1401,7 +1401,8 @@ static bool ReceivePropertyHelper(
 	const TArray< FRepParentCmd >&	Parents,
 	const TArray< FRepLayoutCmd >&	Cmds,
 	const int32						CmdIndex,
-	const bool						bDoChecksum )
+	const bool						bDoChecksum,
+	bool&							bOutGuidsChanged )
 {
 	const FRepLayoutCmd& Cmd	= Cmds[CmdIndex];
 	const FRepParentCmd& Parent = Parents[Cmd.ParentIndex];
@@ -1409,10 +1410,10 @@ static bool ReceivePropertyHelper(
 	// This swaps Role/RemoteRole as we write it
 	const FRepLayoutCmd& SwappedCmd = Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
 
-	if ( UnmappedGuids )		// Don't reset unmapped guids here if we are told not to (assuming calling code is handling this)
+	if ( GuidReferencesMap )		// Don't reset unmapped guids here if we are told not to (assuming calling code is handling this)
 	{
 		// Let package map know we want to track and know about any guids that are unmapped during the serialize call
-		Bunch.PackageMap->ResetTrackedUnmappedGuids( true );
+		Bunch.PackageMap->ResetTrackedGuids( true );
 	}
 
 	// Remember where we started reading from, so that if we have unmapped properties, we can re-deserialize from this data later
@@ -1448,38 +1449,55 @@ static bool ReceivePropertyHelper(
 	}
 #endif
 
-	if ( UnmappedGuids )
+	if ( GuidReferencesMap )
 	{
 		const int32 AbsOffset = ElementOffset + SwappedCmd.Offset;
 
-		const TArray< FNetworkGUID > & TrackedUnmappedGuids = Bunch.PackageMap->GetTrackedUnmappedGuids();
+		// Loop over all de-serialized network guids and track them so we can manage their pointers as their replicated reference goes in/out of relevancy
+		const TSet< FNetworkGUID >& TrackedUnmappedGuids = Bunch.PackageMap->GetTrackedUnmappedGuids();
+		const TSet< FNetworkGUID >& TrackedDynamicMappedGuids = Bunch.PackageMap->GetTrackedDynamicMappedGuids();
 
-		bool bHasUnmapped = false;
+		const bool bHasUnmapped = TrackedUnmappedGuids.Num() > 0;
 
-		if ( TrackedUnmappedGuids.Num() > 0 )
+		FGuidReferences* GuidReferences = GuidReferencesMap->Find( AbsOffset );
+
+		if ( TrackedUnmappedGuids.Num() > 0 || TrackedDynamicMappedGuids.Num() > 0 )
 		{
-			// If we have an unmapped guid, we need to remember it, so we can fix up this object pointer when it finally arrives at a other time
-			// Note - If we already have an existing entry for this offset, we will replace it with this most recent data
-			UnmappedGuids->Map.Add( AbsOffset, FUnmappedGuidMgrElement( Bunch, Mark, TrackedUnmappedGuids, Cmd.ParentIndex, CmdIndex ) );
-
-			UE_LOG( LogRep, Verbose, TEXT( "ADDED unmapped property: Offset: %i, Name: %s" ), AbsOffset, *Cmd.Property->GetName() );
-
-			// List all the guids that were unmapped
-			for ( int32 i = 0; i < TrackedUnmappedGuids.Num(); i++ )
+			if ( GuidReferences != nullptr )
 			{
-				UE_LOG( LogRep, Verbose, TEXT( "  Guid: %s" ), *TrackedUnmappedGuids[i].ToString() );
-			}
+				check( GuidReferences->CmdIndex == CmdIndex );
+				check( GuidReferences->ParentIndex == Cmd.ParentIndex );
 
-			bHasUnmapped = true;
+				// If we're already tracking the guids, re-copy lists only if they've changed
+				if ( !NetworkGuidSetsAreSame( GuidReferences->UnmappedGUIDs, TrackedUnmappedGuids ) )
+				{
+					bOutGuidsChanged = true;
+				}
+				else if ( !NetworkGuidSetsAreSame( GuidReferences->MappedDynamicGUIDs, TrackedDynamicMappedGuids ) )
+				{
+					bOutGuidsChanged = true;
+				}
+			}
+			
+			if ( GuidReferences == nullptr || bOutGuidsChanged )
+			{
+				// First time tracking these guids (or guids changed), so add (or replace) new entry
+				GuidReferencesMap->Add( AbsOffset, FGuidReferences( Bunch, Mark, TrackedUnmappedGuids, TrackedDynamicMappedGuids, Cmd.ParentIndex, CmdIndex ) );
+				bOutGuidsChanged = true;
+			}
 		}
 		else
 		{
 			// If we don't have any unmapped guids, then make sure to remove the entry so we don't serialize old data when we update unmapped objects
-			UnmappedGuids->Map.Remove( AbsOffset );
+			if ( GuidReferences != nullptr )
+			{
+				GuidReferencesMap->Remove( AbsOffset );
+				bOutGuidsChanged = true;
+			}
 		}
 
 		// Stop tracking unmapped objects
-		Bunch.PackageMap->ResetTrackedUnmappedGuids( false );
+		Bunch.PackageMap->ResetTrackedGuids( false );
 
 		return bHasUnmapped;
 	}
@@ -1487,11 +1505,11 @@ static bool ReceivePropertyHelper(
 	return false;
 }
 
-static FUnmappedGuidMgr* PrepReceivedArray(
+static FGuidReferencesMap* PrepReceivedArray(
 	const int32				ArrayNum,
 	FScriptArray*			ShadowArray,
 	FScriptArray*			DataArray,
-	FUnmappedGuidMgr*		ParentUnmappedGuids,
+	FGuidReferencesMap*		ParentGuidReferences,
 	const int32				AbsOffset,
 	const FRepParentCmd&	Parent, 
 	const FRepLayoutCmd&	Cmd, 
@@ -1500,25 +1518,25 @@ static FUnmappedGuidMgr* PrepReceivedArray(
 	uint8* RESTRICT*		OutBaseData,
 	TArray< UProperty * >*	RepNotifies )
 {
-	FUnmappedGuidMgrElement * NewArrayElement = nullptr;
+	FGuidReferences* NewGuidReferencesArray = nullptr;
 
-	if ( ParentUnmappedGuids != nullptr )
+	if ( ParentGuidReferences != nullptr )
 	{
 		// Since we don't know yet if something under us could be unmapped, go ahead and allocate an array container now
-		NewArrayElement = ParentUnmappedGuids->Map.Find( AbsOffset );
+		NewGuidReferencesArray = ParentGuidReferences->Find( AbsOffset );
 
-		if ( NewArrayElement == NULL )
+		if ( NewGuidReferencesArray == NULL )
 		{
-			NewArrayElement = &ParentUnmappedGuids->Map.FindOrAdd( AbsOffset );
+			NewGuidReferencesArray = &ParentGuidReferences->FindOrAdd( AbsOffset );
 
-			NewArrayElement->Array			= new FUnmappedGuidMgr;
-			NewArrayElement->ParentIndex	= Cmd.ParentIndex;
-			NewArrayElement->CmdIndex		= CmdIndex;
+			NewGuidReferencesArray->Array			= new FGuidReferencesMap;
+			NewGuidReferencesArray->ParentIndex	= Cmd.ParentIndex;
+			NewGuidReferencesArray->CmdIndex		= CmdIndex;
 		}
 
-		check( NewArrayElement != NULL );
-		check( NewArrayElement->ParentIndex == Cmd.ParentIndex );
-		check( NewArrayElement->CmdIndex == CmdIndex );
+		check( NewGuidReferencesArray != NULL );
+		check( NewGuidReferencesArray->ParentIndex == Cmd.ParentIndex );
+		check( NewGuidReferencesArray->CmdIndex == CmdIndex );
 	}
 
 	if ( RepNotifies != nullptr )
@@ -1554,7 +1572,7 @@ static FUnmappedGuidMgr* PrepReceivedArray(
 		*OutShadowBaseData = ( uint8* )ShadowArray->GetData();
 	}
 
-	return NewArrayElement ? NewArrayElement->Array : nullptr;
+	return NewGuidReferencesArray ? NewGuidReferencesArray->Array : nullptr;
 }
 
 class FReceivePropertiesImpl : public FRepLayoutCmdIterator< FReceivePropertiesImpl, FReceivedPropertiesStackState >
@@ -1585,7 +1603,7 @@ public:
 
 	INIT_STACK( FReceivedPropertiesStackState )
 	{
-		StackState.UnmappedGuids = &RepState->UnmappedGuids;
+		StackState.GuidReferencesMap = &RepState->GuidReferencesMap;
 	}
 
 	SHOULD_PROCESS_NEXT_CMD()
@@ -1614,11 +1632,11 @@ public:
 
 		const FRepParentCmd& Parent = Parents[Cmd.ParentIndex];
 
-		StackState.UnmappedGuids = PrepReceivedArray( 
+		StackState.GuidReferencesMap = PrepReceivedArray(
 			ArrayNum,
 			StackState.ShadowArray,
 			StackState.DataArray,
-			PrevStackState.UnmappedGuids,
+			PrevStackState.GuidReferencesMap,
 			AbsOffset,
 			Parent,
 			Cmd,
@@ -1646,11 +1664,11 @@ public:
 
 	PROCESS_CMD( FReceivedPropertiesStackState )
 	{
-		check( StackState.UnmappedGuids != NULL );
+		check( StackState.GuidReferencesMap != NULL );
 
 		const int32 ElementOffset = ( Data - StackState.BaseData );
 
-		if ( ReceivePropertyHelper( Bunch, StackState.UnmappedGuids, ElementOffset, ShadowData, Data, bDoRepNotify ? &RepState->RepNotifies : nullptr, Parents, Cmds, CmdIndex, bDoChecksum ) )
+		if ( ReceivePropertyHelper( Bunch, StackState.GuidReferencesMap, ElementOffset, ShadowData, Data, bDoRepNotify ? &RepState->RepNotifies : nullptr, Parents, Cmds, CmdIndex, bDoChecksum, bGuidsChanged ) )
 		{
 			bHasUnmapped = true;
 		}
@@ -1666,9 +1684,10 @@ public:
 	bool					bDoChecksum;
 	bool					bHasUnmapped;
 	bool					bDoRepNotify;
+	bool					bGuidsChanged;
 };
 
-bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies ) const
+bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies, bool& bOutGuidsChanged ) const
 {
 	check( InObjectClass == Owner );
 
@@ -1684,7 +1703,7 @@ bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObj
 	{
 		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = ( ( UPackageMapClient* )OwningChannel->Connection->PackageMap )->GetNetFieldExportGroupChecked( Owner->GetPathName() );
 
-		return ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup.Get(), InBunch, 0, Cmds.Num() - 1, bEnableRepNotifies ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, &RepState->UnmappedGuids, bOutHasUnmapped );
+		return ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup.Get(), InBunch, 0, Cmds.Num() - 1, bEnableRepNotifies ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, &RepState->GuidReferencesMap, bOutHasUnmapped, bOutGuidsChanged );
 	}
 
 	FReceivePropertiesImpl ReceivePropertiesImpl( InBunch, RepState, bDoChecksum, Parents, Cmds, bEnableRepNotifies );
@@ -1710,11 +1729,12 @@ bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObj
 #endif
 
 	bOutHasUnmapped = ReceivePropertiesImpl.bHasUnmapped;
+	bOutGuidsChanged = ReceivePropertiesImpl.bGuidsChanged;
 
 	return true;
 }
 
-bool FRepLayout::ReceiveProperties_BackwardsCompatible( UNetConnection* Connection, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies ) const
+bool FRepLayout::ReceiveProperties_BackwardsCompatible( UNetConnection* Connection, FRepState* RESTRICT RepState, void* RESTRICT Data, FNetBitReader& InBunch, bool& bOutHasUnmapped, const bool bEnableRepNotifies, bool& bOutGuidsChanged ) const
 {
 #ifdef ENABLE_PROPERTY_CHECKSUMS
 	const bool bDoChecksum = InBunch.ReadBit() ? true : false;
@@ -1726,7 +1746,7 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible( UNetConnection* Connecti
 
 	TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = ( ( UPackageMapClient* )Connection->PackageMap )->GetNetFieldExportGroup( Owner->GetPathName() );
 
-	return ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup.Get(), InBunch, 0, Cmds.Num() - 1, (bEnableRepNotifies && RepState) ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, RepState ? &RepState->UnmappedGuids : nullptr, bOutHasUnmapped );
+	return ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup.Get(), InBunch, 0, Cmds.Num() - 1, (bEnableRepNotifies && RepState) ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, RepState ? &RepState->GuidReferencesMap : nullptr, bOutHasUnmapped, bOutGuidsChanged );
 }
 
 int32 FRepLayout::FindCompatibleProperty( const int32 CmdStart, const int32 CmdEnd, const uint32 Checksum ) const
@@ -1761,8 +1781,9 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible_r(
 	uint8* RESTRICT			ShadowData,
 	uint8* RESTRICT			OldData,
 	uint8* RESTRICT			Data,
-	FUnmappedGuidMgr*		UnmappedGuids,
-	bool &					bOutHasUnmapped ) const
+	FGuidReferencesMap*		GuidReferencesMap,
+	bool&					bOutHasUnmapped,
+	bool&					bOutGuidsChanged ) const
 {
 	while ( true )
 	{
@@ -1781,7 +1802,12 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible_r(
 			break;
 		}
 
-		check( NetFieldExportGroup != nullptr );
+		if ( !ensure( NetFieldExportGroup != nullptr ) )
+		{
+			UE_LOG( LogRep, Warning, TEXT( "ReceiveProperties_BackwardsCompatible_r: NetFieldExportGroup == nullptr. Owner: %s, NetFieldExportHandle: %u" ), *Owner->GetName(), NetFieldExportHandle );
+			Reader.SetError();
+			return false;
+		}
 
 		// We purposely add 1 on save, so we can reserve 0 for "done"
 		NetFieldExportHandle--;
@@ -1857,11 +1883,11 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible_r(
 			uint8* LocalData			= Data;
 			uint8* LocalShadowData		= ShadowData;
 
-			FUnmappedGuidMgr* ArrayUnmappedGuids = PrepReceivedArray(
+			FGuidReferencesMap* NewGuidReferencesArray = PrepReceivedArray(
 				ArrayNum,
 				ShadowArray,
 				DataArray,
-				UnmappedGuids,
+				GuidReferencesMap,
 				AbsOffset,
 				Parents[Cmd.ParentIndex],
 				Cmd,
@@ -1893,7 +1919,7 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible_r(
 				uint8* ElementData			= LocalData + ElementOffset;
 				uint8* ElementShadowData	= LocalShadowData ? LocalShadowData + ElementOffset : nullptr;
 
-				if ( !ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup, TempReader, CmdIndex + 1, Cmd.EndCmd - 1, ElementShadowData, LocalData, ElementData, ArrayUnmappedGuids, bOutHasUnmapped ) )
+				if ( !ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup, TempReader, CmdIndex + 1, Cmd.EndCmd - 1, ElementShadowData, LocalData, ElementData, NewGuidReferencesArray, bOutHasUnmapped, bOutGuidsChanged ) )
 				{
 					return false;
 				}
@@ -1915,7 +1941,7 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible_r(
 		{
 			const int32 ElementOffset = ( Data - OldData );
 
-			if ( ReceivePropertyHelper( TempReader, UnmappedGuids, ElementOffset, ShadowData, Data, ShadowData != nullptr ? &RepState->RepNotifies : nullptr, Parents, Cmds, CmdIndex, false ) )
+			if ( ReceivePropertyHelper( TempReader, GuidReferencesMap, ElementOffset, ShadowData, Data, ShadowData != nullptr ? &RepState->RepNotifies : nullptr, Parents, Cmds, CmdIndex, false, bOutGuidsChanged ) )
 			{
 				bOutHasUnmapped = true;
 			}
@@ -1931,7 +1957,7 @@ bool FRepLayout::ReceiveProperties_BackwardsCompatible_r(
 	return true;
 }
 
-FUnmappedGuidMgrElement::~FUnmappedGuidMgrElement()
+FGuidReferences::~FGuidReferences()
 {
 	if ( Array != NULL )
 	{
@@ -1940,18 +1966,79 @@ FUnmappedGuidMgrElement::~FUnmappedGuidMgrElement()
 	}
 }
 
-void FRepLayout::UpdateUnmappedObjects_r( 
-	FRepState *			RepState, 
-	FUnmappedGuidMgr *	UnmappedGuids, 
-	UObject *			OriginalObject,
-	UPackageMap *		PackageMap, 
-	uint8* RESTRICT		StoredData, 
-	uint8* RESTRICT		Data, 
-	const int32			MaxAbsOffset,
-	bool &				bOutSomeObjectsWereMapped,
-	bool &				bOutHasMoreUnmapped ) const
+void FRepLayout::GatherGuidReferences_r( FGuidReferencesMap* GuidReferencesMap, TSet< FNetworkGUID >& OutReferencedGuids, int32& OutTrackedGuidMemoryBytes ) const
 {
-	for ( auto It = UnmappedGuids->Map.CreateIterator(); It; ++It )
+	for ( const auto& GuidReferencePair : *GuidReferencesMap )
+	{
+		const FGuidReferences& GuidReferences = GuidReferencePair.Value;
+
+		if ( GuidReferences.Array != NULL )
+		{
+			check( Cmds[GuidReferences.CmdIndex].Type == REPCMD_DynamicArray );
+
+			GatherGuidReferences_r( GuidReferences.Array, OutReferencedGuids, OutTrackedGuidMemoryBytes );
+			continue;
+		}
+
+		OutTrackedGuidMemoryBytes += GuidReferences.Buffer.Num();
+
+		OutReferencedGuids.Append( GuidReferences.UnmappedGUIDs );
+		OutReferencedGuids.Append( GuidReferences.MappedDynamicGUIDs );
+	}
+}
+
+void FRepLayout::GatherGuidReferences( FRepState* RepState, TSet< FNetworkGUID >& OutReferencedGuids, int32& OutTrackedGuidMemoryBytes ) const
+{
+	GatherGuidReferences_r( &RepState->GuidReferencesMap, OutReferencedGuids, OutTrackedGuidMemoryBytes );
+}
+
+bool FRepLayout::MoveMappedObjectToUnmapped_r( FGuidReferencesMap* GuidReferencesMap, const FNetworkGUID& GUID ) const
+{
+	bool bFoundGUID = false;
+
+	for ( auto& GuidReferencePair : *GuidReferencesMap )
+	{
+		FGuidReferences& GuidReferences = GuidReferencePair.Value;
+
+		if ( GuidReferences.Array != NULL )
+		{
+			check( Cmds[GuidReferences.CmdIndex].Type == REPCMD_DynamicArray );
+
+			if ( MoveMappedObjectToUnmapped_r( GuidReferences.Array, GUID ) )
+			{
+				bFoundGUID = true;
+			}
+			continue;
+		}
+
+		if ( GuidReferences.MappedDynamicGUIDs.Contains( GUID ) )
+		{
+			GuidReferences.MappedDynamicGUIDs.Remove( GUID );
+			GuidReferences.UnmappedGUIDs.Add( GUID );
+			bFoundGUID = true;
+		}
+	}
+
+	return bFoundGUID;
+}
+
+bool FRepLayout::MoveMappedObjectToUnmapped( FRepState* RepState, const FNetworkGUID& GUID ) const
+{
+	return MoveMappedObjectToUnmapped_r( &RepState->GuidReferencesMap, GUID );
+}
+
+void FRepLayout::UpdateUnmappedObjects_r( 
+	FRepState*				RepState, 
+	FGuidReferencesMap*		GuidReferencesMap,
+	UObject*				OriginalObject,
+	UPackageMap*			PackageMap, 
+	uint8* RESTRICT			StoredData, 
+	uint8* RESTRICT			Data, 
+	const int32				MaxAbsOffset,
+	bool&					bOutSomeObjectsWereMapped,
+	bool&					bOutHasMoreUnmapped ) const
+{
+	for ( auto It = GuidReferencesMap->CreateIterator(); It; ++It )
 	{
 		const int32 AbsOffset = It.Key();
 
@@ -1963,11 +2050,11 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			continue;
 		}
 
-		FUnmappedGuidMgrElement&		UnmappedProperty = It.Value();
-		const FRepLayoutCmd&			Cmd = Cmds[UnmappedProperty.CmdIndex];
-		const FRepParentCmd&			Parent = Parents[UnmappedProperty.ParentIndex];
+		FGuidReferences&			GuidReferences = It.Value();
+		const FRepLayoutCmd&		Cmd = Cmds[GuidReferences.CmdIndex];
+		const FRepParentCmd&		Parent = Parents[GuidReferences.ParentIndex];
 
-		if ( UnmappedProperty.Array != NULL )
+		if ( GuidReferences.Array != NULL )
 		{
 			check( Cmd.Type == REPCMD_DynamicArray );
 			
@@ -1976,20 +2063,20 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			
 			const int32 NewMaxOffset = FMath::Min( StoredArray->Num() * Cmd.ElementSize, Array->Num() * Cmd.ElementSize );
 
-			UpdateUnmappedObjects_r( RepState, UnmappedProperty.Array, OriginalObject, PackageMap, (uint8*)StoredArray->GetData(), (uint8*)Array->GetData(), NewMaxOffset, bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
+			UpdateUnmappedObjects_r( RepState, GuidReferences.Array, OriginalObject, PackageMap, (uint8*)StoredArray->GetData(), (uint8*)Array->GetData(), NewMaxOffset, bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 			continue;
 		}
 
 		bool bMappedSomeGUIDs = false;
 
-		for ( int32 i = UnmappedProperty.UnmappedGUIDs.Num() - 1; i >= 0 ; i-- )
+		for ( auto UnmappedIt = GuidReferences.UnmappedGUIDs.CreateIterator(); UnmappedIt; ++UnmappedIt )
 		{			
-			const FNetworkGUID& GUID = UnmappedProperty.UnmappedGUIDs[i];
+			const FNetworkGUID& GUID = *UnmappedIt;
 
 			if ( PackageMap->IsGUIDBroken( GUID, false ) )
 			{
 				UE_LOG( LogRep, Warning, TEXT( "UpdateUnmappedObjects_r: Broken GUID. NetGuid: %s" ), *GUID.ToString() );
-				UnmappedProperty.UnmappedGUIDs.RemoveAt( i );
+				UnmappedIt.RemoveCurrent();
 				continue;
 			}
 
@@ -1998,7 +2085,15 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			if ( Object != NULL )
 			{
 				UE_LOG( LogRep, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *GUID.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
-				UnmappedProperty.UnmappedGUIDs.RemoveAt( i );
+
+				if ( GUID.IsDynamic() )
+				{
+					// If this guid is dynamic, move it to the dynamic guids list
+					GuidReferences.MappedDynamicGUIDs.Add( GUID );
+				}
+
+				// Remove from unmapped guids list
+				UnmappedIt.RemoveCurrent();
 				bMappedSomeGUIDs = true;
 			}
 		}
@@ -2020,7 +2115,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			}
 
 			// Initialize the reader with the stored buffer that we need to read from
-			FBitReader Reader( UnmappedProperty.Buffer.GetData(), UnmappedProperty.NumBufferBits );
+			FBitReader Reader( GuidReferences.Buffer.GetData(), GuidReferences.NumBufferBits );
 
 			// Read the property
 			Cmd.Property->NetSerializeItem( Reader, PackageMap, Data + AbsOffset );
@@ -2041,11 +2136,11 @@ void FRepLayout::UpdateUnmappedObjects_r(
 		}
 
 		// If we still have more unmapped guids, we need to keep processing this entry
-		if ( UnmappedProperty.UnmappedGUIDs.Num() > 0 )
+		if ( GuidReferences.UnmappedGUIDs.Num() > 0 )
 		{
 			bOutHasMoreUnmapped = true;
 		}
-		else
+		else if ( GuidReferences.UnmappedGUIDs.Num() == 0 && GuidReferences.MappedDynamicGUIDs.Num() == 0 )
 		{
 			It.RemoveCurrent();
 		}
@@ -2057,7 +2152,7 @@ void FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * Pack
 	bOutSomeObjectsWereMapped	= false;
 	bOutHasMoreUnmapped			= false;
 
-	UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, OriginalObject, PackageMap, (uint8*)RepState->StaticBuffer.GetData(), (uint8*)OriginalObject, RepState->StaticBuffer.Num(), bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
+	UpdateUnmappedObjects_r( RepState, &RepState->GuidReferencesMap, OriginalObject, PackageMap, (uint8*)RepState->StaticBuffer.GetData(), (uint8*)OriginalObject, RepState->StaticBuffer.Num(), bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 }
 
 void FRepLayout::CallRepNotifies( FRepState * RepState, UObject* Object ) const
@@ -3123,7 +3218,7 @@ void FRepLayout::BuildChangeList_r( const int32 CmdStart, const int32 CmdEnd, ui
 
 			for ( int32 i = 0; i < Array->Num(); i++ )
 			{
-				BuildChangeList_r( ArrayCmdStart, ArrayCmdEnd, ((uint8*)Array->GetData()) + Cmd.ElementSize * i, i * NumHandlesPerElement, Changed );
+				BuildChangeList_r( ArrayCmdStart, ArrayCmdEnd, ((uint8*)Array->GetData()) + Cmd.ElementSize * i, i * NumHandlesPerElement, ChangedLocal );
 			}
 
 			if ( ChangedLocal.Num() )
@@ -3203,19 +3298,20 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 	if ( Channel->Connection->InternalAck )
 	{
 		bool bHasUnmapped = false;
+		bool bGuidsChanged = false;
 
 		// Let package map know we want to track and know about any guids that are unmapped during the serialize call
 		// We have to do this manually since we aren't passing in any unmapped info
-		Reader.PackageMap->ResetTrackedUnmappedGuids( true );
+		Reader.PackageMap->ResetTrackedGuids( true );
 
-		ReceiveProperties_BackwardsCompatible( Channel->Connection, nullptr, Data, Reader, bHasUnmapped, false );
+		ReceiveProperties_BackwardsCompatible( Channel->Connection, nullptr, Data, Reader, bHasUnmapped, false, bGuidsChanged );
 
 		if ( Reader.PackageMap->GetTrackedUnmappedGuids().Num() > 0 )
 		{
 			bHasUnmapped = true;
 		}
 
-		Reader.PackageMap->ResetTrackedUnmappedGuids( false );
+		Reader.PackageMap->ResetTrackedGuids( false );
 
 		if ( bHasUnmapped )
 		{

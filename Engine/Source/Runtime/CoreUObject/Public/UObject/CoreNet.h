@@ -155,8 +155,9 @@ class COREUOBJECT_API UPackageMap : public UObject
 	void				SetDebugContextString( const FString& Str ) { DebugContextString = Str; }
 	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
-	void							ResetTrackedUnmappedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
-	const TArray< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
+	void							ResetTrackedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); TrackedMappedDynamicNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
+	const TSet< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
+	const TSet< FNetworkGUID > &	GetTrackedDynamicMappedGuids() const { return TrackedMappedDynamicNetGuids; }
 
 	virtual void			LogDebugInfo( FOutputDevice & Ar) { }
 	virtual UObject*		GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
@@ -168,7 +169,8 @@ protected:
 	bool					bSuppressLogs;
 
 	bool					bShouldTrackUnmappedGuids;
-	TArray< FNetworkGUID >	TrackedUnmappedNetGuids;
+	TSet< FNetworkGUID >	TrackedUnmappedNetGuids;
+	TSet< FNetworkGUID >	TrackedMappedDynamicNetGuids;
 
 	FString					DebugContextString;
 };
@@ -317,6 +319,23 @@ public:
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
 };
 
+bool FORCEINLINE NetworkGuidSetsAreSame( const TSet< FNetworkGUID >& A, const TSet< FNetworkGUID >& B )
+{
+	if ( A.Num() != B.Num() )
+	{
+		return false;
+	}
+
+	for ( const FNetworkGUID& CompareGuid : A )
+	{
+		if ( !B.Contains( CompareGuid ) )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
 
 /**
  * INetDeltaBaseState
@@ -380,8 +399,12 @@ struct FNetDeltaSerializeInfo
 		bOutSomeObjectsWereMapped	= false;
 		bCalledPreNetReceive		= false;
 		bOutHasMoreUnmapped			= false;
+		bGuidListsChanged			= false;
 		bIsWritingOnClient			= false;
-		Object						= NULL;
+		Object						= nullptr;
+		GatherGuidReferences		= nullptr;
+		TrackedGuidMemoryBytes		= nullptr;
+		MoveGuidToUnmapped			= nullptr;
 	}
 
 	// Used when writing
@@ -404,8 +427,13 @@ struct FNetDeltaSerializeInfo
 	bool							bOutSomeObjectsWereMapped;
 	bool							bCalledPreNetReceive;
 	bool							bOutHasMoreUnmapped;
+	bool							bGuidListsChanged;
 	bool							bIsWritingOnClient;
 	UObject*						Object;
+
+	TSet< FNetworkGUID >*			GatherGuidReferences;
+	int32*							TrackedGuidMemoryBytes;
+	const FNetworkGUID*				MoveGuidToUnmapped;
 
 	// Debugging variables
 	FString							DebugName;

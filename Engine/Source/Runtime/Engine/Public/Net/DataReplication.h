@@ -95,6 +95,9 @@ public:
 	TSharedPtr< FRepLayout >						RepLayout;
 	FRepState *										RepState;
 
+	TSet< FNetworkGUID >							ReferencedGuids;
+	int32											TrackedGuidMemoryBytes;
+
 	struct FRPCCallInfo 
 	{
 		FName	FuncName;
@@ -130,6 +133,8 @@ public:
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
 	bool	ReceivedBunch( FNetBitReader& Bunch, const FReplicationFlags& RepFlags, const bool bHasRepLayout, bool& bOutHasUnmapped );
+	void	UpdateGuidToReplicatorMap();
+	bool	MoveMappedObjectToUnmapped( const FNetworkGUID& GUID );
 	void	PostReceivedBunch();
 
 	void	ForceRefreshUnreliableProperties();

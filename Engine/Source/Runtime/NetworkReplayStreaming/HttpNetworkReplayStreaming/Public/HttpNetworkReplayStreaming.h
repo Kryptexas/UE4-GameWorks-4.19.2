@@ -249,7 +249,7 @@ public:
 	void AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request );
 	void AddResponseToCache( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse );
 	void CleanupResponseCache();
-	bool RetryRequest( TSharedPtr< FQueuedHttpRequest > Request, FHttpResponsePtr HttpResponse );
+	bool RetryRequest( TSharedPtr< FQueuedHttpRequest > Request, FHttpResponsePtr HttpResponse, const bool bIgnoreResponseCode = false );
 	void EnumerateCheckpoints();
 	void ConditionallyEnumerateCheckpoints();
 

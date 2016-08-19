@@ -17,7 +17,7 @@ if "%2" == "" GOTO continue
 set Options= --exclude "*" --include "*%2*.ucap.gz"
 
 :continue
-aws s3 sync s3://dedicated-server-ucap %Directory% %Options%
+aws s3 sync %3 %Directory% %Options%
 
 pushd %CD%
 cd %Directory%

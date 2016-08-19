@@ -661,7 +661,7 @@ public:
 	 */
 	ENGINE_API class UVoiceChannel* GetVoiceChannel();
 
-	void FlushDormancy(class AActor* Actor);
+	ENGINE_API virtual void FlushDormancy(class AActor* Actor);
 
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
 	void FlushDormancyForObject( UObject* Object );

@@ -286,6 +286,8 @@ void UNetDriver::CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor)
 	}
 }
 
+static TAutoConsoleVariable<int32> CVarOptimizedRemapping( TEXT( "net.OptimizedRemapping" ), 1, TEXT( "Uses optimized path to remap unmapped network guids" ) );
+
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
 #if USE_SERVER_PERF_COUNTERS
@@ -664,28 +666,85 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		DrawNetDriverDebug();
 	}
 
-	// Update properties that are unmapped, try to hook up the object pointers if they exist now
-	for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
+	if ( CVarOptimizedRemapping.GetValueOnGameThread() && GuidCache.IsValid() )
 	{
-		if ( !It->IsValid() )
+		SCOPE_CYCLE_COUNTER( STAT_NetUpdateUnmappedObjectsTime );
+
+		// Go over recently imported network guids, and see if there are any replicators that need to map them
+		TSet< FNetworkGUID >& ImportedNetGuids = GuidCache->ImportedNetGuids;
+
+		if ( ImportedNetGuids.Num() )
 		{
-			// These are weak references, so if the object has been freed, we can stop checking
-			It.RemoveCurrent();
-			continue;
+			TArray< FNetworkGUID > NewlyMappedGuids;
+
+			for ( auto It = ImportedNetGuids.CreateIterator(); It; ++It )
+			{
+				const FNetworkGUID NetworkGuid = *It;
+
+				if ( GuidCache->GetObjectFromNetGUID( NetworkGuid, false ) != nullptr )
+				{
+					NewlyMappedGuids.Add( NetworkGuid );
+					It.RemoveCurrent();
+				}
+
+				if ( GuidCache->IsGUIDBroken( NetworkGuid, false ) )
+				{
+					It.RemoveCurrent();
+				}
+			}
+
+			if ( NewlyMappedGuids.Num() )
+			{
+				TSet< FObjectReplicator* > AllReplicators;
+
+				for ( const FNetworkGUID& NetGuid : NewlyMappedGuids )
+				{
+					TSet< FObjectReplicator* >* Replicators = GuidToReplicatorMap.Find( NetGuid );
+
+					if ( Replicators )
+					{
+						AllReplicators.Append( *Replicators );
+					}
+				}
+
+				for ( FObjectReplicator* Replicator : AllReplicators )
+				{
+					if ( UnmappedReplicators.Contains( Replicator ) )
+					{
+						bool bHasMoreUnmapped = false;
+						Replicator->UpdateUnmappedObjects( bHasMoreUnmapped );
+
+						if ( !bHasMoreUnmapped )
+						{
+							UnmappedReplicators.Remove( Replicator );
+						}
+					}
+				}
+			}
 		}
+	}
+	else
+	{
+		SCOPE_CYCLE_COUNTER( STAT_NetUpdateUnmappedObjectsTime );
 
-		bool bHasMoreUnmapped = false;
-
-		It->Pin().Get()->UpdateUnmappedObjects( bHasMoreUnmapped );
-		
-		if ( !bHasMoreUnmapped )
+		// Update properties that are unmapped, try to hook up the object pointers if they exist now
+		for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
 		{
-			// If there are no more unmapped objects, we can also stop checking
-			It.RemoveCurrent();
+			FObjectReplicator* Replicator = *It;
+
+			bool bHasMoreUnmapped = false;
+
+			Replicator->UpdateUnmappedObjects( bHasMoreUnmapped );
+
+			if ( !bHasMoreUnmapped )
+			{
+				// If there are no more unmapped objects, we can also stop checking
+				It.RemoveCurrent();
+			}
 		}
 	}
 
-	// Go over RepChangedPropertyTrackerMap periodicallly, and remove entries that no longer have valid objects
+	// Go over RepChangedPropertyTrackerMap periodically, and remove entries that no longer have valid objects
 	// Unfortunately if you mark an object as pending kill, it will no longer find itself in this map,
 	// so we do this as a fail safe to make sure we never leak memory from this map
 	const double CleanupTimeSeconds = 10.0;
@@ -1518,6 +1577,12 @@ void UNetDriver::FinishDestroy()
 		check(ClientConnections.Num()==0);
 		check(!GuidCache.IsValid());
 	}
+
+	// Make sure we've properly shut down all of the FObjectReplicator's
+	check( GuidToReplicatorMap.Num() == 0 );
+	check( TotalTrackedGuidMemoryBytes == 0 );
+	check( UnmappedReplicators.Num() == 0 );
+
 	Super::FinishDestroy();
 }
 

@@ -1012,21 +1012,40 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
-	// Mark all existing actor channels for pending checkpoint save
+	check( PendingCheckpointActors.Num() == 0 );
+
+	// Add any actor with a valid channel to the PendingCheckpointActors list
 	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
 	{
 		AActor* Actor = ObjectInfo.Get()->Actor;
 
-		UActorChannel* ActorChannel = ClientConnections[0]->ActorChannels.FindRef( Actor );
+		FullyDormantActors.Remove( Actor );		// Make sure this actor isn't on the dormant list
 
-		if ( ActorChannel )
+		if ( ClientConnections[0]->ActorChannels.FindRef( Actor ) )
 		{
-			ActorChannel->bPendingCheckpoint = true;
+			PendingCheckpointActors.Add( Actor );
 		}
 	}
 
-	// So we know to tick checkpoints until it's all saved out (we also can't do normal replication while we're in the process of saving a checkpoint)
-	bSavingCheckpoint = true;
+	// Make sure to catch replay actors that are dormant (and aren't on the network object list above)
+	for ( auto ActorIt = FullyDormantActors.CreateIterator(); ActorIt; ++ActorIt )
+	{
+		if ( !( *ActorIt ).Get() )	// Take this chance to remove invalid entries
+		{
+			ActorIt.RemoveCurrent();
+			continue;
+		}
+
+		if ( ClientConnections[0]->ActorChannels.FindRef( *ActorIt ) )
+		{
+			PendingCheckpointActors.Add( *ActorIt );
+		}
+	}
+
+	if ( !PendingCheckpointActors.Num() )
+	{
+		return;
+	}
 
 	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
 
@@ -1043,7 +1062,7 @@ void UDemoNetDriver::SaveCheckpoint()
 
 void UDemoNetDriver::TickCheckpoint()
 {
-	if ( !bSavingCheckpoint )
+	if ( !PendingCheckpointActors.Num() )
 	{
 		return;
 	}
@@ -1087,28 +1106,25 @@ void UDemoNetDriver::TickCheckpoint()
 	// Set bResendAllDataSinceOpen to true to signify that we want to do this
 	ClientConnections[0]->bResendAllDataSinceOpen = true;
 
-	bool bCheckpointFinished = true;
-
 	const double CheckpointMaxUploadTimePerFrame = ( double )CVarCheckpointSaveMaxMSPerFrame.GetValueOnGameThread() / 1000;
 
-	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
+	for ( auto ActorIt = PendingCheckpointActors.CreateIterator(); ActorIt; ++ActorIt )
 	{
-		AActor* Actor = ObjectInfo.Get()->Actor;
+		AActor* Actor = ( *ActorIt ).Get();
+
+		ActorIt.RemoveCurrent();	// We're done with this now
 
 		UActorChannel* ActorChannel = ClientConnections[0]->ActorChannels.FindRef( Actor );
 
-		if ( ActorChannel && ActorChannel->bPendingCheckpoint )
+		if ( ActorChannel )
 		{
 			Actor->CallPreReplication( this );
 			DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, true );
-
-			ActorChannel->bPendingCheckpoint = false;
 
 			const double CheckpointTime = FPlatformTime::Seconds();
 
 			if ( CheckpointMaxUploadTimePerFrame > 0 && CheckpointTime - StartCheckpointTime > CheckpointMaxUploadTimePerFrame )
 			{
-				bCheckpointFinished = false;
 				break;
 			}
 		}
@@ -1133,10 +1149,11 @@ void UDemoNetDriver::TickCheckpoint()
 
 	TotalCheckpointSaveTimeSeconds += ( EndCheckpointTime - StartCheckpointTime );
 
-	if ( bCheckpointFinished )
+	if ( PendingCheckpointActors.Num() == 0 )
 	{
+		//
 		// We're done saving this checkpoint
-		bSavingCheckpoint = false;
+		//
 
 		// First, save the current guid cache
 		SerializeGuidCache( GuidCache, CheckpointArchive );
@@ -1261,7 +1278,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		return;
 	}
 
-	if ( bSavingCheckpoint )
+	if ( PendingCheckpointActors.Num() )
 	{
 		// If we're in the middle of saving a checkpoint, then update that now and return
 		TickCheckpoint();
@@ -1349,10 +1366,11 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		for ( auto ActorIt = GetNetworkObjectList().GetObjects().CreateIterator(); ActorIt; ++ActorIt)
 		{
 			FNetworkObjectInfo* ActorInfo = (*ActorIt).Get();
-			AActor* Actor = ActorInfo->Actor;
-		
+
 			if ( DemoCurrentTime > ActorInfo->NextUpdateTime )
 			{
+				AActor* Actor = ActorInfo->Actor;
+
 				if ( Actor->IsPendingKill() )
 				{
 					ActorIt.RemoveCurrent();
@@ -1449,6 +1467,13 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 		const bool bDidReplicateActor = DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false );
 
+		if ( bDidReplicateActor && Actor->NetDormancy == DORM_DormantAll )
+		{
+			// If we've replicated this object at least once, and it wants to go dormant, make it dormant now
+			GetNetworkObjectList().GetObjects().Remove( Actor );
+			FullyDormantActors.Add( Actor );
+		}
+
 		TSharedPtr<FRepChangedPropertyTracker> PropertyTracker = FindOrCreateRepChangedPropertyTracker( Actor );
 
 		if ( !GuidCache->NetGUIDLookup.Contains( Actor ) )
@@ -1497,7 +1522,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	// Save a checkpoint if it's time
 	if ( CVarEnableCheckpoints.GetValueOnGameThread() == 1 )
 	{
-		check( !bSavingCheckpoint );		// We early out above, so this shouldn't be possible
+		check( !PendingCheckpointActors.Num() );		// We early out above, so this shouldn't be possible
 
 		const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnGameThread();
 
@@ -2123,6 +2148,9 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 		return;
 	}
 
+	// Streaming volumes logic must not be affected by replay spectator camera
+	SpectatorController->bIsUsingStreamingVolumes = false;
+
 	// Make sure SpectatorController->GetNetDriver returns this driver. Ensures functions that depend on it,
 	// such as IsLocalController, work as expected.
 	SpectatorController->SetNetDriverName(NetDriverName);
@@ -2132,6 +2160,12 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 	if ( SpectatorController->PlayerState == nullptr && GetWorld() != nullptr && GetWorld()->IsRecordingClientReplay())
 	{
 		SpectatorController->InitPlayerState();
+	}
+
+	// Tell the game that we're spectator and not a normal player
+	if (SpectatorController->PlayerState)
+	{
+		SpectatorController->PlayerState->bOnlySpectator = true;
 	}
 
 	for ( FActorIterator It( World ); It; ++It)
@@ -2705,6 +2739,14 @@ TSharedPtr<FObjectReplicator> UDemoNetConnection::CreateReplicatorForNewActorCha
 	}
 
 	return NewReplicator;
+}
+
+void UDemoNetConnection::FlushDormancy( class AActor* Actor )
+{
+	UDemoNetDriver* NetDriver = GetDriver();
+
+	NetDriver->FullyDormantActors.Remove( Actor );
+	NetDriver->GetNetworkObjectList().Add( Actor, NetDriver->NetDriverName );
 }
 
 bool UDemoNetDriver::IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const

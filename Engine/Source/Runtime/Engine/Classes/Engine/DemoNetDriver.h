@@ -171,9 +171,14 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 
+	/** When actors are dormant in replays, we remove them from the master list, and add them here for tracking */
+	TSet< TWeakObjectPtr< AActor > > FullyDormantActors;
+
+	/** When we save a checkpoint, we remember all of the actors that need a checkpoint saved out by adding them to this list */
+	TSet< TWeakObjectPtr< AActor > > PendingCheckpointActors;
+
 	/** Checkpoint state */
 	FPackageMapAckState CheckpointAckState;					// Current ack state of packagemap for the current checkpoint being saved
-	bool				bSavingCheckpoint;					// True if we're currently saving a checkpoint
 	double				TotalCheckpointSaveTimeSeconds;		// Total time it took to save checkpoint across all frames
 	int32				TotalCheckpointSaveFrames;			// Total number of frames used to save a checkpoint
 	double				LastCheckpointTime;					// Last time a checkpoint was saved
