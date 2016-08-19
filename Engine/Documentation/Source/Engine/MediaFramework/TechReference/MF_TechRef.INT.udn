@@ -14,6 +14,9 @@ Related: Engine\MediaFramework\HowTo
 This page outlines the currently supported file extensions and URLs as well as outlines some troubleshooting tips on how to enable Media Framework with different platforms. 
 There are some known platform specific issues and limitations which we are currently investigating and trying to resolve, each of which have been identified in the Troubleshooting Platform sections. 
 
+[REGION:tip]
+If you are upgrading Media Framework content from a pre-4.13 project, see the tips in [](Engine/MediaFramework/TechReference/Upgrading).
+[/REGION]
 
 ## Supported Files & URLs
 
