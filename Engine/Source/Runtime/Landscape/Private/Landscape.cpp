@@ -1425,8 +1425,11 @@ void ALandscapeProxy::PostLoad()
 		LandscapeComponents.ContainsByPredicate([](ULandscapeComponent* Comp) { return !Comp->CollisionComponent.IsValid(); }))
 	{
 		// Need to clean up invalid collision components
-		CreateLandscapeInfo();
-		RecreateCollisionComponents();
+		if (GIsEditor && !GetWorld()->IsGameWorld())
+		{
+			CreateLandscapeInfo();
+			RecreateCollisionComponents();
+		}
 	}
 
 	EditorLayerSettings.Remove(nullptr);
