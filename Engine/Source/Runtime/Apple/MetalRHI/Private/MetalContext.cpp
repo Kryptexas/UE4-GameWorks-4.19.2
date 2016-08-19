@@ -1363,6 +1363,7 @@ void FMetalContext::SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, u
 			FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
 			if (Surface != nullptr)
 			{
+				Surface->bWritten = true;
 				GetCommandEncoder().SetShaderTexture(ShaderStage, Surface->Texture, BindIndex);
 			}
 			else
