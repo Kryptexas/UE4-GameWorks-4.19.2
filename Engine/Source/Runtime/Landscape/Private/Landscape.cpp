@@ -580,6 +580,7 @@ void ULandscapeComponent::PostLoad()
 #if WITH_EDITOR
 		if (GIsEditor)
 		{
+			MaterialInstances[0]->ConditionalPostLoad();
 			UpdateMaterialInstances();
 		}
 #endif // WITH_EDITOR

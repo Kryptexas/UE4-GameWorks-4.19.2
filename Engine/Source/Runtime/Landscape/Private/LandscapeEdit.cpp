@@ -236,12 +236,12 @@ void ULandscapeComponent::UpdateMaterialInstances()
 			FlushRenderingCommands();
 		}
 
-		UMaterialInstanceConstant*& MaterialInstance = MaterialInstances[0];
+		UMaterialInstanceConstant* MaterialInstance = MaterialInstances[0];
 
 		// Create the instance for this component, that will use the layer combination instance.
 		if (MaterialInstance == nullptr || GetOutermost() != MaterialInstance->GetOutermost())
 		{
-			MaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
+			MaterialInstance = MaterialInstances[0] = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 		}
 
 		// Material Instances don't support Undo/Redo (the shader map goes out of sync and crashes happen)
