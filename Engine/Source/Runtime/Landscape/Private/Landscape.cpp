@@ -551,11 +551,24 @@ void ULandscapeComponent::PostLoad()
 			}
 		}
 
-		// Remove public flag from GI textures to stop them being visible in the content browser.
-		// Previous version of landscape set these flags on creation.
-		if (GIBakedBaseColorTexture && GIBakedBaseColorTexture->HasAnyFlags(RF_Public))
+		if (GIBakedBaseColorTexture)
 		{
-			GIBakedBaseColorTexture->ClearFlags(RF_Public);
+			if (GIBakedBaseColorTexture->GetOutermost() != GetOutermost())
+			{
+				// The GIBakedBaseColorTexture property was never intended to be reassigned, but it was previously editable so we need to null any invalid values
+				// it will get recreated by ALandscapeProxy::UpdateBakedTextures()
+				GIBakedBaseColorTexture = nullptr;
+				BakedTextureMaterialGuid = FGuid();
+			}
+			else
+			{
+				// Remove public flag from GI textures to stop them being visible in the content browser.
+				// Previous version of landscape set these flags on creation.
+				if (GIBakedBaseColorTexture->HasAnyFlags(RF_Public))
+				{
+					GIBakedBaseColorTexture->ClearFlags(RF_Public);
+				}
+			}
 		}
 	}
 #endif
