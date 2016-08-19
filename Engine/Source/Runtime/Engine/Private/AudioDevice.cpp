@@ -107,6 +107,7 @@ FAudioDevice::FAudioDevice()
 	, bIsDeviceMuted(false)
 	, bIsInitialized(false)
 	, bHasActivatedReverb(false)
+	, bAllowVirtualizedSounds(true)
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
@@ -142,6 +143,8 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 		// Convert dB to linear volume
 		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 20.0f);
 	}
+
+	bAllowVirtualizedSounds = GetDefault<UAudioSettings>()->bAllowVirtualizedSounds;
 
 	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
 	if (DefaultBaseSoundMixName.IsValid())
