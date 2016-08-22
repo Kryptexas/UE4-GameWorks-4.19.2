@@ -1,19 +1,15 @@
-﻿INTSourceChangelist:2897318
+﻿INTSourceChangelist:3011129
 Availability: Public
 Title:레벨 비저빌리티 트랙 사용법
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:레벨 표시여부를 제어하는 방법 예제입니다.
-Version: 4.11
+Version: 4.12
 SkillLevel: Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
-
-[REGION:warning]
-이 기능은 현재 개발중이라 추후 버전에서는 예상대로 작동치 않거나 변경될 수 있습니다.
-[/REGION]
 
 시퀀스 도중 전체 [**레벨**](Engine/Levels/) 비저빌리티(표시여부)를 껐다켰다 하고픈 때가 있습니다. 그럴 때는 시퀀서 안에서 **Level Visibility Track** (레벨 비저빌리티 트랙)으로 레벨의 표시여부를 **Visible** (표시) 또는 **Hidden** (숨김) 으로 설정해 주면 됩니다.
 이는 레벨 스트림 인/아웃이 되지는 않으며, 레벨 내 모든 콘텐츠를 표시 또는 숨김으로 설정만 합니다.
@@ -52,7 +48,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](Visibility07.png)
 
-	이는 단순히 01 레벨과 02 레벨에 들어있는 콘텐츠가 다르다는 것을 구분하기 위함입니다.
+	여기서 추가한 콘텐츠는 레벨 01 과 레벨 02 를 구분하기 위한 예제 용도입니다. 자유롭게 별도 콘텐츠를 추가하셔도 됩니다!
 
 1.	**콘텐츠 브라우저** 에서 **Content/ThirdPersonBP/Maps** 아래 **ThirdPersonExampleMap** 을 열고 뷰포트를 **Lit** (라이팅포함)으로 설정합니다. 
 
@@ -65,6 +61,8 @@ Related: Engine\Sequencer\ReferenceEditor\
 1.	**레벨** 드롭다운 메뉴를 선택한 다음 **Add Exisiting...** (기존 추가...)를 선택합니다. 
 
 	![](Visibility10.png)
+
+	Level Visibility Track (레벨 비저빌리티 트랙)으로 영향을 끼치고자 하는 레벨을 추가해 줘야 합니다.
 
 1.	**레벨 열기** 창에서 **Level01** 을 선택한 뒤, **Level02** 에 대해서도 위 과정을 반복합니다.
 
@@ -116,7 +114,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](Visibility19.png)
 
-	각 아이템을 선택한 다음 [트랜스폼 툴](GettingStarted/HowTo/ManipulatingActors) 을 사용하여 퍼시스턴트 레벨 속으로 옮길 수 있습니다. 
+	스트림 인 될 때 나타나는 위치는 해당 레벨에서 어디에 배치되었는가에 따라 달라집니다. 스트림 인 되는 액터 레벨은 다른 액터처럼 선택한 뒤 [**트랜스폼 툴**](GettingStarted/HowTo/ManipulatingActors) 로 조작 가능합니다.
 
 1.	시퀀서 에디터의 프리뷰 **플레이** 버튼을 사용하여 레벨 시퀀스를 플레이합니다.
 
@@ -133,7 +131,7 @@ Level 01 에 배치된 아이템은 퍼시스턴트 레벨에 표시됐다가, L
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-IB55JHXerog
+wLMQ7ACu_J8
 [/PARAMLITERAL]
 [/OBJECT]
 

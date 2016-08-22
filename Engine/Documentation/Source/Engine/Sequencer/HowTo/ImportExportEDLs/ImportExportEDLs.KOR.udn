@@ -1,33 +1,33 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3087691
 Availability: Docs
-Title:Importing & Exporting Edit Decision Lists (EDLs)
+Title:EDL 임포트 & 익스포트
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Illustrates how you can import and export EDLs for use in external video editing software applications. 
+Description:외부 비디오 편집 프로그램에서 사용할 수 있도록 EDL 을 임포트, 익스포트 하는 법입니다.
 Version: 4.13
 SkillLevel: Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related: Engine/Sequencer/ReferenceEditor
 
 [EXCERPT:intro]
-Sequencer in Unreal Engine 4 not only allows you to render and export out your entire cinematic, but you can also export your cinematic split up into each of your shots along with an **Edit Decision List** or **EDL** which is a file that can be used with most video editing applications like Premiere, Avid or Final Cut. 
+언리얼 엔진 4 의 시퀀서는 전체 시네마틱을 렌더링하여 익스포트할 수 있을 뿐만 아니라, 시네마틱을 각각의 샷으로 분할하여 Premiere, Avid, Final Cut 과 같은 비디오 편집 프로그램에서 사용할 수 있는 **EDL** (Edit Decision List, 편집 의사결정 목록) 파일로 익스포트할 수도 있습니다.
 [/EXCERPT:intro]
 
-The EDL contains an ordered list of reel and time code data representing where each video clip can be obtained in order to produce the final cut. 
-In this how-to we export a cinematic and EDL file, take it into an external program like Premiere, make edits to it and re-import the edited cinematic back into Unreal along with those changes. 
+EDL 에는 각각의 비디오 클립을 어디서 얻을 수 있는지 나타내는 릴과 타임 코드 순서 목록이 들어 있어, 이를 통해 최종 컷을 만들어 낼 수 있습니다.
+여기서는 시네마틱과 EDL 파일을 익스포트하고, Premiere 같은 외부 프로그램에서 가져와 편집한 뒤, 그러한 변경사항이 적용된 편집 시네마틱을 언리얼로 다시 리임포트해 보겠습니다.
 
-## Steps
+## 단계
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project and have created a sample cinematic however you can use your own project and cinematic sequence. 
-We are also using Adobe Premiere Pro CS6 as our external editing software; however you can use any software that supports EDL importing. 
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트를 사용하여 샘플 시네마틱을 제작해 보겠습니다만, 원하는 어떤 프로젝트나 시네마틱 시퀀스를 사용해도 괜찮습니다.
+또한 외부 편집 프로그램은 Adobe Premiere Pro CS6 을 사용하는데, 마찬가지로 EDL 임포트를 지원하는 소프트웨어는 무엇이든 사용하셔도 됩니다.
 [/REGION]
 
-1.	Make sure your cinematic you want to export includes a **Shot Track** containing your shots, then click the **Render Movie** button.
+1.	익스포트하고자 하는 시네마틱에 **샷 트랙** 이 있어 그 안에 샷이 들어있는지 확인한 뒤, **무비 렌더링** 버튼을 클릭합니다.
 
-1.	Define an **Output Directory** and **Filename Format** using the **{shot}** token and make sure **Write Edit Decision List** is checked. 
+1.	**{shot}** 토큰을 사용하여 **Output Directory** (출력 디렉토리)와 **Filename Format** (파일명 형식)을 정의합니다. **Write Edit Decision List** (EDL 쓰기) 옵션이 체크되어 있는지도 확인합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -41,11 +41,11 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Above we show the sample cinematic that we want to export along with an EDL and click the **Render Movie** button to bring up the settings dialog window. 
-	Inside the settings window, we create a new folder to export the cinematic to and prefix our {shot} token with the name of our cinematic. 
-	By using the {shot} token each of our shots will be exported as individual video files along with the full cinematic. 
+	위는 EDL 을 포함시켜 익스포트하고자 하는 샘플 시네마틱으로 **무비 렌더링** 버튼을 클릭하여 세팅 대화창을 띄운 모습입니다.
+	세팅 창 안에서, 시네마틱을 익스포트할 새 폴더를 만들어 시네마틱 이름과 함께 {shot} 토큰으로 접두사를 달아줬습니다.
+	{shot} 토큰을 사용하면 각각의 샷은 전체 시네마틱과 함께 개별 비디오 파일로 익스포트됩니다.
 
-1.	Inside your software editing suite, **Import** the **EDL** file exported from the previous step. 
+1.	편집 프로그램에 들어가, 기존 단계에서 익스포트한 **EDL** 파일을 **임포트** 합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -59,10 +59,10 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	In Premiere Pro, you can **Right-click** in the window in the lower-left and choose **Import** then point to the EDL file. 
-	We left the EDL Information and New Sequence dialog windows with the default information. 
+	Premiere Pro 에서 좌하단 창에 **우클릭** 한 뒤 **Import** 를 선택하고 **EDL** 파일을 지정합니다.
+	EDL Information 과 New Sequence 대화창은 기본 정보대로 놔뒀습니다.
 
-1.	Next you'll need to link the data from the EDL to the exported media files in your editing software. 
+1.	다음, EDL 에서의 데이터를 편집 프로그램의 익스포트된 미디어 파일에 링크시켜 줘야 합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -76,9 +76,9 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	In Premeire Pro, **Right-click** the media folder and select **Link Media** then point each file to its corresponding media file. 
+	Premiere Pro 에서, 미디어 폴더에 **우클릭** 한 뒤 **Link Media** 를 선택하고 각각의 파일을 그에 해당하는 미디어 파일에 지정해 줍니다.
 
-1.	Modify the shots in your editing software as desired, then **Export** as an **EDL**. 
+1.	편집 프로그램에서 원하는 대로 샷을 변경한 뒤, **EDL** 로 **Export** 합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -92,9 +92,9 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Above for our sample scene, we adjust the length of the shots as well as re-arrange their position in the sequence. 
+	위의 샘플 씬에서는, 샷 길이를 조정하고 시퀀스 상의 그 위치를 변경했습니다.
 
-1.	Return to **Unreal Engine 4** and in your Sequence, **Right-click** your **Shot Track** and **Import EDL**. 
+1.	**언리얼 엔진 4** 로 돌아와 시퀀스에서, **샷 트랙** 에 **우클릭** 하고 **EDL 임포트** 를 선택합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -108,15 +108,16 @@ We are also using Adobe Premiere Pro CS6 as our external editing software; howev
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	The changes we made externally are now reflected inside our Sequence in Unreal Engine 4. 
+	외부에서 가한 변경사항이 언리얼 엔진 4 의 시퀀스 안에도 반영되어 있습니다.
 
-## End Result
+## 최종 결과
 
-The import/export EDL option within Sequencer gives you the flexibility to determine where you want to do your editing. 
+시퀀스 내 EDL 임포트/익스포트 옵션으로 어느 프로그램에서 편집할지 자유롭게 선택할 수 있습니다.
 
-You can do most of your setup inside Sequencer, then pass your sequence off to an editor who works inside an external application like Premiere to perform the final touches who can then pass it back to you to tweak in Sequencer. 
+대부분의 구성 작업은 시퀀서 안에서 한 뒤, 그 시퀀스를 Premiere 같은 외부 프로그램으로 작업하는 편집자에게 넘겨 최종 마무리 작업을 맡기고, 다시 돌려받아 시퀀서에서 트윅 작업을 할 수 있습니다.
 
-By exporting your sequence as an EDL and working externally, you have the ability to add post production effects or after effects to your scene before you rendering out the final cinematic. 
+시퀀스를 EDL 로 익스포트하여 외부 작업을 하는 것으로, 씬에 프로덕션 사후 효과같은 것을 추가한 뒤, 최종 시네마틱을 렌더링 출력할 수 있습니다.
+
 
 
 

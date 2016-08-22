@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3077981
+﻿INTSourceChangelist:3085417
 Availability:Public
 Title:하드웨어 & 소프트웨어 사양
 SEO-Title:하드웨어 & 소프트웨어 사양
@@ -70,7 +70,7 @@ version: 4.9
 [EXCERPT:MacOSMinHardware]
 |||
 | -------- | --- |
-| **운영 체제** | Mac OS X 10.9.2  |
+| **운영 체제** | Mac OS X 10.10.5 |
 | **프로세서** | 쿼드코어 인텔 2.5 GHz 이상|
 | **메모리** | 8 GB 램 |
 | **비디오 카드** | OpenGL 4.1 호환 그래픽 카드 |
@@ -157,7 +157,7 @@ version: 4.9
 [EXCERPT:MacOSMinSoftware]
 | 엔진 실행 ||
 | -------- | --- |
-| **운영체제** | Mac OS X 10.9.2  |
+| **운영체제** | Mac OS X 10.10.5  |
 [/EXCERPT:MacOSMinSoftware]
 
 [EXCERPT:LinuxMinSoftware]
@@ -236,7 +236,7 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 [EXCERPT:MacOSMinDevelopment]
 | 엔진으로 개발 ||
 | -------- | --- |
-| **Xcode 버전** | 5.0 |
+| **Xcode 버전** | 7.2.1 |
 [/EXCERPT:MacOSMinDevelopment]
 [EXCERPT:LinuxMinDevelopment]
 | 엔진으로 개발 ||

@@ -1,19 +1,15 @@
-﻿INTSourceChangelist:2890438
+﻿INTSourceChangelist:3011129
 Availability: Public
 Title:커스텀 이벤트 호출
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:이벤트 트랙을 사용하여 블루프린트의 커스텀 이벤트와 스크립트를 호출하는 법을 보여줍니다.
-Version: 4.11
+Version: 4.12
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
-
-[REGION:warning]
-이 기능은 현재 개발중으로 추후 버전에서 예상대로 작동하지 않거나 변경될 수 있습니다.
-[/REGION]
 
 **Event Track** (이벤트 트랙)은 [**레벨 블루프린트**](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 안에서 [**커스텀 이벤트**](Engine/Blueprints/UserGuide/Events/Custom) 호출 및 [**블루프린트 스크립트**](Engine/Blueprints) 를 발동시키는 데 사용될 수 있습니다.
 커스텀 이벤트가 호출되면, 거기에 붙은 스크립트 역시도 실행되며, 필요에 따라 어떤 경우의 수만큼도 사용 가능합니다.
@@ -26,7 +22,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 를 포함시켜 사용하고 있습니다.
 [/REGION]
 
-1.	프로젝트를 열고 [**시퀀서 활성화**](Engine\Sequencer\HowTo\EnableSequencer) 상태에서, **툴바** 의 **시네마틱** - **레벨 시퀀스 추가** 를 선택합니다.
+1.	**메인 툴바** 의 **시네마틱** - **레벨 시퀀스 추가** 를 선택합니다.
 
 	![](EventTrack1.png)
 
@@ -43,6 +39,8 @@ Related: Engine\Sequencer\ReferenceEditor\
 1.	키에 **우클릭** 하고, **프로퍼티** 아래의 **Value** 부분에 **MyEvent** 이름을 입력합니다.
 
 	![](EventTrack4.png)
+
+	여기 넣는 이름은 **반드시** 호출하고자 하는 **Custom Event** 를 생성할 때 사용하는 이름이어야 합니다.
 
 1.	**콘텐츠 브라우저** 에서 **StarterContent/Particles** 아래 **P_Explosion** 을 끌어 레벨에 놓습니다.
 
@@ -67,7 +65,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 	![](EventTrack9.png)
 	
 	[REGION:note]
-	커스텀 이벤트 이름이 반드시 Event Key Value 프로퍼티에 제공된 것과 같아야만 호출이 가능합니다. Custom Event 노드에서 **F2** 키를 눌러 이름을 변경할 수 있습니다.
+	4 단계에 입력한 값과 같아야 합니다. 노드에서 **F2** 키를 눌러 이름을 변경할 수 있습니다.
 	[/REGION]
 
 1.	**좌클릭** 으로 **P_Explosion** 노드를 끌어놓고 **Activate (ParticleSystemComponent)** 노드를 검색 추가합니다.
@@ -78,9 +76,13 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](EventTrack11.png)
 
+	이벤트가 호출될 때 레벨에 배치한 파티클 이펙트가 가동될(켜질) 것입니다.
+
 1.	**월드 아웃라이너** 의 메인 에디터 창에서 레벨 시퀀스를 선택한 다음 **디테일** 에서 **Auto Play** (자동 재생)을 켭니다.
 
 	![](EventTrack12.png)
+
+	레벨에서 플레이하면, 레벨 시퀀스가 자동 재생되어 이펙트가 발동될 것입니다.
 
 1.	메인 툴바의 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
 
@@ -97,11 +99,11 @@ Related: Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-QrOO2RnRYq8
+krFTHenh9zw
 [/PARAMLITERAL]
 [/OBJECT]
 
-위 비디오에서는, 시퀀서 안에서 **플레이** 버튼을 눌러 레벨 시퀀스를 플레이할 때는 스크립트 실해이 보이지 않는다는 것도 보여주고 있습니다.
+위 비디오에서는, 시퀀서 안에서 **플레이** 버튼을 누르면 스크립트 실행이 보이지 않는다는 것도 보여주고 있습니다.
 레벨 시퀀스 플레이시 게임플레이 도중의 이벤트 트랙에서만 스크립트 이벤트를 미리볼 수 있을 것입니다.
 
 
