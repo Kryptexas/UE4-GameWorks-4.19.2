@@ -62,6 +62,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 
 	FAbcImporter Importer;
 	EAbcImportError ErrorCode = Importer.OpenAbcFileForImport(UFactory::CurrentFilename);
+	ImportSettings->bReimport = false;
 	
 	if (ErrorCode != AbcImportError_NoError)
 	{
@@ -283,6 +284,7 @@ void UAlembicImportFactory::SetReimportPaths(UObject* Obj, const TArray<FString>
 
 EReimportResult::Type UAlembicImportFactory::Reimport(UObject* Obj)
 {
+	ImportSettings->bReimport = true;
 	if (Obj->GetClass() == UStaticMesh::StaticClass())
 	{
 		UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);

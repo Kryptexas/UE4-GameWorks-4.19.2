@@ -6,6 +6,7 @@
 #include "AbcImportSettings.h"
 
 #include "DetailLayoutBuilder.h"
+#include "PropertyRestriction.h"
 
 void FAbcImportSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& LayoutBuilder)
 {
@@ -21,6 +22,23 @@ void FAbcImportSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& Lay
 
 	FSimpleDelegate OnImportTypeChangedDelegate = FSimpleDelegate::CreateSP(this, &FAbcImportSettingsCustomization::OnImportTypeChanged, &LayoutBuilder);
 	ImportType->SetOnPropertyValueChanged(OnImportTypeChangedDelegate);
+
+	if (UAbcImportSettings::Get()->bReimport)
+	{
+		UEnum* ImportTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAlembicImportType"));		
+		static FText RestrictReason = FText::FromString("Unable to change type while reimporting");
+		TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
+
+		for (uint8 EnumIndex = 0; EnumIndex < (ImportTypeEnum->GetMaxEnumValue() + 1); ++EnumIndex)
+		{
+			if (EnumValue != EnumIndex)
+			{
+				const FString RestrictValue = ImportTypeEnum->GetDisplayNameTextByValue(EnumIndex).ToString();
+				EnumRestriction->AddValue(RestrictValue);
+			}
+		}		
+		ImportType->AddRestriction(EnumRestriction.ToSharedRef());
+	}	
 }
 
 TSharedRef<IDetailCustomization> FAbcImportSettingsCustomization::MakeInstance()
