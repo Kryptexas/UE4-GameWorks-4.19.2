@@ -91,7 +91,7 @@ uint32 FAbcMeshDataImportRunnable::Run()
 
 			if (bApplyTransformation)
 			{
-				TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(PolyMeshObject->HierarchyGuid);
+				TSharedPtr<FCachedHierarchyTransforms>& CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(PolyMeshObject->HierarchyGuid);
 				checkf(PolyMeshObject->bConstantTransformation || CachedHierarchyTransforms->MatrixSamples.IsValidIndex(FrameIndex - FrameOffset), TEXT("Sampling is identical for transforms as for mesh data so the number of samples should match"));
 				const FMatrix& Transform = PolyMeshObject->bConstantTransformation ? CachedHierarchyTransforms->MatrixSamples[0] : CachedHierarchyTransforms->MatrixSamples[FrameIndex - FrameOffset];
 				AbcImporterUtilities::PropogateMatrixTransformationToSample(Sample, Transform);
