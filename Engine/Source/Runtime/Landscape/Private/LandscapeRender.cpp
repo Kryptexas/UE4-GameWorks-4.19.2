@@ -1109,19 +1109,22 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
 	const int32 NumBatchesPerLOD = (ForcedLOD < 0 && NumSubsections > 1) ? (FMath::Square(NumSubsections) + 1) : 1;
-	int32 NumBatches = (1 + LastLOD - FirstLOD) * NumBatchesPerLOD;
-	StaticBatchParamArray.Empty(NumBatches);
+	const int32 NumBatchesLastLOD = (ForcedLOD < 0) ? (1 + LastLOD - FirstLOD) * NumBatchesPerLOD : 1;
 
-	const int32 LastMaterialLOD = FMath::Min(LastLOD, MaterialInterfacesByLOD.Num() - 1);
-	for (int i = FirstLOD; i <= LastMaterialLOD; ++i)
+	StaticBatchParamArray.Empty(ForcedLOD < 0 ? (1 + LastLOD - FirstLOD) * NumBatchesPerLOD : 1);
+
+	const int32 LastMaterialIndex = MaterialInterfacesByLOD.Num() - 1;
+	const int32 LastMaterialLOD = FMath::Min(LastLOD, LastMaterialIndex);
+
+	for (int i = FirstLOD; i <= LastLOD; ++i)
 	{
 		// the LastMaterialLOD covers all LODs up to LastLOD
-		const bool bLast = (i == LastMaterialLOD);
+		const bool bLast = (i >= LastMaterialLOD);
 
 		FMeshBatch MeshBatch;
-		MeshBatch.Elements.Empty(bLast ? (1 + LastLOD - LastMaterialLOD) * NumBatchesPerLOD : NumBatchesPerLOD);
+		MeshBatch.Elements.Empty(bLast ? NumBatchesLastLOD : NumBatchesPerLOD);
 
-		UMaterialInterface* MaterialInterface = MaterialInterfacesByLOD[i];
+		UMaterialInterface* MaterialInterface = MaterialInterfacesByLOD[FMath::Min(i, LastMaterialIndex)];
 
 		// Could be different from bRequiresAdjacencyInformation during shader compilation
 		bool bCurrentRequiresAdjacencyInformation = MaterialRenderingRequiresAdjacencyInformation_RenderingThread(MaterialInterface, VertexFactory->GetType(), GetScene().GetFeatureLevel());
@@ -1201,6 +1204,11 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 		}
 
 		PDI->DrawMesh(MeshBatch, FLT_MAX);
+
+		if (bLast)
+		{
+			break;
+		}
 	}
 }
 
