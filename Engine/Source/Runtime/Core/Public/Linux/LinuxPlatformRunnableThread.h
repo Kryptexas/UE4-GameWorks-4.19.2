@@ -68,6 +68,7 @@ public:
 		checkf(StackGuardPage + PageSize - reinterpret_cast<uint64>(StackBuffer) < StackBufferSize,
 			TEXT("Stack size is too small for the extra guard page!"));
 
+#if 0 // Disabling until race condition between the destructor and PostRun() is resolved (see UE-35074)
 		void* StackGuardPageAddr = reinterpret_cast<void*>(StackGuardPage);
 		if (FPlatformMemory::PageProtect(StackGuardPageAddr, PageSize, true, false))
 		{
@@ -81,6 +82,7 @@ public:
 			// cannot use UE_LOG - can run into deadlocks in output device code
 			fprintf(stderr, "Unable to set a guard page on the alt stack\n");
 		}
+#endif // 0
 
 		// set up the buffer to be used as stack
 		stack_t SignalHandlerStack;
@@ -142,6 +144,7 @@ private:
 		SetupSignalHandlerStack(ThreadCrashHandlingStack, sizeof(ThreadCrashHandlingStack), &StackGuardPageAddress);
 	}
 
+#if 0 // Disabling until race condition between the destructor and PostRun() is resolved (see UE-35074)
 	virtual void PostRun() override
 	{
 		if (StackGuardPageAddress != nullptr)
@@ -157,6 +160,7 @@ private:
 			StackGuardPageAddress = nullptr;
 		}
 	}
+#endif // 0
 
 	/**
 	 * Allows platforms to adjust stack size
