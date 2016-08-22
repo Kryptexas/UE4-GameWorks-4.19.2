@@ -14,6 +14,7 @@ FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, const FLine
 	, BufferBytesPerPixel(0)
 	, BufferClearColor(InClearColor)
 	, BufferDimensions(FIntPoint::ZeroValue)
+	, CachedResourceSize(0)
 	, OutputDimensions(InOutputDimensions)
 	, RequiresConversion(false)
 	, SinkFormat(InSinkFormat)
@@ -71,33 +72,6 @@ void FMediaTextureResource::DisplayBuffer()
 			SwapResource();
 		});
 	}
-}
-
-
-SIZE_T FMediaTextureResource::GetResourceSize() const
-{
-	SIZE_T ResourceSize = 0;
-
-	if (OutputDimensions.GetMin() > 0)
-	{
-		const SIZE_T BufferSize = BufferDimensions.X * BufferDimensions.Y * BufferBytesPerPixel;
-
-		if (SinkMode == EMediaTextureSinkMode::Buffered)
-		{
-			ResourceSize += 3 * BufferSize;
-		}
-		else
-		{
-			ResourceSize += BufferSize;
-		}
-
-		if (RequiresConversion)
-		{
-			ResourceSize += OutputDimensions.X * OutputDimensions.Y * 4;
-		}
-	}
-
-	return ResourceSize;
 }
 
 
@@ -473,6 +447,8 @@ void FMediaTextureResource::InitDynamicRHI()
 		CommandList.CopyToResolveTarget(TextureRHI, TextureRHI, true, FResolveParams());
 	}
 
+	CacheResourceSize();
+
 	State = EState::Initialized;
 	FPlatformMisc::MemoryBarrier();
 }
@@ -523,6 +499,8 @@ void FMediaTextureResource::ReleaseDynamicRHI()
 		TripleBuffer.Reset();
 	}
 
+	CacheResourceSize();
+
 	State = EState::ShutDown;
 	FPlatformMisc::MemoryBarrier();
 }
@@ -535,12 +513,7 @@ bool FMediaTextureResource::Tick(float DeltaTime)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(TickMediaTextureResource, FMediaTextureResource*, This, this,
 	{
-		TFunction<void()> Task;
-
-		while (This->RenderThreadTasks.Dequeue(Task))
-		{
-			Task();
-		}
+		This->ProcessRenderThreadTasks();
 	});
 
 	return true;
@@ -549,6 +522,33 @@ bool FMediaTextureResource::Tick(float DeltaTime)
 
 /* FMediaTextureResource implementation
  *****************************************************************************/
+
+void FMediaTextureResource::CacheResourceSize()
+{
+	SIZE_T ResourceSize = 0;
+
+	if (OutputDimensions.GetMin() > 0)
+	{
+		const SIZE_T BufferSize = BufferDimensions.X * BufferDimensions.Y * BufferBytesPerPixel;
+
+		if (SinkMode == EMediaTextureSinkMode::Buffered)
+		{
+			ResourceSize += 3 * BufferSize;
+		}
+		else
+		{
+			ResourceSize += BufferSize;
+		}
+
+		if (RequiresConversion)
+		{
+			ResourceSize += OutputDimensions.X * OutputDimensions.Y * 4;
+		}
+	}
+
+	CachedResourceSize = ResourceSize;
+}
+
 
 void FMediaTextureResource::ConvertResource(const FResource& Resource)
 {
@@ -661,14 +661,30 @@ void FMediaTextureResource::InitializeResource(FIntPoint Dimensions, EMediaTextu
 
 	if ((Dimensions == OutputDimensions) && (Format == SinkFormat) && (Mode == SinkMode))
 	{
-		return; // reuse existing texture
+		// reuse existing resources
+		State = (OutputDimensions.GetMin() > 0) ? EState::Initialized : EState::ShutDown;
+		FPlatformMisc::MemoryBarrier();
 	}
+	else
+	{
+		// reinitialize resources
+		ReleaseDynamicRHI();
+		OutputDimensions = Dimensions;
+		SinkFormat = Format;
+		SinkMode = Mode;
+		InitDynamicRHI();
+	}
+}
 
-	ReleaseDynamicRHI();
-	OutputDimensions = Dimensions;
-	SinkFormat = Format;
-	SinkMode = Mode;
-	InitDynamicRHI();
+
+void FMediaTextureResource::ProcessRenderThreadTasks()
+{
+	TFunction<void()> Task;
+
+	while (RenderThreadTasks.Dequeue(Task))
+	{
+		Task();
+	}
 }
 
 
