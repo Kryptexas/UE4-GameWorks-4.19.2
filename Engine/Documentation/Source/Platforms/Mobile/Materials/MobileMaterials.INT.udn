@@ -74,7 +74,7 @@ Due to hardware differences between PCs and mobile devices you could run into is
 
 <!--
 [EXCERPT:UFP]
-When enabled, Use Full Precision will make sure that the Material's shader will use highest precision math available when used on a mobile device. This can be used to work around rendering problems caused by low-precision math, such as tight specular reflections on glossy materials. Keep in mind that this will make the Material more expensive to render as you telling UE4 to disregard any automatic optmizations that help reduce the cost of the Material.
+When enabled, Use Full Precision will make sure that the Material's shader will use highest precision math available when used on a mobile device. This can be used to work around rendering problems caused by low-precision math, such as usage of world coordinates or tight specular reflections on glossy materials. Keep in mind that this will make the Material more expensive.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
