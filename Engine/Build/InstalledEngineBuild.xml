@@ -621,37 +621,6 @@
 			<Command Name="FinalizeInstalledBuild" Arguments="-OutputDir=$(LocalInstalledDir) -ContentOnlyPlatforms=$(ContentOnlyPlatforms) $(ArchitectureCommands) -AnalyticsTypeOverride=$(AnalyticsTypeOverride)"/>
 			<Tag Files="$(LocalInstalledDir)/Engine/Build/InstalledBuild.txt" With="#Installed Build Win64 Files"/>
 		</Node>
-
-		<Node Name="Publish Installed Build Win64" Requires="#Installed Build Win64 Files" Produces="#Published Installed Build Win64">
-			<!-- Create a zip file containing the install -->
-			<Zip FromDir="$(LocalInstalledDir)" ZipFile="FullInstall.zip" Tag="#Zipped Installs"/>
-
-			<!-- Tag the files we need just to run the editor -->
-			<Tag BaseDir="$(LocalInstalledDir)" Files="Engine/..." Except="Engine/Binaries/...;Engine/Source/.../Private/...;*.pdb" With="#EditorOnly"/>
-			<Tag BaseDir="$(LocalInstalledDir)" Files="Engine/Binaries/DotNET/...;Engine/Binaries/ThirdParty/...;Engine/Binaries/Win64/..." Except="*.lib;*.a;*.pdb" With="#EditorOnly"/>
-
-			<!-- Create a zip file containing the editor install -->
-			<Zip FromDir="$(LocalInstalledDir)" Files="#EditorOnly" ZipFile="EditorInstall.zip" Tag="#Zipped Installs"/>
-			
-			<!-- Copy the files to their final location -->
-			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/WindowsZips" Tag="#Published Installed Build Win64"/>
-			<Delete Files="#Zipped Installs"/>
-		</Node>
-
-		<!-- Build up a list of requirements as some can be optional -->
-		<Property Name="SymbolRequirements" Value="#Compile UnrealHeaderTool Win64;#UE4Editor Win64;#Build Tools Win64;#Build Tools CS"/>
-		<!-- Only include Target Platforms that will be built on Win64 machines -->
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Win64" If="'$(WithWin64)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Win32" If="'$(WithWin32)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Android" If="'$(WithAndroid)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Linux" If="'$(WithLinux)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game HTML5" If="'$(WithHTML5)' == true"/>
-
-		<Node Name="Publish Installed Symbols Win64" Requires="$(SymbolRequirements)">
-			<!-- Also include all of the DotNET binaries -->
-			<Tag Files="Engine/Binaries/DotNET/...;$(SymbolRequirements)" Filter="*.pdb;*.dsym;*.map;*.exe;*.dll" Except=".../Binaries/Mac/..." With="#Symbols To Publish"/>
-			<Copy Files="#Symbols To Publish" FromDir="$(RootDir)" ToDir="$(PublishDir)/WindowsSymbols"/>
-		</Node>
 	</Agent>
 
 	<Agent Name="Installed Build Group Mac" Type="Mac">
@@ -763,34 +732,6 @@
 			<!-- Finalize the build and then tag the text file that this process creates -->
 			<Command Name="FinalizeInstalledBuild" Arguments="-OutputDir=$(LocalInstalledDirMac) $(ArchitectureCommands) -AnalyticsTypeOverride=$(AnalyticsTypeOverride)"/>
 			<Tag Files="$(LocalInstalledDirMac)/Engine/Build/InstalledBuild.txt" With="#Installed Build Mac Files"/>
-		</Node>
-
-		<Node Name="Publish Installed Build Mac" Requires="#Installed Build Mac Files" Produces="#Published Installed Build Mac">
-			<!-- Create a zip file containing the install -->
-			<Zip FromDir="$(LocalInstalledDirMac)" ZipFile="FullInstall_OnMac.zip" Tag="#Zipped Installs"/>
-
-			<!-- Tag the files we need just to run the editor -->
-			<Tag BaseDir="$(LocalInstalledDirMac)" Files="Engine/..." Except="Engine/Binaries/...;Engine/Source/.../Private/...;*.pdb" With="#EditorOnly"/>
-			<Tag BaseDir="$(LocalInstalledDirMac)" Files="Engine/Binaries/DotNET/...;Engine/Binaries/ThirdParty/...;Engine/Binaries/Mac/..." Except="*.lib;*.a;*.pdb" With="#EditorOnly"/>
-
-			<!-- Create a zip file containing the editor install -->
-			<Zip FromDir="$(LocalInstalledDirMac)" Files="#EditorOnly" ZipFile="EditorInstall_OnMac.zip" Tag="#Zipped Installs"/>
-
-			<!-- Copy the files to their final location -->
-			<Copy Files="#Zipped Installs" FromDir="$(RootDir)" ToDir="$(PublishDir)/MacZips" Tag="#Published Installed Build Mac"/>
-			<Delete Files="#Zipped Installs"/>
-		</Node>
-
-		<!-- Build up a list of requirements as some can be optional -->
-		<Property Name="SymbolRequirements" Value="#Compile UnrealHeaderTool Mac;#UE4Editor Mac;#Build Tools Mac;#Build Tools CS"/>
-		<!-- Only include Target Platforms that will be built on Mac machines -->
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game Mac" If="'$(WithMac)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game IOS" If="'$(WithIOS)' == true"/>
-		<Property Name="SymbolRequirements" Value="$(SymbolRequirements);#UE4Game TVOS" If="'$(WithTVOS)' == true"/>
-
-		<Node Name="Publish Installed Symbols Mac" Requires="$(SymbolRequirements)">
-			<Tag Files="$(SymbolRequirements)" Filter="*.pdb;*.dsym;*.map;*.exe;*.dll" Except=".../Binaries/Win64/...;.../Binaries/Win32/..." With="#Symbols To Publish"/>
-			<Copy Files="#Symbols To Publish" FromDir="$(RootDir)" ToDir="$(PublishDir)/MacSymbols"/>
 		</Node>
 	</Agent>
 
