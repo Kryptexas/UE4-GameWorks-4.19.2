@@ -891,17 +891,17 @@ void ULandscapeComponent::BeginDestroy()
 FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 {
 	const auto FeatureLevel = GetWorld()->FeatureLevel;
-	FPrimitiveSceneProxy* Proxy = NULL;
+	FPrimitiveSceneProxy* Proxy = nullptr;
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 #if WITH_EDITOR
-		if (EditToolRenderData == NULL)
+		if (EditToolRenderData == nullptr)
 		{
 			EditToolRenderData = new FLandscapeEditToolRenderData(this);
 		}
-		Proxy = new FLandscapeComponentSceneProxy(this, EditToolRenderData);
+		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()), EditToolRenderData);
 #else
-		Proxy = new FLandscapeComponentSceneProxy(this, NULL);
+		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()), nullptr);
 #endif
 	}
 	else // i.e. (FeatureLevel <= ERHIFeatureLevel::ES3_1)
@@ -909,7 +909,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 #if WITH_EDITOR 
 		if (PlatformData.HasValidPlatformData())
 		{
-			if (EditToolRenderData == NULL)
+			if (EditToolRenderData == nullptr)
 			{
 				EditToolRenderData = new FLandscapeEditToolRenderData(this);
 			}
@@ -919,7 +919,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 #else
 		if (PlatformData.HasValidPlatformData())
 		{
-			Proxy = new FLandscapeComponentSceneProxyMobile(this, NULL);
+			Proxy = new FLandscapeComponentSceneProxyMobile(this, nullptr);
 		}
 #endif
 	}

@@ -545,7 +545,7 @@ TMap<FLandscapeNeighborInfo::FLandscapeKey, TMap<FIntPoint, const FLandscapeNeig
 
 const static FName NAME_LandscapeResourceNameForDebugging(TEXT("Landscape"));
 
-FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData)
+FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD, FLandscapeEditToolRenderData* InEditToolRenderData)
 	: FPrimitiveSceneProxy(InComponent, NAME_LandscapeResourceNameForDebugging)
 	, FLandscapeNeighborInfo(InComponent->GetWorld(), InComponent->GetLandscapeProxy()->GetLandscapeGuid(), InComponent->GetSectionBase() / InComponent->ComponentSizeQuads, InComponent->HeightmapTexture, InComponent->ForcedLOD, InComponent->LODBias)
 	, MaxLOD(FMath::CeilLogTwo(InComponent->SubsectionSizeQuads + 1) - 1)
@@ -582,7 +582,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
 #endif
 {
-	MaterialInterfacesByLOD.Append(InComponent->MaterialInstances);
+	MaterialInterfacesByLOD.Append(InMaterialInterfacesByLOD.GetData(), InMaterialInterfacesByLOD.Num());
 
 	if (!IsComponentLevelVisible())
 	{
