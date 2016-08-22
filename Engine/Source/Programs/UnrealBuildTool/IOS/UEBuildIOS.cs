@@ -138,20 +138,12 @@ namespace UnrealBuildTool
 		public virtual string GetRequiredCapabilities()
 		{
 			string	result = "";
-			
-			if(TargetConfiguration == UnrealTargetConfiguration.Shipping)
+
+            // get the list of architectures compiled
+            string Archs = (TargetConfiguration == UnrealTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
+			foreach (string arch in Archs.Split(",".ToCharArray()))
 			{
-				foreach (string arch in ShippingArchitectures.Split())
-				{
-               		result += "\t\t<string>" + arch + "</string>\n";
-				}
-			}
-			else
-			{
-				foreach (string arch in NonShippingArchitectures.Split())
-				{
-               		result += "\t\t<string>" + arch + "</string>\n";
-				}
+               	result += "\t\t<string>" + arch + "</string>\n";
 			}
 			
 			return result;
