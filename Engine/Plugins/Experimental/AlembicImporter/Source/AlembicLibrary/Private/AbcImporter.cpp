@@ -34,6 +34,8 @@
 
 #include "EigenHelper.h"
 
+#include "AssetRegistryModule.h"
+
 #define LOCTEXT_NAMESPACE "AbcImporter"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAbcImporter, Verbose, All);
@@ -1677,6 +1679,7 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 
 					Material->Rename(*MaterialName, InParent);				
 					Material->SetFlags(Flags);
+					FAssetRegistryModule::AssetCreated(Material);
 				}
 				else
 				{
@@ -1690,6 +1693,7 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 			// In this case recreate the material
 			Material = NewObject<UMaterial>(InParent, *MaterialName);
 			Material->SetFlags(Flags);
+			FAssetRegistryModule::AssetCreated(Material);
 		}
 	}
 	else
@@ -1697,6 +1701,8 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 		Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		check(Material);
 	}
+
+	
 
 	return Material;
 }
