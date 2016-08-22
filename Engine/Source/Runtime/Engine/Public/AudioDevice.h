@@ -76,8 +76,9 @@ namespace ERequestedAudioStats
 	static const uint8 SoundWaves = 0x1;
 	static const uint8 SoundCues = 0x2;
 	static const uint8 Sounds = 0x4;
-	static const uint8 DebugSounds = 0x8;
-	static const uint8 LongSoundNames = 0x01;
+	static const uint8 SoundMixes = 0x8;
+	static const uint8 DebugSounds = 0x10;
+	static const uint8 LongSoundNames = 0x20;
 };
 
 /** 
@@ -296,9 +297,18 @@ struct FAudioStats
 		TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 	};
 
+	struct FStatSoundMix
+	{
+		FString MixName;
+		float InterpValue;
+		int32 RefCount;
+		bool bIsCurrentEQ;
+	};
+
 	uint8 bStale:1;
 	FVector ListenerLocation;
 	TArray<FStatSoundInfo> StatSoundInfos;
+	TArray<FStatSoundMix> StatSoundMixes;
 
 };
 #endif

@@ -2929,6 +2929,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 {
 #if !UE_BUILD_SHIPPING
 	TArray<FAudioStats::FStatSoundInfo> StatSoundInfos;
+	TArray<FAudioStats::FStatSoundMix> StatSoundMixes;
 	const bool bStatsStale = (RequestedAudioStats == 0);
 	if (RequestedAudioStats != 0)
 	{
@@ -2982,6 +2983,18 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				StatSoundInfos[*SoundInfoIndex].WaveInstanceInfos.Add(MoveTemp(WaveInstanceInfo));
 			}
 		}
+
+		USoundMix* CurrentEQMix = Effects->GetCurrentEQMix();
+
+		for (const TPair<USoundMix*, FSoundMixState>& SoundMixPair : SoundMixModifiers)
+		{
+			StatSoundMixes.AddDefaulted();
+			FAudioStats::FStatSoundMix& StatSoundMix = StatSoundMixes.Last();
+			StatSoundMix.MixName = SoundMixPair.Key->GetName();
+			StatSoundMix.InterpValue = SoundMixPair.Value.InterpValue;
+			StatSoundMix.RefCount = SoundMixPair.Value.ActiveRefCount + SoundMixPair.Value.PassiveRefCount;
+			StatSoundMix.bIsCurrentEQ = (SoundMixPair.Key == CurrentEQMix);
+		}
 	}
 #endif
 
@@ -2992,7 +3005,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 	UReverbEffect* ReverbEffect = Effects->GetCurrentReverbEffect();
 	FAudioThread::RunCommandOnGameThread([AudioDeviceID, ReverbEffect
 #if !UE_BUILD_SHIPPING
-											, StatSoundInfos, bStatsStale
+											, StatSoundInfos, StatSoundMixes, bStatsStale
 #endif
 													]()
 	{
@@ -3003,6 +3016,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				AudioDevice->CurrentReverbEffect = ReverbEffect;
 #if !UE_BUILD_SHIPPING
 				AudioDevice->AudioStats.StatSoundInfos = MoveTemp(StatSoundInfos);
+				AudioDevice->AudioStats.StatSoundMixes = MoveTemp(StatSoundMixes);
 				AudioDevice->AudioStats.bStale = bStatsStale;
 #endif
 			}
