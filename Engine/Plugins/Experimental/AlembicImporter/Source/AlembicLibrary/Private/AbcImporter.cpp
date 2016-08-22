@@ -1645,6 +1645,7 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 				else
 				{
 					ExistingTypedObject->PreEditChange(nullptr);
+					Material = ExistingTypedObject;
 				}
 			}
 		}
