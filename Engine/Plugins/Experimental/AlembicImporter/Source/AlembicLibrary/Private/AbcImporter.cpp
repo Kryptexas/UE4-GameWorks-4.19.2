@@ -276,12 +276,26 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		// Make sure we have smoothing groups for the first frame
 		if (MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices.Num() == 0)
 		{
-			if (MeshObject->MeshSamples[FirstSampleIndex]->Normals.Num() == 0)
+			if (ImportData->ImportSettings->NormalGenerationSettings.bForceOneSmoothingGroupPerObject)
 			{
-				AbcImporterUtilities::CalculateNormals(MeshObject->MeshSamples[FirstSampleIndex]);
+				if (MeshObject->MeshSamples[FirstSampleIndex]->Normals.Num() == 0)
+				{
+					AbcImporterUtilities::CalculateSmoothNormals(MeshObject->MeshSamples[FirstSampleIndex]);
+				}
+
+				MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices.AddZeroed(MeshObject->MeshSamples[FirstSampleIndex]->Indices.Num());
+				MeshObject->MeshSamples[FirstSampleIndex]->NumSmoothingGroups = 1;
+			}
+			else
+			{
+				if (MeshObject->MeshSamples[FirstSampleIndex]->Normals.Num() == 0)
+				{
+					AbcImporterUtilities::CalculateNormals(MeshObject->MeshSamples[FirstSampleIndex]);
+				}
+
+				AbcImporterUtilities::GenerateSmoothingGroupsIndices(MeshObject->MeshSamples[FirstSampleIndex], ImportData->ImportSettings);
 			}
 			
-			AbcImporterUtilities::GenerateSmoothingGroupsIndices(MeshObject->MeshSamples[FirstSampleIndex], ImportData->ImportSettings);
 		}
 
 		// We determine whether or not the mesh contains constant topology to know if it can be PCA compressed
