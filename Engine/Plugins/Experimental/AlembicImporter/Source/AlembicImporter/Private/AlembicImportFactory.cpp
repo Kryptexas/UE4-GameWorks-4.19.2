@@ -392,6 +392,7 @@ EReimportResult::Type UAlembicImportFactory::ReimportGeometryCache(UGeometryCach
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::GeometryCache;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 	
 	if (!Options->ShouldImport())
@@ -453,6 +454,7 @@ EReimportResult::Type UAlembicImportFactory::ReimportSkeletalMesh(USkeletalMesh*
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::Skeletal;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
 	if (!Options->ShouldImport())
@@ -514,6 +516,7 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::StaticMesh;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
 	if (!Options->ShouldImport())
