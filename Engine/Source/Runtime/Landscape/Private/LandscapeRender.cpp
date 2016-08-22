@@ -24,6 +24,7 @@ LandscapeRender.cpp: New terrain rendering
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
 #include "LandscapeLayerInfoObject.h"
+#include "Algo/Find.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
 
@@ -2630,37 +2631,29 @@ public:
 
 	bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
-		//return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
-
-		static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
-		static const FName LandscapeVertexFactory = FName(TEXT("FLandscapeVertexFactory"));
-		static const FName LandscapeXYOffsetVertexFactory = FName(TEXT("FLandscapeXYOffsetVertexFactory"));
-		static const FName LandscapeVertexFactoryMobile = FName(TEXT("FLandscapeVertexFactoryMobile"));
-
-		static const FName TBasePassVSFNoLightMapPolicy = FName(TEXT("TBasePassVSFNoLightMapPolicy"));
-		static const FName TBasePassPSFNoLightMapPolicy = FName(TEXT("TBasePassPSFNoLightMapPolicy"));
-		static const FName TBasePassVSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy"));
-		static const FName TBasePassPSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy"));
-		static const FName TShadowDepthVSVertexShadowDepth_OutputDepthfalse = FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse"));
-		static const FName TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse = FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse"));
-
 		if (VertexFactoryType)
 		{
 			if (bIsLayerThumbnail)
 			{
 				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
+				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
 				if (VertexFactoryType->GetFName() == LocalVertexFactory)
 				{
 					// reduce the number of shaders compiled for the thumbnail materials by only compiling with shader types known to be used by the preview scene
 					// (out of 41 known total shader types)
-					if (ShaderType->GetFName() == TBasePassVSFNoLightMapPolicy ||
-						ShaderType->GetFName() == TBasePassPSFNoLightMapPolicy ||
-						ShaderType->GetFName() == TBasePassVSFCachedPointIndirectLightingPolicy ||
-						ShaderType->GetFName() == TBasePassPSFCachedPointIndirectLightingPolicy ||
-						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse ||
-						ShaderType->GetFName() == TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse)
+					static const TArray<FName> AllowedShaderTypes =
 					{
-						return true;
+						FName(TEXT("TBasePassVSFNoLightMapPolicy")),
+						FName(TEXT("TBasePassPSFNoLightMapPolicy")),
+						FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy")),
+						FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy")),
+						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
+						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
+						FName(TEXT("TDepthOnlyVS<false>")),
+					};
+					if (Algo::Find(AllowedShaderTypes, ShaderType->GetFName()))
+					{
+						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 					}
 				}
 			}
@@ -2668,11 +2661,14 @@ public:
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
 				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
+				static const FName LandscapeVertexFactory = FName(TEXT("FLandscapeVertexFactory"));
+				static const FName LandscapeXYOffsetVertexFactory = FName(TEXT("FLandscapeXYOffsetVertexFactory"));
+				static const FName LandscapeVertexFactoryMobile = FName(TEXT("FLandscapeVertexFactoryMobile"));
 				if (VertexFactoryType->GetFName() == LandscapeVertexFactory ||
 					VertexFactoryType->GetFName() == LandscapeXYOffsetVertexFactory ||
 					VertexFactoryType->GetFName() == LandscapeVertexFactoryMobile)
 				{
-					return true;
+					return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 				}
 			}
 		}
