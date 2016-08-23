@@ -196,6 +196,7 @@ private:
 	{
 	public:
 		/** Gets the length of the animation track. */
+		virtual float GetAnimationStart() const = 0;
 		virtual float GetAnimationLength() const = 0;
 		/** Updates the runtime state of the animation track to the specified time. */
 		virtual void UpdateAnimation( float Time ) = 0;
@@ -206,6 +207,7 @@ private:
 	{
 	public:
 		FMatineeAnimTrackAdapter( AMatineeActor* InMatineeActor );
+		virtual float GetAnimationStart() const override;
 		virtual float GetAnimationLength() const override;
 		virtual void UpdateAnimation( float Time ) override;
 
@@ -217,12 +219,14 @@ private:
 	class FLevelSequenceAnimTrackAdapter : public FFbxExporter::IAnimTrackAdapter
 	{
 	public:
-		FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer );
+		FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer, UMovieScene* InMovieScene );
+		virtual float GetAnimationStart() const override;
 		virtual float GetAnimationLength() const override;
 		virtual void UpdateAnimation( float Time ) override;
 
 	private:
 		IMovieScenePlayer* MovieScenePlayer;
+		UMovieScene* MovieScene;
 	};
 
 	/**

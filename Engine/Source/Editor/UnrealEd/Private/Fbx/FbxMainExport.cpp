@@ -1147,6 +1147,11 @@ FFbxExporter::FMatineeAnimTrackAdapter::FMatineeAnimTrackAdapter( AMatineeActor*
 	MatineeActor = InMatineeActor;
 }
 
+float FFbxExporter::FMatineeAnimTrackAdapter::GetAnimationStart() const
+{
+	return 0.f;
+}
+
 
 float FFbxExporter::FMatineeAnimTrackAdapter::GetAnimationLength() const
 {
@@ -1262,15 +1267,21 @@ FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AAct
 	return NodeName;
 }
 
-FFbxExporter::FLevelSequenceAnimTrackAdapter::FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer )
+FFbxExporter::FLevelSequenceAnimTrackAdapter::FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer, UMovieScene* InMovieScene )
 {
 	MovieScenePlayer = InMovieScenePlayer;
+	MovieScene = InMovieScene;
 }
 
 
+float FFbxExporter::FLevelSequenceAnimTrackAdapter::GetAnimationStart() const
+{
+	return MovieScene->GetPlaybackRange().GetLowerBoundValue();
+}
+
 float FFbxExporter::FLevelSequenceAnimTrackAdapter::GetAnimationLength() const
 {
-	return MovieScenePlayer->GetRootMovieSceneSequenceInstance()->GetTimeRange().Size<float>();
+	return MovieScene->GetPlaybackRange().Size<float>();
 }
 
 
@@ -1338,7 +1349,7 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FG
 							USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>( Actor->GetComponentByClass( USkeletalMeshComponent::StaticClass() ) );
 							if ( SkeletalMeshComp )
 							{
-								FLevelSequenceAnimTrackAdapter AnimTrackAdapter( MovieScenePlayer );
+								FLevelSequenceAnimTrackAdapter AnimTrackAdapter( MovieScenePlayer, MovieScene );
 								ExportAnimTrack( AnimTrackAdapter, SkeletalMeshComp );
 							}
 						}
