@@ -1,0 +1,179 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title: Media Framework Technical Reference
+Crumbs:%ROOT%, Engine
+Description:Technical information regarding Media Framework in Unreal Engine 4.
+Navigation:topic
+parent:Engine/MediaFramework
+order:2
+Version: 4.13
+Related: Engine\MediaFramework\Overview
+Related: Engine\MediaFramework\HowTo
+
+[TOC(start:2 end:3)]
+
+This page outlines the currently supported file extensions and URLs as well as outlines some troubleshooting tips on how to enable Media Framework with different platforms. 
+There are some known platform specific issues and limitations which we are currently investigating and trying to resolve, each of which have been identified in the Troubleshooting Platform sections. 
+
+[REGION:tip]
+If you are upgrading Media Framework content from a pre-4.13 project, see the tips in [](Engine/MediaFramework/TechReference/Upgrading).
+[/REGION]
+
+## Supported Files & URLs
+
+The table below indicates the supported extensions based on each media player platform. 
+
+| | Android Media Player | AVF Media Player | PS4 Media Player | WMF Media Player | Xbox One Media Player |
+| --- | --- | --- |--- | --- | --- |
+| **.3g2** | No | No | No | Yes | No |
+| **.3gp** | No | No | No | Yes | No |
+| **.3gp2** | No | No | No | Yes | No |
+| **.3gpp** | Yes | No | No | Yes | No |
+| **.aac** | Yes | No | No | Yes | No |
+| **.adts** | No | No | No | Yes | No |
+| **.asf** | No | No | No | Yes | No |
+| **.avi** | No | Yes | No | Yes | No |
+| **.m4a** | No | No | No | Yes | No |
+| **.m4v** | No | Yes | No | Yes | No |
+| **.mov** | No | Yes | No | Yes | No |
+| **.mp3** | No | No | No | Yes | No |
+| **.mp4** | Yes | Yes | Yes | Yes | No |
+| **.sami** | No | No | No | Yes | No |
+| **.smi** | No | No | No | Yes | No |
+| **.wav** | No | No | No | Yes | No |
+| **.wma** | No | No | No | Yes | No |
+| **.wmv** | No | No | No | Yes | No |
+
+[REGION:warning]
+The MfMedia player plug-in for XboxOne is currently in development and does not work in 4.13. The AvfMedia player plug-in for macOS and iOS is in an experimental state and not all features may work as expected. We are working to resolve both issues and hope to have them addressed in a future engine release.  
+[/REGION]
+
+This table shows the supported URLs based on media player platform. 
+
+| | Android Media Player | AVF Media Player | PS4 Media Player | WMF Media Player | Xbox One Media Player |
+| --- | --- | --- |--- | --- | --- |
+| **file://** | Yes | Yes | Yes | Yes | No |
+| **http://** | Yes | No | Yes | Yes | No |
+| **httpd://** | Yes | No | No | Yes | No |
+| **https://** | Yes | No | Yes | Yes | No |
+| **mms://** | Yes | No | No | Yes | No |
+| **rtsp://** | Yes | No | No | Yes | No |
+| **rtspt://** | Yes | No | No | Yes | No |
+| **rtspu://** | Yes | Yes | No | Yes | No |
+
+
+## Troubleshooting
+
+Most player plug-ins will provide detailed logging of potential problems. To enable this, add the following to your projects **Engine.ini** file: 
+
+	[Core.Log]
+	LogMedia=Verbose
+	LogMediaAssets=Verbose
+	LogAndroidMedia=Verbose
+	LogAvfMedia=Verbose
+	LogMfMedia=Verbose
+	LogPS4Media=Verbose
+	LogWmfMedia=Verbose
+
+If a media source fails to open or play, check the **Output Log** under the [Developer Tools](https://docs.unrealengine.com/latest/INT/Engine/Tools/DevTools/) for additional details. 
+
+[REGION:raw]
+![](LogMessage.png)
+[/REGION]
+
+You can also check information about a Media Source inside the Media Player asset and **Info** tab. 
+
+![](InfoWindow.png)
+
+If **Verbose Logging** is enabled for the Media Assets log category, this information is also added to the Output Log. 
+
+### PlayStation 4
+
+The PS4Media player plug-in is disabled by default and must be enabled in the project�s [Plugin Settings](Programming/Plugins/).
+
+The video decoder on PS4 consumes a lot of Onion memory, especially with HLS. You may run out of memory when trying to play more than one video at the same time, because we allocate only 200 MB by default. 
+Currently, these default settings are not exposed in the UI but you can modify them by hand.
+
+To enable, add the following to the **PS4Engine.ini**: 
+
+	[SystemSettings]
+	r.GarlicHeapSizeMB=2600
+	r.OnionHeapSizeMB=200
+
+In your game's ** *.Target.cs**:
+
+	public override void SetupGlobalEnvironment(
+            	TargetInfo Target,
+            	ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
+            	ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration)
+	{
+            	// ...
+
+            	if (Target.Platform == UnrealTargetPlatform.PS4)
+            	{
+	OutCPPEnvironmentConfiguration.Definitions
+	.Add("GARLIC_HEAP_SIZE= (2900ULL * 1024 * 1024)");
+
+	OutCPPEnvironmentConfiguration.Definitions
+	.Add("ONION_HEAP_SIZE= (100ULL * 1024 * 1024)");
+            	}
+
+            	// ...
+	}
+
+To improve playback performance on PS4, your video file should be encoded as interleaved, so that audio and video can be read in a single sequential operation instead of seeking to different areas of the media file. 
+This can be done without re-encoding with [**mp4box**](https://gpac.wp.mines-telecom.fr/mp4box/) by adding the following: 
+
+	mp4box.exe -add non-interleaved-source.mp4 --inter 100 -delay 2=0 -new output.mp4
+
+One should also double check that the encoding is optimum for the PS4 as this will significantly reduce the CPU and GPU overhead of the player. 
+This can be done using [**FFMPEG**](https://ffmpeg.org/). For example, for a 1080p mp4 file we suggest the following: 
+
+	ffmpeg.exe -i "highqualitysource.mp4" -c:v libx264 -crf 20 -preset veryslow -maxrate 15000k -bufsize 30000k -slices 24 -x264opts b-pyramid=0:no-cabac:weightb=0:weightp=0 -refs 1 -pix_fmt yuv420p "non-interleaved-output.mp4"
+
+### Xbox One
+
+The MfMedia player plug-in is disabled by default and must be enabled in the project�s Plugin settings.
+It is possible to compile and test the MfMedia plug-in on Windows 7 and up if the Engine is compiled against Windows 7 (by default we compile against Windows Vista). 
+
+This can be accomplished by changing the following code in the `SetUpCompileEnvironment()` function in **UEBuildWindows.cs**:
+
+	// Windows Vista or higher required	
+	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0601");	
+	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0601");
+
+### Windows
+
+The Windows Media Foundation (WMF) based player plug-in WmfMedia has a number of limitations for MP4 containers. 
+
+[REGION:note]
+See Microsoft's [MPEG-4 File Source](https://msdn.microsoft.com/en-us/library/windows/desktop/dd757766%28v=vs.85%29.aspx) page for more information.
+[/REGION]
+
+
+## Known Issues & Limitations
+
+**Media Framework** is still considered experimental and there are some known issues and limitations which are outlined below. 
+
+* **Android**
+	* Audio currently plays via the OS and cannot be piped through UE4's Sound System. 
+* **Audio**
+	* There is currently no synchronization of audio samples, so playback may get out of sync. 
+		*	Workaround: Use shorter clips where possible. 
+	* Audio is currently always mixed down to 16-bit stereo 44.1 kHz, regardless of the input format. 
+		*	Multi-channel audio support is being investigated and may arrive in future releases.
+* **Editor**
+	* The Playlist UI inside the Media Player only shows the currently opened Media Playlist asset. 
+		*	Workaround: Edit the Playlist contents by **Double-clicking** on the MediaPlaylist asset to open its own editor. 
+* **Playstation 4**
+	* Playlists currently do not work.
+* **Sequencer**
+	* Media Playback will not render out properly when recording cinematics from Sequencer. 
+		* We have this scheduled to release in the near future as we know this is important.
+* **Windows**
+	* The Media Player state machine is still in progress and may break if multiple control commands are issued simultaneously. 
+		*	Workaround: Insert short delays between commands, so that the player has time to process them.
+	* Some videos with multiple audio tracks fail to open.
+	* QuickTime movie (.mov) support on Windows 7 and later is currently unreliable. 
+		*	Workaround: This format is currently not recommended for use. 
+
