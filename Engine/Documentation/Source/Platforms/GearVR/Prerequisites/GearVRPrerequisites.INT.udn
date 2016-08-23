@@ -72,6 +72,8 @@ Then, place that folder in **Engine/Build/Android/Java**.
 	
 	![](Platforms\GearVR\GVR_OSIG_File_Location.png)
 
+* You can also place the OSIG file in your project's **Build/Android/assets** directory instead of Engine/Build/Android/Java. Keep in mind that adding your OSIG file in this manner will result in your OSIG file only being used in the project that it is added to and not for any Gear VR project.
+
 It is very important that you make sure all items listed in the Gear VR Prerequisites section are completed before moving on to the next section. 
 Skipping a step could result in your project not working with the Gear VR Headset. 
 

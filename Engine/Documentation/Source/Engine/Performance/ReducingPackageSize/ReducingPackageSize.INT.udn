@@ -64,7 +64,7 @@ To turn on package compression, you need to do the following in the UE4 Editor.
 
 	![](T_Project_Packaging.png)
 
-1. Click on the small white triangle that is at the bottom of the Packaging settings to expose the **Advanced Project settings**.
+1. Click on the **small white triangle** that is at the bottom of the Packaging settings to expose the **Advanced Project settings**.
 
 	![](T_Expose_Advanced_Props.png)
 
@@ -75,7 +75,7 @@ To turn on package compression, you need to do the following in the UE4 Editor.
 If you have not packaged your game with the Create compressed cooked packages checkmark box enabled you should see a huge difference in size when your project is re-packaged with it enabled.
 In fact it is not uncommon for some project's APK packages to be reduced in size by up to 50% when **Create compressed cooked packages** is enabled.
 
-##  Setting up a Project's Levels
+## Setting up a Project's Levels
 One overlooked area that can lead to the bloating of APK package sizes is failing to properly setup your project's options, like which levels should be loaded by default, or which levels should be used between level transitions. 
 To set which level (or levels) should be used for this type of interaction, you can do the following.
 
@@ -92,6 +92,55 @@ To set which level (or levels) should be used for this type of interaction, you 
 	![](T_Project_Settings_Default_Game_Map.png)
 
 1. Repeat this process until you have levels setup for each required map type.
+
+## Selecting which Content to Package or not Package
+In the Packaging section of your project settings you can specify which maps and content should or should not be packaged with your game.  To specify which maps should be included in your project you will need to do the following:
+
+[region:warning]
+If you do not specify which maps should be cooked then all maps will be cooked including any testing maps that you might have. Failing to not specify which maps should be cooked will result in your final packaged game being bigger than it needs to be. 
+[/region]
+
+1. First, open up the project's settings by going to the **Main Toolbar** and selecting **Edit** > **Project Settings**.
+
+	![](T_Project_Settings_Menu.png)
+
+1. Then, under **Project** in the **Packaging** section look for the **Packaging** option.
+
+	![](Content_To_Pack.png)
+
+1. Click on the **small white triangle** at the bottom of the Packaging section to expose the advances packing options.
+
+	![](Advanced_Packing_Section.png)
+
+1. Scroll to the bottom of the advanced Packaging options till you see a checkmark box for **Cook everything in the project content directory(ignore list of maps below)** option. The options that you see here will allow you to specify which content and maps should be packaged or should not be packaged with your project.
+
+	![](Advanced_Packing_Options.png)
+
+1. To include or exclude an item press the white plus sign next to the option you want to use to create a new entry. 
+
+	![](Add_New_Item.png)
+
+1. Then click on the three small white dots next to the new entry and from the windows that is displayed, choose which assets to include or exclude from the build.
+
+	![](Select_Items_To_Cook.png)
+
+1. When you have selected an asset, the entry box will now contain a link to where that asset is in your project's folder. 
+
+	![](Selected_Item_Location.png)
+
+|Property Name | Description|
+|--------------|------------|
+|Cook everything in the project content directory(ignore list of maps below.|Cook all things in the project content directory.|
+|Cook only maps(this only affects cook all).|Cook only maps(this only affect the cookall flag).|
+|Create compressed cooked packages.|Create compressed cooked packages(decreased deployment size.|
+|Do not include editor content in this package may cause game to crash / error if you are using this content|Skip cooking Editor content.|
+|List of maps to include in a packaged build|List of maps to include when no other map list is specified on commandline.|
+|Additional Asset Directories to Cook|Directories containing .uasset files that should always be cooked regardless of whether they're referenced by anything in your project. Note: These paths are relative to your project Content directory.|
+|Directories to never cook|Directories that should never be cooked.|
+|Additional Non-Asset Directories to Package.|Directories containing files that should always be added to the .pak file(if using a .pak file; otherwise they're copied as individual files) This is used to stage additional file that you manually load via the UFS (Unreal File System) file IO API. Note:These paths are relative to your project Content directory.|
+|Additional Non-Asset Directories to Copy.|Directories containing files that should always be copied when packaging your project, but are not supposed to be part of the .pak file. This is used to stage additional files that you manually load with using the UFS (Unreal File System) file IO API, ex, third-party libraries that perform their own internal file IO. Note:These paths are relative to your project Content directory. |
+
+
 ## Checking what Content will be Cooked
 To ensure that only the content that is related to your project is added to your APK file, you can check which content is being added to your project's APK by looking in the **Cooked** folder in your project.
 You can find the Cooked folder by going to **(ProjectName)\Saved\Cooked** and then choosing the folder with the format you cooked your project for.
@@ -109,7 +158,6 @@ Once the biggest assets have been determined, you can then examine the assets in
 ![](T_Cooked_Content.png)
 
 ## Development VS Shipping Build Size
-
 When trying to figure out the final size your project will be, keep in mind that the Development version of your project will be slightly larger than your Shipping build size.
 On the Medieval Match example game, the difference in size between a Development and Shipping build was around 14 percent.
 However, since each project has different requirements, the saving between the two different build types for your project could be more or less than a 14 percent savings.
@@ -136,8 +184,8 @@ If it is not referenced, you can simply delete it, however if it is referenced b
 Disabling any unused plug-ins inside of the UE4 Editor is another way to ensure that unnecessary content and code do not make it into your project's final APK package file.
 This is because some plug-ins require a certain set of base assets and code to work correctly.
 If the plug-in is not disabled, the assets and code that are required to make the plug-in work will not be removed from your project.
-While this might not reduce your project's size as much as reducing or removing a large Texture would, every little bit can help when trying to slim your project down to the 50MB size.
-To disable a plug-in inside of UE4, you need to do the following. 
+While this might not reduce your project's size as much as reducing or removing a large Texture would, every little bit can help when trying to slim your project down to the 100 MB size.
+To disable a plug-in inside of UE4, you need to do the following: 
 
 [region:note]
 	Make sure you fully test your project to ensure that the plug-ins you are disabling do not interfere with the functionality of your project.
@@ -163,7 +211,6 @@ To disable a plug-in inside of UE4, you need to do the following.
 	[/OBJECT]
 
 ## Package Black List
-
 With the release of Unreal Engine 4.9 and later you can now place a text file in your project's **Build/Platform/(Target Platform Folder)** directory that will tell the cooker to exclude partial or complete file paths from being packaged into your project.
 Projects can have multiple Black List files for Debug, Development, Test, and Shipping builds that can be setup to include or exclude whatever project data you want.
 You can even have different Black List files for each platform your project supports like one for Android, one for iOS, ect. 
@@ -183,7 +230,6 @@ An easy and simple way to go about this is to open up all your project's levels 
 If you run into further problems and are not sure where they are coming from, check the Logcat for errors.
 
 ## Max Dynamic Point Lights
-
 With the release of UE 4.9 a new option has been introduced that can help reduce the number of shaders that are generated for dynamic lights. 
 Making this feature is particularly useful for mobile games that do not require dynamic lighting. 
 The property, **Max Dynamic Point Lights** can be found under the **Mobile** section of the **Project Settings**.
