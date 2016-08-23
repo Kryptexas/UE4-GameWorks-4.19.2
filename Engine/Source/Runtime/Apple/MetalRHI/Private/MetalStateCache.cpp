@@ -696,8 +696,10 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		}
 	}
 	
+#if PLATFORM_MAC
 	// Ensure that the RenderPassDesc is valid in the CommandEncoder.
 	check(CommandEncoder.IsRenderPassDescriptorValid());
+#endif
 }
 
 void FMetalStateCache::SetHasValidRenderTarget(bool InHasValidRenderTarget)
