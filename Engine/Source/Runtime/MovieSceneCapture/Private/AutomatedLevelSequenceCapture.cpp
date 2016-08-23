@@ -278,7 +278,6 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	if( bCapturing && !Actor->SequencePlayer->IsPlaying() )
 	{
 		Actor->SequencePlayer->OnSequenceUpdated().Remove( OnPlayerUpdatedBinding );
-		ExportEDL();
 		FinalizeWhenReady();
 	}
 }
@@ -323,6 +322,13 @@ void UAutomatedLevelSequenceCapture::SaveToConfig()
 	}
 
 	UMovieSceneCapture::SaveToConfig();
+}
+
+void UAutomatedLevelSequenceCapture::Close()
+{
+	Super::Close();
+
+	ExportEDL();
 }
 
 void UAutomatedLevelSequenceCapture::SerializeAdditionalJson(FJsonObject& Object)

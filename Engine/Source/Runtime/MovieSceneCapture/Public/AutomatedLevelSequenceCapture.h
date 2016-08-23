@@ -61,6 +61,8 @@ public:
 
 	virtual void SaveToConfig() override;
 
+	virtual void Close() override;
+
 protected:
 
 	virtual void AddFormatMappings(TMap<FString, FStringFormatArg>& OutFormatMappings, const FFrameMetrics& FrameMetrics) const override;
