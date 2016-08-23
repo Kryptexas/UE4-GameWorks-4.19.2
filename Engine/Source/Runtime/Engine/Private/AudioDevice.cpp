@@ -3832,9 +3832,21 @@ void FAudioDevice::StopSourcesUsingBuffer(FSoundBuffer* SoundBuffer)
 
 void FAudioDevice::RegisterSoundClass(USoundClass* InSoundClass)
 {
-	check(IsInAudioThread());
 	if (InSoundClass)
 	{
+		if (!IsInAudioThread())
+		{
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.RegisterSoundClass"), STAT_AudioRegisterSoundClass, STATGROUP_AudioThreadCommands);
+
+			FAudioDevice* AudioDevice = this;
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, InSoundClass]()
+			{
+				AudioDevice->RegisterSoundClass(InSoundClass);
+			}, GET_STATID(STAT_AudioRegisterSoundClass));
+
+			return;
+		}
+
 		// If the sound class wasn't already registered get it in to the system.
 		if (!SoundClasses.Contains(InSoundClass))
 		{
@@ -3856,6 +3868,8 @@ FSoundClassProperties* FAudioDevice::GetSoundClassCurrentProperties(USoundClass*
 {
 	if (InSoundClass)
 	{
+		check(IsInAudioThread());
+
 		FSoundClassProperties* Properties = SoundClasses.Find(InSoundClass);
 		return Properties;
 	}
