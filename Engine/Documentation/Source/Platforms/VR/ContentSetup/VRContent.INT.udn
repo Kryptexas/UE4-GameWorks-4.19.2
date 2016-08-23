@@ -68,7 +68,6 @@ These . INIsettings, if used, should be added to your projects **Config\ Default
 	r.screenpercentage=130
 	r.SeparateTranslucency=0
 	r.HZBOcclusion=0
-	r.FinishCurrentFrame=1
 	r.MotionBlurQuality=0
 	r.PostProcessAAQuality=3
 	r.BloomQuality=1
