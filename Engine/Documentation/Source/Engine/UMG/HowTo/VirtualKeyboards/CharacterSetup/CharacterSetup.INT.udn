@@ -32,27 +32,19 @@ For this how-to, we are using the **Blueprint First Person Template** with **Sta
 
 1.	Inside the **Content/FirstPersonBP/Blueprints** folder, open the **FirstPersonCharacter** Blueprint. 
 
-1.	Add a **WidgetInteraction** component attached to the **Sphere** then zero out the **Location** and **Show Debug** in the **Details** panel. 
+1.	Add a **WidgetInteraction** component attached to the **Sphere** then zero out the **Location** and **Show Debug** in the **Details** panel. Our Widget Interaction component will now point in the direction that player points the gun indicated in-game by a debug marker.
 
 	![](Keypad01.png)
 
-	Our Widget Interaction component will now point in the direction that player points the gun indicated in-game by a debug marker.
-
 1.	In the **Graph**, add a **Right Mouse Button** Event and drag in the **Widget Interaction** Component. 
 
-1.	Off **Widget Interaction** add **Press Pointer Key** and **Release Pointer Key** both set to **Left Mouse Button** and connect as shown. 
+1.	Off **Widget Interaction** add **Press Pointer Key** and **Release Pointer Key** both set to **Left Mouse Button** and connect as shown. Widgets respond to mouse/touch interaction via Left Mouse Button click or touch controls and we can simulate that using the **Press Pointer Key** function. In our example we use the **Right Mouse Button** to simulate a Left Mouse Button click, however you could use a gamepad button press or even Motion Controller Trigger press to fire off the Press Pointer Key function.
 
-	![](Keypad02.png)
+	![](Keypad02.png) 
 
-	Widgets respond to mouse/touch interaction via Left Mouse Button click or touch controls and we can simulate that using the **Press Pointer Key** function. 
-	In our example we use the **Right Mouse Button** to simulate a Left Mouse Button click, however you could use a gamepad button press or even Motion Controller Trigger press to fire off the Press Pointer Key function. 
+1.	In the **Content Browser** create two **Class Blueprints** based on **Actor** and two **Widget Blueprints**. For the two Actor Blueprints, call one **Keypad** (to represent the keypad entry) and the other **KeypadDisplay** (to represent and display the values entered from the Keypad). For the Widget Blueprints use the same names as the Actor Blueprints however to distinguish them, suffix them with **WB** (for Widget Blueprint).
 
-1.	In the **Content Browser** create two **Class Blueprints** based on **Actor** and two **Widget Blueprints**. 
-
-	![](Keypad03.png)
-
-	For the two Actor Blueprints, call one **Keypad** (to represent the keypad entry) and the other **KeypadDisplay** (to represent and display the values entered from the Keypad). 
-	For the Widget Blueprints use the same names as the Actor Blueprints however to distinguish them, suffix them with **WB** (for Widget Blueprint). 
+	![](Keypad03.png) 
 
 
 ## End Result

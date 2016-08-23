@@ -31,28 +31,19 @@ With everything in place, we give it a test to see the end result which prints *
 
 ## Steps
 
-1.	Open the **KeypadDisplay** Blueprint and add a **Widget** component with class set to **KeypadDisplayWB** and **Draw at Desired Size**. 
+1.	Open the **KeypadDisplay** Blueprint and add a **Widget** component with class set to **KeypadDisplayWB** and **Draw at Desired Size**. Draw at Desired Size is a quick way to cause the render target to automatically match the desired size inside the Widget Blueprint.
 
 	![](Keypad15.png)
 
-	Draw at Desired Size is a quick way to cause the render target to automatically match the desired size inside the Widget Blueprint.
-
 1.	Open the **Keypad** Blueprint and add a **Widget** component with class set to **KeypadWB** and **Draw at Desired Size**. 
 
-1.	Uncheck the **Window Focusable** option for this Widget Component. 
+1.	Uncheck the **Window Focusable** option for this Widget Component. We don't want this component to take focus away from the Keypad Display widget, so this needs to be unchecked. 
 
 	![](Keypad16.png)
 
-	We don't want this component to take focus away from the Keypad Display widget, so this needs to be unchecked. 
+1.	Also inside **Keypad**, add a **WidgetInteraction** component with **Enable Hit Testing** set to false. We add this WidgetInteraction component so that we don't have to get a reference to the WidgetInteraction component in the player character and we disable Hit Testing as we don't want it to generate any hover effects. WidgetInteraction components by default are set to **Virtual User Index 0** when they are created and all of them communicate using the Virtual User Index ID. Since the WidgetInteraction component in the player character is also using Virtaul User Index 0, this is the same as getting a reference to it.
 
-1.	Also inside **Keypad**, add a **WidgetInteraction** component with **Enable Hit Testing** set to false. 
-
-	![](Keypad17.png)
-
-	We add this WidgetInteraction component so that we don't have to get a reference to the WidgetInteraction component in the player character and we disable Hit Testing as we don't want it to generate any hover effects. 
-
-	WidgetInteraction components by default are set to **Virtual User Index 0** when they are created and all of them communicate using the Virtual User Index ID. 
-	Since the WidgetInteraction component in the player character is also using Virtaul User Index 0, this is the same as getting a reference to it. 
+	![](Keypad17.png) 
 
 1.	On the Graph of **Keypad**, off **Event Begin Play** take the **Widget** component and **Get User Widget Object** to **Cast to KeypadWB**. 
 
@@ -60,11 +51,9 @@ With everything in place, we give it a test to see the end result which prints *
 
 1.	Off the **As Keypad WB** pin, **Set Widget Interaction** and pass through the **WidgetInteraction** component from Step 4. 
 
-1.	Also off the **As Keypad WB** pin, call the **Assign Enter Pressed** which will create an **Enter Pressed** Custom Event. 
+1.	Also off the **As Keypad WB** pin, call the **Assign Enter Pressed** which will create an **Enter Pressed** Custom Event. Now when we click on the Enter button this custom event will be called which we can use to check if the correct code was entered. 
 
 	![](Keypad19.png)
-
-	Now when we click on the Enter button this custom event will be called which we can use to check if the correct code was entered. 
 
 1.	Create a **Variable** of the **Keypad Display** Actor type called **TargetDisplay** and set it to **Editable**. 
 
