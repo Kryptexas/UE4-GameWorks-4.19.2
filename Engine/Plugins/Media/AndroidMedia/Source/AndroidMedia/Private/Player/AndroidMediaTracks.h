@@ -30,8 +30,9 @@ public:
 	 * Initialize this object for the specified VLC media player.
 	 *
 	 * @param InJavaMediaPlayer The java player to use.
+	 * @param OutInfo String to append media information to.
 	 */
-	void Initialize(TSharedRef<FJavaAndroidMediaPlayer, ESPMode::ThreadSafe> InJavaMediaPlayer);
+	void Initialize(TSharedRef<FJavaAndroidMediaPlayer, ESPMode::ThreadSafe> InJavaMediaPlayer, FString& OutInfo);
 
 	/** Reset this object. */
 	void Reset();

@@ -33,7 +33,7 @@ FAndroidMediaTracks::~FAndroidMediaTracks()
 /* FAndroidMediaTracks interface
  *****************************************************************************/
 
-void FAndroidMediaTracks::Initialize(TSharedRef<FJavaAndroidMediaPlayer, ESPMode::ThreadSafe> InJavaMediaPlayer)
+void FAndroidMediaTracks::Initialize(TSharedRef<FJavaAndroidMediaPlayer, ESPMode::ThreadSafe> InJavaMediaPlayer, FString& OutInfo)
 {
 	Reset();
 
@@ -46,6 +46,39 @@ void FAndroidMediaTracks::Initialize(TSharedRef<FJavaAndroidMediaPlayer, ESPMode
 	InJavaMediaPlayer->GetAudioTracks(AudioTracks);
 	InJavaMediaPlayer->GetCaptionTracks(CaptionTracks);
 	InJavaMediaPlayer->GetVideoTracks(VideoTracks);
+
+	for (FJavaAndroidMediaPlayer::FVideoTrack Track : VideoTracks)
+	{
+		OutInfo += FString::Printf(TEXT("Stream %i\n"), Track.Index);
+		OutInfo += TEXT("    Type: Video\n");
+//		OutInfo += FString::Printf(TEXT("    Duration: %s\n"), *FTimespan::FromMilliseconds(Track->StreamInfo.duration).ToString());
+		OutInfo += FString::Printf(TEXT("    MimeType: %s\n"), *Track.MimeType);
+		OutInfo += FString::Printf(TEXT("    Language: %s\n"), *Track.Language);
+		OutInfo += FString::Printf(TEXT("    FrameRate: %0.1f\n"), Track.FrameRate);
+		OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), Track.Dimensions.X, Track.Dimensions.Y);
+		OutInfo += TEXT("\n");
+	}
+
+	for (FJavaAndroidMediaPlayer::FAudioTrack Track : AudioTracks)
+	{
+		OutInfo += FString::Printf(TEXT("Stream %i\n"), Track.Index);
+		OutInfo += TEXT("    Type: Audio\n");
+//		OutInfo += FString::Printf(TEXT("    Duration: %s\n"), *FTimespan::FromMilliseconds(Track->StreamInfo.duration).ToString());
+		OutInfo += FString::Printf(TEXT("    MimeType: %s\n"), *Track.MimeType);
+		OutInfo += FString::Printf(TEXT("    Language: %s\n"), *Track.Language);
+		OutInfo += FString::Printf(TEXT("    Channels: %i\n"), Track.Channels);
+		OutInfo += FString::Printf(TEXT("    Sample Rate: %i Hz\n"), Track.SampleRate);
+		OutInfo += TEXT("\n");
+	}
+
+	for (FJavaAndroidMediaPlayer::FCaptionTrack Track : CaptionTracks)
+	{
+		OutInfo += FString::Printf(TEXT("Stream %i\n"), Track.Index);
+		OutInfo += TEXT("    Type: Caption\n");
+		OutInfo += FString::Printf(TEXT("    MimeType: %s\n"), *Track.MimeType);
+		OutInfo += FString::Printf(TEXT("    Language: %s\n"), *Track.Language);
+		OutInfo += TEXT("\n");
+	}
 }
 
 

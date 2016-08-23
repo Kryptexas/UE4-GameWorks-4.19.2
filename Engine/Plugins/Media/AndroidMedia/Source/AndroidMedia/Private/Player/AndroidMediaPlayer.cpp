@@ -199,6 +199,7 @@ void FAndroidMediaPlayer::Close()
 	}
 
 	Tracks.Reset();
+	Info.Empty();
 
 	if (JavaMediaPlayer.IsValid())
 	{
@@ -223,7 +224,7 @@ IMediaControls& FAndroidMediaPlayer::GetControls()
 
 FString FAndroidMediaPlayer::GetInfo() const
 {
-	return TEXT("AndroidMedia media information not implemented yet");
+	return Info;
 }
 
 
@@ -323,7 +324,7 @@ bool FAndroidMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 
 	State = EMediaState::Stopped;
 
-	Tracks.Initialize(JavaMediaPlayer.ToSharedRef());
+	Tracks.Initialize(JavaMediaPlayer.ToSharedRef(), Info);
 	Tracks.SelectTrack(EMediaTrackType::Audio, 0);
 	Tracks.SelectTrack(EMediaTrackType::Video, 0);
 
