@@ -2113,31 +2113,45 @@ void FEditorFileUtils::LoadMap()
 
 static void NotifyBSPNeedsRebuild(const FString& PackageName)
 {
-	static TSharedPtr<SNotificationItem> Notification;
+	static TWeakPtr<SNotificationItem> NotificationPtr;
+
+	auto RemoveNotification = []
+	{
+		TSharedPtr<SNotificationItem> Notification = NotificationPtr.Pin();
+		if (Notification.IsValid())
+		{
+			Notification->SetEnabled(false);
+			Notification->SetExpireDuration(0.0f);
+			Notification->SetFadeOutDuration(0.5f);
+			Notification->ExpireAndFadeout();
+			NotificationPtr.Reset();
+		}
+	};
 
 	// If there's still a notification present from the last time a map was loaded, get rid of it now.
-	if (Notification.IsValid())
-	{
-		Notification->SetEnabled(false);
-		Notification->ExpireAndFadeout();
-		Notification.Reset();
-	}
+	RemoveNotification();
 
-	FNotificationInfo Info(LOCTEXT("BSPIssues", "Some issues were detected with BSP/Volume geometry in one or more of the loaded levels.\nWould you like to rebuild the geometry now?"));
-	Info.bFireAndForget = false;
+	FNotificationInfo Info(LOCTEXT("BSPIssues", "Some issues were detected with BSP/Volume geometry in the loaded level or one of its sub-levels.\nThis is due to a fault in previous versions of the editor which has now been fixed, not user error.\nYou can choose to correct these issues by rebuilding the geometry now if you wish."));
+	Info.bFireAndForget = true;
 	Info.bUseLargeFont = false;
+	Info.ExpireDuration = 25.0f;
+	Info.FadeOutDuration = 0.5f;
 
 	Info.ButtonDetails.Add(FNotificationButtonInfo(
 		LOCTEXT("RebuildGeometry", "Rebuild Geometry"),
 		FText(),
-		FSimpleDelegate::CreateLambda([]{
-			GUnrealEd->RebuildAlteredBSP();
-			if (Notification.IsValid())
+		FSimpleDelegate::CreateLambda([&RemoveNotification]{
+			TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+			ABrush::NeedsRebuild(&LevelsToRebuild);
+			for (const TWeakObjectPtr<ULevel>& Level : LevelsToRebuild)
 			{
-				Notification->SetEnabled(false);
-				Notification->ExpireAndFadeout();
-				Notification.Reset();
+				if (Level.IsValid())
+				{
+					GUnrealEd->RebuildLevel(*Level.Get());
+				}
 			}
+			ABrush::OnRebuildDone();
+			RemoveNotification();
 		}),
 		SNotificationItem::CS_None)
 	);
@@ -2145,13 +2159,8 @@ static void NotifyBSPNeedsRebuild(const FString& PackageName)
 	Info.ButtonDetails.Add(FNotificationButtonInfo(
 		LOCTEXT("DontRebuild", "Don't Rebuild"),
 		FText(),
-		FSimpleDelegate::CreateLambda([]{
-			if (Notification.IsValid())
-			{
-				Notification->SetEnabled(false);
-				Notification->ExpireAndFadeout();
-				Notification.Reset();
-			}
+		FSimpleDelegate::CreateLambda([&RemoveNotification]{
+			RemoveNotification();
 		}),
 		SNotificationItem::CS_None)
 	);
@@ -2174,7 +2183,7 @@ static void NotifyBSPNeedsRebuild(const FString& PackageName)
 	});
 	Info.HyperlinkText = LOCTEXT("WhichLevels", "Which levels need a geometry rebuild?");
 
-	Notification = FSlateNotificationManager::Get().AddNotification(Info);
+	NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 }
 
 /**
