@@ -22,11 +22,9 @@ In this how-to we will create a Widget Blueprint, add some Text to it, then thro
 For this how-to, we are using the **Blueprint Third Person Template**. However, you can use any project you wish. 
 [/REGION]
 
-1.	In the [](Engine/Content/Browser/) click the **Add New** button, then under **User Interface** select **Widget Blueprint**. 
+1.	In the [](Engine/Content/Browser/) click the **Add New** button, then under **User Interface** select **Widget Blueprint**. Regardless of the type of UI element you wish to create in UMG, you will need to do so inside a Widget Blueprint. 
 
 	![](CreatingWidgets01.png)
-
-	Regardless of the type of UI element you wish to create in UMG, you will need to do so inside a Widget Blueprint. 
 
 1.	Enter the name **SampleUI** for the name of the Widget Blueprint, then **double-click** and open it. 
 
