@@ -90,8 +90,11 @@ void FWmfMediaTracks::AddTrack(const GUID& MajorType, IMFMediaType* MediaType, I
 			AudioTrack.StreamIndex = StreamIndex;
 		}
 
-		Sampler->OnClock().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerClock, EMediaTrackType::Audio);
-		Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Audio);
+		if (Sampler != NULL)
+		{
+			Sampler->OnClock().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerClock, EMediaTrackType::Audio);
+			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Audio);
+		}
 	}
 	else if (MajorType == MFMediaType_Image)
 	{
@@ -108,8 +111,11 @@ void FWmfMediaTracks::AddTrack(const GUID& MajorType, IMFMediaType* MediaType, I
 			
 			::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&ImageTrack.Dimensions.X, (UINT32*)&ImageTrack.Dimensions.Y);
 		}
-			
-		Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Image);
+		
+		if (Sampler != NULL)
+		{
+			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Image);
+		}
 	}
 	else if (MajorType == MFMediaType_SAMI)
 	{
@@ -124,8 +130,11 @@ void FWmfMediaTracks::AddTrack(const GUID& MajorType, IMFMediaType* MediaType, I
 			CaptionTrack.StreamDescriptor = StreamDescriptor;
 			CaptionTrack.StreamIndex = StreamIndex;
 		}
-
-		Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Caption);
+		
+		if (Sampler != NULL)
+		{
+			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Caption);
+		}
 	}
 	else if (MajorType == MFMediaType_Video)
 	{
@@ -166,7 +175,10 @@ void FWmfMediaTracks::AddTrack(const GUID& MajorType, IMFMediaType* MediaType, I
 			}
 		}
 
-		Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Video);
+		if (Sampler != NULL)
+		{
+			Sampler->OnSample().AddRaw(this, &FWmfMediaTracks::HandleMediaSamplerSample, EMediaTrackType::Video);
+		}
 	}
 }
 

@@ -519,26 +519,64 @@ void FWmfMediaPlayer::AddStreamToTopology(uint32 StreamIndex, IMFTopology* Topol
 		}
 	}
 
-	TComPtr<FWmfMediaSampler> Sampler = new FWmfMediaSampler();
+	TComPtr<FWmfMediaSampler> Sampler;
 
-	// set up output node
-	TComPtr<IMFActivate> MediaSamplerActivator;
+	// create sampler
+	TComPtr<IMFActivate> OutputActivator;
 	{
-		HRESULT Result = ::MFCreateSampleGrabberSinkActivate(OutputType, Sampler, &MediaSamplerActivator);
-
-		if (FAILED(Result))
+		if ((MajorType == MFMediaType_Audio) && GetDefault<UWmfMediaSettings>()->NativeAudioOut)
 		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create sampler grabber sink for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
-			Info += TEXT("    failed to create sample grabber\n");
+			HRESULT Result = MFCreateAudioRendererActivate(&OutputActivator);
 
-			return;
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create audio renderer for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
+				Info += TEXT("    failed to create audio renderer\n");
+
+				return;
+			}
+
+#if WITH_ENGINE
+			// allow HMD to override audio output device
+			if (IHeadMountedDisplayModule::IsAvailable())
+			{
+				FString AudioOutputDevice = IHeadMountedDisplayModule::Get().GetAudioOutputDevice();
+
+				if (!AudioOutputDevice.IsEmpty())
+				{
+					Result = OutputActivator->SetString(MF_AUDIO_RENDERER_ATTRIBUTE_ENDPOINT_ID, *AudioOutputDevice);
+					
+					if (FAILED(Result))
+					{
+						UE_LOG(LogWmfMedia, Warning, TEXT("Failed to override HMD audio output device for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
+						Info += TEXT("    failed to override HMD audio output device\n");
+
+						return;
+					}
+				}
+			}
+#endif //WITH_ENGINE
+		}
+		else
+		{
+			Sampler = new FWmfMediaSampler();
+			HRESULT Result = ::MFCreateSampleGrabberSinkActivate(OutputType, Sampler, &OutputActivator);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create sampler grabber sink for stream %i (%s)"), StreamIndex, *WmfMedia::ResultToString(Result));
+				Info += TEXT("    failed to create sample grabber\n");
+
+				return;
+			}
 		}
 	}
 
+	// set up output node
 	TComPtr<IMFTopologyNode> OutputNode;
 	{
 		if (FAILED(::MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, &OutputNode)) ||
-			FAILED(OutputNode->SetObject(MediaSamplerActivator)) ||
+			FAILED(OutputNode->SetObject(OutputActivator)) ||
 			FAILED(OutputNode->SetUINT32(MF_TOPONODE_STREAMID, 0)) ||
 			FAILED(OutputNode->SetUINT32(MF_TOPONODE_NOSHUTDOWN_ON_REMOVE, FALSE)) ||
 			FAILED(Topology->AddNode(OutputNode)))

@@ -15,6 +15,10 @@
 #include "Runtime/CoreUObject/Public/CoreUObject.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
+	#if WITH_ENGINE
+		#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+	#endif
+
 	#include "Runtime/Media/Public/IMediaAudioSink.h"
 	#include "Runtime/Media/Public/IMediaModule.h"
 	#include "Runtime/Media/Public/IMediaOptions.h"

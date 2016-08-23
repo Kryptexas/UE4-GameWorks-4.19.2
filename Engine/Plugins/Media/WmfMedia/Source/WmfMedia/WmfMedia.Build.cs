@@ -35,6 +35,11 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
+			if (UEBuildConfiguration.bCompileAgainstEngine)
+			{
+				PrivateDependencyModuleNames.Add("HeadMountedDisplay");
+			}
+
 			if (Target.Type == TargetRules.TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.AddRange(

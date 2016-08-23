@@ -6,4 +6,5 @@
 
 UWmfMediaSettings::UWmfMediaSettings()
 	: AllowNonStandardCodecs(false)
+	, NativeAudioOut(false)
 { }

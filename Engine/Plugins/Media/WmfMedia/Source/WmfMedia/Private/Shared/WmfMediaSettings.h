@@ -28,4 +28,8 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Media)
 	bool AllowNonStandardCodecs;
+
+	/** Play audio tracks via the operating system's native sound mixer. */
+	UPROPERTY(config, EditAnywhere, Category=Debug)
+	bool NativeAudioOut;
 };
