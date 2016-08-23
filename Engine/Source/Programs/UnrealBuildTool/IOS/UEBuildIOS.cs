@@ -141,12 +141,17 @@ namespace UnrealBuildTool
 
             // get the list of architectures compiled
             string Archs = (TargetConfiguration == UnrealTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
-			foreach (string arch in Archs.Split(",".ToCharArray()))
-			{
-               	result += "\t\t<string>" + arch + "</string>\n";
-			}
-			
-			return result;
+            string[] ArchArray = Archs.Split(",".ToCharArray());
+            if (ArchArray.Length > 1)
+            {
+                result += "\t\t<string>armv7</string>\n";
+            }
+            else
+            {
+                result += "\t\t<string>" + ArchArray[0] + "</string>\n";
+            }
+
+            return result;
 		}
 
 		public string GetAdditionalLinkerFlags(CPPTargetConfiguration InConfiguration)
