@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3085410
 availability:docs
-title: Capsule Shadows
-description:Landing page for Capsule Shadows in Unreal Engine 4
+title:カプセル シャドウ
+description:アンリアル エンジン 4 のカプセル シャドウのランディング ページです。
 crumbs:
 version:4.13
 
-**Capsule Shadows** have been developed to support soft shadow casting for Skeletal Meshes by creating a capsule representation of your character using a custom Physics Asset. 
-The soft shadows serve to ground the character in indirectly areas and give soft shadows in directly lit areas. This shadowing technique can be used with Unreal Engine 4.11 or later. 
+**カプセル シャドウ** は、カスタム仕様の物理アセットを使ってキャラクターをカプセル表現にすることで、スケルタル メッシュ用のソフトシャドウ キャスティングをサポートするために開発されました。 
+ソフトシャドウはキャラクターを間接エリアに配置して、直接ライトがあたるエリアにソフト シャドウを作る役割をします。このシャドウイング機能は、4.11 以降のアンリアル エンジンで使用できます。 
 
 
 [OBJECT:TopicButtonList]
@@ -14,7 +14,7 @@ The soft shadows serve to ground the character in indirectly areas and give soft
 		![](%ROOT%/tech_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Capsule Shadows Topics
+		カプセル シャドウのトピックス
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
