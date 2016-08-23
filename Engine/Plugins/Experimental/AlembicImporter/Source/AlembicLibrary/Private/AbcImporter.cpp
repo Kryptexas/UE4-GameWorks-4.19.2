@@ -293,7 +293,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 					AbcImporterUtilities::CalculateSmoothNormals(MeshObject->MeshSamples[FirstSampleIndex]);
 				}
 
-				MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices.AddZeroed(MeshObject->MeshSamples[FirstSampleIndex]->Indices.Num());
+				MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices.AddZeroed(MeshObject->MeshSamples[FirstSampleIndex]->Indices.Num() / 3);
 				MeshObject->MeshSamples[FirstSampleIndex]->NumSmoothingGroups = 1;
 			}
 			else
