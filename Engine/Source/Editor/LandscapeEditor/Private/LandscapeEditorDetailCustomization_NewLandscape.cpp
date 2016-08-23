@@ -871,8 +871,8 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 			const TArray<uint16>& ImportData = LandscapeEdMode->UISettings->GetImportLandscapeData();
 			if (ImportData.Num() != 0)
 			{
-				const int32 OffsetX = (SizeX - ImportSizeX) / 2;
-				const int32 OffsetY = (SizeY - ImportSizeY) / 2;
+				const int32 OffsetX = (int32)(SizeX - ImportSizeX) / 2;
+				const int32 OffsetY = (int32)(SizeY - ImportSizeY) / 2;
 
 				// Heightmap
 				Data = LandscapeEditorUtils::ExpandData(ImportData,
