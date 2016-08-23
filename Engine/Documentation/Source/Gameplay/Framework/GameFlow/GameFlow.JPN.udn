@@ -1,24 +1,27 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011466
 Availability:Public
-Title:Game Flow Overview
+Title:ゲーム フローの概要
 Crumbs:%ROOT%, Gameplay/Framework
-Description:The process of starting the engine and launching a game or play-in-editor session.
-Version: 4.12
+Description:エンジンを起動し、ゲームまたは Play-In-Editor セッションを開始する方法を説明します。
+Version:4.12
 type:reference
 parent:Gameplay/Framework
 order:5
 tags:Gameplay Framework
 
-This document explains the process of starting the engine and launching a game. There are two main paths shown here: the editor path, and the standalone path. The general order of events is to initialize the engine, create and initialize a **GameInstance**, then load a level, and finally start playing. However, there are differences between standalone and editor modes, both in terms of the exact order of some of the functions that are called, and in which functions are called. The flowchart below shows the two paths running in parallel until they converge at the start of the game.
+エンジンを起動し、ゲームを開始する方法を説明します。ここでは、エディタ パスとスタンドアローン パスの 2 つのメインのパスがあります。エンジンを初期化する一般的なイベントの順序は、エンジンを初期化し、**GameInstance** を作成し初期化し、レベルをロードし、最終的にプレイを開始します。しかし、スタンドアローン モードとエディタ モードには呼び出されるいくつかの関数の正確な順序と関数が呼び出される順序の両方について違いがあります。以下のフローチャートは、ゲーム開始時に収束するまで平行して実行する 2 つのパスを示しています。
 
-## Game Flow Breakdown
+## ゲーム フローの内訳
 
-[![](GameFlowChart.png)](GameFlowChart.png)
+[![](GameFlowChart.png)(w:320)](GameFlowChart.png)
+[REGION:caption]
+クリックしてフルサイズの画像を表示
+[/REGION]
 
-## Standalone
+## スタンドアローン
 
-In Standalone mode, which is the mode used by games played outside of the editor, the objects needed to play the game are created and initialized immediately following engine initialization on startup. Objects such as the **GameInstance** are created and initialized before starting the engine (distinct from creating and initializing the Engine), and the starting map is loaded immediately after the engine's start function is called. Gameplay officially begins at that point with the level creating the appropriate [](Gameplay/Framework/GameMode), and then the other [](Programming/UnrealArchitecture/Actors).
+エディタ外でプレイされるゲームによって使用されるスタンドアローン モードでは、ゲームをプレイするために必要なオブジェクトが作成され、スタートアップ時のエンジンの初期化に続いてただちに初期化されます。**GameInstance** のようなオブジェクトは、エンジン起動前に作成され、初期化されます (エンジンを作成し、初期化するのとは異なります)。エンジンの start 関数が呼び出されるとすぐにスタート マップがロードされます。この時点でゲームプレイは公式に開始し、レベルが適切な [](Gameplay/Framework/GameMode) ともうひとつの [](Programming/UnrealArchitecture/Actors) を作成した時点で公式に開始します。
 
-## Editor
+## エディタ
 
-In Editor mode, which is used by **Play In Editor** and **Simulate In Editor**, a different flow is used. The engine initializes and starts immediately, as it is needed to run the editor, but creation and initialization of objects such as the **GameInstance** are deferred until the user presses the button to launch the PIE or SIE session. In addition, the [](Programming/UnrealArchitecture/Actors) in the level are duplicated so that in-game changes do not affect the level in the editor, and every object, including the **GameInstance** object, has a separate copy for each PIE instance. The editor path rejoins the standalone path with the beginning of gameplay in the **UWorld** class.
+**Play In Editor** と **Simulate In Editor** で使用される In Editor モードでは、異なるフローが使われます。エンジンは、初期化し、エディタを実行する必要があるためただちに起動します。しかし、**GameInstance** などのオブジェクトの作成と初期化はユーザーがPIE セッションや SIE セッションを起動するボタンを押してから行われます。さらに、レベル内の [](Programming/UnrealArchitecture/Actors) は、インゲームの変更がエディタのレベルに影響を及ぼさないように複製されます。**GameInstance** オブジェクトを含むあらゆるオブジェクトは、各 PIE インスタンスに対して別箇のコピーを持ちます。**UWorld** クラスのゲームプレイの初めに、エディタ パスは、スタンドアローン パスに再び合流します。
