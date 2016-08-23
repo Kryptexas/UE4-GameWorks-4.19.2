@@ -224,11 +224,16 @@ namespace AutomationTool
 				// Find all the lock files
 				HashSet<FileReference> RequiredTokens = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTokens));
 
-				foreach(Node Node in TargetNodes)
+				// List out all the required tokens
+				if(SingleNodeName == null)
 				{
-					foreach(FileReference RequiredToken in Node.RequiredTokens)
+					CommandUtils.Log("Required tokens:");
+					foreach(Node Node in TargetNodes)
 					{
-						Console.WriteLine("{0} requires {1}", Node, RequiredToken);
+						foreach(FileReference RequiredToken in Node.RequiredTokens)
+						{
+							CommandUtils.Log("  '{0}' requires {1}", Node, RequiredToken);
+						}
 					}
 				}
 
