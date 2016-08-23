@@ -1369,16 +1369,13 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	if (InEmitterInstance->MeshTypeData != NULL)
 	{
 #if WITH_EDITOR
-		// if the mesh package is dirty, then the mesh has been re-imported and we need to clear the vertex factories
+		// there are some cases in the editor that invalidate the vertex factories, so
+		// in-editor, we simply go back to the old way of allocating them freshly every frame
 		if (GIsEditor && InEmitterInstance->Component->SceneProxy)
 		{
-			UPackage* Package = InEmitterInstance->MeshTypeData->Mesh->GetOutermost();
-			if (Package && Package->IsDirty())
-			{
-				static_cast<FParticleSystemSceneProxy*>(InEmitterInstance->Component->SceneProxy)->MarkVertexFactoriesDirty();
-			}
+			static_cast<FParticleSystemSceneProxy*>(InEmitterInstance->Component->SceneProxy)->MarkVertexFactoriesDirty();
 		}
-#endif	
+#endif
 
 		UParticleModuleTypeDataMesh* MeshTD = InEmitterInstance->MeshTypeData;
 		// offset to the mesh emitter type data
