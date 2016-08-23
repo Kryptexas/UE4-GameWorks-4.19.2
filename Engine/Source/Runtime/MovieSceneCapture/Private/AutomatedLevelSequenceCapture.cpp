@@ -390,7 +390,9 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 		return;
 	}
 
-	MovieSceneCaptureHelpers::ExportEDL(MovieScene, Settings.FrameRate, Settings.OutputDirectory.Path);
+	FString SaveFilename = 	Settings.OutputDirectory.Path / MovieScene->GetOuter()->GetName();
+
+	MovieSceneCaptureHelpers::ExportEDL(MovieScene, Settings.FrameRate, SaveFilename);
 }
 
 
