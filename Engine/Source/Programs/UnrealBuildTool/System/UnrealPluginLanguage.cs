@@ -1997,7 +1997,12 @@ namespace UnrealBuildTool
 								ConfigCacheIni_UPL ConfigIni = GetConfigCacheIni_UPL(Ini);
 								if (ConfigIni != null)
 								{
-									ConfigIni.GetString(Section, Property, out Value);
+									if (!ConfigIni.GetString(Section, Property, out Value))
+									{
+										// If the string was not found in the config, Value will have been set to an empty string
+										// Set it back to the DefaultVal
+										Value = DefaultVal;
+									}
 								}
 								if (Result == "Output")
 								{
