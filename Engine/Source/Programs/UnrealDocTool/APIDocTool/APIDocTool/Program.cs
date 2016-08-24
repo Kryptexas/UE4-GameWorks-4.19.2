@@ -462,7 +462,7 @@ namespace APIDocTool
 			}
 
 			// Derive all the tool paths
-			string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\Doxygen\\bin\\Release64\\doxygen.exe");
+			string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\doxygen-1.8.11\\Doxygen\\Debugx64\\doxygen.exe");
 			string EditorPath = Path.Combine(EngineDir, "Binaries\\Win64\\UE4Editor-Cmd.exe");
 			string DocToolPath = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealDocTool.exe");
 			string ChmCompilerPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\HTML Help Workshop\\hhc.exe");
@@ -1464,7 +1464,7 @@ namespace APIDocTool
 				{
 					DocToolProcess.StartInfo.WorkingDirectory = EngineDir;
 					DocToolProcess.StartInfo.FileName = DocToolPath;
-					DocToolProcess.StartInfo.Arguments = Path.Combine(HtmlSuffix, "*") + " -lang=INT -t=DefaultAPI.html -v=warn";
+					DocToolProcess.StartInfo.Arguments = Path.Combine(HtmlSuffix, "*") + " -lang=INT -t=DefaultAPI.html -v=warn -nodb=true";
 					DocToolProcess.StartInfo.UseShellExecute = false;
 					DocToolProcess.StartInfo.RedirectStandardOutput = true;
 					DocToolProcess.StartInfo.RedirectStandardError = true;
@@ -1541,7 +1541,8 @@ namespace APIDocTool
 
 		static private void CreateChm(string ChmCompilerPath, string ChmFileName, string Title, string DefaultTopicPath, string ContentsFileName, string IndexFileName, string SourceDir, List<string> FileNames)
 		{
-			string ProjectName = Path.GetFileNameWithoutExtension(ChmFileName);
+            Console.WriteLine("CreateChm {0}", ChmFileName);
+            string ProjectName = Path.GetFileNameWithoutExtension(ChmFileName);
 
 			// Create an intermediate directory
 			string IntermediateDir = Path.Combine(Path.GetDirectoryName(ChmFileName), ProjectName);
