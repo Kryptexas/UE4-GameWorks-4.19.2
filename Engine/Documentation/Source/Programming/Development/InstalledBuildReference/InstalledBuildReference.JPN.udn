@@ -1,57 +1,81 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Installed Build Reference
+﻿INTSourceChangelist:3091214
+Availability:Docs
+Title:Installed Build のリファレンス
 Crumbs: %ROOT%, Programming, Programming/Development
-Description:This page describes the Installed Build process, including an overview of how to write Installed Build scripts.
-version: 4.13
+Description:Installed Build のスクリプトの書き方をはじめ、Installed Build プロセスについて説明します。
+version:4.13
 parent:Programming/Development
 type:Reference
-related:Programming/Development/BuildConfigurations
+related:Programming/Development/BuildGraph
 related:Programming/UnrealBuildSystem
+related:Programming/Development/BuildConfigurations
+tags:BuildGraph
 
-[TOC (start:1 end:4)]
+[TOC (start:1 end:5)]
 
-%Globals:osselect%
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Programming/Development/InstalledBuildReference%](installedbuild_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Development/InstalledBuildReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Development/InstalledBuildReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Development/InstalledBuildReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
-<!--Write an Overview!-->
+デベロッパーは多様なハードウェア プロファイルとオペレーション システム向けにビルド ソリューションを効率的に提供する方法を常に求めています。 
+BuildGraph スクリプティング システムがリリースされて、我々が開発した Installed Build プロセスを利用し、 
+UE4 のビルド コマンドのカスタム シーケンスを作成できるようになりました。以下のリファレンス ページをお読みいただくと、 
+Installed Builds をターゲットとするビルド ソリューション向けにするスクリプトの実行方法など Installed Build について学ぶことができます。
 
-## What's an Installed Build?
+## Installed Build とは？ 
 
-An **Installed Build** of Unreal Engine 4 (UE4) is a version that's distributed using the [Epic Games Launcher](GettingStarted/Installation).
+UE4 の **Installed Build** は [エピック ゲームズのランチャー](GettingStarted/Installation) を使って配布されるバージョンと同じものです。
 
 ![](InstalledBuilds.png)
 
-This version of the engine is typically shipped with each release of UE4 and as such, the Installed Build is fully featured, but focused by an 
-Installed Build process that quickly gets users up and running with the engine. Additionally, the Unreal Editor is distributed as 
-precompiled binaries with static libraries that are built for targeted platforms in development and shipping configurations.
+エンジンのこうしたバージョンは、UE4 の各リリースでシッピングされます。Installed Build は十分な機能を備えていますが、その機能はユーザーがエンジンをすぐに使えるようにする 
+Installed Build プロセスによって効率化されます。さらに、アンリアル エディタは、 
+開発中およびシッピング コンフィギュレーションの各ターゲット プラットフォーム向けの静的ライブラリを備えたプリコンパイルされたバイナリとして配布されます。
 
-## About the Installed Build Process
+[REGION:note]
+`Engine` フォルダにあるコンテンツは、`read-only` として扱うべきです。ゲーム プロジェクトを再ビルドすることは、エンジン コードを再ビルドすることにはならないからです。
+[/REGION] 
 
-The Installed Build process automates build packages and tools that are needed to make an Installed Build version of UE4. 
-In summary, making an Installed Build is the process of setting up default target platforms, compiling UE4 
-(including the Unreal Header Tool, the UE4 Editor, etc.), generating embedded documentation, running tests, 
-and deploying the Installed Build version of UE4 for targeted platforms.
+## Installed Build プロセスについて
 
-## Making an Installed Build
+Installed Build プロセスは、UE4 を Installed Build バージョンにするために必要なパッケージやツールのビルドを自動化します。 
+つまり、Installed Build を作るということは、デフォルトのターゲット プラットフォームをセットアップし、 
+UE4 をツール、エディタと共にコンパイルし、テストを実行し、ターゲット プラットフォーム向けに UE4 の Installed Build バージョンをデプロイするというプロセスです。
 
-The Installed Build process is made with our BuildGraph Scripting System. BuildGraph scripts create custom sequences 
-of UE4 build commands for build automation. You can declare graphs by scripting an XML file (using [XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd])) 
-with syntax similar to MSBuild, Apache ANT, and NAnt. Scripted XML files define a network of node dependencies containing tasks that 
-will be executed during the Installed Build process.
+## Installed Build を作る
 
-If you're interested in reading through example BuildGraph scripts, navigate to the `[UE4Root]/Engine/Build/Graph/Examples` folder, where you'll find: 
+Installed Build プロセスは、BuildGraph スクリプティング システムによって作られています。BuildGraph スクリプトはビルドの自動化のための UE4 ビルド コマンドの 
+カスタム シーケンスを作成します。XML ファイルをMSBuild、Apache ANT、および NAnt に類似したシンタックス ([XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd]) を使用) で記述することで 
+グラフを宣言することができます。スクリプティングされた XML ファイルは、Installed Build プロセス中に実行されるタスクを含むノードの依存関係のネットワークを定義します。
+
+BuildGraph のサンプル スクリプトをご覧になりたい場合は、`[UE4Root]/Engine/Build/Graph/Examples` で以下をご覧いただけます。 
 
 * `AllExamples.xml`
 * `Building.xml`
 * `TagsAndFiles.xml`
 
-If you're interested in learning more about our BuildGraph Scripting System<!--TO DO: Add cross-link to pending BuildGraph documentation-->, head over to 
-our BuildGraph Scripting System reference to learn how you can customize and write your own scripts.
+### Installed Build スクリプトの実行
 
-### Running the Installed Build Script
+Installed Build スクリプトは、`[UE4Root]/Engine/Build/InstalledEngineBuild.xml` にあります。Installed Build スクリプトは、以下のコマンドラインで 
+**AutomationTool** を呼び出して実行することができます。
 
-The Installed Build script is located at `[UE4Root]/Engine/Build/InstalledEngineBuild.xml`. You can run the Installed Build script by invoking the 
-**AutomationTool** with the following command line:
+%Globals:osselect%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -83,16 +107,16 @@ The Installed Build script is located at `[UE4Root]/Engine/Build/InstalledEngine
 	[/PARAM]
 [/OBJECT]
 
-In summary, running `InstalledEngineBuild.xml` makes an Installed Build with all of the default options and platforms enabled. 
+つまり、`InstalledEngineBuild.xml` を実行すると、すべてのデフォルトオプションとプラットフォームが有効な状態である Installed Build になります。 
 
-#### Installed Build Script Options
+#### Installed Build スクリプトのオプション
 
-If you want to see a list of available options for customizing the build process (along with a list of nodes that'll be built), 
-you'll want to append the `-listonly` option before running the script. The list should look something like this: 
+このビルド プロセスをカスタマイズするために利用可能なオプションのリスト (ビルドされるノートのリストも併せて) をご覧になりたい場合は、 
+スクリプトを実行する前に `-listonly` オプションを追加してください。リストの出力は下記のようになるはずです。 
 
 	Options:
-	
 	    -set:PublishDir=...            Root directory to contain published builds and symbols (Default: $(RootDir)/LocalBuilds/Engine) 
+
 	    -set:WithWin64=...             Include the Win64 target platform (Default: true) 
 	    -set:WithWin32=...             Include the Win32 target platform (Default: true) 
 	    -set:WithMac=...               Include the Mac target platform (Default: true) 
@@ -104,64 +128,69 @@ you'll want to append the `-listonly` option before running the script. The list
 	    -set:WithPS4=...               Include the PS4 target platform (Default: false) 
 	    -set:WithXboxOne=...           Include the XboxOne target platform (Default: false) 
 	    -set:WithDDC=...               Build a stand-alone derived-data cache for the engine content and templates (Default: true) 
-	    -set:AnalyticsTypeOverride=... Identifier for analytic events to send 
-	
+	    -set:AnalyticsTypeOverride=...Identifier for analytic events to send 
 	Graph:
-	    Trigger: None
-	        Agent: Editor Win64 (CompileWin64)
-	            Node: Update Version Files
-	            Node: Compile UnrealHeaderTool Win64
-	            Node: Compile UE4Editor Win64
-	        Agent: Editor Mac (CompileMac)
-	            Node: Compile UnrealHeaderTool Mac
-	        Agent: Target Platforms Win64 (CompileWin64)
-	            Node: Compile UE4Game Win64
-	            Node: Compile UE4Game Win32
-	            Node: Compile UE4Game Linux
-	            Node: Compile UE4Game Android
-	            Node: Compile UE4Game HTML5
-	        Agent: Target Platforms Mac (CompileMac)
-	            Node: Compile UE4Game IOS
-	            Node: Compile UE4Game TVOS
-	        Agent: Tools Group Win64 (CompileWin64)
-	            Node: Build Tools Win64
-	            Node: Build Tools CS
-	            Node: Make Feature Packs
-	        Agent: DDC Group Win64 (Win64)
-	            Node: Build DDC Win64
-	        Agent: Installed Build Group Win64 (Win64)
-	            Node: Make Installed Build Win64
 
-Some portions of the node graph can be ignored because they're only relevant to Epic's internal build system. For example, the Agent descriptions, namely `CompileWin64` 
-and `CompileMac`, refer to the type of machine they're meant to run on; however, the script can still be run from a single build machine. 
+	    Trigger:None
+	        Agent:Editor Win64 (CompileWin64)
+	            Node:Update Version Files
+	            Node:Compile UnrealHeaderTool Win64
+	            Node:Compile UE4Editor Win64
+	        Agent:Editor Mac (CompileMac)
+	            Node:Compile UnrealHeaderTool Mac
+	        Agent:Target Platforms Win64 (CompileWin64)
+	            Node:Compile UE4Game Win64
+	            Node:Compile UE4Game Win32
+	            Node:Compile UE4Game Linux
+	            Node:Compile UE4Game Android
+	            Node:Compile UE4Game HTML5
+	        Agent:Target Platforms Mac (CompileMac)
+	            Node:Compile UE4Game IOS
+	            Node:Compile UE4Game TVOS
+	        Agent:Tools Group Win64 (CompileWin64)
+	            Node:Build Tools Win64
+	            Node:Build Tools CS
+	            Node:Make Feature Packs
+	        Agent:DDC Group Win64 (Win64)
+	            Node:Build DDC Win64
+	        Agent:Installed Build Group Win64 (Win64)
+	            Node:Make Installed Build Win64
 
-### Some Additional Commands
+ノード グラフの一部はエピック内部のビルド システムにのみ関連があるため無視することができます。例えば、 
+Agent の記述、すなわち `CompileWin64` および `CompileMac` は、実行することを意図したマシンのタイプを表していますが、このスクリプトは 
+単一のビルド マシンからも実行することができます。 
 
-Depending on your targeted platform and available Software Development Kit (SDK), we're providing some useful commands that should make your life easier.
+### 追加のコマンド
 
-#### IOS and TVOS
+ターゲット プラットフォームと利用可能なソフトウェア開発キット (SDK) に応じて、覚えておくとよい便利なコマンドがいくつかあります。
 
-If you want to include IOS and TVOS in your Installed Build, you'll have to have a Mac setup for remote building. Otherwise, append the following to your command line:
-`-set:WithIOS=false -setWithTVOS=false`.
+#### 現在のプラットフォームに対して Installed Build を作る
 
-#### Playstation 4 and XboxOne
+現在のプラットフォームに対して Installed Build を作ることで、すべてのプラットフォームのオプションを `false` に設定する必要をなくします。 
+コマンドラインに `-set:HostPlatformOnly=true` を追加します。
 
-If you have the required SDKs, you can add Playstation 4 (PS4) and XboxOne as target platforms (although, this is untested). To add PS4 and XboxOne 
-as target platforms, append `-set:WithPS4=true -set:WithXboxOne=true` to the command line.
+##### IOS と TVOS
 
-#### Amending the Derived Data Cache
+Installed Build に IOS と TVOS を含める場合は、 Mac をリモート ビルド用にセットアップしなければなりません。それを行わない場合は、コマンドラインに以下を追加します。
+`-set:WithIOS=false -setWithTVOS=false`
 
-Building a stand-alone [Derived Data Cache (DDC)](Engine/Basics/DerivedDataCache) for the Engine and Template content can be one of the slowest parts of the build. If you don't need a stand-alone DDC, you can 
-skip this step by appending `-set:WithDDC=false` to the command line.
+##### Playstation 4 と XboxOne
 
-#### Not Signing Executables
+必要な SDK を持っていれば、Playstation 4 (PS4) および XboxOne をターゲット プラットフォームとして追加することができます (ただし、テストは行っていません)。PS4 と XboxOne をターゲット プラットフォームとして追加するには 
+コマンドラインに `-set:WithPS4=true -set:WithXboxOne=true` を追加します。
 
-Typically, you don't have to setup your machine to sign executables, as this can cause the Install Build process to fail while attempting to sign the executables being built. 
-To avoid this problem, append `-NoSign` to the command line.
+#### 派生データのキャッシュ (DDC) を除外する
 
-### Including Additional Files
+エンジンとテンプレートのコンテンツのためにスタンドアロンの [派生データのキャッシュ (DDC)](Engine/Basics/DerivedDataCache) をビルドすると、ビルドが非常に遅くなります。 
+スタンドアロンの DDC が不要な場合は、コマンドラインに `-set:WithDDC=false` を追加することでこのステップをスキップすることができます。
 
-RuntimeDependencies (set in `build.cs` files for each module) automatically collate and determine which files are included in an Installed Build. 
-However, there are some required files that cannot be included this way, so they're defined in `[UE4Root]/Engine/Build/InstalledEngineFilters.xml`. 
-The `InstalledEngineFilters` XML file also lists patterns of files that should be excluded from the build, determining the types of files that need to be stripped or signed, and finally, deciding 
-what projects to build the DDC for. If you need to add any additional files to the Installed Build, the `InstalledEngineFilters` XML file is a great place to start.
+#### 実行ファイルに署名する
+
+ビルド プロセスの一部として実行ファイルに署名するようにマシンをセットアップしなければならない場合は、コマンドラインにコマンドラインに `-set:SignExecutables=true` を追加します。
+
+### さらにファイルを含める
+
+RuntimeDependencies (各モジュールの `build.cs` ファイルで設定) は自動的に照合し、どのファイルが Installed Build に含まれているかを判断します。 
+ただし、必要だがこのやり方ではインクルードできないファイルがいくつかあります。そのため、こうしたファイルは `[UE4Root]/Engine/Build/InstalledEngineFilters.xml` で定義されます。 
+`InstalledEngineFilters` XML ファイルは、ビルドから除外すべきファイルのパターンを一覧表示し、削除または署名する必要があるファイルのタイプを決めます。 
+最後にどのプロジェクトに DDC をビルドするかを決めます。Installed Buildにさらにファイルを追加する必要があれば、`InstalledEngineFilters` XML ファイルから始めるとよいでしょう。
