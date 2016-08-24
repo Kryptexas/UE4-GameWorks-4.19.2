@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Script Tasks
+﻿INTSourceChangelist:3090650
+Availability:Docs
+Title:BuildGraph スクリプトのタスク
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
-Description: Learn how BuildGraph can help you create custom tasks.
-version: 4.13
+Description:BuildGraph を使って、カスタム タスクを作成する方法を学習します。
+version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/ScriptAnatomy
+related:Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
@@ -33,26 +33,26 @@ tags:BuildGraph
 
 [EXCERPT:BuildGraphScriptTasks]
 
-Typically, project-specific utility scripts are implemented as AutomationTool BuildCommand classes. There are times; however, when you'll want 
-to automate custom tasks for your project. This is where BuildGraph can help. BuildGraph can be extended with any number of tasks, enabling you 
-to customize your build automation tasks in ways that suit your specific needs. The following section goes over ways of creating custom 
-tasks using BuildGraph, including a listing of predefined tasks that'll give you a great starting point for creating custom tasks.
+通常、プロジェクト固有のユーティリティ スクリプトが AutomationTool BuildCommand クラスとして実装されます。しかし、場合によっては 
+プロジェクト用にカスタム タスクを自動化する必要があるでしょう。そんなとき、BuildGraph が役立ちます。BuildGraph は、任意の数のタスクで拡張可能であり、 
+各自の特定のニーズに合うようなやりかたでビルド自動化タスクをカスタマイズすることができます。以下のセクションでは、BuildGraph を使ってカスタム タスクを作成する方法を説明します。 
+カスタム タスク作成の優れた開始点となる定義済みタスクの一覧も示します。
 
-## Custom Tasks
+## カスタム タスク
 
-To create a new custom task, implement a class derived from the `CustomTask` class and apply the `[TaskElement]` attribute to it. 
-The `TaskElement` constructor takes two arguments; the name of the XML element that it's represented by, and the type of class 
-containing its parameters (which is passed to the constructor at load time).
+新しいカスタム タスクを作成するには、`CustomTask` クラスから派生したクラスを実装し、それに `[TaskElement]` 属性を適用します。 
+`TaskElement` コンストラクタには、2 つの引数があります。それが表される XML エレメントの名前と 
+そのパラメータを含むクラスの型 (ロード時にコンストラクタに渡されます) の 2 つです。
 
-If you want to read parameter class fields from an XML file, attach the `[TaskParameter]` attribute to the task. Attaching the 
-`TaskParameter` attribute indicates if the parameter is required or optional, including additional validation that should be 
-applied to the argument.
+XML ファイルからパラメータのクラス フィールドを読み出す場合は、タスクに `[TaskParameter]` 属性をアタッチします。`TaskParameter` 属性をアタッチするということは、 
+パラメータが必須であるか任意であるかを示します。 
+これには、引数に適用すべき追加のバリデーションが含まれます。
 
-## Predefined Tasks
+## 定義済みタスク
 
-If you'd like to have a starting point for creating tasks, we're providing a variety of predefined tasks as templates for you to work from. 
-If you're looking for a simple predefined task to start from, we recommend using `LogTask` as a good starting point. If you want to keep up with 
-our latest improvements to BuildGraph; bookmark this page, because the following list of predefined tasks will be updated periodically. 
+タスク作成の開始点として、テンプレートに多様な定義済みタスクがあります。 
+単純な定義済みタスクを求めている場合は、`LogTask` から始めることをお勧めします。BuildGraph の最新の改善情報が必要な場合は、 
+このページをブックマークしてください。以下の定義済みタスクの一覧が定期的に更新されます。 
 
 [INCLUDE:Programming/Development/BuildGraph/ScriptAnatomy/Tasks/PredefinedTasks]
 
