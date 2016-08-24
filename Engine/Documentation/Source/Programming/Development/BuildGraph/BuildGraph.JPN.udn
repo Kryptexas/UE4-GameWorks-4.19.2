@@ -1,43 +1,43 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph
+﻿INTSourceChangelist:3091148
+Availability:Docs
+Title:BuildGraph
 Crumbs: %ROOT%, Programming, Programming/Development
-Description: Customize your Installed Builds by using our BuildGraph scripting system.
-Version: 4.13
+Description:BuildGraph スクリプティング システムを使って、インストールしたビルドをカスタマイズしましょう。
+Version:4.13
 type:landing
 parent:Programming/Development
 tags:BuildGraph
 
-**BuildGraph** is a script-based build automation system that features graphs of building blocks common to Unreal Engine 4 (UE4) projects. 
-BuildGraph integrates with UnrealBuildTool, AutomationTool, and the editor, and can be extended and customized for your projects.
+**BuildGraph** はスクリプト ベースのビルド自動化システムです。アンリアル エンジン 4 (UE4) のプロジェクトに共通のビルディング ブロックのグラフを特徴とします。 
+BuildGraph は UnrealBuildTool、 AutomationTool、およびエディタと統合し、プロジェクトに応じて拡張したり、カスタマイズすることができます。
 
-BuildGraph scripts are written with [XML](https://www.w3.org/TR/NOTE-dcd]), specifying a graph of user-defined nodes with 
-dependencies between them. Each node consists of tasks executed in sequence to produce some sort of output (e.g., compile 
-this project, then cook, run this test, and so on). When asked to build a target (that is, a node or named output) BuildGraph 
-will execute all of the nodes in the graph required to make that happen.
+BuildGraph スクリプトは [XML](https://www.w3.org/TR/NOTE-dcd]) で記述され、ユーザー定義のノードのグラフを 
+その依存関係と共に指定します。各ノードは何らかの出力を生成するためにシーケンスで実行されるタスクで構成されます 
+ (例、プロジェクトをコンパイルしてからクックし、テストを実行するなど)。ターゲット (つまり、ノードまたは名前付けされた出力) をビルドするように求められると BuildGraph は、 
+ビルドが起こるために必要なグラフ内のすべてのノードを実行します。
 
-Unlike other build tools, BuildGraph is designed as a hybrid between a makefile-like scripting language and a build farm 
-configuration script. It allows annotations for the type of machine that steps are supposed to be executed on, providing a 
-list of recipients for failure notifications if a step fails, and groups nodes that should only be executed after an explicit 
-user trigger. It also tracks the creation of output files from task execution in a way that lends to graph execution being 
-distributed across a farm of machines (with nodes running in parallel where possible), and intermediate artifacts being 
-transferred to and from a network share automatically.
+他のビルド ツールとは異なり、BuildGraph は makefile のようなスクリプティング言語とビルド ファームのコンフィギュレーション スクリプトとを 
+合わせたようなものです。ステップが実行されると想定されるマシンのタイプに対するアノテーションを可能にし、 
+ステップが失敗した場合に失敗通知の受取者のリスト、および明示的なユーザーのトリガー後にのみ実行される 
+グループ ノードを提供します。マシンのファーム全体に分散されているグラフの実行 (可能な場合はノードが並列して実行) や 
+ネットワーク間を転送されている中間アーティファクトが自動的に共有されるのに役立つようなやり方で 
+タスク実行からの出力ファイルの作成も追跡します。
 
-Epic uses BuildGraph to prepare the UE4 binary release, package samples for the marketplace, and implement pipelines for our 
-own games (among other things). Several example BuildGraph scripts are provided in the 
-`[UE4Root]/Engine/Build/Graph/Examples` directory, and the script for creating a binary UE4 distribution can be found at 
-`[UE4Root]/Engine/Build/InstalledEngineBuild.xml`.
+エピックでは BuildGraph を使って、UE4 のバイナリ リリースの準備、マーケットプレイスのサンプルのパッケージ化をはじめ、 
+特に自分たちのゲームのパイプラインの実装を行っています。いくつかの BuildGraph のサンプル スクリプトは、 
+`[UE4Root]/Engine/Build/Graph/Examples` ディレクトリでご覧いただけます。 UE4 配布のバイナリを作成するためのスクリプトは、 
+`[UE4Root]/Engine/Build/InstalledEngineBuild.xml` にあります。
 
-Opening a script with Visual Studio will use the schema located at `[UE4Root]Engine/Build/Graph/Schema.xsd` to provide rich 
-tooltips, validation, and Intellisense features while editing.
+Visual Studio でスクリプトを開くと、`[UE4Root]Engine/Build/Graph/Schema.xsd` にあるスキーマを使用し、 
+編集中に豊富なツールチップ、バリデーション、インテリセンス機能を提供します。
 
-## Writing BuildGraph Scripts
+## BuildGraph スクリプトを記述する
 
 [REGION:topics third]
 %Programming/Development/BuildGraph/ScriptAnatomy:topiccompact%
 [/REGION]
 
-## Using BuildGraph
+## BuildGraph を使用する
 
 [REGION:topics third]
 %Programming/Development/BuildGraph/Usage:topiccompact%
