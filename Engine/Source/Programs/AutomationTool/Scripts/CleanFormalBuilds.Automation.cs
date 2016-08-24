@@ -1,4 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+using System.IO;
+
 namespace AutomationTool
 {
 	/// <summary>
@@ -20,6 +23,7 @@ namespace AutomationTool
 			{
 				throw new AutomationException("Missing -ParentDir parameter");
 			}
+			ParentDir = Path.GetFullPath(ParentDir);
 
 			string SearchPattern = ParseParamValue("SearchPattern", null);
 			if (SearchPattern == null)
