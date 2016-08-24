@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Script Conditions
+﻿INTSourceChangelist:3091977
+Availability:Docs
+Title:BuildGraph スクリプトの条件文
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
-Description:Learn the syntax needed to write BuildGraph script conditions.
-version: 4.13
+Description:BuildGraph スクリプトの条件文を記述するために必要なシンタックスを学習しましょう。
+version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/ScriptAnatomy
+related:Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
@@ -33,52 +33,46 @@ tags:BuildGraph
 
 [EXCERPT:BuildGraphScriptConditions]
 
-If you want to build logical complexity into your BuildGraph scripts, you'll need to work with conditionals. The following 
-section introduces you to how BuildGraph conditions are written, including a list of conditional operators. 
+BuildGraph スクリプトに複雑な論理を組み込みたい場合は、条件演算子を使う必要があります。以下のセクションでは、 
+BuildGraph の条件文の記述方法を条件演算子のリストと合わせて紹介します。 
 
-## Conditions
+## 条件文
 
-BuildGraph script conditions consist of atoms and operators that evaluate to `true` or `false`.
+BuildGraph スクリプトの条件文は、アトムと `true` または `false` を評価する演算子で構成されます。
 
-### Atoms
+### アトム
 
-Atoms can be numbers, strings, or identifiers that are coerced to their appropriate type for the oprator using them. 
-Atoms may be quoted with single (') or double (") quotes. They can also be an unquoted sequence of letters, digits, and 
-underscore characters. 
+アトムはそれらを使う演算子に対して適切な型に強制的に型変換する数字、文字列、識別子になります。 
+アトムは単一引用符 (') または二重引用符 (") を使って引用することができます。アトムは、引用されない文字、桁、 
+アンダースコアの文字のシーケンスにもなります。 
 
-### Literals
+### リテラル
 
-All literals are considered identical, regardless of how they're declared. Additionally, literals are considered 
-case-insensitive for comparisons, which means that the strings "True" and 'true' are identical to the identifier `true` 
-(despite the presence of quotes and differences in case).
+すべてのリテラルは、どのように宣言されたかに関係なく同一とみなされます。さらにリテラルは 
+比較のために大文字・小文字を区別しないとみなされます。つまり、文字列の "True" と 'true' は、識別子 `true` と同一です 
+ (引用符の存在と大文字、小文字の違いは関係ありません)。
 
-## Operators
+## 演算子
 
-A list of operators is specified below: 
+演算子のリストは、以下のようになります。 
 
-[INCLUDE:#OperatorTable]
+| **演算子**            | **説明**                                                             | **優先順位**  |
+| ----------------------- | --------------------------------------------------------------------------- | --------------- |
+| **(x)**                 | 副次式                                                               | 1               |
+| **!x**                  | 論理否定演算子                                                                | 1               |
+| **Exists(x)**           |  x ファイルが存在すれば True                                                  | 1               |
+| **HasTrailingSlash(x)** | x がスラッシュまたはバックスラッシュで終われば True                                   | 1               |
+| **x == y**              | 2 つのアトムが等しいかをテストします (大文字、小文字は区別しない)                            | 2               |
+| **x != y**              | 2 つのアトムが等しくないかをテストします (大文字、小文字は区別しない)                          | 2               |
+| **x < y**               | 整数 x が整数 y よりも小さいかを比較します                  | 2               |
+| **x <= y**              | 整数 x が整数 y 以下であるかを比較します      | 2               |
+| **x > y**               | 整数 x が整数 y よりも大きいかを比較します               | 2               |
+| **x >= y**              | 整数 x が整数 y 以上であるかを比較します   | 2               |
+| **x and y**             | 両方の引数が `true` である場合に true になります。                                          | 3               |
+| **x or y**              | いずれかの引数が `true` である場合に true になります。                                          | 4               |
 
 [REGION:note]
-The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML (referencing [XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd])).
+`'<'` および `'>'` の文字は、XML ([XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd]) を参照) では `"&lt;"` および `"&gt;"` としてエスケープしなければなりません。
 [/REGION]
 
 [/EXCERPT:BuildGraphScriptConditions]
-
-<!--
-[EXCERPT:OperatorTable]
-| **Operator**            | **Description**                                                             | **Precedence**  |
-| ----------------------- | --------------------------------------------------------------------------- | --------------- |
-| **(x)**                 | Subexpression                                                               | 1               |
-| **!x**                  | Not operator                                                                | 1               |
-| **Exists(x)**           | True if the x file exists.                                                  | 1               |
-| **HasTrailingSlash(x)** | True if x ends with a slash or backslash.                                   | 1               |
-| **x == y**              | Tests two atoms for equality (case insensitive).                            | 2               |
-| **x != y**              | Tests two atoms for inequality (case insensitive).                          | 2               |
-| **x < y**               | Compares whether the integer x is less than the integer y.                  | 2               |
-| **x <= y**              | Compares whether the integer x is less than or equal to the integer y.      | 2               |
-| **x > y**               | Compares whether the integer x is greater than the integer y.               | 2               |
-| **x >= y**              | Compares whether the integer x is greater than or equal to the integer y.   | 2               |
-| **x and y**             | True if both arguments are `true`.                                          | 3               |
-| **x or y**              | True if either argument is `true`.                                          | 4               |
-[/EXCERPT:OperatorTable]
--->
