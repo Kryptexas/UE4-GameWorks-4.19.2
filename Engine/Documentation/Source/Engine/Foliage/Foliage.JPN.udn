@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038838
+﻿INTSourceChangelist:3091866
 Availability:Public
 Title:フォリッジ インスタンス化メッシュ
 Crumbs:%ROOT%, Engine
@@ -186,6 +186,11 @@ Paint ツールは フォリッジ編集モードのデフォルトのツール�
 
 **ブラシの領域からフォリッジを消去する方法**  
 * **Shift** と **マウスの左ボタン** を押しながら、フォリッジを削除したい場所を **クリック** します。
+
+
+[REGION:tip]
+フォリッジのペイントは、 VR エディタでも機能します。VR でのフォリッジのペイントの制御については、[](Engine/Editor/VR/Controls) をご覧ください。
+[/REGION]
 
 ### ペイントの設定項目
 
