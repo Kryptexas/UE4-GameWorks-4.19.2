@@ -48,6 +48,7 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 	, EnabledState(ENodeEnabledState::Enabled)
 	, bUserSetEnabledState(false)
 	, bIsNodeEnabled_DEPRECATED(true)
+	, bAllowSplitPins_DEPRECATED(false)
 {
 
 #if WITH_EDITORONLY_DATA

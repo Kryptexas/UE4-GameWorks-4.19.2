@@ -3153,28 +3153,60 @@ void FBlueprintEditor::Compile()
 		// Decide if we want an instrumented compile.
 		const bool bProfilerAvailable = IsProfilerAvailable();
 		bool bAddInstrumentation = false;
-	    if (bProfilerAvailable)
-	    {
-		    if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
-		    {
-			    IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-			    bAddInstrumentation = ProfilerModule.IsProfilerEnabled();
-		    }
+		if (bProfilerAvailable)
+		{
+			if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+			{
+				IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+				bAddInstrumentation = ProfilerModule.IsProfilerEnabled();
+			}
 		}
 
-		FCompilerResultsLog LogResults;
-		LogResults.BeginEvent(TEXT("Compile"));
-		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
-		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, bSaveIntermediateBuildProducts, &LogResults, false, false, bAddInstrumentation);
+		TSharedRef<FCompilerResultsLog> LogResults(new FCompilerResultsLog());
+		LogResults->BeginEvent(TEXT("Compile"));
+		LogResults->bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
+		LogResults->EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
 
-		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
-		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
+		{
+			struct FParentCompiler
+			{
+				static void CompileParent(UClass* InParentClass, TWeakPtr<FKismetEditorUtilities::FCustomCompilationSettingsMap> InCustomCompilationSettingsMap)
+				{
+					UBlueprint* BP = UBlueprint::GetBlueprintFromClass(InParentClass);
+					if (BP)
+					{
+						CompileParent(BP->ParentClass, InCustomCompilationSettingsMap);
+
+						if (BP->IsPossiblyDirty())
+						{
+							FKismetEditorUtilities::CompileBlueprint(BP, false, false, false, false, InCustomCompilationSettingsMap);
+						}
+					}
+				}
+			};
+
+			FKismetEditorUtilities::FCustomCompilationSetting CustomCompilationSetting;
+			CustomCompilationSetting.bAddInstrumentation = bAddInstrumentation;
+			CustomCompilationSetting.bSaveIntermediateBuildProducts = bSaveIntermediateBuildProducts;
+			CustomCompilationSetting.LogResults = TWeakPtr<FCompilerResultsLog>(LogResults);
+
+			TSharedRef<FKismetEditorUtilities::FCustomCompilationSettingsMap> CustomCompilationSettingsMap = MakeShareable(new FKismetEditorUtilities::FCustomCompilationSettingsMap());
+			CustomCompilationSettingsMap->AddSettings(BlueprintObj, CustomCompilationSetting);
+
+			FParentCompiler::CompileParent(BlueprintObj->ParentClass, CustomCompilationSettingsMap);
+			if (!CustomCompilationSettingsMap->WasBPCompiledWithCustomSettings(BlueprintObj))
+			{
+				FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, false, false, CustomCompilationSettingsMap);
+			}
+		}
+
+		bool bForceMessageDisplay = ((LogResults->NumWarnings > 0) || (LogResults->NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
+		DumpMessagesToCompilerLog(LogResults->Messages, bForceMessageDisplay);
 
 		UBlueprintEditorSettings const* BpEditorSettings = GetDefault<UBlueprintEditorSettings>();
-		if ((LogResults.NumErrors > 0) && BpEditorSettings->bJumpToNodeErrors)
+		if ((LogResults->NumErrors > 0) && BpEditorSettings->bJumpToNodeErrors)
 		{
-			if (UEdGraphNode* NodeWithError = BlueprintEditorImpl::FindNodeWithError(LogResults))
+			if (UEdGraphNode* NodeWithError = BlueprintEditorImpl::FindNodeWithError(*LogResults))
 			{
 				JumpToNode(NodeWithError, /*bRequestRename =*/false);
 			}
@@ -3187,7 +3219,7 @@ void FBlueprintEditor::Compile()
 
 		AppendExtraCompilerResults(CompilerResultsListing);
 
-		LogResults.EndEvent();
+		LogResults->EndEvent();
 
 	    // Update the blueprint instrumenation state and show the profiler window if required
 	    if (bProfilerAvailable)
@@ -3210,7 +3242,7 @@ void FBlueprintEditor::Compile()
 
 		// send record when player clicks compile and send the result
 		// this will make sure how the users activity is
-		AnalyticsTrackCompileEvent(BlueprintObj, LogResults.NumErrors, LogResults.NumWarnings);
+		AnalyticsTrackCompileEvent(BlueprintObj, LogResults->NumErrors, LogResults->NumWarnings);
 	}
 }
 

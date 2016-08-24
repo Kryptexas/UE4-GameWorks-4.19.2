@@ -18,6 +18,7 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
+	virtual bool CanSplitPin(const UEdGraphPin* Pin) const override;
 	//~ End  UEdGraphNode Interface
 
 	//~ Begin K2Node Interface

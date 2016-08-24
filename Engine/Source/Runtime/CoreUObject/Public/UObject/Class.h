@@ -340,7 +340,7 @@ public:
 	virtual void DestroyStruct(void* Dest, int32 ArrayDim = 1) const;
 
 #if WITH_EDITOR
-private:
+public:
 	virtual UProperty* CustomFindProperty(const FName InName) const { return NULL; };
 #endif // WITH_EDITOR
 public:

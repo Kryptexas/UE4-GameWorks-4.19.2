@@ -176,6 +176,9 @@ protected:
 	/** Create the custom heat thresholds combo menu content */
 	TSharedRef<SWidget> CreateCustomHeatThresholdsMenuContent();
 
+	/** Save custom heat thresholds on combo close */
+	void SaveCustomHeatThresholds(bool bIsOpened);
+
 private:
 	/** Custom performance thresholds */
 	enum ECustomPerformanceThreshold
@@ -217,4 +220,7 @@ protected:
 
 	/** Custom heat threshold combo button widget */
 	TSharedPtr<SComboButton> CustomHeatThresholdComboButton;
+
+	/** Settings dirty flag */
+	bool bSettingsDirty;
 };

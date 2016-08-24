@@ -343,21 +343,24 @@ void FBPProfilerStatWidget::GenerateSimpleTunnelWidgets(TSharedPtr<FScriptExecut
 		// Filter out events based on graph
 		if (!DisplayOptions->IsFiltered(EntryPoint) && !EntryPoint->IsPureChain())
 		{
-			TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
-			EntryPoint->GetLinearExecutionPath(LinearExecNodes, WidgetTracePath, true);
-			TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
-			for (auto LinearPathIter : LinearExecNodes)
+			for (auto EntryPointChild : EntryPoint->GetChildNodes())
 			{
-				const bool bInternalTunnelBoundary = TunnelEntryNode->IsInternalBoundary(LinearPathIter.LinkedNode);
-				const bool bPureChain = LinearPathIter.LinkedNode->IsPureChain();
-				if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode) && !bPureChain && !bInternalTunnelBoundary)
+				TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
+				EntryPointChild->GetLinearExecutionPath(LinearExecNodes, WidgetTracePath, false);
+				TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
+				for (auto LinearPathIter : LinearExecNodes)
 				{
-					TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
-					NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
-					CachedChildren.Add(NewLinkedNode);
-					if (LinearPathIter.LinkedNode->HasFlags(EScriptExecutionNodeFlags::Container))
+					const bool bInternalTunnelBoundary = TunnelEntryNode->IsInternalBoundary(LinearPathIter.LinkedNode);
+					const bool bPureChain = LinearPathIter.LinkedNode->IsPureChain();
+					if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode) && !bPureChain && !bInternalTunnelBoundary)
 					{
-						ChildContainer = NewLinkedNode;
+						TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
+						NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
+						CachedChildren.Add(NewLinkedNode);
+						if (LinearPathIter.LinkedNode->HasFlags(EScriptExecutionNodeFlags::Container))
+						{
+							ChildContainer = NewLinkedNode;
+						}
 					}
 				}
 			}

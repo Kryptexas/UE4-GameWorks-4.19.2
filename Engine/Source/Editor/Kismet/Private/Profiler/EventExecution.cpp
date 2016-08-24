@@ -1090,9 +1090,9 @@ void FScriptExecutionBlueprint::UpdateHeatLevelMetrics(TSharedPtr<FScriptPerfDat
 			const double MaxTiming = BlueprintData->GetMaxTiming();
 			const double TotalTiming = BlueprintData->GetTotalTiming();
 
-			HeatLevelMetrics->AveragePerformanceThreshold = AverageTiming > 0.0f ? 1.0f / AverageTiming : 0.0f;
+			HeatLevelMetrics->AveragePerformanceThreshold	= AverageTiming > 0.0f ? 1.0f / AverageTiming : 0.0f;
 			HeatLevelMetrics->InclusivePerformanceThreshold = InclusiveTiming > 0.0f ? 1.0f / InclusiveTiming : 0.0f;
-			HeatLevelMetrics->MaxPerformanceThreshold = MaxTiming > 0.0f ? 1.0f / MaxTiming : 0.0f;
+			HeatLevelMetrics->MaxPerformanceThreshold		= MaxTiming > 0.0f ? 1.0f / MaxTiming : 0.0f;
 			HeatLevelMetrics->TotalTimePerformanceThreshold = TotalTiming > 0.0f ? 1.0f / TotalTiming : 0.0f;
 		}
 		else
@@ -1123,10 +1123,10 @@ void FScriptExecutionBlueprint::UpdateHeatLevelMetrics(TSharedPtr<FScriptPerfDat
 	case EBlueprintProfilerHeatLevelMetricsType::CustomThresholds:
 	default:
 	{
-		HeatLevelMetrics->EventPerformanceThreshold = ProfilerSettings->CustomEventPerformanceThreshold;
-		HeatLevelMetrics->AveragePerformanceThreshold = ProfilerSettings->CustomAveragePerformanceThreshold;
-		HeatLevelMetrics->InclusivePerformanceThreshold = ProfilerSettings->CustomInclusivePerformanceThreshold;
-		HeatLevelMetrics->MaxPerformanceThreshold = ProfilerSettings->CustomMaxPerformanceThreshold;
+		HeatLevelMetrics->EventPerformanceThreshold		= 1.f / ProfilerSettings->CustomEventPerformanceThreshold;
+		HeatLevelMetrics->AveragePerformanceThreshold	= 1.f / ProfilerSettings->CustomAveragePerformanceThreshold;
+		HeatLevelMetrics->InclusivePerformanceThreshold = 1.f / ProfilerSettings->CustomInclusivePerformanceThreshold;
+		HeatLevelMetrics->MaxPerformanceThreshold		= 1.f / ProfilerSettings->CustomMaxPerformanceThreshold;
 		HeatLevelMetrics->bUseTotalTimeWaterMark = true;
 		HeatLevelMetrics->TotalTimePerformanceThreshold = 0.0f;	// not used for this type
 	}

@@ -1566,16 +1566,17 @@ public:
 			uint8 EventType = 0;
 			switch (Statement.Type)
 			{
-			case KCST_InstrumentedEvent:			EventType = EScriptInstrumentation::InlineEvent; break;
-			case KCST_InstrumentedEventStop:		EventType = EScriptInstrumentation::Stop; break;
-			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
-			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
-			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
-			case KCST_InstrumentedStatePush:		EventType = EScriptInstrumentation::PushState; break;
-			case KCST_InstrumentedStateRestore:		EventType = EScriptInstrumentation::RestoreState; break;
-			case KCST_InstrumentedStateReset:		EventType = EScriptInstrumentation::ResetState; break;
-			case KCST_InstrumentedStateSuspend:		EventType = EScriptInstrumentation::SuspendState; break;
-			case KCST_InstrumentedStatePop:			EventType = EScriptInstrumentation::PopState; break;
+			case KCST_InstrumentedEvent:				EventType = EScriptInstrumentation::InlineEvent; break;
+			case KCST_InstrumentedEventStop:			EventType = EScriptInstrumentation::Stop; break;
+			case KCST_InstrumentedWireExit:				EventType = EScriptInstrumentation::NodeExit; break;
+			case KCST_InstrumentedWireEntry:			EventType = EScriptInstrumentation::NodeEntry; break;
+			case KCST_InstrumentedPureNodeEntry:		EventType = EScriptInstrumentation::PureNodeEntry; break;
+			case KCST_InstrumentedStatePush:			EventType = EScriptInstrumentation::PushState; break;
+			case KCST_InstrumentedStateRestore:			EventType = EScriptInstrumentation::RestoreState; break;
+			case KCST_InstrumentedStateReset:			EventType = EScriptInstrumentation::ResetState; break;
+			case KCST_InstrumentedStateSuspend:			EventType = EScriptInstrumentation::SuspendState; break;
+			case KCST_InstrumentedStatePop:				EventType = EScriptInstrumentation::PopState; break;
+			case KCST_InstrumentedTunnelEndOfThread:	EventType = EScriptInstrumentation::TunnelEndOfThread; break;
 			}
 			Writer << EX_InstrumentationEvent;
 			Writer << EventType;
@@ -1814,6 +1815,7 @@ public:
 		case KCST_InstrumentedStatePop:
 		case KCST_InstrumentedStateRestore:
 		case KCST_InstrumentedPureNodeEntry:
+		case KCST_InstrumentedTunnelEndOfThread:
 			EmitInstrumentation(CompilerContext, FunctionContext, Statement, SourceNode);
 			break;
 		case KCST_ArrayGetByRef:

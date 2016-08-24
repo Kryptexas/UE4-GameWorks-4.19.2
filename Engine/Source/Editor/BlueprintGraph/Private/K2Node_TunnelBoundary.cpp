@@ -18,7 +18,26 @@ public:
 
 	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
-		GenerateSimpleThenGoto(Context, *Node);
+		if (UK2Node_TunnelBoundary* BoundaryNode = Cast<UK2Node_TunnelBoundary>(Node))
+		{
+			switch(BoundaryNode->TunnelBoundaryType)
+			{
+				case TBT_EntrySite:
+				case TBT_ExitSite:
+				{
+					GenerateSimpleThenGoto(Context, *Node);
+					break;
+				}
+				case TBT_EndOfThread:
+				{
+					FBlueprintCompiledStatement& ExitTunnelStatement = Context.AppendStatementForNode(Node);
+					ExitTunnelStatement.Type = KCST_InstrumentedTunnelEndOfThread;
+					FBlueprintCompiledStatement& EOTStatement = Context.AppendStatementForNode(Node);
+					EOTStatement.Type = KCST_EndOfThread;
+					break;
+				}
+			}
+		}
 	}
 
 };
@@ -28,7 +47,7 @@ public:
 
 UK2Node_TunnelBoundary::UK2Node_TunnelBoundary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bEntryNode(false)
+	, TunnelBoundaryType(TBT_Unknown)
 {
 	return;
 }
@@ -37,7 +56,24 @@ FText UK2Node_TunnelBoundary::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("GraphName"), FText::FromName(TunnelGraphName));
-	Args.Add(TEXT("EntryType"), bEntryNode ? FText::FromString(TEXT("Tunnel Entry")) : FText::FromString(TEXT("Tunnel Exit")));
+	switch(TunnelBoundaryType)
+	{
+		case TBT_EntrySite:
+		{
+			Args.Add(TEXT("EntryType"), FText::FromString(TEXT("Tunnel Entry")));
+			break;
+		}
+		case TBT_ExitSite:
+		{
+			Args.Add(TEXT("EntryType"), FText::FromString(TEXT("Tunnel Exit")));
+			break;
+		}
+		case TBT_EndOfThread:
+		{
+			Args.Add(TEXT("EntryType"), FText::FromString(TEXT("Tunnel End Of Thread")));
+			break;
+		}
+	}
 	return FText::Format(LOCTEXT("UK2Node_TunnelBoundary_FullTitle", "{GraphName} {EntryType}"), Args);
 }
 
@@ -59,6 +95,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 {
 	TArray<UEdGraphPin*> TunnelEntryPins;
 	TArray<UEdGraphPin*> TunnelExitPins;
+	UEdGraphNode* TunnelExitNode = nullptr;
 	if (TunnelGraph)
 	{
 		TArray<UK2Node_Tunnel*> Tunnels;
@@ -77,6 +114,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 						}
 						else
 						{
+							TunnelExitNode = TunnelNode;
 							TunnelExitPins.Add(Pin);
 						}
 					}
@@ -88,6 +126,8 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 	UEdGraphNode* SourceTunnelInstance = Cast<UEdGraphNode>(MessageLog.FindSourceObject(TunnelInstance));
 	SourceTunnelInstance = FindTrueSourceTunnelInstance(TunnelInstance, SourceTunnelInstance);
 	// Create the Boundary nodes for each unique entry/exit site.
+	TArray<UEdGraphPin*> ExecutionEndpointPins;
+	TArray<UEdGraphPin*> VisitedPins;
 	for (UEdGraphPin* EntryPin : TunnelEntryPins)
 	{
 		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
@@ -95,6 +135,26 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 		TunnelBoundaryNode->CreateNewGuid();
 		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
 		TunnelBoundaryNode->WireUpTunnelEntry(TunnelInstance, EntryPin, MessageLog);
+		for (auto LinkedPin : EntryPin->LinkedTo)
+		{
+			FindTunnelExitSiteInstances(LinkedPin, ExecutionEndpointPins, VisitedPins, TunnelExitNode);
+		}
+	}
+	if (ExecutionEndpointPins.Num())
+	{
+		// Create boundary node.
+		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
+		TunnelBoundaryNode->CreateNewGuid();
+		TunnelBoundaryNode->TunnelBoundaryType = TBT_EndOfThread;
+		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
+		// Create exit point pin
+		UEdGraphPin* BoundaryTerminalPin = TunnelBoundaryNode->CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, TEXT(""), NULL, false, false, TEXT("TunnelEndOfThread"));
+		// Wire up the endpoint unwired links to the boundary node.
+		for (UEdGraphPin* TerminationPin : ExecutionEndpointPins)
+		{
+			TerminationPin->MakeLinkTo(BoundaryTerminalPin);
+		}
 	}
 	for (UEdGraphPin* ExitPin : TunnelExitPins)
 	{
@@ -133,7 +193,7 @@ void UK2Node_TunnelBoundary::WireUpTunnelEntry(UK2Node_Tunnel* TunnelInstance, U
 	if (TunnelInstance && TunnelPin)
 	{
 		// Mark as entry node
-		bEntryNode = true;
+		TunnelBoundaryType = TBT_EntrySite;
 		// Grab the graph name
 		DetermineTunnelGraphName(TunnelInstance);
 		// Find the true source pin
@@ -156,7 +216,7 @@ void UK2Node_TunnelBoundary::WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UE
 	if (TunnelInstance && TunnelPin)
 	{
 		// Mark as exit node
-		bEntryNode = false;
+		TunnelBoundaryType = TBT_ExitSite;
 		// Grab the graph name
 		DetermineTunnelGraphName(TunnelInstance);
 		// Find the true source pin
@@ -250,6 +310,68 @@ UEdGraphNode* UK2Node_TunnelBoundary::FindTrueSourceTunnelInstance(UEdGraphNode*
 		}
 	}
 	return SourceNode;
+}
+
+void UK2Node_TunnelBoundary::FindTunnelExitSiteInstances(UEdGraphPin* NodeEntryPin, TArray<UEdGraphPin*>& ExitPins, TArray<UEdGraphPin*>& VisitedPins, const UEdGraphNode* TunnelExitNode)
+{
+	UEdGraphNode* PinNode = NodeEntryPin->GetOwningNode();
+
+	// Grab pin node
+	if (PinNode != nullptr && PinNode != TunnelExitNode && !VisitedPins.Contains(NodeEntryPin))
+	{
+		VisitedPins.Push(NodeEntryPin);
+
+		// Find all exec out pins
+		TArray<UEdGraphPin*> ExecPins;
+		TArray<UEdGraphPin*> ConnectedExecPins;
+		for (auto Pin : PinNode->Pins)
+		{
+			if (Pin->Direction == EGPD_Output && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+			{
+				ExecPins.Add(Pin);
+				if (Pin->LinkedTo.Num() > 0)
+				{
+					ConnectedExecPins.Add(Pin);
+				}
+			}
+		}
+		if (ConnectedExecPins.Num() > 1)
+		{
+//			if (FEdGraphUtilities::IsExecutionSequence(PinNode))
+			if (PinNode->IsA<UK2Node_ExecutionSequence>())
+			{
+				// Execution sequence style nodes, follow the last connected pin
+				for (auto LinkedPin : ConnectedExecPins.Last()->LinkedTo)
+				{
+					FindTunnelExitSiteInstances(LinkedPin, ExitPins, VisitedPins);
+				}
+			}
+			else
+			{
+				// Branch style nodes, more tricky
+				for (auto ExecPin : ConnectedExecPins)
+				{
+					for (auto LinkedPin : ExecPin->LinkedTo)
+					{
+						FindTunnelExitSiteInstances(LinkedPin, ExitPins, VisitedPins);
+					}
+				}
+			}
+		}
+		else if (ConnectedExecPins.Num() == 1)
+		{
+			for (auto LinkedPin : ConnectedExecPins[0]->LinkedTo)
+			{
+				FindTunnelExitSiteInstances(LinkedPin, ExitPins, VisitedPins);
+			}
+		}
+		else if (ExecPins.Num() > 0)
+		{
+			ExitPins.Add(ExecPins.Last());
+		}
+
+		VisitedPins.Pop(false);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

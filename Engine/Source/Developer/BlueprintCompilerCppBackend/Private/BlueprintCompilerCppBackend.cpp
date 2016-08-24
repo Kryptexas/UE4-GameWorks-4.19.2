@@ -709,6 +709,10 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			{
 				Result += TEXT("Super::");
 			}
+			else if (!bUnconvertedClass && !bStaticCall && FunctionOwner && !OwnerBPGC && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Final))
+			{
+				Result += FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(FunctionOwner));
+			}
 			Result += FunctionToCallOriginalName;
 
 			if (bIsCustomThunk)

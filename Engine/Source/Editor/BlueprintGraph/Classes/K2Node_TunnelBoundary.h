@@ -4,6 +4,14 @@
 #include "K2Node.h"
 #include "K2Node_TunnelBoundary.generated.h"
 
+enum ETunnelBoundaryType
+{
+	TBT_Unknown = 0,
+	TBT_EntrySite,
+	TBT_ExitSite,
+	TBT_EndOfThread
+};
+
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_TunnelBoundary : public UK2Node
 {
@@ -18,7 +26,7 @@ class BLUEPRINTGRAPH_API UK2Node_TunnelBoundary : public UK2Node
 	FEdGraphPinReference FinalExitSite;
 
 	/** Wether or not this is an exit point */
-	bool bEntryNode;
+	ETunnelBoundaryType TunnelBoundaryType;
 
 public:
 
@@ -52,4 +60,8 @@ protected:
 
 	/** Determines the true source tunnel instance */
 	static UEdGraphNode* FindTrueSourceTunnelInstance(UEdGraphNode* Tunnel, UEdGraphNode* SourceTunnelInstance);
+
+	/** Tries to map and locate tunnel exit or termination sites */
+	static void FindTunnelExitSiteInstances(UEdGraphPin* NodeEntryPin, TArray<UEdGraphPin*>& ExitPins, TArray<UEdGraphPin*>& VisitedPins, const UEdGraphNode* TunnelExit = nullptr);
+
 };

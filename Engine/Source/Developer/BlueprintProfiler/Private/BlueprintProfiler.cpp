@@ -165,7 +165,7 @@ void FBlueprintProfiler::Tick(float DeltaSeconds)
 
 bool FBlueprintProfiler::IsTickable() const
 {
-	return InstrumentationEventQueue.Num() > 0;
+	return GetDefault<UBlueprintProfilerSettings>()->GetPerformanceThresholdsModified() || InstrumentationEventQueue.Num() > 0;
 }
 
 void FBlueprintProfiler::ProcessEventProfilingData()
@@ -341,6 +341,16 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 				}
 				break;
 			}
+		}
+	}
+	// Update all active contexts if the display settings changed.
+	if (GetDefault<UBlueprintProfilerSettings>()->GetPerformanceThresholdsModified())
+	{
+		GetMutableDefault<UBlueprintProfilerSettings>()->SetPerformanceThresholdsModified(false);
+
+		for (auto Context : PathToBlueprintContext)
+		{
+			DirtyContexts.Add(Context.Value);
 		}
 	}
 	// Update dirty contexts

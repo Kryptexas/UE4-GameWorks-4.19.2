@@ -905,6 +905,9 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 				case EScriptInstrumentation::PopState:
 					Ar.Logf(TEXT("%s $%X: .. pop execution state .."), *Indents, (int32)Opcode);
 					break;
+				case EScriptInstrumentation::TunnelEndOfThread:
+					Ar.Logf(TEXT("%s $%X: .. tunnel end of thread .."), *Indents, (int32)Opcode);
+					break;
 			}
 			break;
 		}

@@ -25,6 +25,7 @@ static const uint32 MaxArrayPinTooltipLineCount = 10;
 UK2Node::UK2Node(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bAllowSplitPins_DEPRECATED = true;
 }
 
 void UK2Node::PostLoad()
@@ -740,9 +741,16 @@ void UK2Node::DestroyPinList(TArray<UEdGraphPin*>& InPins)
 	}
 }
 
-bool UK2Node::AllowSplitPins() const
+bool UK2Node::CanSplitPin(const UEdGraphPin* Pin) const
 {
-	return true;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	// AllowSplitPins is deprecated. Remove this block when that function is eventually removed.
+	if (AllowSplitPins())
+	{
+		return (Pin->GetOwningNode() == this && !Pin->bNotConnectable && Pin->LinkedTo.Num() == 0 && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct);
+	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	return false;
 }
 
 void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)

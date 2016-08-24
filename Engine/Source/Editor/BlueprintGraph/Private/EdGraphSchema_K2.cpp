@@ -984,24 +984,6 @@ void UEdGraphSchema_K2::MarkFunctionEntryAsEditable(const UEdGraph* CurrentGraph
 	}
 }
 
-void UEdGraphSchema_K2::ListFunctionsMatchingSignatureAsDelegates(FGraphContextMenuBuilder& ContextMenuBuilder, const UClass* Class, const UFunction* SignatureToMatch) const
-{
-	check(Class);
-
-	for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
-	{
-		const UFunction* TrialFunction = *FunctionIt;
-		if (CanUserKismetCallFunction(TrialFunction) && TrialFunction->IsSignatureCompatibleWith(SignatureToMatch))
-		{
-			FString Description(TrialFunction->GetName());
-			FString Tooltip = FString::Printf(TEXT("Existing function '%s' as delegate"), *(TrialFunction->GetName())); //@TODO: Need a better tooltip
-
-			// @TODO
-		}
-	}
-
-}
-
 bool UEdGraphSchema_K2::IsActorValidForLevelScriptRefs(const AActor* TestActor, const UBlueprint* Blueprint) const
 {
 	check(Blueprint);
@@ -1401,7 +1383,7 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					}
 				}
 	
-				if (InGraphPin->PinType.PinCategory == PC_Struct && InGraphNode->AllowSplitPins())
+				if (InGraphPin->PinType.PinCategory == PC_Struct && InGraphNode->CanSplitPin(InGraphPin))
 				{
 					// If the pin cannot be split, create an error tooltip to use
 					FText Tooltip;
@@ -4686,7 +4668,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 
 bool UEdGraphSchema_K2::CanSplitStructPin( const UEdGraphPin& Pin ) const
 {
-	return (!Pin.bNotConnectable && Pin.LinkedTo.Num() == 0 && PinHasSplittableStructType(&Pin) && Pin.GetOwningNode()->AllowSplitPins());
+	return Pin.GetOwningNode()->CanSplitPin(&Pin) && PinHasSplittableStructType(&Pin);
 }
 
 bool UEdGraphSchema_K2::CanRecombineStructPin( const UEdGraphPin& Pin ) const
@@ -5656,13 +5638,19 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				{
 					PreExistingNode = FBlueprintEditorUtils::FindCustomEventNode(Blueprint, EventNode->CustomFunctionName);
 				}
-				else if (ensure(EventNode->FindEventSignatureFunction() != nullptr))
+				else
 				{
-					// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
-					// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
-					UClass* ClassOwner = EventNode->FindEventSignatureFunction()->GetOwnerClass()->GetAuthoritativeClass();
-
-					PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventNode->FindEventSignatureFunction()->GetFName());
+					UFunction* EventSignature = EventNode->FindEventSignatureFunction();
+					if (ensure(EventSignature))
+					{
+						// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
+						// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
+						UClass* ClassOwner = EventSignature->GetOwnerClass();
+						if (ensureMsgf(ClassOwner, TEXT("Wrong class owner of signature %s in node %s"), *GetPathNameSafe(EventSignature), *GetPathNameSafe(EventNode)))
+						{
+							PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner->GetAuthoritativeClass(), EventSignature->GetFName());
+						}
+					}
 				}
 			}
 

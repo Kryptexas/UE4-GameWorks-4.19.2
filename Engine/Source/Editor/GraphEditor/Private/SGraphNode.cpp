@@ -850,19 +850,7 @@ void SGraphNode::UpdateGraphNode()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
 					[
-						SNew(SOverlay)
-						+SOverlay::Slot()
-						.VAlign(VAlign_Fill)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("Graph.Node.IndicatorOverlay"))
-							.Visibility(this, &SGraphNode::GetNodeIndicatorOverlayVisibility)
-							.ColorAndOpacity(this, &SGraphNode::GetNodeIndicatorOverlayColor)
-						]
-						+SOverlay::Slot()
-						[
-							CreateNodeContentArea()
-						]
+						CreateNodeContentArea()
 					]
 
 					+SVerticalBox::Slot()

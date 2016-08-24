@@ -316,6 +316,7 @@ namespace EScriptInstrumentation
 		ResetState,
 		SuspendState,
 		PopState,
+		TunnelEndOfThread,
 		Stop
 	};
 }

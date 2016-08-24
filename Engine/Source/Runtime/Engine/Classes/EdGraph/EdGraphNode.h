@@ -261,7 +261,16 @@ public:
 	virtual bool ShouldOverridePinNames() const { return false; }
 
 	/** Whether or not struct pins belonging to this node should be allowed to be split or not. */
-	virtual bool AllowSplitPins() const { return false; }
+	DEPRECATED(4.14, "Please call CanSplitPin and provide the specific Pin to split.")
+	virtual bool AllowSplitPins() const { return bAllowSplitPins_DEPRECATED; }
+
+	/** Whether or not struct pins belonging to this node should be allowed to be split or not. */
+	virtual bool CanSplitPin(const UEdGraphPin* Pin) const 
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		return AllowSplitPins();
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
 
 	/** Gets the overridden name for the specified pin, if any */
 	virtual FText GetPinNameOverride(const UEdGraphPin& Pin) const { return FText::GetEmpty(); }
@@ -520,6 +529,10 @@ public:
 	void AddNodeUpgradeNote(FText InUpgradeNote);
 #endif // WITH_EDITOR
 
+protected:
+
+	/** (DEPRECATED) Value used for AllowSplitPins(). Do not override. */
+	bool bAllowSplitPins_DEPRECATED;
 };
 
 

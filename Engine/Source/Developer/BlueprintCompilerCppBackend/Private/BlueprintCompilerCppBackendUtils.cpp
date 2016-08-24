@@ -981,7 +981,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			if (bEmptyCustomValue)
 			{
 				// The local variable is created to fix: "fatal error C1001: An internal error has occurred in the compiler."
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;"), *LocalStructNativeName, *StructName,
+				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;"), *LocalStructNativeName, *StructName, 
 					StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : FEmitHelper::EmptyDefaultConstructor(StructType)));
 			}
 			else

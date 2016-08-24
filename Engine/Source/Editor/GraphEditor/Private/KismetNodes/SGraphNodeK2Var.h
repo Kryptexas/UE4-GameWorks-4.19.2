@@ -13,6 +13,7 @@ public:
 	void Construct( const FArguments& InArgs, UK2Node* InNode );
 
 	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
+	virtual const FSlateBrush* GetProfilerHeatmapBrush() const override;
 
 	// SGraphNode interface
 	virtual void UpdateGraphNode() override;

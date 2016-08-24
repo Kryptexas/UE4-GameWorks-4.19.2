@@ -50,7 +50,9 @@ public class Kismet : ModuleRules
 				"DesktopPlatform",
 				"HotReload",
                 "BlueprintNativeCodeGen",
-                "BlueprintProfiler"
+                "BlueprintProfiler",
+                "UMGEditor",
+                "UMG" // for SBlueprintDiff
 			}
 			);
 
@@ -67,6 +69,7 @@ public class Kismet : ModuleRules
         CircularlyReferencedDependentModules.AddRange(
             new string[] {
                 "BlueprintGraph",
+                "UMGEditor",
             }
         ); 
 	}

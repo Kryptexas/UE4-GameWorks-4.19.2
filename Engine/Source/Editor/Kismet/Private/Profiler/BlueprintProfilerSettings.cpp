@@ -17,13 +17,14 @@ UBlueprintProfilerSettings::UBlueprintProfilerSettings(const FObjectInitializer&
 	, bDisplayPure(true)
 	, bDisplayInheritedEvents(true)
 	, bAverageBlueprintStats(true)
-	, GraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
+	, GraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Average)
 	, WireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
 	, HeatLevelMetricsType(EBlueprintProfilerHeatLevelMetricsType::ClassRelative)
 	, CustomEventPerformanceThreshold(CustomEventPerformanceThresholdDefaultValue)
 	, CustomAveragePerformanceThreshold(CustomAveragePerformanceThresholdDefaultValue)
 	, CustomInclusivePerformanceThreshold(CustomInclusivePerformanceThresholdDefaultValue)
 	, CustomMaxPerformanceThreshold(CustomMaxPerformanceThresholdDefaultValue)
+	, bThresholdsModified(false)
 {
 	FScriptPerfData::EnableBlueprintStatAverage(bAverageBlueprintStats);
 }

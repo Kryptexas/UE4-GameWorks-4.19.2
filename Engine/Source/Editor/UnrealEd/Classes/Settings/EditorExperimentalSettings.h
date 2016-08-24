@@ -63,14 +63,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
 	bool bBlueprintPerformanceAnalysisTools;
 
-	/** Enables the visual diff tool for widget blueprints. WARNING: changes to the widget hierarchy will not be detected */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use the Diff Tool for Widget Blueprints"))
-	bool bEnableWidgetVisualDiff;
-
-	/** Enables the visual diff tool for anim blueprints. WARNING: changes to the Target Skeleton and Groups will not be detected */
-	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Use the Diff Tool for Animation Blueprints"))
-	bool bEnableAnimVisualDiff;
-
 	/** Enables "Find and Replace All" tool in the MyBlueprint window for variables */
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Find and Replace All References Tool"))
 	bool bEnableFindAndReplaceReferences;

@@ -816,8 +816,8 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 			--l;
 		}
 
-
-		UProperty* Property = FindField<UProperty>(ObjectStruct, Token);
+		const FName PropertyName(Token);
+		UProperty* Property = FindField<UProperty>(ObjectStruct, PropertyName);
 
 		if (Property == NULL)
 		{
@@ -825,12 +825,18 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 			const TMap<FName, FName>* const ClassTaggedPropertyRedirects = UStruct::TaggedPropertyRedirects.Find(ObjectStruct->GetFName());
 			if (ClassTaggedPropertyRedirects)
 			{
-				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(FName(Token));
+				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(PropertyName);
 				if (NewPropertyName)
 				{
 					Property = FindField<UProperty>(ObjectStruct, *NewPropertyName);
 				}
 			}
+#if WITH_EDITOR
+			if (!Property)
+			{
+				Property = ObjectStruct->CustomFindProperty(PropertyName);
+			}
+#endif	// WITH_EDITOR
 		}		
 
 		delete[] Token;

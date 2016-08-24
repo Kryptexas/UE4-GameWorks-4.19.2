@@ -1741,11 +1741,8 @@ struct FInternalPlayLevelUtils
 				FKismetEditorUtilities::CompileBlueprint(Blueprint,
 					/*bIsRegeneratingOnLoad =*/false,
 					/*bSkipGarbageCollection =*/true,
-					/*bSaveIntermediateProducts =*/false,
-					/*pResults =*/nullptr,
 					/*bSkeletonUpToDate =*/false,
-					/*bBatchCompile =*/false,
-					/*bAddInstrumentation =*/false);
+					/*bBatchCompile =*/false);
 
 				// Check for errors after compiling
 				for (auto CompiledIt = CompiledBlueprints.CreateIterator(); CompiledIt; ++CompiledIt)

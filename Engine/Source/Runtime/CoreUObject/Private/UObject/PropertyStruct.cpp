@@ -211,7 +211,7 @@ FString UStructProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("STRUCT");
 }
 
-void UStructProperty::UStructProperty_ExportTextItem(class UScriptStruct* InStruct, FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope)
+void UStructProperty::ExportTextItem_Static(class UScriptStruct* InStruct, FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope)
 {
 	int32 Count=0;
 
@@ -283,7 +283,7 @@ void UStructProperty::ExportTextItem( FString& ValueStr, const void* PropertyVal
 		return;
 	}
 
-	UStructProperty_ExportTextItem(Struct, ValueStr, PropertyValue, DefaultValue, Parent, PortFlags, ExportRootScope);
+	ExportTextItem_Static(Struct, ValueStr, PropertyValue, DefaultValue, Parent, PortFlags, ExportRootScope);
 } 
 
 const TCHAR* UStructProperty::ImportText_Internal(const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText) const

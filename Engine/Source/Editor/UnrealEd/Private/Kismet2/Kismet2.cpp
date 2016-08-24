@@ -706,10 +706,50 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 	return (TotalReferenceCount > NonUndoReferenceCount);
 }
 
-void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults, bool bSkeletonUpToDate, bool bBatchCompile, bool bAddInstrumentation)
+void FKismetEditorUtilities::FCustomCompilationSettingsMap::AddSettings(TWeakObjectPtr<UBlueprint> BP, FKismetEditorUtilities::FCustomCompilationSetting Setting)
+{
+	FDataPerBP Data;
+	Data.Setting = Setting;
+	CustomSettingsMap.Add(BP, Data);
+}
+
+bool FKismetEditorUtilities::FCustomCompilationSettingsMap::UseSettings(TWeakObjectPtr<UBlueprint> BP, bool bMarkAsCompiled, FKismetEditorUtilities::FCustomCompilationSetting& OutSetting)
+{
+	FDataPerBP* Data = CustomSettingsMap.Find(BP);
+	if (Data)
+	{
+		if (bMarkAsCompiled)
+		{
+			ensure(!Data->bWasBlueprintCompiledUsingTheSettings);
+			Data->bWasBlueprintCompiledUsingTheSettings = false;
+		}
+		OutSetting = Data->Setting;
+	}
+	return Data != nullptr;
+}
+
+bool FKismetEditorUtilities::FCustomCompilationSettingsMap::WasBPCompiledWithCustomSettings(TWeakObjectPtr<UBlueprint> BP)
+{
+	FDataPerBP* Data = CustomSettingsMap.Find(BP);
+	ensure(Data);
+	return Data && Data->bWasBlueprintCompiledUsingTheSettings;
+}
+
+void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj
+	, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSkeletonUpToDate, bool bBatchCompile
+	, TWeakPtr<FCustomCompilationSettingsMap> CustomCompilationSettingsMap)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileBlueprint);
+
+	FCustomCompilationSetting CustomCompilationSetting;
+	{
+		TSharedPtr<FCustomCompilationSettingsMap> CustomCompilationSettingsMapPinned = CustomCompilationSettingsMap.Pin();
+		if (CustomCompilationSettingsMapPinned.IsValid())
+		{
+			CustomCompilationSettingsMapPinned->UseSettings(BlueprintObj, true, CustomCompilationSetting);
+		}
+	}
 
 	// Wipe the PreCompile log, any generated messages are now irrelevant
 	BlueprintObj->PreCompileLog.Reset();
@@ -756,7 +796,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 
 	// Compile
 	FCompilerResultsLog LocalResults;
-	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
+	TSharedPtr<FCompilerResultsLog> LogResultsPinned = CustomCompilationSetting.LogResults.Pin();
+	FCompilerResultsLog& Results = LogResultsPinned.IsValid() ? *LogResultsPinned : LocalResults;
 
 	// Monitoring UE-20486, the OldClass->ClassGeneratedBy is NULL or otherwise not a UBlueprint.
 	if (OldClass && (OldClass->ClassGeneratedBy != BlueprintObj))
@@ -765,15 +806,16 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		OldClass->ClassGeneratedBy = BlueprintObj;
 	}
 	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(OldClass);
+	ReinstanceHelper->CustomCompilationSettingsMap = CustomCompilationSettingsMap;
 
 	// If enabled, suppress errors/warnings in the log if we're recompiling on load on a build machine
 	static const FBoolConfigValueHelper IgnoreCompileOnLoadErrorsOnBuildMachine(TEXT("Kismet"), TEXT("bIgnoreCompileOnLoadErrorsOnBuildMachine"), GEngineIni);
 	Results.bLogInfoOnly = BlueprintObj->bIsRegeneratingOnLoad && GIsBuildMachine && IgnoreCompileOnLoadErrorsOnBuildMachine;
 
 	FKismetCompilerOptions CompileOptions;
-	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
+	CompileOptions.bSaveIntermediateProducts = CustomCompilationSetting.bSaveIntermediateBuildProducts;
 	CompileOptions.bRegenerateSkelton = !bSkeletonUpToDate;
-	CompileOptions.bAddInstrumentation = bAddInstrumentation;
+	CompileOptions.bAddInstrumentation = CustomCompilationSetting.bAddInstrumentation;
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, ReinstanceHelper);
 
 	FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BlueprintObj);
@@ -859,6 +901,37 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		TArray<UBlueprint*> DependentBPs;
 		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
 
+		struct FBlueprintSorter
+		{
+			static int32 GetSortValue(const UBlueprint* InBlueprint)
+			{
+				int32 Result = 0;
+				if (InBlueprint)
+				{
+					for (UClass* SuperClass = InBlueprint->ParentClass; SuperClass && !SuperClass->HasAnyClassFlags(CLASS_Native); SuperClass = SuperClass->GetSuperClass())
+					{
+						Result++;
+					}
+
+					if (InBlueprint->BlueprintType == BPTYPE_Interface)
+					{
+						Result -= 1024;
+					}
+				}
+				return Result;
+			}
+
+			bool operator()(const UBlueprint& A, const UBlueprint& B) const
+			{
+				//Smaller is first
+				return GetSortValue(&A) < GetSortValue(&B);
+			}
+		};
+		if (bIsInterface)
+		{
+			DependentBPs.Sort<FBlueprintSorter>(FBlueprintSorter());
+		}
+
 		// refresh each dependent blueprint
 		for (UBlueprint* Dependent : DependentBPs)
 		{
@@ -868,7 +941,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 			{
 				bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
 				Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
-				FBlueprintEditorUtils::RefreshAllNodes(Dependent);
+				if (!FBlueprintEditorUtils::RefreshAllNodes(Dependent, false))
+				{
+					FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Dependent, false);
+				}
+
 				Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
 			}
 			else if(!BlueprintObj->bIsRegeneratingOnLoad)

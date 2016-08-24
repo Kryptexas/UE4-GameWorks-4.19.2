@@ -445,16 +445,17 @@ FUCSComponentId::FUCSComponentId(const UK2Node_AddComponent* UCSNode)
 //////////////////////////////////////
 // FBlueprintEditorUtils
 
-void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
+bool FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified)
 {
 	if (!Blueprint || !Blueprint->HasAllFlags(RF_LoadCompleted))
 	{
 		UE_LOG(LogBlueprint, Warning, 
 			TEXT("RefreshAllNodes called on incompletly loaded blueprint '%s'"), 
 			Blueprint ? *Blueprint->GetFullName() : TEXT("NULL"));
-		return;
+		return false;
 	}
 
+	bool bWasBPMarkAsStructurallyModified = false;
 	TArray<UK2Node*> AllNodes;
 	FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, AllNodes);
 
@@ -480,7 +481,8 @@ void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 			// Ignore this for macros
 			if (!bIsMacro)
 			{
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint, bMarkChildrenAsStructurallyModified);
+				bWasBPMarkAsStructurallyModified = true;
 			}
 			bLastChangesStructure = bCurrentChangesStructure;
 		}
@@ -493,8 +495,11 @@ void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 	// If all nodes change structure, catch that case and recompile now
 	if( bLastChangesStructure )
 	{
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint, bMarkChildrenAsStructurallyModified);
+		bWasBPMarkAsStructurallyModified = true;
 	}
+
+	return bWasBPMarkAsStructurallyModified;
 }
 
 
@@ -1561,7 +1566,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
 
 			// Compile the actual blueprint
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, false, nullptr, bSkeletonUpToDate);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, bSkeletonUpToDate);
 		}
 		else if( bIsMacro )
 		{
@@ -2189,7 +2194,7 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 }
 
 // Blueprint has materially changed.  Recompile the skeleton, notify observers, and mark the package as dirty.
-void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint)
+void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	
@@ -2281,9 +2286,10 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			Blueprint->Status = BS_Dirty;
 		}
 		UpdateDelegatesInBlueprint(Blueprint);
-
-		FRefreshHelper::SkeletalRecompileChildren(ChildrenOfClass, Blueprint->bIsRegeneratingOnLoad);
-
+		if (bMarkChildrenAsStructurallyModified)
+		{
+			FRefreshHelper::SkeletalRecompileChildren(ChildrenOfClass, Blueprint->bIsRegeneratingOnLoad);
+		}
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
 
@@ -2968,13 +2974,15 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 	InBlueprint->GatherDependencies(Dependencies);
 
 	FGatherDependenciesHelper::ProcessHierarchy(InBlueprint->ParentClass, Dependencies);
-
-	for (const auto& InterfaceDesc : InBlueprint->ImplementedInterfaces)
+	for (const UBlueprint* BPIter = InBlueprint; BPIter; BPIter = UBlueprint::GetBlueprintFromClass(BPIter->ParentClass))
 	{
-		UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : nullptr;
-		if (InterfaceBP)
+		for (const auto& InterfaceDesc : BPIter->ImplementedInterfaces)
 		{
-			Dependencies.Add(InterfaceBP);
+			UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : nullptr;
+			if (InterfaceBP)
+			{
+				Dependencies.Add(InterfaceBP);
+			}
 		}
 	}
 
@@ -4791,33 +4799,6 @@ FBPVariableDescription FBlueprintEditorUtils::DuplicateVariableDescription(UBlue
 	return NewVar;
 }
 
-void FBlueprintEditorUtils::SetDefaultValueOnUserDefinedStructProperty(UBlueprint* InBlueprint, FString InScopeName, FBPVariableDescription* InOutVariableDescription)
-{
-	auto UserDefinedStruct = InOutVariableDescription ? Cast<UUserDefinedStruct>(InOutVariableDescription->VarType.PinSubCategoryObject.Get()) : nullptr;
-	if (UserDefinedStruct)
-	{
-		// Create a variable reference for the variable, so we can resolve it and use it to generate the default value
-		FMemberReference VariableReference;
-		VariableReference.SetLocalMember(InOutVariableDescription->VarName, InScopeName, InOutVariableDescription->VarGuid);
-		auto VariableProperty = VariableReference.ResolveMember<UStructProperty>(InBlueprint->SkeletonGeneratedClass);
-
-		if (VariableProperty && ensure(VariableProperty->Struct == UserDefinedStruct))
-		{
-			FStructOnScope StructData(UserDefinedStruct);
-
-		// Create the default value for the property
-			FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct, StructData.GetStructMemory());
-
-		// Export the default value as a string so we can store it with the variable description
-		FString DefaultValueString;
-			FBlueprintEditorUtils::PropertyValueToString_Direct(VariableProperty, StructData.GetStructMemory(), DefaultValueString);
-
-		// Set the default value
-		InOutVariableDescription->DefaultValue = DefaultValueString;
-	}
-}
-}
-
 bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName InNewVarName, const FEdGraphPinType& InNewVarType, const FString& DefaultValue/*= FString()*/)
 {
 	if(InTargetGraph != NULL && InTargetGraph->GetSchema()->GetGraphType(InTargetGraph) == GT_Function)
@@ -4850,13 +4831,6 @@ bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* In
 		FunctionEntryNodes[0]->LocalVariables.Add(NewVar);
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-
-		if (NewVar.DefaultValue.IsEmpty())
-		{
-			// Pull the description of the new variable, we will update it's default value with the default value from the user defined struct.
-			FBPVariableDescription* VariableDescription = &FunctionEntryNodes[0]->LocalVariables[FunctionEntryNodes[0]->LocalVariables.Num() - 1];
-			SetDefaultValueOnUserDefinedStructProperty(Blueprint, TargetGraph->GetName(), VariableDescription);
-		}
 
 		return true;
 	}
@@ -5145,10 +5119,6 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 							Variable.PropertyFlags &= ~(CPF_DisableEditOnTemplate);
 						}
 					}
-				}
-				else
-				{
-					SetDefaultValueOnUserDefinedStructProperty(InBlueprint, FunctionEntry->GetGraph()->GetName(), VariablePtr);
 				}
 
 				// Reconstruct all local variables referencing the modified one
@@ -7836,14 +7806,14 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 {
 	check(Property && DirectValue);
 	OutForm.Reset();
-	if (Property->IsA(UStructProperty::StaticClass()))
+
+	const UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+	if (StructProperty)
 	{
 		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
 		static UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
 		static UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
 		static UScriptStruct* LinearColorStruct = TBaseStructure<FLinearColor>::Get();
-
-		const UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
 
 		// Struct properties must be handled differently, unfortunately.  We only support FVector, FRotator, and FTransform
 		if (StructProperty->Struct == VectorStruct)
@@ -7875,7 +7845,17 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 	bool bSuccedded = true;
 	if (OutForm.IsEmpty())
 	{
-		bSuccedded = Property->ExportText_Direct(OutForm, DirectValue, DirectValue, nullptr, 0);
+		const uint8* DefaultValue = DirectValue;
+
+		UUserDefinedStruct* UserDefinedStruct = StructProperty ? Cast<UUserDefinedStruct>(StructProperty->Struct) : nullptr;
+		FStructOnScope StructOnScope(UserDefinedStruct);
+		if (StructOnScope.IsValid())
+		{
+			UserDefinedStruct->InitializeDefaultValue(StructOnScope.GetStructMemory());
+			DefaultValue = StructOnScope.GetStructMemory();
+		}
+		
+		bSuccedded = Property->ExportText_Direct(OutForm, DirectValue, DefaultValue, nullptr, 0);
 	}
 	return bSuccedded;
 }

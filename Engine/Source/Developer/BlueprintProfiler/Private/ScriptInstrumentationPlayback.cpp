@@ -2828,6 +2828,20 @@ void FScriptEventPlayback::ProcessTunnelBoundary(NodeSignalHelper& CurrentNodeDa
 			}
 		}
 	}
+	else if (CurrSignal.GetType() == EScriptInstrumentation::TunnelEndOfThread)
+	{
+		TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntry = TracePath.GetTunnel();
+		if (TunnelEntry.IsValid())
+		{
+			TSharedPtr<FScriptExecutionTunnelEntry> Tunnel = TracePath.GetTunnel();
+			FTracePath InternalExitTrace = TracePath;
+			TracePath = TunnelTraceStack.Pop();
+			// Update the entry and both exit sites ( one inside the tunnel and one exit site )
+			const double TunnelTiming = CurrSignal.GetTime() - CurrentNodeData.AverageEvents.Last().GetTime();
+			Tunnel->AddTunnelTiming(InstanceName, TracePath, InternalExitTrace, ScriptCodeOffset, TunnelTiming);
+			TracePath.AddExitPin(ScriptCodeOffset);
+		}
+	}
 }
 
 void FScriptEventPlayback::ProcessExecutionSequence(NodeSignalHelper& CurrentNodeData, const FScriptInstrumentedEvent& CurrSignal)

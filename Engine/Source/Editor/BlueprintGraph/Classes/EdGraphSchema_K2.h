@@ -695,15 +695,6 @@ public:
 	 */
 	void ReplaceSelectedNode(UEdGraphNode* SourceNode, AActor* TargetActor);
 
-	/**
-	 * Looks at all member functions of a specified class and creates 'as delegate' getters for ones matching a given signature.
-	 *
-	 * @param	Class  				The calling context to scan.
-	 * @param	SignatureToMatch	The signature function/delegate to match.
-	 * @param [in,out]	OutTypes	Array to append 'as delegate' getters to.
-	 */
-	void ListFunctionsMatchingSignatureAsDelegates(FGraphContextMenuBuilder& ContextMenuBuilder, const UClass* Class, const UFunction* SignatureToMatch) const;
-
 	/** Returns whether a function is marked 'override' and doesn't have any out parameters */
 	static bool FunctionCanBePlacedAsEvent(const UFunction* InFunction);
 

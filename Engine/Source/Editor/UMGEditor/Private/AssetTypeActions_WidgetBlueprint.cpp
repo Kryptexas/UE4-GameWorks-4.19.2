@@ -58,11 +58,6 @@ FText FAssetTypeActions_WidgetBlueprint::GetAssetDescription( const FAssetData& 
 
 void FAssetTypeActions_WidgetBlueprint::PerformAssetDiff(UObject* Asset1, UObject* Asset2, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const
 {
-	if (!GetDefault<UEditorExperimentalSettings>()->bEnableWidgetVisualDiff)
-	{
-		return FAssetTypeActions_Base::PerformAssetDiff(Asset1, Asset2, OldRevision, NewRevision);
-	}
-
 	UBlueprint* OldBlueprint = CastChecked<UBlueprint>(Asset1);
 	UBlueprint* NewBlueprint = CastChecked<UBlueprint>(Asset2);
 

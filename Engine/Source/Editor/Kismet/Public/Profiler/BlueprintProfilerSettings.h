@@ -91,4 +91,18 @@ public:
 	static float CustomAveragePerformanceThresholdDefaultValue;
 	static float CustomInclusivePerformanceThresholdDefaultValue;
 	static float CustomMaxPerformanceThresholdDefaultValue;
+
+public:
+
+	/** Returns true if the performance thresholds are modified */
+	bool GetPerformanceThresholdsModified() const { return bThresholdsModified; }
+
+	/** Sets the performance thresholds state */
+	void SetPerformanceThresholdsModified(const bool bModified) { bThresholdsModified = bModified; }
+
+private:
+
+	/** Thresholds modified flag */
+	bool bThresholdsModified;
+
 };

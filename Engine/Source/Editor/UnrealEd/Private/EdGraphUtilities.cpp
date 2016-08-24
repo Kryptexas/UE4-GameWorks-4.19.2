@@ -81,7 +81,6 @@ protected:
 				Node->GetGraph()->Nodes.Add(Node);
 			}
 		}
-
 	}
 
 	virtual void PostProcessConstructedObjects() override

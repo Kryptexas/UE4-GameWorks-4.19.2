@@ -96,8 +96,47 @@ public:
 	/** Create the correct event graphs for this blueprint */
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);
 
+	/** While reinstancing many different BPs may be compiled, some of them require custom settings. This structure stores them. */
+	struct FCustomCompilationSetting
+	{
+		TWeakPtr<FCompilerResultsLog> LogResults;
+		bool bSaveIntermediateBuildProducts;
+		bool bAddInstrumentation;
+
+		FCustomCompilationSetting()
+			: bSaveIntermediateBuildProducts(false)
+			, bAddInstrumentation(false)
+		{}
+	};
+
+	struct UNREALED_API FCustomCompilationSettingsMap : TSharedFromThis<FCustomCompilationSettingsMap>
+	{
+	private:
+		struct FDataPerBP
+		{
+			FCustomCompilationSetting Setting;
+			bool bWasBlueprintCompiledUsingTheSettings;
+
+			FDataPerBP() : bWasBlueprintCompiledUsingTheSettings(false) {}
+		};
+
+		TMap<TWeakObjectPtr<UBlueprint>, FDataPerBP> CustomSettingsMap;
+	public:
+
+		void AddSettings(TWeakObjectPtr<UBlueprint> BP, FCustomCompilationSetting Setting);
+
+		bool UseSettings(TWeakObjectPtr<UBlueprint> BP, bool bMarkAsCompiled, FCustomCompilationSetting& OutSetting);
+
+		bool WasBPCompiledWithCustomSettings(TWeakObjectPtr<UBlueprint> BP);
+	};
+
 	/** Tries to compile a blueprint, updating any actors in the editor who are using the old class, etc... */
-	static void CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad = false, bool bSkipGarbageCollection = false, bool bSaveIntermediateProducts = false, class FCompilerResultsLog* pResults = nullptr, bool bSkeletonUpToDate = false, bool bBatchCompile = false, bool bAddInstrumentation = false);
+	static void CompileBlueprint(UBlueprint* BlueprintObj
+		, bool bIsRegeneratingOnLoad = false
+		, bool bSkipGarbageCollection = false
+		, bool bSkeletonUpToDate = false
+		, bool bBatchCompile = false
+		, TWeakPtr<FCustomCompilationSettingsMap> CustomCompilationSettingsMap = {});
 
 	/** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
 	static bool GenerateBlueprintSkeleton(UBlueprint* BlueprintObj, bool bForceRegeneration = false);

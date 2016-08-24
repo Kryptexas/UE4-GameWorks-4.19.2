@@ -115,9 +115,9 @@ class UNREALED_API FBlueprintEditorUtils
 public:
 
 	/**
-	 * Schedules and refreshes all nodes in the blueprint, making sure that nodes that affect function signatures get regenerated first
+	 * Schedules and refreshes all nodes in the blueprint, making sure that nodes that affect function signatures get regenerated first. Returns true if BP was marked as structurally modified.
 	 */
-	static void RefreshAllNodes(UBlueprint* Blueprint);
+	static bool RefreshAllNodes(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified = true);
 
 	/**
 	 * Reconstructs all nodes in the blueprint, node reconstruction order determined by FCompareNodePriority.
@@ -228,7 +228,7 @@ public:
 	 *  - Notifies any observers.
 	 *  - Marks the package as dirty.
 	 */
-	static void MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint);
+	static void MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified = true);
 
 	/**
 	 * Blueprint has changed in some manner that invalidates the compiled data (link made/broken, default value changed, etc...)
@@ -766,15 +766,6 @@ public:
 	 * @param	InScope				Local variable's scope
 	 */
 	static UEdGraph* FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope);
-
-	/**
-	 * Helper function to set the default value of a user defined struct property's local variable description
-	 *
-	 * @param	InBlueprint					The Blueprint the local variable can be found in
-	 * @param	InScope	Name				Local variable's scope name
-	 * @param	InOutVariableDescription	Description of the variable, will be modified with the default value
-	 */
-	static void SetDefaultValueOnUserDefinedStructProperty(UBlueprint* InBlueprint, FString InScopeName, FBPVariableDescription* InOutVariableDescription);
 
 	/**
 	 * Adds a local variable to the function graph.  It cannot mask a member variable or a variable in any superclass.
