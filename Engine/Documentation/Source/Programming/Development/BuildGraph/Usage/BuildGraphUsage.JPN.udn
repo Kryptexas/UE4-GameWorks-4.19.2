@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Usage
+﻿Availability:Docs
+Title:BuildGraph の使用方法
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
-Description:This page shows you how to use BuildGraph Scripts.
-version: 4.13
+Description:BuildGraph の使用方法を説明します。
+version:4.13
 parent:Programming/Development/BuildGraph
 type:Overview
-related: Programming/Development/BuildGraph/ScriptAnatomy
-related: Programming/Development/InstalledBuildReference
+related:Programming/Development/BuildGraph/ScriptAnatomy
+related:Programming/Development/InstalledBuildReference
 tags:BuildGraph
 
 [VAR:TopicCompact]
@@ -32,55 +31,55 @@ tags:BuildGraph
 
 [TOC(start:1 end:3)]
 
-BuildGraph is implemented as part of AutomationTool, which you can run directly from the Unreal Engine 4 solution on Windows, 
-or via the `Engine/Build/BatchFiles/RunUAT.bat` batch file from the command line. On Mac or Linux, it can be run with the 
-`Engine/Build/BatchFiles/RunUAT.sh` shell script. If you'd like to get an idea of how to use BuildGraph from the command line, 
-we've written sample usage commands for your reference.
+BuildGraph は、AutomationTool の一部として実装されます。これは、Windows の Unreal Engine 4 ソリューションから直接実行することができます。 
+または、コマンドラインから `Engine/Build/BatchFiles/RunUAT.bat` バッチ ファイル経由で実行することができます。Mac や Linux では、 
+`Engine/Build/BatchFiles/RunUAT.sh` シェル スクリプトで実行することができます。コマンドラインから BuildGraph を使用する方法について知りたい場合、 
+リファレンスとして記述したコマンドの使用例があります。
 
-## Showing Options & Nodes
+## オプションとノードを表示する
 
-To show all of the nodes and options available in a BuildGraph script:
+BuildGraph スクリプトで利用可能なすべてのノードとオプションを表示させるには以下のようにします。
 
 	BuildGraph -Script=Engine/Build/Graph/Examples/AllExamples -ListOnly
 
-## Setting an Option
+## オプションを設定する
 
-To set an option defined in the script:
+スクリプトで定義されるオプションを設定するには以下のようにします。
 
 	BuildGraph -Script=Engine/Build/Graph/Examples/Properties.xml -ListOnly -Set:CommandLineProperty=ABCDEF
 
-## Seeing Node Execution
+## ノードの実行を見る
 
-To see what nodes will be executed for a target:
+ターゲットに対してどのノードが実行されるかを見るには以下のようにします。
 
 	BuildGraph -Script=Engine\Build\Graph\Examples\AllExamples.xml -Target="All Examples" -ListOnly
 
-## Cleaning Previous Builds
+## 過去のビルドをクリーニング処理する
 
-To clean any previous builds and execute a specific target:
+過去のビルドをクリーニング処理し、特定のターゲットを実行するには以下のようにします。
 
 	BuildGraph -Script=Engine\Build\Graph\Examples\AllExamples.xml -Target="Property Examples" -Clean
 
-## Writing out an XML Schema
+## XML スキーマ
 
-To write out an XML schema containing all registered tasks:
+すべての登録されたタスクを含む XML スキーマを書き出すには、以下のようにします。
 
 	BuildGraph -Schema=Engine\Build\Graph\Schema.xsd
 
-## Generating a Preprocessed Script
+## プリプロセスされたスクリプトを生成する
 
-To output a preprocessed version of your script (useful for debugging):
+スクリプトのプリプロセスされたバージョンを出力する (デバッグに役立ちます) には以下のようにします。
 
 	BuildGraph -Script=Engine\Build\Graph\Examples\AllExamples.xml -Target="All Examples" -ListOnly -Preprocess=D:\Preprocessed.xml
 
-## Exporting a Preprocessed Graph to JSON
+## プリプロセスされたグラフを JSON にエクスポートする
 
-To export a preprocessed graph to JSON (for dynamic configuration on build systems):
+ プリプロセスされたグラフを JSON にエクスポートするには以下のようにします (ビルド システムで動的コンフィギュレーションをするため)。
 
 	BuildGraph -Script=Engine\Build\Graph\Examples\AllExamples.xml -Target="All Examples" -Export=D:\ExportedGraph.json
 
-## Executing a Single Node
+## 単一ノードを実行する
 
-To execute a single node on a build system (while transferring intermediates to and from shared storage):
+ビルド システムで単一ノードを実行する (中間ファイルを共有ストレージ間で転送しながら) には以下のようにします。
 
 	BuildGraph -Script=Engine\Build\Graph\Examples\AllExamples.xml -Target="All Examples" -Clean -SingleNode=�Manipulate Some Files� -SharedStorage=P:\Network-Share\Unique-Job-12345\
