@@ -29,6 +29,9 @@ struct FSoundParseParameters
 	float Volume;
 	float VolumeMultiplier;
 
+	// Volume due to application-level volume scaling (tabbing, master volume)
+	float VolumeApp; 
+
 	// The multiplier to apply if the sound class desires
 	float InteriorVolumeMultiplier;
 
@@ -78,6 +81,7 @@ struct FSoundParseParameters
 		, Velocity(ForceInit)
 		, Volume(1.f)
 		, VolumeMultiplier(1.f)
+		, VolumeApp(1.f)
 		, InteriorVolumeMultiplier(1.f)
 		, Pitch(1.f)
 		, StartTime(-1.f)
