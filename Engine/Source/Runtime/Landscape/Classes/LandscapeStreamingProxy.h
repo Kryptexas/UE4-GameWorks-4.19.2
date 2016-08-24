@@ -4,7 +4,7 @@
 
 #include "LandscapeStreamingProxy.generated.h"
 
-UCLASS(MinimalAPI, notplaceable, NotBlueprintable)
+UCLASS(MinimalAPI, notplaceable)
 class ALandscapeStreamingProxy : public ALandscapeProxy
 {
 	GENERATED_BODY()

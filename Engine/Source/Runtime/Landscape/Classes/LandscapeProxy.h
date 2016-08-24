@@ -301,7 +301,7 @@ public:
 	~FAsyncGrassTask();
 };
 
-UCLASS(Abstract, MinimalAPI, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"))
+UCLASS(Abstract, MinimalAPI, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"))
 class ALandscapeProxy : public AActor
 {
 	GENERATED_BODY()
