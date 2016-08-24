@@ -8,7 +8,6 @@
 #include "WmfMediaResolver.h"
 #include "WmfMediaSession.h"
 #include "WmfMediaSampler.h"
-#include "WmfMediaSettings.h"
 #include "WmfMediaUtils.h"
 #include "AllowWindowsPlatformTypes.h"
 

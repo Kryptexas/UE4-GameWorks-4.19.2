@@ -3,6 +3,7 @@
 #include "WmfMediaFactoryPCH.h"
 #include "IMediaPlayerFactory.h"
 #include "ModuleInterface.h"
+#include "WmfMediaSettings.h"
 
 
 DEFINE_LOG_CATEGORY(LogWmfMediaFactory);

@@ -5,7 +5,6 @@
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 	#include "WmfMediaPlayer.h"
-	#include "WmfMediaSettings.h"
 
 	#pragma comment(lib, "mf")
 	#pragma comment(lib, "mfplat")
