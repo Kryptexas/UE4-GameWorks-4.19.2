@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Script Types
+﻿INTSourceChangelist:3091977
+Availability:Docs
+Title:BuildGraph スクリプトの型
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
-Description:Learn about valid data types for BuildGraph attributes.
-version: 4.13
+Description:BuildGraph 属性の有効なデータ型について学習しましょう。
+version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/ScriptAnatomy
+related:Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
@@ -31,32 +31,26 @@ tags:BuildGraph
 
 [EXCERPT:BuildGraphScriptTypes]
 
-## Types
+## 型
 
-The following table contains valid data types that can be contained by BuildGraph attributes:
+以下の表は、BuildGraph 属性に含むことができる有効なデータ型を示しています。
 
-[INCLUDE:#TypesTable]
+| **型**                | **説明**                                                                                                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **String**              | 任意の文字列                                                                                                                                                                                                                                                                       |
+| **String List**         | セミコロンで区切られる任意の文字列                                                                                                                                                                                                                                       |
+| **Boolean**             | 定数は `true` または `false`                                                                                                                                                                                                                                                            |
+| **Integer**             | 整数定数                                                                                                                                                                                                                                                                       |
+| **Regex**               | [C#](http://www.iso.org/iso/home/store/catalogue_ics/catalogue_detail_ics.htm?csnumber=42926) シンタックスを使用した正規表現                                                                                                                                                          |
+| **Name**                | 固有表現。`^  <  >  :  "  /  \  |  ?  *  ;` を除く、印刷可能なすべての文字。シングル スペースを使用可能 (ただし名前の始まりと終わりは除く)。                                                                                                                                      |
+| **Name List**           | セミコロンで区切られる識別子のリスト                                                                                                                                                                                                                                            |
+| **Tag**                 | ファイルのリストに与えられるラベルであり、# character (すなわち `#My Files`) で始まります。                                                                                                                                                                                                      |
+| **Tag List**            | セミコロンで区切られるタグのリスト (すなわち `#My Files;#Other Files`).                                                                                                                                                                                                                 |
+| **Target**              | ノード名、 aggregate 名、 agent 名、または tag 名。実行する必要があるノードのシーケンスを示します。これは、[UnrealBuildTool](Programming/UnrealBuildSystem) (これはビルドされている単一プログラムを参照します) に適用するため、`Target` の意味と重複することに注意してください。
+| **Target list**         | セミコロンで区切られるターゲット名のリストです。                                                                                                                                                                                                                                           |
+| **File Spec**           | セミコロンで区切られるファイルとタグの名前のリストです。ファイルを参照する場合、`"..."`、 `"*"`、および `"?"` などのワイルドカードの使用が認められます (すなわち、 `Engine/.../*.bat`)。特に指定がない限り、相対パスは作業ルート ディレクトリに対して相対的に変換されます。                        |
+| **File Name**           | ファイルへのパス。特に指定がない限り、相対パスは作業ルート ディレクトリに変換されます。                                                                                                                                                                                   |
+| **Directory Name**      | ディレクトリへのパスです。特に指定がない限り、相対パスは作業ルート ディレクトリに対して相対的に変換されます。                                                                                                                                                                                             |
+| **Condition**           | [条件式](Programming/Development/BuildGraph/ScriptAnatomy/Conditions)                                                                                                                                                                                                       |
 
 [/EXCERPT:BuildGraphScriptTypes]
-
-<!--
-[EXCERPT:TypesTable]
-| **Type**                | **Description**                                                                                                                                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **String**              | An arbitrary string.                                                                                                                                                                                                                                                                       |
-| **String List**         | A list of arbitrary strings separated by semi-colons.                                                                                                                                                                                                                                      |
-| **Boolean**             | The constant `true` or `false`.                                                                                                                                                                                                                                                            |
-| **Integer**             | An integer constant.                                                                                                                                                                                                                                                                       |
-| **Regex**               | A regular expression, using [C#](http://www.iso.org/iso/home/store/catalogue_ics/catalogue_detail_ics.htm?csnumber=42926) syntax.                                                                                                                                                          |
-| **Name**                | A named entity. Any printable character, except `^  <  >  :  "  /  \  |  ?  *  ;`. Single spaces are allowed (except at the start and end of a name).                                                                                                                                      |
-| **Name List**           | A list of identifiers separated by semi-colons.                                                                                                                                                                                                                                            |
-| **Tag**                 | A label given to a list of files, beginning with the # character (i.e., `#My Files`).                                                                                                                                                                                                      |
-| **Tag List**            | A list of tags separated by semi-colons. (i.e., `#My Files;#Other Files`).                                                                                                                                                                                                                 |
-| **Target**              | A node name, aggregate name, agent name, or tag name. Indicates a sequence of nodes that need to be executed. Note that this overlaps with the meaning of `Target` as it applies to [UnrealBuildTool](Programming/UnrealBuildSystem) (which refers to a single program being built).       |
-| **Target list**         | A list of target names separated by semi-colons.                                                                                                                                                                                                                                           |
-| **File Spec**           | A set of file and tag names, separated by semi-colons. Wildcards such as `"..."`, `"*"`, and `"?"` are permitted when referencing files (i.e., `Engine/.../*.bat`). Unless otherwise specified, relative paths are resolved relative to the working root directory.                        |
-| **File Name**           | A path to a file. Unless otherwise specified, relative paths are resolved to the working root directory.                                                                                                                                                                                   |
-| **Directory Name**      | A path to a directory. Unless otherwise specified, relative paths are resolved relative to the working root directory.                                                                                                                                                                     |
-| **Condition**           | A [conditional expression](Programming/Development/BuildGraph/ScriptAnatomy/Conditions).                                                                                                                                                                                                      |
-[/EXCERPT:TypesTable]
--->
