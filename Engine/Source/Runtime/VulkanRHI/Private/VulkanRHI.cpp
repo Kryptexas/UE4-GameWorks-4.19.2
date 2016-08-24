@@ -39,7 +39,7 @@ ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
 
 static TAutoConsoleVariable<int32> GLSLCvar(
 	TEXT("r.Vulkan.UseGLSL"),
-	PLATFORM_ANDROID ? 2 : 0,
+	0,
 	TEXT("2 to use ES GLSL\n1 to use GLSL\n0 to use SPIRV")
 	);
 
