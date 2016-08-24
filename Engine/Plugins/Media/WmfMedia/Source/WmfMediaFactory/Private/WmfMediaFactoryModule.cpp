@@ -142,6 +142,20 @@ public:
 		SupportedUriSchemes.Add(TEXT("rtspt"));
 		SupportedUriSchemes.Add(TEXT("rtspu"));
 
+#if WITH_EDITOR
+		// register settings
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "WmfMedia",
+				LOCTEXT("WmfMediaSettingsName", "WMF Media"),
+				LOCTEXT("WmfMediaSettingsDescription", "Configure the WMF Media plug-in."),
+				GetMutableDefault<UWmfMediaSettings>()
+			);
+		}
+#endif //WITH_EDITOR
+
 		// register player factory
 		auto MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
 
@@ -160,6 +174,16 @@ public:
 		{
 			MediaModule->UnregisterPlayerFactory(*this);
 		}
+
+#if WITH_EDITOR
+		// unregister settings
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->UnregisterSettings("Project", "Plugins", "WmfMedia");
+		}
+#endif //WITH_EDITOR
 	}
 
 private:

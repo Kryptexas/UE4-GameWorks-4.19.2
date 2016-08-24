@@ -6,7 +6,7 @@
 
 
 UCLASS(config=Engine)
-class UWmfMediaSettings
+class WMFMEDIAFACTORY_API UWmfMediaSettings
 	: public UObject
 {
 	GENERATED_BODY()

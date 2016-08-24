@@ -17,6 +17,7 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"RenderCore",
+					"WmfMediaFactory",
 				}
 			);
 
@@ -30,7 +31,6 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"WmfMedia/Private",
                     "WmfMedia/Private/Player",
-					"WmfMedia/Private/Shared",
 					"WmfMedia/Private/Wmf",
 				}
 			);
@@ -40,22 +40,8 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.Add("HeadMountedDisplay");
 			}
 
-			if (Target.Type == TargetRules.TargetType.Editor)
-			{
-				DynamicallyLoadedModuleNames.AddRange(
-					new string[] {
-						"Settings",
-					}
-				);
-
-				PrivateIncludePathModuleNames.AddRange(
-					new string[] {
-						"Settings",
-					}
-				);
-			}
-
-			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
+				(Target.Platform == UnrealTargetPlatform.Win32))
             {
                 PublicDelayLoadDLLs.Add("mf.dll");
                 PublicDelayLoadDLLs.Add("mfplat.dll");

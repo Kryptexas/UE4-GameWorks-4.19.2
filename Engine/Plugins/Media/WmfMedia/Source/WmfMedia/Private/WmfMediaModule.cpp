@@ -74,20 +74,6 @@ public:
 			return;
 		}
 
-#if WITH_EDITOR
-		// register settings
-		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-
-		if (SettingsModule != nullptr)
-		{
-			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "WmfMedia",
-				LOCTEXT("WmfMediaSettingsName", "WMF Media"),
-				LOCTEXT("WmfMediaSettingsDescription", "Configure the WMF Media plug-in."),
-				GetMutableDefault<UWmfMediaSettings>()
-			);
-		}
-#endif //WITH_EDITOR
-
 		Initialized = true;
 
 #endif //WMFMEDIA_SUPPORTED_PLATFORM
@@ -96,14 +82,17 @@ public:
 	virtual void ShutdownModule() override
 	{
 #if WMFMEDIA_SUPPORTED_PLATFORM
+		if (!Initialized)
+		{
+			return;
+		}
+
+		// shutdown Windows Media Foundation
+		MFShutdown();
+
 		Initialized = false;
 
-		if (Initialized)
-		{
-			// shutdown Windows Media Foundation
-			MFShutdown();
-		}
-#endif
+#endif //WMFMEDIA_SUPPORTED_PLATFORM
 	}
 
 protected:

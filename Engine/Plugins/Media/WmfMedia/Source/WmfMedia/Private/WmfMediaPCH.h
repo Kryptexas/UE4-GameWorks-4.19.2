@@ -5,11 +5,6 @@
 #define WMFMEDIA_SUPPORTED_PLATFORM (PLATFORM_WINDOWS && WINVER >= _WIN32_WINNT_VISTA)
 
 
-#if WITH_EDITOR
-	#include "Developer/Settings/Public/ISettingsModule.h"
-	#include "Developer/Settings/Public/ISettingsSection.h"
-#endif
-
 #include "Runtime/Core/Public/Core.h"
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
 #include "Runtime/CoreUObject/Public/CoreUObject.h"
@@ -24,6 +19,8 @@
 	#include "Runtime/Media/Public/IMediaOptions.h"
 	#include "Runtime/Media/Public/IMediaStringSink.h"
 	#include "Runtime/Media/Public/IMediaTextureSink.h"
+
+	#include "../../WmfMediaFactory/Public/WmfMediaSettings.h"
 
 	#include "Runtime/Core/Public/Windows/AllowWindowsPlatformTypes.h"
 	#include <windows.h>
