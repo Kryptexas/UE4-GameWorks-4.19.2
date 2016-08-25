@@ -1,7 +1,7 @@
 Availability: Public
-Title:Recording Gameplay
+Title:Recording to Sequencer
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Record your gameplay actions with the Sequence Recorder and use that data inside Sequencer.
+Description:Record your actions with the Sequence Recorder and use that data inside Sequencer.
 Version: 4.12
 SkillLevel: Advanced
 parent:Engine/Sequencer/HowTo
@@ -10,7 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-The **Sequence Recorder** allows you to capture specified Actors during gameplay that are then saved as a new **Level Sequence** and can be edited inside **Sequencer**. 
+The **Sequence Recorder** allows you to capture specified Actors during level editing or gameplay that can be saved as a new **Level Sequence** and can be edited inside **Sequencer**. 
 This is useful for quickly capturing content for scenes as you can take a playable character, perform some actions during gameplay while recording with the Sequence Recorder then take that data into Sequencer and create a cinematic around it. 
 
 In this example, we will use the Sequence Recorder to record our playable character's movement which we can then edit. 
@@ -22,9 +22,15 @@ In this example, we will use the Sequence Recorder to record our playable charac
 For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
 [/REGION]
 
-1.	From the **Menu Bar** under **Window**, select **Sequence Recorder**. The Sequence Recorder window will automatically open. There are some options under **Sequence Recording** which will determine how (and where) the new Level Sequence asset will be saved. You can choose to record Actors that are spawned (such as particle effects, other characters, etc.), determine the naming convention and save location, and change other settings like the duration to record or delay before starting to record. 
+1.	From the **Menu Bar** under **Window**, select **Sequence Recorder**. 
 
 	![](RecorderStep1.png)
+
+	The Sequence Recorder window will automatically open. There are some options under **Sequence Recording** which will determine how (and where) the new Level Sequence asset will be saved. You can choose to record Actors that are spawned (such as particle effects, other characters, etc.), determine the naming convention and save location, and change other settings like the duration to record or delay before starting to record. 
+
+	[REGION:note]
+	See the [](Engine\Sequencer\Features\SequenceRecorder) page for more information about each option.
+	[/REGION]
 	
 1.	From the Main Editor Toolbar, click the **Play** button to start a Play in Editor session. 
 
@@ -67,7 +73,7 @@ For this how-to, we are using the **Blueprint Third Person Template** project wi
 
 ## End Result
 
-You can open the **RecordedSequence** asset and begin editing it as you would a normal Level Sequence. Below is our recorded sequence to which we could add cameras and a [**Camera Cuts**](Engine/Sequencer/HowTo/TracksCameraCut) track to provide multiple angles, music, effects or anything else we wanted. We could even take this sequence and embed it in another sequences as part of a [**Shots Track**](Engine/Sequencer/HowTo/TracksShot). 
+You can open the **RecordedSequence** asset and begin editing it as you would a normal Level Sequence. Below is our recorded sequence to which we could add cameras and a [Camera Cuts](Engine/Sequencer/HowTo/TracksCameraCut) track to provide multiple angles, music, effects or anything else we wanted. We could even take this sequence and embed it in another sequences as part of a [Shots Track](Engine/Sequencer/HowTo/TracksShot). 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -81,15 +87,28 @@ hR5zBjYO5Oc
 [/PARAMLITERAL]
 [/OBJECT]
 
+In addition to recording gameplay, you can record your actions during level editing by assigning an Actor to Record. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+rC_ZStHXm38
+[/PARAMLITERAL]
+[/OBJECT]
+
+Above we have placed a cube in our level and instructed the Sequence Recorder to record the cube. 
+We then moved the cube around and the Sequence Recorder captured the movements we entered through keyframes in a newly created Level Sequence. 
+When we playback our Level Sequence, a new Cube Actor is created as a spawnable in the Level Sequence which is why a second Cube appears when the sequence is active.
+
+[REGION:note]
+Only properties that can be keyframed can be captured and recorded when Level Editing recording. 
+[/REGION]
 
 
 
-
-
-
-
-
-
-
-	
 
