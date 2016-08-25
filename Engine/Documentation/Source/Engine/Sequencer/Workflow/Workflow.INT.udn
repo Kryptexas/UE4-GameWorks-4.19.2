@@ -7,9 +7,9 @@ parent:Engine/Sequencer
 order:5
 Version: 4.12
 
-There are several built-in shortcuts and keybindings you can use to speed up the rate at which you create your content in Sequencer. There are also several different workflows you can take depending upon the composition of your team. 
+In addition to the several built-in shortcuts and key bindings that you can use to speed up the rate at which you create your content in Sequencer, there are also features related to Sequencer that you can use to generate content for your cinematics such as the **Sequence Recorder**. 
 
-With an understanding of how to use Sequencer, the following pages may improve your productivity or workflows: 
+This page will highlight different features and tools that are related to Sequencer as well as some of the tips, tricks and workflows you can use during your cinematic creation process. 
 
 [REGION:note]
 If you are new to Sequencer it is recommended that you first check out the [**Overview**](Engine\Sequencer\Overview) page. 
@@ -20,10 +20,23 @@ If you are new to Sequencer it is recommended that you first check out the [**Ov
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
+	Features & Tools
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine\Sequencer\Workflow\SequenceRecorder "%Engine\Sequencer\Workflow\SequenceRecorder:description%")
+		* [](Engine\Sequencer\Workflow\EditorPrefs "%Engine\Sequencer\Workflow\EditorPrefs:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	Tips & Workflows
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine\Sequencer\Workflow\CheatSheet "%Engine\Sequencer\Workflow\CheatSheet:description%")
-		* [](Engine\Sequencer\Workflow\EditorPrefs "%Engine\Sequencer\Workflow\EditorPrefs:description%")
 		* [](Engine\Sequencer\Workflow\ToolUsage "%Engine\Sequencer\Workflow\ToolUsage:description%")
 	[/PARAM]
 [/OBJECT]
