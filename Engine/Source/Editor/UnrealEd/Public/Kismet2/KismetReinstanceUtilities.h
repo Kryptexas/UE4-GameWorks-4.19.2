@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Engine.h"
-#include "KismetEditorUtilities.h"
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
 
@@ -93,8 +92,6 @@ protected:
 	bool bAllowResaveAtTheEndIfRequested;
 
 public:
-	TWeakPtr<FKismetEditorUtilities::FCustomCompilationSettingsMap> CustomCompilationSettingsMap;
-
 	// FSerializableObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject interface

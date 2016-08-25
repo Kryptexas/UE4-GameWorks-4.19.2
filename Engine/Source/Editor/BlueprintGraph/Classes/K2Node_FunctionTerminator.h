@@ -39,7 +39,5 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 
 	/** Promotes the node from being a part of an interface override to a full function that allows for parameter and result pin additions */
 	virtual void PromoteFromInterfaceOverride(bool bIsPrimaryTerminator = true);
-
-	static UClass* FindOriginalFunctionOwner(UClass* CurrentOwner, FName FunctionName);
 };
 

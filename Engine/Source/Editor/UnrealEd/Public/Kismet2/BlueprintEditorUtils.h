@@ -115,9 +115,9 @@ class UNREALED_API FBlueprintEditorUtils
 public:
 
 	/**
-	 * Schedules and refreshes all nodes in the blueprint, making sure that nodes that affect function signatures get regenerated first. Returns true if BP was marked as structurally modified.
+	 * Schedules and refreshes all nodes in the blueprint, making sure that nodes that affect function signatures get regenerated first
 	 */
-	static bool RefreshAllNodes(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified = true);
+	static void RefreshAllNodes(UBlueprint* Blueprint);
 
 	/**
 	 * Reconstructs all nodes in the blueprint, node reconstruction order determined by FCompareNodePriority.
@@ -228,7 +228,7 @@ public:
 	 *  - Notifies any observers.
 	 *  - Marks the package as dirty.
 	 */
-	static void MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified = true);
+	static void MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint);
 
 	/**
 	 * Blueprint has changed in some manner that invalidates the compiled data (link made/broken, default value changed, etc...)

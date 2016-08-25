@@ -217,12 +217,7 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
-	UFunction* Function = nullptr;
-	if (UClass* CurrentSignatureClass = *SignatureClass)
-	{
-		UClass* OriginalSignatureOwner = FindOriginalFunctionOwner(CurrentSignatureClass, SignatureName);
-		Function = FindField<UFunction>(OriginalSignatureOwner, SignatureName);
-	}
+	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
 
 	if (Function == nullptr)
 	{

@@ -554,8 +554,7 @@ void FBlueprintCompileReinstancer::CompileChildren()
 			// was updated); however, if this is a native class (like when hot-
 			// reloading), then we want to make sure to update the skel as well
 			const bool bSkeletonUpToDate = !ClassToReinstance->HasAnyClassFlags(CLASS_Native);
-			const bool bBatchCompile = false;
-			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, bSkeletonUpToDate, bBatchCompile, CustomCompilationSettingsMap);
+			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
 		}
 		else if (IsReinstancingSkeleton())
 		{
@@ -706,8 +705,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 						const bool bSkipGC = true;
 						// Full compiles first recompile all skeleton classes, so they are up-to-date
 						const bool bSkeletonUpToDate = true;
-						const bool bBatchCompile = true;
-						FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, bSkeletonUpToDate, bBatchCompile, CustomCompilationSettingsMap);
+						FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, bSkeletonUpToDate, true);
 						CompiledBlueprints.Add(BP);
 					}
 

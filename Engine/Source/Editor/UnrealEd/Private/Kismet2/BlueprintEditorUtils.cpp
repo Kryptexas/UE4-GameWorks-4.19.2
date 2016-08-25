@@ -445,17 +445,16 @@ FUCSComponentId::FUCSComponentId(const UK2Node_AddComponent* UCSNode)
 //////////////////////////////////////
 // FBlueprintEditorUtils
 
-bool FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified)
+void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 {
 	if (!Blueprint || !Blueprint->HasAllFlags(RF_LoadCompleted))
 	{
 		UE_LOG(LogBlueprint, Warning, 
 			TEXT("RefreshAllNodes called on incompletly loaded blueprint '%s'"), 
 			Blueprint ? *Blueprint->GetFullName() : TEXT("NULL"));
-		return false;
+		return;
 	}
 
-	bool bWasBPMarkAsStructurallyModified = false;
 	TArray<UK2Node*> AllNodes;
 	FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, AllNodes);
 
@@ -481,8 +480,7 @@ bool FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint, bool bMarkChi
 			// Ignore this for macros
 			if (!bIsMacro)
 			{
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint, bMarkChildrenAsStructurallyModified);
-				bWasBPMarkAsStructurallyModified = true;
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 			bLastChangesStructure = bCurrentChangesStructure;
 		}
@@ -495,11 +493,8 @@ bool FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint, bool bMarkChi
 	// If all nodes change structure, catch that case and recompile now
 	if( bLastChangesStructure )
 	{
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint, bMarkChildrenAsStructurallyModified);
-		bWasBPMarkAsStructurallyModified = true;
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 	}
-
-	return bWasBPMarkAsStructurallyModified;
 }
 
 
@@ -1566,7 +1561,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
 
 			// Compile the actual blueprint
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, bSkeletonUpToDate);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, false, nullptr, bSkeletonUpToDate);
 		}
 		else if( bIsMacro )
 		{
@@ -2194,7 +2189,7 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 }
 
 // Blueprint has materially changed.  Recompile the skeleton, notify observers, and mark the package as dirty.
-void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint, bool bMarkChildrenAsStructurallyModified)
+void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	
@@ -2286,10 +2281,9 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			Blueprint->Status = BS_Dirty;
 		}
 		UpdateDelegatesInBlueprint(Blueprint);
-		if (bMarkChildrenAsStructurallyModified)
-		{
-			FRefreshHelper::SkeletalRecompileChildren(ChildrenOfClass, Blueprint->bIsRegeneratingOnLoad);
-		}
+
+		FRefreshHelper::SkeletalRecompileChildren(ChildrenOfClass, Blueprint->bIsRegeneratingOnLoad);
+
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
 
@@ -2974,15 +2968,13 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 	InBlueprint->GatherDependencies(Dependencies);
 
 	FGatherDependenciesHelper::ProcessHierarchy(InBlueprint->ParentClass, Dependencies);
-	for (const UBlueprint* BPIter = InBlueprint; BPIter; BPIter = UBlueprint::GetBlueprintFromClass(BPIter->ParentClass))
+
+	for (const auto& InterfaceDesc : InBlueprint->ImplementedInterfaces)
 	{
-		for (const auto& InterfaceDesc : BPIter->ImplementedInterfaces)
+		UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : nullptr;
+		if (InterfaceBP)
 		{
-			UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : nullptr;
-			if (InterfaceBP)
-			{
-				Dependencies.Add(InterfaceBP);
-			}
+			Dependencies.Add(InterfaceBP);
 		}
 	}
 

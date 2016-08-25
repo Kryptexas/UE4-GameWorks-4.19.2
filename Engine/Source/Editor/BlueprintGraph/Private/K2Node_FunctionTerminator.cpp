@@ -50,28 +50,6 @@ bool UK2Node_FunctionTerminator::CanCreateUserDefinedPin(const FEdGraphPinType& 
 	return bIsNodeEditable;
 }
 
-UClass* UK2Node_FunctionTerminator::FindOriginalFunctionOwner(UClass* CurrentOwner, FName FunctionName)
-{
-	check(CurrentOwner);
-	for (auto& Inter : CurrentOwner->Interfaces)
-	{
-		if (Inter.Class->FindFunctionByName(FunctionName) != nullptr)
-		{
-			return FindOriginalFunctionOwner(Inter.Class, FunctionName);
-		}
-	}
-
-	for (UClass* SearchClass = CurrentOwner->GetSuperClass(); SearchClass; SearchClass = SearchClass->GetSuperClass())
-	{
-		if (SearchClass->FindFunctionByName(FunctionName) != nullptr)
-		{
-			return FindOriginalFunctionOwner(SearchClass, FunctionName);
-		}
-	}
-
-	return CurrentOwner;
-}
-
 bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	const UBlueprint* SourceBlueprint = GetBlueprint();
@@ -81,16 +59,6 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 	if (bResult && OptionalOutput)
 	{
 		OptionalOutput->AddUnique(SourceClass);
-	}
-
-	if (SourceClass)
-	{
-		UClass* OriginalSignatureOwner = FindOriginalFunctionOwner(SourceClass, SignatureName);
-		bResult |= (OriginalSignatureOwner != nullptr) && (OriginalSignatureOwner->ClassGeneratedBy != SourceBlueprint);
-		if (bResult && (OriginalSignatureOwner != SourceClass) && OptionalOutput)
-		{
-			OptionalOutput->AddUnique(OriginalSignatureOwner);
-		}
 	}
 
 	// All structures, that are required for the BP compilation, should be gathered
