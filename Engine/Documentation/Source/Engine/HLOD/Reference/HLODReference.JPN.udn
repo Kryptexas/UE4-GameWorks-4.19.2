@@ -1,83 +1,83 @@
-﻿INTSourceChangelist:0
-title:Hierarchical LOD Reference
-description:A reference of the interface elements and properties found in the Hierarchical LOD Outliner.
+﻿INTSourceChangelist:3080238
+title:HLOD のリファレンス
+description:HLOD アウトライナーにあるインターフェース エレメントとプロパティのリファレンスです。
 crumbs:
 availability:docs
 
-This page details the buttons and properties that exist on the Hierarchical LOD Outliner.
+このページでは、**Hierarchical LOD アウトライナー** にあるボタンとプロパティの詳細を説明します。
 
 [REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+HLOD は現在動的シャドウ (キャストまたはレシーブ) ではうまく機能しません。そのため、HLOD システムが生成するメッシュに対して静的なライティングとシャドウイングを使うようにします。
 [/REGION]
 
-## Property and Interface Reference
+## プロパティとインターフェースのリファレンス
 
 ![HLOD Outliner Fully Expanded](image_2.png)
 
 [REGION:raw]
-### Interface Elements
+### インターフェース エレメント
 
-Below are the descriptions for the 3 buttons and slider that exist in the **Hierarchical LOD Outliner**.
+以下は **Hierarchical LOD アウトライナー** にある 3 つのボタンとスライダーに関する説明です。
 
 | --- | :---: | :--- |
-| **Generate Clusters** || This will generate spherical clusters of static mesh actors in the scene that can be grouped. The way this is handled is by using the settings for each LOD settings specified under the LODSystem section of the HLOD Outliner. |
-| **Delete Clusters** || This will delete all HLODs that have been previously setup in this level. This includes all generated proxy meshes as well as the clusters that have been setup. This will not wipe the previously set values or properties for the HLOD Levels. |
+| **Generate Clusters** || グループ化できるシーン内の **Static Mesh アクタ** の球状のクラスターを生成します。HLOD アウトライナーの LODSystem で指定される各 LOD 設定を使うことで処理されます。 |
+| **Delete Clusters** || 過去にレベルでセットアップされたすべての HLOD を削除します。これにはすべての生成されたプロキシ メッシュやセットアップされたクラスタが含まれます。HLOD レベルに対して過去に設定された値やプロパティは消去しません。 |
 | **Generate Proxy Meshes** || [INCLUDE:#gpm] |
-| **Forced Viewing Level** || This will allow you to force a specific LOD level to be visible in the editor. This is helpful for debugging any LOD issues you may have. |
+| **Forced Viewing Level** || 特定の LOD レベルをエディタで強制的に可視状態にすることができます。生じうる LOD 問題をデバッグするのに役立ちます。
 | | %spacer%  | |
 [/REGION]
 
-### Properties
+### プロパティ
 
-Below, broken out by major section, are the properties that can be found in a **Hierarchical LODSetup** in the **LODSystem** panel located in the lower portion of the **Hierarchical LOD Outliner** interface.
+以下は、**[Hierarchical LOD Outliner]** インターフェースの下部にある **[LODSystem]** パネルの **[Hierarchical LODSetup]** にあるプロパティを主なセクションに分けて示したものです。
 
 [REGION:raw]
 
-### Cluster Generation Settings
+### クラスタ生成の設定
 
-| Property | %spacer% | Description |
+| プロパティ| %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Desired Bound Radius** || This is not guaranteed but used to calculate filling factor for auto clustering. |
-| **Desired Filling Percentage** || This is not guaranteed but used to calculate filling factor for auto clustering. |
-| **Min Number of Actors to Build** || Min number of actors to build LODActor. |
+| **Desired Bound Radius** || 自動クラスタリングのためのフィルファクタを計算するために使用されますが、必ずしも保証はされません。 |
+| **Desired Filling Percentage** || 自動クラスタリングのためのフィルファクタを計算するために使用されますが、必ずしも保証はされません。 |
+| **Min Number of Actors to Build** || LODActor をビルドするための **アクタ** の最小数です。 |
 
-### Mesh Generation Settings
+### メッシュ生成の設定
 
-| Property | %spacer% | Description |
+| プロパティ| %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Transition Screen Size** || The screen radius a mesh object should reach before swapping to the LOD actor. When the parent LOD displays it won’t display any of the children. |
-| [REGION:tablesection]**Merge Settings**[/REGION] |||
-| **Generate Light Map UV** || Whether to generate a lightmap UV for a merged mesh. |
-| **Target Light Map UVChannel** || The target UV channel to assign the lightmap UV. |
-| **Target Light Map Resolution** || The lightmap resolution set for the merged mesh. |
-| **Pivot Point at Zero** || Whether a merged mesh should have a pivot at the World Origin, or at the first merged actor from a generated cluster. |
-| **Merge Physics Data:** || Whether to merge the collision primitives when combining the actors. |
-| **Merge Materials** || Whether to merge source materials into one flat material. |
-| [REGION:tablesection]**[Material Settings See Below](#materialsettings)**[/REGION] |||
-| **Bake Vertex Data ** || Incorporates painted vertex colours into model/baked out material. |
-| **Calculate Correct LODModel** || Calculates the correct LOD model based upon the screen size value (similar to how regular LODs are determined for static meshes in the editor/game). |
-| **Export Specific LOD** || Forces the system to pick the given LOD level for all models (if the LOD level exists, otherwise picks the maximum closest value). |
+| **Transition Screen Size** || LOD **Actor** にスワップする前にメッシュ オブジェクトが到達すべき画面半径です。親の LOD が表示されると、子の LOD は表示されません。
+| [REGION:tablesection]**マージ設定**[/REGION] |||
+| **Generate Light Map UV** || マージしたメッシュに対してライトマップ UV を生成するか否かを設定します。 |
+| **Target Light Map UVChannel** || ライトマップ UV を割り当てるターゲット UV チャンネルです。 |
+| **Target Light Map Resolution** || マージされたメッシュに設定されるライトマップ解像度です。 |
+| **Pivot Point at Zero** || マージされたメッシュがワールド基点でピボットを持つか、生成されたクラスタから最初にマージされた **アクタ** でピボットを持つかです。 |
+| **Merge Physics Data:** || **アクタ** を結合する場合に、コリジョンのプリミティブをマージするか否かです。 |
+| **Merge Materials** || ソース マテリアルをひとつのフラットなマテリアルにマージするか否かです。 |
+| [REGION:tablesection]**[以下のマテリアルの設定を参照](#マテリアルの設定)**[/REGION] |||
+| **Bake Vertex Data ** || ペイントされた頂点カラーをモデル/ベイクされたマテリアルに組み込みます。 |
+| **Calculate Correct LODModel** || 画面サイズの値に基づき正確な LOD モデルを計算します (エディタ / ゲームで、スタティックメッシュに対して通常の LOD がどのように決まるかに似ています)。 |
+| **Export Specific LOD** || すべてのモデルに対して任意の LOD レベルを選ぶようにシステムに強制します (LOD レベルが存在する場合。存在しなければ、最大限近い値が選ばれます). |
 
-### Material Settings
+### マテリアルの設定
 
-| Property | %spacer% | Description |
+| プロパティ| %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Texture Size** || Size of the generated BaseColor texture map. |
+| **Texture Size** || 生成された BaseColor テクスチャ マップのサイズです。 |
 | **Texture Sizing Type** || [INCLUDE:#tst] |
-| **Normal Map** || Whether to generate a Normal map. |
-| **Metallic Map** || Whether to generate a Metallic map. |
-| **Metallic Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Roughness Map** || Whether to generate a Roughness map. |
-| **Roughness Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Specular Map** || Whether to generate a Specular map. |
-| **Specular Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Emissive Map** || Whether to generate aa Emissive map. |
-| **Diffuse Texture Size** || Override for the Diffuse Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Normal Texture Size** || Override for the Normal Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Metallic Texture Size** || Override for the Metallic Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Roughness Texture Size** || Override for the Roughness Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Specular Texture Size** || Override for the Specular Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Emissive Texture Size** || Override for the Emissive Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
+| **Normal Map** || 法線マップを生成するか否かを指定します。 |
+| **Metallic Map** || メタリック マップを生成するか否かを指定します。 |
+| **Metallic Constant** || テクスチャ マップの代わりにラフネス定数値を設定することができます。 |
+| **Roughness Map** || ラフネス マップを生成するか否かを指定します。 |
+| **Roughness Constant** || テクスチャ マップの代わりにラフネス定数値を設定することができます。 |
+| **Specular Map** || スペキュラ マップを生成するか否かを指定します。 |
+| **Specular Constant** || テクスチャ マップの代わりにラフネス定数値を設定することができます。 |
+| **Emissive Map** || エミッシブ マップを生成するか否かを指定します。 |
+| **Diffuse Texture Size** || ディフューズ テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
+| **Normal Texture Size** ||法線テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
+| **Metallic Texture Size** || メタリック テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
+| **Roughness Texture Size** || ラフネス テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
+| **Specular Texture Size** || スペキュラ テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
+| **Emissive Texture Size** || エミッシブ テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
 [/REGION]
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
@@ -86,24 +86,24 @@ Below, broken out by major section, are the properties that can be found in a **
 
 <!--
 [EXCERPT:GPM]
-When you generate the proxy meshes this will use the clustered LODs to merge these actors together into a single asset. Depending on what settings you changed for the HLOD levels your static meshes will generate based on this. This can affect your materials, lightmaps, and various other properties as well. 
+プロキシ メッシュを生成する場合、クラスタ化された LOD を使ってこうした **アクタ** をひとつのアセットにまとめます。HLOD レベルに対してどの設定を変更したかに応じて、スタティックメッシュがそれに基づき生成されます。これは、マテリアル、ライトマップ、様々な他のプロパティにも影響を及ぼします。 
 
 [REGION:note]
-Be aware that this process can take a **very long time** depending on your scene complexity and settings for your HLOD levels.
+このプロセスは、シーンの複雑度や HLOD レベルの設定に応じて **非常に長い時間** がかかることがあることにご注意ください。
 [/REGION]
 [/EXCERPT]
 
 [EXCERPT:TST]
 
-Texture Sizing Type Description
+テクスチャのサイジング タイプの説明
 
 [REGION:raw]
-| Type | %spacer2% | Description |
+| タイプ | %spacer2% | 説明 |
 | --- | :---: | :--- |	
-| **Use TextureSize for all material properties** || Will use the value entered into **Texture Size** for sizing. |
-| **Use automatically biased texture sizes based on TextureSize** || This creates a biased set of **{normal:diffuse:otherproperties}** textures using the ratio of **{1:0.5:0.25}** so if the texture size is set to 512 it will output a 512 normal map, 256 diffuse map and 128 map for roughness specular etc (diffuse is clamped to 32x32 and roughness specular etc to 16x16 |
-| **Use per property manually overridden texture sizes** || Enables the per texture overrides, and uses those values instead of **Texture Size**. |
-| **Use Simplygon’s automatic texture sizing** || Uses **Simplygon's** sizing. |
+| **Use TextureSize for all material properties** || サイジングのために **Texture Size** に入力された値を使用します。 |
+| **Use automatically biased texture sizes based on TextureSize** || **{1:0.5:0.25}** の割合を使ってバイアスをかけた **{normal:diffuse:otherproperties}** のテクスチャのセットを作成します。そのため、テクスチャ サイズが 512 の場合は、512 の法線マップ、256 のディフューズ マップ、128 のラフネス、スペキュラなどのマップを出力します (ディフューズは 32x32 にクランプされ、ラフネス、スペキュラなどは 16x16 にクランプされます)。|
+| **Use per property manually overridden texture sizes** || テクスチャ毎のオーバーライドを有効にして、**Texture Size** の代わりにこうした値を使用します。 |
+| **Use Simplygon’s automatic texture sizing** || **Simplygonの** のサイジングを使用します。 |
 [/REGION]
 
 [/EXCERPT]
