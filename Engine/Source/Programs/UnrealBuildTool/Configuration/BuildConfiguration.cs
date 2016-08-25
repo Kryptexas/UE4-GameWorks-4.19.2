@@ -579,7 +579,7 @@ namespace UnrealBuildTool
 			bFlushBuildDirOnRemoteMac = false;
 			bGeneratedSYMFile = true;
 			bGeneratedSYMBundle = false;
-			bStripSymbolsOnIOS = bGeneratedSYMFile;
+			bStripSymbolsOnIOS = false;
 
 			// By default we don't bother relinking targets if only a dependent .lib has changed, as chances are that
 			// the import library wasn't actually different unless a dependent header file of this target was also changed,
