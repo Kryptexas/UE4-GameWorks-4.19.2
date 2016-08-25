@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2940199
-Availability:Public
+﻿INTSourceChangelist:3051445
+Availability:Docs
 Title:最新の iOS PC/Mac 向けワークフロー
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:iOS プラットフォーム開発の環境設定
@@ -177,8 +177,8 @@ Edit Info.plist ウィンドウを開くオプションがありますが、こ�
     * プロンプトに従います (パスワード入力も含みます。チーム内で共有できるパスワードを使用します)
     * プロファイル ファイルを他のユーザーにも割り当てます。
     * これにより他のユーザーは、Xcode の Organizer へ「Developer Profile」をインポートすることができます
-	次に、Apple サイトから `.mobileprovision` をダウンロードします。「&lt;ProfileName&gt;.mobileprovision」と言う名前でファイルがダウンロードされます。`.mobileprovision` ファイルを以下のいずれかの場所に置きます。
 
+次に、Apple サイトから `.mobileprovision` をダウンロードします。「&lt;ProfileName&gt;.mobileprovision」と言う名前でファイルがダウンロードされます。`.mobileprovision` ファイルを以下のいずれかの場所に置きます。
 * `[GameDir]/Build/IOS/[GameName].mobileprovision`
 * `Engine/Build/IOS/UE4Game.mobileprovision`
 
