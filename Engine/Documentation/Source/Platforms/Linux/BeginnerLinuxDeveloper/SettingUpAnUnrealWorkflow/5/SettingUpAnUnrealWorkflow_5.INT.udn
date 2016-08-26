@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: 5 - On Your Own!
 Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 Description:Do some exercises on your own.
@@ -7,7 +7,7 @@ type:QuickStart
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 5
 tags:Linux
-SkillLevel:Beginner
+SkillLevel:Beginner 
 
 [VAR:Steps]
 [OBJECT:Navigation]
