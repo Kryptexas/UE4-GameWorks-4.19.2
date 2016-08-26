@@ -3,6 +3,8 @@ Title: Setup
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:How to set up a project for localization. 
 version: 4.9
+Parent:Gameplay/Localization
+Order:2
 
 [TOC (start:2)]
 
