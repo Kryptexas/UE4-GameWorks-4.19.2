@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title:Creating 3D Widget Interaction
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:An example of how to create, display and remove UI elements from the screen during gameplay. 

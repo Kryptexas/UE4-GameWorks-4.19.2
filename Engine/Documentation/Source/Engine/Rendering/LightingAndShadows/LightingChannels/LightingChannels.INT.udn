@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title: Lighting Channels
 Crumbs: %ROOT%, Engine
 Description:Lighting Channels ia a rendering feature that enables you to choose what renderable surfaces are lit by specific lights.
