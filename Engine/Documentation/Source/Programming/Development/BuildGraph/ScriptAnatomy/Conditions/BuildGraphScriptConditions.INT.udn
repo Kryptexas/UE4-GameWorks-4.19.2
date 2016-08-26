@@ -43,11 +43,7 @@ BuildGraph script conditions consist of atoms and operators that evaluate to `tr
 
 Atoms can be numbers, strings, or identifiers that are coerced to their appropriate type for the oprator using them. 
 Atoms may be quoted with single (') or double (") quotes. They can also be an unquoted sequence of letters, digits, and 
-underscore characters. 
-
-### Literals
-
-All literals are considered identical, regardless of how they're declared. Additionally, literals are considered 
+underscore characters. All atoms are considered the same type, regardless of how they're declared. Additionally, atoms are considered 
 case-insensitive for comparisons, which means that the strings "True" and 'true' are identical to the identifier `true` 
 (despite the presence of quotes and differences in case).
 
@@ -71,7 +67,7 @@ A list of operators is specified below:
 | **x or y**              | True if either argument is `true`.                                          | 4               |
 
 [REGION:note]
-The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML (referencing [XML Schema v1.0](https://www.w3.org/TR/NOTE-dcd])).
+The `'<'` and `'>'` characters must be escaped as `"&lt;"` and `"&gt;"` in XML.
 [/REGION]
 
 [/EXCERPT:BuildGraphScriptConditions]

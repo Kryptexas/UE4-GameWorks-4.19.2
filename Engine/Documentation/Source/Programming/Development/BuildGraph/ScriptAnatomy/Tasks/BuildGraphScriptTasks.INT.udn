@@ -32,7 +32,7 @@ tags:BuildGraph
 
 [EXCERPT:BuildGraphScriptTasks]
 
-Typically, project-specific utility scripts are implemented as AutomationTool BuildCommand classes. There are times; however, when you'll want 
+Typically, project-specific utility scripts are implemented as AutomationTool BuildCommand classes. There are times, however, when you'll want 
 to automate custom tasks for your project. This is where BuildGraph can help. BuildGraph can be extended with any number of tasks, enabling you 
 to customize your build automation tasks in ways that suit your specific needs. The following section goes over ways of creating custom 
 tasks using BuildGraph, including a listing of predefined tasks that'll give you a great starting point for creating custom tasks.
