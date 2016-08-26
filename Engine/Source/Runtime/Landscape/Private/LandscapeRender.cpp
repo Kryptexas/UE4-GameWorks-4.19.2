@@ -2716,14 +2716,14 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 	}
 
 	// TODO - LOD Materials - Currently all LOD materials are instances of [0] so have the same textures
-	UMaterialInstance* MaterialInstance = MaterialInstances[0];
+    UMaterialInterface* MaterialInterface = GetWorld()->FeatureLevel >= ERHIFeatureLevel::SM4 ? MaterialInstances[0] : MobileMaterialInterface;
 
 	// Normal usage...
 	// Enumerate the textures used by the material.
-	if (MaterialInstance)
+	if (MaterialInterface)
 	{
 		TArray<UTexture*> Textures;
-		MaterialInstance->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
+		MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
 		// Add each texture to the output with the appropriate parameters.
 		// TODO: Take into account which UVIndex is being used.
 		for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
@@ -2737,7 +2737,7 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			StreamingTexture.Texture = Texture2D;
 		}
 
-		UMaterial* Material = MaterialInstance->GetMaterial();
+		UMaterial* Material = MaterialInterface->GetMaterial();
 		if (Material)
 		{
 			int32 NumExpressions = Material->Expressions.Num();
