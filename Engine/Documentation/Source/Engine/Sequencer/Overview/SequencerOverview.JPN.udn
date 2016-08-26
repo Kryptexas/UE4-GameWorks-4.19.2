@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3009005
+﻿INTSourceChangelist:3075953
 Availability:Public
 Title:シーケンサーの概要
 Crumbs: %ROOT%, Engine
@@ -6,9 +6,9 @@ Description:シーケンサーは UE4 のマルチトラック エディタで�
 Navigation:topic
 parent:Engine/Sequencer
 order:1
-Version: 4.12
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version:4.12
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
 
 **Sequencer (シーケンサー)** エディタには、 [**マチネ**](Engine\Matinee\) に似た特殊なマルチ トラック エディタを通してインゲームのシネマティックスを作成する機能があります。 
 **レベル シーケンス** を作成し **トラック** を追加することで、各トラックの構成を定義し、それによりシーンの内容を決めることができます。
@@ -238,6 +238,25 @@ mvCPXslVb8Y
 ![](CaptureMovie.png)
 
 シーンの録画のキャプチャ プロセスを開始するには、**[Capture Movie]** ボタンをクリックします。 
+
+### Custom
+
+はじめに
+
+[REGION:note]
+burn-ins の使用についての手順を示したガイドについては、[](Engine/Sequencer/HowTo/BurnIns) をご覧ください。 
+[/REGION]
+
+[PUBLISH:docs]
+### Import/Export EDLs
+
+[INCLUDE:Engine/Sequencer/HowTo/ImportExportEDLs#intro]
+
+[REGION:note]
+EDLs の使用についての手順を示したガイドについては、[](Engine/Sequencer/HowTo/ImportExportEDLs) をご覧ください。
+[/REGION]
+[/PUBLISH:docs]
+
 
 
 ## ワークフロー上の考慮事項
