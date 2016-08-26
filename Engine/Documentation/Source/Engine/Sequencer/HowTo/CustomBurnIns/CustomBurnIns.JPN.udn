@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3054496
-Availability:Docs
+﻿INTSourceChangelist:3075228
+Availability:Public
 Title:カスタムの Burn In を適用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:カスタムのバーンインを作成し、出力したムービーに適用する方法を説明します。 
