@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3061435
+﻿INTSourceChangelist:3097683
 Availability:Public
 Title:UI を作成し、表示する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:ゲームプレイ中に画面に UI エレメントを作成、表示、除去する方法の例です。 
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
+Description:ゲームプレイ中に画面に UI エレメントを作成、表示、取り除く方法の例です。 
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
 Version:4.12
 SkillLevel:Beginner
 
@@ -23,17 +23,15 @@ Widget ブループリントでは、[](Engine/Blueprints) を使ってレイア
 この操作ガイドでは **Blueprint Third Person Template** を使います。ただし、必要に応じて他のプロジェクトを使用することもできます。 
 [/REGION]
 
-1.	[](Engine/Content/Browser/) で、 **[Add New]** ボタンをクリックし、 **User Interface** で **Widget ブループリント** を選択します。 
+1.	[](Engine/Content/Browser/) で、 **[Add New]** ボタンをクリックし、 **User Interface** で **Widget ブループリント** を選択します。UMG でどのタイプの HUD エレメントを作成するかに関係なく、Widget ブループリント内で作業する必要があります。 
 
 	![](CreatingWidgets01.png)
-
-	UMG でどのタイプの HUD エレメントを作成するかに関係なく、Widget ブループリント内で作業する必要があります。 
 
 1.	Widget ブループリントの名前に、名前 **SampleUI** を入力し、 **ダブルクリック** して開きます。 
 
 	![](CreatingWidgets02.png)
 
-	Widget ブループリントを開くと、UMG のエディタ インターフェースが表示されます。
+	Widget ブループリントを開くと、UMG のエディタ インターフェースが表示されます。Widget ブループリントはデフォルトで **[Designer]** タブで開きます。ここで、UI エレメントの視覚的レイアウトを行います。Widget ブループリントの機能をスクリプトするには、エディタの右上隅にある **[グラフ]** ボタンをクリックします。
 
 	[REGION:lightbox]
 	[![](CreatingWidgets03.png)](CreatingWidgets03.png)
@@ -41,27 +39,19 @@ Widget ブループリントでは、[](Engine/Blueprints) を使ってレイア
 
 	[REGION:caption]
 	クリックしてフルサイズで表示 
-	[/REGION]
+	[/REGION] 
 
-	Widget ブループリントはデフォルトで **[Designer]** タブで開きます。ここで、UI エレメントの視覚的レイアウトを行います。Widget ブループリントの機能をスクリプトするには、エディタの右上隅にある **[グラフ]** ボタンをクリックします。 
-
-1.	**[Palette (パレット)]** ウィンドウ内で **左クリック** し、**Text** ウィジェットを **[Visual Designer (ビジュアル デザイナー)]** グラフにドラッグします。 
+1.	**[Palette (パレット)]** ウィンドウ内で **左クリック** し、**Text** ウィジェットを **[Visual Designer (ビジュアル デザイナー)]** グラフにドラッグします。[パレット] ウィンドウには、複数種類のウィジェットがあり、これらを使って UI エレメントを作成することができます。 
 
 	![](CreatingWidgets04.png)
 
-	[パレット] ウィンドウには、複数種類のウィジェットがあり、これらを使って UI エレメントを作成することができます。 
+1.	Text Widget の **[Details (詳細)]** パネルで、[](Engine/UMG/UserGuide/Anchors) ドロップダウンをクリックして、中央に固定するオプションを選択します。これでビューポート サイズが変わっても、Text ウィジェットが画面中央に相対的に固定されます。
 
-1.	Text Widget の **[Details (詳細)]** パネルで、[](Engine/UMG/UserGuide/Anchors) ドロップダウンをクリックして、中央に固定するオプションを選択します。 
+	![](CreatingWidgets05.png) 
 
-	![](CreatingWidgets05.png)
-
-	これでビューポート サイズが変わっても、Text ウィジェットが画面中央に相対的に固定されます。 
-
-1.	**[Details (詳細)]** パネルで、**[Size to Content]** オプションをクリックして、**Text**、 **Color and Opacity**、および **Font Size** のオプションを変更します。 
+1.	**[Details (詳細)]** パネルで、**[Size to Content]** オプションをクリックして、**Text**、 **Color and Opacity**、および **Font Size** のオプションを変更します。名前が示すとおり、[Size to Content] オプションは、ウィジェットのサイズを調整して、そのコンテンツに合わせます。さらに、テキストを "Hello World!" に変更し、その色を緑にし、フォントサイズを 56 にしました。
 
 	![](CreatingWidgets06.png)
-
-	名前が示すとおり、[Size to Content] オプションは、ウィジェットのサイズを調整して、そのコンテンツに合わせます。さらに、テキストを "Hello World!" に変更し、その色を緑にし、フォントサイズを 56 にしました。
 
 1.	**[Compile]** ボタンをクリックします。**[Save]** をクリックして、Widget ブループリントを閉じます。 
 
@@ -83,41 +73,35 @@ Widget ブループリントでは、[](Engine/Blueprints) を使ってレイア
 
 1.	**Return Value** ピンを **右クリック** して、**Promote To Variable** を選択して、**SampleUI** と名前を付けます。 
 
-	![](CreatingWidgets13.png)
+	[REGION:tip]
+	Widget ブループリント (UI) を作成するたびに、それを変数に昇格し、後でブループリント スクリプトを通してアクセスできるようにするとよいでしょう。
+	[/REGION]
 
-	Widget ブループリント (UI) を作成するたびに、それを変数に昇格し、後でブループリント スクリプトを通してアクセスできるようにするとよいでしょう。 
+	![](CreatingWidgets13.png) 
 
-1.	 **Set** ノードの出力ピンからドラッグして、**Add to Viewport** ノードを探して追加します。 
+1.	 **Set** ノードの出力ピンからドラッグして、**Add to Viewport** ノードを探して追加します。Widget ブループリントをインゲームで表示するように指示する方法です。 
 
 	![](CreatingWidgets14.png)
-
-	Widget ブループリントをインゲームで表示するように指示する方法です。 
 
 1.	グラフ内を **右クリック** して、**Enter** Keyboard Event を探して追加します。 
 
 	![](CreatingWidgets15.png)
 
-1.	**Pressed** ピンを **Create Sample UI Widget** ノードの実行ピンに接続します。 
+1.	**Pressed** ピンを **Create Sample UI Widget** ノードの実行ピンに接続します。ここまでで、Enter を押すと、そのウィジェットを作成し、表示する前に変数として保存するように指示しています。 
 
 	![](CreatingWidgets16.png)
-
-	ここまでで、Enter を押すと、そのウィジェットを作成し、表示する前に変数として保存するように指示しています。 
 
 1.	**Ctrl** キーを押しながら、**SampleUI** 変数を **[My Blueprint]** パネルからグラフにドラッグします。
 
 	![](CreatingWidgets17.png)
 
-1.	新しいノードのピンをドラッグして、 **Remove from Parent** ノードを探して追加します。 
+1.	新しいノードのピンをドラッグして、 **Remove from Parent** ノードを探して追加します。Remove from Parent ノードは、Widget ブループリントをビューポートから取り除く指示をします。
 
-	![](CreatingWidgets18.png)
+	![](CreatingWidgets18.png) 
 
-	Remove from Parent ノードは、Widget ブループリントをビューポートから取り除く指示をします。 
-
-1.	**Enter** ノードの **Release** ピンを **Remove from Parent** 実行入力ピンに接続します。 
+1.	**Enter** ノードの **Release** ピンを **Remove from Parent** 実行入力ピンに接続します。**Enter** キーを押すと、テキストが表示されて、キーを放すとテキストが取り除かれます。 
 
 	![](CreatingWidgets19.png)
-
-	**Enter** キーを押すと、テキストが表示されて、キーを放すとテキストが取り除かれます。 
 
 1.	**Level ブループリント** を閉じて、メイン ツールバーで **Play** ボタンをクリックします。 
 
