@@ -3,6 +3,8 @@ Title: Commandlets
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:Descriptions and arguments for the commandlets used when localizing your project. 
 version: 4.9
+Parent:Gameplay/Localization
+Order:4
 
 
 [TOC (start:2)]

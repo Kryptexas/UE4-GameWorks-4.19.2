@@ -3,6 +3,8 @@ Title:FText
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description:
 Version: 4.9
+Related:Gameplay/Localization
+Related:Gameplay/Localization/Formatting
 
 
 
@@ -100,36 +102,7 @@ You can compare two FText strings by using **FText::EqualTo()** or **FText::Equa
 FText does not expose operators for these comparison operations currently because their operations are not simple ordinal comparisons like FStrings. We opted to not use the normal operators to hint 
 at the operation's expense. 
 
-## Formatting FText
-  
-You can use the **FText::Format()** function to concatenate different FText together, and if desired, save it to an FText variable. 
-  
-	FText::Format( LOCTEXT( "HelloMessageFormat",  "Hello {0}," ), PlayerName ) 
-  
-Currently, the Format function only takes FText as parameters.
 
-FText::Format supports two different kinds of format arguments, ordered and named.
-
-### Ordered Arguments
- 
-* Arguments = {0}, {1}, {2}, etc... 
-* Curly braces denote the beginning and end of the format argument and the number indicates the parameter passed.
-
-		FText::Format( LOCTEXT( "HealthFormatStr",  "{0} / {1}" ), FText::AsNumber( CurrentHealth ), FText::AsNumber( MaxHealth )  ) 
-
-### Named Arguments 
-
-* Arguments = {Name}, {ID}, {Health}, etc... 
-* Curly braces denote the beginning and end of the format argument and the text between the braces is the name of argument to be found in the FFormatNamedArgs collection passed in.
-
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("CurrentHealth"), FText::AsNumber( CurrentHealth ));
-		EditorErrors.Error(FText::Format(LOCTEXT("ExampleFText", "You currently have {CurrentHealth} health left."), Arguments ) );
-			
-
-[PUBLISH:Licensee]
-TextTest.cpp can show you examples of how to perform valid culture aware formatting, comparison, and sorting.
-[/PUBLISH:Licensee]
 
 ## FText in HUDs
 
@@ -158,13 +131,4 @@ You must call the DrawItem() function within your HUD class's **DrawHUD()** func
 
 Blueprints support Text literals. Any input pins for Text values will support being assigned a value in the node and these strings will be gathered up for localization.
 
-**FText::Format** is also available in Blueprints. The Format text can be a literal or connected to a pin. When used as a literal, it will auto-generate arguments for formatting. So by entering the 
-literal "There are {number} days until {day}.", a **Number** pin and a **Day** pin will be automatically added to the node. These pins can be filled in as a literal or from a variable and the output 
-Text will replace the arguments with whatever values are hooked to the pins. 
 
-When the Format pin is connected, the Format can not be deciphered because it is variable. In this case, you can add pins yourself and name them after the possible arguments. In this way, you can 
-set up the Format Text node to be ready for multiple possibilities. Whenever an argument matches an argument in the Format variable, it will utilize the provided information.
-
-Pin names can be changed, added, and removed from the **Details** Panel.
-
- 
