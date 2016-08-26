@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: Building for iOS on Windows
 Crumbs:%ROOT%, Platforms
 Description:How to remotely compile on a Mac from a Windows machine to create an iOS build. 

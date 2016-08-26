@@ -1,10 +1,10 @@
-Availability:Docs
+Availability:Public
 Title: Media Framework
 Crumbs:%ROOT%, Engine
 Description:Working with Media Playback functionality in Unreal Engine 4. 
 Navigation:topic
 parent:Engine
-order:1
+order:12
 Version: 4.13
 
 [VAR:Topic]
@@ -76,5 +76,5 @@ to resolve those issues as well as add additional features and support.
 
 ## Essentials
 
-[DIR(output:"listbutton" parent:"Engine\MediaFramework" org:"hierarchy" end:"1")]
+[DIR(output:"listbutton" parent:"Engine/MediaFramework" org:"hierarchy" end:"1")]
 

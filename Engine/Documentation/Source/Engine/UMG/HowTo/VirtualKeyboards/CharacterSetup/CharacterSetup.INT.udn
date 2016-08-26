@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title:1. Character Setup
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Here we add the Widget Interaction component to our character and create the other assets we will need. 

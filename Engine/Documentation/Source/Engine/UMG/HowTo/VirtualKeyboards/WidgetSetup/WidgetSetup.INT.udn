@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title:2. Widget Blueprint Setup
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Here we create the keypad and keypad display widgets that will appear in the level. 
