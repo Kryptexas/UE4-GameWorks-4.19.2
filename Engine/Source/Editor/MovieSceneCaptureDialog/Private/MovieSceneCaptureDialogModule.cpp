@@ -86,6 +86,8 @@ class SRenderMovieSceneSettings : public SCompoundWidget, public FGCObject
 			
 		];
 
+		MovieSceneCapture = nullptr;
+
 		if (InArgs._InitialObject)
 		{
 			SetObject(InArgs._InitialObject);

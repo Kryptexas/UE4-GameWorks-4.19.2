@@ -207,6 +207,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEditor
 
+FTileMapEditor::FTileMapEditor()
+	: TileMapBeingEdited(nullptr)
+{
+}
+
 TSharedRef<SDockTab> FTileMapEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args)
 {
 	return SNew(SDockTab)

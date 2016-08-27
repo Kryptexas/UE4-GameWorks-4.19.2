@@ -1006,10 +1006,25 @@ FMatinee::~FMatinee()
 
 void FMatinee::AddReferencedObjects( FReferenceCollector& Collector )
 {
+	Collector.AddReferencedObject( BarGradText );
 	Collector.AddReferencedObject( MatineeActor );
 	Collector.AddReferencedObject( IData );
+	Collector.AddReferencedObject( CamViewGroup );
 	Collector.AddReferencedObject( NormalTransactor );
+	Collector.AddReferencedObject( InterpEdTrans );
 	Collector.AddReferencedObject( Opt );
+	Collector.AddReferencedObject( PreviousCamera );
+
+	Collector.AddReferencedObjects(RecordingTracks);
+	Collector.AddReferencedObjects(RecordingParentOffsets);
+	Collector.AddReferencedObjects(TrackToNewKeyIndexMap);
+
+	for (TPair<UInterpTrack*, AddKeyInfo>& Pair : AddKeyInfoMap)
+	{
+		Collector.AddReferencedObject( Pair.Key );
+		Collector.AddReferencedObject( Pair.Value.TrInst );
+		Collector.AddReferencedObject( Pair.Value.TrackHelper );
+	}
 
 	// Check for non-NULL, as these references will be cleared in OnClose.
 	if ( TrackWindow.IsValid() && TrackWindow->InterpEdVC.IsValid() )

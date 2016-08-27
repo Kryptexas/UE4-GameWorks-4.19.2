@@ -21,10 +21,8 @@ protected:
 	};
 
 public:
-	USTRUCT()
 	struct FSplashDesc
 	{
-		UPROPERTY()
 		UTexture2D*			LoadingTexture;					// a UTexture pointer, either loaded manually or passed externally.
 		FString				TexturePath;					// a path to a texture for auto loading, can be empty if LoadingTexture is specified explicitly
 		FTransform			TransformInMeters;				// transform of center of quad (meters)

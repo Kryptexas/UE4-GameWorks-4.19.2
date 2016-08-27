@@ -285,7 +285,7 @@ public:
 
 	void PostSerialize(const FArchive& Ar);
 
-public:
+	void AddReferencedObjects(FReferenceCollector& Collector);
 
 	/**
 	 * Gets the identifier for UObject based texture paths.

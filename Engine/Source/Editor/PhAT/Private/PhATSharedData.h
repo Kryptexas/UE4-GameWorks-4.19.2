@@ -128,6 +128,8 @@ public:
 	void Redo();
 	void SetCollisionBetweenSelected(bool bEnableCollision);
 
+	void AddReferencedObjects(FReferenceCollector& Collector);
+
 
 private:
 	/** Initializes a constraint setup */

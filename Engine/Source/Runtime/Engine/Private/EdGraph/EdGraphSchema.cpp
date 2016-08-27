@@ -274,13 +274,13 @@ namespace
 	const int32 NodeDistance = 60;
 }
 
-UEdGraphNode* FEdGraphSchemaAction_NewNode::CreateNode(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, class UEdGraphNode* NodeTemplate)
+UEdGraphNode* FEdGraphSchemaAction_NewNode::CreateNode(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, class UEdGraphNode* InNodeTemplate)
 {
 	// Duplicate template node to create new node
 	UEdGraphNode* ResultNode = NULL;
 
 #if WITH_EDITOR
-	ResultNode = DuplicateObject<UEdGraphNode>(NodeTemplate, ParentGraph);
+	ResultNode = DuplicateObject<UEdGraphNode>(InNodeTemplate, ParentGraph);
 	ResultNode->SetFlags(RF_Transactional);
 
 	ParentGraph->AddNode(ResultNode, true);

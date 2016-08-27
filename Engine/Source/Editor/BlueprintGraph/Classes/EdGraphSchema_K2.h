@@ -32,10 +32,12 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 
 	FEdGraphSchemaAction_K2Struct() 
 		: FEdGraphSchemaAction()
+		, Struct(nullptr)
 	{}
 
 	FEdGraphSchemaAction_K2Struct (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+		, Struct(nullptr)
 	{}
 };
 

@@ -66,6 +66,10 @@ void FNiagaraEffectEditor::UnregisterTabSpawners(const TSharedRef<class FTabMana
 }
 
 
+FNiagaraEffectEditor::FNiagaraEffectEditor()
+	: NiagaraSequence(nullptr)
+{
+}
 
 
 FNiagaraEffectEditor::~FNiagaraEffectEditor()

@@ -695,21 +695,12 @@ void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const U
 	//	 hopefully a utility to push the WorldContext back in to the collector with property collection
 	//       will happen in the future
 	Collector.AddReferencedObject(PendingNetGame, ReferencingObject);
-	for (const FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
+	for (FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
 	{
-		for (UObject* LoadedObject : PackageInfo.LoadedObjects)
-		{
-			Collector.AddReferencedObject(LoadedObject, ReferencingObject);
-		}
+		Collector.AddReferencedObjects(PackageInfo.LoadedObjects, ReferencingObject);
 	}
-	for (ULevel* LoadedLevel : LoadedLevelsForPendingMapChange)
-	{
-		Collector.AddReferencedObject(LoadedLevel, ReferencingObject);
-	}
-	for (UObjectReferencer* ObjectReferencer : ObjectReferencers)
-	{
-		Collector.AddReferencedObject(ObjectReferencer, ReferencingObject);
-	}
+	Collector.AddReferencedObjects(LoadedLevelsForPendingMapChange, ReferencingObject);
+	Collector.AddReferencedObjects(ObjectReferencers, ReferencingObject);
 	Collector.AddReferencedObject(GameViewport, ReferencingObject);
 	Collector.AddReferencedObject(OwningGameInstance, ReferencingObject);
 	for (FNamedNetDriver& ActiveNetDriver : ActiveNetDrivers)
@@ -10849,10 +10840,7 @@ public:
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
-		for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++ )
-		{
-			Collector.AddReferencedObject( Levels[ LevelIndex ] ); 
-		}
+		Collector.AddReferencedObjects( Levels ); 
 	}
 };
 

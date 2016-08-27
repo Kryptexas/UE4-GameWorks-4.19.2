@@ -490,13 +490,7 @@ void FEdGraphSchemaAction_K2AddCallOnActor::AddReferencedObjects( FReferenceColl
 {
 	FEdGraphSchemaAction_K2NewNode::AddReferencedObjects( Collector );
 
-	for ( int32 ActorIndex = 0; ActorIndex < LevelActors.Num(); ActorIndex++ )
-	{
-		if ( LevelActors[ActorIndex] != NULL )
-		{
-			Collector.AddReferencedObject( LevelActors[ActorIndex] );
-		}
-	}
+	Collector.AddReferencedObjects(LevelActors);
 }
 
 /////////////////////////////////////////////////////

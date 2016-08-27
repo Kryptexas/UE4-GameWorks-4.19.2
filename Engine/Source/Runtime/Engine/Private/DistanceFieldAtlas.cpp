@@ -408,6 +408,16 @@ uint32 FBuildDistanceFieldThreadRunnable::Run()
 	return 0;
 }
 
+FAsyncDistanceFieldTask::FAsyncDistanceFieldTask()
+	: StaticMesh(nullptr)
+	, GenerateSource(nullptr)
+	, DistanceFieldResolutionScale(0.0f)
+	, bGenerateDistanceFieldAsIfTwoSided(false)
+	, GeneratedVolumeData(nullptr)
+{
+}
+
+
 FDistanceFieldAsyncQueue::FDistanceFieldAsyncQueue() 
 {
 #if WITH_EDITOR
