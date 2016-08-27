@@ -704,22 +704,22 @@ void FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.ScreenToWorld = FMatrix(
 		FPlane(1,0,0,0),
 		FPlane(0,1,0,0),
-		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[2][2],1),
-		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],0))
+		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[2][2],ProjectionMatrixUnadjustedForRHI.M[2][3]),
+		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],ProjectionMatrixUnadjustedForRHI.M[3][3]))
 		* InvViewProjectionMatrix;
 
 	ViewUniformShaderParameters.ScreenToTranslatedWorld = FMatrix(
 		FPlane(1,0,0,0),
 		FPlane(0,1,0,0),
-		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[2][2],1),
-		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],0))
+		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[2][2],ProjectionMatrixUnadjustedForRHI.M[2][3]),
+		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],ProjectionMatrixUnadjustedForRHI.M[3][3]))
 		* ViewMatrices.InvTranslatedViewProjectionMatrix;
 
 	ViewUniformShaderParameters.PrevScreenToTranslatedWorld = FMatrix(
 		FPlane(1,0,0,0),
 		FPlane(0,1,0,0),
-		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[2][2],1),
-		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],0))
+		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[2][2],ProjectionMatrixUnadjustedForRHI.M[2][3]),
+		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],ProjectionMatrixUnadjustedForRHI.M[3][3]))
 		* PrevViewMatrices.InvTranslatedViewProjectionMatrix;
 
 	FVector DeltaTranslation = PrevViewMatrices.PreViewTranslation - ViewMatrices.PreViewTranslation;

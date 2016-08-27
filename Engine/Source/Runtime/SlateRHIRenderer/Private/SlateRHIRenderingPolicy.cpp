@@ -266,17 +266,17 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	}
 
 	ViewUniformShaderParameters.ScreenToWorld = FMatrix(
-		FPlane(1, 0, 0, 0),
-		FPlane(0, 1, 0, 0),
-		FPlane(0, 0, View->ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
-		FPlane(0, 0, View->ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
+		FPlane(1,0,0,0),
+		FPlane(0,1,0,0),
+		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[2][2],View->ProjectionMatrixUnadjustedForRHI.M[2][3]),
+		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[3][2],View->ProjectionMatrixUnadjustedForRHI.M[3][3]))
 		* View->InvViewProjectionMatrix;
 
 	ViewUniformShaderParameters.ScreenToTranslatedWorld = FMatrix(
-		FPlane(1, 0, 0, 0),
-		FPlane(0, 1, 0, 0),
-		FPlane(0, 0, View->ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
-		FPlane(0, 0, View->ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
+		FPlane(1,0,0,0),
+		FPlane(0,1,0,0),
+		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[2][2],View->ProjectionMatrixUnadjustedForRHI.M[2][3]),
+		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[3][2],View->ProjectionMatrixUnadjustedForRHI.M[3][3]))
 		* View->ViewMatrices.InvTranslatedViewProjectionMatrix;
 
 	View->ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
