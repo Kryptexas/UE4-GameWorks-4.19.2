@@ -707,7 +707,55 @@ struct TAllocatorTraits<NavMeshMemory::FNavigationMemoryStat> : TAllocatorTraits
 #endif
 
 template<typename InElementType>
-using TNavStatArray = TArray<InElementType, NavMeshMemory::FNavAllocator>;
+class TNavStatArray : public TArray<InElementType, NavMeshMemory::FNavAllocator>
+{
+public:
+	typedef TArray<InElementType, NavMeshMemory::FNavAllocator> Super;
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+
+	TNavStatArray() = default;
+	TNavStatArray(TNavStatArray&&) = default;
+	TNavStatArray(const TNavStatArray&) = default;
+	TNavStatArray& operator=(TNavStatArray&&) = default;
+	TNavStatArray& operator=(const TNavStatArray&) = default;
+
+#else
+
+	FORCEINLINE TNavStatArray()
+	{
+	}
+
+	FORCEINLINE TNavStatArray(const TNavStatArray& Other)
+		: Super((const Super&)Other)
+	{
+	}
+
+	FORCEINLINE TNavStatArray(TNavStatArray&& Other)
+		: Super((Super&&)Other)
+	{
+	}
+
+	FORCEINLINE TNavStatArray& operator=(TNavStatArray&& Other)
+	{
+		(Super&)*this = (Super&&)Other;
+		return *this;
+	}
+
+	FORCEINLINE TNavStatArray& operator=(const TNavStatArray& Other)
+	{
+		(Super&)*this = (const Super&)Other;
+		return *this;
+	}
+
+#endif
+};
+
+template<typename InElementType>
+struct TContainerTraits<TNavStatArray<InElementType> > : public TContainerTraitsBase<TNavStatArray<InElementType> >
+{
+	enum { MoveWillEmptyContainer = TContainerTraits<typename TNavStatArray<InElementType>::Super>::MoveWillEmptyContainer };
+};
 
 //----------------------------------------------------------------------//
 // Active tiles 
