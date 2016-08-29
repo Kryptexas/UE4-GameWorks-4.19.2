@@ -21,6 +21,7 @@ public:
 	TSet<UEdGraphNode*> SubstituteNodes;
 	const UEdGraph* DestinationGraph;
 	TArray<FName> ExtraNamesInUse;
+	TArray<UEdGraphNode*> NodesToDestroy;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
@@ -70,10 +71,7 @@ protected:
 
 			if (Node != CreatedNode)
 			{
-				// Move the old node into the transient package so that it is GC'd
-				Node->BreakAllNodeLinks();
-				Node->Rename(NULL, GetTransientPackage());
-				Node->MarkPendingKill();
+				NodesToDestroy.Add(Node);
 			}
 
 			if (CreatedNode)
@@ -100,6 +98,16 @@ protected:
 			{
 				Notification->SetCompletionState(SNotificationItem::CS_None);
 			}
+
+
+		}
+
+		for (UEdGraphNode* Node : NodesToDestroy)
+		{
+			// Move the old node into the transient package so that it is GC'd
+			Node->BreakAllNodeLinks();
+			Node->Rename(NULL, GetTransientPackage());
+			Node->MarkPendingKill();
 		}
 	}
 };
