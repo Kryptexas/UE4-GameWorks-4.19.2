@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3063666
+﻿INTSourceChangelist:3094685
 Availability:Docs
 Title:ドラッグ＆ドロップの UI を作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -20,7 +20,7 @@ UMG を使って、**DragAndDropOperation** ノードを使ってこうしたタ
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-qUDIkWcQChI
+kYkhxuJsVs4
 [/PARAMLITERAL]
 [/OBJECT]
 
@@ -40,6 +40,7 @@ _このガイドの最後まで進むと、ビューポート内でドラッグ�
 	* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
 	* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
 	* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
+	* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
 	[/PARAM]
 [/OBJECT]
 
