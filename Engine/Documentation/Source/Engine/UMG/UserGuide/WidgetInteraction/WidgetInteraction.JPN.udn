@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3079307
-Availability:Docs
+﻿INTSourceChangelist:3102822
+Availability:Public
 Title:Widget Interaction コンポーネント
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:Widget Interaction コンポーネントを使って 3D Widget とインタラクションする方法を説明します。
@@ -66,7 +66,7 @@ Widget Interaction コンポーネントによって登録される最後のヒ�
 | **Get Hovered Widget Component** | 現在、カーソルが乗っている Widget コンポーネントを取得します。 |
 | **Get Last Hit Result** | コンポーネントが生成した最終ヒット結果を取得します。設定されている場合、カスタム ヒット結果を戻します。
 | **Is Over Focusable Widget** | ヒット結果にあるウィジェットがフォーカス可能であれば、 true を戻します。`SupportsKeyboardFocus()` に対して true を戻す Slate ウィジェットです。 |
-| **Is Over Hit Test Visible Widget** | ヒット結果にあるウィジェットの可視設定で、ヒット テストを可視にしていれば、 true を戻します。`GetVisibility().IsHitTestVisible()` に対して true を戻す Slate ウィジェットです。 |
+| **Is Over Hit Test Visible Widget** | ヒット結果にあるウィジェットがヒット テストを可視にする可視設定であれば、 true を戻します。`GetVisibility().IsHitTestVisible()` に対して true を戻す Slate ウィジェットです。 |
 | **Is Over Interactable Widget** | ヒット結果にあるウィジェットがインタラクティブであれば、 true を戻します。`IsInteractble()` に対して true を戻す Slate ウィジェットです。 |
 | **Press and Release Key** | シミュレートしたキーボード キーの press (押下) と release (解放) の両方を行います。| 
 | **Press Key** | シミュレートしたキーボード キーの press を行います。これを、`a-z|A-Z` には使わないでください。スレートの Editable Textbox (編集可能なテキストボックス) のようなものでは、特定の文字がウィジェットに送られていることを示すために **OnKeyChar** が呼び出されることが求められるからです。このような場合は代わりに **SendKeyChar** を使用してください。 |
