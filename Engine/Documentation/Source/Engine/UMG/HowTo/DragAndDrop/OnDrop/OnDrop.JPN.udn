@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3063666
+﻿INTSourceChangelist:3094685
 Availability:Docs
 Title:4.On Drop
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:テスト前に、OnDrop 機能を作成して終了します。 
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
+Description:プレイヤーがドラッグしたウィジェットをドロップしたときに何がおこるかを設定します。
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
 Version:4.12
 SkillLevel:Intermediate
 
@@ -19,13 +19,14 @@ SkillLevel:Intermediate
 		[ドラッグ＆ドロップのウィジェット](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
+		[次のステップ](Engine\UMG\HowTo\DragAndDrop\FinishingUp "%Engine\UMG\HowTo\DragAndDrop\FinishingUp:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-仕上げとして、ウィジェットを HUD にドロップすると何が起こるかをスクリプティングし、すべてをテストします。 
+メインの **HUD** Widget ブループリントをセットアップし、**OnDrop** 関数を行うときに起こることをオーバーライドします。 
 
 ## ステップ
 
@@ -44,7 +45,7 @@ SkillLevel:Intermediate
 
 	![](DragDrop15.png)
 
-1.	**OnDrop** 内で、**Operation** から **WidgetDrag にキャスト** します。次に **Widget Reference** と **Drag Offset** を get します。 
+1.	**OnDrop** 内で、**Operation** から **WidgetDrag にキャスト** します。次に **Widget Reference** と **Drag Offset** を 取得します。 
 
 	![](DragDrop16.png)
 
@@ -60,45 +61,22 @@ SkillLevel:Intermediate
 
 1.	**Absolute to Local** の **Return Value** から、**DragOffset** を差し引きます。 
 
-1.	**Widget Reference** に対して、**Add to Viewport** と **Set Position in Viewport** を使用して以下のように接続します。 
+	![](UpdateDragDrop1.png)
+
+1.	**Widget Reference** から **Remove from Parent** 、その後に **Add to Viewport** と **Set Position in Viewport** のノードを追加します。 
+
+1.	以下のようにノードを接続し、**Remove DPIScale** のチェックを外し、**Return Node** の **Return Value** にチェックを入れます。 
 
 	[REGION:lightbox]
-	[![](DragDrop18.png)](DragDrop18.png)
+	[![](UpdateDragDrop2.png)](UpdateDragDrop2.png)
 	[/REGION]
 
-	[REGION:caption]
-	クリックしてフルサイズで表示 
-	[/REGION]
+	_フルサイズ表示するにはここをクリック_
 
-	**Remove DPIScale** のチェックを外して、**Return Value** のチェックボックスにチェックを入れます。[](Engine/UMG/UserGuide/DPIScaling) を取り除く必要はなく、この関数を true として戻すように処理したからです。 
-	このスクリプトでは、ビューポートに再度ドラッグするようにウィジェットを追加し、その位置を、クリックし、ドラッグを開始した場所に基づき設定しました。最後に行う必要があるのは、HUD Widget ブループリントを作成し、表示することです。 
+	**Remove DPIScale** のチェックを外して、**Return Value** のチェックボックスにチェックを入れています。[](Engine/UMG/UserGuide/DPIScaling) を取り除く必要はなく、この関数を処理したため true として戻します。	このスクリプトでは、最初に既存の Health Bar ウィジェットを取り除いてから、Drag Offset に相対的に画面の新しい位置に再度追加しています。 
 
-1.	「**Content/ThirdPersonBP/Blueprints** 」フォルダで **ThirdPersonCharacter** ブループリントを開きます。 
-
-1.	**HUD** Widget ブループリントを作成し、**Add to Viewport (ビューポートに追加)** し、**Get Player Controller** を **Show Mouse Cursor** にします。 
-
-	![](DragDrop19.png)
-
-1.	**コンパイル** し、 **保存** します。次に **Play** ボタンをクリックして、エディタでプレイします。 
-
-
-## 最終結果
-
-エディタでプレイする場合、**左クリック** して画面上のヘルスバーをドラッグして、新しい位置にドロップします。 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-qUDIkWcQChI
-[/PARAMLITERAL]
-[/OBJECT]
-
-これは、ドラッグ＆ドロップのプロセスを開始するために必要な要素の一例にすぎません。 
-プレイヤーがセーフゾーンの外側にウィジェットをドラッグしないように、または他のウィジェットの上に重ならないようにさらにチェックが必要になることがあります。 
+HUD はドラッグしたウィジェットをドロップ処理するようにセットアップされて、ヘルスバーを表示させます。 
+次のこのチュートリアルの最後のステップでは、ドラッグしたウィジェットをセットアップし、ヘルスバーの形状を模倣し、Character ブループリントに対してこの HUD をビューポートに追加するように指示します。 
 
 %Steps%
+
