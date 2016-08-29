@@ -245,6 +245,10 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	virtual int32 GetNumMaterials() const override;
 	//~ End UMeshComponent Interface.
 
+	//~ Begin UObject Interface
+	virtual void PostLoad() override;
+	//~ End UObject Interface.
+
 
 private:
 	//~ Begin USceneComponent Interface.

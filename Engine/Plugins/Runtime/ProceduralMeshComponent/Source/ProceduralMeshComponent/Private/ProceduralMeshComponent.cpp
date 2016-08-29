@@ -401,6 +401,16 @@ UProceduralMeshComponent::UProceduralMeshComponent(const FObjectInitializer& Obj
 	bUseComplexAsSimpleCollision = true;
 }
 
+void UProceduralMeshComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	if (ProcMeshBodySetup && IsTemplate())
+	{
+		ProcMeshBodySetup->SetFlags(RF_Public);
+	}
+}
+
 void UProceduralMeshComponent::CreateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision)
 {
 	// Convert FLinearColors to FColors
