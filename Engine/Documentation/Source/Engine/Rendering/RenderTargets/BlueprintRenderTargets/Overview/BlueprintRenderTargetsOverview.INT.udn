@@ -1,0 +1,64 @@
+availability:docs
+title:Blueprint & Render Targets Overview
+description:Taking a high level look at how to use Blueprints and Render Targets togther in UE4.
+crumbs:
+version:4.13
+Type:topic
+SkillLevel:Intermediate
+parent:Engine
+order:2
+Navigation:topic
+
+![](BP_RT_Overview.png)
+
+## Overview
+Using Blueprints to interact with render targets opens up a an entirely new way to create and use assets inside Unreal Engine 4 (UE4).  From creating fluid like surfaces to creating Textures that can be used with visual effects and Materials there is almost no limit to the amount of creative freedom that this will offer your UE4 projects. In the following document we will go over some of the things that you need to be aware of when using Blueprints and render targets.  
+
+## Know Limitations
+When using Blueprints and render targets there are few limitations and restrictions that you need to be aware of in order to get the most out of this tool. In the following section we will cover what these limitations are and what can be done to accommodate them in your workflow.
+
+* You cannot draw to a render target that is being sampled as a Texture by the Material that is input inot the Material input. If you want to accomplish this you will need to either use alpha blending to modify a render target in-place, or ping-pong between two different render targets.
+
+* Only the **Emissive Color** and **Opacity** outputs of the Material are valid when drawing to a render target. 
+
+* Lighting is not supported when using render targets and Material Expression nodes like **World Position** may return unexpected values.
+
+* Emissive Color is clamped to be positive by default, but you can output negative values by enabling the material property **AllowNegativeEmissiveColor**.
+
+	![](Allow_Neg_Emissive_Color.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
