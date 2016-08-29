@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3072583
-Availability:Docs
+﻿INTSourceChangelist:3102822
+Availability: Public
 Title:3D ウィジェットのインタラクションの作成
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:ゲームプレイ中に画面に UI エレメントを作成、表示、取り除く方法の例です。 
