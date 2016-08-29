@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3072583
-Availability:Docs
+﻿INTSourceChangelist:3102980
+Availability: Public
 Title:仮想キーボードのインタラクションを作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:UMG で 3D 仮想キーボードを作成し、インタラクションする方法を説明します。 
 Version:4.13
 SkillLevel:Advanced
-parent:Engine/Editor
-order:1
+parent:Engine/UMG/HowTo
+order:4
 checkpoint: editorqs
 
 プレイヤーが指定された文字を入力する 3D キーパッドや仮想キーボードの作成を検討しているならば、 [WidgetInteraction](Engine\UMG\UserGuide\WidgetInteraction) コンポーネントと [Widget](Engine/Components/Widget) コンポーネントを組み合わせて行うことができます。 
