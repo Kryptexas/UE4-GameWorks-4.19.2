@@ -2885,7 +2885,7 @@ protected:
 
 		UseSceneTextureId(SceneTextureId, true);
 
-		if (FeatureLevel > ERHIFeatureLevel::SM4)
+		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
 			FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
