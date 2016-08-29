@@ -818,7 +818,8 @@ void UProceduralMeshComponent::CreateProcMeshBodySetup()
 {
 	if (ProcMeshBodySetup == NULL)
 	{
-		ProcMeshBodySetup = NewObject<UBodySetup>(this);
+		// The body setup in a template needs to be public since the property is Tnstanced and thus is the archetype of the instance meaning there is a direct reference
+		ProcMeshBodySetup = NewObject<UBodySetup>(this, NAME_None, (IsTemplate() ? RF_Public : RF_NoFlags));
 		ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
 
 		ProcMeshBodySetup->bGenerateMirroredCollision = false;
