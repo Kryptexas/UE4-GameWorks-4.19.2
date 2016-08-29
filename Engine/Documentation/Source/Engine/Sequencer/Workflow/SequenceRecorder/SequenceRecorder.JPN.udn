@@ -1,119 +1,119 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3101150
 Availability:Docs
-Title: Sequence Recorder
+Title:シーケンス レコーダー
 Crumbs: %ROOT%, Engine
-Description:Overview of the Sequence Recorder tool and recording options to capture gameplay. 
+Description:シーケンス レコーダーツールの概要とゲームプレイをキャプチャーするための記録のオプションについて説明します。 
 Navigation:topic
 parent:Engine/Sequencer/Workflow
 order:1
-Version: 4.13
-Related: Engine\Sequencer\Overview
-Related: Engine/Sequencer/HowTo
+Version:4.13
+Related:Engine\Sequencer\Overview
+Related:Engine/Sequencer/HowTo
 
-The **Sequence Recorder** allows you to record Actor(s) from gameplay or level editing into Skeletal Animation, Transform, Event and Audio Tracks into a Level Sequence which can then be edited inside the **Sequencer Editor**. 
+**シーケンス レコーダー** を使って、ゲームプレイやレベル編集からアクタをスケルタル アニメーション、トランスフォーム、イベントに記録、オーディオトラックをレベルシーケンスに記録して、**シーケンサー エディタ** 内で編集することができます。 
 
 [TOC(start:2 end:2)]
 
 
-## Opening the Sequence Recorder
+## シーケンス レコーダーを開く
 
-You can open the Sequence Recorder from the main **Menu Bar** under the **Window** tab: 
+メインの **メニュー バー** の **Window** タブからシーケンス レコーダーを開くことができます。 
 
 ![](EnableSequenceWindow.png)
 
-After selecting Sequence Recorder, the Sequence Recorder window will open: 
+[Sequence Recorder] を選択すると、[シーケンス レコーダー] ウィンドウが開きます。 
 
 ![](NoActorRecordWindow.png)
 
-## Tracking Actors for Recording
+## 記録のためにアクタを追跡する
 
-When you first open the Sequence Recorder, you will notice three buttons across the top of the window: 
+シーケンス レコーダーを初めて開くと、ウィンドウ上部に 3 つのボタンがあるのがわかります。 
 
 ![](RecorderToolbar1.png)
 
-These are used to start recording, add Actors to track for recording or remove Actors from the recording list. 
-After clicking the **Add** button, both the **Record** option as well as the **Remove** option will become accessible. 
-This will also add an **Actor Recording** field to the Actor Tracking window with the Actor to track listed as **None**. 
+こうしたボタンは記録を開始、記録のために追跡するアクタを追加する、記録リストからアクタを取り除くために使用します。 
+**[Add]** ボタンをクリックすると、**[Record]** オプションと **[Remove]** オプションを利用できるようになります。 
+これにより、 [Actor Tracking] ウィンドウに **Actor Recording** 欄も追加されますが、追跡対象のアクタは **None** になっています。 
 
 ![](RecorderToolbar2.png)
 
-Selecting the Actor Recording in the window will populate the Sequence Recorder with additional options related to that recording.
+ウィンドウで [Actor Recording] を選択すると、シーケンス レコーダーに記録に関する追加のオプションが表示されます。
 
 ![](SequenceRecorderWindow.png)
 
-Above we have set the **Actor to Track** to the **ThirdPersonCharacter** Actor (which is our playable character). 
+上の画面では **[Actor to Track]** を **[ThirdPersonCharacter]** アクタ (プレイ可能なキャラクター) に設定しています。 
 
 [REGION:note]
-Please see the [](Engine\Sequencer\HowTo\SequenceRecorder) page for a step-by-step guide to recording Actors with the Sequence Recorder. 
+シーケンス レコーダーでアクタを記録する手順については、[](Engine\Sequencer\HowTo\SequenceRecorder) をご覧ください。 
 [/REGION]
 
 
-## Sequence Recorder Options
+## シーケンス レコーダーのオプション
 
-Once you have the Sequence Recorder open, there are several properties you can adjust to determine how the Sequence Recorder records its Actors. 
-When first opening the Sequence Recorder, you will only be presented with the default **Sequence Recording** options. After adding Actor(s) to track for recording, the **Actor Recording** and **Animation Recording** sections become available on a per Actor basis. 
+シーケンス レコーダーを開くと、アクタをどのように記録するかを定義できる調整可能ないくつかのプロパティがあります。 
+最初に、シーケンス レコーダーを開くと、デフォルトの **[Sequence Recording]** オプションだけが表示されます。記録のために追跡するアクタを追加すると、**[Actor Recording]** および **[Animation Recording]** のセクションがアクタ単位で利用可能になります。 
 
-Please see each of the tables below for a list of properties along with a description of each:
+プロパティの一覧と説明について以下の表をご覧ください。
 
-### Sequence Recording
+### シーケンスの記録
 
-| Option | Description |
+| オプション| 説明 |
 | ---- | ----------- |
-| **Create Level Sequence** | Whether to create a Level Sequence when recording or not. Actors and animations will be inserted into this sequence if enabled. |
-| **Immersive Mode** | Whether to maximize the viewport when recording. |
-| **Sequence Length** | Defines the maximum length of the sequence to record. |
-| **Recording Delay** | Delay that will be used before starting the recording. |
-| **Sequence Name** | The name of the sequence to record to. This name will also be used to auto-generate any assets created by this recording. |
-| **Sequence Recording Base Path** | Defines the location within the project to save the recording. Sub-assets will be created in subdirectories within the base path specified. |
-| **Record Nearby Spawned Actors** | Whether or not to record nearby spawned Actors as part of this recording. |
-| **Nearby Actor Recording Proximity** | Defines the proximity to currently recorded Actors to record newly spawned Actors. |
-| **Record World Settings Actor** | Whether to record the World Settings Actor in the sequence (some games use this to attach world SFX). |
-| **Actor Filter** | Filter to check spawned Actors against to see if they should be recorded. You can specify which Actor classes to record from the expandable option. |
-| **Level Sequence Actors to Trigger** | Sequence Actors to trigger playback on when recording starts (for example, this can be used for recording synchronized sequences). |
-| **Default Animation Settings** | The default settings applied to animation recording. Expand to see options for recording in World Space, Removing Root Animation whether or not to Auto Save the asset when recording is complete and the ability to Sample Rate and Length.  |
-| **Classes and Properties to Record** | The properties to record for specified classes. Component classes specified here will be recorded. If an Actor does not contain one of these classes it will be ignored. Expanded to define the classes and associated properties. |
-| **Animation Sub Directory** | The name of the subdirectory animations will be placed in. Leave this empty to place them into the same directory as the Sequence base path. |
-| **Record Sequencer Spawned Actors** | Whether to record Actors that are spawned by Sequencer itself (this is usually disabled as results can be unexpected). |
-| **Per Actor Settings** | Settings applied to Actors of a specified class. For each class you can define whether to record to a possessable (level-owned) or spawnable (sequence-owned).  |
+| **Create Level Sequence** | 記録するときにレベル シーケンスを作成するかどうかを設定します。有効な場合、アクタとアニメーションがこのシーケンスに挿入されます。|
+| **Immersive Mode** | 記録時にビューポートを最大限大きくするかどうかを設定します。 |
+| **Sequence Length** | 記録するシーケンスの最大長を定義します。 |
+| **Recording Delay** | 記録を開始する前の遅延です。 |
+| **Sequence Name** | 記録するシーケンスの名前です。この名前は記録によって作成されるアセットがあればそれを自動生成するために使用されます。 |
+| **Sequence Recording Base Path** | プロジェクト内の記録の保存場所を定義します。指定したベース パス内のサブ ディレクトリにサブ アセットが作成されます。 |
+| **Record Nearby Spawned Actors** | 記録の一部として近くにスポーンされたアクタを記録するかどうかを設定します。 |
+| **Nearby Actor Recording Proximity** | 新規にスポーンしたアクタを記録するために、現在記録されているアクタからの近さを定義します。 |
+| **Record World Settings Actor** | シーケンスで World Settings アクタを記録するかどうかを設定します (一部のゲームはこれを使ってワールドの SFX をアタッチします)。 |
+| **Actor Filter** | スポーンしたアクタを記録すべきかをチェックするためにフィルタリングします。展開可能なオプションから記録対象の Actor クラスを指定することができます。 |
+| **Level Sequence Actors to Trigger** | 記録開始時に再生をトリガーする Sequence アクタ (例えば、同期したシーケンスを記録するために使用することができます)。 |
+| **Default Animation Settings** | アニメーションの記録に適用されるデフォルト設定です。展開すると、ワールド空間を記録する、ルート アニメーションを取り除く、記録完了時にアセットを自動保存するかどうか、サンプル レートと長さの機能があります。
+| **Classes and Properties to Record** | 指定したクラスを記録するためのプロパティです。ここで指定した Component クラスは記録されます。アクタにこうしたクラスが含まれていなければ無視されます。展開して、クラスと関連するプロパティを定義します。 |
+| **Animation Sub Directory** | アニメーションが入るサブ ディレクトリ名です。シーケンスのベース パスと同じディレクトリに入れるために空のままにします。
+| **Record Sequencer Spawned Actors** | シーケンサー自体によってスポーンされるアクタを記録するかどうかを設定します (結果が予測できないことがあるため通常は無効になります)。 |
+| **Per Actor Settings** | 指定したクラスのアクタに適用される設定です。各クラスについて、所有可能なもの (レベルが所有) またはスポーン可能なもの (シーケンスが所有) を記録するかどうかを定義することができます。
 
-### Actor Recording
+### アクタの記録
 
-| Option | Description |
+| オプション| 説明 |
 | ---- | ----------- |
-| **Record Visibility** | Whether to record the Actors visibility or not. |
-| **Record Transforms** | Whether to record Actor transforms. This can be useful if you want the Actors to end up in specific locations after the sequence. By default we rely on animations to provide transforms, but this can be changed using the **Record in World Space** animation setting. |
-| **Actor to Record** | This option is used to define which Actor you want to record. |
+| **Record Visibility** | アクタの可視性を記録するかどうかを設定します。 |
+| **Record Transforms** | アクタのトランスフォームを記録するかどうかを設定します。シーケンス後にアクタを特定の位置で終わるようにしたい場合に役立ちます。デフォルトでは、アニメーションがトランスフォームを提供するようになっていますが、 **[Record in World Space]** アニメーション設定を使って変更することができます。
+| **Actor to Record** | このオプションを使ってどのアクタを記録するかを定義します。 |
 
-### Animation Recording
+### アニメーションの記録
 
-| Option | Description |
+| オプション| 説明 |
 | ---- | ----------- |
-| **Specify Target Animation** | Whether we should specify the target animation or auto-create it. |
-| **Target Animation** | Enabled when **Specify Target Animation** is enabled and is used to specify the animation you want to record to. |
-| **Animation Settings** | See **Default Animation Settings** under **Sequence Recording**. These are applied to the **Actor to Record**.  |
-| **Record to Possessable** | Whether to record possessable (level-owned) or spawnable (sequence-owned) Actors. Defaults to the global setting. |
+| **Specify Target Animation** | ターゲット アニメーションを指定するか、またはそれを自動作成するかどうかを設定します。 |
+| **Target Animation** | **[Specify Target Animation]** が有効な場合に有効になり、記録対象のアニメーションを指定するために使います。 |
+| **Animation Settings** | **[Default Animation Settings]** の **[Sequence Recording]** をご覧ください。これらは、**Actor to Record** に適用されます。 |
+| **Record to Possessable** | 所有可能なもの (レベルが所有) またはスポーン可能なもの (シーケンスが所有) を記録するかどうかを定義することができます。デフォルトでグローバル設定になります。 |
 
 
-## Tips & Tricks
+## ヒントとコツ
 
-This section contains some workflow tips & tricks you can use when working with the Sequence Recorder. 
+このセクションには、シーケンス レコーダーで作業する場合に使用できるいくつかのワークフローのヒントとコツがあります。 
 
-### Right-click Recording
+### 右クリックによる記録
 
-If you have an active **Level Sequence** open, rather than clicking the **Add** button inside the Sequence Recorder, you can **Right-click** on an Actor in your level and initiate recording of the Actor from the context menu (or press **Alt + R**). 
-This will add the Actor to the Actor Tracking window of the Sequence Recorder and automatically start recording after the set **Recording Delay** expires. 
+アクティブな **レベル シーケンス** が開いていれば、シーケンス レコーダー内で **Add** ボタンをクリックする代わりに、レベル内のアクタ上で右クリックしてコンテキスト メニューからアクタの記録を開始することができます (または **Alt + R** キーを押します)。 
+これで、[Actor Tracking] ウィンドウにアクタが追加されて、設定した **Recording Delay** が過ぎた後、自動的に記録を開始します。 
 
 ![](RightClickRecord.png)
 
 [REGION:note]
-Please note that this will initiate Editor Recording and not [Gameplay Recording](Engine\Sequencer\HowTo\SequenceRecorder) with the Sequence Recorder.
+この操作は、エディタでの記録を開始するものであり、シーケンス レコーダーでの [ゲームプレイの記録](Engine\Sequencer\HowTo\SequenceRecorder) を開始するわけではないことにご注意ください。
 [/REGION]
 
 
-### Subscene Recording Gameplay
+### サブシーンでゲームプレイを記録する
 
-While it is perfectly okay to use the Sequence Recorder to assign an Actor and initiate gameplay recording, there is another method that you can take to record your gameplay using Sequence Recorder. 
-If you create a [Subscene Track](Engine\Sequencer\HowTo\TracksSub) inside a Level Sequence, you can add a primed **Recorded Sequence** on the Subscene Track during gameplay set to record your playable character.
+シーケンス レコーダーを使ってアクタを割り当ててゲームプレイの記録を開始することに何ら問題はありませんが、シーケンス レコーダーを使ってゲームプレイを記録する他の方法もあります。 
+レベル シーケンス内に [サブシーン トラック](Engine\Sequencer\HowTo\TracksSub) を作成すると、プレイ可能なキャラクターを記録するように設定したゲームプレイ中に、サブシーン トラックに準備ができた **Recorded Sequence (記録されたシーケンス)** を追加することができます。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -127,39 +127,39 @@ Wab8bB69TIo
 [/PARAMLITERAL]
 [/OBJECT]
 
-Above we create a new Level Sequence along with a Subscene Track, then during gameplay we hit **Shift + F1** to gain Mouse Control and add a primed Recorded Sequence based on our current player pawn. 
-When can then press the **Record** button in the viewport while playing our game to start recording and hit **Esc** to end recording. 
+上の図では、新規レベル シーケンスをサブシーン トラックと合わせて作成しました。次に、ゲームプレイ中に **Shift + F1** キーを押して、マウス操作を可能にし、現在のプレイヤーのポーンに応じて用意ができた記録されたシーケンスを追加します。 
+ゲームをプレイ中に、ビューポートで **[Record]** ボタンを押して記録を開始することができます。記録を終了するには、**Esc** キーを押します。 
 
 
-### Recording Class Properties
+### クラスのプロパティを記録する
 
-Want to record a change in a specific property value for an Actor during your Sequence Recording? 
-You can use the **Classes and Properties to Record** setting in the Sequence Recorder window to specify which class and its associated property (or properties) you want to track for recording.
+シーケンスの記録中にアクタの特定のプロパティ値の変更を記録しますか？ 
+シーケンス レコーダー ウィンドウの **[Classes and Properties to Record (記録するクラスとプロパティ)]** 設定を使ってどのクラスとその関連するプロパティを記録のために追跡するかを指定します。
 
 ![](PropertyRecording.png)
 
-If that property changes at all during recording it will automatically be keyframed reflecting the changes during the recording. 
-If the Actor you are tracking does not contain one of the defined classes it will just be ignored. There are also some default elements added to this option which you can use or delete. 
+記録中にプロパティが変化すると、記録中の変更を反映させて自動的にキーフレーム化されます。 
+追跡しているアクタに定義されたクラスが含まれない場合は、無視されます。このオプションにはデフォルトのエレメントも追加されていて、使用または削除することができます。 
 
-### Recording to Possessable
+### 所有可能なものに記録する
 
-By default when you elect to perform a recording the Actors you have tagged for tracking will automatically have a **Spawnable** version of that Actor created and added to your recording. 
-While the Spawnable version will only exist while the Level Sequence is open, there may be times when you want to "write" directly to an Actor in your level instead of creating a new Spawnable. 
-You can do so by checking the **Record to Possessable** option under the **Animation Recording** section in the Sequence Recorder. 
+追跡することをタグ付けしたアクタを記録することを選んだ場合、デフォルトでそのアクタの **スポーン可能** バージョンが自動的に作成されて、記録に追加されます。 
+スポーン可能バージョンはレベル シーケンスが開いているときだけ存在しますが、新たにスポーン可能なものを作成する代わりにレベル内のアクタに直接書き込みたいこともあるかもしれません。 
+これはシーケンス レコーダーの **[Animation Recording]** セクションの **[Record to Possessable]** オプションにチェックを入れることで行うことができます。 
 
 ![](RecordToPossessable.png)
 
-Checking this option will no longer create a Spawnable but instead will be using a Possessable Actor to apply the recording to. 
+このオプションをチェックすると、スポーン可能なものを作成しなくなりますが、記録を適用する所有可能なアクタを使います。 
 
 [REGION:note]
-Please see [Possessables vs. Spawnables](https://docs.unrealengine.com/latest/INT/Engine/Sequencer/Overview/index.html#possessablesvsstopspawnables) for more information on each.
+詳しい情報については [所有可能なものとスポーン可能なもの](https://docs.unrealengine.com/latest/INT/Engine/Sequencer/Overview/index.html#possessablesvsstopspawnables) をご覧ください。
 [/REGION]
-### Immersive Mode
+### 没入モード
 
-When recording your gameplay, you may want a larger viewport to "play" your game while recording. 
-The **Immersive Mode** option inside the Sequence Recorder window will automatically maximize your viewport for you while recording is active. 
+ゲームプレイを記録する場合、記録中に大きなビューポートを使ってゲームをプレイしたいと考えることがあるかもしれません。 
+シーケンス レコーダー内の **[Immersive Mode (没入モード)]** オプションは、記録が有効な間、ビューポートを自動的に最大化します。 
 
 ![](ImmersiveMode.png)
 
-Once you stop recording, the viewport will return back to its normal size. 
+記録を停止すると、ビューポートは通常のサイズに戻ります。 
 
