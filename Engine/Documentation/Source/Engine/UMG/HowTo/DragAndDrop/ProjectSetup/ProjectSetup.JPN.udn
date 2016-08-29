@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3063666
+﻿INTSourceChangelist:3094685
 Availability:Docs
 Title:1.プロジェクト設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -31,11 +31,12 @@ SkillLevel:Intermediate
 
 ## ステップ
 
-1.	プロジェクトの **コンテンツ ブラウザ** で、2 つの **Widget ブループリント** 、**HealthBar** と **HUD** が入ったフォルダをひとつ作成します。 
+1.	**コンテンツ ブラウザ** で、**DragWidget**、 **HealthBar**、および **HUD** という 3 つの Widget ブループリント を作成します。 
 
 	![](DragDrop1.png)
 
 	この例では、ドラッグし、ドロップ可能にしたいエレメントは、**HealthBar** ウィジェットで、**HUD** に配置されます。 
+	実際のヘルスバーをドラッグするのではなく、同じ形状の **DragWidget** というウィジェットを作成してヘルスバーとしてドラッグします。 
 
 1.	**コンテンツ ブラウザ** 内を **右クリック** して **DragDropOpertion** クラスの新規 **Blueprint クラス** を作成し、「 **WidgetDrag** 」と名前を付けます。 
 
