@@ -1,5 +1,6 @@
 ﻿INTSourceChangelist:3072583
-Availability:Docs
+INTSourceChangelist:3102822
+Availability: Public
 Title:1.キャラクターのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Widget Interaction コンポーネントをキャラクターに追加して、必要となる他のアセットを作成します。 
