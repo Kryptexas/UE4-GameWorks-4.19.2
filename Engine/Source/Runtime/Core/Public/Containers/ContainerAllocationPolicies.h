@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "HAL/PlatformMath.h"
 #include "MemoryBase.h"
 #include "Misc/OutputDevice.h"
 #include "Templates/MemoryOps.h"
+#include "Math/NumericLimits.h"
 
 
 /** Used to determine the alignment of an element type. */
@@ -860,7 +862,7 @@ public:
 	{
 		if(NumHashedElements >= MinNumberOfHashedElements)
 		{
-			return FMath::RoundUpToPowerOfTwo(NumHashedElements / AverageNumberOfElementsPerHashBucket + BaseNumberOfHashBuckets);
+			return FPlatformMath::RoundUpToPowerOfTwo(NumHashedElements / AverageNumberOfElementsPerHashBucket + BaseNumberOfHashBuckets);
 		}
 
 		return 1;
@@ -890,7 +892,7 @@ public:
 	/** Computes the number of hash buckets to use for a given number of elements. */
 	static FORCEINLINE uint32 GetNumberOfHashBuckets(uint32 NumHashedElements)
 	{
-		const uint32 NumDesiredHashBuckets = FMath::RoundUpToPowerOfTwo(NumHashedElements / AverageNumberOfElementsPerHashBucket);
+		const uint32 NumDesiredHashBuckets = FPlatformMath::RoundUpToPowerOfTwo(NumHashedElements / AverageNumberOfElementsPerHashBucket);
 		if (NumDesiredHashBuckets < NumInlineHashBuckets)
 		{
 			return NumInlineHashBuckets;

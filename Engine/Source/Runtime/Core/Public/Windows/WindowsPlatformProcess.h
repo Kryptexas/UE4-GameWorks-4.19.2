@@ -214,7 +214,3 @@ inline bool FProcHandle::Close()
 	return false;
 }
 
-#include "WindowsCriticalSection.h"
-
-typedef FWindowsCriticalSection FCriticalSection;
-typedef FWindowsSystemWideCriticalSection FSystemWideCriticalSection;

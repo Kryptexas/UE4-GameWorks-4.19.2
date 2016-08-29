@@ -1,7 +1,7 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
-#include "UObject/UTextProperty.h"
+#include "UObject/TextProperty.h"
 #include "TextPackageNamespaceUtil.h"
 #include "Interface.h"
 #include "TargetPlatform.h"

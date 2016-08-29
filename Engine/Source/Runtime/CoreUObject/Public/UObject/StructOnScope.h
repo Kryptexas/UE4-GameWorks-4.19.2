@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreObject.h"
+#include "LevelGuids.h"
 
 class FStructOnScope
 {

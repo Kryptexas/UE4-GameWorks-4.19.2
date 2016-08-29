@@ -5,6 +5,7 @@
 #include <Alembic/AbcGeom/All.h>
 
 class UStaticMesh;
+class USkeletalMesh;
 class UGeometryCache;
 class UGeometryCacheTrack_FlipbookAnimation;
 class UGeometryCacheTrack_TransformAnimation;
@@ -18,6 +19,7 @@ struct FAbcTransformObject;
 struct FAbcMeshSample;
 struct FAbcCompressionSettings;
 struct FCompressedAbcData;
+struct FRawMesh;
 
 enum EAbcImportError : uint32
 {

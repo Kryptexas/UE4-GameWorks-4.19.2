@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 
 /**
  * This class will redirect an object load to another object, so if an object is renamed

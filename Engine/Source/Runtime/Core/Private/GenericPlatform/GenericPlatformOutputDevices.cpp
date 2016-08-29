@@ -4,7 +4,7 @@
 #include "HAL/FeedbackContextAnsi.h"
 #include "Misc/App.h"
 #include "Misc/OutputDeviceConsole.h"
-#include "HAL/OutputDeviceMemory.h"
+#include "Misc/OutputDeviceMemory.h"
 
 void FGenericPlatformOutputDevices::SetupOutputDevices()
 {

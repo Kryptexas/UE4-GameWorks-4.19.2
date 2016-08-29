@@ -20,8 +20,6 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/hh405049%28v=vs.85%
 // Used to toggle on white noise testing for xaudio2 output
 #define UNREAL_AUDIO_TEST_WHITE_NOISE 0
 
-DEFINE_LOG_CATEGORY(LogUnrealAudioDevice);
-
 // See MSDN documentation for what these error codes mean in the context of the API call
 static const TCHAR* GetXAudio2Error(HRESULT Result)
 {

@@ -12,6 +12,7 @@
 #include "PlatformNamedPipe.h"
 #include "PlatformTime.h"
 #include "PlatformProcess.h"
+#include "CriticalSection.h"
 #include "PlatformOutputDevices.h"
 #include "PlatformAtomics.h"
 #include "PlatformTLS.h"

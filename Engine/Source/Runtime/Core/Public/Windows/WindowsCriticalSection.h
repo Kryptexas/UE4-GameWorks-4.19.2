@@ -99,3 +99,6 @@ private:
 private:
 	HANDLE Mutex;
 };
+
+typedef FWindowsCriticalSection FCriticalSection;
+typedef FWindowsSystemWideCriticalSection FSystemWideCriticalSection;

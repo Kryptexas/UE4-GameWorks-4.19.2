@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 #include "Object.h"
 #include "GarbageCollection.h"
 

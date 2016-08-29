@@ -188,6 +188,11 @@ FRotator FVector::ToOrientationRotator() const
 	return R;
 }
 
+FRotator FVector::Rotation() const
+{
+	return ToOrientationRotator();
+}
+
 FRotator FVector4::ToOrientationRotator() const
 {
 	FRotator R;
@@ -212,6 +217,10 @@ FRotator FVector4::ToOrientationRotator() const
 	return R;
 }
 
+FRotator FVector4::Rotation() const
+{
+	return ToOrientationRotator();
+}
 
 FQuat FVector::ToOrientationQuat() const
 {

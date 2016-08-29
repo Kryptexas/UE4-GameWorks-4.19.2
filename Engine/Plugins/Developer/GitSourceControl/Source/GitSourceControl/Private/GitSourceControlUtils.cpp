@@ -17,7 +17,7 @@ namespace GitSourceControlConstants
 	const int32 MaxFilesPerBatch = 50;
 }
 
-FScopedTempFile::FScopedTempFile(const FText& InText)
+FGitScopedTempFile::FGitScopedTempFile(const FText& InText)
 {
 	Filename = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("Git-Temp"), TEXT(".txt"));
 	if(!FFileHelper::SaveStringToFile(InText.ToString(), *Filename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
@@ -26,7 +26,7 @@ FScopedTempFile::FScopedTempFile(const FText& InText)
 	}
 }
 
-FScopedTempFile::~FScopedTempFile()
+FGitScopedTempFile::~FGitScopedTempFile()
 {
 	if(FPaths::FileExists(Filename))
 	{
@@ -37,7 +37,7 @@ FScopedTempFile::~FScopedTempFile()
 	}
 }
 
-const FString& FScopedTempFile::GetFilename() const
+const FString& FGitScopedTempFile::GetFilename() const
 {
 	return Filename;
 }

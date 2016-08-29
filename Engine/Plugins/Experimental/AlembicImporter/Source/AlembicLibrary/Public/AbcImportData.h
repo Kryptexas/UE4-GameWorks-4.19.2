@@ -14,6 +14,7 @@
 
 class FAbcImporter;
 class UAbcImportSettings;
+class UMaterial;
 
 /** TODO
 - Refactor MatrixSamples, TimeSamples into one structure

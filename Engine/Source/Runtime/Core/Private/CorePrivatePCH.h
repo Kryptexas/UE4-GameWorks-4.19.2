@@ -18,6 +18,8 @@ Low level includes.
 #include "AssertionMacros.h"					// Various assertion macros
 #include "UObject/UnrealNames.h"				// EName definition.
 #include "OutputDevice.h"						// Output devices, logf, debugf, etc
+#include "Misc/MessageDialog.h"
+#include "Misc/Exec.h"
 #include "NumericLimits.h"						// Numeric limits
 #include "UnrealMathUtility.h"					// FMath
 #include "UnrealTypeTraits.h"					// Type Traits
@@ -49,16 +51,25 @@ Includes.
 #include "ObjectVersion.h"				// Object version info.
 #include "TypeHash.h"					// Type hashing functions
 #include "EnumAsByte.h"					// Common template definitions.
-#include "ArchiveBase.h"				// Archive class.
+#include "Archive.h"					// Archive class.
+#include "ArchiveProxy.h"
+#include "NameAsStringProxyArchive.h"
 #include "ScopedPointer.h"				// Scoped pointer definitions.
 #include "Sorting.h"					// Sorting definitions.
 #include "Array.h"						// Dynamic array definitions.
+#include "ScriptArray.h"
+#include "MRUArray.h"
+#include "TransArray.h"
+#include "IndirectArray.h"
 #include "BitArray.h"					// Bit array definition.
-#include "Bitstreams.h"					// Bit stream archiver.
+#include "BitReader.h"					// Bit stream archiver.
+#include "BitWriter.h"					// Bit stream archiver.
 #include "SparseArray.h"				// Sparse array definitions.
 #include "UnrealString.h"				// Dynamic string definitions.
 #include "NameTypes.h"					// Global name subsystem.
 #include "CoreMisc.h"					// Low level utility code.
+#include "FileHelper.h"
+#include "CommandLine.h"
 #include "Paths.h"						// Path helper functions
 #include "Set.h"						// Set definitions.
 #include "Map.h"						// Dynamic map definitions.
@@ -71,11 +82,31 @@ Includes.
 #include "Guid.h"						// FGuid class
 #include "UnrealMath.h"					// Vector math functions.
 #include "OutputDevices.h"				// Output devices
+#include "OutputDeviceRedirector.h"
+#include "OutputDeviceNull.h"
+#include "OutputDeviceMemory.h"
+#include "OutputDeviceFile.h"
+#include "OutputDeviceDebug.h"
+#include "OutputDeviceArchiveWrapper.h"
+#include "OutputDeviceAnsiError.h"
+#include "BufferedOutputDevice.h"
+#include "LogScopedVerbosityOverride.h"
 #include "CoreStats.h"
 #include "TimeGuard.h"
 #include "MemStack.h"					// Stack based memory management.
 #include "AsyncWork.h"					// Async threaded work
-#include "Archive.h"					// Utility archive classes
+#include "MemoryArchive.h"
+#include "MemoryWriter.h"
+#include "LargeMemoryWriter.h"
+#include "LargeMemoryReader.h"
+#include "BufferArchive.h"
+#include "MemoryReader.h"
+#include "ArrayReader.h"
+#include "ArrayWriter.h"
+#include "BufferReader.h"
+#include "BufferWriter.h"
+#include "ArchiveSaveCompressedProxy.h"
+#include "ArchiveLoadCompressedProxy.h"
 #include "Variant.h"
 #include "CircularBuffer.h"
 #include "Queue.h"
@@ -84,6 +115,8 @@ Includes.
 #include "ConfigCacheIni.h"				// The configuration cache declarations
 #include "IConsoleManager.h"
 #include "FeedbackContext.h"
+#include "SlowTask.h"
+#include "ScopedSlowTask.h"
 #include "AutomationTest.h"				// Automation testing functionality for game, editor, etc.
 #include "CallbackDevice.h"				// Base class for callback devices.
 #include "GenericWindowDefinition.h"

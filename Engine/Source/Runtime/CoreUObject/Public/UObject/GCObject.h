@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 
 class COREUOBJECT_API FGCObject;
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Serialization/ArchiveBase.h"
+#include "Serialization/Archive.h"
 #include "HAL/UnrealMemory.h"
 
 struct FGridSize2D

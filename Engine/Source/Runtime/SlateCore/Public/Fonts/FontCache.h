@@ -16,9 +16,10 @@ class FCompositeFontCache;
 class FSlateFontRenderer;
 class FSlateTextShaper;
 class FSlateFontCache;
+class FShapedGlyphFaceData;
 
 struct FCharacterRenderData;
-class FShapedGlyphFaceData;
+struct FSlateFontKey;
 
 /** 
  * Methods that can be used to shape text.

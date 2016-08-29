@@ -13,7 +13,7 @@
 #include "ObjectEditorUtils.h"
 #include "SNotificationList.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Serialization/ArchiveUObjectBase.h"
+#include "Serialization/ArchiveUObject.h"
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 

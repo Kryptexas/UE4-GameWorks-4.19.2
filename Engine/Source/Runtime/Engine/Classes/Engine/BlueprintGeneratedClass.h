@@ -3,7 +3,7 @@
 #pragma once
 
 #include "MeshBatch.h"
-#include "ArchiveBase.h"
+#include "Archive.h"
 #include "BlueprintGeneratedClass.generated.h"
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Persistent Uber Graph Frame memory"), STAT_PersistentUberGraphFrameMemory, STATGROUP_Memory, );

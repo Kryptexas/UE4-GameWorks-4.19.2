@@ -6,10 +6,11 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 #include "PropertyPortFlags.h"
 #include "PropertyTag.h"
 #include "Templates/IsTriviallyDestructible.h"
+#include "Serialization/SerializedPropertyScope.h"
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogType, Log, All);
 

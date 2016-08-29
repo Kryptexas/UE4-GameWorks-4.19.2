@@ -15,7 +15,12 @@ class ICompressedAudioInfo;
 class IAudioSpatializationPlugin;
 class IAudioSpatializationAlgorithm;
 class UReverbEffect;
+class USoundConcurrency;
+class FViewport;
 class FViewportClient;
+class FCanvas;
+
+struct FAudioComponentParam;
 
 /** 
  * Debug state of the audio system

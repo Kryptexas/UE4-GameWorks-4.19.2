@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "ArchiveUObjectBase.h"
+#include "ArchiveUObject.h"
 
 /** Context sensitive keep flags for garbage collection */
 #define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Standalone : RF_NoFlags)

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ModuleInterface.h"
-#include "Runtime/CoreUObject/Public/UObject/ObjectBase.h"
+#include "Runtime/CoreUObject/Public/UObject/ObjectMacros.h"
 #include "Runtime/Engine/Classes/Engine/EngineTypes.h"
 #include "Runtime/Engine/Classes/Engine/Texture.h"
 #include "Runtime/Engine/Public/SceneTypes.h"

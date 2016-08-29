@@ -138,7 +138,7 @@ struct FGenericPlatformString
 		while (SrcSize)
 		{
 			if (!DestSize)
-				return NULL;
+				return nullptr;
 
 			SourceEncoding SrcCh = *Src++;
 			if (CanConvertChar<DestEncoding>(SrcCh))

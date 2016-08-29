@@ -6,6 +6,7 @@
 
 #include "CorePrivatePCH.h"
 #include "Serialization/AsyncIOSystemBase.h"
+#include "CompressedChunkInfo.h"
 
 DECLARE_STATS_GROUP_VERBOSE(TEXT("AsyncIOSystem"),STATGROUP_AsyncIO_Verbose, STATCAT_Advanced);
 

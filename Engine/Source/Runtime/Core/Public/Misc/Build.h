@@ -147,7 +147,7 @@
  * Checks to see if pure virtual has actually been implemented, this is normally run as a CIS process and is set (indirectly) by UBT
  *
  * @see Core.h
- * @see ObjectBase.h
+ * @see ObjectMacros.h
  **/
 #ifndef CHECK_PUREVIRTUALS
 	#define CHECK_PUREVIRTUALS 0

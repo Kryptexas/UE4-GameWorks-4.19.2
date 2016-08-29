@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 #include "WorldCompositionUtility.h"
 #include "GatherableTextData.h"
 #include "PropertyLocalizationDataGathering.h"

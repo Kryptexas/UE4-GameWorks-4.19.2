@@ -11,6 +11,7 @@ class UNavigationDataChunk;
 class AInstancedFoliageActor;
 class AWorldSettings;
 class UWorld;
+class FSceneInterface;
 
 /**
  * Structure containing all information needed for determining the screen space

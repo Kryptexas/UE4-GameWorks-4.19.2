@@ -68,16 +68,18 @@ static float GetNextSpacing( uint32 CurrentStep )
 	}
 }
 
-/**
- * Determines the optimal spacing between tick marks in the slider for a given pixel density
- * Increments until a minimum amount of slate units specified by MinTick is reached
- * 
- * @param InPixelsPerInput	The density of pixels between each input
- * @param MinTick			The minimum slate units per tick allowed
- * @param MinTickSpacing	The minimum tick spacing in time units allowed
- * @return the optimal spacing in time units
- */
-float DetermineOptimalSpacing( float InPixelsPerInput, uint32 MinTick, float MinTickSpacing )
+FVisualLoggerTimeSliderController::FVisualLoggerTimeSliderController(const FVisualLoggerTimeSliderArgs& InArgs)
+	: TimeSliderArgs( InArgs )
+	, DistanceDragged( 0.0f )
+	, bDraggingScrubber( false )
+	, bPanning( false )
+{
+	ScrubHandleUp = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleUp" ) ); 
+	ScrubHandleDown = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleDown" ) );
+	CursorBackground = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
+}
+
+float FVisualLoggerTimeSliderController::DetermineOptimalSpacing(float InPixelsPerInput, uint32 MinTick, float MinTickSpacing) const
 {
 	uint32 CurStep = 0;
 
@@ -91,18 +93,6 @@ float DetermineOptimalSpacing( float InPixelsPerInput, uint32 MinTick, float Min
 	}
 
 	return Spacing;
-}
-
-
-FVisualLoggerTimeSliderController::FVisualLoggerTimeSliderController(const FVisualLoggerTimeSliderArgs& InArgs)
-	: TimeSliderArgs( InArgs )
-	, DistanceDragged( 0.0f )
-	, bDraggingScrubber( false )
-	, bPanning( false )
-{
-	ScrubHandleUp = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleUp" ) ); 
-	ScrubHandleDown = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleDown" ) );
-	CursorBackground = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
 }
 
 void FVisualLoggerTimeSliderController::SetTimesliderArgs(const FVisualLoggerTimeSliderArgs& InArgs)
