@@ -1,28 +1,19 @@
-﻿INTSourceChangelist:2708278
+﻿INTSourceChangelist:3076265
 Availability:Public
 Title: 1. 安装安卓软件开发工具包（SDK）
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
-Description: 安装 Android SDK。
-Version:4.9
+Description: 安装 Android 1R4 SDK。
+Version:4.12
 Skilllevel:Intermediate
+Tags:Android
+type:sequential
+parent:Platforms/Android/GettingStarted
+order:1
+Checkpoint:AndroidQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[快速入门主页](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-		[下一步](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-
-%Steps%
+## 步骤
 
 在为 Android 开发前，我们首先要安装 Android SDK，该 SDK 为发布到 android 提供开发所需的程序和代码，下面来介绍如何安装该软件。
 
@@ -89,7 +80,7 @@ Skilllevel:Intermediate
 
 	[/region]
 
-1. **Double-click** **AndroidWorks-1R1-windows.exe**。
+1. **双击** **AndroidWorks-1R4-windows.exe**。
 
 	![](AndroidWorks_11.png)
 
@@ -109,7 +100,7 @@ Skilllevel:Intermediate
 	直接使用默认的文件夹完全没问题。
 	[/region]
 
-1.	确认您要安装的是 **AndroidWorks1R1** 并点击 **Next**。
+1.	确认您要安装的是 **CodeWorks for AndroidWorks1R4** 并点击 **Next**。
 	
 	![](AndroidWorks_03.png)
 
@@ -128,13 +119,18 @@ Skilllevel:Intermediate
 	
 	![](AndroidWorks_08.png)
 
-1.	这时可以点击 **Finish** 来完成 Android Works 的安装。
+1.	点击 **Next** 按钮继续 CodeWorks for Android 1R4 的安装。
 	
 	![](AndroidWorks_09.png)
 
-1.	最后，点击 **Yes** 重启电脑。
+1.	这时可以点击 **Finish** 来完成 Android Works 的安装。
 	
 	![](AndroidWorks_10.png)
+
+1.	最后，点击 **Yes** 重启电脑。
+
+	![](AndroidWorks_12.png)
+
 	[region:note]
 	如果您是从 Github 上下载虚幻 4 的话，在 Android Works 完成安装，重启电脑后，再次运行 **Setup.bat** 文件来下载 Android 开发所需要的其他文件。
 	[/region]
@@ -172,7 +168,7 @@ Skilllevel:Intermediate
 
 	[/region]
 
-1. **Double-click** **AndroidWorks-1R1-osx.dmg** 来加载 Android Works 安装包。
+1. **Double-click** **AndroidWorks-1R4-osx.dmg** 来加载 Android Works 安装包。
 	
 	![](AndroidWorks_Mac_00.png)
 
@@ -225,4 +221,7 @@ Skilllevel:Intermediate
 [/EXCERPT:MacOSSetup]
 -->
 
-%Steps%
+## 最终结果
+在完成了这些所需的 Android SDK 的安装后，就可以在 UE4 中为 Android 设备工作了。
+
+[nav]
