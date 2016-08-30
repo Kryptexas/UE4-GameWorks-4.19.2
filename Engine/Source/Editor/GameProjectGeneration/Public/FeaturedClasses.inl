@@ -1,5 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 /** Inline file to avoid introducing many UObject headers into the global namespace */
 
 #include "Kismet/BlueprintFunctionLibrary.h"
