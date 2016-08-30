@@ -2,12 +2,9 @@ title:Hierarchical Level of Detail Overview
 description:Overview of the Hierarchical Level of Detail system in Unreal Engine 4
 crumbs:%ROOT%
 availability:docs
+version:4.13
 
 HLODs, in their simplest form, combine pre-existing **Static Mesh Actors** into a single **Static Mesh Actor** and material, with atlased textures, to reduce draw calls which in-turn helps with your performance of your game. There is a robust system that enables you to set what needs to be generated when you create these **HLOD Actors**.
-
-[REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
-[/REGION]
 
 ## Proxy Meshes
 
@@ -15,7 +12,7 @@ Once your proxy meshes have been generated, you can find them located under the 
 
 ![image alt text](image_15.png)(h:320 w:373 convert:false)
 
-These proxy meshes can be opened independently and settings adjusted. If you decided to merge the materials, you’ll have access to them to adjust the texture source and any material settings. 
+These proxy meshes can be opened independently and settings adjusted.
 
 ![image alt text](image_16.png)(h:357 w:404 convert:false)
 

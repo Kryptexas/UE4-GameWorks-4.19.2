@@ -2,12 +2,9 @@ title:Hierarchical LOD Reference
 description:A reference of the interface elements and properties found in the Hierarchical LOD Outliner.
 crumbs:
 availability:docs
+version:4.13
 
 This page details the buttons and properties that exist on the **Hierarchical LOD Outliner**.
-
-[REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
-[/REGION]
 
 ## Property and Interface Reference
 
@@ -18,6 +15,7 @@ HLOD doesn't currently work well with dynamic shadows (casting or recieving them
 
 Below are the descriptions for the 3 buttons and slider that exist in the **Hierarchical LOD Outliner**.
 
+[REGION:raw]
 | --- | :---: | :--- |
 | **Generate Clusters** || This will generate spherical clusters of **Static Mesh Actors** in the scene that can be grouped. The way this is handled is by using the settings for each LOD settings specified under the LODSystem section of the HLOD Outliner. |
 | **Delete Clusters** || This will delete all HLODs that have been previously setup in this level. This includes all generated proxy meshes as well as the clusters that have been setup. This will not wipe the previously set values or properties for the HLOD Levels. |
@@ -26,11 +24,43 @@ Below are the descriptions for the 3 buttons and slider that exist in the **Hier
 | | %spacer%  | |
 [/REGION]
 
+### Context Menus
+
+The Hierarchical LOD Outliner has a few right-click context menus, below are how to access them and the options they present.
+
+* The first is accessed by right-clicking on a **Cluster Entry** in the HLOD Outliner:
+
+	[REGION:raw]
+	![](ContextMenu1.png)
+	[/REGION]
+
+	[REGION:raw]
+	| Option | %spacer% | Description |
+	| --- | :---: | :--- |
+	| **Select LOD Actor** || Selects the LOD Actor in the viewport (same effect as left-clicking the cluster). |
+	| **Select Contained Actors** || Selects all the **Actors** contained in the **LOD Cluster**. |
+	| **ForceView** || Toggles the view of the **HLOD Actor** in the viewport. |
+	| **Rebuild Proxy Mesh** || Forces the right-clicked cluster to rebuild its proxy mesh. |
+	| **Create Containing Hierarchical Volume** || Creates a **Hierarchical Volume** around the **Actors** contained in the **Cluster** that can then be modified to encompass greater or fewer **Actors**. |
+	| **Delete Cluster** || Deletes the right-clicked Cluster. |
+	[/REGION]
+
+* The next is accessed by right-clicking on an **Actor** entry contained within an **Cluster Entry** in the HLOD Outliner:
+
+	[REGION:raw]
+	![](ContextMenu2.png)
+	[/REGION]
+
+	[REGION:raw]
+	| Option | %spacer% | Description |
+	| --- | :---: | :--- |
+	| **Remove From Cluster** || Removes the right-clicked **Actor** from the **Cluster**. |
+	| **Exclude From Cluster Generation** || Excludes the right-clicked **Actor** from **Cluster** generation. If you wish to re-add the excluded **Actor** click and drag it from the **World Outliner** into the **Cluster** in the **Hierarchical LOD Outliner**. |
+	[/REGION]
+
 ### Properties
 
 Below, broken out by major section, are the properties that can be found in a **Hierarchical LODSetup** in the **LODSystem** panel located in the lower portion of the **Hierarchical LOD Outliner** interface.
-
-[REGION:raw]
 
 ### Cluster Generation Settings
 
@@ -54,8 +84,8 @@ Below, broken out by major section, are the properties that can be found in a **
 | **Merge Materials** || Whether to merge source materials into one flat material. |
 | [REGION:tablesection]**[Material Settings See Below](#materialsettings)**[/REGION] |||
 | **Bake Vertex Data ** || Incorporates painted vertex colours into model/baked out material. |
-| **Calculate Correct LODModel** || Calculates the correct LOD model based upon the screen size value (similar to how regular LODs are determined for static meshes in the editor/game). |
-| **Export Specific LOD** || Forces the system to pick the given LOD level for all models (if the LOD level exists, otherwise picks the maximum closest value). |
+| **Use Vertex Data for Baking Material** || Whether or not vertex data such as vertex colours should be used when baking out materials. |
+| **Use Landscape Culling** || Whether or note to use available landscape geometry to cull away invisible triangles. |
 
 ### Material Settings
 
