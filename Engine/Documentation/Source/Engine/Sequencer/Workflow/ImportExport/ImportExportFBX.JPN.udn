@@ -1,39 +1,39 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3103209
 Availability:Docs
-Title: Exporting and Importing FBX files
+Title:FBX ファイルのエクスポートとインポート
 Crumbs: %ROOT%, Engine
-Description:Describes how you can export FBX files from Sequencer and import FBX files to Sequencer. 
+Description:FBX ファイルをシーケンサーからエクスポート、およびシーケンサーにインポートする方法を説明します。 
 Navigation:topic
 parent:Engine/Sequencer/Workflow
 order:1
-Version: 4.13
-Related: Engine\Sequencer\Overview
-Related: Engine/Sequencer/HowTo
+Version:4.13
+Related:Engine\Sequencer\Overview
+Related:Engine/Sequencer/HowTo
 
-This page describes how you can export a scene from Sequencer as an FBX file, make alterations to that file inside a 3rd party application like 3dsMax or Maya, then import that FBX file (along with your changes) back into Unreal Engine into Sequencer as part of your existing scene. 
+このページでは、FBX ファイルとしてシーケンサーからシーンをエクスポートし、3dsMax や Maya などのサードパーティのアプリケーション内でそのファイルに変更を加え、その FBX ファイルを (変更と合わせて) 既存のシーンの一部としてアンリアル エンジンのシーケンサーにインポートします。 
 
-There are some caveats to this process to be aware of such as:
+このプロセスには以下のような注意事項があります。
 
-* When exporting, you can export all the objects in your scene with animations to your FBX file. 
-* Importing FBX files will only import animation (it will not create new objects). 
-* Export/Import does not work with **Master Sequences**, **Shots** within a Master, or **Subscenes**. 
-* Make sure that your time settings in your 3rd party application matches the time frame used for your scene in Unreal Engine. 
+* エクスポートする場合、シーンのすべてのオブジェクトをアニメーションと共に FBX ファイルにエクスポートすることができます。 
+* FBX ファイルのインポートでは、アニメーションだけがインポートされます (新しいオブジェクトは作成しません)。 
+* エクスポート / インポートは、**マスター シーケンス**、マスター内の **ショット**、 **サブシーン** では機能しません。 
+* サードパーティのアプリケーションでの時間設定は、アンリアル エンジンのシーンで使われるタイム フレームに一致させるようにしてください。 
 
-As long as you export from a source Level Sequence (not exporting from a shot that sits inside a Master) and are only altering the animation of existing assets, you will be able to import your changes directly back into your scene inside Unreal Engine. 
-Also, using the same time frames in both Unreal Engine and your 3rd party application will ensure that they line up and that the imported scene is not resampled at a different time rate. 
+ソースのレベル シーケンスからエクスポートしていて (マスター内にあるショットからエクスポートするのではなく)、既存アセットのアニメーションだけに変更を加えている場合は、加えた変更を直接アンリアル エンジン内のシーンにインポートすることができます。 
+また、アンリアル エンジンとサードパーティのアプリケーションで同じタイム フレームを使うことで、 2 つがそろい、インポートされたシーンが異なるタイム レートで再サンプリングされないようにします。 
 
-## Example Workflow
+## サンプル ワークフロー
 
-Below we export a scene from the **Sequencer** Showcase (pictured below) available for free from the **Learn** tab of the Launcher, take it into Maya and alter the camera movement in the scene, then import that FBX along with our changes back into Unreal Engine where our existing scene is automatically updated to reflect our changes. 
+以下では、ランチャーの **[Learn (ラーニング)]** タブから無料で利用できる **Sequencer** のショーケースからシーンをエクスポートし (以下の図)、それを Maya に取り込み、シーン内のカメラの動きを変更します。次に、その FBX を、加えた変更と共にアンリアル エンジンに戻します。アンリアル エンジン側では既存のシーンを自動的に更新し、変更が反映されます。 
 
 ![](SequencerSample.png)
 
 
-### Exporting from Sequencer
+### シーケンサーからエクスポートする
 
-First thing you will need to do is to determine which Level Sequence to export. 
+まず、どのレベル シーケンスをエクスポートするかを決める必要があります。 
 
-1.	In the clip below we pick the shot we want to alter and open it up. We then go into the **General Options** and choose **Export**. 
+1.	以下のクリップでは、変更したいショットを選んでそれを開いています。次に **[General Options]** に進んで、**[Export]** を選びます。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -47,13 +47,13 @@ First thing you will need to do is to determine which Level Sequence to export.
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	We have a Master Track that includes **shot0040_001** so we open that particular Level Sequence to export it. 
-	
-### External Editing
+	**shot0040_001** を含むマスター トラックがあるので、その特定のレベル シーケンスを開いてエクスポートします。 
+	### 外部の編集
 
-Once we have an exported FBX from Sequencer, we open our 3rd party application to import it so we can start editing it. 
 
-1.	Before we import our FBX into Maya, we set our working units for **Time** to match our **Time Rate** used in Unreal Engine. 
+シーケンサーからエクスポートした FBX が用意できたらサードパーティのアプリケーションを開いてそれをインポートして編集を開始できるようにします。 
+
+1.	FBX ファイルを Maya に取り込む前に、**Time** の作業単位をアンリアル エンジンで使う **Time Rate** に合わせるように設定します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -67,7 +67,7 @@ Once we have an exported FBX from Sequencer, we open our 3rd party application t
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1.	We then import our FBX into Maya and set up our scene so that we can begin making edits. 
+1.	次に FBX を Maya にインポートし、編集を開始できるようにシーンをセットアップします。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -81,10 +81,10 @@ Once we have an exported FBX from Sequencer, we open our 3rd party application t
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Once our scene is imported, we set our Perspective under **Panel** to use the camera **shotCamA** in our scene and hide any elements obstructing the view (such as the godray mesh) with it selected and **Ctrl + H**. 
-	Lastly under **View** we **Select Camera** to display the properties and keyframes for our **shotCamA** which we can then begin to edit. 
+	シーンをインポートしたら、**Panel** で Perspective を設定し、カメラの **shotCamA** をシーンで使用し、ビューを妨げるエレメント (ゴッドレイ メッシュなど) があればそれを選択した状態で **Ctrl + H** キーを押して非表示にします 。 
+	最後に **View** で **Select Camera (カメラを選択)** し、**shotCamA** に対するプロパティとキーフレームを表示し、編集を開始できるようにします。 
 
-1.	Next we make edits to the movement of our camera. 
+1.	次にカメラの動きを編集します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -98,11 +98,11 @@ Once we have an exported FBX from Sequencer, we open our 3rd party application t
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Above we select the Translation and Rotation properties of our **shotCamA** and **Right-click** and **Break Connections**. 
-	We then pick a new starting point for the camera to be in to start our scene and press **S** to keyframe the new position. 
-	We scrub ahead slightly and move the camera to the ending position and press **S** again to keyframe the end position so that our camera moves along a new path. 
+	上の図では、**shotCamA** の Translation (平行移動) と Rotation (回転) のプロパティを選択し、**右クリック** して、**Break Connection** を選んでいます。 
+	続いて、シーンの開始に合わせてカメラの新しい開始点を選んで、**S** キーを押して、新しい位置をキーフレーム化します。 
+	前方向に少しスクラブして、カメラを終了位置まで動かし、再度 **S** キーを押して、終了位置をキーフレーム化し、カメラが新しいパスに沿って移動するようにします。 
 
-1.	With our changes in place, we then **Export** our scene using **Export Selection**.
+1.	変更を加えた状態で、**[Export Selection]** を使ってシーンを **エクスポート** します。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -116,16 +116,16 @@ Once we have an exported FBX from Sequencer, we open our 3rd party application t
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	During the export process from Maya, we first change the export type to **FBX export**.
-	Then, under **Advanced Options** and **Axis Conversion**, we change the **Up Axis** to follow **Z** to allow for a compatible import into Unreal Engine. 
-	Future versions of the engine may address this so that you do not have to convert the axis, but you will need to do this for now to avoid any importing problems. 
+	Maya からのエクスポート プロセスでは、最初にエクスポート タイプを **[FBX export]** に変更します。
+	**[Advanced Options (詳細オプション)]** の **[Axis Conversion (軸変換)]** で、**[Up Axis]** が **Z** に従うように変更し、アンリアル エンジンに互換性のあるインポートを行うことができるようにします。 
+	エンジンの将来のバージョンでは、軸変換をしなくてもいいようになるかもしれませんが、現時点ではインポートで生じる問題を回避するためにこれを行ってください。 
 
 
-### Importing to Sequencer
+### シーケンサーへのインポート
 
-Now that we have an edited version in FBX format we can import it and the changes into Unreal Engine, updating our scene.
+これで FBX 形式の編集バージョンが用意できたので、このファイルを加えた変更と共にアンリアル エンジンにインポートしてシーンを更新します。
 
-1.	Inside our **shot0040_001** that we wanted to edit, we **Right-click** on our **shotCamA** and select **Import**. 
+1.	編集する **shot0040_001** 内の **shotCamA** 上で **右クリック** して **[Import]** を選択します。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -139,21 +139,12 @@ Now that we have an edited version in FBX format we can import it and the change
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	By **Right-clicking** on the camera it will take the Transform data inside the FBX and apply it to the selected object in Unreal Engine. 
-	This can be useful if you want to apply the same Transform data to multiple objects inside your scene. You can also import the FBX from the **General Options** window instead of using the **Right-click** method. 
+	カメラ上で **右クリック** すると FBX 内の Transform データををアンリアル エンジンの選択したオブジェクトに適用します。 
+	これは同じ Transform データをシーン内の複数オブジェクトに適用したい場合に便利です。この **右クリック** による方法を使う代わりに、**[General Options]** ウィンドウから FBX をインポートすることもできます。 
 
 	![](ImportOption.png)
 
-	When choosing this method, Unreal Engine will try to match the names of your objects (for example, we have **shotCamA** in both our FBX file and our Sequence so it will apply the data from the FBX file to that object inside Unreal Engine). 
+	この方法を選ぶと、アンリアル エンジンはオブジェクトの名前を合わせようとします (例えば、FBX ファイルとシーケンスの両方に **shotCamA** が用意できたので、FBX ファイルからのデータをアンリアル エンジン内のオブジェクトに適用します)。 
 
-In our example we only applied Transform changes to our camera however we could have keyframed new values for our **Focal Length** to produce a different looking shot as well.
-You can experiment with this workflow and use what works best in your given situation. There may be times when you want to export to a 3D package like Maya or 3dsMax to fine tune aspects of your scene and then import your changes back into your scene in Unreal Engine. 
-	
-
-
-
-
-
-
-
-
+この例では、トランスフォームの変更だけをカメラに適用しましたが、**Focal Length** の新しい値をキーフレーム化して見た目が異なるショットを作ることもできます。
+このワークフローでいろいろ試して、各自の状況に最適に機能するものを使ってください。Maya や 3dsMax などの 3D パッケージにエクスポートして、シーンを微調整してから、加えた変更をアンリアル エンジンにインポートして戻すこともできます。 
