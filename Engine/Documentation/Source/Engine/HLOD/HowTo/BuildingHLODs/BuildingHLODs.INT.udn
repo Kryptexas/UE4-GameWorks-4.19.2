@@ -2,15 +2,11 @@ title:How-To Build Hierarchical Level of Detail Meshes
 description:This how to covers how to generate the HLOD meshes for your HLOD enabled Unreal Engine 4 project.
 crumbs:
 availability:docs
-version:4.12
+version:4.13
 related:Engine/HLOD/Overview
 related:Engine/HLOD/Reference
 
 There are two major steps in building your **Hierarchical Level of Detail** (HLOD) Meshes. Firstly, you must **Generate Clusters**, which groups **Actors** in your level together based on the setting you specify in the **Cluster Generation Settings**. Then you have to **Generate Proxy Meshes**, which can take a very long time based on scene complexity and settings specified in the **Mesh Generation Settings**.
-
-[REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or receiving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
-[/REGION]
 
 ## Steps
 
@@ -47,6 +43,8 @@ To visualize how the generated clusters work in the editor you can use the **For
 Should you run into any issues you don’t like with the generated cluster you can expand the specified cluster and select the offending **Static Mesh Actor**. You can then click and drag it to another cluster, or you have the option to **Remove** or **Exclude** it from the generation of the cluster by right-clicking on the **Actor's** name in the list. 
 
 **Actors** can also be excluded on a per-instance basis by selecting them in the level and in their **Details Panel** set the option for **Enable Auto LODGeneration** to false.
+
+Further, if you wish to add an **Actor** to a **Cluster** you can click and drag from the **World Outliner** to the **Cluster** you wish it to be included in.
 
 ![image alt text](Engine/HLOD/Overview/image_11.png)(h:236 w:269 convert:false)
 
