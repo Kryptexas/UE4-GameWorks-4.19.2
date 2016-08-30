@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3092382
-Availability:Docs
+﻿INTSourceChangelist:3102822
+Availability:Public
 Title:Edit Decision Lists (EDLs) をインポート、エクスポートする
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:外部の映像編集ソフト アプリケーションで使用するために EDL をインポート、エクスポートする方法を説明します。 
@@ -9,13 +9,13 @@ parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
-Related:Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/ReferenceEditor
 
 [EXCERPT:intro]
 UE4 のシーケンサーは、シネマティックス全体をレンダリングしたり、エクスポートできるだけでなく、シネマティックスを各ショットに分けて、**Edit Decision List** すなわち **EDL** と合わせてエクスポートすることもできます。これは、Premiere、 Avid、 Final Cut などのようなほとんどの映像編集アプリケーションで使用可能なファイルです。 
 [/EXCERPT:intro]
 
-EDL には、最終カットを制作するために各ビデオ クリップがどこにあるかを示すリールと時間コードを順番に示したリストがあります。 
+EDL には、最終カットを制作するために各ビデオ クリップがどこにあるかを示すリールと時間コードのデータを順番に示したリストがあります。 
 この操作ガイドでは、シネマティックスと EDL ファイルをエクスポートし、Premiere などの外部プログラムに取り込み、編集し、編集したシネマティックスを加えた変更とともにアンリアル エンジンに再インポートします。 
 
 ## ステップ
@@ -27,7 +27,7 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 
 1.	エクスポートするシネマティックスには、ショットが入っている **Shot Track** を含むようにします。次に、**[Render Movie]** ボタンをクリックします。
 
-1.	**{shot}** トークンを使って **Output Directory ** と **Filename Format** を定義し、**Write Edit Decision List** に必ずチェックを入れるようにします。 
+1.	**{shot}** トークンを使って **Output Directory ** と **Filename Format** を定義し、**Write Edit Decision List** に必ずチェックを入れるようにします。上の画像は、EDL と共にエクスポートするサンプル シネマティックスです。**[Render Movie]** ボタンをクリックして、設定のダイアログ ウィンドウを表示します。設定ウィンドウ内で、シネマティックスのエクスポート先の新規フォルダを作成し、{shot} トークンにシネマティックスの名前のプレフィックスを付けます。各ショットで {shot} トークンを使うことで、シネマティックス全体と共にショットが個々の映像ファイルとしてエクスポートされます。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -39,13 +39,15 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 	[PARAMLITERAL:videoid]
 	c2J89J3b8WA
 	[/PARAMLITERAL]
-	[/OBJECT]
+	[/OBJECT] 
 
-	上の画像は、EDL と共にエクスポートするサンプル シネマティックスです。**[Render Movie]** ボタンをクリックして、設定のダイアログ ウィンドウを表示します。 
-	設定ウィンドウ内で、シネマティックスのエクスポート先の新規フォルダを作成し、{shot} トークンにシネマティックスの名前のプレフィックスを付けます。 
-	各ショットで {shot} トークンを使うことで、シネマティックス全体と共にショットが個々の映像ファイルとしてエクスポートされます。 
+	[REGION:note]
+	これは、 **[Output Format]** が **[Video Sequence]** に設定されている場合に限り機能します。個々のフレームでは機能しません。 
+	[/REGION]
 
-1.	ご利用のソフトウェアの編集スイート内で、この前のステップでエクスポートした **EDL** ファイルを **Import** します。 
+
+1.	ご利用のソフトウェアの編集スイート内で、この前のステップでエクスポートした **EDL** ファイルを **Import** します。Premiere Pro では、左下のウィンドウで **右クリック** して、**Import** を選択して、EDL ファイルをポイントします。 
+	EDL Information と New Sequence のダイアログウィンドウをデフォルト情報のままにしています。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -59,10 +61,7 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Premiere Pro では、左下のウィンドウで **右クリック** して、**Import** を選択して、EDL ファイルをポイントします。 
-	EDL Information と New Sequence のダイアログウィンドウをデフォルト情報のままにしています。 
-
-1.	次に EDL からのデータを、ご利用の編集ソフトウェアのエクスポートしたメディア ファイルにリンクする必要があります。 
+1.	次に EDL からのデータを、ご利用の編集ソフトウェアのエクスポートしたメディア ファイルにリンクする必要があります。Premiere Pro でそのメディア フォルダを **右クリック** して **Link Media** を選択し、各ファイルを対応するメディア ファイルにポイントさせます。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -76,9 +75,7 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	Premeire Pro でそのメディア フォルダを **右クリック** して **Link Media** を選択し、各ファイルを対応するメディア ファイルにポイントさせます。 
-
-1.	必要に応じて編集ソフトウェアでショットを修正して、**EDL** として **Export** します。 
+1.	必要に応じて編集ソフトウェアでショットを修正して、**EDL** として **Export** します。サンプル シーンの図では、ショットの長さを調整し、シーケンス内の位置も並べ替えました。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -92,9 +89,7 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	上のサンプル シーンの図では、ショットの長さを調整し、シーケンス内の位置も並べ替えました。 
-
-1.	**アンリアル エンジン 4** に戻って、シーケンス内で、**Shot Track** と **Import EDL** で **右クリック** します。 
+1.	**アンリアル エンジン 4** に戻って、シーケンス内で、**Shot Track** と **Import EDL** で **右クリック** します。外部で加えた変更が、UE4 のシーケンス内に反映されるようになります。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -108,8 +103,6 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	外部で加えた変更が、UE4 のシーケンス内に反映されるようになります。 
-
 ## 最終結果
 
 シーケンサー内の EDL のインポート / エクスポートのオプションを使うと、どこで編集したいかをフレキシブルに決めることができます。 
@@ -117,6 +110,8 @@ EDL には、最終カットを制作するために各ビデオ クリップが
 ほとんどのセットアップはシーケンサー内でできます。その後、シーケンスを外部アプリケーションにエクスポートして、そのエディタで最終的な仕上げをしてから、シーケンサーに戻して微調整することができます。 
 
 シーケンスを EDL としてエクスポートして外部で作業することで、最終的なシネマティックスをレンダリングする前にポスト プロダクション エフェクトやアフター エフェクトをシーンに加えることができます。 
+
+
 
 
 
