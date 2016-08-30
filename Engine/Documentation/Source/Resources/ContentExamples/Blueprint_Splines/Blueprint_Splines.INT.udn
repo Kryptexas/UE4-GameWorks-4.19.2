@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:Overview of the samples provided in the Blueprint Splines Content Examples.
 Related: Engine/Rendering/Materials
 Version: 4.9
+tags:Splines
 
 [REGION:banner]
 ![](blueprintSplines_ce_header.png)(convert:false)
