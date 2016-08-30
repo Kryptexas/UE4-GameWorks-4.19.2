@@ -1,30 +1,31 @@
-﻿INTSourceChangelist:2988432
+﻿INTSourceChangelist:3094382
 Availability:Public
 Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アンリアル エンジン 4 のアニメーション システムの様々な側面の例を段階的操作ガイドで説明します。
-version:4.9
+version:4.12
 
 アニメーションの操作ガイドでは、アンリアル エンジン 4 (UE4) 内のアニメーション ツールである [**ペルソナ**](Engine/Animation) の様々な機能を使用して作業する手順の例を説明します。 
 UE4 でのアニメーションの操作が初めての場合、またはペルソナの機能で作業する方法を学習したい場合のいずれであっても、以下の操作ガイドでは幅広いトピックを扱い、学習の開始点、または知識を拡げる場所を提供します。 
 
-詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
+詳細は以下の表を参照してください。リンクをクリックすると、それぞれのコンテンツが表示されます。 
 
-## 初心者向け
+## Beginner
 |操作ガイド | 説明 |
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\PreviewingAnimations) | %Engine\Animation\AnimHowTo\PreviewingAnimations:description% |
 
 
-##中級者向け
+## Intermediate
 |操作ガイド | 説明 |
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\PropertyBasedBlending) | %Engine\Animation\AnimHowTo\PropertyBasedBlending:description% |
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
+| [](Engine\Animation\AnimHowTo\CreatePoseAsset) | %Engine\Animation\AnimHowTo\CreatePoseAsset:description% |
 
 
-## 詳細オプション
+## Advanced
 |操作ガイド | 説明 |
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
