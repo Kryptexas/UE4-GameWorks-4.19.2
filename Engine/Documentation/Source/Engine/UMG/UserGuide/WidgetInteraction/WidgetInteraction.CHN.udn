@@ -1,83 +1,79 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Widget Interaction Component
+﻿INTSourceChangelist:3102822
+Availability:Public
+Title:控件交互组件
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Outlines how to use the Widget Interaction Component to interact with 3D Widgets.
-Version: 4.13
-Related: Engine/UMG/UserGuide
-Related: Engine/Blueprints
-Related: Engine/Components/Widget
+Description:说明如何使用控件交互组件和 3D 控件互动。
+Version:4.13
+Related:Engine/UMG/UserGuide
+Related:Engine/Blueprints
+Related:Engine/Components/Widget
 
 [REGION:warning]
-This feature is considered experimental and some aspects may not work as expected and may change in future updates. 
+此功能仍在实验阶段，一些部分可能无法正常工作，在未来更新中也可能被修改。 
 [/REGION]
 
 [REGION:banner]
 ![](WidgetInteractionBanner.png)
 [/REGION]
 
-If you are using a [Widget Component](Engine/Components/Widget) to display UI that exists in 3D in your game world and you want to allow players to interact with that widget, the **Widget Interaction** component provides a way for that interaction to occur. 
+如您使用 [控件组件](Engine/Components/Widget) 显示以 3D 形式存在于游戏世界中的 UI，还需要玩家与此控件进行交互，可通过 **控件交互（Widget Interaction）** 组件来实现交互。 
 
-The Widget Interaction component performs a [Raycast](Gameplay/HowTo/UseRaycasts/) to see if it hits a Widget Component placed in the world and if it hits one, you can set up rules to determine how to interact with it. 
-The interaction is performed by simulating a defined key press, for example if a Button can be clicked on with the Left Mouse Button, you could tell other forms of input to simulate a Left Mouse Button click (controller button press, motion controller trigger press, etc.)
+控件交互组件执行 [光线投射](Gameplay/HowTo/UseRaycasts/)，确定它是否命中世界场景中的控件组件。如命中，可设置规则确定与其交互的方式。交互通过模拟定义的按键来执行。例如一个按钮可通过鼠标左键点击，即可告知其他形式的输入模拟一次鼠标左键点击（控制器按钮按下、运动控制器扳机键按下等）。
 
 [REGION:note]
-For step-by-step examples, see [](Engine\UMG\HowTo\InWorldWidgetInteraction\) and [](Engine\UMG\HowTo\VirtualKeyboards). 
+如要了解详细范例，请查阅 [](Engine\UMG\HowTo\InWorldWidgetInteraction\) 和 [](Engine\UMG\HowTo\VirtualKeyboards)。 
 [/REGION]
 
-## Adding a Widget Interaction Component
+## 添加控件交互组件
 
-Typically you will want to add the Widget Interaction component to your player [](Gameplay/Framework/Pawn) or [](Gameplay/Framework/Pawn/Character) class from the [](Engine/Blueprints/UserGuide/Components/). 
+通常需要将控件交互组件添加到玩家 [](Gameplay/Framework/Pawn) 或来自 [](Engine/Blueprints/UserGuide/Components/) 的 [](Gameplay/Framework/Pawn/Character) 类。 
 
 ![](WidgetInteractionComponent.png)
 
-Above we add and attach it to a gun our character is carrying so that where the gun points, the Widget Interaction component points. 
+我们将其添加并附加到角色手持的一把枪上，因此枪指向的方向就是控件交互组件的朝向。 
 
 
-## Widget Interaction Property Reference
+## 控件交互属性参考
 
-Once you have added a Widget Interaction component, you can adjust several properties forom the **Details** panel to define how it functions. 
-Aside from common component properties like **Transform**, **Rendering** or **Sockets**, the properties below are specifically used with the Widget Interaction Component. 
+添加控件交互组件后，可调整 **Details** 面板中的数个属性来定义其功能。除常见的组件属性外（如 **Transform**、**Rendering**，或 **Sockets**），以下属性为控件交互组件专用。 
 
-| Option | Description |
+| 选项 | 描述 |
 | --- | ----------- |
-| [REGION:tablesection]**Interaction**[/REGION] ||
-| **Virtual User Index** | Represents the Virtual User Index. Widget Interaction Components operate by using this Virtual User Index which captures and handles focus states separately. Each Virtual User should be represented by a different Index to ensure that they will maintain separate capture and focus states for each. As each Widget Interaction component comes online it informs Slate of the Virtual User Index it has been assigned and can send events as if it were a real Slate user. |
-| **Pointer Index** | Each user Virtual Controller or virtual Finger Tips being simulated should use a different Pointer Index.|
-| **Interaction Distance** | The distance in game units the component should be able to interact with a widget component. |
-| **Interaction Source** | Determines where we should project from and start the trace (World, Mouse, Center Screen or Custom). If you set this to Custom, you'll need to call `SetCustomHitResult()` and provide the result of a custom hit test from whatever location you wish. |
-| **Enable Hit Testing** | Should the interaction component perform hit testing (Automatic or Custom) and attempt to simulate hover - if you were going to emulate a keyboard you would want to turn this option off if the virtual keyboard was separate from the virtual pointer device and used a secon interaction component.|
-| [REGION:tablesection]**Debugging**[/REGION] ||
-| **Show Debug** | Shows debugging lines and a hit sphere to help debug interaction. |
-| **Debug Color** | Determines the color of the debug lines when **Show Debug** is enabled. |
-| [REGION:tablesection]**Events**[/REGION] ||
-| **On Hovered Widget Changed** | Called when the hovered Widget Component changes. The interaction component functions at the Slate level - so it's unable to report anything about what Widget is under the hit result.|
+| [REGION:tablesection]**交互**[/REGION] ||
+| **Virtual User Index** | 代表虚拟用户索引。控件交互组件通过虚拟用户索引产生作用，此索引将单独捕捉并处理聚焦状态。每个虚拟用户应由一个不同的索引所代表，确保它们保持单独的捕捉和聚焦状态。每个控件交互组件上线后，它将告知虚拟用户索引的 Slate 它已被指定、可作为真实 Slate 用户发送时间。|
+| **Pointer Index** | 每个用户的模拟虚拟控制器或虚拟指端应使用不同的指针索引。|
+| **Interaction Distance** | 组件能够和控件组件形成交互的距离（以游戏单位计）。|
+| **Interaction Source** | 确定从何处开始投射并开始追踪（世界场景、鼠标、屏幕中心或自定义）。如将此设为自定义，则需要调用 `SetCustomHitResult()` 并提供自定义命中测试（在需要的任意位置执行）的结果。|
+| **Enable Hit Testing** | 确定交互组件是否应该执行命中测试（自动或自定义）并尝试模拟悬停。如需要模拟键盘而虚拟键盘和虚拟指针设备为分离状态，应将此选项关闭并将另一个交互组件用于指针设备。|
+| [REGION:tablesection]**调试**[/REGION] ||
+| **Show Debug** | 显示调试线和命中球体，以便调试交互。|
+| **Debug Color** | 确定 **Show Debug** 启用时调试线的颜色。|
+| [REGION:tablesection]**事件**[/REGION] ||
+| **On Hovered Widget Changed** | 悬停控件组件改变时调用。Slate 层的交互组件函数 — 因此它无法针对命中结果下的控件进行报告。|
 
 
-## Widget Interaction Blueprint Node Reference
+## 控件交互蓝图节点参考
 
-The Widget Interaction component can simulate different types of input methods (such as press, release or press + release) which you can find under the **Interaction** section in the Blueprint Context Menu. 
-You can also get information such as the last "hit" position registered by the Widget Interaction component or if a Widget Component in the world is currently being hovered upon. 
+控件交互组件可模拟不同类型的输入方法（如按下、松开，或按下 + 松开），在蓝图快捷菜单的 **Interaction** 部分可找到这部分内容。还可获得其他信息，如控件交互组件注册的“命中”位置，或世界场景中的控件组件当前是否被悬停。 
 
 ![](WidgetInteractionBlueprint.png)
 
-| Node | Description |
+| 节点 | 描述 |
 | --- | ----------- |
-| **Get Hovered Widget Component** | Gets the currently hovered Widget Component. |
-| **Get Last Hit Result** | Gets the last hit result generated by the component. Returns the custom hit result if that was set. |
-| **Is Over Focusable Widget** | Returns true if a widget under the hit result is focusable. For example, Slate widgets that return true for `SupportsKeyboardFocus()`.|
-| **Is Over Hit Test Visible Widget** | Returns true if a widget under the hit result has a visibility setting that makes it hit test visible. For example, Slate widgets that return true for `GetVisibility().IsHitTestVisible()`.|
-| **Is Over Interactable Widget** | Returns true if a widget under the hit result is interactive. For example, Slate widgets that return true for `IsInteractble()`.|
-| **Press and Release Key** | Performs both the press and release of a simulated keyboard key.| 
-| **Press Key** | Performs a press of a simulated keyboard key. Avoid using this for `a-z|A-Z`, things like the Editable Textbox in Slate expect **OnKeyChar** to be called to signal a specific character being sent to the widget so for those cases you would use **SendKeyChar** instead. |
-| **Press Pointer Key** | Performs a press of a simulated mouse/pointer event (pointer could be mouse, could be touch, etc). Normally you would just use Left/Right Mouse Button for the Key, however advanced usage could be imagined where you send other keys to signal widgets to take special actions if they're under the cursor.  |
-| **Release Key** | Releases a key as if it had been released from the keyboard.  |
-| **Release Pointer Key** | Releases a key as if the mouse/pointer where the source of it. Similar to Press Pointer Key, normally you would use Left/Right Mouse Button for the key however advanced use cases are possible. |
-| **Scroll Wheel** | Sends a scroll wheel event to the widget under the last hit result. |
-| **Send Key Char** | Transmits a list of characters to a widget by simulating a OnKeyChar event for each key listed in the string. |
-| **Set Custom Hit Result** | Sets a custom hit result. This is only take into account if the Interaction Source is set to Custom.  |
+| **Get Hovered Widget Component** | 获取当前悬停的控件组件。|
+| **Get Last Hit Result** | 获取组件生成的上一个命中结果。设置后将返回自定义命中结果。|
+| **Is Over Focusable Widget** | 如命中结果下的控件为可聚焦，则返回 true。为 `SupportsKeyboardFocus()` 返回 true 的 Slate 控件。|
+| **Is Over Hit Test Visible Widget** | 如命中结果下的控件的可视性设置使命中测试为可见状态，则返回 true。为 `GetVisibility().IsHitTestVisible()` 返回 true 的 Slate 控件。|
+| **Is Over Interactable Widget** | 如命中结果下的控件为交互式，则返回 true。为 `IsInteractble()` 返回 true 的 Slate 控件。|
+| **Press and Release Key** | 按下和松开虚拟键盘键。| 
+| **Press Key** | 按下虚拟键盘键。不要将此项用于 `a-z|A-Z`，因为 Slate 中的可编辑文本框之类的资源将在 **OnKeyChar** 被调用后发出通知，说明特定字符正发送到控件。在这些情况下使用 **SendKeyChar** 代替。|
+| **Press Pointer Key** | 模拟在鼠标/指针上按下键。多数情况下应用的键是鼠标按键，但也可以使用任意键。支持高级的使用情况，如发送其他键通知控件执行特殊操作。|
+| **Release Key** | 松开键盘上已松开的键。|
+| **Release Pointer Key** | 模拟在鼠标/指针上松开键，与 Press Pointer Key 相似。多数情况下应用的键是鼠标按键，但也可以使用任意键。|
+| **Scroll Wheel** | 对上一个命中结果下的控件发送一个滚轮事件。|
+| **Send Key Char** | 为字符串中列出的每个键模拟一个 OnKeyChar 事件，将列表中的字符传输到控件。|
+| **Set Custom Hit Result** | 设置自定义命中结果。如交互源设为自定义，这是唯一需要考虑的一点。|
 
-The properties for the Widget Interaction component can also be reterived in the form of a getter or set via setter nodes. 
+控件交互组件的属性也能以 getter 形式被获取，或通过 setter 节点进行设置。 
 
 ![](WidgetInteractionVariables.png)
-
