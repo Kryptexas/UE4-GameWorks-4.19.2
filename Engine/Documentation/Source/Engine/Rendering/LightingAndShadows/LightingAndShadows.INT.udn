@@ -75,6 +75,7 @@ Version: 4.9
 %Engine/Rendering/LightingAndShadows/LightPropagationVolumes:Topic%
 %Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:Topic%
+%Engine/Rendering/LightingAndShadows/ShadowMapCaching:Topic%
 [/REGION]
 
 ## General
