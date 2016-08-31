@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3061520
+﻿INTSourceChangelist:3102939
 Availability:Docs
 Title:アクタのマージ
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
 Description:Actor の Merge ツールを使って、UE4 で複数のスタティックメッシュをひとつに結合します。
-Related: Engine/Actors/StaticMeshActor
+Related:Engine/Actors/StaticMeshActor
 Version:4.12
 
 
@@ -20,6 +20,7 @@ Merge Actors ツールを使用すると、複数のスタティックメッシ�
 
 ## アクタのマージのワークフロー
 
+<!--
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:videoid]
 _fTSGN8HGu8
@@ -31,6 +32,7 @@ _fTSGN8HGu8
 568
 [/PARAMLITERAL]
 [/OBJECT]
+-->
 
 シーン内のスタティックメッシュのマージは以下のように行います。
 
@@ -53,13 +55,24 @@ _fTSGN8HGu8
 
 | オプション| 説明 |
 |--------|-------------|
-|[REGION:tablesection]メッシュの設定[/REGION]|||
+|[REGION:tablesection]Mesh Components List[/REGION]|このエリアには、選択したメッシュの中でマージにどれを含めるかのチェックリストがあります。|
+|[REGION:tablesection]メッシュの設定[/REGION]||
 |**Pivot Point at Zero**|true に設定すると、最終的にマージされたアクタのピボット ポイントは、シーンの原点 <0,0,0> に設定されます。false に設定すると、ピボットはマージのために選択されたひとつめの Static Mesh アクタのピボット位置になります。
 |**Merge Physics Data**|true の場合、すべての物理プリミティブをひとつの物理オブジェクトにマージします。|
-|**Export Specific LOD**| このオプションを使うと、選択したメッシュをマージの前に特定の LOD になるように強制します。|
+|**Bake Vertex Data**|頂点カラーと法線を含む頂点データを新たに得られるメッシュにベイクします。|
+|**LOD Selection Type**| これを使ってどの LOD をマージしたオブジェクトに追加するかを制御します。|
+|[REGION:tablesection]詳細オプション[/REGION]|このオプションを表示するには、オプション リストの中央にある小さな白いトライアングル アイコンを展開します。|
+|**Generate Lightmap UVs**|既存の UV アイランドを使ってマージしたメッシュに対して新しいライトマップ UV のレイアウトを作成します。新しいレイアウトは、Target Light Map UVChannel に入ります。
+|**Target Light Map UVChannel**|新しいライトマップ UV を保存する UV チャンネルを指定します。|
+|**Target Light Map Resolution**|新しいライトマップ UV の解像度を指定します。この解像度がレイアウト内の各アイランド間で計算される距離を制御します。解像度が高ければ、各アイランド間の間隔が狭くなります。|
 |[REGION:tablesection]マテリアルの設定[/REGION]||
 |**Merge Materials**|チェックを入れると、マージしたすべてのアセットのマテリアルは、新しい UV レイアウトでひとつのマテリアルに結合されます。以下のサブ設定は、Merge Materials にチェックが入っている場合のみ適用されます。 |
 | |[INCLUDE:#materialsettings]|
+|[REGION:tablesection]ランドスケープのカリング[/REGION]||
+|**Use Landscape Culling**|チェックを入れると既存のランドスケープのジオメトリを使って、完全にオクルードされたトライアングルをカリングします。例えば、底にあるトライアングルがランドスケープのサーフェスから十分に下にある植えられた木のメッシュがあるとします。こうしたオクルードされたトライアングルはマージ時に取り除かれます。|
+|[REGION:tablesection]標準オプション[/REGION]||
+|**Replace Source Actors**|チェックを入れると、ビューポートで選ばれたアクタは取り除かれて、新たにマージされたバージョンで置き換えられます。これは、コンテンツ ブラウザにあるオリジナルのオブジェクトには影響を及ぼしません。| 
+
 
 
 <!--
@@ -76,7 +89,7 @@ _fTSGN8HGu8
 | **Specular Map** |チェックを入れると、マージされたアクタのスペキュラ マップがベイクされます。これにより、Specular Constant プロパティが無効になります。|
 | **Specular Constant**|Specular Map にチェックが入っていない場合のみ有効になります。マージされたアクタのマテリアルの Specular プロパティの定数値を設定します。|
 | **Emissive Map** |チェックを入れると、マージされたアクタのエミッシブ マップがベイクされます。|
-|**Bake Vertex Data**|頂点カラーと法線を含む頂点データを新たに得られるメッシュにベイクします。|
+|**Use Vertex Data for Baking Material**|マテリアルの結果をベイクするために頂点カラーなどの頂点データを使用するかどうかを設定します。頂点カラーによって何らかの方法で制御されているマテリアルがある場合に役立ちます。|
 [/REGION]
 [/EXCERPT:MaterialSettings]
 -->
