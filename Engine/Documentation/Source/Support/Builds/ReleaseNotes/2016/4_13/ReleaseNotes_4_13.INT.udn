@@ -4,8 +4,6 @@ Crumbs:%ROOT%, Engine
 Description:
 order:13
 
-Unreal Engine 4.13 Release Notes
-
 This release brings hundreds of updates for Unreal Engine 4, including 145 improvements submitted by the community of Unreal Engine developers on GitHub! Thanks to all of these contributors to Unreal Engine 4.13:
 
 alk3ovation, Allegorithmic (Allegorithmic), Alwin Tom (alwintom), Andreas Axelsson (judgeaxl), Andrew Scheidecker (AndrewScheidecker), Andrian Nord (NightNord), ArnoB (ABeekhub), Artem (umerov1999), Artem V. Navrotskiy (bozaro), Błażej Szczygieł (zaps166), Brent Scriver (FineRedMist), Cedric Neukirchen (eXifreXi), Céleste (CelPlays), Chris Conway (Koderz), Chris528, Christoph Becher (chbecher), Christopher P. Yarger (cpyarger), DanielDylan, DaveC79, Derek van Vliet (derekvanvliet), DevVancouver, Eric-Ketchum, Eugene (grisevg), Franco Salas (SupremeNinjaMaster), gameDNA (gameDNAstudio), ghost, Joel McGinnis (joelmcginnis), Jonathan Johansson (DualCoder), Jørgen P. Tjernø (jorgenpt), Joshua Kaiser (JoshuaKaiser), korkuveren, Kory Postma (korypostma), Krish Munot (KrishMunot), Kuts Alexey (krunt), Lars Jørgen Solberg (larsjsol), Lectem, Lee Reilly (leereilly), Lukasz Baran (iniside), madsystem, Manny (Manny-MADE), Marat Radchenko (slonopotamus), Markus Breyer (pluranium), Martin Gerhardy (mgerhardy), Marvin Pohl (pampersrocker), massanoori, Mateusz Polewaczyk (matii1509), Matthias Huerbe (MatzeOGH), Matthijs Lavrijsen (Mattiwatti), MaximDC, mfortin-bhvr, Michael Allar (Allar), Michael Schoell (MichaelSchoell), mik14a, Miłosz Kosobucki (MiKom), mkirzinger, Moritz Wundke (moritz-wundke), Nachtmahr (NachtMahr87), Narendra Umate (ardneran), NaturalMotionTechnology, Oleksandr Kuznietsov (Teivaz), OWIAdmin, Patryk Stępniewski (kodomastro), Paul Evans (paulevans), pfranz, Piotr Bąk (Pierdek), PistonMiner, projectgheist, Rama (EverNewJoy), Ricardo Maes (kukiric), Rick Deist (dreckard), Robert Segal (robertfsegal), RobertTroughton, Rohan Liston (rohanliston), Saffron (SaffronCR), Sajid (sajidfarooq), salamanderrake, Samuel Maddock (samuelmaddock), Sébastien Rombauts (SRombauts), Tanner Mickelson (DarthCoder117), Thomas Mayer (tommybear), tmiv, Tyler Thompson (Bogustus), Victor Polevoy (vityafx), Webster Sheets (Web-eWorks), Wesley Hearn (wshearn), yehaike, Yohann Martel (ymartel06), Yong-Quan Chen (wingedrobin), Yu He (yuhe00), Zachary Burke (error454)
@@ -342,11 +340,14 @@ There is a setting under VR in the Experimental section of Editor Settings that 
 
 Sequencer can now import and export CMX EDL files for interchange with non-linear editing packages. 
 
+[REGION:raw]
 ![image alt text](image_35.jpg)(h:529 w:869 convert:false)
+[/REGION]
 
 The above shot shows a sequence that was exported to Adobe Premiere Pro.  Each shot in a sequence will be written to a separate movie file which is referenced by the EDL file.  Any sequencing changes made in Premiere can then be imported back into UE4’s Sequencer!
 
 Sequencer’s ability to export HDR data in OpenEXR files has been expanded to give the user a choice of the color gamut used to encode the HDR data. 
+
 ![image alt text](image_36.jpg)(h:220 w:492 convert:false)
 
 Finally, Sequencer now supports importing FBX animation directly to an object or track. You can also export animated tracks to FBX!
@@ -354,7 +355,10 @@ Finally, Sequencer now supports importing FBX animation directly to an object or
 ## New: Sequencer Burn-ins on Renders
 
 When rendering out your movie sequence, you can now configure a "Burn-in" for the exported images.  This is very useful in dailies for identifying and tracking shots.
+
+[REGION:raw]
 ![image alt text](image_37.jpg)(h:458 w:865 convert:false)
+[/REGION]
 
 ## New: Media Framework Overhaul
 
