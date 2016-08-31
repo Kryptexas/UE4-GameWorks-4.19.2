@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3047974
+﻿INTSourceChangelist:3102822
 Availability:Public
 Title:詳細パネル
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -76,25 +76,29 @@ Version:4.12
 上の画面では、2 つのオプションを **Favorites** としてチェックを入れました。簡単にアクセスできるように、プロパティ名の隣に星印のアイコンが付いています。
 [/REGION]
 
-**[Editor Preferences (エディタの環境設定)]** 内から **[Favorites]** を有効にすることができます。 
+**お気に入りを有効にするには、以下の手順に従います。**
 
-![](EditorPrefs.png)
+1. **[編集]** メニューから **[Editor Preferences...]** を選択します。
 
-**[Experimental (実験的機能)]** で、**[Enable Details Panel Favorites (詳細パネルのお気に入りを有効にする)]** オプションにチェックを入れます。 
+	![](EditorPrefs.png)
 
-![](Experimental.png)
+1. **[Experimental (実験的機能)]** で、**[Enable Details Panel Favorites (詳細パネルのお気に入りを有効にする)]** オプションにチェックを入れます。 
+
+	![](Experimental.png)
 
 [REGION:note]
 変更を有効にするためにエディタの再起動が必要な場合があります。 
 [/REGION]
 
-このオプションを有効にした状態で、プロパティの隣にある星印のアイコンをクリックして、お気に入りとしてマーク付けすることができます。 
+**プロパティをお気に入りに入れるには、以下の手順に従います。**
 
-![](ClickFavorite.png)
+1. このオプションを有効にした状態で、任意の [詳細] パネルでプロパティの隣にある星印のアイコンをクリックします。 
 
-これにより、パネルの **Favorites** セクションにプロパティが (他にマーク付けしたお気に入りとともに) 一覧表示されます。 
+	![](ClickFavorite.png)
 
-![](MarkedFavorites.png)
+1. これにより、パネルの **Favorites** セクションにプロパティが (他にマーク付けしたお気に入りとともに) 表示されます。 
+
+	![](MarkedFavorites.png)
 
 [REGION:note]
 カスタマイズの複雑さに応じて、一部のプロパティはお気に入り機能に対応しないことがあります。 
@@ -118,7 +122,7 @@ Version:4.12
 
 ## 編集条件
 
-プロパティは有効または無効のどちらかに設定できます。有効時のみプロパティの編集が可能です。編集条件が無い限り、 
+プロパティは有効または無効のどちらかに設定できます。有効時のみプロパティの編集が可能です。デフォルトでは 
 全てのプロパティが有効となっています。編集条件のあるプロパティは、 
 有効設定と編集の可否の決定に別の変数値を使用します。 
 
