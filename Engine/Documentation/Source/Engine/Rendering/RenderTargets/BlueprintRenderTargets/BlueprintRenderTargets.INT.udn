@@ -11,7 +11,7 @@ Navigation:topic
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTarget.png)
 
-Having the ability to use Blueprints to draw Materials into Render Targets and then use or save those results for later use can enable a huge variety of game-specific rendering effects. On the following page you will find several links to documentation pages that cover how to use Blueprints and Render Targets. 
+Having the ability to use Blueprints to draw Materials into Render Targets and then use or save those results can enable a huge variety of game-specific rendering effects. On the following page, you will find several links to documentation pages that cover how to use Blueprints and Render Targets. 
 
 
 [REGION:topics third]

@@ -1,5 +1,5 @@
 availability:docs
-title: Blueprint and Render Targets - How To's
+title: Blueprint and Render Targets - How Tos
 description: A How To Guide for using Blueprints to manipulate render targets. 
 crumbs:
 version:4.13
@@ -9,7 +9,7 @@ parent:Engine
 order:2
 Navigation:topic
 
-The **Blueprint and Render Targets - How To…** pages provide step by step examples on how to use Blueprints to work with render targets. Whether you want to use Blueprints and render targets to create Textures for use in your projects Materials, or you want to create a surface that deforms when the player shoots at it, these pages will guide you on how to accomplish this. Reference links are also included to provi
+The **Blueprint and Render Targets - How To** pages provide step by step examples on how to use Blueprints to work with render targets. Whether you want to use Blueprints and render targets to create Textures for use in your project's Materials, or you want to create a surface that deforms when the player shoots at it, these pages will guide you on how to accomplish this. Reference links are also included to provi
 
 ## Intermediate
 [REGION:wrapper transparent]
