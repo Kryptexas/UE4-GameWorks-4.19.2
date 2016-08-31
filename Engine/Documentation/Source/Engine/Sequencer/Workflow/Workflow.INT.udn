@@ -38,6 +38,7 @@ If you are new to Sequencer it is recommended that you first check out the [**Ov
 	[PARAM:links]
 		* [](Engine\Sequencer\Workflow\CheatSheet "%Engine\Sequencer\Workflow\CheatSheet:description%")
 		* [](Engine\Sequencer\Workflow\ImportExport "%Engine\Sequencer\Workflow\ImportExport:description%")
+		* [](Engine\Sequencer\Workflow\CustomRenderPass "%Engine\Sequencer\Workflow\CustomRenderPass:description%")
 		* [](Engine\Sequencer\Workflow\ToolUsage "%Engine\Sequencer\Workflow\ToolUsage:description%")
 	[/PARAM]
 [/OBJECT]

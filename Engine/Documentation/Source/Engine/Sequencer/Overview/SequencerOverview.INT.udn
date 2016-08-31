@@ -256,6 +256,17 @@ Please see [](Engine/Sequencer/HowTo/ImportExportEDLs) for a step-by-step guide 
 [/REGION]
 [/PUBLISH:docs]
 
+[PUBLISH:docs]
+### Custom Render Passes
+
+If you are looking to export your cinematic in different render passes, you can do so from the **Render Movie Settings** window. 
+This will allow you to specify the render pass(es) to use when exporting your sequence. You can also export HDR data as .exr files and define compression and color gamut settings. 
+
+
+[REGION:note]
+Please see [](Engine\Sequencer\Workflow\CustomRenderPass) for more information.
+[/REGION]
+[/PUBLISH:docs]
 
 
 ## Workflow Considerations
