@@ -57,15 +57,15 @@ This page contains a reference listing of properties you will find with the Rend
 
 |Property| Description|
 |----------|-----------------|
-|Width| Render Targets width size.|
-|Height| Render Targets height size.|
+|Width| Render Target's width.|
+|Height| Render Target's height.|
 |Return Value| Texture Render Target 2D reference.|
 
 ## Draw Material to Render Target
 
 ![](Draw_Material_To_Render_Target.png)
 
-* Renders a quad with the Material applied to the specified Render Target. This set the Render Target even if it is already set, which is an expensive operation. Use **BeginDrawCanvasToRenderTarget / EndDrawCanvasToRenderTarget** instead if rendering multiple primitives to the same same Render Target.
+* Renders a quad with the Material applied to the specified Render Target. This set the Render Target even if it is already set, which is an expensive operation. Use **BeginDrawCanvasToRenderTarget / EndDrawCanvasToRenderTarget** instead if rendering multiple primitives to the same Render Target.
 
 |Property| Description|
 |----------|-----------------|
