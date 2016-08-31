@@ -70,6 +70,10 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bDrawBoneInfluences:1;
 
+	/** Morphtarget viewing */
+	UPROPERTY(transient)
+	uint32 bDrawMorphTargetVerts : 1;
+
 	/** Vertex normal viewing */
 	UPROPERTY(transient)
 	uint32 bDrawNormals:1;
@@ -146,6 +150,10 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** Array of bones to render bone weights for */
 	UPROPERTY(transient)
 	TArray<int32> BonesOfInterest;
+
+	/** Array of morphtargets to render verts for */
+	UPROPERTY(transient)
+	TArray<class UMorphTarget*> MorphTargetOfInterests;
 	
 	/** Array of sockets to render manipulation widgets for
 	/	Storing a pointer to the actual socket rather than a name, as we don't care here
@@ -213,6 +221,12 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	 * Refresh/replace materials 
 	 */
 	UNREALED_API void SetShowBoneWeight(bool bNewShowBoneWeight);
+
+	/**
+	* Update material information depending on color render mode
+	* Refresh/replace materials
+	*/
+	UNREALED_API void SetShowMorphTargetVerts(bool bNewShowMorphTargetVerts);
 
 	/**
 	 * Does it use in-game bounds or bounds calculated from bones
@@ -283,6 +297,8 @@ private:
 	// Helper function to generate space bases for current frame
 	void GenSpaceBases(TArray<FTransform>& OutSpaceBases);
 
+	// Helper function to enable overlay material
+	void EnableOverlayMaterial(bool bEnable);
 public:
 	/** Current turn table mode */
 	EPersonaTurnTableMode::Type TurnTableMode;

@@ -1236,7 +1236,12 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 
 #if WITH_EDITOR
 		// if I find the name, fill up the data
-		if (FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName) == false)
+		// look for same guid, the name might have been changed
+		if (Mapping->GetNameByGuid(InOutSmartName.Guid, DisplayName))
+		{
+			ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
+		}
+		else if (FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName) == false)
 		{
 			// look for same guid, the name might have been changed
 			if (Mapping->GetNameByGuid(InOutSmartName.Guid, DisplayName))

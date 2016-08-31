@@ -28,7 +28,11 @@ void FAnimViewportShowCommands::RegisterCommands()
 	UI_COMMAND(ShowDisplayInfoSkelControls, "Skeletal Controls", "Display selected skeletal control info in Viewport", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(HideDisplayInfo, "None", "Hide All Display Info in Viewport", EUserInterfaceActionType::RadioButton, FInputChord());
 
-	UI_COMMAND( ShowBoneWeight, "View Selected Bone Weight", "Display Selected Bone Weight in Viewport", EUserInterfaceActionType::ToggleButton, FInputChord() );
+	UI_COMMAND( ShowOverlayNone, "None", "Clear Overlay Display", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND( ShowBoneWeight, "Selected Bone Weight", "Display color overlay of the weight from Selected Bone in Viewport", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( ShowMorphTargetVerts, "Selected Morphtarget Vertices", "Display color overlay with the chnage of Selected Morphtarget in Viewport", EUserInterfaceActionType::RadioButton, FInputChord());
+
+
 	UI_COMMAND( ShowRawAnimation, "Uncompressed Animation", "Display Skeleton With Uncompressed Animation Data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ShowNonRetargetedAnimation, "NonRetargeted Animation", "Display Skeleton With non retargeted Animation Data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ShowAdditiveBaseBones, "Additive Base", "Display Skeleton In Additive Base Pose", EUserInterfaceActionType::ToggleButton, FInputChord() );

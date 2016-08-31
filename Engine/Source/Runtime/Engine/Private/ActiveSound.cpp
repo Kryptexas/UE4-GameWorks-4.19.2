@@ -48,7 +48,6 @@ FActiveSound::FActiveSound()
 #endif
 	, bEnableLowPassFilter(false)
 	, bOcclusionAsyncTrace(true)
-	, bIsAudible(true)
 	, UserIndex(0)
 	, bIsOccluded(false)
 	, bAsyncOcclusionPending(false)
@@ -262,9 +261,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
 	float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
 
-	// Update whether or not his sound is out of range
-	bIsAudible = AudioDevice->LocationIsAudible(Transform.GetTranslation(), ClosestListenerPtr->Transform, ApparentMaxDistance);
-
 	FSoundParseParameters ParseParams;
 	ParseParams.Transform = Transform;
 	ParseParams.StartTime = RequestedStartTime;
@@ -276,15 +272,12 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	UpdateAdjustVolumeMultiplier(DeltaTime);
 
 	// If the sound is a preview sound, then ignore the transient master volume and application volume
-	float MasterVolume = AudioDevice->GetTransientMasterVolume(); 
-	float ApplicationVolume = FApp::GetVolumeMultiplier();
-	if (bIsPreviewSound)
+	if (!bIsPreviewSound)
 	{
-		MasterVolume = 1.0f;
-		ApplicationVolume = 1.0f;
+		ParseParams.VolumeApp = AudioDevice->GetTransientMasterVolume() * FApp::GetVolumeMultiplier();
 	}
 
-	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * MasterVolume * ApplicationVolume * ConcurrencyVolumeScale;
+	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * ConcurrencyVolumeScale;
 
 	ParseParams.Priority = Priority;
 	ParseParams.Pitch *= PitchMultiplier * Sound->GetPitchMultiplier();
@@ -342,7 +335,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 			VolumeConcurrency = 0.0f;
 			for (const FWaveInstance* WaveInstance : ThisSoundsWaveInstances)
 			{
-				const float WaveInstanceVolume = WaveInstance->GetActualVolume();
+				const float WaveInstanceVolume = WaveInstance->GetVolume();
 				if (WaveInstanceVolume > VolumeConcurrency)
 				{
 					VolumeConcurrency = WaveInstanceVolume;

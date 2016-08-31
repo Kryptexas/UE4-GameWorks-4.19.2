@@ -587,7 +587,7 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bInstant /* = false */ )
 {
 	const FVector Position = BoundingBox.GetCenter();
-	float Radius = BoundingBox.GetExtent().Size();
+	float Radius = FMath::Max(BoundingBox.GetExtent().Size(), 10.f);
 
 	float AspectToUse = AspectRatio;
 	FIntPoint ViewportSize = Viewport->GetSizeXY();

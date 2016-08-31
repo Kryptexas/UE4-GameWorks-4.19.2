@@ -143,6 +143,9 @@ private:
 	/** Handler for context menus */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
 
+	/** Handler for row selection change */
+	void OnRowsSelectedChanged(TSharedPtr<FDisplayedMorphTargetInfo> Item, ESelectInfo::Type SelectInfo);
+
 	/**
 	* Clears and rebuilds the table, according to an optional search string
 	*
@@ -168,4 +171,7 @@ private:
 
 	/** Current text typed into NameFilterBox */
 	FText FilterText;
+
+	/** notify selection change to Persona */
+	void NotifySelectionChange() const;
 };

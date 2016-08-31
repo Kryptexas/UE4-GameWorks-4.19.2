@@ -492,6 +492,14 @@ void ExportPxHeightField(PxHeightField const * const HeightField, const FTransfo
 	{
 		for (int32 X = 0; X < NumCols - 1; X++)
 		{
+			const int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1))*NumCols + Y;
+			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
+			const bool bIsHole = (Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE);
+			if (bIsHole)
+			{
+				continue;
+			}
+
 			const int32 I00 = X + 0 + (Y + 0)*NumCols;
 			int32 I01 = X + 0 + (Y + 1)*NumCols;
 			int32 I10 = X + 1 + (Y + 0)*NumCols;
@@ -502,20 +510,13 @@ void ExportPxHeightField(PxHeightField const * const HeightField, const FTransfo
 				Swap(I01, I10);
 			}
 
-			const int32 SampleIdx = (NumCols - X - 1)*NumCols + Y;
-			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
-			const bool HoleQuad = (Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE);
+			IndexBuffer.Add(VertOffset + I00);
+			IndexBuffer.Add(VertOffset + I11);
+			IndexBuffer.Add(VertOffset + I10);
 
-			if (!HoleQuad)
-			{
-				IndexBuffer.Add(VertOffset + I00);
-				IndexBuffer.Add(VertOffset + I11);
-				IndexBuffer.Add(VertOffset + I10);
-
-				IndexBuffer.Add(VertOffset + I00);
-				IndexBuffer.Add(VertOffset + I01);
-				IndexBuffer.Add(VertOffset + I11);
-			}
+			IndexBuffer.Add(VertOffset + I00);
+			IndexBuffer.Add(VertOffset + I01);
+			IndexBuffer.Add(VertOffset + I11);
 		}
 	}
 }
@@ -532,76 +533,75 @@ void ExportHeightFieldSlice(const FNavHeightfieldSamples& PrefetchedHeightfieldS
 
 	// calculate the actual start and number of columns we want
 	const FBox LocalBox = SliceBox.TransformBy(LocalToWorld.Inverse());
+	const bool bMirrored = (LocalToWorld.GetDeterminant() < 0.f);
 
-	const int32 StartingRow = FMath::Max(FMath::FloorToInt(LocalBox.Min.Y) - 1, 0);
-	const int32 StartingColumn = FMath::Max(FMath::FloorToInt(LocalBox.Min.X) - 1, 0);
-	const int32 RowLimit = FMath::Min(FMath::CeilToInt(LocalBox.Max.Y) + 1, NumRows);
-	const int32 ColumnLimit = FMath::Min(FMath::CeilToInt(LocalBox.Max.X) + 1, NumCols);
-	
-	const int32 VertexCount = (RowLimit - StartingRow)*(ColumnLimit - StartingColumn);
+	const int32 MinX = FMath::Clamp(FMath::FloorToInt(LocalBox.Min.X) - 1, 0, NumCols);
+	const int32 MinY = FMath::Clamp(FMath::FloorToInt(LocalBox.Min.Y) - 1, 0, NumRows);
+	const int32 MaxX = FMath::Clamp(FMath::CeilToInt(LocalBox.Max.X) + 1, 0, NumCols);
+	const int32 MaxY = FMath::Clamp(FMath::CeilToInt(LocalBox.Max.Y) + 1, 0, NumRows);
+	const int32 SizeX = MaxX - MinX;
+	const int32 SizeY = MaxY - MinY;
+
+	if (SizeX <= 0 || SizeY <= 0)
+	{
+		// slice is outside bounds, skip
+		return;
+	}
 
 	const int32 VertOffset = VertexBuffer.Num() / 3;
-	const int32 RowCount = RowLimit - StartingRow;
-	const int32 CollumnCount = ColumnLimit - StartingColumn;
-	const int32 NumQuads = (RowCount - 1)*(CollumnCount - 1);
-
+	const int32 NumVerts = SizeX * SizeY;
+	const int32 NumQuads = (SizeX - 1) * (SizeY - 1);
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastGeometryExport_AllocatingMemory);
-		VertexBuffer.Reserve(VertexBuffer.Num() + VertexCount * 3);
-		IndexBuffer.Reserve(IndexBuffer.Num() + NumQuads * 6);
+		VertexBuffer.Reserve(VertexBuffer.Num() + NumVerts * 3);
+		IndexBuffer.Reserve(IndexBuffer.Num() + NumQuads * 3 * 2);
 	}
 
-	const bool bMirrored = (LocalToWorld.GetDeterminant() < 0.f);
-	
-	TNavStatArray<float> TmpVertexBuffer;
-	TmpVertexBuffer.AddUninitialized(VertexCount * 3);
-	FVector* Vertex = ((FVector*)TmpVertexBuffer.GetData());
-
-	for (int32 Y = StartingRow; Y < RowLimit; Y++)
+	for (int32 IdxY = 0; IdxY < SizeY; IdxY++)
 	{
-		for (int32 X = StartingColumn; X < ColumnLimit; X++)
+		for (int32 IdxX = 0; IdxX < SizeX; IdxX++)
 		{
-			const int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1))*NumCols + Y;
+			const int32 CoordX = IdxX + MinX;
+			const int32 CoordY = IdxY + MinY;
+			const int32 SampleIdx = ((bMirrored ? CoordX : (NumCols - CoordX - 1)) * NumCols) + CoordY;
 
-			const FVector UnrealCoords = LocalToWorld.TransformPosition(FVector(X, Y, PrefetchedHeightfieldSamples.Heights[SampleIdx]));
-			*Vertex++ = UnrealCoords;
+			const FVector UnrealCoords = LocalToWorld.TransformPosition(FVector(CoordX, CoordY, PrefetchedHeightfieldSamples.Heights[SampleIdx]));
+			VertexBuffer.Add(UnrealCoords.X);
+			VertexBuffer.Add(UnrealCoords.Y);
+			VertexBuffer.Add(UnrealCoords.Z);
 		}
 	}
-	VertexBuffer.Append(TmpVertexBuffer);
 
-	for (int32 Y = 0; Y < RowCount - 1; Y++)
+	for (int32 IdxY = 0; IdxY < SizeY - 1; IdxY++)
 	{
-		for (int32 X = 0; X < CollumnCount - 1; X++)
+		for (int32 IdxX = 0; IdxX < SizeX - 1; IdxX++)
 		{
-			const int32 SampleIdx = (NumCols - X - 1)*NumCols + Y;
-			if (PrefetchedHeightfieldSamples.Holes[SampleIdx] == false)
+			const int32 CoordX = IdxX + MinX;
+			const int32 CoordY = IdxY + MinY;
+			const int32 SampleIdx = ((bMirrored ? CoordX : (NumCols - CoordX - 1)) * NumCols) + CoordY;
+
+			const bool bIsHole = PrefetchedHeightfieldSamples.Holes[SampleIdx];
+			if (bIsHole)
 			{
-				const int32 I00 = X + 0 + (Y + 0)*CollumnCount;
-				const int32 I01 = X + 0 + (Y + 1)*CollumnCount;
-				const int32 I10 = X + 1 + (Y + 0)*CollumnCount;
-				const int32 I11 = X + 1 + (Y + 1)*CollumnCount;
-
-				if (bMirrored == false)
-				{
-					IndexBuffer.Add(VertOffset + I00);
-					IndexBuffer.Add(VertOffset + I11);
-					IndexBuffer.Add(VertOffset + I10);
-
-					IndexBuffer.Add(VertOffset + I00);
-					IndexBuffer.Add(VertOffset + I01);
-					IndexBuffer.Add(VertOffset + I11);
-				}
-				else
-				{
-					IndexBuffer.Add(VertOffset + I00);
-					IndexBuffer.Add(VertOffset + I01);
-					IndexBuffer.Add(VertOffset + I11);
-
-					IndexBuffer.Add(VertOffset + I00);
-					IndexBuffer.Add(VertOffset + I11);
-					IndexBuffer.Add(VertOffset + I10);
-				}
+				continue;
 			}
+
+			const int32 I00 = (IdxX + 0) + (IdxY + 0)*SizeX;
+			int32 I01 = (IdxX + 0) + (IdxY + 1)*SizeX;
+			int32 I10 = (IdxX + 1) + (IdxY + 0)*SizeX;
+			const int32 I11 = (IdxX + 1) + (IdxY + 1)*SizeX;
+			if (bMirrored)
+			{
+				Swap(I01, I10);
+			}
+
+			IndexBuffer.Add(VertOffset + I00);
+			IndexBuffer.Add(VertOffset + I11);
+			IndexBuffer.Add(VertOffset + I10);
+
+			IndexBuffer.Add(VertOffset + I00);
+			IndexBuffer.Add(VertOffset + I01);
+			IndexBuffer.Add(VertOffset + I11);
 		}
 	}
 }

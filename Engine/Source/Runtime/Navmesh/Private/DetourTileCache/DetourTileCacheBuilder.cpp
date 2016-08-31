@@ -722,8 +722,11 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 				{
 					const int ax = x + getDirOffsetX(dir);
 					const int ay = y + getDirOffsetY(dir);
-					const int aidx = ax+ay*w;
-					r = layer.regs[aidx];
+					if (ax >= 0 && ay >= 0 && ax < w && ay < h)
+					{
+						const int aidx = ax + ay*w;
+						r = layer.regs[aidx];
+					}
 				}
 
 				if (r == ri)

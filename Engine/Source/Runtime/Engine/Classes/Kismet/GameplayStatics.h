@@ -22,7 +22,7 @@ namespace ESuggestProjVelocityTraceOption
 	{
 		DoNotTrace,
 		TraceFullPath,
-		OnlyTraceWhileAsceding,
+		OnlyTraceWhileAscending,
 	};
 }
 
@@ -875,7 +875,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Player			Deproject using this player's view.
 	 * @param ScreenPosition	2D screen space to deproject.
 	 * @param WorldPosition		(out) Corresponding 3D position in world space.
-	 * @param WorldDirection	(out) World space direction vector away from the camera at the given 2d poiunt.
+	 * @param WorldDirection	(out) World space direction vector away from the camera at the given 2d point.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Utilities", meta = (Keywords = "unproject"))
 	static bool DeprojectScreenToWorld(APlayerController const* Player, const FVector2D& ScreenPosition, FVector& WorldPosition, FVector& WorldDirection);

@@ -704,7 +704,7 @@ int32 FSkeletalMeshMerge::CalculateLodCount(const TArray<USkeletalMesh*>& Source
 	// But, make sure there is at least one.
 
 	LodCount -= StripTopLODs;
-	LodCount = FMath::Min(LodCount, 1);
+	LodCount = FMath::Max(LodCount, 1);
 	
 	return LodCount;
 }

@@ -198,6 +198,8 @@ struct ENGINE_API FWaveInstance
 	float				Volume;
 	/** Current volume multiplier - used to zero the volume without stopping the source */
 	float				VolumeMultiplier;
+	/** The volume of the wave instance due to application volume or tab-state */
+	float				VolumeApp;
 	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
 	float				Priority;
 	/** Voice center channel volume */
@@ -302,8 +304,11 @@ struct ENGINE_API FWaveInstance
 	/** Returns the actual volume the wave instance will play at */
 	bool ShouldStopDueToMaxConcurrency() const;
 
-	/** Returns the actual volume the wave instance will play at */
+	/** Returns the actual volume the wave instance will play at, including all gain stages. */
 	float GetActualVolume() const;
+
+	/** Returns the volume of the wave instance (ignoring application muting) */
+	float GetVolume() const;
 
 	/** Returns the weighted priority of the wave instance. */
 	float GetVolumeWeightedPriority() const;

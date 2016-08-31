@@ -89,22 +89,10 @@ void UMovementComponent::InitializeComponent()
 	TGuardValue<bool> InInitializeComponentGuard(bInInitializeComponent, true);
 	Super::InitializeComponent();
 
-	USceneComponent* NewUpdatedComponent = NULL;
-	if (UpdatedComponent != NULL)
+	if (bSnapToPlaneAtStart)
 	{
-		NewUpdatedComponent = UpdatedComponent;
+		SnapUpdatedComponentToPlane();
 	}
-	else if (bAutoRegisterUpdatedComponent)
-	{
-		// Auto-register owner's root component if found.
-		AActor* MyActor = GetOwner();
-		if (MyActor)
-		{
-			NewUpdatedComponent = MyActor->GetRootComponent();
-		}
-	}
-
-	SetUpdatedComponent(NewUpdatedComponent);
 }
 
 
@@ -126,10 +114,18 @@ void UMovementComponent::OnRegister()
 		PlaneConstraintNormal = PlaneConstraintNormal.GetSafeNormal();
 	}
 
-	if (bSnapToPlaneAtStart)
+	USceneComponent* NewUpdatedComponent = UpdatedComponent;
+	if (!UpdatedComponent && bAutoRegisterUpdatedComponent)
 	{
-		SnapUpdatedComponentToPlane();
+		// Auto-register owner's root component if found.
+		AActor* MyActor = GetOwner();
+		if (MyActor)
+		{
+			NewUpdatedComponent = MyActor->GetRootComponent();
+		}
 	}
+
+	SetUpdatedComponent(NewUpdatedComponent);
 
 #if WITH_EDITOR
 	// Reset so next PIE session warns.

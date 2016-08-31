@@ -31,6 +31,10 @@ class AIGRAPH_API UAIGraph : public UEdGraph
 	void LockUpdates();
 	void UnlockUpdates();
 
+	//~ Begin UObject Interface.
+	virtual void Serialize(FArchive& Ar) override;
+	//~ End UObject Interface.
+
 protected:
 
 	/** if set, graph modifications won't cause updates in internal tree structure

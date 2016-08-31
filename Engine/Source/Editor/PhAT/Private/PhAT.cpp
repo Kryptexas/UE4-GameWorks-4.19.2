@@ -181,6 +181,7 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 					FName ProfileName = CS->GetCurrentConstraintProfileName();
 					if (!CS->ContainsConstraintProfile(ProfileName))
 					{
+						CS->Modify();
 						CS->AddConstraintProfile(ProfileName);
 					}
 				}
@@ -199,6 +200,7 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 			{
 				if (UPhysicsConstraintTemplate* CS = Cast<UPhysicsConstraintTemplate>(WeakObj.Get()))
 				{
+					CS->Modify();
 					FName ProfileName = CS->GetCurrentConstraintProfileName();
 					CS->RemoveConstraintProfile(ProfileName);
 				}
@@ -1578,22 +1580,22 @@ void FPhAT::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.ConvertToBallAndSocket,
 		FExecuteAction::CreateSP(this, &FPhAT::OnConvertToBallAndSocket),
-		FCanExecuteAction::CreateSP(this, &FPhAT::IsSelectedEditConstraintMode));
+		FCanExecuteAction::CreateSP(this, &FPhAT::CanEditConstraintProperties));
 
 	ToolkitCommands->MapAction(
 		Commands.ConvertToHinge,
 		FExecuteAction::CreateSP(this, &FPhAT::OnConvertToHinge),
-		FCanExecuteAction::CreateSP(this, &FPhAT::IsSelectedEditConstraintMode));
+		FCanExecuteAction::CreateSP(this, &FPhAT::CanEditConstraintProperties));
 
 	ToolkitCommands->MapAction(
 		Commands.ConvertToPrismatic,
 		FExecuteAction::CreateSP(this, &FPhAT::OnConvertToPrismatic),
-		FCanExecuteAction::CreateSP(this, &FPhAT::IsSelectedEditConstraintMode));
+		FCanExecuteAction::CreateSP(this, &FPhAT::CanEditConstraintProperties));
 
 	ToolkitCommands->MapAction(
 		Commands.ConvertToSkeletal,
 		FExecuteAction::CreateSP(this, &FPhAT::OnConvertToSkeletal),
-		FCanExecuteAction::CreateSP(this, &FPhAT::IsSelectedEditConstraintMode));
+		FCanExecuteAction::CreateSP(this, &FPhAT::CanEditConstraintProperties));
 
 	ToolkitCommands->MapAction(
 		Commands.DeleteConstraint,
@@ -2219,12 +2221,15 @@ void FPhAT::SnapConstraintToBone(int32 ConstraintIndex, const FTransform& Parent
 
 void FPhAT::CreateOrConvertConstraint(EPhATConstraintType ConstraintType)
 {
+	//we have to manually call PostEditChange to ensure profiles are updated correctly
+	UProperty* DefaultInstanceProperty = FindField<UProperty>(UPhysicsConstraintTemplate::StaticClass(), GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, DefaultInstance));
+
 	const FScopedTransaction Transaction( LOCTEXT( "CreateConvertConstraint", "Create Or Convert Constraint" ) );
 
 	for(int32 i=0; i<SharedData->SelectedConstraints.Num(); ++i)
 	{
 		UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index];
-		ConstraintSetup->Modify();
+		ConstraintSetup->PreEditChange(DefaultInstanceProperty);
 
 		if(ConstraintType == EPCT_BSJoint)
 		{
@@ -2242,6 +2247,9 @@ void FPhAT::CreateOrConvertConstraint(EPhATConstraintType ConstraintType)
 		{
 			ConstraintUtils::ConfigureAsSkelJoint(ConstraintSetup->DefaultInstance);
 		}
+
+		FPropertyChangedEvent PropertyChangedEvent(DefaultInstanceProperty);
+		ConstraintSetup->PostEditChangeProperty(PropertyChangedEvent);
 	}
 
 	RefreshHierachyTree();
@@ -2445,6 +2453,31 @@ bool FPhAT::IsSelectedEditBodyMode() const
 bool FPhAT::IsEditConstraintMode() const
 {
 	return IsNotSimulation() && (SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit);
+}
+
+bool FPhAT::CanEditConstraintProperties() const
+{
+	if(IsEditConstraintMode() && SharedData->PhysicsAsset)
+	{
+		//If we are currently editing a constraint profile, make sure all selected constraints belong to the profile
+		if(SharedData->PhysicsAsset->CurrentConstraintProfileName != NAME_None)
+		{
+			for (const FPhATSharedData::FSelection& Selection : SharedData->SelectedConstraints)
+			{
+				UPhysicsConstraintTemplate* CS = SharedData->PhysicsAsset->ConstraintSetup[Selection.Index];
+				if(!CS || !CS->ContainsConstraintProfile(SharedData->PhysicsAsset->CurrentConstraintProfileName))
+				{
+					//missing at least one constraint from profile so don't allow editing
+					return false;
+				}
+			}
+		}
+		
+		//no constraint profile so editing is fine
+		return true;
+	}
+
+	return false;
 }
 
 bool FPhAT::IsSelectedEditConstraintMode() const

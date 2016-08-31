@@ -998,6 +998,8 @@ public:
 	static bool CanUseVRAudioDevice();
 
 #if !UE_BUILD_SHIPPING
+	void DumpActiveSounds() const;
+
 	void RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32& Y, const FVector* ViewLocation, const FRotator* ViewRotation) const;
 
 	void UpdateSoundShowFlags(const uint8 OldSoundShowFlags, const uint8 NewSoundShowFlags);
@@ -1033,6 +1035,9 @@ public:
 		check(IsInAudioThread());
 		return SoundClasses;
 	}
+
+	/** Whether or not virtual sounds are enabled, */
+	bool VirtualSoundsEnabled() const { return bAllowVirtualizedSounds; }
 
 public:
 
@@ -1157,6 +1162,9 @@ private:
 
 	/** Whether the value in HighestPriorityActivatedReverb should be used - Audio Thread owned */
 	uint8 bHasActivatedReverb:1;
+
+	/** Whether or not we're supporting zero volume wave instances */
+	uint8 bAllowVirtualizedSounds:1;
 
 #if !UE_BUILD_SHIPPING
 	uint8 RequestedAudioStats;

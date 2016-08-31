@@ -65,6 +65,7 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	FillComponentSpaceTransforms();
 	FinalizeBoneTransform();
 
+	UpdateChildTransforms();
 	MarkRenderDynamicDataDirty();
 }
 
@@ -154,7 +155,7 @@ void UPoseableMeshComponent::SetBoneTransformByName(FName BoneName, const FTrans
 			}
 
 			// Need to send new state to render thread
-			MarkRenderDynamicDataDirty();
+			RefreshBoneTransforms();
 		}
 	}
 }

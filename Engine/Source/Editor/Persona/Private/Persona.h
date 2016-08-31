@@ -95,6 +95,9 @@ public:
 	// Sets the selected bone to preview
 	void SetSelectedBone(class USkeleton* Skeleton, const FName& BoneName, bool bRebroadcast = true );
 
+	// Sets the selected morph target
+	void SetSelectedMorphTargets(class USkeletalMesh *SkeletonMesh, const TArray<FName>& SelectedMorphTargetNames);
+
 	/** Helper method to clear out any selected bones */
 	void ClearSelectedBones();
 

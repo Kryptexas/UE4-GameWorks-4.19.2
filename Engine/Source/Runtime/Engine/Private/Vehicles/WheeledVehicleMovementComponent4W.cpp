@@ -242,38 +242,14 @@ void SetupDriveHelper(const UWheeledVehicleMovementComponent4W* VehicleData, con
 	DriveData.setAutoBoxData(AutoBoxSetup);
 }
 
-void UWheeledVehicleMovementComponent4W::SetupVehicle()
+void UWheeledVehicleMovementComponent4W::SetupVehicleDrive(PxVehicleWheelsSimData* PWheelsSimData)
 {
-	if (!UpdatedPrimitive)
+	if(WheelSetups.Num() != 4)
 	{
+		PVehicle = nullptr;
+		PVehicleDrive = nullptr;
 		return;
 	}
-
-	if (WheelSetups.Num() != 4)
-	{
-		PVehicle = NULL;
-		PVehicleDrive = NULL;
-		return;
-	}
-
-	for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
-	{
-		const FWheelSetup& WheelSetup = WheelSetups[WheelIdx];
-		if (WheelSetup.BoneName == NAME_None)
-		{
-			return;
-		}
-	}
-
-	// Setup the chassis and wheel shapes
-	SetupVehicleShapes();
-
-	// Setup mass properties
-	SetupVehicleMass();
-
-	// Setup the wheels
-	PxVehicleWheelsSimData* PWheelsSimData = PxVehicleWheelsSimData::allocate(4);
-	SetupWheels(PWheelsSimData);
 
 	// Setup drive data
 	PxVehicleDriveSimData4W DriveData;
@@ -291,8 +267,6 @@ void UWheeledVehicleMovementComponent4W::SetupVehicle()
 		// cleanup
 		PWheelsSimData->free();
 	});
-	
-	PWheelsSimData = NULL;
 
 	// cache values
 	PVehicle = PVehicleDrive4W;

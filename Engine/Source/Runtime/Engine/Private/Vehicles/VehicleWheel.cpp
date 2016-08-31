@@ -41,7 +41,7 @@ UVehicleWheel::UVehicleWheel(const FObjectInitializer& ObjectInitializer)
 	SuspensionDampingRatio = 1.0f;
 }
 
-float UVehicleWheel::GetSteerAngle()
+float UVehicleWheel::GetSteerAngle() const
 {
 #if WITH_VEHICLE
 	FPhysXVehicleManager* VehicleManager = VehicleSim->GetWorld()->GetPhysicsScene()->GetVehicleManager();
@@ -52,7 +52,7 @@ float UVehicleWheel::GetSteerAngle()
 #endif // WITH_PHYSX
 }
 
-float UVehicleWheel::GetRotationAngle()
+float UVehicleWheel::GetRotationAngle() const
 {
 #if WITH_VEHICLE
 	FPhysXVehicleManager* VehicleManager = VehicleSim->GetWorld()->GetPhysicsScene()->GetVehicleManager();
@@ -66,7 +66,7 @@ float UVehicleWheel::GetRotationAngle()
 #endif // WITH_PHYSX
 }
 
-float UVehicleWheel::GetSuspensionOffset()
+float UVehicleWheel::GetSuspensionOffset() const
 {
 #if WITH_VEHICLE
 	FPhysXVehicleManager* VehicleManager = VehicleSim->GetWorld()->GetPhysicsScene()->GetVehicleManager();

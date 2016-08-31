@@ -29,7 +29,7 @@ class ENGINE_API UVehicleWheel : public UObject
 	class UStaticMesh*								CollisionMesh;
 
 	/** If set, shape won't be created, but mapped from chassis mesh */
-	UPROPERTY(EditDefaultsOnly, Category=Shape)
+	UPROPERTY(EditDefaultsOnly, Category=Shape, meta=(DisplayName="UsePhysAssetShape"))
 	bool											bDontCreateShape;
 
 	/** 
@@ -86,7 +86,7 @@ class ENGINE_API UVehicleWheel : public UObject
 	UPROPERTY(EditAnywhere, Category=Tire)
 	float											LongStiffValue;
 
-	/** Vertical offset from vehicle center of mass where suspension forces are applied */
+	/** Vertical offset from where suspension forces are applied (along Z-axis) */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionForceOffset;
 
@@ -166,13 +166,13 @@ class ENGINE_API UVehicleWheel : public UObject
 	FVector											Velocity;
 
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
-	float GetSteerAngle();
+	float GetSteerAngle() const;
 
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
-	float GetRotationAngle();
+	float GetRotationAngle() const;
 
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
-	float GetSuspensionOffset();
+	float GetSuspensionOffset() const;
 
 #if WITH_PHYSX
 

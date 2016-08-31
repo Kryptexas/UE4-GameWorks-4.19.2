@@ -50,6 +50,9 @@ struct CORE_API FFrameworkObjectVersion
 		// Switched render data for clothing over to unreal data, reskinned to the simulation mesh
 		AddInternalClothingGraphicalSkinning,
 
+		// Wheel force offset is now applied at the wheel instead of vehicle COM
+		WheelOffsetIsFromWheel,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

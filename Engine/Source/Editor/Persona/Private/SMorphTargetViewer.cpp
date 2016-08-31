@@ -338,6 +338,7 @@ void SMorphTargetViewer::Construct(const FArguments& InArgs)
 			.ListItemsSource( &MorphTargetList )
 			.OnGenerateRow( this, &SMorphTargetViewer::GenerateMorphTargetRow )
 			.OnContextMenuOpening( this, &SMorphTargetViewer::OnGetContextMenuContent )
+			.OnSelectionChanged( this, &SMorphTargetViewer::OnRowsSelectedChanged )
 			.ItemHeight( 22.0f )
 			.HeaderRow
 			(
@@ -443,6 +444,7 @@ void SMorphTargetViewer::CreateMorphTargetList( const FString& SearchText )
 		}
 	}
 
+	NotifySelectionChange();
 	MorphTargetListView->RequestListRefresh();
 }
 
@@ -510,6 +512,27 @@ SMorphTargetViewer::~SMorphTargetViewer()
 void SMorphTargetViewer::OnPostUndo()
 {
 	CreateMorphTargetList();
+	NotifySelectionChange();
+}
+
+void SMorphTargetViewer::NotifySelectionChange() const
+{
+	TArray< TSharedPtr< FDisplayedMorphTargetInfo > > SelectedRows = MorphTargetListView->GetSelectedItems();
+
+	TArray<FName> SelectedMorphtargetNames;
+	for (auto ItemIt = SelectedRows.CreateIterator(); ItemIt; ++ItemIt)
+	{
+		TSharedPtr< FDisplayedMorphTargetInfo > RowItem = (*ItemIt);
+		SelectedMorphtargetNames.AddUnique(RowItem->Name);
+	}
+
+	// stil have to call this even if empty, otherwise it won't clear it
+	PersonaPtr.Pin()->SetSelectedMorphTargets(SkeletalMesh, SelectedMorphtargetNames);
+}
+
+void SMorphTargetViewer::OnRowsSelectedChanged(TSharedPtr<FDisplayedMorphTargetInfo> Item, ESelectInfo::Type SelectInfo)
+{
+	NotifySelectionChange();
 }
 
 #undef LOCTEXT_NAMESPACE

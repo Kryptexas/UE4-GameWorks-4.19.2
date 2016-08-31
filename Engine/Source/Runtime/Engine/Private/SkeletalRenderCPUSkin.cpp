@@ -45,7 +45,15 @@ static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal
  * @param LOD - LOD model corresponding to DestVertex 
  * @param BonesOfInterest - array of bones we want to display
  */
-static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, const TArray<int32>& BonesOfInterest);
+static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, TArray<int32> InBonesOfInterest);
+
+/**
+* Modify the vertex buffer to store morph target weights in the UV coordinates for rendering
+* @param DestVertex - already filled out vertex buffer from SkinVertices
+* @param LOD - LOD model corresponding to DestVertex
+* @param MorphTargetOfInterest - array of morphtargets to draw
+*/
+static void CalculateMorphTargetWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, int LODIndex, TArray<UMorphTarget*> InMorphTargetOfInterest);
 
 /*-----------------------------------------------------------------------------
 	FFinalSkinVertexBuffer
@@ -123,7 +131,7 @@ FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* In
 	: FSkeletalMeshObject(InMeshComponent, InSkeletalMeshResource, InFeatureLevel)
 ,	DynamicData(NULL)
 ,	CachedVertexLOD(INDEX_NONE)
-,	bRenderBoneWeight(false)
+,	bRenderOverlayMaterial(false)
 {
 	// create LODs to match the base mesh
 	for( int32 LODIndex=0;LODIndex < SkeletalMeshResource->LODModels.Num();LODIndex++ )
@@ -160,12 +168,22 @@ void FSkeletalMeshObjectCPUSkin::ReleaseResources()
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest)
-{
-	bRenderBoneWeight = bEnabled;
 
-	BonesOfInterest.Empty(InBonesOfInterest.Num());
-	BonesOfInterest.Append(InBonesOfInterest);
+void FSkeletalMeshObjectCPUSkin::EnableOverlayRendering(bool bEnabled, const TArray<int32>* InBonesOfInterest, const TArray<UMorphTarget*>* InMorphTargetOfInterest)
+{
+	bRenderOverlayMaterial = bEnabled;
+	
+	BonesOfInterest.Reset();
+	MorphTargetOfInterest.Reset();
+
+	if (InBonesOfInterest)
+	{
+		BonesOfInterest.Append(*InBonesOfInterest);
+	}
+	else if (InMorphTargetOfInterest)
+	{
+		MorphTargetOfInterest.Append(*InMorphTargetOfInterest);
+	}
 }
 
 void FSkeletalMeshObjectCPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent)
@@ -292,10 +310,20 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 				}
 			}
 
-			if (bRenderBoneWeight)
+			if (bRenderOverlayMaterial)
 			{
-				//Transfer bone weights we're interested in to the UV channels
-				CalculateBoneWeights(DestVertex, LOD, BonesOfInterest);
+				if (MorphTargetOfInterest.Num() > 0)
+				{
+					//Transfer morph target weights we're interested in to the UV channels
+					CalculateMorphTargetWeights(DestVertex, LOD, LODIndex, MorphTargetOfInterest);
+				}
+				else // default is bones of interest
+					// this can go if no morphtarget is selected but enabled to render
+					// but that doesn't matter since it will only draw empty overlay
+				{
+					//Transfer bone weights we're interested in to the UV channels
+					CalculateBoneWeights(DestVertex, LOD, BonesOfInterest);
+				}
 			}
 		}
 
@@ -902,7 +930,7 @@ static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVerte
  * @param LOD - LOD model corresponding to DestVertex 
  * @param BonesOfInterest - array of bones we want to display
  */
-static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, const TArray<int32>& BonesOfInterest)
+static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, TArray<int32> InBonesOfInterest)
 {
 	const float INV255 = 1.f/255.f;
 
@@ -916,11 +944,33 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 
 		if (LOD.VertexBufferGPUSkin.HasExtraBoneInfluences())
 		{
-			CalculateSectionBoneWeights<true>(DestVertex, LOD.VertexBufferGPUSkin, Section, BonesOfInterest);
+			CalculateSectionBoneWeights<true>(DestVertex, LOD.VertexBufferGPUSkin, Section, InBonesOfInterest);
 		}
 		else
 		{
-			CalculateSectionBoneWeights<false>(DestVertex, LOD.VertexBufferGPUSkin, Section, BonesOfInterest);
+			CalculateSectionBoneWeights<false>(DestVertex, LOD.VertexBufferGPUSkin, Section, InBonesOfInterest);
+		}
+	}
+}
+
+static void CalculateMorphTargetWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, int LODIndex, TArray<UMorphTarget*> InMorphTargetOfInterest)
+{
+	const FFinalSkinVertex* EndVert = DestVertex + LOD.NumVertices;
+
+	for (FFinalSkinVertex* ClearVert = DestVertex; ClearVert != EndVert; ++ClearVert)
+	{
+		ClearVert->U = 0.f;
+		ClearVert->V = 0.f;
+	}
+
+	for (const UMorphTarget* Morphtarget : InMorphTargetOfInterest)
+	{
+		const FMorphTargetLODModel& MTLOD = Morphtarget->MorphLODModels[LODIndex];
+		for (int32 MorphVertexIndex = 0; MorphVertexIndex < MTLOD.Vertices.Num(); ++MorphVertexIndex)
+		{
+			FFinalSkinVertex* SetVert = DestVertex + MTLOD.Vertices[MorphVertexIndex].SourceIdx;
+			SetVert->U = 1.0f;
+			SetVert->V = 1.0f;
 		}
 	}
 }

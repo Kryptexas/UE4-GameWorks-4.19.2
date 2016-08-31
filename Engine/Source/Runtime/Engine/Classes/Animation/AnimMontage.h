@@ -345,8 +345,8 @@ public:
 	 * to accumulate and update curve data/notifies/branching points
 	 */
 	void UpdateWeight(float DeltaTime);
-	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. 
-	 * @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync? */
+	//~ @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync?
+	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. */
 	bool SimulateAdvance(float DeltaTime, float& InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
 	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion);
 

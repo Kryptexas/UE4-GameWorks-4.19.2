@@ -506,7 +506,12 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowSockets );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneNames );
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneWeight );
+
+				ShowMenuBuilder.AddSubMenu(
+					LOCTEXT("AnimViewportOverlayDrawSubMenu", "Mesh Overlay"),
+					LOCTEXT("AnimViewportOverlayDrawSubMenuToolTip", "Options"),
+					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowOverlayDrawMenu)
+				);
 			}
 			ShowMenuBuilder.EndSection();
 
@@ -600,6 +605,19 @@ void SAnimViewportToolBar::FillShowBoneDrawMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawAll);
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawSelected);
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawNone);
+	}
+	MenuBuilder.EndSection();
+}
+
+void SAnimViewportToolBar::FillShowOverlayDrawMenu(FMenuBuilder& MenuBuilder) const
+{
+	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
+
+	MenuBuilder.BeginSection("AnimViewportPreviewOverlayDraw", LOCTEXT("ShowMenu_Actions_Overlay", "Overlay Draw"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.ShowOverlayNone);
+		MenuBuilder.AddMenuEntry(Actions.ShowBoneWeight);
+		MenuBuilder.AddMenuEntry(Actions.ShowMorphTargetVerts);
 	}
 	MenuBuilder.EndSection();
 }

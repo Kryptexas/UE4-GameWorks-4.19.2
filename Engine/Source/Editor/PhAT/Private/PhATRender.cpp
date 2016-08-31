@@ -50,11 +50,6 @@ UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const FObjectInitiali
 	SetCollisionProfileName(CollisionProfileName);
 }
 
-UPhysicsAsset* UPhATEdSkeletalMeshComponent::GetPhysicsAsset() const
-{
-	return SharedData->PhysicsAsset;
-}
-
 void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, class FPrimitiveDrawInterface* PDI, bool bHitTest)
 {
 	check(SharedData);

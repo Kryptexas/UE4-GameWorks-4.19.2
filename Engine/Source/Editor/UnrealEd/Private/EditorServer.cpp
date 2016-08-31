@@ -6833,7 +6833,7 @@ void UEditorEngine::AutoMergeStaticMeshes()
 void UEditorEngine::MoveViewportCamerasToBox(const FBox& BoundingBox, bool bActiveViewportOnly) const
 {
 	// Make sure we had at least one non-null actor in the array passed in.
-	if (BoundingBox.GetSize() != FVector::ZeroVector)
+	if (BoundingBox.GetSize() != FVector::ZeroVector || BoundingBox.GetCenter() != FVector::ZeroVector)
 	{
 		if (bActiveViewportOnly)
 		{

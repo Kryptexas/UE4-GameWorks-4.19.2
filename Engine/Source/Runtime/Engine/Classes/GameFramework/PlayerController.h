@@ -238,11 +238,11 @@ class ENGINE_API APlayerController : public AController
 	int32 ClientCap;
 	
 	/** Object that manages "cheat" commands.  Not instantiated in shipping builds. */
-	UPROPERTY(transient, BlueprintReadOnly, Category=PlayerController)
+	UPROPERTY(transient, BlueprintReadOnly, Category="Cheat Manager")
 	class UCheatManager* CheatManager;
 	
-	/** class of my CheatManager. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlayerController)
+	/** Class of my CheatManager.  The Cheat Manager is not created in shipping builds */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cheat Manager")
 	TSubclassOf<class UCheatManager> CheatClass;
 
 	/** Object that manages player input. */
@@ -486,6 +486,9 @@ public:
 	 */
 	bool ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation) const;
 	
+	/** Positions the mouse cursor in screen space, in pixels. */
+	UFUNCTION( BlueprintCallable, Category="Game|Player", meta = (DisplayName = "SetMousePosition", Keywords = "mouse" ))
+	void SetMouseLocation( const int X, const int Y );
 	/**
 	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
 	  * This may then be modified by the PlayerCamera, and is passed to Pawn->FaceRotation().

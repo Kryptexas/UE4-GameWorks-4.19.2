@@ -153,6 +153,10 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(EditAnywhere, Category=Subtitles )
 	uint32 bSingleLine:1;
 
+	/** Allows sound to play at 0 volume, otherwise will stop the sound when the sound is silent. */
+	UPROPERTY(EditAnywhere, Category=Sound)
+	uint32 bVirtualizeWhenSilent:1;
+
 	/** Whether this SoundWave was decompressed from OGG. */
 	uint32 bDecompressedFromOgg:1;
 

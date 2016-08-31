@@ -526,7 +526,7 @@ FProcMeshVertex InterpolateVert(const FProcMeshVertex& V0, const FProcMeshVertex
 /** Transform triangle from 2D to 3D static-mesh triangle. */
 void Transform2DPolygonTo3D(const FUtilPoly2D& InPoly, const FMatrix& InMatrix, TArray<FProcMeshVertex>& OutVerts, FBox& OutBox)
 {
-	FVector PolyNormal = InMatrix.GetUnitAxis(EAxis::Z);
+	FVector PolyNormal = -InMatrix.GetUnitAxis(EAxis::Z);
 	FProcMeshTangent PolyTangent(InMatrix.GetUnitAxis(EAxis::X), false);
 
 	for (int32 VertexIndex = 0; VertexIndex < InPoly.Verts.Num(); VertexIndex++)
@@ -644,11 +644,11 @@ bool TriangulatePoly(TArray<int32>& OutTris, const TArray<FProcMeshVertex>& Poly
 /** Util to slice a convex hull with a plane */
 void SliceConvexElem(const FKConvexElem& InConvex, const FPlane& SlicePlane, TArray<FVector>& OutConvexVerts)
 {
-	// Get set of planes taht make up hull
+	// Get set of planes that make up hull
 	TArray<FPlane> ConvexPlanes;
 	InConvex.GetPlanes(ConvexPlanes);
 
-	if (ConvexPlanes.Num() > 4)
+	if (ConvexPlanes.Num() >= 4)
 	{
 		// Add on the slicing plane (need to flip as it culls geom in the opposite sense to our geom culling code)
 		ConvexPlanes.Add(SlicePlane.Flip());
@@ -1060,7 +1060,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 				TArray<FVector> SlicedConvexVerts;
 				SliceConvexElem(BaseConvex, SlicePlane, SlicedConvexVerts);
 				// If we got something valid, add it
-				if (SlicedConvexVerts.Num() > 0)
+				if (SlicedConvexVerts.Num() >= 4)
 				{
 					SlicedCollision.Add(SlicedConvexVerts);
 				}
@@ -1070,7 +1070,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 				{
 					TArray<FVector> OtherSlicedConvexVerts;
 					SliceConvexElem(BaseConvex, SlicePlane.Flip(), OtherSlicedConvexVerts);
-					if (OtherSlicedConvexVerts.Num() > 0)
+					if (OtherSlicedConvexVerts.Num() >= 4)
 					{
 						OtherSlicedCollision.Add(OtherSlicedConvexVerts);
 					}

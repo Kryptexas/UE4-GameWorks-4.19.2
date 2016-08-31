@@ -145,7 +145,7 @@ struct FVehicleTransmissionData
 	float ClutchStrength;
 };
 
-UCLASS()
+UCLASS(meta = (BlueprintSpawnableComponent), hidecategories = (PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
 class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMovementComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -182,7 +182,7 @@ protected:
 #if WITH_VEHICLE
 
 	/** Allocate and setup the PhysX vehicle */
-	virtual void SetupVehicle() override;
+	virtual void SetupVehicleDrive(physx::PxVehicleWheelsSimData* PWheelsSimData) override;
 
 	virtual void UpdateSimulation(float DeltaTime) override;
 

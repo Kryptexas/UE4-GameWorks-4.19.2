@@ -174,7 +174,7 @@ FString FSoundSource::Describe(bool bUseLongName)
 {
 	return FString::Printf(TEXT("Wave: %s, Volume: %6.2f, Owner: %s"), 
 		bUseLongName ? *WaveInstance->WaveData->GetPathName() : *WaveInstance->WaveData->GetName(),
-		WaveInstance->GetActualVolume(), 
+		WaveInstance->GetVolume(), 
 		WaveInstance->ActiveSound ? *WaveInstance->ActiveSound->GetOwnerName() : TEXT("None"));
 }
 
@@ -561,6 +561,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 ,	ActiveSound( InActiveSound )
 ,	Volume( 0.0f )
 ,	VolumeMultiplier( 1.0f )
+,	VolumeApp( 1.0f )
 ,	Priority( 1.0f )
 ,	VoiceCenterChannelVolume( 0.0f )
 ,	RadioFilterVolume( 0.0f )
@@ -659,9 +660,15 @@ void FWaveInstance::AddReferencedObjects( FReferenceCollector& Collector )
 
 float FWaveInstance::GetActualVolume() const
 {
-	return Volume * VolumeMultiplier;
+	// Include all volumes 
+	return GetVolume() * VolumeApp;
 }
 
+float FWaveInstance::GetVolume() const
+{
+	// Include all volumes 
+	return Volume * VolumeMultiplier;
+}
 
 bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 {
@@ -671,7 +678,7 @@ bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
 	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority than 0 volumes
-	float ActualVolume = GetActualVolume();
+	float ActualVolume = GetVolume();
 	if (ActualVolume > 0.0f)
 	{
 		return ActualVolume * Priority;

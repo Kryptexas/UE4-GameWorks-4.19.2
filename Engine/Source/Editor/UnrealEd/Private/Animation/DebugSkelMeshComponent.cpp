@@ -346,7 +346,7 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 
 bool UDebugSkelMeshComponent::ShouldCPUSkin()
 {
-	return 	bCPUSkinning || bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals;
+	return 	bCPUSkinning || bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals || bDrawMorphTargetVerts;
 }
 
 
@@ -358,7 +358,11 @@ void UDebugSkelMeshComponent::PostInitMeshObject(FSkeletalMeshObject* InMeshObje
 	{
 		if(bDrawBoneInfluences)
 		{
-			InMeshObject->EnableBlendWeightRendering(true, BonesOfInterest);
+			InMeshObject->EnableOverlayRendering(true, &BonesOfInterest, nullptr);
+		}
+		else if (bDrawMorphTargetVerts)
+		{
+			InMeshObject->EnableOverlayRendering(true, nullptr, &MorphTargetOfInterests);
 		}
 	}
 }
@@ -371,12 +375,24 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 		return;
 	}
 
+	if (bDrawMorphTargetVerts)
+	{
+		SetShowMorphTargetVerts(false);
+	}
+
 	// if turning on this mode
-	if(bNewShowBoneWeight)
+	EnableOverlayMaterial(bNewShowBoneWeight);
+
+	bDrawBoneInfluences = bNewShowBoneWeight;
+}
+
+void UDebugSkelMeshComponent::EnableOverlayMaterial(bool bEnable)
+{
+	if (bEnable)
 	{
 		SkelMaterials.Empty();
 		int32 NumMaterials = GetNumMaterials();
-		for (int32 i=0; i<NumMaterials; i++)
+		for (int32 i = 0; i < NumMaterials; i++)
 		{
 			// Back up old material
 			SkelMaterials.Add(GetMaterial(i));
@@ -389,14 +405,30 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 	{
 		int32 NumMaterials = GetNumMaterials();
 		check(NumMaterials == SkelMaterials.Num());
-		for (int32 i=0; i<NumMaterials; i++)
+		for (int32 i = 0; i < NumMaterials; i++)
 		{
 			// restore original material
 			SetMaterial(i, SkelMaterials[i]);
 		}
 	}
+}
+void UDebugSkelMeshComponent::SetShowMorphTargetVerts(bool bNewShowMorphTargetVerts)
+{
+	// Check we are actually changing it!
+	if (bNewShowMorphTargetVerts == bDrawMorphTargetVerts)
+	{
+		return;
+	}
 
-	bDrawBoneInfluences = bNewShowBoneWeight;
+	if (bDrawBoneInfluences)
+	{
+		SetShowBoneWeight(false);
+	}
+
+	// if turning on this mode
+	EnableOverlayMaterial(bNewShowMorphTargetVerts);
+
+	bDrawMorphTargetVerts = bNewShowMorphTargetVerts;
 }
 
 void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)

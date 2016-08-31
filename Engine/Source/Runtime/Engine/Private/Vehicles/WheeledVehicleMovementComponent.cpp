@@ -8,9 +8,11 @@
 #include "Vehicles/VehicleWheel.h"
 #include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "Vehicles/TireType.h"
+#include "Vehicles/VehicleAnimInstance.h"
 #include "DisplayDebugHelpers.h"
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "FrameworkObjectVersion.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -112,6 +114,8 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	SteeringInputRate.RiseRate = 2.5f;
 	SteeringInputRate.FallRate = 5.0f;
 
+	bDeprecatedSpringOffsetMode = false;	//This is just for backwards compat. Newly tuned content should never need to use this
+
 	bUseRVOAvoidance = false;
 	AvoidanceVelocity = FVector::ZeroVector;
 	AvoidanceLockVelocity = FVector::ZeroVector;
@@ -128,6 +132,8 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
     ThresholdLongitudinalSpeed = 5.f;
     LowForwardSpeedSubStepCount = 3;
     HighForwardSpeedSubStepCount = 1;
+	
+	bReverseAsBrake = true;	//Treats reverse button as break for a more arcade feel (also automatically goes into reverse)
 
 #if WITH_VEHICLE
 	// tire load filtering
@@ -222,41 +228,57 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 			const FVector WheelOffset = GetWheelRestingPosition(WheelSetup);
 			const PxTransform PLocalPose = PxTransform(U2PVector(WheelOffset));
 			PxShape* PWheelShape = NULL;
-
+			
 			// Prepare shape
+			const UBodySetup* WheelBodySetup = nullptr;
+			FVector MeshScaleV(1.f, 1.f, 1.f);
 			if (Wheel->bDontCreateShape)
 			{
-				continue;
+				//don't create shape so grab it directly from the bodies associated with the vehicle
+				if(USkinnedMeshComponent* SkinnedMesh = GetMesh())
+				{
+					if(const FBodyInstance* WheelBI = SkinnedMesh->GetBodyInstance(WheelSetup.BoneName))
+					{
+						WheelBodySetup = WheelBI->BodySetup.Get();
+					}
+				}
+				
 			}
 			else if (Wheel->CollisionMesh && Wheel->CollisionMesh->BodySetup)
 			{
+				WheelBodySetup = Wheel->CollisionMesh->BodySetup;
+
 				FBoxSphereBounds MeshBounds = Wheel->CollisionMesh->GetBounds();
-				FVector MeshScaleV = FVector(1, 1, 1);
 				if (Wheel->bAutoAdjustCollisionSize)
 				{
 					MeshScaleV.X = Wheel->ShapeRadius / MeshBounds.BoxExtent.X;
 					MeshScaleV.Y = Wheel->ShapeWidth / MeshBounds.BoxExtent.Y;
 					MeshScaleV.Z = Wheel->ShapeRadius / MeshBounds.BoxExtent.Z;
 				}
+			}
+
+			if(WheelBodySetup)
+			{
 				PxMeshScale MeshScale(U2PVector(UpdatedComponent->RelativeScale3D * MeshScaleV), PxQuat::createIdentity());
-				if (Wheel->CollisionMesh->BodySetup->TriMeshes.Num())
+
+				if (WheelBodySetup->AggGeom.ConvexElems.Num() == 1)
 				{
-					PxTriangleMesh* TriMesh = Wheel->CollisionMesh->BodySetup->TriMeshes[0];
+					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].ConvexMesh;
+					PWheelShape = PVehicleActor->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, PLocalPose);
+				}
+				else if (WheelBodySetup->TriMeshes.Num())
+				{
+					PxTriangleMesh* TriMesh = WheelBodySetup->TriMeshes[0];
 
 					// No eSIMULATION_SHAPE flag for wheels
 					PWheelShape = PVehicleActor->createShape(PxTriangleMeshGeometry(TriMesh, MeshScale), *WheelMaterial, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);
 					PWheelShape->setLocalPose(PLocalPose);
 				}
-				else if (Wheel->CollisionMesh->BodySetup->AggGeom.ConvexElems.Num() == 1)
-				{
-					PxConvexMesh* ConvexMesh = Wheel->CollisionMesh->BodySetup->AggGeom.ConvexElems[0].ConvexMesh;
-					PWheelShape = PVehicleActor->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, PLocalPose);
-				}
-
-				check(PWheelShape);
 			}
-			else
+			
+			if(!PWheelShape)
 			{
+				//fallback onto simple spheres
 				PWheelShape = PVehicleActor->createShape(PxSphereGeometry(Wheel->ShapeRadius), *WheelMaterial, PLocalPose);
 			}
 
@@ -317,19 +339,20 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		// Prealloc data for the sprung masses
 		PxVec3 WheelOffsets[32];
 		float SprungMasses[32];
-		check(WheelSetups.Num() <= 32);
+		
+		const int32 NumWheels = FMath::Min(32, WheelSetups.Num());
 
 		// Calculate wheel offsets first, necessary for sprung masses
-		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+		for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
 		{
 			WheelOffsets[WheelIdx] = U2PVector(GetWheelRestingPosition(WheelSetups[WheelIdx]));
 		}
 
 		// Now that we have all the wheel offsets, calculate the sprung masses
 		PxVec3 PLocalCOM = U2PVector(GetLocalCOM());
-		PxVehicleComputeSprungMasses(WheelSetups.Num(), WheelOffsets, PLocalCOM, PVehicleActor->getMass(), 2, SprungMasses);
+		PxVehicleComputeSprungMasses(NumWheels, WheelOffsets, PLocalCOM, PVehicleActor->getMass(), /*gravityDirection=*/2, SprungMasses);
 
-		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+		for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
 		{
 			UVehicleWheel* Wheel = WheelSetups[WheelIdx].WheelClass.GetDefaultObject();
 
@@ -366,7 +389,8 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 
 			PxVec3 PSuspTravelDirection = PxVec3(0.0f, 0.0f, -1.0f);
 			PxVec3 PWheelCentreCMOffset = PWheelOffset - PLocalCOM;
-			PxVec3 PSuspForceAppCMOffset = PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset);
+			PxVec3 PSuspForceAppCMOffset = !bDeprecatedSpringOffsetMode ? PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset + PWheelCentreCMOffset.z)
+																							 : PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset);
 			PxVec3 PTireForceAppCMOffset = PSuspForceAppCMOffset;
 
 			// finalize sim data
@@ -380,21 +404,30 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		}
 
 		const int32 NumShapes = PVehicleActor->getNbShapes();
-		const int32 NumChassisShapes = NumShapes - WheelSetups.Num();
-		check(NumChassisShapes >= 1);
-
-		TArray<PxShape*> Shapes;
-		Shapes.AddZeroed(NumShapes);
-
-		PVehicleActor->getShapes(Shapes.GetData(), NumShapes);
-
-		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+		const int32 NumChassisShapes = NumShapes - NumWheels;
+		if(NumChassisShapes >= 1)
 		{
-			const int32 WheelShapeIndex = NumChassisShapes + WheelIdx;
+			TArray<PxShape*> Shapes;
+			Shapes.AddZeroed(NumShapes);
 
-			PWheelsSimData->setWheelShapeMapping(WheelIdx, WheelShapeIndex);
-			PWheelsSimData->setSceneQueryFilterData(WheelIdx, Shapes[WheelShapeIndex]->getQueryFilterData());
+			PVehicleActor->getShapes(Shapes.GetData(), NumShapes);
+
+			for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
+			{
+				const int32 WheelShapeIndex = NumChassisShapes + WheelIdx;
+
+				PWheelsSimData->setWheelShapeMapping(WheelIdx, WheelShapeIndex);
+				PWheelsSimData->setSceneQueryFilterData(WheelIdx, Shapes[WheelShapeIndex]->getQueryFilterData());
+			}
 		}
+		else
+		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			UE_LOG(LogPhysics, Warning, TEXT("Missing wheel shapes. Please ensure there's a body associated with each wheel, or deselect Don'tCreateShape in your wheel class for vehicle''%s''"), *GetPathNameSafe(this));
+#endif
+		}
+
+		
 
 		// tire load filtering
 		PxVehicleTireLoadFilterData PTireLoadFilter;
@@ -642,6 +675,10 @@ void UWheeledVehicleMovementComponent::OnCreatePhysicsState()
 				if(USkeletalMeshComponent* MeshComp = Cast<USkeletalMeshComponent>(GetMesh()))
 				{
 					MeshOnPhysicsStateChangeHandle = MeshComp->RegisterOnPhysicsCreatedDelegate(FOnSkelMeshPhysicsCreated::CreateUObject(this, &UWheeledVehicleMovementComponent::RecreatePhysicsState));
+					if(UVehicleAnimInstance* VehicleAnimInstance = Cast<UVehicleAnimInstance>(MeshComp->GetAnimInstance()))
+					{
+						VehicleAnimInstance->SetWheeledVehicleMovementComponent(this);
+					}
 				}
 			}
 		}
@@ -805,6 +842,46 @@ void UWheeledVehicleMovementComponent::PreTick(float DeltaTime)
 	}
 }
 
+void UWheeledVehicleMovementComponent::SetupVehicle()
+{
+	if (!UpdatedPrimitive)
+	{
+		return;
+	}
+
+	if (WheelSetups.Num() == 0)
+	{
+		PVehicle = nullptr;
+		PVehicleDrive = nullptr;
+		return;
+	}
+
+	for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+	{
+		const FWheelSetup& WheelSetup = WheelSetups[WheelIdx];
+		if (WheelSetup.BoneName == NAME_None)
+		{
+			return;
+		}
+	}
+
+	// Setup the chassis and wheel shapes
+	SetupVehicleShapes();
+
+	// Setup mass properties
+	SetupVehicleMass();
+
+	// Setup the wheels
+	PxVehicleWheelsSimData* PWheelsSimData = PxVehicleWheelsSimData::allocate(WheelSetups.Num());
+	SetupWheels(PWheelsSimData);
+
+	SetupVehicleDrive(PWheelsSimData);
+}
+
+void UWheeledVehicleMovementComponent::SetupVehicleDrive(PxVehicleWheelsSimData* PWheelsSimData)
+{	
+}
+
 void UWheeledVehicleMovementComponent::UpdateSimulation( float DeltaTime )
 {
 }
@@ -850,18 +927,22 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
 	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
-		//Manual shifting between reverse and first gear
-		if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
+		if(bReverseAsBrake)
 		{
-			if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
+			//for reverse as state we want to automatically shift between reverse and first gear
+			if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
 			{
-				SetTargetGear(-1, true);
-			}
-			else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
-			{
-				SetTargetGear(1, true);
+				if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
+				{
+					SetTargetGear(-1, true);
+				}
+				else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
+				{
+					SetTargetGear(1, true);
+				}
 			}
 		}
+		
 		
 		if (bUseRVOAvoidance)
 		{
@@ -933,45 +1014,53 @@ float UWheeledVehicleMovementComponent::CalcSteeringInput()
 
 float UWheeledVehicleMovementComponent::CalcBrakeInput()
 {	
-	const float ForwardSpeed = GetForwardSpeed();
-
-	float NewBrakeInput = 0.0f;
-
-	// if player wants to move forwards...
-	if ( RawThrottleInput > 0.f )
+	if(bReverseAsBrake)
 	{
-		// if vehicle is moving backwards, then press brake
-		if ( ForwardSpeed < -WrongDirectionThreshold)
+		const float ForwardSpeed = GetForwardSpeed();
+
+		float NewBrakeInput = 0.0f;
+
+		// if player wants to move forwards...
+		if (RawThrottleInput > 0.f)
 		{
-			NewBrakeInput = 1.0f;			
+			// if vehicle is moving backwards, then press brake
+			if (ForwardSpeed < -WrongDirectionThreshold)
+			{
+				NewBrakeInput = 1.0f;
+			}
+
 		}
 
-	}
-
-	// if player wants to move backwards...
-	else if ( RawThrottleInput < 0.f )
-	{
-		// if vehicle is moving forwards, then press brake
-		if (ForwardSpeed > WrongDirectionThreshold)
+		// if player wants to move backwards...
+		else if (RawThrottleInput < 0.f)
 		{
-			NewBrakeInput = 1.0f;			// Seems a bit severe to have 0 or 1 braking. Better control can be had by allowing continuous brake input values
-		}	
-	}
-
-	// if player isn't pressing forward or backwards...
-	else
-	{
-		if (ForwardSpeed < StopThreshold && ForwardSpeed > -StopThreshold)	//auto break 
-		{
-			NewBrakeInput = 1.f;
+			// if vehicle is moving forwards, then press brake
+			if (ForwardSpeed > WrongDirectionThreshold)
+			{
+				NewBrakeInput = 1.0f;			// Seems a bit severe to have 0 or 1 braking. Better control can be had by allowing continuous brake input values
+			}
 		}
+
+		// if player isn't pressing forward or backwards...
 		else
 		{
-			NewBrakeInput = IdleBrakeInput;
+			if (ForwardSpeed < StopThreshold && ForwardSpeed > -StopThreshold)	//auto break 
+			{
+				NewBrakeInput = 1.f;
+			}
+			else
+			{
+				NewBrakeInput = IdleBrakeInput;
+			}
 		}
-	}
 
-	return FMath::Clamp<float>(NewBrakeInput, 0.0, 1.0);
+		return FMath::Clamp<float>(NewBrakeInput, 0.0, 1.0);
+	}
+	else
+	{
+		return FMath::Abs(RawBrakeInput);
+	}
+	
 }
 
 float UWheeledVehicleMovementComponent::CalcHandbrakeInput()
@@ -996,10 +1085,13 @@ float UWheeledVehicleMovementComponent::CalcThrottleInput()
 		}		
 	}
 
-	//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
-	if ( (RawThrottleInput > 0.f && GetTargetGear() < 0) || (RawThrottleInput < 0.f && GetTargetGear() > 0)) 
+	if(bReverseAsBrake)
 	{
-		return 0.f;
+		//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
+		if ((RawThrottleInput > 0.f && GetTargetGear() < 0) || (RawThrottleInput < 0.f && GetTargetGear() > 0))
+		{
+			return 0.f;
+		}
 	}
 
 	return FMath::Abs(RawThrottleInput);
@@ -1017,6 +1109,12 @@ void UWheeledVehicleMovementComponent::SetThrottleInput( float Throttle )
 {	
 	RawThrottleInput = FMath::Clamp( Throttle, -1.0f, 1.0f );
 }
+
+void UWheeledVehicleMovementComponent::SetBrakeInput(float Brake)
+{
+	RawBrakeInput = FMath::Clamp(Brake, -1.0f, 1.0f);
+}
+
 
 void UWheeledVehicleMovementComponent::SetSteeringInput( float Steering )
 {
@@ -1289,6 +1387,18 @@ float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 
 	return MaxSpringCompression;
 
+}
+
+void UWheeledVehicleMovementComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::WheelOffsetIsFromWheel)
+	{
+		bDeprecatedSpringOffsetMode = true;	//Existing content is tuned with the old way of applying spring force offset. There's no easy way to re-compute this at the wheel level since it's a shared asset
+	}
 }
 
 void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)

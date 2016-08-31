@@ -266,10 +266,10 @@ enum class EAllowKinematicDeferral
 class USkeletalMeshComponent;
 
 /**
-* Tick function that does post physics work on skeletal mesh component
+* Tick function that does post physics work on skeletal mesh component. This executes in EndPhysics (after physics is done)
 **/
 USTRUCT()
-struct FSkeletalMeshComponentPostPhysicsTickFunction : public FTickFunction
+struct FSkeletalMeshComponentEndPhysicsTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -955,8 +955,10 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
+	//Handle registering our end physics tick function
+	void RegisterEndPhysicsTick(bool bRegister);
+
 	//Handle registering our pre cloth tick function
-	void RegisterPostPhysicsTick(bool bRegister);
 	void RegisterClothTick(bool bRegister);
 
 	//~ End UActorComponent Interface.
@@ -1065,6 +1067,23 @@ public:
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) override;
 	virtual void SetAllMassScale(float InMassScale = 1.f) override;
 	virtual float GetMass() const override;
+
+	/**
+	*	Returns the mass (in kg) of the given bone
+	*
+	*	@param BoneName		Name of the body to return. 'None' indicates root body.
+	*	@param bScaleMass	If true, the mass is scaled by the bone's MassScale.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	float GetBoneMass(FName BoneName = NAME_None, bool bScaleMass = true) const;
+
+	/**
+	*	Returns the center of mass of the skeletal mesh, instead of the root body's location
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	FVector GetSkeletalCenterOfMass() const;
+
+
 	virtual float CalculateMass(FName BoneName = NAME_None) override;
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 
@@ -1436,11 +1455,11 @@ protected:
 	
 private:
 
-	FSkeletalMeshComponentPostPhysicsTickFunction PostPhysicsTickFunction;
-	friend struct FSkeletalMeshComponentPostPhysicsTickFunction;
+	FSkeletalMeshComponentEndPhysicsTickFunction EndPhysicsTickFunction;
+	friend struct FSkeletalMeshComponentEndPhysicsTickFunction;
 
 	/** Update systems after physics sim is done */
-	void PostPhysicsTickComponent(FSkeletalMeshComponentPostPhysicsTickFunction& ThisTickFunction);
+	void EndPhysicsTickComponent(FSkeletalMeshComponentEndPhysicsTickFunction& ThisTickFunction);
 
 	/** Evaluate Anim System **/
 	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
@@ -1499,13 +1518,13 @@ public:
 	
 private:
 	// Returns whether we need to run the Pre Cloth Tick or not
-	bool ShouldRunPostPhysicsTick() const;
+	bool ShouldRunEndPhysicsTick() const;
 
 	// Returns whether we need to run the Cloth Tick or not
 	bool ShouldRunClothTick() const;
 
 	// Handles registering/unregistering the pre cloth tick as it is needed
-	void UpdatePostPhysicsTickRegisteredState();
+	void UpdateEndPhysicsTickRegisteredState();
 
 	// Handles registering/unregistering the cloth tick as it is needed
 	void UpdateClothTickRegisteredState();

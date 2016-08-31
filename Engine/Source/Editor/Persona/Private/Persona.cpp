@@ -2368,6 +2368,34 @@ void FPersona::SetSelectedBone(USkeleton* InTargetSkeleton, const FName& BoneNam
 	}
 }
 
+void FPersona::SetSelectedMorphTargets(USkeletalMesh *SkeletalMesh, const TArray<FName>& SelectedMorphTargetNames)
+{
+	UDebugSkelMeshComponent* Preview = GetPreviewMeshComponent();
+	if (Preview)
+	{
+		Preview->MorphTargetOfInterests.Reset();
+
+		if (SelectedMorphTargetNames.Num() > 0)
+		{
+			for (const FName& MorphTargetName : SelectedMorphTargetNames)
+			{
+				int32 MorphtargetIdx;
+				UMorphTarget* MorphTarget = SkeletalMesh->FindMorphTargetAndIndex(MorphTargetName, MorphtargetIdx);
+				if (MorphTarget != nullptr)
+				{
+					Preview->MorphTargetOfInterests.AddUnique(MorphTarget);
+				}
+			}
+
+			if (Viewport.IsValid())
+			{
+				Viewport.Pin()->GetLevelViewportClient().Invalidate();
+			}
+			Preview->PostInitMeshObject(PreviewComponent->MeshObject);
+		}
+	}
+}
+
 void FPersona::SetSelectedSocket( const FSelectedSocketInfo& SocketInfo, bool bRebroadcast /* = true */ )
 {
 	if ( UDebugSkelMeshComponent* Preview = GetPreviewMeshComponent() )

@@ -116,7 +116,8 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 	float W, H;
 	PhATFont->GetCharSize(TEXT('L'), W, H);
 
-	const float XOffset = 350.0f;
+	const float XOffset = 5.0f;
+	const float YOffset = 32.0f;
 
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), PhATFont, FLinearColor::White );
 
@@ -129,7 +130,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 		FText::AsNumber(SharedData->PhysicsAsset->ConstraintSetup.Num()) ).ToString();
 
 	TextItem.Text = FText::FromString( StatusString );
-	Canvas.DrawItem( TextItem, XOffset, 3 );
+	Canvas.DrawItem( TextItem, XOffset, YOffset);
 	
 	TextItem.Text = FText::GetEmpty();
 	if (SharedData->bRunningSimulation)

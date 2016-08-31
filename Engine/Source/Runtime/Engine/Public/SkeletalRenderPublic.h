@@ -94,10 +94,12 @@ public:
 	/** 
 	 * Enable blend weight rendering in the editor
 	 * @param bEnabled - turn on or off the rendering mode
-	 * @param BonesOfInterest - array of bone indices to capture weights for
+	 * optional parameters will decide which one to draw
+	 * @param (optional) BonesOfInterest - array of bone indices to capture weights for
+	 * @param (optional) MorphTargetsOfInterest - array of morphtargets to render for
 	 */
-	virtual void EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest) {}
-	
+	virtual void EnableOverlayRendering(bool bEnabled, const TArray<int32>* InBonesOfInterest, const TArray<UMorphTarget*>* MorphTargetOfInterest) {}
+
 	/** 
 	* Draw Normals/Tangents based on skinned vertex data 
 	* @param PDI			- Draw Interface

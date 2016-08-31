@@ -158,9 +158,9 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bGenerateOverlapEvents = false;
 	LineCheckBoundsScale = FVector(1.0f, 1.0f, 1.0f);
 
-	PostPhysicsTickFunction.TickGroup = TG_PostPhysics;
-	PostPhysicsTickFunction.bCanEverTick = true;
-	PostPhysicsTickFunction.bStartWithTickEnabled = true;
+	EndPhysicsTickFunction.TickGroup = TG_EndPhysics;
+	EndPhysicsTickFunction.bCanEverTick = true;
+	EndPhysicsTickFunction.bStartWithTickEnabled = true;
 
 	ClothTickFunction.TickGroup = TG_PrePhysics;
 	ClothTickFunction.EndTickGroup = TG_PostPhysics;
@@ -209,34 +209,30 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
 
-	UpdatePostPhysicsTickRegisteredState();
+	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
 }
 
-void USkeletalMeshComponent::RegisterPostPhysicsTick(bool bRegister)
+void USkeletalMeshComponent::RegisterEndPhysicsTick(bool bRegister)
 {
-	if (bRegister != PostPhysicsTickFunction.IsTickFunctionRegistered())
+	if (bRegister != EndPhysicsTickFunction.IsTickFunctionRegistered())
 	{
 		if (bRegister)
 		{
-			if (SetupActorComponentTickFunction(&PostPhysicsTickFunction))
+			if (SetupActorComponentTickFunction(&EndPhysicsTickFunction))
 			{
-				PostPhysicsTickFunction.Target = this;
-				// Set a prereq for the pre cloth tick to happen after physics is finished
+				EndPhysicsTickFunction.Target = this;
+				// Make sure our EndPhysicsTick gets called after physics simulation is finished
 				UWorld* World = GetWorld();
 				if (World != nullptr)
 				{
-					PostPhysicsTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
+					EndPhysicsTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
 				}
-
-				// 4.11.2 Hack (UE-24725): set up this tick prereq in case this other function is used.
-				// It's usually not, but our tick function is private and if someone else needs to set up a prereq they can use the public one in the base class.
-				PostPhysicsComponentTick.AddPrerequisite(this, PostPhysicsTickFunction);
 			}
 		}
 		else
 		{
-			PostPhysicsTickFunction.UnRegisterTickFunction();
+			EndPhysicsTickFunction.UnRegisterTickFunction();
 		}
 	}
 }
@@ -251,7 +247,7 @@ void USkeletalMeshComponent::RegisterClothTick(bool bRegister)
 			{
 				ClothTickFunction.Target = this;
 				ClothTickFunction.AddPrerequisite(this, PrimaryComponentTick);
-				ClothTickFunction.AddPrerequisite(this, PostPhysicsTickFunction);	//If this tick function is running it means that we are doing physics blending so we should wait for its results
+				ClothTickFunction.AddPrerequisite(this, EndPhysicsTickFunction);	//If this tick function is running it means that we are doing physics blending so we should wait for its results
 			}
 		}
 		else
@@ -261,15 +257,15 @@ void USkeletalMeshComponent::RegisterClothTick(bool bRegister)
 	}
 }
 
-bool USkeletalMeshComponent::ShouldRunPostPhysicsTick() const
+bool USkeletalMeshComponent::ShouldRunEndPhysicsTick() const
 {
 	return	(bEnablePhysicsOnDedicatedServer || !IsNetMode(NM_DedicatedServer)) && // Early out if we are on a dedicated server and not running physics.
 			(IsSimulatingPhysics() || ShouldBlendPhysicsBones());
 }
 
-void USkeletalMeshComponent::UpdatePostPhysicsTickRegisteredState()
+void USkeletalMeshComponent::UpdateEndPhysicsTickRegisteredState()
 {
-	RegisterPostPhysicsTick(PrimaryComponentTick.IsTickFunctionRegistered() && ShouldRunPostPhysicsTick());
+	RegisterEndPhysicsTick(PrimaryComponentTick.IsTickFunctionRegistered() && ShouldRunEndPhysicsTick());
 }
 
 bool USkeletalMeshComponent::ShouldRunClothTick() const
@@ -753,7 +749,7 @@ static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	UpdatePostPhysicsTickRegisteredState();
+	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
 
 	// clear and add morphtarget curves that are added via SetMorphTarget
@@ -766,7 +762,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 
 	/** Update the end group and tick priority */
 	const bool bDoLateEnd = CVarAnimationDelaysEndGroup.GetValueOnGameThread() > 0;
-	const bool bRequiresPhysics = PostPhysicsTickFunction.IsTickFunctionRegistered();
+	const bool bRequiresPhysics = EndPhysicsTickFunction.IsTickFunctionRegistered();
 	const ETickingGroup EndTickGroup = bDoLateEnd && !bRequiresPhysics ? TG_PostPhysics : TG_PrePhysics;
 	ThisTickFunction->EndTickGroup = EndTickGroup;
 

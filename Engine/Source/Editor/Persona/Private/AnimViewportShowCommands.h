@@ -81,8 +81,10 @@ public:
 	TSharedPtr< FUICommandInfo > ShowDisplayInfoSkelControls;
 	TSharedPtr< FUICommandInfo > HideDisplayInfo;
 
-	/** Show selected bone weight */
+	/** Show overlay material option */
+	TSharedPtr< FUICommandInfo > ShowOverlayNone;
 	TSharedPtr< FUICommandInfo > ShowBoneWeight;
+	TSharedPtr< FUICommandInfo > ShowMorphTargetVerts;
 
 	/** Show socket hit point diamonds */
 	TSharedPtr< FUICommandInfo > ShowSockets;

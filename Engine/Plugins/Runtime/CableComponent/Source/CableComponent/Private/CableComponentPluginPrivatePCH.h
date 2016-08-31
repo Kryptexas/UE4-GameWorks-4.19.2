@@ -11,3 +11,7 @@
 
 #include "CableComponent.h"
 #include "CableActor.h"
+
+#pragma once
+
+DECLARE_STATS_GROUP(TEXT("Cable"), STATGROUP_CableComponent, STATCAT_Advanced);

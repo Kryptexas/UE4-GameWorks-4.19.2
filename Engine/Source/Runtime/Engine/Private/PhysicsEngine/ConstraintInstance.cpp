@@ -288,10 +288,16 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 	else if(SceneIndex1 >= 0 && SceneIndex2 >= 0 && SceneIndex1 != SceneIndex2)
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		UPrimitiveComponent* PrimComp1 = Body1 ? Body1->OwnerComponent.Get() : nullptr;
+		UPrimitiveComponent* PrimComp2 = Body2 ? Body2->OwnerComponent.Get() : nullptr;
+
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesStart", "Constraint")))
 			->AddToken(FUObjectToken::Create(DebugOwner))
-			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", "attempting to create a joint between two actors in different scenes.  No joint created.")));
+			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesMid", "attempting to create a joint between two actors in different scenes (")))
+			->AddToken(FUObjectToken::Create(PrimComp1))
+			->AddToken(FUObjectToken::Create(PrimComp2))
+			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", ").  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
 	else

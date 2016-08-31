@@ -59,18 +59,18 @@ FString FSkeletalMeshComponentClothTickFunction::DiagnosticMessage()
 	return TEXT("FSkeletalMeshComponentClothTickFunction");
 }
 
-void FSkeletalMeshComponentPostPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FSkeletalMeshComponentEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(FSkeletalMeshComponentPostPhysicsTickFunction_ExecuteTick);
+	QUICK_SCOPE_CYCLE_COUNTER(FSkeletalMeshComponentEndPhysicsTickFunction_ExecuteTick);
 	FActorComponentTickFunction::ExecuteTickHelper(Target, /*bTickInEditor=*/ false, DeltaTime, TickType, [this](float DilatedTime)
 	{
-		Target->PostPhysicsTickComponent(*this);
+		Target->EndPhysicsTickComponent(*this);
 	});
 }
 
-FString FSkeletalMeshComponentPostPhysicsTickFunction::DiagnosticMessage()
+FString FSkeletalMeshComponentEndPhysicsTickFunction::DiagnosticMessage()
 {
-	return TEXT("FSkeletalMeshComponentPostPhysicsTickFunction");
+	return TEXT("FSkeletalMeshComponentEndPhysicsTickFunction");
 }
 
 #if WITH_APEX_CLOTHING
@@ -482,7 +482,7 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 		SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
 	}
 
-	UpdatePostPhysicsTickRegisteredState();
+	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
 }
 
@@ -1102,7 +1102,7 @@ void USkeletalMeshComponent::SetAllBodiesSimulatePhysics(bool bNewSimulate)
 
 	SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
 
-	UpdatePostPhysicsTickRegisteredState();
+	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
 }
 
@@ -1138,7 +1138,7 @@ void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBo
 			SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
 		}
 
-		UpdatePostPhysicsTickRegisteredState();
+		UpdateEndPhysicsTickRegisteredState();
 		UpdateClothTickRegisteredState();
 	}
 }
@@ -1366,7 +1366,7 @@ void USkeletalMeshComponent::SetAllBodiesPhysicsBlendWeight(float PhysicsBlendWe
 
 	bBlendPhysics = false;
 
-	UpdatePostPhysicsTickRegisteredState();
+	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
 }
 
@@ -1382,7 +1382,7 @@ void USkeletalMeshComponent::SetAllBodiesBelowPhysicsBlendWeight( const FName& I
 	{
 		bBlendPhysics = false;
 
-		UpdatePostPhysicsTickRegisteredState();
+		UpdateEndPhysicsTickRegisteredState();
 		UpdateClothTickRegisteredState();
 	}
 }
@@ -1399,7 +1399,7 @@ void USkeletalMeshComponent::AccumulateAllBodiesBelowPhysicsBlendWeight( const F
 	{
 		bBlendPhysics = false;
 
-		UpdatePostPhysicsTickRegisteredState();
+		UpdateEndPhysicsTickRegisteredState();
 		UpdateClothTickRegisteredState();
 	}
 }
@@ -3411,13 +3411,13 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
 
-void USkeletalMeshComponent::PostPhysicsTickComponent(FSkeletalMeshComponentPostPhysicsTickFunction& ThisTickFunction)
+void USkeletalMeshComponent::EndPhysicsTickComponent(FSkeletalMeshComponentEndPhysicsTickFunction& ThisTickFunction)
 {
 	//IMPORTANT!
 	//
-	// The decision on whether to use PostPhysicsTickComponent or not is made by ShouldRunPostPhysicsTick()
-	// Any changes that are made to PostPhysicsTickComponent that affect whether it should be run or not
-	// have to be reflected in ShouldRunPostPhysicsTick() as well
+	// The decision on whether to use EndPhysicsTickComponent or not is made by ShouldRunEndPhysicsTick()
+	// Any changes that are made to EndPhysicsTickComponent that affect whether it should be run or not
+	// have to be reflected in ShouldRunEndPhysicsTick() as well
 	
 	// if physics is disabled on dedicated server, no reason to be here. 
 	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
@@ -5254,6 +5254,40 @@ float USkeletalMeshComponent::GetMass() const
 	}
 	return Mass;
 }
+
+float USkeletalMeshComponent::GetBoneMass(FName BoneName, bool bScaleMass) const
+{
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
+	{
+		float Scale = 1.0f;
+		if (bScaleMass)
+		{
+			Scale = BI->MassScale;
+		}
+		return Scale*BI->GetBodyMass();
+	}
+
+	return 0.0f;
+}
+
+FVector USkeletalMeshComponent::GetSkeletalCenterOfMass() const
+{
+	FVector Location = FVector::ZeroVector;
+	float TotalMass = 0.0f;
+	for (int32 i = 0; i < Bodies.Num(); i++)
+	{
+		FBodyInstance* BI = Bodies[i];
+		if (BI->IsValidBodyInstance())
+		{
+			float Mass = BI->MassScale*BI->GetBodyMass();
+			Location += Mass*BI->GetCOMPosition();
+			TotalMass += Mass;
+		}
+	}
+
+	return Location / TotalMass;
+}
+
 
 // blueprint callable methods 
 float USkeletalMeshComponent::GetClothMaxDistanceScale()

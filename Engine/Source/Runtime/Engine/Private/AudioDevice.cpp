@@ -106,6 +106,7 @@ FAudioDevice::FAudioDevice()
 	, bIsDeviceMuted(false)
 	, bIsInitialized(false)
 	, bHasActivatedReverb(false)
+	, bAllowVirtualizedSounds(true)
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
@@ -140,6 +141,8 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 		// Convert dB to linear volume
 		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 20.0f);
 	}
+
+	bAllowVirtualizedSounds = GetDefault<UAudioSettings>()->bAllowVirtualizedSounds;
 
 	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
 	if (DefaultBaseSoundMixName.IsValid())
@@ -383,7 +386,7 @@ bool FAudioDevice::HandleListWavesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 		FSoundSource* Source = WaveInstanceSourceMap.FindRef(WaveInstance);
 		UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(WaveInstance->ActiveSound->GetAudioComponentID());
 		AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
-		Ar.Logf(TEXT("%4i.    %s %6.2f %6.2f  %s   %s"), InstanceIndex, Source ? TEXT("Yes") : TEXT(" No"), WaveInstance->ActiveSound->PlaybackTime, WaveInstance->GetActualVolume(), *WaveInstance->WaveData->GetPathName(), SoundOwner ? *SoundOwner->GetName() : TEXT("None"));
+		Ar.Logf(TEXT("%4i.    %s %6.2f %6.2f  %s   %s"), InstanceIndex, Source ? TEXT("Yes") : TEXT(" No"), WaveInstance->ActiveSound->PlaybackTime, WaveInstance->GetVolume(), *WaveInstance->WaveData->GetPathName(), SoundOwner ? *SoundOwner->GetName() : TEXT("None"));
 	}
 
 	Ar.Logf(TEXT("Total: %i"), WaveInstances.Num()-FirstActiveIndex);
@@ -1581,7 +1584,7 @@ void FAudioDevice::UpdatePassiveSoundMixModifiers(TArray<FWaveInstance*>& WaveIn
 			USoundClass* SoundClass = WaveInstance->SoundClass;
 			if (SoundClass) 
 			{
-				const float WaveInstanceActualVolume = WaveInstance->GetActualVolume();
+				const float WaveInstanceActualVolume = WaveInstance->GetVolume();
 				// Check each SoundMix individually for volume levels
 				for (const FPassiveSoundMixModifier& PassiveSoundMixModifier : SoundClass->PassiveSoundMixModifiers)
 				{
@@ -2657,7 +2660,7 @@ void FAudioDevice::StopSources(TArray<FWaveInstance*>& WaveInstances, int32 Firs
 			Source->LastUpdate = CurrentTick;
 
 			// If they are still audible, mark them as such
-			float VolumeWeightedPriority = WaveInstance->GetActualVolume();
+			float VolumeWeightedPriority = WaveInstance->GetVolume();
 			if (VolumeWeightedPriority > 0.0f)
 			{
 				Source->LastHeardUpdate = CurrentTick;
@@ -2713,7 +2716,7 @@ void FAudioDevice::StopSources(TArray<FWaveInstance*>& WaveInstances, int32 Firs
 	for (int32 InstanceIndex = 0; InstanceIndex < FirstActiveIndex; InstanceIndex++)
 	{
 		FWaveInstance* WaveInstance = WaveInstances[ InstanceIndex ];
-		if (WaveInstance->GetActualVolume() > 0.1f)
+		if (WaveInstance->GetVolume() > 0.1f) 
 		{
 			AudibleInactiveSounds++;
 		}
@@ -3016,7 +3019,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				FAudioStats::FStatWaveInstanceInfo WaveInstanceInfo;
 				FSoundSource* Source = WaveInstanceSourceMap.FindRef(WaveInstance);
 				WaveInstanceInfo.Description = Source ? Source->Describe((RequestedAudioStats & ERequestedAudioStats::LongSoundNames) != 0) : FString(TEXT("No source"));
-				WaveInstanceInfo.ActualVolume = WaveInstance->GetActualVolume();
+				WaveInstanceInfo.ActualVolume = WaveInstance->GetVolume();
 				WaveInstanceInfo.InstanceIndex = InstanceIndex;
 				StatSoundInfos[*SoundInfoIndex].WaveInstanceInfos.Add(MoveTemp(WaveInstanceInfo));
 			}
@@ -4154,3 +4157,41 @@ void FAudioDevice::SetPlatformAudioHeadroom(const float InPlatformHeadRoom)
 
 	PlatformAudioHeadroom = InPlatformHeadRoom;
 }
+
+#if !UE_BUILD_SHIPPING
+void HandleDumpActiveSounds(UWorld* World)
+{
+	if (FAudioDevice* AudioDevice = (World ? World->GetAudioDevice() : GEngine->GetMainAudioDevice()))
+	{
+		AudioDevice->DumpActiveSounds();
+	}
+}
+
+static FAutoConsoleCommandWithWorld DumpActiveSounds(TEXT("Audio.DumpActiveSounds"), TEXT("Outputs data about all the currently active sounds."), FConsoleCommandWithWorldDelegate::CreateStatic(&HandleDumpActiveSounds), ECVF_Cheat);
+
+void FAudioDevice::DumpActiveSounds() const
+{
+	check(IsInGameThread());
+
+	FAudioThreadSuspendContext SuspendAudio;
+
+	UE_LOG(LogAudio, Display, TEXT("Active Sound Count: %d"), ActiveSounds.Num());
+	UE_LOG(LogAudio, Display, TEXT("------------------------"), ActiveSounds.Num());
+
+	for (const FActiveSound* ActiveSound : ActiveSounds)
+	{
+		if (ActiveSound)
+		{
+			UE_LOG(LogAudio, Display, TEXT("%s (%.3g) - %s"), *ActiveSound->GetSound()->GetName(), ActiveSound->GetSound()->GetDuration(), *ActiveSound->GetAudioComponentName());
+
+			for (const TPair<UPTRINT, FWaveInstance*>& WaveInstancePair : ActiveSound->WaveInstances)
+			{
+				const FWaveInstance* WaveInstance = WaveInstancePair.Value;
+				UE_LOG(LogAudio, Display, TEXT("   %s (%.3g) (%d) - %.3g"), *WaveInstance->GetName(), WaveInstance->WaveData->GetDuration(), WaveInstance->WaveData->GetResourceSize(EResourceSizeMode::Inclusive), WaveInstance->GetActualVolume());
+			}
+		}
+	}
+
+
+}
+#endif

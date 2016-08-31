@@ -1384,6 +1384,11 @@ void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 
+	if (CheatManager)
+	{
+		CheatManager->ReceiveEndPlay();
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -1973,6 +1978,23 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	}
 
 	return false;
+}
+
+void APlayerController::SetMouseLocation(const int X, const int Y)
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>( Player );
+	if (LocalPlayer)
+	{
+		UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
+		if (ViewportClient)
+		{
+			FViewport* Viewport = ViewportClient->Viewport;
+			if (Viewport)
+			{
+				Viewport->SetMouse( X, Y );
+			}
+		}
+	}
 }
 
 /* PlayerTick is only called if the PlayerController has a PlayerInput object.  Therefore, it will not be called on servers for non-locally controlled playercontrollers. */

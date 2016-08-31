@@ -107,6 +107,7 @@ void FPhATSharedData::Initialize()
 	// Create SkeletalMeshComponent for rendering skeletal mesh
 	EditorSkelComp = NewObject<UPhATEdSkeletalMeshComponent>();
 	EditorSkelComp->SharedData = this;
+	EditorSkelComp->SetPhysicsAsset(PhysicsAsset);
 
 	PhysicalAnimationComponent = NewObject<UPhysicalAnimationComponent>();
 	PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);

@@ -159,9 +159,13 @@ struct ENGINE_API FVehicleInputRate
  * Component to handle the vehicle simulation for an actor.
  */
 UCLASS(Abstract, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
-class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent, public IRVOAvoidanceInterface
+class ENGINE_API UWheeledVehicleMovementComponent : public UMovementComponent, public IRVOAvoidanceInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	// Supports the old (before 4.14) way of applying spring forces. We used to offset from the vehicle center of mass instead of the spring location center of mass. You should only use this for existing content that hasn't been re-tuned
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	uint8 bDeprecatedSpringOffsetMode : 1;
 
 	/** Wheels to create */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup)
@@ -183,6 +187,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Chassis height used for drag force computation (cm)*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float ChassisHeight;
+
+	/** If true, the brake and reverse controls will behave in a more arcade fashion where holding reverse also functions as brake. For a more realistic approach turn this off*/
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	bool bReverseAsBrake;
 
 	// Drag area in cm^2
 	UPROPERTY(transient)
@@ -251,6 +259,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	bool CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const;
 	float GetMaxSpringForce() const;
 
+	/** UObject interface */
+	virtual void Serialize(FArchive& Ar) override;
+	/** End UObject interface*/
+
 #if WITH_VEHICLE
 
 	// The instanced PhysX vehicle
@@ -304,6 +316,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Set the user input for the vehicle throttle */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	void SetThrottleInput(float Throttle);
+
+	/** Set the user input for the vehicle Brake */
+	UFUNCTION(BlueprintCallable, Category = "Game|Components|WheeledVehicleMovement")
+	void SetBrakeInput(float Brake);
 	
 	/** Set the user input for the vehicle steering */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
@@ -445,6 +461,10 @@ protected:
 	UPROPERTY(Transient)
 	float RawThrottleInput;
 
+	// What the player has the brake set to. Range -1...1
+	UPROPERTY(Transient)
+	float RawBrakeInput;
+
 	// True if the player is holding the handbrake
 	UPROPERTY(Transient)
 	uint32 bRawHandbrakeInput : 1;
@@ -575,7 +595,10 @@ protected:
 	virtual void UpdateSimulation( float DeltaTime );
 
 	/** Allocate and setup the PhysX vehicle */
-	virtual void SetupVehicle() {};
+	virtual void SetupVehicle();
+
+	/** Create the specific vehicle drive (4w drive vs tank etc...)*/
+	virtual void SetupVehicleDrive(physx::PxVehicleWheelsSimData* PWheelsSimData);
 
 	/** Do some final setup after the physx vehicle gets created */
 	virtual void PostSetupVehicle();
