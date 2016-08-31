@@ -1,18 +1,17 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Creating Virtual Keyboard Interactions
+﻿INTSourceChangelist:3102980
+Availability:Public
+Title:创建虚拟键盘交互
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Demonstrates how you can create and interaction with a 3D Virtual Keyboard with UMG. 
-Version: 4.13
-SkillLevel: Advanced
-parent:Engine/Editor
-order:1
+Description:说明如何通过 UMG 创建并与 3D 虚拟键盘形成交互。 
+Version:4.13
+SkillLevel:Advanced
+parent:Engine/UMG/HowTo
+order:4
 checkpoint: editorqs
 
-If you are looking to create a 3D keypad or virtual keyboard that allows a player to enter specified characters, you can do so with a combination of the [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) component and [Widget](Engine/Components/Widget) components. 
-The Widget Interaction component will help facilitate which "buttons" are clicked on and processes sending the characters through to a Widget component in an Actor that will handle the display.
+可结合 [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) 组件和 [Widget](Engine/Components/Widget) 组件创建 3D 小键盘或虚拟键盘，以便玩家输入特定字符。控件交互组件将识别被点击的“按钮”，并将字符发送到 Actor 中执行显示的控件组件。
 
-In this how-to we create a keypad that can be interacted with in and provides entries to a text box. 
+在此指南中，我们将创建一个可进行交互并提供文本框输入的小键盘。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -26,18 +25,18 @@ N2Fo4izRgh0
 [/PARAMLITERAL]
 [/OBJECT]
 
-_At the end of this guide, you will have a keypad and display that appears inside the 3D game world and can be interacted with._
+_完成此指南后，您将设置好一个可在 3D 游戏中进行交互的小键盘和显示。_
 
-One important aspect in setting this up will be to determine the Widgets that are (or are not) focusable. If the Text Box that displays the characters the player enters is set to focusable and the buttons that the player clicks on to send characters through is also focusable, the Text Box would lose player focus when a button (or any other widget) is clicked on and not receive the commands issued. 
+进行此设置的一个重要方面是确定可聚焦（或不可聚焦）的控件。如显示玩家输入字符的文本框被设为可聚焦，玩家发送字符使用的按钮也为可聚焦，出现按钮（或其他控件）点击但未收到发出的命令时文本框会丢失玩家焦点。 
 
-The first step however is to set up our character with the Widget Interaction component and create the assets to display our UI. 
+第一步是使用控件交互组件设置角色，并创建资源显示 UI。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

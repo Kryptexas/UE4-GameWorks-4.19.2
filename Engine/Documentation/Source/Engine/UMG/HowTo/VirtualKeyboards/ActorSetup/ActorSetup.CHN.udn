@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:3. Actor Setup & Testing
+﻿INTSourceChangelist:3102822
+Availability:Public
+Title:3.Actor 设置和测试
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Demonstrates how you can create and interaction with a 3D Virtual Keyboard with UMG. 
-Related: Engine\UMG\UserGuide\WidgetInteraction\
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
-Version: 4.13
-SkillLevel: Advanced
+Description:说明如何通过 UMG 创建并与 3D 虚拟键盘形成交互。 
+Related:Engine\UMG\UserGuide\WidgetInteraction\
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
+Version:4.13
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,79 +26,66 @@ SkillLevel: Advanced
 
 %Steps%
 
-In this final section, we add our Widget Blueprints as **Widget** Components to our Actors and define what happens when the player clicks on the **Enter** Button, checking to see if the entered text is the same as our **GoalText**. 
-With everything in place, we give it a test to see the end result which prints **Success** to the screen if the code is correct or **Wrong Code** if the code is incorrect.  
+在最后这部分中，我们将控件蓝图作为 **控件** 组件添加到 Actor 并定义玩家按下 **Enter** 键时的出现的效果，检查输入的文本是否与 **GoalText** 相同。一切就绪后便可以测试最终效果。如代码正确，屏幕上将显示 **Success**；如代码不正确，将显示 **Wrong Code**。  
 
 
-## Steps
+## 步骤
 
-1.	Open the **KeypadDisplay** Blueprint and add a **Widget** component with class set to **KeypadDisplayWB** and **Draw at Desired Size**. 
+1.	打开 **KeypadDisplay** 蓝图并添加一个 **控件** 组件，类设为 **KeypadDisplayWB** 和 **Draw at Desired Size**。通过 Draw at Desired Size 可帮助渲染目标迅速匹配控件蓝图中所需的尺寸。
 
 	![](Keypad15.png)
 
-	Draw at Desired Size is a quick way to cause the render target to automatically match the desired size inside the Widget Blueprint.
+1.	打开 **Keypad** 蓝图并添加一个 **控件** 组件，将类设为 **KeypadWB** 和 **Draw at Desired Size**。 
 
-1.	Open the **Keypad** Blueprint and add a **Widget** component with class set to **KeypadWB** and **Draw at Desired Size**. 
-
-1.	Uncheck the **Window Focusable** option for this Widget Component. 
+1.	取消勾选此控件组件的 **Window Focusable** 选项。我们不希望此组件将焦点从 Keypad Display 控件移开，因此需要取消勾选此项。 
 
 	![](Keypad16.png)
 
-	We don't want this component to take focus away from the Keypad Display widget, so this needs to be unchecked. 
+1.	继续在 **Keypad** 中添加一个 **WidgetInteraction** 组件，将 **Enable Hit Testing** 设为 false。添加该 WidgetInteraction 组件后，就不需要在玩家角色中获取对 WidgetInteraction 组件的引用；禁用 Hit Testing，因为不需要它生成悬停效果。创建时，WidgetInteraction 组件默认设为 **Virtual User Index 0**，它们全部使用虚拟用户索引 ID（Virtual User Index ID）进行交流。玩家角色中的 WidgetInteraction 也使用虚拟用户索引 0，这和获取引用相同。
 
-1.	Also inside **Keypad**, add a **WidgetInteraction** component with **Enable Hit Testing** set to false. 
+	![](Keypad17.png) 
 
-	![](Keypad17.png)
-
-	We add this WidgetInteraction component so that we don't have to get a reference to the WidgetInteraction component in the player character and we disable Hit Testing as we don't want it to generate any hover effects. 
-
-	WidgetInteraction components by default are set to **Virtual User Index 0** when they are created and all of them communicate using the Virtual User Index ID. 
-	Since the WidgetInteraction component in the player character is also using Virtaul User Index 0, this is the same as getting a reference to it. 
-
-1.	On the Graph of **Keypad**, off **Event Begin Play** take the **Widget** component and **Get User Widget Object** to **Cast to KeypadWB**. 
+1.	在 **Keypad** 图表上的 **Event Begin Play** 后，将 **Widget** 组件和 **Get User Widget Object** 连到 **Cast to KeypadWB**。 
 
 	![](Keypad18.png)
 
-1.	Off the **As Keypad WB** pin, **Set Widget Interaction** and pass through the **WidgetInteraction** component from Step 4. 
+1.	在 **As Keypad WB** 引脚后执行 **Set Widget Interaction** 并通过第 4 步中的 **WidgetInteraction** 组件。 
 
-1.	Also off the **As Keypad WB** pin, call the **Assign Enter Pressed** which will create an **Enter Pressed** Custom Event. 
+1.	在 **As Keypad WB** 引脚后，调用 **Assign Enter Pressed** 创建一个 **Enter Pressed** 自定义事件。点击 Enter 键后将调用该自定义事件，可用于检查输入的代码是否正确。 
 
 	![](Keypad19.png)
 
-	Now when we click on the Enter button this custom event will be called which we can use to check if the correct code was entered. 
-
-1.	Create a **Variable** of the **Keypad Display** Actor type called **TargetDisplay** and set it to **Editable**. 
+1.	创建一个名为 **TargetDisplay** 的 **Keypad Display** Actor 类 **变量** 并将其设为 **Editable**。 
 
 	![](Keypad20.png)
 
-1.	Create a **Variable** of the **Text** type called **GoalText**, then **Compile** and set the **Default Value** to **1212**. 
+1.	创建一个名为 **GoalText** 的 **Text** 类 **变量** 并将 **Default Value** 设为 **1212**。 
 
 	![](Keypad21.png)
 
-1.	Hold **Ctrl** and drag in **TargetDisplay** to get the **Widget** and **User Widget Object** then **Cast to KeypadDisplayWB**. 
+1.	按住 **Ctrl** 拖入 **TargetDisplay**，以获取 **Widget**、**User Widget Object**，以及 **Cast to KeypadDisplayWB**。 
 
 	![](Keypad22.png)
 
-1.	Off the **As Keypad Display WB** pin, get the **Editable Text Box** and **GetText(Text Box)** to see if it **Equals** **Goal Text**. 
+1.	在 **As Keypad Display WB** 引脚后，获取 **Editable Text Box** 和 **GetText(Text Box)**，确定它是否 **等于** **Goal Text**。 
 
 	![](Keypad23.png)
 
-1.	Add a **Branch** with two **Print Strings** where off **True** (use Success) and **False** (use Wrong Code). 
+1.	添加带两个 **Print Strings** 的 **Branch**，其后是 **True**（使用 Success）和 **False**（使用 Wrong Code）。 
 
 	![](Keypad24.png)
 
-1.	Drag the **Keypad** and **KeypadDisplay** Blueprints into the level and rotate/position them as desired. 
+1.	将 **Keypad** 和 **KeypadDisplay** 拖入关卡，并根据需要将它们旋转/放置。 
 
-1.	In the **Details** panel for the **Keypad** Actor, set the **Target Display** variable to the **KeypadDisplay** in the level. 
+1.	在 **Keypad** Actor 的 **Details** 面板中，将 **Target Display** 变量设置到关卡中的 **KeypadDisplay**。 
 
 	![](Keypad25.png)
 
-1.	Play in the level. 
+1.	在关卡中进行游戏。 
 
-## End Result
+## 最终结果
 
-Approach the keypad display and **Right-click** in it to focus on it. You can look at the buttons and **Right-click** on them to issue the **Send Key Char** command and pass through the value to the display. 
-We are using the Right Mouse button to interact with the widgets in the level, but you could swap this to use gamepad or Motion Controller button presses as well. 
+靠近小键盘显示，在其中 **点击右键** 进行聚焦。可查看按钮并在其上 **点击右键** 发送 **Send Key Char** 命令，传递数值进行显示。此例中我们使用鼠标右键和关卡中的控件进行交互，也可切换使用游戏手柄或运动控制器的按键。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -112,6 +99,6 @@ N2Fo4izRgh0
 [/PARAMLITERAL]
 [/OBJECT]
 
-While this example only prints to the screen if the correct code was entered or not, you could instead fire off some event that opens a door, spawns an enemy or any other form of gameplay releated event! 
+此例在正确代码是否被输入时仅在屏幕上显示内容，也可替换为一些事件的触发，如开门、生成敌人或其他形式的游戏性事件。
 
 
