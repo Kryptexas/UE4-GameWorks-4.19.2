@@ -34,7 +34,7 @@ Related:
 		bSupportsInAppPurchasing=True
 
 
-[INCLUDE:Platforms/Mobile/InAppPurchases#使用方法]
+[INCLUDE:Platforms/Mobile/InAppPurchases#usage]
 
 ## テスティング
 
