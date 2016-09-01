@@ -14,6 +14,14 @@ class MEDIAASSETS_API UFileMediaSource
 
 public:
 
+	/**
+	 * The path to the media file to be played.
+	 *
+	 * @see SetFilePath
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=File, AssetRegistrySearchable)
+	FString FilePath;
+
 	/** Load entire media file into memory and play from there (if possible). */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=File, AdvancedDisplay)
 	bool PrecacheFile;
@@ -60,14 +68,4 @@ protected:
 
 	/** Get the full path to the file. */
 	FString GetFullPath() const;
-
-protected:
-
-	/**
-	 * The path to the media file to be played.
-	 *
-	 * @see SetFilePath
-	 */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=File, AssetRegistrySearchable)
-	FString FilePath;
 };
