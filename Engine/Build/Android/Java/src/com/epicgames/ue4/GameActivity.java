@@ -32,6 +32,7 @@ import android.content.IntentSender.SendIntentException;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.FeatureInfo;
 
 import android.media.AudioManager;
 import android.util.DisplayMetrics;
@@ -194,6 +195,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private int DesiredHolderWidth = 0;
 	private int DesiredHolderHeight = 0;
 	
+	/** Discovered Vulkan Version and Level from getSystemAvailableFeatures() */
+	private int VulkanVersion = 0;
+	private int VulkanLevel = 0;
+
 	enum EAlertDialogType
 	{
 		None,
@@ -377,6 +382,53 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		// tell Android that we want volume controls to change the media volume, aka music
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		
+		// Look for Vulkan support if Nougat or later
+		if (ANDROID_BUILD_VERSION >= 24)
+		{
+			FeatureInfo[] features = getPackageManager().getSystemAvailableFeatures();
+			for (FeatureInfo feature : features) {
+				if (feature.name != null)
+				{
+					if (feature.name.equals("android.hardware.vulkan.level"))
+					{
+						// since we may not be compiled against android-24 or higher, use .toString to get the version field
+						String dump = feature.toString();
+						int index = dump.indexOf("v=");
+						if (index >= 0)
+						{
+							dump = dump.substring(index+2);
+							index = dump.indexOf(" ");
+							if (index >= 0)
+							{
+								VulkanLevel = Integer.parseInt(dump.substring(0, index));
+								Log.debug("Vulkan level: " + VulkanLevel);
+							}
+						}
+					}
+					else
+					if (feature.name.equals("android.hardware.vulkan.version"))
+					{
+						// since we may not be compiled against android-24 or higher, use .toString to get the version field
+						String dump = feature.toString();
+						int index = dump.indexOf("v=");
+						if (index >= 0)
+						{
+							dump = dump.substring(index+2);
+							index = dump.indexOf(" ");
+							if (index >= 0)
+							{
+								VulkanVersion = Integer.parseInt(dump.substring(0, index));
+								int VersionMajor = (VulkanVersion >> 22) & 0x03ff;
+								int VersionMinor = (VulkanVersion >> 12) & 0x03ff;
+								int VersionPatch = VulkanVersion & 0x0fff;
+								Log.debug("Vulkan version: " + VersionMajor + "." + VersionMinor + "." + VersionPatch);
+							}
+						}
+					}
+				}
+			}
+		}
+
 		// is this a native landscape device (tablet, tv)?
 		if ( getDeviceDefaultOrientation() == Configuration.ORIENTATION_LANDSCAPE )
 		{
@@ -1719,6 +1771,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public int AndroidThunkJava_GetMetaDataInt(String key)
 	{
+		if (key.equals("android.hardware.vulkan.version"))
+		{
+			return VulkanVersion;
+		}
+		else
+		if (key.equals("android.hardware.vulkan.level"))
+		{
+			return VulkanLevel;
+		}
 		if (_bundle == null || key == null)
 		{
 			return 0;

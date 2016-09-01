@@ -1221,11 +1221,10 @@ static bool AttemptVulkanInit(void* VulkanLib)
 	return true;
 }
 
-extern bool AndroidThunkCpp_GetMetaDataBoolean(const FString& Key);
+extern int32 AndroidThunkCpp_GetMetaDataInt(const FString& Key);
 
 bool FAndroidMisc::ShouldUseVulkan()
 {
-#if PLATFORM_ANDROID_VULKAN
 	// just do this check once
 	static int32 ShouldUseVulkanFlag = -1;
 	if (ShouldUseVulkanFlag == -1)
@@ -1233,9 +1232,8 @@ bool FAndroidMisc::ShouldUseVulkan()
 		// assume no
 		ShouldUseVulkanFlag = 0;
 
-		// make sure the project setting has enabled Vulkan support (per-project user settings in the editor) from AndroidManifest.xml
-		bool bSupportsVulkan = AndroidThunkCpp_GetMetaDataBoolean(TEXT("com.epicgames.ue4.GameActivity.bSupportsVulkan"));
-		if (bSupportsVulkan && FModuleManager::Get().ModuleExists(TEXT("VulkanRHI")))
+		// make sure the Vulkan RHI is compiled in
+		if (FModuleManager::Get().ModuleExists(TEXT("VulkanRHI")))
 		{
 			FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with Vulkan support"));
 
@@ -1250,7 +1248,23 @@ bool FAndroidMisc::ShouldUseVulkan()
 				if (VulkanLib != nullptr)
 				{
 					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library detected, checking for available driver"));
-					ShouldUseVulkanFlag = AttemptVulkanInit(VulkanLib);
+
+					// if Nougat, we can check the Vulkan version
+					if (GetAndroidBuildVersion() >= 24)
+					{
+						int32 VulkanVersion = AndroidThunkCpp_GetMetaDataInt(TEXT("android.hardware.vulkan.version"));
+						if (VulkanVersion >= UE_VK_API_VERSION)
+						{
+							// final check, try initializing the instance
+							ShouldUseVulkanFlag = AttemptVulkanInit(VulkanLib);
+						}
+					}
+					else
+					{
+						// otherwise, we need to try initializing the instance
+						ShouldUseVulkanFlag = AttemptVulkanInit(VulkanLib);
+					}
+
 					dlclose(VulkanLib);
 
 					if (ShouldUseVulkanFlag)
@@ -1279,9 +1293,6 @@ bool FAndroidMisc::ShouldUseVulkan()
 	}
 
 	return ShouldUseVulkanFlag == 1;
-#else
-	return false;
-#endif
 }
 
 #if !UE_BUILD_SHIPPING
