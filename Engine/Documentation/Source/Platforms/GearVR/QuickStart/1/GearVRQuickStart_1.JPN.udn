@@ -1,30 +1,20 @@
-﻿INTSourceChangelist:2743354
+﻿INTSourceChangelist:3076265
 Availability:Public
 Title:1. Gear VR プロジェクトの作成
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの作成方法
 Navigation:platform
-Skilllevel:Intermediate
 Version:4.9
+Skilllevel:Intermediate
+tags:VR
+tags:GearVR
+type:sequential
+parent:Platforms/GearVR/QuickStart
+order:1
+Checkpoint:GearVRQS
 
+[nav]
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタートのホーム画面](Platforms/GearVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-%Steps%
 
 アンリアル エンジン 4.8 以降がリリースされて、Samsung Gear VR ヘッドセットと連携する UE4 プロジェクトの設定は、通常の UE4 プロジェクトの設定と同じになりました。 
 次のセクションで、Gear VR ヘッドセットと連携する新規プロジェクトの作成方法を説明します。
@@ -33,6 +23,8 @@ Version:4.9
 使用する UE4 のバージョンが 4.7 の場合、ブループリント プロジェクトではなく C++ プロジェクトでプロジェクトを作成する必要があります。
 4.8 以降であればこの制限はなく、C++ とブループリントのどちらでもプロジェクトに使用することができます。
 [/REGION]
+
+## ステップ
 
 1. 最初に UE4 のバージョン **4.7.4** かそれ以降をダウンロードして、開発に使用する PC にインストールされていることを確認します。 
 UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジンランチャー](http://tinyurl.com/oawb7x2) か [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードできます。 
@@ -59,6 +51,7 @@ UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジン
 1. 最後にプロジェクトの保存場所を指定して名前を付けます。この例ではプロジェクトに **GearVR_QS** と名前を付けます。すべての手順が完了したら緑の **Create Project (プロジェクトを作成)** ボタンを押してプロジェクトを作成します。
 	![](GVR_New_Project_02.png)
 
+## 最終結果
+完了すると、Gear VR HMD で使うプロジェクト用にすべて正しい設定で First Person プロジェクトが新規作成されます。
 
-
-%Steps%
+[nav]
