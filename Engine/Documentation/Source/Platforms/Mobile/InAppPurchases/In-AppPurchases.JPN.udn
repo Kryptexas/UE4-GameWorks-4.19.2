@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3081123
 Title:アプリ内課金を使用する
 Description:アプリ内課金を使ってゲームに追加の有料コンテンツを提供する
 Crumbs:
@@ -80,6 +80,4 @@ tags:mobile
 **Restore In-App Purchases** ブループリント ノード (または関連する C++ 関数コール) を使って購入を復元します。Player Controller のみを受け取り、その Player Controller に関連するすべての購入情報の配列を返します。その配列を処理して、ゲームプレイのロジックが必要とする特定の識別子 (複数可) と比較することができます。 
 
 [/EXCERPT:usage]
-[REGION:warning]
-4.10 の時点では、Restore In-App Purchases は iOS のみに機能する関数です。 
-[/REGION]
+
