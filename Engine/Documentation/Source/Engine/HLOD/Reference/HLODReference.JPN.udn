@@ -1,14 +1,11 @@
-﻿INTSourceChangelist:3080238
+﻿INTSourceChangelist:3106123
 title:HLOD のリファレンス
 description:HLOD アウトライナーにあるインターフェース エレメントとプロパティのリファレンスです。
 crumbs:
 availability:docs
+version:4.13
 
 このページでは、**Hierarchical LOD アウトライナー** にあるボタンとプロパティの詳細を説明します。
-
-[REGION:warning]
-HLOD は現在動的シャドウ (キャストまたはレシーブ) ではうまく機能しません。そのため、HLOD システムが生成するメッシュに対して静的なライティングとシャドウイングを使うようにします。
-[/REGION]
 
 ## プロパティとインターフェースのリファレンス
 
@@ -19,6 +16,7 @@ HLOD は現在動的シャドウ (キャストまたはレシーブ) ではう�
 
 以下は **Hierarchical LOD アウトライナー** にある 3 つのボタンとスライダーに関する説明です。
 
+[REGION:raw]
 | --- | :---: | :--- |
 | **Generate Clusters** || グループ化できるシーン内の **Static Mesh アクタ** の球状のクラスターを生成します。HLOD アウトライナーの LODSystem で指定される各 LOD 設定を使うことで処理されます。 |
 | **Delete Clusters** || 過去にレベルでセットアップされたすべての HLOD を削除します。これにはすべての生成されたプロキシ メッシュやセットアップされたクラスタが含まれます。HLOD レベルに対して過去に設定された値やプロパティは消去しません。 |
@@ -27,15 +25,47 @@ HLOD は現在動的シャドウ (キャストまたはレシーブ) ではう�
 | | %spacer%  | |
 [/REGION]
 
+### コンテキスト メニュー
+
+Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリック コンテキスト メニューがあります。以下はそのアクセス方法とオプションです。
+
+* ひとつめは、HLOD アウトライナーで **Cluster Entry** 上で右クリックしてアクセスできます。
+
+	[REGION:raw]
+	![](ContextMenu1.png)
+	[/REGION]
+
+	[REGION:raw]
+	| オプション | %spacer% | 説明 |
+	| --- | :---: | :--- |
+	| **Select LOD Actor** || ビューポートで LOD アクタを選択します (クラスタを左クリックするのと同じ効果があります)。 |
+	| **Select Contained Actors** || **LOD Cluster** に含まれるすべての **アクタ** を選択します。 |
+	| **ForceView** || ビューポートで **HLOD Actor** のビューを切り替えます。 |
+	| **Rebuild Proxy Mesh** || 右クリックしたクラスタがプロキシ メッシュをリビルドするように強制します。 |
+	| **Create Containing Hierarchical Volume** || **クラスタ** に含まれる **アクタ** の周囲に **Hierarchical Volume** を作成します。これを修正して、より多くのまたはより少ない **アクタ** を含めることができます。 |
+	| **Delete Cluster** || 右クリックしたクラスタを削除します。 |
+	[/REGION]
+
+* 次は、HLOD アウトライナーで **Cluster Entry** 内にある **アクタ** を右クリックしてアクセスできます。
+
+	[REGION:raw]
+	![](ContextMenu2.png)
+	[/REGION]
+
+	[REGION:raw]
+	| オプション | %spacer% | 説明 |
+	| --- | :---: | :--- |
+	| **Remove From Cluster** || 右クリックした **アクタ** を **クラスタ** から取り除きます。 |
+	| **Exclude From Cluster Generation** || **クラスタ** 生成から右クリックした **アクタ** を取り除きます。除外した **アクタ** を再度追加するには、**ワールド アウトライナー** でそれをクリックして **Hierarchical LOD アウトライナー** にある **クラスタ** にドラッグします。 |
+	[/REGION]
+
 ### プロパティ
 
 以下は、**[Hierarchical LOD Outliner]** インターフェースの下部にある **[LODSystem]** パネルの **[Hierarchical LODSetup]** にあるプロパティを主なセクションに分けて示したものです。
 
-[REGION:raw]
-
 ### クラスタ生成の設定
 
-| プロパティ| %spacer% | 説明 |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Desired Bound Radius** || 自動クラスタリングのためのフィルファクタを計算するために使用されますが、必ずしも保証はされません。 |
 | **Desired Filling Percentage** || 自動クラスタリングのためのフィルファクタを計算するために使用されますが、必ずしも保証はされません。 |
@@ -43,7 +73,7 @@ HLOD は現在動的シャドウ (キャストまたはレシーブ) ではう�
 
 ### メッシュ生成の設定
 
-| プロパティ| %spacer% | 説明 |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Transition Screen Size** || LOD **Actor** にスワップする前にメッシュ オブジェクトが到達すべき画面半径です。親の LOD が表示されると、子の LOD は表示されません。
 | [REGION:tablesection]**マージ設定**[/REGION] |||
@@ -55,12 +85,12 @@ HLOD は現在動的シャドウ (キャストまたはレシーブ) ではう�
 | **Merge Materials** || ソース マテリアルをひとつのフラットなマテリアルにマージするか否かです。 |
 | [REGION:tablesection]**[以下のマテリアルの設定を参照](#マテリアルの設定)**[/REGION] |||
 | **Bake Vertex Data ** || ペイントされた頂点カラーをモデル/ベイクされたマテリアルに組み込みます。 |
-| **Calculate Correct LODModel** || 画面サイズの値に基づき正確な LOD モデルを計算します (エディタ / ゲームで、スタティックメッシュに対して通常の LOD がどのように決まるかに似ています)。 |
-| **Export Specific LOD** || すべてのモデルに対して任意の LOD レベルを選ぶようにシステムに強制します (LOD レベルが存在する場合。存在しなければ、最大限近い値が選ばれます). |
+|**Use Vertex Data for Baking Material** || マテリアルをベイクする場合に頂点カラーなどの頂点データを使用するかどうかを設定します。 |
+| **Use Landscape Culling** ||利用可能なランドスケープのジオメトリを使用して不可視のトライアングルをカリングするかどうかを設定します。 |
 
 ### マテリアルの設定
 
-| プロパティ| %spacer% | 説明 |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Texture Size** || 生成された BaseColor テクスチャ マップのサイズです。 |
 | **Texture Sizing Type** || [INCLUDE:#tst] |
