@@ -1,26 +1,23 @@
-﻿INTSourceChangelist:3080238
+﻿INTSourceChangelist:3106123
 title:HLOD （Hierarchical Level of Detail）の概要
-description:UE4 のHLOD システムの概要のページです。
+Description:UE4 のHLOD システムの概要のページです。
 crumbs:%ROOT%
 availability:docs
+version:4.13
 
 HLOD の最も単純な形式では、既に存在している **Static Mesh アクタ** を、アトラス化したテクスチャで単一の **Static Mesh アクタ** とマテリアルにまとめて、ドローコールを減らしゲームのパフォーマンスを改善します。こうした **HLOD アクタ** を作成するときに生成する必要があるものを設定できる堅牢なシステムがあります。
 
-[REGION:warning]
-HLOD は現在、動的シャドウ (シャドウのキャストとレシーブ) でうまく機能しません。そのため、HLOD システムが生成するメッシュに静的なライティングとシャドウイングを使うようにします。
-[/REGION]
+## プロキシ メッシュ
 
-## プロキシメッシュ
-
-プロキシ メッシュが生成されると、プロジェクトで生成された `HLOD` フォルダに入ります。これには、**HLOD アウトライナー** で参照される **LODActor** が含まれます。 
+プロキシ メッシュが生成されると、プロジェクトで生成された `HLOD` フォルダに入ります。これには、**HLOD アウトライナー** で参照される **LODActor** が含まれます。  
 
 ![image alt text](image_15.png)(h:320 w:373 convert:false)
 
-こうしたプロキシ メッシュを個別に開いて設定を調整することができます。マテリアルをマージすることにしたら、マテリアルにアクセスしてテクスチャ ソースや任意のマテリアル設定を調整します。 
+こうしたプロキシ メッシュを個別に開いて設定を調整することができます。
 
 ![image alt text](image_16.png)(h:357 w:404 convert:false)
 
-上の画面のプロキシ メッシュには、単一のテキスチャに結合された元々独自のテクスチャを持っていた複数種類の要素が含まれます。
+上の画面のプロキシ メッシュには、単一のテキスチャに結合された元々独自のテクスチャを持っていた複数種類のエレメントが含まれます。
 
 
 [REGION:note]
@@ -49,7 +46,7 @@ HLOD レベルの望ましい境界範囲:500
 
 ![image alt text](image_20.png)(h:288 w:372 convert:false)
 
-ボリューム内をドラッグして、**アクタ** をカバーするようにスケーリングします。
+ボリューム内をドラッグして、**アクタ** をカバーするようにスケーリングします。  
 
  ![image alt text](image_21.png)(h:273 w:370 convert:false)
 
@@ -77,6 +74,6 @@ We should have a doc that covers the "Simplygon" features of HLOD
 
 ## HLODMesh カリング ボリューム
 
-HLODMesh カリング ボリュームは、HLOD メッシュを生成する前にソース メッシュからトライアングルを取り除くために HLOD クラスタに追加することができます。
+HLODMesh カリング ボリュームを HLOD クラスタに追加して、HLOD メッシュを生成する前にソース メッシュからトライアングルを取り除くことができます。
 
 -->
